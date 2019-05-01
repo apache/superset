@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import {
   ADD_SLICE,
   CHANGE_FILTER,
@@ -7,12 +25,12 @@ import {
   SET_EDIT_MODE,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
   SET_UNSAVED_CHANGES,
-  TOGGLE_BUILDER_PANE,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
 } from '../../../../src/dashboard/actions/dashboardState';
 
 import dashboardStateReducer from '../../../../src/dashboard/reducers/dashboardState';
+import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
 
 describe('dashboardState reducer', () => {
   it('should return initial state', () => {
@@ -61,23 +79,10 @@ describe('dashboardState reducer', () => {
         { editMode: false },
         { type: SET_EDIT_MODE, editMode: true },
       ),
-    ).toEqual({ editMode: true, showBuilderPane: true });
-  });
-
-  it('should toggle builder pane', () => {
-    expect(
-      dashboardStateReducer(
-        { showBuilderPane: false },
-        { type: TOGGLE_BUILDER_PANE },
-      ),
-    ).toEqual({ showBuilderPane: true });
-
-    expect(
-      dashboardStateReducer(
-        { showBuilderPane: true },
-        { type: TOGGLE_BUILDER_PANE },
-      ),
-    ).toEqual({ showBuilderPane: false });
+    ).toEqual({
+      editMode: true,
+      builderPaneType: BUILDER_PANE_TYPE.ADD_COMPONENTS,
+    });
   });
 
   it('should toggle expanded slices', () => {
@@ -132,6 +137,8 @@ describe('dashboardState reducer', () => {
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
       editMode: false,
+      builderPaneType: BUILDER_PANE_TYPE.NONE,
+      updatedColorScheme: false,
     });
   });
 

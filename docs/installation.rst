@@ -1,3 +1,20 @@
+..  Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+..    http://www.apache.org/licenses/LICENSE-2.0
+
+..  Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 Installation & Configuration
 ============================
 
@@ -39,7 +56,14 @@ as needed.
 Start with Docker
 -----------------
 
-If you know docker, then you're lucky, we have shortcut road for you to 
+.. note ::
+    The Docker-related files and documentation has been
+    community-contributed and
+    is not actively maintained and managed by the core committers working on
+    the project. Some issues have been reported as of 2019-01.
+    Help and contributions around Docker are welcomed!
+
+If you know docker, then you're lucky, we have shortcut road for you to
 initialize development environment: ::
 
     git clone https://github.com/apache/incubator-superset/
@@ -56,7 +80,7 @@ From there, the container server will reload on modification of the superset pyt
 and javascript source code.
 Don't forget to reload the page to take the new frontend into account though.
 
-See also `CONTRIBUTING.md <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#webpack-dev-server>`_,
+See also `CONTRIBUTING.md#building <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#building>`_,
 for alternative way of serving the frontend.
 
 It is also possible to run Superset in non-development mode: in the `docker-compose.yml` file remove
@@ -100,7 +124,7 @@ that the required dependencies are installed: ::
 **OSX**, system python is not recommended. brew's python also ships with pip  ::
 
     brew install pkg-config libffi openssl python
-    env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==1.9
+    env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==2.4.2
 
 **Windows** isn't officially supported at this point, but if you want to
 attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and run ``python get-pip.py`` which may need admin access. Then run the following: ::
@@ -146,11 +170,12 @@ Follow these few simple steps to install Superset.::
     # Install superset
     pip install superset
 
-    # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
-    fabmanager create-admin --app superset
-
     # Initialize the database
     superset db upgrade
+
+    # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
+    $ export FLASK_APP=superset
+    flask fab create-admin
 
     # Load some data to play with
     superset load_examples
@@ -159,7 +184,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    superset runserver -d
+    flask run -p 8080 --with-threads --reload --debugger
 
 
 After installation, you should be able to point your browser to the right
@@ -191,7 +216,7 @@ setup known to work well in production: ::
         superset:app
 
 Refer to the
-`Gunicorn documentation <http://docs.gunicorn.org/en/stable/design.html>`_
+`Gunicorn documentation <https://docs.gunicorn.org/en/stable/design.html>`_
 for more information.
 
 Note that *gunicorn* does not
@@ -212,17 +237,11 @@ workers this creates a lot of contention and race conditions when defining
 permissions and views.
 
 To alleviate this issue, the automatic updating of permissions can be disabled
-by setting the environment variable
-`SUPERSET_UPDATE_PERMS` environment variable to `0`.
-The value `1` enables it, `0` disables it. Note if undefined the functionality
-is enabled to maintain backwards compatibility.
+by setting `FAB_UPDATE_PERMS = False` (defaults to True).
 
 In a production environment initialization could take on the following form:
 
-  export SUPERSET_UPDATE_PERMS=1
   superset init
-
-  export SUPERSET_UPDATE_PERMS=0
   gunicorn -w 10 ... superset:app
 
 Configuration behind a load balancer
@@ -295,7 +314,7 @@ as well as Flask extensions like ``flask-wtf``, ``flask-cache``,
 ``flask-migrate``, and ``flask-appbuilder``. Flask App Builder, the web
 framework used by Superset offers many configuration settings. Please consult
 the `Flask App Builder Documentation
-<http://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
+<https://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
 for more information on how to configure it.
 
 Make sure to change:
@@ -364,6 +383,9 @@ Here's a list of some of the recommended packages.
 |  BigQuery     | ``pip install pybigquery``          | ``bigquery://``                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Teradata     | ``pip install sqlalchemy-teradata`` | ``teradata://``                                 |
++---------------+-------------------------------------+-------------------------------------------------+
+|  Pinot        | ``pip install pinotdb``             | ``pinot+http://controller:5436/``               |
+|               |                                     | ``query?server=http://controller:5983/``        |
 +---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other databases are supported, the main criteria being the
@@ -452,6 +474,26 @@ into your global default defined in ``CACHE_CONFIG``.
         'CACHE_REDIS_URL': 'redis://localhost:6379/0',
     }
 
+Superset has a Celery task that will periodically warm up the cache based on
+different strategies. To use it, add the following to the `CELERYBEAT_SCHEDULE`
+section in `config.py`:
+
+.. code-block:: python
+
+    CELERYBEAT_SCHEDULE = {
+        'cache-warmup-hourly': {
+            'task': 'cache-warmup',
+            'schedule': crontab(minute=0, hour='*'),  # hourly
+            'kwargs': {
+                'strategy_name': 'top_n_dashboards',
+                'top_n': 5,
+                'since': '7 days ago',
+            },
+        },
+    }
+
+This will cache all the charts in the top 5 most popular dashboards every hour.
+For other strategies, check the `superset/tasks/cache.py` file.
 
 
 Deeper SQLAlchemy integration
@@ -466,9 +508,9 @@ find an ``extra`` field as a ``JSON`` blob.
 
 This JSON string contains extra configuration elements. The ``engine_params``
 object gets unpacked into the
-`sqlalchemy.create_engine <http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine>`_ call,
+`sqlalchemy.create_engine <https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine>`_ call,
 while the ``metadata_params`` get unpacked into the
-`sqlalchemy.MetaData <http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
+`sqlalchemy.MetaData <https://docs.sqlalchemy.org/en/rel_1_2/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
 
 
 Schemas (Postgres & Redshift)
@@ -552,7 +594,7 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 
 
 * ``ENABLE_CORS``: Must be set to True in order to enable CORS
-* ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <http://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
+* ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <https://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
 
 
 DOMAIN SHARDING
@@ -564,7 +606,7 @@ next available socket. PR (`#5039 <https://github.com/apache/incubator-superset/
 and this feature will be enabled by configuration only (by default Superset
 doesn't allow cross-domain request).
 
-*``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
+* ``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
 
 
 MIDDLEWARE
@@ -598,6 +640,18 @@ Upgrading should be as straightforward as running::
     pip install superset --upgrade
     superset db upgrade
     superset init
+
+We recommend to follow standard best practices when upgrading Superset, such
+as taking a database backup prior to the upgrade, upgrading a staging
+environment prior to upgrading production, and upgrading production while less
+users are active on the platform.
+
+.. note ::
+   Some upgrades may contain backward-incompatible changes, or require
+   scheduling downtime, when that is the case, contributors attach notes in
+   ``UPDATING.md`` in the repository. It's recommended to review this
+   file prior to running an upgrade.
+
 
 Celery Tasks
 ------------
@@ -774,7 +828,7 @@ Building from source
 
 More advanced users may want to build Superset from sources. That
 would be the case if you fork the project to add features specific to
-your environment. See `CONTRIBUTING.md <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#local-development>`_.
+your environment. See `CONTRIBUTING.md#setup-local-environment-for-development <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#setup-local-environment-for-development>`_.
 
 Blueprints
 ----------

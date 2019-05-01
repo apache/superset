@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { SupersetClient } from '@superset-ui/connection';
@@ -19,9 +37,13 @@ const propTypes = {
   dashboardTitle: PropTypes.string.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
   css: PropTypes.string.isRequired,
+  colorNamespace: PropTypes.string,
+  colorScheme: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   updateCss: PropTypes.func.isRequired,
   forceRefreshAllCharts: PropTypes.func.isRequired,
+  refreshFrequency: PropTypes.number.isRequired,
+  setRefreshFrequency: PropTypes.func.isRequired,
   startPeriodicRender: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   userCanEdit: PropTypes.bool.isRequired,
@@ -33,7 +55,10 @@ const propTypes = {
   onSave: PropTypes.func.isRequired,
 };
 
-const defaultProps = {};
+const defaultProps = {
+  colorNamespace: undefined,
+  colorScheme: undefined,
+};
 
 class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {
@@ -48,6 +73,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     };
 
     this.changeCss = this.changeCss.bind(this);
+    this.changeRefreshInterval = this.changeRefreshInterval.bind(this);
   }
 
   componentWillMount() {
@@ -77,14 +103,21 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.props.updateCss(css);
   }
 
+  changeRefreshInterval(refreshInterval) {
+    this.props.setRefreshFrequency(refreshInterval);
+    this.props.startPeriodicRender(refreshInterval * 1000);
+  }
+
   render() {
     const {
       dashboardTitle,
       dashboardId,
-      startPeriodicRender,
       forceRefreshAllCharts,
+      refreshFrequency,
       editMode,
       css,
+      colorNamespace,
+      colorScheme,
       hasUnsavedChanges,
       layout,
       filters,
@@ -117,7 +150,10 @@ class HeaderActionsDropdown extends React.PureComponent {
             layout={layout}
             filters={filters}
             expandedSlices={expandedSlices}
+            refreshFrequency={refreshFrequency}
             css={css}
+            colorNamespace={colorNamespace}
+            colorScheme={colorScheme}
             onSave={onSave}
             isMenuItem
             triggerNode={<span>{t('Save as')}</span>}
@@ -141,12 +177,13 @@ class HeaderActionsDropdown extends React.PureComponent {
         <MenuItem onClick={forceRefreshAllCharts} disabled={isLoading}>
           {t('Force refresh dashboard')}
         </MenuItem>
-        <RefreshIntervalModal
-          onChange={refreshInterval =>
-            startPeriodicRender(refreshInterval * 1000)
-          }
-          triggerNode={<span>{t('Set auto-refresh interval')}</span>}
-        />
+        {editMode && (
+          <RefreshIntervalModal
+            refreshFrequency={refreshFrequency}
+            onChange={this.changeRefreshInterval}
+            triggerNode={<span>{t('Set auto-refresh interval')}</span>}
+          />
+        )}
         {editMode && (
           <MenuItem target="_blank" href={`/dashboard/edit/${dashboardId}`}>
             {t('Edit dashboard metadata')}
@@ -154,7 +191,11 @@ class HeaderActionsDropdown extends React.PureComponent {
         )}
 
         <URLShortLinkModal
-          url={getDashboardUrl(window.location.pathname, this.props.filters)}
+          url={getDashboardUrl(
+            window.location.pathname,
+            this.props.filters,
+            window.location.hash,
+          )}
           emailSubject={emailSubject}
           emailContent={emailBody}
           addDangerToast={this.props.addDangerToast}

@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 import readResponseBlob from '../../utils/readResponseBlob';
 
@@ -14,18 +32,18 @@ export default () => describe('top-level controls', () => {
     cy.get('#app').then((data) => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       const dashboard = bootstrapData.dashboard_data;
-      const sliceIds = dashboard.slices.map(slice => (slice.slice_id));
       mapId = dashboard.slices.find(slice => (slice.form_data.viz_type === 'world_map')).slice_id;
 
-      sliceIds
-        .forEach((id) => {
-          const sliceRequest = `getJson_${id}`;
+      dashboard.slices
+        .forEach((slice) => {
+          const sliceRequest = `getJson_${slice.slice_id}`;
           sliceRequests.push(`@${sliceRequest}`);
-          cy.route('POST', `/superset/explore_json/?form_data={"slice_id":${id}}`).as(sliceRequest);
+          const formData = `{"slice_id":${slice.slice_id}}`;
+          cy.route('POST', `/superset/explore_json/?form_data=${formData}`).as(sliceRequest);
 
-          const forceRefresh = `getJson_${id}_force`;
+          const forceRefresh = `postJson_${slice.slice_id}_force`;
           forceRefreshRequests.push(`@${forceRefresh}`);
-          cy.route('POST', `/superset/explore_json/?form_data={"slice_id":${id}}&force=true`).as(forceRefresh);
+          cy.route('POST', `/superset/explore_json/?form_data={"slice_id":${slice.slice_id}}&force=true`).as(forceRefresh);
         });
     });
   });
@@ -51,7 +69,7 @@ export default () => describe('top-level controls', () => {
       .parent()
       .should('have.class', 'disabled');
 
-    cy.wait(`@getJson_${mapId}_force`);
+    cy.wait(`@postJson_${mapId}_force`);
     cy.get('#save-dash-split-button').trigger('click');
     cy.contains('Force refresh dashboard').parent().not('have.class', 'disabled');
   });

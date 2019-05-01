@@ -1,8 +1,25 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 """Unit tests for Superset"""
 import json
 import unittest
 
 from flask import escape
+from sqlalchemy import func
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
@@ -52,6 +69,15 @@ class DashboardTests(SupersetTestCase):
         for title, url in urls.items():
             assert escape(title) in self.client.get(url).data.decode('utf-8')
 
+    def test_new_dashboard(self):
+        self.login(username='admin')
+        dash_count_before = db.session.query(func.count(models.Dashboard.id)).first()[0]
+        url = '/dashboard/new/'
+        resp = self.get_resp(url)
+        self.assertIn('[ untitled dashboard ]', resp)
+        dash_count_after = db.session.query(func.count(models.Dashboard.id)).first()[0]
+        self.assertEquals(dash_count_before + 1, dash_count_after)
+
     def test_dashboard_modes(self):
         self.login(username='admin')
         dash = (
@@ -67,6 +93,7 @@ class DashboardTests(SupersetTestCase):
         resp = self.get_resp(url + 'edit=true&standalone=true')
         self.assertIn('editMode&#34;: true', resp)
         self.assertIn('standalone_mode&#34;: true', resp)
+        self.assertIn('<body class="standalone">', resp)
 
     def test_save_dash(self, username='admin'):
         self.login(username=username)
@@ -164,17 +191,60 @@ class DashboardTests(SupersetTestCase):
         data['dashboard_title'] = origin_title
         self.get_resp(url, data=dict(data=json.dumps(data)))
 
+    def test_save_dash_with_colors(self, username='admin'):
+        self.login(username=username)
+        dash = (
+            db.session.query(models.Dashboard)
+            .filter_by(slug='births')
+            .first()
+        )
+        positions = self.get_mock_positions(dash)
+        new_label_colors = {
+            'data value': 'random color',
+        }
+        data = {
+            'css': '',
+            'expanded_slices': {},
+            'positions': positions,
+            'dashboard_title': dash.dashboard_title,
+            'color_namespace': 'Color Namespace Test',
+            'color_scheme': 'Color Scheme Test',
+            'label_colors': new_label_colors,
+
+        }
+        url = '/superset/save_dash/{}/'.format(dash.id)
+        self.get_resp(url, data=dict(data=json.dumps(data)))
+        updatedDash = (
+            db.session.query(models.Dashboard)
+            .filter_by(slug='births')
+            .first()
+        )
+        self.assertIn('color_namespace', updatedDash.json_metadata)
+        self.assertIn('color_scheme', updatedDash.json_metadata)
+        self.assertIn('label_colors', updatedDash.json_metadata)
+        # bring back original dashboard
+        del data['color_namespace']
+        del data['color_scheme']
+        del data['label_colors']
+        self.get_resp(url, data=dict(data=json.dumps(data)))
+
     def test_copy_dash(self, username='admin'):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
         positions = self.get_mock_positions(dash)
+        new_label_colors = {
+            'data value': 'random color',
+        }
         data = {
             'css': '',
             'duplicate_slices': False,
             'expanded_slices': {},
             'positions': positions,
             'dashboard_title': 'Copy Of Births',
+            'color_namespace': 'Color Namespace Test',
+            'color_scheme': 'Color Scheme Test',
+            'label_colors': new_label_colors,
         }
 
         # Save changes to Births dashboard and retrieve updated dash

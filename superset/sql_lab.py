@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 from contextlib import closing
 from datetime import datetime
@@ -20,6 +36,7 @@ from superset.tasks.celery_app import app as celery_app
 from superset.utils.core import (
     json_iso_dttm_ser,
     QueryStatus,
+    sources,
     zlib_compress,
 )
 from superset.utils.dates import now_as_float
@@ -124,9 +141,7 @@ def get_sql_results(
             return handle_query_error(str(e), query, session)
 
 
-def execute_sql_statement(
-        sql_statement, query, user_name, session,
-        cursor, return_results=False):
+def execute_sql_statement(sql_statement, query, user_name, session, cursor):
     """Executes a single SQL statement"""
     database = query.database
     db_engine_spec = database.db_engine_spec
@@ -226,6 +241,7 @@ def execute_sql_statements(
         schema=query.schema,
         nullpool=True,
         user_name=user_name,
+        source=sources.get('sql_lab', None),
     )
     # Sharing a single connection and cursor across the
     # execution of all statements (if many)
@@ -238,11 +254,9 @@ def execute_sql_statements(
                 logging.info(msg)
                 query.set_extra_json_key('progress', msg)
                 session.commit()
-                is_last_statement = i == len(statements) - 1
                 try:
                     cdf = execute_sql_statement(
-                        statement, query, user_name, session, cursor,
-                        return_results=is_last_statement and return_results)
+                        statement, query, user_name, session, cursor)
                     msg = f'Running statement {i+1} out of {statement_count}'
                 except Exception as e:
                     msg = str(e)
@@ -264,7 +278,6 @@ def execute_sql_statements(
             show_cols=False,
             latest_partition=False)
     query.end_time = now_as_float()
-    session.commit()
 
     payload.update({
         'status': query.status,

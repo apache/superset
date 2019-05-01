@@ -1,21 +1,41 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 from datetime import datetime
 import functools
 import logging
 import traceback
+from typing import Any, Dict
 
 from flask import abort, flash, g, get_flashed_messages, redirect, Response
 from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
+from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
+from flask_wtf.form import FlaskForm
 import simplejson as json
+from wtforms.fields.core import Field, UnboundField
 import yaml
 
-from superset import conf, db, security_manager
+from superset import conf, db, get_feature_flags, security_manager
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
@@ -27,6 +47,7 @@ FRONTEND_CONF_KEYS = (
     'DEFAULT_SQLLAB_LIMIT',
     'SQL_MAX_ROW',
     'SUPERSET_WEBSERVER_DOMAINS',
+    'SQLLAB_SAVE_WARNING_MESSAGE',
 )
 
 
@@ -141,7 +162,7 @@ class BaseSupersetView(BaseView):
             'conf': {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
             'locale': locale,
             'language_pack': get_language_pack(locale),
-            'feature_flags': conf.get('FEATURE_FLAGS'),
+            'feature_flags': get_feature_flags(),
         }
 
 
@@ -351,3 +372,26 @@ def check_ownership(obj, raise_if_false=True):
         raise security_exception
     else:
         return False
+
+
+def bind_field(
+        self,
+        form: DynamicForm,
+        unbound_field: UnboundField,
+        options: Dict[Any, Any],
+    ) -> Field:
+    """
+    Customize how fields are bound by stripping all whitespace.
+
+    :param form: The form
+    :param unbound_field: The unbound field
+    :param options: The field options
+    :returns: The bound field
+    """
+
+    filters = unbound_field.kwargs.get('filters', [])
+    filters.append(lambda x: x.strip() if isinstance(x, str) else x)
+    return unbound_field.bind(form=form, filters=filters, **options)
+
+
+FlaskForm.Meta.bind_field = bind_field

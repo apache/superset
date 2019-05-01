@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for Superset"""
 from contextlib import closing
@@ -32,6 +48,7 @@ from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import (
     cache as cache_util,
@@ -146,7 +163,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
                      'viz_type', 'params', 'cache_timeout')
 
     def __repr__(self):
-        return self.slice_name
+        return self.slice_name or str(self.id)
 
     @property
     def cls_model(self):
@@ -226,6 +243,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             'slice_name': self.slice_name,
             'slice_url': self.slice_url,
             'modified': self.modified(),
+            'changed_on_humanized': self.changed_on_humanized,
             'changed_on': self.changed_on.isoformat(),
         }
 
@@ -275,9 +293,13 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         return '/chart/edit/{}'.format(self.id)
 
     @property
+    def chart(self):
+        return self.slice_name or '<empty>'
+
+    @property
     def slice_link(self):
         url = self.slice_url
-        name = escape(self.slice_name)
+        name = escape(self.chart)
         return Markup(f'<a href="{url}">{name}</a>')
 
     def get_viz(self, force=False):
@@ -343,6 +365,13 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         session.flush()
         return slc_to_import.id
 
+    @property
+    def url(self):
+        return (
+            '/superset/explore/?form_data=%7B%22slice_id%22%3A%20{0}%7D'
+            .format(self.id)
+        )
+
 
 sqla.event.listen(Slice, 'before_insert', set_related_perm)
 sqla.event.listen(Slice, 'before_update', set_related_perm)
@@ -383,7 +412,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                      'description', 'css', 'slug')
 
     def __repr__(self):
-        return self.dashboard_title
+        return self.dashboard_title or str(self.id)
 
     @property
     def table_names(self):
@@ -413,13 +442,17 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         return {slc.datasource for slc in self.slices}
 
     @property
+    def charts(self):
+        return [slc.chart for slc in self.slices]
+
+    @property
     def sqla_metadata(self):
         # pylint: disable=no-member
         metadata = MetaData(bind=self.get_sqla_engine())
         return metadata.reflect()
 
     def dashboard_link(self):
-        title = escape(self.dashboard_title)
+        title = escape(self.dashboard_title or '<empty>')
         return Markup(f'<a href="{self.url}">{title}</a>')
 
     @property
@@ -716,6 +749,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def table_cache_timeout(self):
         return self.metadata_cache_timeout.get('table_cache_timeout')
 
+    @property
+    def default_schemas(self):
+        return self.get_extra().get('default_schemas', [])
+
     @classmethod
     def get_password_masked_url_from_uri(cls, uri):
         url = make_url(uri)
@@ -757,7 +794,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @utils.memoized(
         watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
-    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None):
+    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None, source=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
         url = self.db_engine_spec.adjust_database_uri(url, schema)
@@ -785,12 +822,14 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 self.impersonate_user,
                 effective_username))
         if configuration:
-            params['connect_args'] = {'configuration': configuration}
+            d = params.get('connect_args', {})
+            d['configuration'] = configuration
+            params['connect_args'] = d
 
         DB_CONNECTION_MUTATOR = config.get('DB_CONNECTION_MUTATOR')
         if DB_CONNECTION_MUTATOR:
             url, params = DB_CONNECTION_MUTATOR(
-                url, params, effective_username, security_manager)
+                url, params, effective_username, security_manager, source)
         return create_engine(url, **params)
 
     def get_reserved_words(self):
@@ -799,9 +838,16 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def get_quoter(self):
         return self.get_dialect().identifier_preparer.quote
 
-    def get_df(self, sql, schema):
+    def get_df(self, sql, schema, mutator=None):
         sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
-        engine = self.get_sqla_engine(schema=schema)
+        source_key = None
+        if request and request.referrer:
+            if '/superset/dashboard/' in request.referrer:
+                source_key = 'dashboard'
+            elif '/superset/explore/' in request.referrer:
+                source_key = 'chart'
+        engine = self.get_sqla_engine(
+            schema=schema, source=utils.sources.get(source_key, None))
         username = utils.get_username()
 
         def needs_conversion(df_series):
@@ -836,6 +882,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                     coerce_float=True,
                 )
 
+                if mutator:
+                    df = mutator(df)
+
                 for k, v in df.dtypes.items():
                     if v.type == numpy.object_ and needs_conversion(df[k]):
                         df[k] = df[k].apply(utils.json_dumps_w_dates)
@@ -860,7 +909,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             self, table_name, schema=None, limit=100, show_cols=False,
             indent=True, latest_partition=False, cols=None):
         """Generates a ``select *`` statement in the proper dialect"""
-        eng = self.get_sqla_engine(schema=schema)
+        eng = self.get_sqla_engine(
+            schema=schema, source=utils.sources.get('sql_lab', None))
         return self.db_engine_spec.select_star(
             self, table_name, schema=schema, engine=eng,
             limit=limit, show_cols=show_cols,
@@ -1025,7 +1075,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             autoload_with=self.get_sqla_engine())
 
     def get_columns(self, table_name, schema=None):
-        return self.inspector.get_columns(table_name, schema)
+        return self.db_engine_spec.get_columns(self.inspector, table_name, schema)
 
     def get_indexes(self, table_name, schema=None):
         return self.inspector.get_indexes(table_name, schema)
@@ -1227,3 +1277,14 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
                 href = '{} Role'.format(r.name)
             action_list = action_list + '<li>' + href + '</li>'
         return '<ul>' + action_list + '</ul>'
+
+
+# events for updating tags
+sqla.event.listen(Slice, 'after_insert', ChartUpdater.after_insert)
+sqla.event.listen(Slice, 'after_update', ChartUpdater.after_update)
+sqla.event.listen(Slice, 'after_delete', ChartUpdater.after_delete)
+sqla.event.listen(Dashboard, 'after_insert', DashboardUpdater.after_insert)
+sqla.event.listen(Dashboard, 'after_update', DashboardUpdater.after_update)
+sqla.event.listen(Dashboard, 'after_delete', DashboardUpdater.after_delete)
+sqla.event.listen(FavStar, 'after_insert', FavStarUpdater.after_insert)
+sqla.event.listen(FavStar, 'after_delete', FavStarUpdater.after_delete)

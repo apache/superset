@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import inspect
 
 from superset import app, appbuilder, security_manager
@@ -60,6 +76,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(('can_slice', 'Superset'), perm_set)
         self.assertIn(('can_explore', 'Superset'), perm_set)
         self.assertIn(('can_explore_json', 'Superset'), perm_set)
+        self.assertIn(('can_userinfo', 'UserDBModelView'), perm_set)
 
     def assert_can_alpha(self, perm_set):
         self.assert_can_all('SqlMetricInlineView', perm_set)
@@ -113,9 +130,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assertTrue(security_manager.is_admin_only(
             security_manager.find_permission_view_menu(
                 'can_approve', 'Superset')))
-        self.assertTrue(security_manager.is_admin_only(
-            security_manager.find_permission_view_menu(
-                'all_database_access', 'all_database_access')))
 
     def test_is_alpha_only(self):
         self.assertFalse(security_manager.is_alpha_only(
@@ -132,6 +146,9 @@ class RolePermissionTests(SupersetTestCase):
         self.assertTrue(security_manager.is_alpha_only(
             security_manager.find_permission_view_menu(
                 'can_delete', 'DruidMetricInlineView')))
+        self.assertTrue(security_manager.is_alpha_only(
+            security_manager.find_permission_view_menu(
+                'all_database_access', 'all_database_access')))
 
     def test_is_gamma_pvm(self):
         self.assertTrue(security_manager.is_gamma_pvm(
@@ -215,6 +232,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
         self.assertIn(('can_slice', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_userinfo', 'UserDBModelView'), gamma_perm_set)
 
     def test_views_are_secured(self):
         """Preventing the addition of unsecured views without has_access decorator"""
@@ -231,6 +249,8 @@ class RolePermissionTests(SupersetTestCase):
             ['Superset', 'log'],
             ['Superset', 'theme'],
             ['Superset', 'welcome'],
+            ['SecurityApi', 'login'],
+            ['SecurityApi', 'refresh'],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:

@@ -1,23 +1,40 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-
-import {
-  Logger,
-  LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
-  LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
-  LOG_ACTIONS_REFRESH_CHART,
-} from '../../logger';
+import URLShortLinkModal from '../../components/URLShortLinkModal';
+import getDashboardUrl from '../util/getDashboardUrl';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
+  componentId: PropTypes.string.isRequired,
+  filters: PropTypes.object.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
   isCached: PropTypes.bool,
   isExpanded: PropTypes.bool,
   cachedDttm: PropTypes.string,
   updatedDttm: PropTypes.number,
   supersetCanExplore: PropTypes.bool,
+  supersetCanCSV: PropTypes.bool,
   sliceCanEdit: PropTypes.bool,
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,
@@ -35,6 +52,7 @@ const defaultProps = {
   isCached: false,
   isExpanded: false,
   supersetCanExplore: false,
+  supersetCanCSV: false,
   sliceCanEdit: false,
 };
 
@@ -65,35 +83,15 @@ class SliceHeaderControls extends React.PureComponent {
 
   exportCSV() {
     this.props.exportCSV(this.props.slice.slice_id);
-    Logger.append(
-      LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
-      {
-        slice_id: this.props.slice.slice_id,
-        is_cached: this.props.isCached,
-      },
-      true,
-    );
   }
 
   exploreChart() {
     this.props.exploreChart(this.props.slice.slice_id);
-    Logger.append(
-      LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
-      {
-        slice_id: this.props.slice.slice_id,
-        is_cached: this.props.isCached,
-      },
-      true,
-    );
   }
 
   refreshChart() {
     if (this.props.updatedDttm) {
       this.props.forceRefresh(this.props.slice.slice_id);
-      Logger.append(LOG_ACTIONS_REFRESH_CHART, {
-        slice_id: this.props.slice.slice_id,
-        is_cached: this.props.isCached,
-      });
     }
   }
 
@@ -104,7 +102,15 @@ class SliceHeaderControls extends React.PureComponent {
   }
 
   render() {
-    const { slice, isCached, cachedDttm, updatedDttm } = this.props;
+    const {
+      slice,
+      isCached,
+      cachedDttm,
+      updatedDttm,
+      filters,
+      componentId,
+      addDangerToast,
+    } = this.props;
     const cachedWhen = moment.utc(cachedDttm).fromNow();
     const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
     const refreshTooltip = isCached
@@ -143,13 +149,27 @@ class SliceHeaderControls extends React.PureComponent {
             </MenuItem>
           )}
 
-          <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
+          {this.props.supersetCanCSV && (
+            <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
+          )}
 
           {this.props.supersetCanExplore && (
             <MenuItem onClick={this.exploreChart}>
               {t('Explore chart')}
             </MenuItem>
           )}
+
+          <URLShortLinkModal
+            url={getDashboardUrl(
+              window.location.pathname,
+              filters,
+              componentId,
+            )}
+            addDangerToast={addDangerToast}
+            isMenuItem
+            title={t('Share chart')}
+            triggerNode={<span>{t('Share chart')}</span>}
+          />
         </Dropdown.Menu>
       </Dropdown>
     );

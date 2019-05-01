@@ -1,6 +1,24 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { Provider } from 'react-redux';
 import React from 'react';
-import { mount } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import sinon from 'sinon';
 import { Tabs as BootstrapTabs, Tab as BootstrapTab } from 'react-bootstrap';
 
@@ -34,6 +52,7 @@ describe('Tabs', () => {
     onChangeTab() {},
     deleteComponent() {},
     updateComponents() {},
+    logEvent() {},
   };
 
   function setup(overrideProps) {
@@ -134,5 +153,21 @@ describe('Tabs', () => {
     wrapper.find(DeleteComponentButton).simulate('click');
 
     expect(deleteComponent.callCount).toBe(1);
+  });
+
+  it('should direct display direct-link tab', () => {
+    let wrapper = shallow(<Tabs {...props} />);
+    // default show first tab child
+    expect(wrapper.state('tabIndex')).toBe(0);
+
+    // display child in directPathToChild list
+    const directPathToChild = dashboardLayoutWithTabs.present.ROW_ID2.parents.slice();
+    const directLinkProps = {
+      ...props,
+      directPathToChild,
+    };
+
+    wrapper = shallow(<Tabs {...directLinkProps} />);
+    expect(wrapper.state('tabIndex')).toBe(1);
   });
 });

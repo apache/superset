@@ -1,9 +1,66 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
 # Updating Superset
 
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Next Version
+
+* [5451](https://github.com/apache/incubator-superset/pull/5451): a change
+which adds missing non-nullable fields to the `datasources` table. Depending on
+the integrity of the data, manual intervention may be required.
+
+* [5452](https://github.com/apache/incubator-superset/pull/5452): a change
+which adds missing non-nullable fields and uniqueness constraints to the
+`columns`and `table_columns` tables. Depending on the integrity of the data,
+manual intervention may be required.
+* `fabmanager` command line is deprecated since Flask-AppBuilder 2.0.0, use
+the new `flask fab <command>` integrated with *Flask cli*.
+* `SUPERSET_UPDATE_PERMS` environment variable was replaced by 
+`FAB_UPDATE_PERMS` config boolean key. To disable automatic
+creation of permissions set `FAB_UPDATE_PERMS = False` on config.
+* [5453](https://github.com/apache/incubator-superset/pull/5453): a change
+which adds missing non-nullable fields and uniqueness constraints to the metrics
+and sql_metrics tables. Depending on the integrity of the data, manual
+intervention may be required.
+
+## Superset 0.32.0
+
+* `npm run backend-sync` is deprecated and no longer needed, will fail if called
+* [5445](https://github.com/apache/incubator-superset/pull/5445): a change
+which prevents encoding of empty string from form data in the database.
+This involves a non-schema changing migration which does potentially impact
+a large number of records. Scheduled downtime may be advised.
+
 ## Superset 0.31.0
+
+* If you use `Hive` or `Presto`, we've moved some dependencies that were
+  in the main package as optional now. To get these packages,
+  run `pip install superset[presto]` and/or `pip install superset[hive]` as
+  required.
+
+* Similarly, if you use Celery's `flower`, `gsheetsdb`, `thrift` or
+  `thrift-sasl`, those dependencies have now been made optional in our
+  package, meaning you may have to install them in your environment post
+  0.31.0
+
 * boto3 / botocore was removed from the dependency list. If you use s3
 as a place to store your SQL Lab result set or Hive uploads, you may
 have to rely on an alternate requirements.txt file to install those
@@ -12,6 +69,12 @@ dependencies.
 favor of good old `npm install`. While yarn should still work just fine,
 you should probably align to guarantee builds similar to the ones we
 use in testing and across the community in general.
+
+## Superset 0.30.0
+* 0.30.0 includes a db_migration that removes allow_run_sync. This may
+require downtime because during the migration if the db is migrated first,
+superset will get 500 errors when the code can't find the field (until
+the deploy finishes).
 
 ## Superset 0.29.0
 * India was removed from the "Country Map" visualization as the geojson

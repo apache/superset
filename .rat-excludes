@@ -1,0 +1,42 @@
+.gitignore
+.gitattributes
+.coverage
+.coveragerc
+.codecov.yml
+.eslintrc
+.eslintignore
+.flake8
+.prettierrc
+.rat-excludes
+.*log
+.*pyc
+.*lock
+.*geojson
+DISCLAIMER
+licenses/*
+node_modules/*
+rat-results.txt
+babel-node
+dist
+build
+superset.egg-info
+apache_superset.egg-info
+.idea
+.*sql
+.*zip
+.*lock
+# json and csv in general cannot have comments
+.*json
+.*csv
+# Generated doc files
+docs/_build/*
+_build/*
+_static/*
+.buildinfo
+searchindex.js
+# auto generated
+requirements.txt
+# vendorized
+vendor/*
+# github configuration
+.github/*

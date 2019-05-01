@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -6,9 +24,16 @@ import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
 import MissingChart from '../MissingChart';
 import { slicePropShape, chartPropShape } from '../../util/propShapes';
+import {
+  LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
+  LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
+  LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_FORCE_REFRESH_CHART,
+} from '../../../logger/LogUtils';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
+  componentId: PropTypes.string.isRequired,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   updateSliceName: PropTypes.func.isRequired,
@@ -22,12 +47,20 @@ const propTypes = {
   timeout: PropTypes.number.isRequired,
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
+  logEvent: PropTypes.func.isRequired,
   toggleExpandSlice: PropTypes.func.isRequired,
   addFilter: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   isExpanded: PropTypes.bool.isRequired,
+  isCached: PropTypes.bool,
   supersetCanExplore: PropTypes.bool.isRequired,
+  supersetCanCSV: PropTypes.bool.isRequired,
   sliceCanEdit: PropTypes.bool.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
+};
+
+const defaultProps = {
+  isCached: false,
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
@@ -115,25 +148,45 @@ class Chart extends React.Component {
     this.setState(() => ({ width, height }));
   }
 
-  addFilter(...args) {
-    this.props.addFilter(this.props.chart, ...args);
+  addFilter(...[col, vals, merge, refresh]) {
+    this.props.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
+      id: this.props.chart.id,
+      column: col,
+      value_count: Array.isArray(vals) ? vals.length : (vals && 1) || 0,
+      merge,
+      refresh,
+    });
+    this.props.addFilter(this.props.chart, col, vals, merge, refresh);
   }
 
   exploreChart() {
+    this.props.logEvent(LOG_ACTIONS_EXPLORE_DASHBOARD_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+    });
     exportChart(this.props.formData);
   }
 
   exportCSV() {
+    this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+    });
     exportChart(this.props.formData, 'csv');
   }
 
   forceRefresh() {
+    this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+    });
     return this.props.refreshChart(this.props.chart, true, this.props.timeout);
   }
 
   render() {
     const {
       id,
+      componentId,
       chart,
       slice,
       datasource,
@@ -146,7 +199,9 @@ class Chart extends React.Component {
       toggleExpandSlice,
       timeout,
       supersetCanExplore,
+      supersetCanCSV,
       sliceCanEdit,
+      addDangerToast,
     } = this.props;
 
     const { width } = this.state;
@@ -180,7 +235,11 @@ class Chart extends React.Component {
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
+          supersetCanCSV={supersetCanCSV}
           sliceCanEdit={sliceCanEdit}
+          componentId={componentId}
+          filters={filters}
+          addDangerToast={addDangerToast}
         />
 
         {/*
@@ -228,5 +287,6 @@ class Chart extends React.Component {
 }
 
 Chart.propTypes = propTypes;
+Chart.defaultProps = defaultProps;
 
 export default Chart;

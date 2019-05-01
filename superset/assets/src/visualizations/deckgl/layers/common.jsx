@@ -1,15 +1,69 @@
-import React from 'react';
-
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { fitBounds } from 'viewport-mercator-project';
 import * as d3array from 'd3-array';
 import sandboxedEval from '../../../modules/sandbox';
 
+const PADDING = 0.25;
+const GEO_BOUNDS = {
+  LAT_MIN: -90,
+  LAT_MAX: 90,
+  LNG_MIN: -180,
+  LNG_MAX: 180,
+};
+
+/**
+ * Get the latitude bounds if latitude is a single coordinate
+ * @param latExt Latitude range
+ */
+function getLatBoundsForSingleCoordinate(latExt) {
+  const latMin = latExt[0] - PADDING < GEO_BOUNDS.LAT_MIN
+    ? GEO_BOUNDS.LAT_MIN
+    : latExt[0] - PADDING;
+  const latMax = latExt[1] + PADDING > GEO_BOUNDS.LAT_MAX
+    ? GEO_BOUNDS.LAT_MAX
+    : latExt[1] + PADDING;
+  return [latMin, latMax];
+}
+
+/**
+ * Get the longitude bounds if longitude is a single coordinate
+ * @param lngExt Longitude range
+ */
+function getLngBoundsForSingleCoordinate(lngExt) {
+  const lngMin = lngExt[0] - PADDING < GEO_BOUNDS.LNG_MIN
+    ? GEO_BOUNDS.LNG_MIN
+    : lngExt[0] - PADDING;
+  const lngMax = lngExt[1] + PADDING > GEO_BOUNDS.LNG_MAX
+    ? GEO_BOUNDS.LNG_MAX
+    : lngExt[1] + PADDING;
+  return [lngMin, lngMax];
+}
+
 export function getBounds(points) {
   const latExt = d3array.extent(points, d => d[1]);
   const lngExt = d3array.extent(points, d => d[0]);
+  const latBounds = latExt[0] === latExt[1] ? getLatBoundsForSingleCoordinate(latExt) : latExt;
+  const lngBounds = lngExt[0] === lngExt[1] ? getLngBoundsForSingleCoordinate(lngExt) : lngExt;
   return [
-    [lngExt[0], latExt[0]],
-    [lngExt[1], latExt[1]],
+    [lngBounds[0], latBounds[0]],
+    [lngBounds[1], latBounds[1]],
   ];
 }
 
@@ -32,20 +86,12 @@ export function fitViewport(viewport, points, padding = 10) {
   }
 }
 
-export function commonLayerProps(formData, setTooltip, onSelect) {
+export function commonLayerProps(formData, setTooltip, setTooltipContent, onSelect) {
   const fd = formData;
   let onHover;
-  let tooltipContentGenerator;
+  let tooltipContentGenerator = setTooltipContent;
   if (fd.js_tooltip) {
     tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
-  } else if (fd.line_column && fd.metric && ['geohash', 'zipcode'].indexOf(fd.line_type) >= 0) {
-    const metricLabel = fd.metric.label || fd.metric;
-    tooltipContentGenerator = o => (
-      <div>
-        <div>{fd.line_column}: <strong>{o.object[fd.line_column]}</strong></div>
-        {fd.metric &&
-          <div>{metricLabel}: <strong>{o.object[metricLabel]}</strong></div>}
-      </div>);
   }
   if (tooltipContentGenerator) {
     onHover = (o) => {
@@ -53,7 +99,7 @@ export function commonLayerProps(formData, setTooltip, onSelect) {
         setTooltip({
           content: tooltipContentGenerator(o),
           x: o.x,
-          y: o.y,
+          y: o.y + 30,
         });
       } else {
         setTooltip(null);

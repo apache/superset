@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
@@ -13,14 +31,8 @@ import {
 } from '../util/propShapes';
 import { areObjectsEqual } from '../../reduxUtils';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
-import {
-  Logger,
-  ActionLog,
-  DASHBOARD_EVENT_NAMES,
-  LOG_ACTIONS_MOUNT_DASHBOARD,
-  LOG_ACTIONS_LOAD_DASHBOARD_PANE,
-  LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
-} from '../../logger';
+import { LOG_ACTIONS_MOUNT_DASHBOARD } from '../../logger/LogUtils';
+import OmniContainer from '../../components/OmniContainer';
 
 import '../stylesheets/index.less';
 
@@ -28,7 +40,8 @@ const propTypes = {
   actions: PropTypes.shape({
     addSliceToDashboard: PropTypes.func.isRequired,
     removeSliceFromDashboard: PropTypes.func.isRequired,
-    runQuery: PropTypes.func.isRequired,
+    postChartFormData: PropTypes.func.isRequired,
+    logEvent: PropTypes.func.isRequired,
   }).isRequired,
   dashboardInfo: dashboardInfoPropShape.isRequired,
   dashboardState: dashboardStatePropShape.isRequired,
@@ -65,71 +78,11 @@ class Dashboard extends React.PureComponent {
     return message; // Gecko + Webkit, Safari, Chrome etc.
   }
 
-  constructor(props) {
-    super(props);
-    this.isFirstLoad = true;
-    this.actionLog = new ActionLog({
-      impressionId: props.impressionId,
-      source: 'dashboard',
-      sourceId: props.dashboardInfo.id,
-      eventNames: DASHBOARD_EVENT_NAMES,
-    });
-    Logger.start(this.actionLog);
-    this.initTs = new Date().getTime();
-  }
-
   componentDidMount() {
-    Logger.append(LOG_ACTIONS_MOUNT_DASHBOARD);
+    this.props.actions.logEvent(LOG_ACTIONS_MOUNT_DASHBOARD);
   }
 
   componentWillReceiveProps(nextProps) {
-    if (!nextProps.dashboardState.editMode) {
-      // log pane loads
-      const loadedPaneIds = [];
-      let minQueryStartTime = Infinity;
-      const allVisiblePanesDidLoad = Object.entries(nextProps.loadStats).every(
-        ([paneId, stats]) => {
-          const {
-            didLoad,
-            minQueryStartTime: paneMinQueryStart,
-            ...restStats
-          } = stats;
-          if (
-            didLoad &&
-            this.props.loadStats[paneId] &&
-            !this.props.loadStats[paneId].didLoad
-          ) {
-            Logger.append(LOG_ACTIONS_LOAD_DASHBOARD_PANE, {
-              ...restStats,
-              duration: new Date().getTime() - paneMinQueryStart,
-              version: 'v2',
-            });
-
-            if (!this.isFirstLoad) {
-              Logger.send(this.actionLog);
-            }
-          }
-          if (this.isFirstLoad && didLoad && stats.slice_ids.length > 0) {
-            loadedPaneIds.push(paneId);
-            minQueryStartTime = Math.min(minQueryStartTime, paneMinQueryStart);
-          }
-
-          // return true if it is loaded, or it's index is not 0
-          return didLoad || stats.index !== 0;
-        },
-      );
-
-      if (allVisiblePanesDidLoad && this.isFirstLoad) {
-        Logger.append(LOG_ACTIONS_FIRST_DASHBOARD_LOAD, {
-          pane_ids: loadedPaneIds,
-          duration: new Date().getTime() - minQueryStartTime,
-          version: 'v2',
-        });
-        Logger.send(this.actionLog);
-        this.isFirstLoad = false;
-      }
-    }
-
     const currentChartIds = getChartIdsFromLayout(this.props.layout);
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
 
@@ -200,10 +153,12 @@ class Dashboard extends React.PureComponent {
           chart,
           dashboardMetadata: this.props.dashboardInfo.metadata,
           filters: this.props.dashboardState.filters,
+          colorScheme: this.props.dashboardState.colorScheme,
+          colorNamespace: this.props.dashboardState.colorNamespace,
           sliceId: chart.id,
         });
 
-        this.props.actions.runQuery(
+        this.props.actions.postChartFormData(
           updatedFormData,
           false,
           this.props.timeout,
@@ -214,7 +169,12 @@ class Dashboard extends React.PureComponent {
   }
 
   render() {
-    return <DashboardBuilder />;
+    return (
+      <React.Fragment>
+        <OmniContainer logEvent={this.props.actions.logEvent} />
+        <DashboardBuilder />
+      </React.Fragment>
+    );
   }
 }
 

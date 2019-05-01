@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { extent } from 'd3-array';
 import { scaleThreshold } from 'd3-scale';
 import { getSequentialSchemeRegistry, SequentialScheme } from '@superset-ui/color';
@@ -16,11 +34,15 @@ export function getBreakPoints({
     // compute evenly distributed break points based on number of buckets
     const numBuckets = formDataNumBuckets ? parseInt(formDataNumBuckets, 10) : DEFAULT_NUM_BUCKETS;
     const [minValue, maxValue] = extent(features, accessor);
+    if (minValue === undefined) {
+      return [];
+    }
     const delta = (maxValue - minValue) / numBuckets;
     const precision = delta === 0
       ? 0
       : Math.max(0, Math.ceil(Math.log10(1 / delta)));
-    return Array(numBuckets + 1)
+    const extraBucket = maxValue > maxValue.toFixed(precision) ? 1 : 0;
+    return Array(numBuckets + 1 + extraBucket)
       .fill()
       .map((_, i) => (minValue + i * delta).toFixed(precision));
   }
@@ -88,9 +110,9 @@ export function getBuckets(fd, features, accessor) {
   const buckets = {};
   breakPoints.slice(1).forEach((value, i) => {
     const range = breakPoints[i] + ' - ' + breakPoints[i + 1];
-    const mid = 0.5 * (parseInt(breakPoints[i], 10) + parseInt(breakPoints[i + 1], 10));
-   // fix polygon doesn't show
-   const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
+    const mid = 0.5 * (parseFloat(breakPoints[i]) + parseFloat(breakPoints[i + 1]));
+    // fix polygon doesn't show
+    const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
     buckets[range] = {
       color: colorScaler({ [metricLabel || fd.metric]: mid }),
       enabled: true,

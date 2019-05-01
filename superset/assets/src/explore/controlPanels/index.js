@@ -1,9 +1,28 @@
 /**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/**
  * This file defines how controls (defined in controls.js) are structured into sections
  * and associated with each and every visualization type.
  */
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import * as sections from './sections';
+import extraOverrides from './extraOverrides';
 
 import Area from './Area';
 import Bar from './Bar';
@@ -54,7 +73,7 @@ import DeckPolygon from './DeckPolygon';
 import DeckScatter from './DeckScatter';
 import DeckScreengrid from './DeckScreengrid';
 
-export const controlPanelConfigs = {
+export const controlPanelConfigs = extraOverrides({
   area: Area,
   bar: Bar,
   big_number: BigNumber,
@@ -103,32 +122,32 @@ export const controlPanelConfigs = {
   deck_polygon: DeckPolygon,
   deck_scatter: DeckScatter,
   deck_screengrid: DeckScreengrid,
-
-};
+});
 
 export default controlPanelConfigs;
 
 export function sectionsToRender(vizType, datasourceType) {
-  const config = controlPanelConfigs[vizType];
+  const { sectionOverrides = {}, controlPanelSections = [] } = controlPanelConfigs[vizType] || {};
 
   const sectionsCopy = { ...sections };
-  if (config.sectionOverrides) {
-    Object.entries(config.sectionOverrides).forEach(([section, overrides]) => {
-      if (typeof overrides === 'object' && overrides.constructor === Object) {
-        sectionsCopy[section] = {
-          ...sectionsCopy[section],
-          ...overrides,
-        };
-      } else {
-        sectionsCopy[section] = overrides;
-      }
-    });
-  }
+
+  Object.entries(sectionOverrides).forEach(([section, overrides]) => {
+    if (typeof overrides === 'object' && overrides.constructor === Object) {
+      sectionsCopy[section] = {
+        ...sectionsCopy[section],
+        ...overrides,
+      };
+    } else {
+      sectionsCopy[section] = overrides;
+    }
+  });
+
+  const { datasourceAndVizType, sqlaTimeSeries, druidTimeSeries, filters } = sectionsCopy;
 
   return [].concat(
-    sectionsCopy.datasourceAndVizType,
-    datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
-    isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? sectionsCopy.filters : undefined,
-    config.controlPanelSections,
+    datasourceAndVizType,
+    datasourceType === 'table' ? sqlaTimeSeries : druidTimeSeries,
+    isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? filters : undefined,
+    controlPanelSections,
   ).filter(section => section);
 }

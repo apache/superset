@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 
 import enum
@@ -74,9 +90,12 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
     edit_form_extra_fields = add_form_extra_fields
 
     def process_form(self, form, is_created):
-        recipients = form.test_email_recipients.data.strip() or None
+        if form.test_email_recipients.data:
+            test_email_recipients = form.test_email_recipients.data.strip()
+        else:
+            test_email_recipients = None
         self._extra_data['test_email'] = form.test_email.data
-        self._extra_data['test_email_recipients'] = recipients
+        self._extra_data['test_email_recipients'] = test_email_recipients
 
     def pre_add(self, obj):
         try:
@@ -95,7 +114,7 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
     def post_add(self, obj):
         # Schedule a test mail if the user requested for it.
         if self._extra_data['test_email']:
-            recipients = self._extra_data['test_email_recipients']
+            recipients = self._extra_data['test_email_recipients'] or obj.recipients
             args = (self.schedule_type, obj.id)
             kwargs = dict(recipients=recipients)
             schedule_email_report.apply_async(args=args, kwargs=kwargs)

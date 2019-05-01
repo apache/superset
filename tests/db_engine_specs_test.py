@@ -1,11 +1,31 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import inspect
+from unittest import mock
 
-import mock
+from sqlalchemy import column, select, table
+from sqlalchemy.dialects.mssql import pymssql
+from sqlalchemy.engine.result import RowProxy
+from sqlalchemy.types import String, UnicodeText
 
 from superset import db_engine_specs
 from superset.db_engine_specs import (
-    BaseEngineSpec, HiveEngineSpec, MssqlEngineSpec,
-    MySQLEngineSpec, PrestoEngineSpec,
+    BaseEngineSpec, BQEngineSpec, HiveEngineSpec, MssqlEngineSpec,
+    MySQLEngineSpec, OracleEngineSpec, PrestoEngineSpec,
 )
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
@@ -125,12 +145,26 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         q2 = 'select * from (select * from my_subquery limit 10) where col=1 limit 20'
         q3 = 'select * from (select * from my_subquery limit 10);'
         q4 = 'select * from (select * from my_subquery limit 10) where col=1 limit 20;'
+        q5 = 'select * from mytable limit 10, 20'
+        q6 = 'select * from mytable limit 10 offset 20'
+        q7 = 'select * from mytable limit'
+        q8 = 'select * from mytable limit 10.0'
+        q9 = 'select * from mytable limit x'
+        q10 = 'select * from mytable limit x, 20'
+        q11 = 'select * from mytable limit x offset 20'
 
         self.assertEqual(engine_spec_class.get_limit_from_sql(q0), None)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q1), 10)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q2), 20)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q3), None)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q4), 20)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q5), 10)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q6), 10)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q7), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q8), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q9), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q10), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q11), None)
 
     def test_wrapped_query(self):
         self.sql_limit_regex(
@@ -180,8 +214,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             FROM
             table
             LIMIT 99990""",
-            """
-            SELECT
+            """SELECT
                 'LIMIT 777' AS a
                 , b
             FROM
@@ -198,13 +231,12 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 FROM
                 table
                 LIMIT         99990            ;""",
-            """
-                SELECT
+            """SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
                 table
-                LIMIT         1000            ;""",
+                LIMIT         1000""",
         )
 
     def test_get_datatype(self):
@@ -222,8 +254,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 FROM
                 table
                 LIMIT 99990, 999999""",
-            """
-                SELECT
+            """SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
@@ -241,8 +272,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 table
                 LIMIT 99990
                 OFFSET 999999""",
-            """
-                SELECT
+            """SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
@@ -293,5 +323,121 @@ class DbEngineSpecsTestCase(SupersetTestCase):
     def test_presto_get_view_names_return_empty_list(self):
         self.assertEquals([], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY))
 
+    def verify_presto_column(self, column, expected_results):
+        inspector = mock.Mock()
+        inspector.engine.dialect.identifier_preparer.quote_identifier = mock.Mock()
+        keymap = {'Column': (None, None, 0),
+                  'Type': (None, None, 1),
+                  'Null': (None, None, 2)}
+        row = RowProxy(mock.Mock(), column, [None, None, None, None], keymap)
+        inspector.bind.execute = mock.Mock(return_value=[row])
+        results = PrestoEngineSpec.get_columns(inspector, '', '')
+        self.assertEqual(len(expected_results), len(results))
+        for expected_result, result in zip(expected_results, results):
+            self.assertEqual(expected_result[0], result['name'])
+            self.assertEqual(expected_result[1], str(result['type']))
+
+    def test_presto_get_column(self):
+        presto_column = ('column_name', 'boolean', '')
+        expected_results = [('column_name', 'BOOLEAN')]
+        self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_simple_row_column(self):
+        presto_column = ('column_name', 'row(nested_obj double)', '')
+        expected_results = [
+            ('column_name', 'ROW'),
+            ('column_name.nested_obj', 'FLOAT')]
+        self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_simple_row_column_with_tricky_name(self):
+        presto_column = ('column_name', 'row("Field Name(Tricky, Name)" double)', '')
+        expected_results = [
+            ('column_name', 'ROW'),
+            ('column_name."Field Name(Tricky, Name)"', 'FLOAT')]
+        self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_simple_array_column(self):
+        presto_column = ('column_name', 'array(double)', '')
+        expected_results = [('column_name', 'ARRAY')]
+        self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_row_within_array_within_row_column(self):
+        presto_column = (
+            'column_name',
+            'row(nested_array array(row(nested_row double)), nested_obj double)', '')
+        expected_results = [
+            ('column_name', 'ROW'),
+            ('column_name.nested_array', 'ARRAY'),
+            ('column_name.nested_array.nested_row', 'FLOAT'),
+            ('column_name.nested_obj', 'FLOAT'),
+        ]
+        self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_array_within_row_within_array_column(self):
+        presto_column = (
+            'column_name',
+            'array(row(nested_array array(double), nested_obj double))', '')
+        expected_results = [
+            ('column_name', 'ARRAY'),
+            ('column_name.nested_array', 'ARRAY'),
+            ('column_name.nested_obj', 'FLOAT')]
+        self.verify_presto_column(presto_column, expected_results)
+
     def test_hive_get_view_names_return_empty_list(self):
         self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))
+
+    def test_bigquery_sqla_column_label(self):
+        label = BQEngineSpec.make_label_compatible(column('Col').name)
+        label_expected = 'Col'
+        self.assertEqual(label, label_expected)
+
+        label = BQEngineSpec.make_label_compatible(column('SUM(x)').name)
+        label_expected = 'SUM_x__5f110b965a993675bc4953bb3e03c4a5'
+        self.assertEqual(label, label_expected)
+
+        label = BQEngineSpec.make_label_compatible(column('SUM[x]').name)
+        label_expected = 'SUM_x__7ebe14a3f9534aeee125449b0bc083a8'
+        self.assertEqual(label, label_expected)
+
+        label = BQEngineSpec.make_label_compatible(column('12345_col').name)
+        label_expected = '_12345_col_8d3906e2ea99332eb185f7f8ecb2ffd6'
+        self.assertEqual(label, label_expected)
+
+    def test_oracle_sqla_column_name_length_exceeded(self):
+        col = column('This_Is_32_Character_Column_Name')
+        label = OracleEngineSpec.make_label_compatible(col.name)
+        self.assertEqual(label.quote, True)
+        label_expected = '3b26974078683be078219674eeb8f5'
+        self.assertEqual(label, label_expected)
+
+    def test_mssql_column_types(self):
+        def assert_type(type_string, type_expected):
+            type_assigned = MssqlEngineSpec.get_sqla_column_type(type_string)
+            if type_expected is None:
+                self.assertIsNone(type_assigned)
+            else:
+                self.assertIsInstance(type_assigned, type_expected)
+
+        assert_type('INT', None)
+        assert_type('STRING', String)
+        assert_type('CHAR(10)', String)
+        assert_type('VARCHAR(10)', String)
+        assert_type('TEXT', String)
+        assert_type('NCHAR(10)', UnicodeText)
+        assert_type('NVARCHAR(10)', UnicodeText)
+        assert_type('NTEXT', UnicodeText)
+
+    def test_mssql_where_clause_n_prefix(self):
+        dialect = pymssql.dialect()
+        spec = MssqlEngineSpec
+        str_col = column('col', type_=spec.get_sqla_column_type('VARCHAR(10)'))
+        unicode_col = column('unicode_col', type_=spec.get_sqla_column_type('NTEXT'))
+        tbl = table('tbl')
+        sel = select([str_col, unicode_col]).\
+            select_from(tbl).\
+            where(str_col == 'abc').\
+            where(unicode_col == 'abc')
+
+        query = str(sel.compile(dialect=dialect, compile_kwargs={'literal_binds': True}))
+        query_expected = "SELECT col, unicode_col \nFROM tbl \nWHERE col = 'abc' AND unicode_col = N'abc'"  # noqa
+        self.assertEqual(query, query_expected)

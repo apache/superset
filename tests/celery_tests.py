@@ -1,10 +1,24 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 """Unit tests for Superset Celery worker"""
 import json
 import subprocess
 import time
 import unittest
-
-from past.builtins import basestring
 
 from superset import app, db
 from superset.models.helpers import QueryStatus
@@ -223,7 +237,7 @@ class CeleryTestCase(SupersetTestCase):
     @staticmethod
     def de_unicode_dict(d):
         def str_if_basestring(o):
-            if isinstance(o, basestring):
+            if isinstance(o, str):
                 return str(o)
             return o
         return {str_if_basestring(k): str_if_basestring(d[k]) for k in d}

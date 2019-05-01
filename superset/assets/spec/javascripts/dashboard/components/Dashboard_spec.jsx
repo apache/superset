@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
@@ -21,7 +39,8 @@ describe('Dashboard', () => {
     actions: {
       addSliceToDashboard() {},
       removeSliceFromDashboard() {},
-      runQuery() {},
+      postChartFormData() {},
+      logEvent() {},
     },
     initMessages: [],
     dashboardState,
@@ -63,15 +82,15 @@ describe('Dashboard', () => {
       },
     };
 
-    it('should call runQuery for all non-exempt slices', () => {
+    it('should call postChartFormData for all non-exempt slices', () => {
       const wrapper = setup({ charts: overrideCharts, slices: overrideSlices });
-      const spy = sinon.spy(props.actions, 'runQuery');
+      const spy = sinon.spy(props.actions, 'postChartFormData');
       wrapper.instance().refreshExcept('1001');
       spy.restore();
       expect(spy.callCount).toBe(Object.keys(overrideCharts).length - 1);
     });
 
-    it('should not call runQuery for filter_immune_slices', () => {
+    it('should not call postChartFormData for filter_immune_slices', () => {
       const wrapper = setup({
         charts: overrideCharts,
         dashboardInfo: {
@@ -84,7 +103,7 @@ describe('Dashboard', () => {
           },
         },
       });
-      const spy = sinon.spy(props.actions, 'runQuery');
+      const spy = sinon.spy(props.actions, 'postChartFormData');
       wrapper.instance().refreshExcept();
       spy.restore();
       expect(spy.callCount).toBe(0);

@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t } from '@superset-ui/translation';
@@ -8,17 +26,13 @@ import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { applyDefaultFormData } from '../../explore/store';
 import getClientErrorObject from '../../utils/getClientErrorObject';
-import {
-  Logger,
-  LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
-  LOG_ACTIONS_REFRESH_DASHBOARD,
-} from '../../logger';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
 import {
   addSuccessToast,
   addWarningToast,
   addDangerToast,
 } from '../../messageToasts/actions';
+import { UPDATE_COMPONENTS_PARENTS_LIST } from '../actions/dashboardLayout';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -27,13 +41,6 @@ export function setUnsavedChanges(hasUnsavedChanges) {
 
 export const CHANGE_FILTER = 'CHANGE_FILTER';
 export function changeFilter(chart, col, vals, merge = true, refresh = true) {
-  Logger.append(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
-    id: chart.id,
-    column: col,
-    value_count: Array.isArray(vals) ? vals.length : (vals && 1) || 0,
-    merge,
-    refresh,
-  });
   return { type: CHANGE_FILTER, chart, col, vals, merge, refresh };
 }
 
@@ -117,6 +124,11 @@ export function onSave() {
   return { type: ON_SAVE };
 }
 
+export const SET_REFRESH_FREQUENCY = 'SET_REFRESH_FREQUENCY';
+export function setRefreshFrequency(refreshFrequency) {
+  return { type: SET_REFRESH_FREQUENCY, refreshFrequency };
+}
+
 export function saveDashboardRequestSuccess() {
   return dispatch => {
     dispatch(onSave());
@@ -128,19 +140,18 @@ export function saveDashboardRequestSuccess() {
 export function saveDashboardRequest(data, id, saveType) {
   const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
 
-  return dispatch =>
-    SupersetClient.post({
+  return dispatch => {
+    dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
+
+    return SupersetClient.post({
       endpoint: `/superset/${path}/${id}/`,
       postPayload: { data },
     })
-      .then(response =>
-        Promise.all([
-          dispatch(saveDashboardRequestSuccess()),
-          dispatch(
-            addSuccessToast(t('This dashboard was saved successfully.')),
-          ),
-        ]).then(() => Promise.resolve(response)),
-      )
+      .then(response => {
+        dispatch(saveDashboardRequestSuccess());
+        dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
+        return response;
+      })
       .catch(response =>
         getClientErrorObject(response).then(({ error }) =>
           dispatch(
@@ -152,15 +163,11 @@ export function saveDashboardRequest(data, id, saveType) {
           ),
         ),
       );
+  };
 }
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {
   return (dispatch, getState) => {
-    Logger.append(LOG_ACTIONS_REFRESH_DASHBOARD, {
-      force,
-      interval,
-      chartCount: chartList.length,
-    });
     const timeout = getState().dashboardInfo.common.conf
       .SUPERSET_WEBSERVER_TIMEOUT;
     if (!interval) {
@@ -219,9 +226,9 @@ export function startPeriodicRender(interval) {
   };
 }
 
-export const TOGGLE_BUILDER_PANE = 'TOGGLE_BUILDER_PANE';
-export function toggleBuilderPane() {
-  return { type: TOGGLE_BUILDER_PANE };
+export const SHOW_BUILDER_PANE = 'SHOW_BUILDER_PANE';
+export function showBuilderPane(builderPaneType) {
+  return { type: SHOW_BUILDER_PANE, builderPaneType };
 }
 
 export function addSliceToDashboard(id) {
@@ -235,7 +242,10 @@ export function addSliceToDashboard(id) {
         ),
       );
     }
-    const form_data = selectedSlice.form_data;
+    const form_data = {
+      ...selectedSlice.form_data,
+      slice_id: selectedSlice.slice_id,
+    };
     const newChart = {
       ...initChart,
       id,
@@ -254,6 +264,18 @@ export function removeSliceFromDashboard(id) {
   return dispatch => {
     dispatch(removeSlice(id));
     dispatch(removeChart(id));
+  };
+}
+
+export const SET_COLOR_SCHEME = 'SET_COLOR_SCHEME';
+export function setColorScheme(colorScheme) {
+  return { type: SET_COLOR_SCHEME, colorScheme };
+}
+
+export function setColorSchemeAndUnsavedChanges(colorScheme) {
+  return dispatch => {
+    dispatch(setColorScheme(colorScheme));
+    dispatch(setUnsavedChanges(true));
   };
 }
 

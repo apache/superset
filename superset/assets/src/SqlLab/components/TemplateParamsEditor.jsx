@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Badge } from 'react-bootstrap';
@@ -61,13 +79,15 @@ export default class TemplateParamsEditor extends React.Component {
   renderDoc() {
     return (
       <p>
-        Assign a set of parameters as <code>JSON</code> below
-        (example: <code>{'{"my_table": "foo"}'}</code>),
-        and they become available
-        in your SQL (example: <code>SELECT * FROM {'{{ my_table }}'} </code>)
-        by using&nbsp;
+        {t('Assign a set of parameters as')}
+        <code>JSON</code>
+        {t('below (example:')}
+        <code>{'{"my_table": "foo"}'}</code>
+        {t('), and they become available in your SQL (example:')}
+        <code>SELECT * FROM {'{{ my_table }}'} </code>
+        {t(') by using')}&nbsp;
         <a
-          href="http://superset.apache.org/sqllab.html#templating-with-jinja"
+          href="https://superset.apache.org/sqllab.html#templating-with-jinja"
           target="_blank"
           rel="noopener noreferrer"
         >

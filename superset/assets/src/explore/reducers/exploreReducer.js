@@ -1,5 +1,26 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint camelcase: 0 */
-import { getControlsState, getFormDataFromControls } from '../store';
+import {
+  getControlsState,
+} from '../store';
+import { getControlState, getFormDataFromControls } from '../controlUtils';
 import * as actions from '../actions/exploreActions';
 
 export default function exploreReducer(state = {}, action) {
@@ -57,24 +78,27 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_FIELD_VALUE]() {
-      const controls = Object.assign({}, state.controls);
-      const control = Object.assign({}, controls[action.controlName]);
-      control.value = action.value;
-      control.validationErrors = action.validationErrors;
-      controls[action.controlName] = control;
-      const changes = {
-        controls,
+      // These errors are reported from the Control components
+      let errors = action.validationErrors || [];
+      const vizType = state.form_data.viz_type;
+      const control = {
+        ...getControlState(action.controlName, vizType, state, action.value),
       };
-      if (control.renderTrigger) {
-        changes.triggerRender = true;
-      } else {
-        changes.triggerRender = false;
-      }
-      const newState = {
+
+      // These errors are based on control config `validators`
+      errors = errors.concat(control.validationErrors || []);
+      const hasErrors = errors && errors.length > 0;
+      return {
         ...state,
-        ...changes,
+        triggerRender: control.renderTrigger && !hasErrors,
+        controls: {
+          ...state.controls,
+          [action.controlName]: {
+            ...control,
+            validationErrors: errors,
+          },
+        },
       };
-      return newState;
     },
     [actions.SET_EXPLORE_CONTROLS]() {
       return {
