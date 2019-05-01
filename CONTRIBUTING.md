@@ -328,10 +328,19 @@ FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger
 
 #### Logging to the browser console
 
-This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console:
+This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console using the [ConsoleLog](https://github.com/betodealmeida/consolelog) package. You need to mutate the app, by adding the following to your `config.py` or `superset_config.py`:
+
+```python
+from console_log import ConsoleLog
+
+def FLASK_APP_MUTATOR(app):
+    app.wsgi_app = ConsoleLog(app.wsgi_app, app.logger)
+```
+
+Then make sure you run your WSGI server using the right worker type:
 
 ```bash
-FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger --console-log
+FLASK_ENV=development gunicorn superset:app -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
 ```
 
 You can log anything to the browser console, including objects:
