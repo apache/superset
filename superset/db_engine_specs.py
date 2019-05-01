@@ -974,7 +974,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 else:  # otherwise column is a basic data type
                     column_type = presto_type_map[column.Type]()
             except KeyError:
-                print('Did not recognize type {} of column {}'.format(
+                logging.info('Did not recognize type {} of column {}'.format(
                     column.Type, column.Column))
                 column_type = types.NullType
             result.append(cls._create_column_info(column, column.Column, column_type))
