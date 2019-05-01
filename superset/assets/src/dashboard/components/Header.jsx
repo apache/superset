@@ -322,7 +322,7 @@ class Header extends React.PureComponent {
               isStarred={this.props.isStarred}
             />
           </span>
-          {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) &&
+          {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && (
             <ObjectTags
               fetchTags={this.fetchTags}
               fetchSuggestions={this.fetchSuggestions}
@@ -330,7 +330,7 @@ class Header extends React.PureComponent {
               addTag={this.addTag}
               editable={dashboardInfo.dash_edit_perm}
             />
-          }
+          )}
         </div>
 
         <div className="button-container">

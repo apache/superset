@@ -20,7 +20,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { Table, unsafe } from 'reactable-arc';
-import 'whatwg-fetch';
 import { t } from '@superset-ui/translation';
 
 import { fetchObjects } from '../tags';
