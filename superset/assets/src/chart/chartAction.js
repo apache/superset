@@ -21,6 +21,7 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
@@ -194,7 +195,9 @@ export function exploreJSON(formData, force = false, timeout = 60, key, method) 
       };
     }
 
-    const clientMethod = method === 'GET' ? SupersetClient.get : SupersetClient.post;
+    const clientMethod = method === 'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
+      ? SupersetClient.get
+      : SupersetClient.post;
     const queryPromise = clientMethod(querySettings)
       .then(({ json }) => {
         dispatch(logEvent(LOG_ACTIONS_LOAD_CHART, {

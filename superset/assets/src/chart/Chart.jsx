@@ -20,6 +20,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { Alert } from 'react-bootstrap';
 
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
@@ -70,7 +71,7 @@ class Chart extends React.PureComponent {
   }
   componentDidMount() {
     if (this.props.triggerQuery) {
-      if (this.props.chartId > 0) {
+      if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
         // Load saved chart with a GET request
         this.props.actions.getSavedChart(
           this.props.formData,

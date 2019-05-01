@@ -110,7 +110,7 @@ class SaveModal extends React.PureComponent {
       colorScheme,
       colorNamespace,
     );
-    const labelColors = scale.getColorMap();
+    const labelColors = colorScheme ? scale.getColorMap() : {};
     const data = {
       positions,
       css,

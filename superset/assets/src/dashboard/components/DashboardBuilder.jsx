@@ -84,10 +84,11 @@ class DashboardBuilder extends React.Component {
     const { dashboardLayout, directPathToChild } = props;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
-    const topLevelTabs =
-      rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
     const tabIndex = findTabIndexByComponentId({
-      currentComponent: topLevelTabs || dashboardLayout[DASHBOARD_ROOT_ID],
+      currentComponent:
+        rootChildId === DASHBOARD_GRID_ID
+          ? dashboardLayout[DASHBOARD_ROOT_ID]
+          : dashboardLayout[rootChildId],
       directPathToChild,
     });
 

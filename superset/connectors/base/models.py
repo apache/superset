@@ -347,7 +347,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     __tablename__ = None  # {connector_name}_column
 
     id = Column(Integer, primary_key=True)
-    column_name = Column(String(255))
+    column_name = Column(String(255), nullable=False)
     verbose_name = Column(String(1024))
     is_active = Column(Boolean, default=True)
     type = Column(String(32))
@@ -411,7 +411,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
     __tablename__ = None  # {connector_name}_metric
 
     id = Column(Integer, primary_key=True)
-    metric_name = Column(String(512))
+    metric_name = Column(String(255), nullable=False)
     verbose_name = Column(String(1024))
     metric_type = Column(String(32))
     description = Column(Text)
