@@ -326,22 +326,6 @@ cd superset
 FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger
 ```
 
-#### Logging to the browser console
-
-This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console:
-
-```bash
-FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger --console-log
-```
-
-You can log anything to the browser console, including objects:
-
-```python
-from superset import app
-app.logger.error('An exception occurred!')
-app.logger.info(form_data)
-```
-
 ### Frontend Assets
 
 Frontend assets (JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset/assets` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
