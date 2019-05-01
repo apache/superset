@@ -26,9 +26,9 @@ import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
   defaultLabel: PropTypes.string,
-  sql: PropTypes.string,
-  schema: PropTypes.string,
-  dbId: PropTypes.number,
+  sql: PropTypes.string.isRequired,
+  schema: PropTypes.string.isRequired,
+  dbId: PropTypes.number.isRequired,
   animation: PropTypes.bool,
   onSchedule: PropTypes.func,
 };
