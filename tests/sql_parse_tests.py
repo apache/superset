@@ -462,3 +462,12 @@ class SupersetTestCase(unittest.TestCase):
             'SELECT * FROM ab_user LIMIT 1',
         ]
         self.assertEquals(statements, expected)
+
+    def test_identifier_list_with_keyword_as_alias(self):
+        query = """
+        WITH
+            f AS (SELECT * FROM foo),
+            match AS (SELECT * FROM f)
+        SELECT * FROM match
+        """
+        self.assertEquals({'foo'}, self.extract_tables(query))
