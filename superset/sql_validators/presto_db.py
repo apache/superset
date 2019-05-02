@@ -20,6 +20,7 @@ import logging
 import time
 from typing import (
     Any,
+    Dict,
     List,
     Optional,
 )
@@ -42,7 +43,6 @@ config = app.config
 
 class PrestoSQLValidationError(Exception):
     """Error in the process of asking Presto to validate SQL querytext"""
-    pass
 
 
 class PrestoDBSQLValidator(BaseSQLValidator):
@@ -52,17 +52,19 @@ class PrestoDBSQLValidator(BaseSQLValidator):
 
     @classmethod
     def validate_statement(
-        cls,
-        statement,
-        database,
-        cursor,
-        user_name,
+            cls,
+            statement,
+            database,
+            cursor,
+            user_name,
     ) -> Optional[SQLValidationAnnotation]:
+        # pylint: disable=too-many-locals
         db_engine_spec = database.db_engine_spec
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
+        # pylint: disable=invalid-name
         SQL_QUERY_MUTATOR = config.get('SQL_QUERY_MUTATOR')
         if SQL_QUERY_MUTATOR:
             sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
@@ -93,10 +95,10 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             if not db_error.args or not isinstance(db_error.args[0], dict):
                 raise PrestoSQLValidationError(
                     'Presto (via pyhive) returned unparseable error text')
-            db_error = db_error.args[0]
+            error_args: Dict = db_error.args[0]
 
-            message = db_error.get('message', 'unknown prestodb error')
-            err_loc = db_error.get('errorLocation', {})
+            message: str = error_args.get('message', 'unknown prestodb error')
+            err_loc: Dict = error_args.get('errorLocation', {})
             line_number = err_loc.get('lineNumber', None)
             start_column = err_loc.get('columnNumber', None)
             end_column = err_loc.get('columnNumber', None)
@@ -113,10 +115,10 @@ class PrestoDBSQLValidator(BaseSQLValidator):
 
     @classmethod
     def validate(
-        cls,
-        sql: str,
-        schema: str,
-        database: Any,
+            cls,
+            sql: str,
+            schema: str,
+            database: Any,
     ) -> List[SQLValidationAnnotation]:
         """
         Presto supports query-validation queries by running them with a

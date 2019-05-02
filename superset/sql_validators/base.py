@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# pylint: disable=too-few-public-methods
+
 from typing import (
     Any,
     Dict,
@@ -26,11 +28,11 @@ from typing import (
 class SQLValidationAnnotation:
     """Represents a single annotation (error/warning) in an SQL querytext"""
     def __init__(
-        self,
-        message: str,
-        line_number: Optional[int],
-        start_column: Optional[int],
-        end_column: Optional[int],
+            self,
+            message: str,
+            line_number: Optional[int],
+            start_column: Optional[int],
+            end_column: Optional[int],
     ):
         self.message = message
         self.line_number = line_number
@@ -55,10 +57,10 @@ class BaseSQLValidator:
 
     @classmethod
     def validate(
-        cls,
-        sql: str,
-        schema: str,
-        database: Any,
+            cls,
+            sql: str,
+            schema: str,
+            database: Any,
     ) -> List[SQLValidationAnnotation]:
         """Check that the given SQL querystring is valid for the given engine"""
         raise NotImplementedError
