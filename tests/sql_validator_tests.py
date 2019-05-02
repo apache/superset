@@ -36,7 +36,7 @@ PRESTO_TEST_FEATURE_FLAGS = {
     'SQL_VALIDATORS_BY_ENGINE': {
         'presto': 'PrestoDBSQLValidator',
         'sqlite': 'PrestoDBSQLValidator',
-        'postgres': 'PrestoDBSQLValidator',
+        'postgresql': 'PrestoDBSQLValidator',
         'mysql': 'PrestoDBSQLValidator',
     },
 }
