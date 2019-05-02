@@ -2555,7 +2555,8 @@ class Superset(BaseSupersetView):
             msg = _(
                 'Failed to validate your SQL query text. Please check that '
                 f'you have configured the {validator.name} validator '
-                'correctly and that any services it depends on are up.')
+                'correctly and that any services it depends on are up. '
+                f'Exception: {e}')
             return json_error_response(f'{msg}')
 
     @has_access_api

@@ -16,6 +16,7 @@
 # under the License.
 from . import base  # noqa
 from . import presto_db  # noqa
+from .base import SQLValidationAnnotation  # noqa
 
 # TODO: Move this to a config setting
 SQL_VALIDATORS_BY_ENGINE = {

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import time
 import json
 import logging
 from contextlib import closing
@@ -82,6 +83,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                     state = stats.get('state')
                     if state == 'FINISHED':
                         break
+                time.sleep(0.2)
                 polled = cursor.poll()
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
@@ -125,7 +127,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         parsed_query = ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
-        logging.debug(f'Validating {len(statements)} statement(s)')
+        logging.info(f'Validating {len(statements)} statement(s)')
         engine = database.get_sqla_engine(
             schema=schema,
             nullpool=True,
