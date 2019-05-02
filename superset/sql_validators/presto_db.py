@@ -123,8 +123,8 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                     'The pyhive presto client did not report an error location',
                 ) from db_error
 
-            message = error_args['message']
-            err_loc = error_args['errorLocation']
+            message = error_args['message']  # noqa
+            err_loc = error_args['errorLocation']  # noqa
             line_number = err_loc.get('lineNumber', None)
             start_column = err_loc.get('columnNumber', None)
             end_column = err_loc.get('columnNumber', None)
