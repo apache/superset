@@ -36,7 +36,9 @@ _static/*
 searchindex.js
 # auto generated
 requirements.txt
-requirements/requirements-*.txt
+requirements/requirements-hive.txt
+requirements/requirements-presto.txt
+requirements/requirements-gsheets.txt
 # vendorized
 vendor/*
 # github configuration
