@@ -123,8 +123,11 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                     'The pyhive presto client did not report an error location',
                 ) from db_error
 
-            message = error_args['message']  # noqa
-            err_loc = error_args['errorLocation']  # noqa
+            # Pylint is confused about the type of error_args, despite the hints
+            # and checks above.
+            # pylint: disable=invalid-sequence-index
+            message = error_args['message']
+            err_loc = error_args['errorLocation']
             line_number = err_loc.get('lineNumber', None)
             start_column = err_loc.get('columnNumber', None)
             end_column = err_loc.get('columnNumber', None)
