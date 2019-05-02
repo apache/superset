@@ -59,6 +59,8 @@ class SqlValidatorEndpointTests(SupersetTestCase):
 
         validator = MagicMock()
         validators_by_engine['sqlite'] = validator
+        validators_by_engine['postgresql'] = validator
+        validators_by_engine['mysql'] = validator
         validator.validate.return_value = [
             SQLValidationAnnotation(
                 message="I don't know what I expected, but it wasn't this",
@@ -85,6 +87,8 @@ class SqlValidatorEndpointTests(SupersetTestCase):
 
         validator = MagicMock()
         validators_by_engine['sqlite'] = validator
+        validators_by_engine['postgresql'] = validator
+        validators_by_engine['mysql'] = validator
         validator.validate.side_effect = Exception('Kaboom!')
 
         resp = self.validate_sql(
