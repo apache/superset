@@ -2522,18 +2522,22 @@ class Superset(BaseSupersetView):
             #       or provide it as mydb so we can render template params
             #       without having to also persist a Query ORM object.
             return json_error_response(
-                'SQL validation does not support template parameters')
+                'SQL validation does not support template parameters',
+                status=400)
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
         if not mydb:
             json_error_response(
-                'Database with id {} is missing.'.format(database_id))
+                'Database with id {} is missing.'.format(database_id),
+                status=400,
+            )
 
         spec = mydb.db_engine_spec
         if spec.engine not in SQL_VALIDATORS_BY_ENGINE:
             return json_error_response(
-                'no SQL validator is configured for {}'.format(spec.engine))
+                'no SQL validator is configured for {}'.format(spec.engine),
+                status=400)
         validator = SQL_VALIDATORS_BY_ENGINE[spec.engine]
 
         try:
