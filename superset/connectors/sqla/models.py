@@ -492,6 +492,12 @@ class SqlaTable(Model, BaseDatasource):
         if query_obj['is_prequery']:
             query_obj['prequeries'].append(sql)
         sql = self.mutate_query_from_config(sql)
+
+        """Apply HIVE_QUERY_GENERATOR """
+        HIVE_QUERY_GENERATOR = config.get('HIVE_QUERY_GENERATOR')
+        if HIVE_QUERY_GENERATOR:
+            sql = HIVE_QUERY_GENERATOR(sql,query_obj,self.database,self.datasource_name)
+
         return QueryStringExtended(labels_expected=sqlaq.labels_expected, sql=sql)
 
     def get_query_str(self, query_obj):
@@ -829,14 +835,7 @@ class SqlaTable(Model, BaseDatasource):
         status = utils.QueryStatus.SUCCESS
         error_message = None
         df = None
-        
         logging.info('[PERFORMANCE CHECK] SQL Query formation time {0} '.format(datetime.now() - qry_start_dttm))
-        
-        """Apply HIVE_QUERY_GENERATOR """
-        HIVE_QUERY_GENERATOR = config.get('HIVE_QUERY_GENERATOR')
-        if HIVE_QUERY_GENERATOR:
-            sql = HIVE_QUERY_GENERATOR(sql,query_obj,self.database,self.datasource_name)
-
         db_engine_spec = self.database.db_engine_spec
         try:
             df = self.database.get_df(sql, self.schema)
