@@ -95,10 +95,10 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             if not db_error.args or not isinstance(db_error.args[0], dict):
                 raise PrestoSQLValidationError(
                     'Presto (via pyhive) returned unparseable error text')
-            error_args: Dict = db_error.args[0]
+            error_args: Dict[str, Any] = db_error.args[0]
 
-            message: str = error_args.get('message', 'unknown prestodb error')
-            err_loc: Dict = error_args.get('errorLocation', {})
+            message = error_args.get('message', 'unknown prestodb error')
+            err_loc = error_args.get('errorLocation', {})
             line_number = err_loc.get('lineNumber', None)
             start_column = err_loc.get('columnNumber', None)
             end_column = err_loc.get('columnNumber', None)

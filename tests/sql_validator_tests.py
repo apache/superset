@@ -41,6 +41,7 @@ PRESTO_TEST_FEATURE_FLAGS = {
     },
 }
 
+
 class SqlValidatorEndpointTests(SupersetTestCase):
     """Testing for Sql Lab querytext validation endpoint"""
 
