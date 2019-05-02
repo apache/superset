@@ -92,13 +92,39 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
         except DatabaseError as db_error:
+            # The pyhive presto client yields EXPLAIN (TYPE VALIDATE) responses
+            # as though they were normal queries. In other words, it doesn't
+            # know that errors here are not exceptional. To map this back to
+            # ordinary control flow, we have to trap the category of exception
+            # raised by the underlying client, match the exception arguments
+            # pyhive provides against the shape of dictionary for a presto query
+            # invalid error, and restructure that error as an annotation we can
+            # return up.
+
+            # Confirm the first element in the DatabaseError constructor is a
+            # dictionary with error information. This is currently provided by
+            # the pyhive client, but may break if their interface changes when
+            # we update at some point in the future.
             if not db_error.args or not isinstance(db_error.args[0], dict):
                 raise PrestoSQLValidationError(
-                    'Presto (via pyhive) returned unparseable error text')
+                    'The pyhive presto client returned an unhandled '
+                    'database error.',
+                ) from db_error
             error_args: Dict[str, Any] = db_error.args[0]
 
-            message = error_args.get('message', 'unknown prestodb error')
-            err_loc = error_args.get('errorLocation', {})
+            # Confirm the two fields we need to be able to present an annotation
+            # are present in the error response -- a message, and a location.
+            if 'message' not in error_args:
+                raise PrestoSQLValidationError(
+                    'The pyhive presto client did not report an error message',
+                ) from db_error
+            if 'errorLocation' not in error_args:
+                raise PrestoSQLValidationError(
+                    'The pyhive presto client did not report an error location',
+                ) from db_error
+
+            message = error_args['message']
+            err_loc = error_args['errorLocation']
             line_number = err_loc.get('lineNumber', None)
             start_column = err_loc.get('columnNumber', None)
             end_column = err_loc.get('columnNumber', None)
@@ -110,7 +136,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 end_column=end_column,
             )
         except Exception as e:
-            logging.exception(f'Error running validation query: {e}')
+            logging.exception(f'Unexpected error running validation query: {e}')
             raise e
 
     @classmethod
