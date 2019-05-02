@@ -80,6 +80,7 @@ def _fetch_metadata_for(datasource):
 
 class JavascriptPostAggregator(Postaggregator):
     def __init__(self, name, field_names, function):
+        Postaggregator.__init__(self, function, field_names, name)
         self.post_aggregator = {
             "type": "javascript",
             "fieldNames": field_names,
@@ -93,6 +94,7 @@ class CustomPostAggregator(Postaggregator):
     """A way to allow users to specify completely custom PostAggregators"""
 
     def __init__(self, name, post_aggregator):
+        Postaggregator.__init__(self, None, None, name)  # todo(gianluca): Is this the right way? should I use the arg post_aggregator?
         self.name = name
         self.post_aggregator = post_aggregator
 
