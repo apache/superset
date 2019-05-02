@@ -2505,6 +2505,60 @@ class Superset(BaseSupersetView):
         return self.json_response('OK')
 
     @has_access_api
+    @expose('/validate_sql_json/', methods=['POST', 'GET'])
+    @log_this
+    def validate_sql_json(self):
+        """Validates that arbitrary sql is acceptable for the given database.
+        Returns a list of error/warning annotations as json.
+        """
+        sql = request.form.get('sql')
+        database_id = request.form.get('database_id')
+        schema = request.form.get('schema') or None
+        template_params = json.loads(
+            request.form.get('templateParams') or '{}')
+
+        if len(template_params) > 0:
+            # TODO: factor the Database object out of template rendering
+            #       or provide it as mydb so we can render template params
+            #       without having to also persist a Query ORM object.
+            return json_error_response(
+                'SQL validation does not support template parameters')
+
+        session = db.session()
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
+        if not mydb:
+            json_error_response(
+                'Database with id {} is missing.'.format(database_id))
+
+        spec = mydb.db_engine_spec
+        if not spec.engine in SQL_VALIDATORS_BY_ENGINE:
+            return json_error_response(
+                'no SQL validator is configured for {}'.format(spec.engine))
+        validator = SQL_VALIDATORS_BY_ENGINE[spec.engine]
+
+        try:
+            timeout = config.get('SQLLAB_VALIDATION_TIMEOUT')
+            timeout_msg = (
+                f'The query exceeded the {timeout} seconds timeout.')
+            with utils.timeout(seconds=timeout,
+                                error_message=timeout_msg):
+                errors = validator.validate(sql, schema, mydb)
+            payload = json.dumps(
+                [err.to_dict() for err in errors],
+                default=utils.pessimistic_json_iso_dttm_ser,
+                ignore_nan=True,
+                encoding=None,
+            )
+            return json_success(payload)
+        except Exception as e:
+            logging.exception(e)
+            msg = _(
+                'Failed to validate your SQL query text. Please check that '
+                f'you have configured the {validator.name} validator '
+                'correctly and that any services it depends on are up.')
+            return json_error_response(f'{msg}')
+
+    @has_access_api
     @expose('/sql_json/', methods=['POST', 'GET'])
     @log_this
     def sql_json(self):
@@ -2513,7 +2567,6 @@ class Superset(BaseSupersetView):
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema') or None
-        validate_only = request.form.get('validate_only') == 'true'
         template_params = json.loads(
             request.form.get('templateParams') or '{}')
         limit = int(request.form.get('queryLimit', 0))
@@ -2529,43 +2582,6 @@ class Superset(BaseSupersetView):
         if not mydb:
             json_error_response(
                 'Database with id {} is missing.'.format(database_id))
-
-        # Validation request.
-        if validate_only:
-            if len(template_params) > 0:
-                # TODO: factor the Database object out of template rendering
-                #       or provide it as mydb so we can render template params
-                #       without having to also persist a Query ORM object.
-                return json_error_response(
-                    'SQL validation does not support template parameters')
-
-            spec = mydb.db_engine_spec
-            if not spec.engine in SQL_VALIDATORS_BY_ENGINE:
-                return json_error_response(
-                    'no SQL validator is configured for {}'.format(spec.engine))
-            validator = SQL_VALIDATORS_BY_ENGINE[spec.engine]
-
-            try:
-                timeout = config.get('SQLLAB_VALIDATION_TIMEOUT')
-                timeout_msg = (
-                    f'The query exceeded the {timeout} seconds timeout.')
-                with utils.timeout(seconds=timeout,
-                                  error_message=timeout_msg):
-                    errors = validator.validate(sql, schema, mydb)
-                payload = json.dumps(
-                    [err.to_dict() for err in errors],
-                    default=utils.pessimistic_json_iso_dttm_ser,
-                    ignore_nan=True,
-                    encoding=None,
-                )
-                return json_success(payload)
-            except Exception as e:
-                logging.exception(e)
-                msg = _(
-                    'Failed to validate your SQL query text. Please check that '
-                    f'you have configured the {validator.name} validator '
-                    'correctly and that any services it depends on are up.')
-                return json_error_response(f'{msg}')
 
         rejected_tables = security_manager.rejected_datasources(sql, mydb, schema)
         if rejected_tables:

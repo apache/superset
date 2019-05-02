@@ -86,7 +86,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
         except DatabaseError as db_error:
-            if not db_error.args:
+            if not db_error.args or not isinstance(db_error.args[0], dict):
                 raise PrestoSQLValidationError(
                     "Presto (via pyhive) returned unparseable error text")
             db_error = db_error.args[0]
