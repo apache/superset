@@ -262,7 +262,6 @@ def cache_warmup(strategy_name, *args, **kwargs):
 
     """
     logger.info("Loading strategy")
-    class_ = None
     for class_ in strategies:
         if class_.name == strategy_name:
             break

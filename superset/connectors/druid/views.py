@@ -433,7 +433,6 @@ class Druid(BaseSupersetView):
                     "danger",
                 )
                 logging.exception(e)
-                pass
             if valid_cluster:
                 cluster.metadata_last_refreshed = datetime.now()
                 flash(

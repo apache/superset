@@ -27,9 +27,7 @@ import logging
 from alembic import op
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 from alembic import op
-import sqlalchemy as sa
 
 from superset import db
 

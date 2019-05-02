@@ -26,7 +26,6 @@ from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.utils import core as utils
 from .helpers import (
-    DATA_FOLDER,
     get_example_data,
     merge_slice,
     misc_dash_slices,
