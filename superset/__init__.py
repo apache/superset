@@ -206,31 +206,31 @@ with app.app_context():
         update_perms=get_update_perms_flag(),
     )
 
-    security_manager = appbuilder.sm
+security_manager = appbuilder.sm
 
-    results_backend = app.config.get('RESULTS_BACKEND')
+results_backend = app.config.get('RESULTS_BACKEND')
 
-    # Merge user defined feature flags with default feature flags
-    _feature_flags = app.config.get('DEFAULT_FEATURE_FLAGS') or {}
-    _feature_flags.update(app.config.get('FEATURE_FLAGS') or {})
-
-
-    def get_feature_flags():
-        GET_FEATURE_FLAGS_FUNC = app.config.get('GET_FEATURE_FLAGS_FUNC')
-        if GET_FEATURE_FLAGS_FUNC:
-            return GET_FEATURE_FLAGS_FUNC(deepcopy(_feature_flags))
-        return _feature_flags
+# Merge user defined feature flags with default feature flags
+_feature_flags = app.config.get('DEFAULT_FEATURE_FLAGS') or {}
+_feature_flags.update(app.config.get('FEATURE_FLAGS') or {})
 
 
-    def is_feature_enabled(feature):
-        """Utility function for checking whether a feature is turned on"""
-        return get_feature_flags().get(feature)
+def get_feature_flags():
+    GET_FEATURE_FLAGS_FUNC = app.config.get('GET_FEATURE_FLAGS_FUNC')
+    if GET_FEATURE_FLAGS_FUNC:
+        return GET_FEATURE_FLAGS_FUNC(deepcopy(_feature_flags))
+    return _feature_flags
 
 
-    # Registering sources
-    module_datasource_map = app.config.get('DEFAULT_MODULE_DS_MAP')
-    module_datasource_map.update(app.config.get('ADDITIONAL_MODULE_DS_MAP'))
-    ConnectorRegistry.register_sources(module_datasource_map)
+def is_feature_enabled(feature):
+    """Utility function for checking whether a feature is turned on"""
+    return get_feature_flags().get(feature)
+
+
+# Registering sources
+module_datasource_map = app.config.get('DEFAULT_MODULE_DS_MAP')
+module_datasource_map.update(app.config.get('ADDITIONAL_MODULE_DS_MAP'))
+ConnectorRegistry.register_sources(module_datasource_map)
 
 # Flask-Compress
 if conf.get('ENABLE_FLASK_COMPRESS'):
