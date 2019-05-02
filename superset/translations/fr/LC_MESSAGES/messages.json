@@ -56,118 +56,118 @@
             "Nom de la table"
          ],
          "Name of table to be created from csv data.": [
-            ""
+            "Nom de la table à créer à partir de données csv."
          ],
          "CSV File": [
-            ""
+            "Fichier CSV"
          ],
          "Select a CSV file to be uploaded to a database.": [
-            ""
+            "Selectionnez un fichier CSV à uploader dans un base de données."
          ],
          "CSV Files Only!": [
-            ""
+            "Fichier CSV uniquement!"
          ],
          "Database": [
             "Base de données"
          ],
          "Delimiter": [
-            ""
+            "Délimiteur"
          ],
          "Delimiter used by CSV file (for whitespace use \\s+).": [
-            ""
+            "Délimiteur utilisé pour le fichier CSV (pour les espaces blancs utiliser \\s+)."
          ],
          "Table Exists": [
-            ""
+            "Table Existante"
          ],
          "If table exists do one of the following: Fail (do nothing), Replace (drop and recreate table) or Append (insert data).": [
-            ""
+            "Si la table existe, effectuez l'une des opérations suivantes: Échec (ne rien faire), Remplacer (supprimer et recréer la table) ou Ajouter (insérer des données)."
          ],
          "Fail": [
-            ""
+            "Echec"
          ],
          "Replace": [
-            ""
+            "Remplacer"
          ],
          "Append": [
-            ""
+            "Ajouter"
          ],
          "Schema": [
             "Schéma"
          ],
          "Specify a schema (if database flavour supports this).": [
-            ""
+            "Spécifiez un schéma (si la version de base de données le prend en charge)."
          ],
          "Header Row": [
-            ""
+            "Ligne d'en-tête"
          ],
          "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
-            ""
+            "Ligne contenant les en-têtes à utiliser comme noms de colonne (0 est la première ligne de données). Laisser vide s'il n'y a pas de ligne d'en-tête."
          ],
          "Index Column": [
-            ""
+            "Colonne d'index"
          ],
          "Column to use as the row labels of the dataframe. Leave empty if no index column.": [
-            ""
+            "Colonne à utiliser comme libellé de ligne du cadre de données. Laisser vide s'il n'y a pas de colonne d'index."
          ],
          "Mangle Duplicate Columns": [
-            ""
+            "Mélanger les colonnes en double"
          ],
          "Specify duplicate columns as \"X.0, X.1\".": [
             ""
          ],
          "Skip Initial Space": [
-            ""
+            "Ignorer l'espace initial"
          ],
          "Skip spaces after delimiter.": [
-            ""
+            "Ignorer les espaces après le délimiteur."
          ],
          "Skip Rows": [
-            ""
+            "Ignorer les lignes"
          ],
          "Number of rows to skip at start of file.": [
-            ""
+            "Nombre de lignes à ignorer au début du fichier."
          ],
          "Rows to Read": [
-            ""
+            "Rows to Read""
          ],
          "Number of rows of file to read.": [
-            ""
+            "Nombre de lignes de fichier à lire."
          ],
          "Skip Blank Lines": [
-            ""
+            "Ignorer les lignes blanches"
          ],
          "Skip blank lines rather than interpreting them as NaN values.": [
-            ""
+            "Ignorez les lignes vides plutôt que de les interpréter comme des valeurs NaN."
          ],
          "Parse Dates": [
             ""
          ],
          "A comma separated list of columns that should be parsed as dates.": [
-            ""
+            "Liste de colonnes séparées par des virgules qui doivent être analysées comme des dates."
          ],
          "Infer Datetime Format": [
-            ""
+            "Inférer le format de date / heure"
          ],
          "Use Pandas to interpret the datetime format automatically.": [
-            ""
+            "Utilisez Pandas pour interpréter le format de date et heure automatiquement."
          ],
          "Decimal Character": [
-            ""
+            "Caractère décimal"
          ],
          "Character to interpret as decimal point.": [
-            ""
+            "Caractère à interpréter en tant que point décimal."
          ],
          "Dataframe Index": [
-            ""
+            "Indice de trame de données"
          ],
          "Write dataframe index as a column.": [
             ""
          ],
-         "Column Label(s)": [
+         "Étiquette(s) de colonne": [
             ""
          ],
          "Column label for index column(s). If None is given and Dataframe Index is True, Index Names are used.": [
-            ""
+            "Étiquette de colonne pour la ou les colonnes d'index. Si la valeur est Aucun et que l'Index de la Structure de Données est Vrai, les Noms d'Index sont utilisés."
          ],
          "[Superset] Access to the datasource %(name)s was granted": [
             "[Superset] Accès à la source de données %(name)s accordé"
