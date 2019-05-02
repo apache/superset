@@ -237,13 +237,14 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
             'Duration (in seconds) of the caching timeout for this table. '
             'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the database timeout if undefined.'),
-        'hive_partitions': _(
-            'Define Hive Partitions as per schema .'
-            ' {"time":{"year":"_hive_year_col","month":"_hive_month_col","day":"_hive_day_col",'
-            '"hour":"_hive_hour_col","minute":"_hive_minute_col"}} '
-            'It is TIME based partitions schema sample( here time is used as key ) and mapped hive '
-            'column name with respective properties .' ),
-           
+        'hive_partitions': utils.markdown(
+            '**Time based Hive partition schema sample **(supports till minute level)'
+            '`{"time":{"year":"year_column","month":"month_column","day":"day_column",'
+            '"hour":"hr_column","minute":"min_column","bin_interval":900}}`'
+            ' Above schema can be defined till partition level (like hour, day, month etc.). '
+            '`bin_interval` is small common multiple of data aggregation intervals. '
+            'Typical values **(in seconds)** are 300, 900, 1800, 3600 etc.',True ),
+
     }
     label_columns = {
         'slices': _('Associated Charts'),

@@ -34,14 +34,10 @@ GRAIN_VALUE_MAP = {
     'P1Y'  : 31536000  # 365 days
 }
 
-# return seconds from gran valaue map default is 86400
-def get_gran_value_in_seconds(value,time_partitions):
-    partition_min_grain = get_partitions_min_grain(time_partitions)
-    if partition_min_grain and value in GRAIN_VALUE_MAP and  GRAIN_VALUE_MAP[value] >= partition_min_grain:
-        return GRAIN_VALUE_MAP[value]
-    return partition_min_grain
-
 def get_partitions_min_grain(time_partitions):
+    if 'bin_interval' in time_partitions:
+        return time_partitions['bin_interval']
+
     partition_grains = list()
     if 'year' in time_partitions:
         partition_grains.append(GRAIN_VALUE_MAP['P1Y'])
@@ -128,7 +124,8 @@ def default_hive_query_generator(sql, query_obj, database, datasource_name):
                 "month":"month",
                 "day":"day",
                 "hour":"hour",
-                "minute":"minute"
+                "minute":"minute",
+                "bin_interval":900
          }
     }
 
@@ -144,8 +141,7 @@ def default_hive_query_generator(sql, query_obj, database, datasource_name):
                 time_partitions = (hive_partitions_obj['time'])
                 st = query_obj['from_dttm']
                 en = query_obj['to_dttm']
-                time_grain = query_obj['extras']['time_grain_sqla']
-                gran_seconds = get_gran_value_in_seconds(time_grain,time_partitions)
+                gran_seconds = get_partitions_min_grain(time_partitions)
                 granularity = query_obj['granularity']
                 granularity_in_partitions = (granularity in time_partitions)
                 if st and en and gran_seconds:

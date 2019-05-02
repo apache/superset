@@ -19,7 +19,7 @@ import unittest
 import datetime
 
 from superset.hive_query import (
-    get_gran_value_in_seconds,
+    get_partitions_min_grain,
     get_partitioned_query_format,
     get_partitioned_whereclause,
     replace_whereclause_in_org_sql,
@@ -27,13 +27,14 @@ from superset.hive_query import (
 
 class HivePartitionQueryTestCase(unittest.TestCase):
 
-    def test_get_gran_value_in_seconds(self):
+    def get_partitions_min_grain(self):
         t_p_2 = {
             "year":"y",
             "month":"m",
             "day":"d",
+            "bin_interval":900
         }
-        self.assertEqual(get_gran_value_in_seconds('PT1H',t_p_2),86400)
+        self.assertEqual(get_partitions_min_grain(t_p_2),900)
 
         t_p_4 = {
             "year":"y",
@@ -41,15 +42,7 @@ class HivePartitionQueryTestCase(unittest.TestCase):
             "day":"d",
             "hour":"hr"
         }
-        self.assertEqual(get_gran_value_in_seconds('PT1H',t_p_4),3600)
-
-        t_p_5 = {
-            "year":"y",
-            "month":"m",
-            "day":"d",
-            "hour":"hr",
-        }
-        self.assertEqual(get_gran_value_in_seconds('P1D',t_p_5),86400)
+        self.assertEqual(get_partitions_min_grain(t_p_4),3600)
 
     def test_get_partitioned_query_format(self):
         t_p_1 = {
@@ -103,7 +96,7 @@ class HivePartitionQueryTestCase(unittest.TestCase):
             "day":"d",
             "hour":"hr",
         }
-        grain =  get_gran_value_in_seconds('PT1H',t_p_5)
+        grain =  get_partitions_min_grain(t_p_5)
         updated_sql = "( y = 2019 AND m = 01 AND d = 01 AND hr = 10 )" 
         self.assertEqual(get_partitioned_whereclause(from_date_time_obj,to_date_time_obj,grain,t_p_5),updated_sql)
 
