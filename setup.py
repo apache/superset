@@ -108,7 +108,6 @@ setup(
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],
-        'console_log': ['console_log==0.2.10'],
         'hive': [
             'pyhive[hive]>=0.6.1',
             'tableschema',
