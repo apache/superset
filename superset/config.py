@@ -201,9 +201,8 @@ LANGUAGES = {
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
 DEFAULT_FEATURE_FLAGS = {
-    'SQL_VALIDATORS_BY_ENGINE': {
-        'presto': 'PrestoDBSQLValidator',
-    },
+    # Experimental feature introducing a client (browser) cache
+    'CLIENT_CACHE': False,
 }
 
 # A function that receives a dict of all feature flags

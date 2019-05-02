@@ -243,6 +243,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             'slice_name': self.slice_name,
             'slice_url': self.slice_url,
             'modified': self.modified(),
+            'changed_on_humanized': self.changed_on_humanized,
             'changed_on': self.changed_on.isoformat(),
         }
 
@@ -748,6 +749,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def table_cache_timeout(self):
         return self.metadata_cache_timeout.get('table_cache_timeout')
 
+    @property
+    def default_schemas(self):
+        return self.get_extra().get('default_schemas', [])
+
     @classmethod
     def get_password_masked_url_from_uri(cls, uri):
         url = make_url(uri)
@@ -1070,7 +1075,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             autoload_with=self.get_sqla_engine())
 
     def get_columns(self, table_name, schema=None):
-        return self.inspector.get_columns(table_name, schema)
+        return self.db_engine_spec.get_columns(self.inspector, table_name, schema)
 
     def get_indexes(self, table_name, schema=None):
         return self.inspector.get_indexes(table_name, schema)
