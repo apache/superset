@@ -214,7 +214,7 @@ msgid "Schema"
 msgstr "模式"
 
 #: superset/forms.py:86
-msgid "Specify a schema (if database flavour supports this)."
+msgid "Specify a schema (if database flavor supports this)."
 msgstr "指定一个Schema(需要数据库支持)"
 
 #: superset/forms.py:91
@@ -4853,10 +4853,11 @@ msgstr ""
 "这个JSON对象描述了部件在看板中的位置。它是动态生成的，可以通过拖放，在看板中"
 "调整整部件的大小和位置"
 
-#: superset/views/core.py:552
+#: superset/views/core.py:627
 msgid ""
-"The css for individual dashboards can be altered here, or in the dashboard "
-"view where changes are immediately visible"
+"The CSS for individual dashboards can be altered here, or "
+"in the dashboard view where changes are immediately "
+"visible"
 msgstr "可以在这里或者在看板视图修改单个看板的CSS样式"
 
 #: superset/views/core.py:556
@@ -5053,6 +5054,83 @@ msgstr "改变为"
 #: superset/views/sql_lab.py:86
 msgid "Saved Queries"
 msgstr "已保存查询"
+
+#: superset/views/core.py:299
+msgid "Chart Cache Timeout"
+msgstr "表缓存超时"
+
+#: superset/views/core.py:284
+msgid ""
+"Duration (in seconds) of the caching timeout for charts of this database. "
+"A timeout of 0 indicates that the cache never expires. "
+"Note this defaults to the global timeout if undefined."
+msgstr ""
+"此数据库图表的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。"
+"注意，如果未定义，这默认为全局超时。"
+
+#: superset/views/core.py:303
+msgid "Allow Csv Upload"
+msgstr "允许Csv上传"
+
+#: superset/views/core.py:288
+msgid "If selected, please set the schemas allowed for csv upload in Extra."
+msgstr "如果选择，请额外设置csv上传允许的模式。"
+
+#: superset/views/core.py:301
+msgid "Asynchronous Query Execution"
+msgstr "异步执行查询"
+
+#: superset/views/core.py:237
+msgid ""
+"Operate the database in asynchronous mode, meaning  "
+"that the queries are executed on remote workers as opposed "
+"to on the web server itself. "
+"This assumes that you have a Celery worker setup as well "
+"as a results backend. Refer to the installation docs "
+"for more information."
+msgstr ""
+"以异步模式操作数据库，这意味着查询是在远程工作人员上执行的，而不是在web服务器本身上执行的, "
+"这假设您有一个Celery worker setup以及一个结果后端。有关更多信息，请参考安装文档。"
+
+#: superset/connectors/sqla/views.py:173
+msgid "Import a table definition"
+msgstr "导入一个已定义的表"
+
+#: superset/connectors/sqla/views.py:237
+msgid ""
+"Duration (in seconds) of the caching timeout for this table. "
+"A timeout of 0 indicates that the cache never expires. "
+"Note this defaults to the database timeout if undefined."
+msgstr ""
+"此表的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。"
+"注意，如果未定义，这默认为数据库的超时。"
+
+#: superset/views/core.py:520
+msgid ""
+"Duration (in seconds) of the caching timeout for this chart. "
+"Note this defaults to the datasource/table timeout if undefined."
+msgstr ""
+"此图表的缓存超时持续时间(以秒为单位)。"
+"注意，如果未定义，这默认为数据源/表超时。"
+
+#: superset/connectors/druid/views.py:189
+msgid ""
+"Duration (in seconds) of the caching timeout for this cluster. "
+"A timeout of 0 indicates that the cache never expires. "
+"Note this defaults to the global timeout if undefined."
+msgstr ""
+"此集群的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。"
+"注意，如果未定义，这默认为全局超时。"
+
+#: superset/connectors/druid/views.py:276
+msgid ""
+"Duration (in seconds) of the caching timeout for this datasource. "
+"A timeout of 0 indicates that the cache never expires. "
+"Note this defaults to the cluster timeout if undefined."
+msgstr ""
+"此数据源的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。"
+"注意，如果未定义，这默认为集群超时。"
+
 
 #~ msgid "Please choose at least one \"Group by\" field"
 #~ msgstr "请至少选择一个“分组”字段"
