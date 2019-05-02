@@ -195,13 +195,14 @@ if not issubclass(custom_sm, SupersetSecurityManager):
          not FAB's security manager.
          See [4565] in UPDATING.md""")
 
-appbuilder = AppBuilder(
-    app,
-    db.session,
-    base_template='superset/base.html',
-    indexview=MyIndexView,
-    security_manager_class=custom_sm,
-)
+with app.app_context():
+    appbuilder = AppBuilder(
+        app,
+        db.session,
+        base_template='superset/base.html',
+        indexview=MyIndexView,
+        security_manager_class=custom_sm,
+    )
 
 security_manager = appbuilder.sm
 
