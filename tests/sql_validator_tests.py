@@ -23,6 +23,7 @@ from unittest.mock import (
 
 from pyhive.exc import DatabaseError
 
+from superset import app
 from superset.sql_validators import SQLValidationAnnotation
 from superset.sql_validators.base import BaseSQLValidator
 from superset.sql_validators.presto_db import (
@@ -31,17 +32,27 @@ from superset.sql_validators.presto_db import (
 )
 from .base_tests import SupersetTestCase
 
+PRESTO_TEST_FEATURE_FLAGS = {
+    'SQL_VALIDATORS_BY_ENGINE': {
+        'presto': 'PrestoDBSQLValidator',
+        'sqlite': 'PrestoDBSQLValidator',
+        'postgres': 'PrestoDBSQLValidator',
+        'mysql': 'PrestoDBSQLValidator',
+    },
+}
 
 class SqlValidatorEndpointTests(SupersetTestCase):
     """Testing for Sql Lab querytext validation endpoint"""
+
     def tearDown(self):
         self.logout()
 
-    @patch('superset.views.core.SQL_VALIDATORS_BY_ENGINE', new_callable=dict)
-    def test_validate_sql_endpoint_noconfig(self, _validators_by_engine):
+    def test_validate_sql_endpoint_noconfig(self):
         """Assert that validate_sql_json errors out when no validators are
         configured for any db"""
         self.login('admin')
+
+        app.config['SQL_VALIDATORS_BY_ENGINE'] = {}
 
         resp = self.validate_sql(
             'SELECT * FROM ab_user',
@@ -51,16 +62,17 @@ class SqlValidatorEndpointTests(SupersetTestCase):
         self.assertIn('error', resp)
         self.assertIn('no SQL validator is configured', resp['error'])
 
-    @patch('superset.views.core.SQL_VALIDATORS_BY_ENGINE', new_callable=dict)
-    def test_validate_sql_endpoint_mocked(self, validators_by_engine):
+    @patch('superset.views.core.get_validator_by_name')
+    @patch.dict('superset._feature_flags',
+                PRESTO_TEST_FEATURE_FLAGS,
+                clear=True)
+    def test_validate_sql_endpoint_mocked(self, get_validator_by_name):
         """Assert that, with a mocked validator, annotations make it back out
         from the validate_sql_json endpoint as a list of json dictionaries"""
         self.login('admin')
 
         validator = MagicMock()
-        validators_by_engine['sqlite'] = validator
-        validators_by_engine['postgresql'] = validator
-        validators_by_engine['mysql'] = validator
+        get_validator_by_name.return_value = validator
         validator.validate.return_value = [
             SQLValidationAnnotation(
                 message="I don't know what I expected, but it wasn't this",
@@ -79,16 +91,17 @@ class SqlValidatorEndpointTests(SupersetTestCase):
         self.assertEqual(1, len(resp))
         self.assertIn('expected,', resp[0]['message'])
 
-    @patch('superset.views.core.SQL_VALIDATORS_BY_ENGINE', new_callable=dict)
-    def test_validate_sql_endpoint_failure(self, validators_by_engine):
+    @patch('superset.views.core.get_validator_by_name')
+    @patch.dict('superset._feature_flags',
+                PRESTO_TEST_FEATURE_FLAGS,
+                clear=True)
+    def test_validate_sql_endpoint_failure(self, get_validator_by_name):
         """Assert that validate_sql_json errors out when the selected validator
         raises an unexpected exception"""
         self.login('admin')
 
         validator = MagicMock()
-        validators_by_engine['sqlite'] = validator
-        validators_by_engine['postgresql'] = validator
-        validators_by_engine['mysql'] = validator
+        get_validator_by_name.return_value = validator
         validator.validate.side_effect = Exception('Kaboom!')
 
         resp = self.validate_sql(

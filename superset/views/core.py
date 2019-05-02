@@ -44,7 +44,7 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, conf, db, results_backend,
+    app, appbuilder, cache, conf, db, get_feature_flags, results_backend,
     security_manager, sql_lab, viz)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
@@ -56,7 +56,7 @@ import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
-from superset.sql_validators import SQL_VALIDATORS_BY_ENGINE
+from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
@@ -2534,11 +2534,18 @@ class Superset(BaseSupersetView):
             )
 
         spec = mydb.db_engine_spec
-        if spec.engine not in SQL_VALIDATORS_BY_ENGINE:
+        validators_by_engine = get_feature_flags().get(
+            'SQL_VALIDATORS_BY_ENGINE')
+        if not validators_by_engine or spec.engine not in validators_by_engine:
             return json_error_response(
                 'no SQL validator is configured for {}'.format(spec.engine),
                 status=400)
-        validator = SQL_VALIDATORS_BY_ENGINE[spec.engine]
+        validator_name = validators_by_engine[spec.engine]
+        validator = get_validator_by_name(validator_name)
+        if not validator:
+            return json_error_response(
+                'No validator named {} found (configured for the {} engine)'
+                .format(validator_name, spec.engine))
 
         try:
             timeout = config.get('SQLLAB_VALIDATION_TIMEOUT')

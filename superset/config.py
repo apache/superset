@@ -200,7 +200,11 @@ LANGUAGES = {
 # For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
-DEFAULT_FEATURE_FLAGS = {}
+DEFAULT_FEATURE_FLAGS = {
+    'SQL_VALIDATORS_BY_ENGINE': {
+        'presto': 'PrestoDBSQLValidator',
+    },
+}
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
@@ -608,6 +612,10 @@ DEFAULT_RELATIVE_END_TIME = 'today'
 # localtime (in the tz where the superset webserver is running)
 IS_EPOCH_S_TRULY_UTC = False
 
+# Configure which SQL validator to use for each engine
+SQL_VALIDATORS_BY_ENGINE = {
+    'presto': 'PrestoDBSQLValidator',
+}
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
