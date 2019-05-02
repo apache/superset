@@ -37,7 +37,7 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
 import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, MetaData, or_, update
+from sqlalchemy import create_engine, MetaData, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from werkzeug.routing import BaseConverter
@@ -2752,12 +2752,10 @@ class Superset(BaseSupersetView):
         ]
 
         if queries_to_timeout:
-            update(Query).where(
-                and_(
-                    Query.user_id == g.user.get_id(),
-                    Query.client_id in queries_to_timeout,
-                ),
-            ).values(state=QueryStatus.TIMED_OUT)
+            for q in sql_queries:
+                if q.client_id in queries_to_timeout:
+                    q.status = QueryStatus.TIMED_OUT
+            db.session.commit()
 
             for client_id in queries_to_timeout:
                 dict_queries[client_id]['status'] = QueryStatus.TIMED_OUT
