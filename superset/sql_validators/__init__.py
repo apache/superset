@@ -20,5 +20,5 @@ from .base import SQLValidationAnnotation  # noqa
 
 # TODO: Move this to a config setting
 SQL_VALIDATORS_BY_ENGINE = {
-    'presto': presto_db.PrestoDBSQLValidator
+    'presto': presto_db.PrestoDBSQLValidator,
 }

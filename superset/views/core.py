@@ -2531,7 +2531,7 @@ class Superset(BaseSupersetView):
                 'Database with id {} is missing.'.format(database_id))
 
         spec = mydb.db_engine_spec
-        if not spec.engine in SQL_VALIDATORS_BY_ENGINE:
+        if spec.engine not in SQL_VALIDATORS_BY_ENGINE:
             return json_error_response(
                 'no SQL validator is configured for {}'.format(spec.engine))
         validator = SQL_VALIDATORS_BY_ENGINE[spec.engine]
@@ -2541,7 +2541,7 @@ class Superset(BaseSupersetView):
             timeout_msg = (
                 f'The query exceeded the {timeout} seconds timeout.')
             with utils.timeout(seconds=timeout,
-                                error_message=timeout_msg):
+                               error_message=timeout_msg):
                 errors = validator.validate(sql, schema, mydb)
             payload = json.dumps(
                 [err.to_dict() for err in errors],

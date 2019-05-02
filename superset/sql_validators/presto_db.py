@@ -15,33 +15,35 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import time
-import json
-import logging
 from contextlib import closing
-from flask import g
-from pyhive.exc import DatabaseError
+import logging
+import time
 from typing import (
     Any,
     List,
-    Optional
+    Optional,
 )
 
+from flask import g
+from pyhive.exc import DatabaseError
+
 from superset import app, security_manager
-from superset.utils.core import sources
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators.base import (
     BaseSQLValidator,
     SQLValidationAnnotation,
 )
+from superset.utils.core import sources
 
 MAX_ERROR_ROWS = 10
 
 config = app.config
 
+
 class PrestoSQLValidationError(Exception):
     """Error in the process of asking Presto to validate SQL querytext"""
     pass
+
 
 class PrestoDBSQLValidator(BaseSQLValidator):
     """Validate SQL queries using Presto's built-in EXPLAIN subtype"""
@@ -54,7 +56,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         statement,
         database,
         cursor,
-        user_name
+        user_name,
     ) -> Optional[SQLValidationAnnotation]:
         db_engine_spec = database.db_engine_spec
         parsed_query = ParsedQuery(statement)
@@ -90,10 +92,10 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         except DatabaseError as db_error:
             if not db_error.args or not isinstance(db_error.args[0], dict):
                 raise PrestoSQLValidationError(
-                    "Presto (via pyhive) returned unparseable error text")
+                    'Presto (via pyhive) returned unparseable error text')
             db_error = db_error.args[0]
 
-            message = db_error.get('message', "unknown prestodb error")
+            message = db_error.get('message', 'unknown prestodb error')
             err_loc = db_error.get('errorLocation', {})
             line_number = err_loc.get('lineNumber', None)
             start_column = err_loc.get('columnNumber', None)
@@ -114,7 +116,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         cls,
         sql: str,
         schema: str,
-        database: Any
+        database: Any,
     ) -> List[SQLValidationAnnotation]:
         """
         Presto supports query-validation queries by running them with a
@@ -144,7 +146,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                         statement,
                         database,
                         cursor,
-                        user_name
+                        user_name,
                     )
                     if annotation:
                         annotations.append(annotation)

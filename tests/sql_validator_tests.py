@@ -15,21 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Sql Lab"""
-import json
 import unittest
 from unittest.mock import (
     MagicMock,
-    patch
+    patch,
 )
 
 from pyhive.exc import DatabaseError
+
 from superset.sql_validators import SQLValidationAnnotation
 from superset.sql_validators.base import BaseSQLValidator
 from superset.sql_validators.presto_db import (
     PrestoDBSQLValidator,
     PrestoSQLValidationError,
 )
-
 from .base_tests import SupersetTestCase
 
 
@@ -86,9 +85,7 @@ class SqlValidatorEndpointTests(SupersetTestCase):
 
         validator = MagicMock()
         validators_by_engine['sqlite'] = validator
-        validator.validate.side_effect = Exception(
-            "Kaboom!"
-        )
+        validator.validate.side_effect = Exception('Kaboom!')
 
         resp = self.validate_sql(
             'SELECT * FROM ab_user',
@@ -98,6 +95,7 @@ class SqlValidatorEndpointTests(SupersetTestCase):
         self.assertIn('error', resp)
         self.assertIn('Kaboom!', resp['error'])
 
+
 class BaseValidatorTests(SupersetTestCase):
     """Testing for the base sql validator"""
     def setUp(self):
@@ -105,7 +103,8 @@ class BaseValidatorTests(SupersetTestCase):
 
     def test_validator_excepts(self):
         with self.assertRaises(NotImplementedError):
-            _errors = self.validator.validate(None, None, None)
+            self.validator.validate(None, None, None)
+
 
 class PrestoValidatorTests(SupersetTestCase):
     """Testing for the prestodb sql validator"""
@@ -121,11 +120,11 @@ class PrestoValidatorTests(SupersetTestCase):
         self.logout()
 
     PRESTO_ERROR_TEMPLATE = {
-        "errorLocation": {
-            "lineNumber": 10,
-            "columnNumber": 20,
+        'errorLocation': {
+            'lineNumber': 10,
+            'columnNumber': 20,
         },
-        "message": "your query isn't how I like it",
+        'message': "your query isn't how I like it",
     }
 
     @patch('superset.sql_validators.presto_db.g')
@@ -148,7 +147,7 @@ class PrestoValidatorTests(SupersetTestCase):
         fetch_fn.side_effect = DatabaseError('dummy db error')
 
         with self.assertRaises(PrestoSQLValidationError):
-            _errors = self.validator.validate(sql, schema, self.database)
+            self.validator.validate(sql, schema, self.database)
 
     @patch('superset.sql_validators.presto_db.g')
     def test_validator_unexpected_error(self, flask_g):
@@ -160,8 +159,7 @@ class PrestoValidatorTests(SupersetTestCase):
         fetch_fn.side_effect = Exception('a mysterious failure')
 
         with self.assertRaises(Exception):
-            _errors = self.validator.validate(sql, schema, self.database)
-
+            self.validator.validate(sql, schema, self.database)
 
     @patch('superset.sql_validators.presto_db.g')
     def test_validator_query_error(self, flask_g):
@@ -188,6 +186,7 @@ class PrestoValidatorTests(SupersetTestCase):
         )
         self.assertIn('error', resp)
         self.assertIn('no SQL validator is configured', resp['error'])
+
 
 if __name__ == '__main__':
     unittest.main()
