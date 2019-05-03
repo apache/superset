@@ -811,6 +811,84 @@ in this dictionary are made available for users to use in their SQL.
         'my_crazy_macro': lambda x: x*2,
     }
 
+**Scheduling queries**
+
+You can optionally allow your users to schedule queries directly in SQL Lab.
+This is done by addding extra metadata to saved queries, which are then picked
+up by an external scheduled (like [Apache Airflow](https://airflow.apache.org/)).
+
+To allow scheduled queries, add the following to your `config.py`:
+
+.. code-block:: python
+
+    FEATURE_FLAGS = {
+        # Configuration for scheduling queries from SQL Lab. This information is
+        # collected when the user clicks "Schedule query", and saved into the `extra`
+        # field of saved queries.
+        # See: https://github.com/mozilla-services/react-jsonschema-form
+        'SCHEDULED_QUERIES': {
+            'JSONSCHEMA': {
+                'title': 'Schedule',
+                'description': (
+                    'In order to schedule a query, you need to specify when it '
+                    'should start running, when it should stop running, and how '
+                    'often it should run. You can also optionally specify '
+                    'dependencies that should be met before the query is '
+                    'executed. Please read the documentation for best practices '
+                    'and more information on how to specify dependencies.'
+                ),
+                'type': 'object',
+                'properties': {
+                    'output_table': {
+                        'type': 'string',
+                        'title': 'Output table name',
+                    },
+                    'start_date': {
+                        'type': 'string',
+                        'format': 'date-time',
+                        'title': 'Start date',
+                    },
+                    'end_date': {
+                        'type': 'string',
+                        'format': 'date-time',
+                        'title': 'End date',
+                    },
+                    'schedule_interval': {
+                        'type': 'string',
+                        'title': 'Schedule interval',
+                    },
+                    'dependencies': {
+                        'type': 'array',
+                        'title': 'Dependencies',
+                        'items': {
+                            'type': 'string',
+                        },
+                    },
+                },
+            },
+            'UISCHEMA': {
+                'schedule_interval': {
+                    'ui:placeholder': '@daily, @weekly, etc.',
+                },
+                'dependencies': {
+                    'ui:help': (
+                        'Check the documentation for the correct format when '
+                        'defining dependencies.'
+                    ),
+                },
+            },
+        },
+    }
+
+This feature flag is based on [react-jsonschema-form](https://github.com/mozilla-services/react-jsonschema-form),
+and will add a button called "Schedule Query" to SQL Lab. When the button is 
+clicked, a modal will show up where the user can add the metadata required for
+scheduling the query.
+
+This information can then be retrieved from the endpoint `/savedqueryviewapi/api/read`
+and used to schedule the queries that have `scheduled_queries` in their JSON
+metadata. For schedulers other than Airflow, additional fields can be easily
+added to the configuration file above.
 
 Celery Flower
 -------------
