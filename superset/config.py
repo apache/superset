@@ -420,6 +420,9 @@ DEFAULT_DB_ID = None
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = 30
 
+# Timeout duration for SQL Lab query validation
+SQLLAB_VALIDATION_TIMEOUT = 10
+
 # SQLLAB_DEFAULT_DBID
 SQLLAB_DEFAULT_DBID = None
 
@@ -608,6 +611,10 @@ DEFAULT_RELATIVE_END_TIME = 'today'
 # localtime (in the tz where the superset webserver is running)
 IS_EPOCH_S_TRULY_UTC = False
 
+# Configure which SQL validator to use for each engine
+SQL_VALIDATORS_BY_ENGINE = {
+    'presto': 'PrestoDBSQLValidator',
+}
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
