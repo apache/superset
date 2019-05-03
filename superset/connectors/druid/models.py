@@ -94,7 +94,8 @@ class CustomPostAggregator(Postaggregator):
     """A way to allow users to specify completely custom PostAggregators"""
 
     def __init__(self, name, post_aggregator):
-        Postaggregator.__init__(self, None, None, name)  # todo(gianluca): Is this the right way? should I use the arg post_aggregator?
+        # TODO(gianluca): Is this the right way? should I use the arg post_aggregator?
+        Postaggregator.__init__(self, None, None, name)
         self.name = name
         self.post_aggregator = post_aggregator
 
