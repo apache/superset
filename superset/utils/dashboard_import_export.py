@@ -38,12 +38,16 @@ def import_dashboards(session, data_stream, import_time=None):
     session.commit()
 
 
-def export_dashboards(session):
+def export_dashboards(session, dashboard_id=None, dashboard_title=None):
     """Returns all dashboards metadata as a json dump"""
     logging.info('Starting export')
     dashboards = session.query(Dashboard)
     dashboard_ids = []
     for dashboard in dashboards:
-        dashboard_ids.append(dashboard.id)
-    data = Dashboard.export_dashboards(dashboard_ids)
+        if dashboard_id or dashboard_title:
+            if dashboard.id == dashboard_id or dashboard.dashboard_title == dashboard_title:
+                dashboard_ids.append(dashboard.id)
+        else:
+            dashboard_ids.append(dashboard.id)
+    data = Dashboard.export_dashboards(dashboard_ids) if dashboard_ids else {}
     return data
