@@ -325,6 +325,7 @@ class BaseViz(object):
             'having_druid': form_data.get('having_filters', []),
             'time_grain_sqla': form_data.get('time_grain_sqla', ''),
             'druid_time_origin': form_data.get('druid_time_origin', ''),
+            'query_with_partitions':form_data.get('query_with_partitions',False)
         }
 
         d = {

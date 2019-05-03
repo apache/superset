@@ -133,7 +133,7 @@ def default_hive_query_generator(sql, query_obj, database, datasource_name):
      where clause from sql to specific partition based  where clause
      and returning update sql
     """
-    if database.backend == 'hive':
+    if database.backend == 'hive' and query_obj['extras']['query_with_partitions']:
         hive_partitions = get_hive_partitions(database, datasource_name)
         if hive_partitions:
             hive_partitions_obj = json.loads(hive_partitions)

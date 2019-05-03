@@ -235,6 +235,20 @@ export const controls = {
     }),
   },
 
+  query_with_partitions: {
+    type: 'CheckboxControl',
+    label: t('Query with Partitions'),
+    default: true,
+    renderTrigger: false,
+    description: t('Use this flag to convert time range based '+
+    'WHERE clause query to hive time based partition query. '+
+    'For this, hive partitions must be configured at datasource.'),
+    mapStateToProps: state => ({
+      hidden: (state.datasource.database.backend == "hive") ? false : true,
+      default: (state.datasource.database.backend == "hive") ? true : false,
+    }),
+  },
+
   viz_type: {
     type: 'VizTypeControl',
     label: t('Visualization Type'),
