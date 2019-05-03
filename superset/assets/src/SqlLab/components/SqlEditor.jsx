@@ -36,6 +36,7 @@ import LimitControl from './LimitControl';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
+import ScheduleQueryButton from './ScheduleQueryButton';
 import ShareSqlLabQuery from './ShareSqlLabQuery';
 import Timer from '../../components/Timer';
 import Hotkeys from '../../components/Hotkeys';
@@ -43,6 +44,7 @@ import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
+import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 
 const SQL_EDITOR_PADDING = 10;
 const SQL_TOOLBAR_HEIGHT = 51;
@@ -313,6 +315,18 @@ class SqlEditor extends React.PureComponent {
                 sql={this.state.sql}
               />
             </span>
+            {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) &&
+            <span className="m-r-5">
+              <ScheduleQueryButton
+                defaultLabel={qe.title}
+                sql={qe.sql}
+                className="m-r-5"
+                onSchedule={this.props.actions.saveQuery}
+                schema={qe.schema}
+                dbId={qe.dbId}
+              />
+            </span>
+            }
             <span className="m-r-5">
               <SaveQuery
                 defaultLabel={qe.title}
