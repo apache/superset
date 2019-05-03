@@ -1061,6 +1061,21 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     engine = 'hive'
 
+    time_grain_functions = {
+        None: '{col}',
+        'PT1S': "from_unixtime((unix_timestamp({col}), 'yyyy-MM-dd HH:mm:ss')",
+        'PT1M': "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH:mm')",
+        'PT1H': "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH')",
+        'P1D': "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd')",
+        'P1W': "date_sub(next_day(from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd'), 'MON'), 7)",
+        'P1M': "from_unixtime(unix_timestamp({col}), 'yyyy-MM')",
+        'P0.25Y': "add_months(trunc(from_unixtime(unix_timestamp({col})), 'MM'), -(month(from_unixtime(unix_timestamp({col})))-1)%3)",
+        'P1Y': "from_unixtime(unix_timestamp({col}), 'yyyy')",
+        '1969-12-28T00:00:00Z/P1W':
+            "date_sub(next_day(from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd'), 'SUN'), 7)",
+    }
+
+
     # Scoping regex at class level to avoid recompiling
     # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
     jobs_stats_r = re.compile(
@@ -1367,7 +1382,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                                 f' differs from {labels_expected}')
             else:
                 df.columns = labels_expected
-                
+
     @staticmethod
     def execute(cursor, query, async_=False):
         kwargs = {'async': async_}
