@@ -254,17 +254,19 @@ class FilterBox extends React.Component {
   }
 
   renderFilters() {
-
     const { filtersFields } = this.props;
-    return filtersFields.map((filterConfig) => {
-      const { label, key } = filterConfig;
-      return (
-        <div key={key} className="m-b-5">
-          {label}
-          {this.renderSelect(filterConfig)}
-        </div>
-      );
-    });
+    
+    if (filtersFields) {
+      return filtersFields.map((filterConfig) => {
+        const { label, key } = filterConfig;
+        return (
+          <div key={key} className="m-b-5">
+            {label}
+            {this.renderSelect(filterConfig)}
+          </div>
+        );
+      });
+    }
   }
 
   render() {
