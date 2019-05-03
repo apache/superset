@@ -998,7 +998,15 @@ class PrestoEngineSpec(BaseEngineSpec):
         :return: column clauses
         """
         column_clauses = []
-        dot_regex = r'\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
+        # Column names are separated by periods. This regex will find periods in a string
+        # if they are not enclosed in quotes because if a period is enclosed in quotes,
+        # then that period is part of a column name.
+        dot_pattern = r"""\.                # split on period
+                        (?=                 # look ahead
+                        (?:                 # create non-capture group
+                        [^\"]*\"[^\"]*\"    # two quotes
+                        )*[^\"]*$)          # end regex"""
+        dot_regex = re.compile(dot_pattern, re.VERBOSE)
         for col in cols:
             # get individual column names
             col_names = re.split(dot_regex, col['name'])
@@ -1006,7 +1014,9 @@ class PrestoEngineSpec(BaseEngineSpec):
             for index, col_name in enumerate(col_names):
                 if not cls._is_column_name_quoted(col_name):
                     col_names[index] = '"{}"'.format(col_name)
-            quoted_col_name = '.'.join(col_names)
+            quoted_col_name = '.'.join(
+                col_name if cls._is_column_name_quoted(col_name) else f'"{col_name}"'
+                for col_name in col_names)
             # create column clause in the format "name"."name" AS "name.name"
             column_clause = sqla.literal_column(quoted_col_name).label(col['name'])
             column_clauses.append(column_clause)
@@ -1015,10 +1025,16 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def _filter_presto_cols(cls, cols: List[dict]) -> List[dict]:
         """
-        We want to filter out columns that correspond to array content because you cannot
-        select array content without an index, which will lead to a large and complicated
-        query. We know which columns to skip because cols is a list provided to us in a
-        specific order where a structural column is positioned right before its content.
+        We want to filter out columns that correspond to array content because expanding
+        arrays would require us to use unnest and join. This can lead to a large,
+        complicated, and slow query.
+
+        Example: select array_content
+                 from TABLE
+                 cross join UNNEST(array_column) as t(array_content);
+
+        We know which columns to skip because cols is a list provided to us in a specific
+        order where a structural column is positioned right before its content.
 
         Example: Column Name: ColA, Column Data Type: array(row(nest_obj int))
                  cols = [ ..., ColA, ColA.nest_obj, ... ]
