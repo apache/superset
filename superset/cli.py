@@ -187,9 +187,18 @@ def import_dashboards(path, recursive):
 @click.option(
     '--print_stdout', '-p', is_flag=True, default=False,
     help='Print JSON to stdout')
-def export_dashboards(print_stdout, dashboard_file):
+@click.option(
+    '--dashboard-id', '-i', default=None, type=int,
+    help='Specify dashboard id to export')
+@click.option(
+    '--dashboard-title', '-t', default=None,
+    help='Specify dashboard title to export')
+def export_dashboards(print_stdout, dashboard_file, dashboard_id, dashboard_title):
     """Export dashboards to JSON"""
-    data = dashboard_import_export.export_dashboards(db.session)
+    data = dashboard_import_export.export_dashboards(
+        db.session, 
+        dashboard_id=dashboard_id, 
+        dashboard_title=dashboard_title)
     if print_stdout or not dashboard_file:
         print(data)
     if dashboard_file:
