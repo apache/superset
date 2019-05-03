@@ -1063,7 +1063,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     time_grain_functions = {
         None: '{col}',
-        'PT1S': "from_unixtime((unix_timestamp({col}), 'yyyy-MM-dd HH:mm:ss')",
+        'PT1S': "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH:mm:ss')",
         'PT1M': "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH:mm')",
         'PT1H': "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH')",
         'P1D': "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd')",
