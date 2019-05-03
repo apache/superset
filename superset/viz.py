@@ -1659,6 +1659,34 @@ class SankeyViz(BaseViz):
                 "Here's a faulty link: {}").format(cycle))
         return recs
 
+class SankeyLoopViz(BaseViz):
+
+    """A Sankey diagram that requires a parent-child dataset"""
+
+    viz_type = 'sankey_loop'
+    verbose_name = _('Sankey Loop')
+    is_timeseries = False
+    credits = '<a href="https://www.npmjs.com/package/d3-sankey">d3-sankey on npm</a>'
+
+    def query_obj(self):
+        qry = super().query_obj()
+        if len(qry['groupby']) != 2:
+            raise Exception(_('Pick exactly 2 columns as [Source / Target]'))
+        qry['metrics'] = [
+            self.form_data['metric']]
+        return qry
+
+    def get_data(self, df):
+        df.columns = ['source', 'target', 'value']
+        df['source'] = df['source'].astype(str)
+        df['target'] = df['target'].astype(str)
+        recs = df.to_dict(orient='records')
+
+        hierarchy = defaultdict(set)
+        for row in recs:
+            hierarchy[row['source']].add(row['target'])
+        return recs
+
 
 class DirectedForceViz(BaseViz):
 

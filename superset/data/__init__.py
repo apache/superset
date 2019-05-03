@@ -20,6 +20,7 @@ from .country_map import load_country_map_data  # noqa
 from .css_templates import load_css_templates  # noqa
 from .deck import load_deck_dash  # noqa
 from .energy import load_energy  # noqa
+from .energy_looped import load_energy_looped  # noqa
 from .flights import load_flights  # noqa
 from .long_lat import load_long_lat_data  # noqa
 from .misc_dashboard import load_misc_dashboard  # noqa

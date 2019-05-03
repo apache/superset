@@ -29,6 +29,7 @@ import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-te
 import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
 import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
+import SankeyLoopChartPlugin from '@superset-ui/legacy-plugin-chart-sankey-loop';
 // There is a known issue with bubble chart that the bubbles will not show up.
 // (<path d="NaN" />)
 // Make sure to import '@superset-ui/legacy-preset-chart-nvd3/lib'
@@ -69,6 +70,7 @@ export default class LegacyChartPreset extends Preset {
         new ParallelCoordinatesChartPlugin().configure({ key: 'para' }),
         new RoseChartPlugin().configure({ key: 'rose' }),
         new SankeyChartPlugin().configure({ key: 'sankey' }),
+        new SankeyLoopChartPlugin().configure({ key: 'sankey_loop' }),
         new TimePivotChartPlugin().configure({ key: 'time_pivot' }),
       ],
     });

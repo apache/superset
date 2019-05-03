@@ -55,6 +55,7 @@ import Pie from './Pie';
 import PivotTable from './PivotTable';
 import Rose from './Rose';
 import Sankey from './Sankey';
+import SankeyLoop from './SankeyLoop';
 import Sunburst from './Sunburst';
 import Separator from './Separator';
 import Table from './Table';
@@ -105,6 +106,7 @@ export const controlPanelConfigs = extraOverrides({
   pivot_table: PivotTable,
   rose: Rose,
   sankey: Sankey,
+  sankey_loop: SankeyLoop,
   separator: Separator,
   sunburst: Sunburst,
   table: Table,

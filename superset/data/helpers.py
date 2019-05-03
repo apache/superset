@@ -75,3 +75,11 @@ def get_example_data(filepath, is_gzip=True, make_bytes=False):
     if make_bytes:
         content = BytesIO(content)
     return content
+
+def get_any_example_data(url, is_gzip=True, make_bytes=False):
+    content = requests.get(f'{url}?raw=true').content
+    if is_gzip:
+        content = zlib.decompress(content, zlib.MAX_WBITS|16)
+    if make_bytes:
+        content = BytesIO(content)
+    return content

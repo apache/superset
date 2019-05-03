@@ -165,6 +165,9 @@ def load_examples_run(load_test_data):
     print('Loading energy related dataset')
     data.load_energy()
 
+    print('Loading looped energy related dataset')
+    data.load_energy_looped()
+
     print("Loading [World Bank's Health Nutrition and Population Stats]")
     data.load_world_bank_health_n_pop()
 
