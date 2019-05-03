@@ -138,7 +138,7 @@ export default class FilterableTable extends PureComponent {
 
   headerRenderer({ dataKey, label, sortBy, sortDirection }) {
     return (
-      <div>
+      <div className="header-style">
         {label}
         {sortBy === dataKey &&
           <SortIndicator sortDirection={sortDirection} />
