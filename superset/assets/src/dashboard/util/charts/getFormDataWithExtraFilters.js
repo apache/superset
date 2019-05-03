@@ -24,12 +24,42 @@ const cachedDashboardMetadataByChart = {};
 const cachedFiltersByChart = {};
 const cachedFormdataByChart = {};
 
+const getExtraFilters = (chart, globalFilters) => {
+  const slicesInState = getLinkedSliceWithFilters(chart.formData,globalFilters)
+  const filters = getFiltersFromSlices(slicesInState,globalFilters)
+  return filters;
+}
+
+const getFiltersFromSlices = (slices, globalFilters) => {
+  const filters = {};
+  slices.forEach( slice => {
+    filters[slice] = globalFilters[slice];
+  })
+  return filters;
+}
+
+const getLinkedSliceWithFilters = (formData, globalFilters) => {
+  let slicesInState = [];
+  const propExist = formData.hasOwnProperty("linked_slice");
+  if(propExist) {
+    const linked_slices = formData.linked_slice;
+    if (linked_slices instanceof Array) {
+      slicesInState  = linked_slices.filter(element => globalFilters.hasOwnProperty(element));  
+    }
+  }
+  return slicesInState;
+}
+
 export default function getFormDataWithExtraFilters({
   chart = {},
   dashboardMetadata,
   filters,
   sliceId,
 }) {
+
+  // update filter based on linked slices
+  filters = getExtraFilters(chart,filters);
+
   // if dashboard metadata + filters have not changed, use cache if possible
   if (
     (cachedDashboardMetadataByChart[sliceId] || {}) === dashboardMetadata &&
@@ -44,7 +74,7 @@ export default function getFormDataWithExtraFilters({
     extra_filters: getEffectiveExtraFilters({
       dashboardMetadata,
       filters,
-      sliceId,
+      sliceId
     }),
   };
 

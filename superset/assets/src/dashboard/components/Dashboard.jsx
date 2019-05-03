@@ -218,7 +218,7 @@ class Dashboard extends React.PureComponent {
         const updatedFormData = getFormDataWithExtraFilters({
           chart,
           dashboardMetadata: this.props.dashboardInfo.metadata,
-          filters: this.getExtraFilters(chart),
+          filters: this.props.dashboardState.filters,
           sliceId: chart.id,
         });
 
@@ -245,34 +245,6 @@ class Dashboard extends React.PureComponent {
       }
     }
     return keyExists
-  }
-
-  getExtraFilters(chart) {
-    const slicesInState = this.getLinkedSliceWithFilters(chart.formData)
-    const filters = this.getFiltersFromSlices(slicesInState)
-    return filters;
-  }
-
-  getFiltersFromSlices(slices) {
-    const filters = {};
-    slices.forEach( slice => {
-      filters[slice] = this.props.dashboardState.filters[slice];
-    })
-    return filters;
-  }
-
-  getLinkedSliceWithFilters(formData) {
-    let slicesInState = [];
-    const propExist = formData.hasOwnProperty("linked_slice");
-    if(propExist) {
-      const linked_slices = formData.linked_slice;
-      if (linked_slices instanceof Array) {
-        slicesInState  = linked_slices.filter(element => this.props.dashboardState.filters.hasOwnProperty(element));  
-      } else {
-       slicesInState = [linked_slices];
-      }
-    }
-    return slicesInState;
   }
 
   render() {

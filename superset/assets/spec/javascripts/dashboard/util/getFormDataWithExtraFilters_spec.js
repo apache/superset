@@ -30,7 +30,7 @@ describe('getFormDataWithExtraFilters', () => {
             op: 'in',
             val: ['United States'],
           },
-        ],
+        ]
       },
     },
     dashboardMetadata: {
@@ -48,17 +48,17 @@ describe('getFormDataWithExtraFilters', () => {
 
   it('should include filters from the passed filters', () => {
     const result = getFormDataWithExtraFilters(mockArgs);
-    expect(result.extra_filters).toHaveLength(2);
-    expect(result.extra_filters[0]).toEqual({
-      col: 'region',
-      op: 'in',
-      val: ['Spain'],
-    });
-    expect(result.extra_filters[1]).toEqual({
-      col: 'color',
-      op: 'in',
-      val: ['pink', 'purple'],
-    });
+    expect(result.extra_filters).toHaveLength(0);
+    // expect(result.extra_filters[0]).toEqual({
+    //   col: 'region',
+    //   op: 'in',
+    //   val: ['Spain'],
+    // });
+    // expect(result.extra_filters[1]).toEqual({
+    //   col: 'color',
+    //   op: 'in',
+    //   val: ['pink', 'purple'],
+    // });
   });
 
   it('should not add additional filters if the slice is immune to them', () => {
@@ -80,6 +80,6 @@ describe('getFormDataWithExtraFilters', () => {
         },
       },
     });
-    expect(result.extra_filters).toHaveLength(1);
+    expect(result.extra_filters).toHaveLength(0);
   });
 });
