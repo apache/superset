@@ -1002,10 +1002,10 @@ class PrestoEngineSpec(BaseEngineSpec):
         # if they are not enclosed in quotes because if a period is enclosed in quotes,
         # then that period is part of a column name.
         dot_pattern = r"""\.                # split on period
-                        (?=                 # look ahead
-                        (?:                 # create non-capture group
-                        [^\"]*\"[^\"]*\"    # two quotes
-                        )*[^\"]*$)          # end regex"""
+                          (?=               # look ahead
+                          (?:               # create non-capture group
+                          [^\"]*\"[^\"]*\"  # two quotes
+                          )*[^\"]*$)        # end regex"""
         dot_regex = re.compile(dot_pattern, re.VERBOSE)
         for col in cols:
             # get individual column names
