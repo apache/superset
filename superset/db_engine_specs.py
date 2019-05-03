@@ -49,6 +49,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
+from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy.types import String, UnicodeText
 import sqlparse
@@ -981,18 +982,97 @@ class PrestoEngineSpec(BaseEngineSpec):
         return result
 
     @classmethod
+    def _is_column_name_quoted(cls, column_name: str) -> bool:
+        """
+        Check if column name is in quotes
+        :param column_name: column name
+        :return: boolean
+        """
+        return column_name.startswith('"') and column_name.endswith('"')
+
+    @classmethod
+    def _get_fields(cls, cols: List[dict]) -> List[ColumnClause]:
+        """
+        Format column clauses where names are in quotes and labels are specified
+        :param cols: columns
+        :return: column clauses
+        """
+        column_clauses = []
+        # Column names are separated by periods. This regex will find periods in a string
+        # if they are not enclosed in quotes because if a period is enclosed in quotes,
+        # then that period is part of a column name.
+        dot_pattern = r"""\.                # split on period
+                          (?=               # look ahead
+                          (?:               # create non-capture group
+                          [^\"]*\"[^\"]*\"  # two quotes
+                          )*[^\"]*$)        # end regex"""
+        dot_regex = re.compile(dot_pattern, re.VERBOSE)
+        for col in cols:
+            # get individual column names
+            col_names = re.split(dot_regex, col['name'])
+            # quote each column name if it is not already quoted
+            for index, col_name in enumerate(col_names):
+                if not cls._is_column_name_quoted(col_name):
+                    col_names[index] = '"{}"'.format(col_name)
+            quoted_col_name = '.'.join(
+                col_name if cls._is_column_name_quoted(col_name) else f'"{col_name}"'
+                for col_name in col_names)
+            # create column clause in the format "name"."name" AS "name.name"
+            column_clause = sqla.literal_column(quoted_col_name).label(col['name'])
+            column_clauses.append(column_clause)
+        return column_clauses
+
+    @classmethod
+    def _filter_presto_cols(cls, cols: List[dict]) -> List[dict]:
+        """
+        We want to filter out columns that correspond to array content because expanding
+        arrays would require us to use unnest and join. This can lead to a large,
+        complicated, and slow query.
+
+        Example: select array_content
+                 from TABLE
+                 cross join UNNEST(array_column) as t(array_content);
+
+        We know which columns to skip because cols is a list provided to us in a specific
+        order where a structural column is positioned right before its content.
+
+        Example: Column Name: ColA, Column Data Type: array(row(nest_obj int))
+                 cols = [ ..., ColA, ColA.nest_obj, ... ]
+
+        When we run across an array, check if subsequent column names start with the
+        array name and skip them.
+        :param cols: columns
+        :return: filtered list of columns
+        """
+        filtered_cols = []
+        curr_array_col_name = ''
+        for col in cols:
+            # col corresponds to an array's content and should be skipped
+            if curr_array_col_name and col['name'].startswith(curr_array_col_name):
+                continue
+            # col is an array so we need to check if subsequent
+            # columns correspond to the array's contents
+            elif str(col['type']) == 'ARRAY':
+                curr_array_col_name = col['name']
+                filtered_cols.append(col)
+            else:
+                curr_array_col_name = ''
+                filtered_cols.append(col)
+        return filtered_cols
+
+    @classmethod
     def select_star(cls, my_db, table_name: str, engine: Engine, schema: str = None,
                     limit: int = 100, show_cols: bool = False, indent: bool = True,
                     latest_partition: bool = True, cols: List[dict] = []) -> str:
         """
-        Temporary method until we have a function that can handle row and array columns
+        Include selecting properties of row objects. We cannot easily break arrays into
+        rows, so render the whole array in its own row and skip columns that correspond
+        to an array's contents.
         """
         presto_cols = cols
         if show_cols:
-            dot_regex = r'\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
-            presto_cols = [
-                col for col in presto_cols if re.search(dot_regex, col['name']) is None]
-        return BaseEngineSpec.select_star(
+            presto_cols = cls._filter_presto_cols(cols)
+        return super(PrestoEngineSpec, cls).select_star(
             my_db, table_name, engine, schema, limit,
             show_cols, indent, latest_partition, presto_cols,
         )
@@ -1525,6 +1605,10 @@ class HiveEngineSpec(PrestoEngineSpec):
                 if c.get('name') == col_name:
                     return qry.where(Column(col_name) == value)
         return False
+
+    @classmethod
+    def _get_fields(cls, cols: List[dict]) -> List[ColumnClause]:
+        return BaseEngineSpec._get_fields(cols)
 
     @classmethod
     def latest_sub_partition(cls, table_name, schema, database, **kwargs):
