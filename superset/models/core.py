@@ -23,6 +23,7 @@ import functools
 import json
 import logging
 import textwrap
+from typing import List
 
 from flask import escape, g, Markup, request
 from flask_appbuilder import Model
@@ -64,6 +65,7 @@ log_query = config.get('QUERY_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
 
 PASSWORD_MASK = 'X' * 10
+
 
 def set_related_perm(mapper, connection, target):  # noqa
     src_class = target.cls_model
@@ -930,8 +932,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{}:schema:None:table_list',
         attribute_in_key='id')
-    def all_table_names_in_database(self, cache=False,
-                                    cache_timeout=None, force=False):
+    def get_all_table_names_in_database(self, cache: bool = False,
+                                        cache_timeout: bool = None,
+                                        force=False) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
             return []
@@ -940,8 +943,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{}:schema:None:view_list',
         attribute_in_key='id')
-    def all_view_names_in_database(self, cache=False,
-                                   cache_timeout=None, force=False):
+    def get_all_view_names_in_database(self, cache: bool = False,
+                                       cache_timeout: bool = None,
+                                       force: bool = False) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
             return []
@@ -951,79 +955,66 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(
             kwargs.get('schema')),
         attribute_in_key='id')
-    def all_table_names_in_schema(self, schema, cache=False,
-                                  cache_timeout=None, force=False):
+    def get_all_table_names_in_schema(self, schema: str, cache: bool = False,
+                                      cache_timeout: int = None,
+                                      force: bool = False) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
         cache_util.memoized_func decorator.
 
         :param schema: schema name
-        :type schema: str
         :param cache: whether cache is enabled for the function
-        :type cache: bool
         :param cache_timeout: timeout in seconds for the cache
-        :type cache_timeout: int
         :param force: whether to force refresh the cache
-        :type force: bool
-        :return: table list
-        :rtype: list
+        :return: list of tables
         """
-        tables = []
         try:
             tables = self.db_engine_spec.get_table_names(
                 inspector=self.inspector, schema=schema)
+            return [utils.DatasourceName(table=table, schema=schema) for table in tables]
         except Exception as e:
             logging.exception(e)
-        return tables
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{{}}:schema:{}:view_list'.format(
             kwargs.get('schema')),
         attribute_in_key='id')
-    def all_view_names_in_schema(self, schema, cache=False,
-                                 cache_timeout=None, force=False):
+    def get_all_view_names_in_schema(self, schema: str, cache: bool = False,
+                                     cache_timeout: int = None,
+                                     force: bool = False) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
         cache_util.memoized_func decorator.
 
         :param schema: schema name
-        :type schema: str
         :param cache: whether cache is enabled for the function
-        :type cache: bool
         :param cache_timeout: timeout in seconds for the cache
-        :type cache_timeout: int
         :param force: whether to force refresh the cache
-        :type force: bool
-        :return: view list
-        :rtype: list
+        :return: list of views
         """
-        views = []
         try:
             views = self.db_engine_spec.get_view_names(
                 inspector=self.inspector, schema=schema)
+            return [utils.DatasourceName(table=view, schema=schema) for view in views]
         except Exception as e:
             logging.exception(e)
-        return views
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{}:schema_list',
         attribute_in_key='id')
-    def all_schema_names(self, cache=False, cache_timeout=None, force=False):
+    def all_schema_names(self, cache: bool = False, cache_timeout: int = None,
+                         force: bool = False) -> List[str]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
         cache_util.memoized_func decorator.
 
         :param cache: whether cache is enabled for the function
-        :type cache: bool
         :param cache_timeout: timeout in seconds for the cache
-        :type cache_timeout: int
         :param force: whether to force refresh the cache
-        :type force: bool
         :return: schema list
-        :rtype: list
         """
         return self.db_engine_spec.get_schema_names(self.inspector)
 

@@ -122,6 +122,7 @@ class BaseEngineSpec(object):
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
+    remove_schema_from_table_name = True
 
     @classmethod
     def get_time_expr(cls, expr, pdf, time_grain, grain):
@@ -292,19 +293,17 @@ class BaseEngineSpec(object):
         all_result_sets = []
         for schema in schemas:
             if datasource_type == 'table':
-                all_datasource_names = db.all_table_names_in_schema(
+                all_result_sets += db.get_all_table_names_in_schema(
                     schema=schema, force=True,
                     cache=db.table_cache_enabled,
                     cache_timeout=db.table_cache_timeout)
             elif datasource_type == 'view':
-                all_datasource_names = db.all_view_names_in_schema(
+                all_result_sets += db.get_all_view_names_in_schema(
                     schema=schema, force=True,
                     cache=db.table_cache_enabled,
                     cache_timeout=db.table_cache_timeout)
             else:
                 raise Exception(f'Unsupported datasource_type: {datasource_type}')
-            all_result_sets += [
-                '{}.{}'.format(schema, t) for t in all_datasource_names]
         return all_result_sets
 
     @classmethod
@@ -352,11 +351,17 @@ class BaseEngineSpec(object):
 
     @classmethod
     def get_table_names(cls, inspector, schema):
-        return sorted(inspector.get_table_names(schema))
+        tables = inspector.get_table_names(schema)
+        if schema and cls.remove_schema_from_table_name:
+            tables = [re.sub(f'^{schema}\\.', '', table) for table in tables]
+        return sorted(tables)
 
     @classmethod
     def get_view_names(cls, inspector, schema):
-        return sorted(inspector.get_view_names(schema))
+        views = inspector.get_view_names(schema)
+        if schema and cls.remove_schema_from_table_name:
+            views = [re.sub(f'^{schema}\\.', '', view) for view in views]
+        return sorted(views)
 
     @classmethod
     def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
@@ -685,28 +690,23 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
-    def fetch_result_sets(cls, db, datasource_type):
+    def fetch_result_sets(cls, db, datasource_type) -> List[utils.DatasourceName]:
         schemas = db.all_schema_names(cache=db.schema_cache_enabled,
                                       cache_timeout=db.schema_cache_timeout,
                                       force=True)
-        all_result_sets = []
         schema = schemas[0]
         if datasource_type == 'table':
-            all_datasource_names = db.all_table_names_in_schema(
+            return db.get_all_table_names_in_schema(
                 schema=schema, force=True,
                 cache=db.table_cache_enabled,
                 cache_timeout=db.table_cache_timeout)
         elif datasource_type == 'view':
-            all_datasource_names = db.all_view_names_in_schema(
+            return db.get_all_view_names_in_schema(
                 schema=schema, force=True,
                 cache=db.table_cache_enabled,
                 cache_timeout=db.table_cache_timeout)
         else:
             raise Exception(f'Unsupported datasource_type: {datasource_type}')
-
-        all_result_sets += [
-            '{}.{}'.format(schema, t) for t in all_datasource_names]
-        return all_result_sets
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
