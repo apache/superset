@@ -1,3 +1,12 @@
+## [0.10.16](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.15...v0.10.16) (2019-05-03)
+
+
+### Features
+
+* add sankey chart with loops ([#77](https://github.com/apache-superset/superset-ui-plugins/issues/77)) ([e2d5191](https://github.com/apache-superset/superset-ui-plugins/commit/e2d5191))
+
+
+
 ## [0.10.15](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.14...v0.10.15) (2019-04-27)
 
 
@@ -176,19 +185,19 @@
 
 ### Bug Fixes
 
+* 🐛 broken unit test due to missing babel-polyfill ([346ca5c](https://github.com/apache-superset/superset-ui-plugins/commit/346ca5c))
+* resolve issues post `0.10.0` ([7b0fd6d](https://github.com/apache-superset/superset-ui-plugins/commit/7b0fd6d))
 * **legacy-preset-chart-nvd3:** redraw bar values after legend change ([#7](https://github.com/apache-superset/superset-ui-plugins/issues/7)) ([28b1f75](https://github.com/apache-superset/superset-ui-plugins/commit/28b1f75))
 * **legacy-preset-chart-nvd3:** redraw markers after legend interaction ([#6](https://github.com/apache-superset/superset-ui-plugins/issues/6)) ([b257c32](https://github.com/apache-superset/superset-ui-plugins/commit/b257c32))
 * **legacy-preset-chart-nvd3:** tooltip's disappearance and stickiness ([#1](https://github.com/apache-superset/superset-ui-plugins/issues/1)) ([0cc1ea8](https://github.com/apache-superset/superset-ui-plugins/commit/0cc1ea8))
-* 🐛 broken unit test due to missing babel-polyfill ([346ca5c](https://github.com/apache-superset/superset-ui-plugins/commit/346ca5c))
-* resolve issues post `0.10.0` ([7b0fd6d](https://github.com/apache-superset/superset-ui-plugins/commit/7b0fd6d))
 
 
 ### Features
 
-* **legacy-preset-chart-nvd3:** show negative values on bars ([#8](https://github.com/apache-superset/superset-ui-plugins/issues/8)) ([8a2dbdc](https://github.com/apache-superset/superset-ui-plugins/commit/8a2dbdc))
 * 🎸 line chart makes first appearance ([e1c9ac2](https://github.com/apache-superset/superset-ui-plugins/commit/e1c9ac2))
 * add country map of bulgaria in superset-ui-legacy-plugin-chart-country-map ([#2](https://github.com/apache-superset/superset-ui-plugins/issues/2)) ([b5fd6e4](https://github.com/apache-superset/superset-ui-plugins/commit/b5fd6e4))
 * bump data-ui/xy-chart version ([5bb28f3](https://github.com/apache-superset/superset-ui-plugins/commit/5bb28f3))
+* **legacy-preset-chart-nvd3:** show negative values on bars ([#8](https://github.com/apache-superset/superset-ui-plugins/issues/8)) ([8a2dbdc](https://github.com/apache-superset/superset-ui-plugins/commit/8a2dbdc))
 
 
 
