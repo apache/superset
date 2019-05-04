@@ -1004,8 +1004,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{}:schema_list',
         attribute_in_key='id')
-    def all_schema_names(self, cache: bool = False, cache_timeout: int = None,
-                         force: bool = False) -> List[str]:
+    def get_all_schema_names(self, cache: bool = False, cache_timeout: int = None,
+                             force: bool = False) -> List[str]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
