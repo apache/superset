@@ -208,15 +208,15 @@ describe('TableSelector', () => {
 
     it('test 1', () => {
       wrapper.instance().changeTable({
-        value: 'birth_names',
-        label: 'birth_names',
+        value: { schema: 'main', table: 'birth_names' },
+        label: 'main.birth_names',
       });
       expect(wrapper.state().tableName).toBe('birth_names');
     });
 
     it('test 2', () => {
       wrapper.instance().changeTable({
-        value: 'main.my_table',
+        value: { schema: 'main', table: 'my_table' },
         label: 'my_table',
       });
       expect(mockedProps.onTableChange.getCall(0).args[0]).toBe('my_table');
