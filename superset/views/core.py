@@ -312,7 +312,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.add_permission_view_menu('database_access', db.perm)
         # adding a new database we always want to force refresh schema list
-        for schema in db.all_schema_names():
+        for schema in db.get_all_schema_names():
             security_manager.add_permission_view_menu(
                 'schema_access', security_manager.get_schema_perm(db, schema))
 
@@ -1546,7 +1546,7 @@ class Superset(BaseSupersetView):
             .first()
         )
         if database:
-            schemas = database.all_schema_names(
+            schemas = database.get_all_schema_names(
                 cache=database.schema_cache_enabled,
                 cache_timeout=database.schema_cache_timeout,
                 force=force_refresh)

@@ -186,7 +186,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             description=self.description,
             cache_timeout=self.cache_timeout)
 
-    @datasource.getter
+    @datasource.getter  # type: ignore
     @utils.memoized
     def get_datasource(self):
         return (
@@ -212,7 +212,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         datasource = self.datasource
         return datasource.url if datasource else None
 
-    @property
+    @property  # type: ignore
     @utils.memoized
     def viz(self):
         d = json.loads(self.params)
@@ -938,7 +938,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
             return []
-        return self.db_engine_spec.fetch_result_sets(self, 'table')
+        return self.db_engine_spec.get_all_datasource_names(self, 'table')
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{}:schema:None:view_list',
@@ -949,15 +949,14 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
             return []
-        return self.db_engine_spec.fetch_result_sets(self, 'view')
+        return self.db_engine_spec.get_all_datasource_names(self, 'view')
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(
             kwargs.get('schema')),
         attribute_in_key='id')
     def get_all_table_names_in_schema(self, schema: str, cache: bool = False,
-                                      cache_timeout: int = None,
-                                      force: bool = False) -> List[utils.DatasourceName]:
+                                      cache_timeout: int = None, force: bool = False):
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -981,8 +980,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             kwargs.get('schema')),
         attribute_in_key='id')
     def get_all_view_names_in_schema(self, schema: str, cache: bool = False,
-                                     cache_timeout: int = None,
-                                     force: bool = False) -> List[utils.DatasourceName]:
+                                     cache_timeout: int = None, force: bool = False):
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -1223,7 +1221,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     def datasource(self):
         return self.get_datasource
 
-    @datasource.getter
+    @datasource.getter  # type: ignore
     @utils.memoized
     def get_datasource(self):
         # pylint: disable=no-member

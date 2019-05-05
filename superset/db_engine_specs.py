@@ -280,31 +280,32 @@ class BaseEngineSpec(object):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    def fetch_result_sets(cls, db, datasource_type):
-        """Returns a list of tables [schema1.table1, schema2.table2, ...]
+    def get_all_datasource_names(cls, db, datasource_type: str) \
+            -> List[utils.DatasourceName]:
+        """Returns a list of all tables or views in database.
 
-        Datasource_type can be 'table' or 'view'.
-        Empty schema corresponds to the list of full names of the all
-        tables or views: <schema>.<result_set_name>.
+        :param db: Database instance
+        :param datasource_type: Datasource_type can be 'table' or 'view'
+        :return: List of all datasources in database or schema
         """
-        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
-                                      cache_timeout=db.schema_cache_timeout,
-                                      force=True)
-        all_result_sets = []
+        schemas = db.get_all_schema_names(cache=db.schema_cache_enabled,
+                                          cache_timeout=db.schema_cache_timeout,
+                                          force=True)
+        all_datasources: List[utils.DatasourceName] = []
         for schema in schemas:
             if datasource_type == 'table':
-                all_result_sets += db.get_all_table_names_in_schema(
+                all_datasources += db.get_all_table_names_in_schema(
                     schema=schema, force=True,
                     cache=db.table_cache_enabled,
                     cache_timeout=db.table_cache_timeout)
             elif datasource_type == 'view':
-                all_result_sets += db.get_all_view_names_in_schema(
+                all_datasources += db.get_all_view_names_in_schema(
                     schema=schema, force=True,
                     cache=db.table_cache_enabled,
                     cache_timeout=db.table_cache_timeout)
             else:
                 raise Exception(f'Unsupported datasource_type: {datasource_type}')
-        return all_result_sets
+        return all_datasources
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -690,10 +691,11 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
-    def fetch_result_sets(cls, db, datasource_type) -> List[utils.DatasourceName]:
-        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
-                                      cache_timeout=db.schema_cache_timeout,
-                                      force=True)
+    def get_all_datasource_names(cls, db, datasource_type: str) \
+            -> List[utils.DatasourceName]:
+        schemas = db.get_all_schema_names(cache=db.schema_cache_enabled,
+                                          cache_timeout=db.schema_cache_timeout,
+                                          force=True)
         schema = schemas[0]
         if datasource_type == 'table':
             return db.get_all_table_names_in_schema(
@@ -1107,24 +1109,19 @@ class PrestoEngineSpec(BaseEngineSpec):
         return 'from_unixtime({col})'
 
     @classmethod
-    def fetch_result_sets(cls, db, datasource_type):
-        """Returns a list of tables [schema1.table1, schema2.table2, ...]
-
-        Datasource_type can be 'table' or 'view'.
-        Empty schema corresponds to the list of full names of the all
-        tables or views: <schema>.<result_set_name>.
-        """
-        result_set_df = db.get_df(
+    def get_all_datasource_names(cls, db, datasource_type: str) \
+            -> List[utils.DatasourceName]:
+        datasource_df = db.get_df(
             """SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S
                ORDER BY concat(table_schema, '.', table_name)""".format(
                 datasource_type.upper(),
             ),
             None)
-        result_sets = []
-        for unused, row in result_set_df.iterrows():
-            result_sets.append('{}.{}'.format(
-                row['table_schema'], row['table_name']))
-        return result_sets
+        datasource_names: List[utils.DatasourceName] = []
+        for unused, row in datasource_df.iterrows():
+            datasource_names.append(utils.DatasourceName(
+                schema=row['table_schema'], table=row['table_name']))
+        return datasource_names
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
@@ -1385,9 +1382,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
 
     @classmethod
-    def fetch_result_sets(cls, db, datasource_type):
-        return BaseEngineSpec.fetch_result_sets(
-            db, datasource_type)
+    def get_all_datasource_names(cls, db, datasource_type: str) \
+            -> List[utils.DatasourceName]:
+        return BaseEngineSpec.get_all_datasource_names(db, datasource_type)
 
     @classmethod
     def fetch_data(cls, cursor, limit):
