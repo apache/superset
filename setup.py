@@ -77,7 +77,7 @@ setup(
         'croniter>=0.3.28',
         'cryptography>=2.4.2',
         'flask>=1.0.0, <2.0.0',
-        'flask-appbuilder>=1.12.5, <2.0.0',
+        'flask-appbuilder>=2.0.0, <2.3.0',
         'flask-caching',
         'flask-compress',
         'flask-migrate',
@@ -108,7 +108,6 @@ setup(
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],
-        'console_log': ['console_log==0.2.10'],
         'hive': [
             'pyhive[hive]>=0.6.1',
             'tableschema',
