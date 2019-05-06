@@ -58,35 +58,38 @@ pipeline {
         }
       }
     }
+    
     stage("Build or Compile") {
       steps {
         echo "Run Commmands to trigger build"
       }
     }
+
     stage("Code Coverage of JavaScript files") {
       steps {
         echo "Running Commmands to get code coverage of JavaScript Files"
              sh "tox -e javascript"
       }
     }
+
     stage('Code Quality with SonarQube') {
        steps {
         script {
           def scannerHome = tool 'sonar';
           withSonarQubeEnv('sonar') {
             echo "sonar"
-            sh 'sonar-scanner -Dsonar.projectKey=incubator-superset -Dsonar.sources=.'
+            sh 'sonar-scanner -Dsonar.projectKey=incubator-superset -Dsonar.sources=. -Dsonar.exclusions=rvf-automation/**'
           }
         }
       }
     }
+
     stage('Create RPMs') {
       steps {
         echo "Run Commmand to trigger rpm build"
         sh  "./build_rpm.sh ${VERSION} ${RELEASE}"
       }
     }
-
 
     stage("Push rpm images in artifactory"){
       steps{
