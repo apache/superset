@@ -328,6 +328,13 @@ class CsvResponse(Response):
     charset = conf.get('CSV_EXPORT').get('encoding', 'utf-8')
 
 
+class XlsxResponse(Response):
+    """
+       Override Response to take into account xlsx encoding from config.py
+    """
+    charset = conf.get("XLSX_EXPORT")
+
+
 def check_ownership(obj, raise_if_false=True):
     """Meant to be used in `pre_update` hooks on models to enforce ownership
 

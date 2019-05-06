@@ -33,6 +33,7 @@ import pickle as pkl
 import re
 import traceback
 import uuid
+import io
 
 from dateutil import relativedelta as rdelta
 from flask import request
@@ -483,6 +484,14 @@ class BaseViz(object):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
+
+    def get_xlsx(self):
+        data = io.BytesIO()
+        df = self.get_df()
+        include_index = not isinstance(df.index, pd.RangeIndex)
+        df.to_excel(data, index=include_index, **config.get('XLSX_EXPORT'))
+        data.seek(0)
+        return data.read()
 
     def get_data(self, df):
         return df.to_dict(orient='records')
