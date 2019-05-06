@@ -30,6 +30,7 @@ import {
 } from 'react-bootstrap';
 import Split from 'react-split';
 import { t } from '@superset-ui/translation';
+import debounce from 'lodash/debounce';
 
 import Button from '../../components/Button';
 import LimitControl from './LimitControl';
@@ -52,6 +53,7 @@ const GUTTER_HEIGHT = 5;
 const GUTTER_MARGIN = 3;
 const INITIAL_NORTH_PERCENT = 30;
 const INITIAL_SOUTH_PERCENT = 70;
+const VALIDATION_DEBOUNCE_MS = 600;
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -88,6 +90,7 @@ class SqlEditor extends React.PureComponent {
     this.elementStyle = this.elementStyle.bind(this);
     this.onResizeStart = this.onResizeStart.bind(this);
     this.onResizeEnd = this.onResizeEnd.bind(this);
+    this.canValidateQuery = this.canValidateQuery.bind(this);
     this.runQuery = this.runQuery.bind(this);
     this.stopQuery = this.stopQuery.bind(this);
     this.onSqlChanged = this.onSqlChanged.bind(this);
@@ -95,6 +98,10 @@ class SqlEditor extends React.PureComponent {
     this.queryPane = this.queryPane.bind(this);
     this.getAceEditorAndSouthPaneHeights = this.getAceEditorAndSouthPaneHeights.bind(this);
     this.getSqlEditorHeight = this.getSqlEditorHeight.bind(this);
+    this.requestValidation = debounce(
+      this.requestValidation.bind(this),
+      VALIDATION_DEBOUNCE_MS,
+    );
   }
   componentWillMount() {
     if (this.state.autorun) {
@@ -126,6 +133,11 @@ class SqlEditor extends React.PureComponent {
   }
   onSqlChanged(sql) {
     this.setState({ sql });
+    // Request server-side validation of the query text
+    if (this.canValidateQuery()) {
+      // NB. requestValidation is debounced
+      this.requestValidation();
+    }
   }
   // One layer of abstraction for easy spying in unit tests
   getSqlEditorHeight() {
@@ -185,6 +197,28 @@ class SqlEditor extends React.PureComponent {
     return {
       [dimension]: `calc(${elementSize}% - ${gutterSize + GUTTER_MARGIN}px)`,
     };
+  }
+  requestValidation() {
+    if (this.props.database) {
+      const qe = this.props.queryEditor;
+      const query = {
+        dbId: qe.dbId,
+        sql: this.state.sql,
+        sqlEditorId: qe.id,
+        schema: qe.schema,
+        templateParams: qe.templateParams,
+      };
+      this.props.actions.validateQuery(query);
+    }
+  }
+  canValidateQuery() {
+    // Check whether or not we can validate the current query based on whether
+    // or not the backend has a validator configured for it.
+    const validatorMap = window.featureFlags.SQL_VALIDATORS_BY_ENGINE;
+    if (this.props.database && validatorMap != null) {
+      return validatorMap.hasOwnProperty(this.props.database.backend);
+    }
+    return false;
   }
   runQuery() {
     if (this.props.database) {
