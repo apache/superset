@@ -26,6 +26,7 @@ from datetime import datetime, timedelta
 from functools import reduce
 import hashlib
 import inspect
+import io
 from itertools import product
 import logging
 import math
@@ -33,7 +34,6 @@ import pickle as pkl
 import re
 import traceback
 import uuid
-import io
 
 from dateutil import relativedelta as rdelta
 from flask import request

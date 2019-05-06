@@ -332,7 +332,7 @@ class XlsxResponse(Response):
     """
        Override Response to take into account xlsx encoding from config.py
     """
-    charset = conf.get("XLSX_EXPORT")
+    charset = conf.get('XLSX_EXPORT').get('encoding', 'utf-8')
 
 
 def check_ownership(obj, raise_if_false=True):

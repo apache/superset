@@ -37,6 +37,6 @@ describe('ExploreActionButtons', () => {
 
   it('should render 5 children/buttons', () => {
     const wrapper = shallow(<ExploreActionButtons {...defaultProps} />);
-    expect(wrapper.children()).toHaveLength(5);
+    expect(wrapper.children()).toHaveLength(6);
   });
 });

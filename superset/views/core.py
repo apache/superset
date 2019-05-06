@@ -17,6 +17,7 @@
 # pylint: disable=C,R,W
 from datetime import datetime, timedelta
 import inspect
+import io
 import logging
 import os
 import re
@@ -24,7 +25,6 @@ import time
 import traceback
 from typing import List  # noqa: F401
 from urllib import parse
-import io
 
 from flask import (
     abort, flash, g, Markup, redirect, render_template, request, Response, url_for,
@@ -64,9 +64,9 @@ from superset.utils.decorators import etag_cache
 from .base import (
     api, BaseSupersetView,
     check_ownership,
-    CsvResponse, XlsxResponse,data_payload_response, DeleteMixin, generate_download_headers,
+    CsvResponse, data_payload_response, DeleteMixin, generate_download_headers,
     get_error_msg, handle_api_exception, json_error_response, json_success,
-    SupersetFilter, SupersetModelView, YamlExportMixin,
+    SupersetFilter, SupersetModelView, XlsxResponse, YamlExportMixin,
 )
 from .utils import bootstrap_user_data, get_datasource_info, get_form_data, get_viz
 
@@ -1168,7 +1168,8 @@ class Superset(BaseSupersetView):
         })
 
     def generate_json(
-            self, viz_obj, csv=False, xlsx=False,query=False, results=False, samples=False):
+            self, viz_obj, csv=False, xlsx=False, query=False,
+            results=False, samples=False):
         if csv:
             return CsvResponse(
                 viz_obj.get_csv(),
@@ -2709,8 +2710,8 @@ class Superset(BaseSupersetView):
         logging.info('Exporting XLSX file [{}]'.format(client_id))
         query = (
             db.session.query(Query)
-                .filter_by(client_id=client_id)
-                .one()
+            .filter_by(client_id=client_id)
+            .one()
         )
 
         rejected_tables = security_manager.rejected_datasources(
@@ -2735,17 +2736,18 @@ class Superset(BaseSupersetView):
             columns = [c['name'] for c in obj['columns']]
             df = pd.DataFrame.from_records(obj['data'], columns=columns)
             logging.info('Using pandas to convert to XLSX')
-            xlsx = df.to_xlsx(data, index=False, **config.get('XLSX_EXPORT'))
+            df.to_xlsx(data, index=False, **config.get('XLSX_EXPORT'))
         else:
             logging.info('Running a query to turn into XLSX')
             sql = query.select_sql or query.executed_sql
             df = query.database.get_df(sql, query.schema)
             # TODO(bkyryliuk): add compression=gzip for big files.
-            xlsx = df.to_excel(data, index=False, **config.get('XLSX_EXPORT'))
+            df.to_excel(data, index=False, **config.get('XLSX_EXPORT'))
 
         data.seek(0)
         response = Response(data.read(), mimetype='text/xlsx')
-        response.headers['Content-Disposition'] = f'attachment; filename={query.name}.xlsx'
+        response.headers['Content-Disposition'] = \
+            f'attachment; filename={query.name}.xlsx'
         logging.info('Ready to return response')
         return response
 
