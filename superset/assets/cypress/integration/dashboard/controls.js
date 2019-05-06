@@ -19,7 +19,7 @@
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 import readResponseBlob from '../../utils/readResponseBlob';
 
-export default () => describe('top-level controls', () => {
+export default () => xdescribe('top-level controls', () => {
   const sliceRequests = [];
   const forceRefreshRequests = [];
   let mapId;

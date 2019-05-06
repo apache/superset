@@ -18,7 +18,7 @@
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
-export default () => describe('dashboard filter', () => {
+export default () => xdescribe('dashboard filter', () => {
   let sliceIds = [];
   let filterId;
 
