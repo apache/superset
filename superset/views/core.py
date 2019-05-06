@@ -2579,9 +2579,8 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             msg = _(
-                'Failed to validate your SQL query text. Please check that '
-                f'you have configured the {validator.name} validator '
-                'correctly and that any services it depends on are up. '
+                f'{validator.name} was unable to check your query.\nPlease '
+                'make sure that any services it depends on are available\n'
                 f'Exception: {e}')
             return json_error_response(f'{msg}')
 
