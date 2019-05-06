@@ -767,7 +767,7 @@ class UtilsTestCase(unittest.TestCase):
     def test_parse_js_uri_path_items_unquote(self):
         self.assertEqual('slashed/name', parse_js_uri_path_item('slashed%2fname'))
         self.assertEqual('slashed%2fname', parse_js_uri_path_item('slashed%2fname',
-                                                                    unquote=False))
+                                                                  unquote=False))
 
     def test_parse_js_uri_path_items_item_optional(self):
         self.assertIsNone(parse_js_uri_path_item(None))
