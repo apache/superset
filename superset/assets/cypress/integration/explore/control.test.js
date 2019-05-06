@@ -40,7 +40,7 @@ describe('Groupby', () => {
   });
 });
 
-xdescribe('AdhocMetrics', () => {
+describe('AdhocMetrics', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
@@ -253,7 +253,7 @@ describe('Advanced analytics', () => {
   });
 });
 
-xdescribe('Annotations', () => {
+describe('Annotations', () => {
   beforeEach(() => {
     cy.login();
     cy.server();

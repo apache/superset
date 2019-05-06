@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<suite name="Superset Automation suite" verbose="1">
-	<test name="Superset suite 1">
-		<classes>
-			<class name="com.rvf.qa.testcases.LoginPageTest" />
-			<class name="com.rvf.qa.testcases.HomePageTest" />
-		</classes>
-	</test>
-</suite>

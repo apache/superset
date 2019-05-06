@@ -79,7 +79,3 @@ ghostdriver.log
 testCSV.csv
 cypress
 superset/assets/output
-
-# Automation
-./target/
-./test-output/

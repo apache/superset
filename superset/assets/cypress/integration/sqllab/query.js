@@ -20,7 +20,7 @@ import shortid from 'shortid';
 import { selectResultsTab, assertSQLLabResultsAreEqual } from './sqllab.helper';
 
 export default () => {
-  xdescribe('SqlLab query panel', () => {
+  describe('SqlLab query panel', () => {
     beforeEach(() => {
       cy.login();
       cy.server();

@@ -29,11 +29,11 @@ from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetSecurityException
 
-# from Crypto.Cipher import AES
-# import base64
+from Crypto.Cipher import AES
+import base64
 
-# BS = 16
-# SK = b"qw34sd78fh67asb1"
+BS = 16
+SK = b"qw34sd78fh67asb1"
 
 READ_ONLY_MODEL_VIEWS = {
     'DatabaseAsync',
@@ -130,8 +130,7 @@ class SupersetSecurityManager(SecurityManager):
             :param password:
                 The password
         """
-        user = super(SupersetSecurityManager, self).auth_user_ldap(username, password)
-        # user = super(SupersetSecurityManager, self).auth_user_ldap(username, self.decryptMessage(password))
+        user = super(SupersetSecurityManager, self).auth_user_ldap(username, self.decryptMessage(password))
 
         if user is None and not self.auth_admin_user_list:
             # check user is available in db or not
@@ -185,32 +184,32 @@ class SupersetSecurityManager(SecurityManager):
                 return None
         return user
 
-    # def decryptMessage(self, message):
-    #     if message :
-    #         _e = base64.b64decode(message)
-    #         _i = _e[:BS]
-    #         _a = AES.new(SK, AES.MODE_CBC, _i)
-    #         _d = _a.decrypt(_e[BS:]).decode('utf-8')
-    #         return _d[:-ord(_d[-1])]
+    def decryptMessage(self, message):
+        if message :
+            _e = base64.b64decode(message)
+            _i = _e[:BS]
+            _a = AES.new(SK, AES.MODE_CBC, _i)
+            _d = _a.decrypt(_e[BS:]).decode('utf-8')
+            return _d[:-ord(_d[-1])]
 
-    #     return  message
+        return  message
 
 
-    # def auth_user_db(self, username, password):
-    #     """
-    #         Method for authenticating user, auth db style
-    #         :param username:
-    #             The username or registered email address
-    #         :param password:
-    #             The password, will be tested against hashed password on db
-    #     """
-    #     user = super(SupersetSecurityManager, self).auth_user_db(username, self.decryptMessage(password))
-    #     if not user:
-    #       logging.info('{0}:{1} [AUTHENTICATION] Login attempt failed for user: {2}'.format(request.remote_addr, request.user_agent, username))
-    #     else:
-    #       logging.info('{0}:{1} [AUTHENTICATION] Login Succeeded for user: {2}'.format(request.remote_addr, request.user_agent, username))
+    def auth_user_db(self, username, password):
+        """
+            Method for authenticating user, auth db style
+            :param username:
+                The username or registered email address
+            :param password:
+                The password, will be tested against hashed password on db
+        """
+        user = super(SupersetSecurityManager, self).auth_user_db(username, self.decryptMessage(password))
+        if not user:
+          logging.info('{0}:{1} [AUTHENTICATION] Login attempt failed for user: {2}'.format(request.remote_addr, request.user_agent, username))
+        else:
+          logging.info('{0}:{1} [AUTHENTICATION] Login Succeeded for user: {2}'.format(request.remote_addr, request.user_agent, username))
 
-    #     return user
+        return user
 
 
     def has_access(self, permission_name, view_name):

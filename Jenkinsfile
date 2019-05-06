@@ -37,13 +37,6 @@ pipeline {
         echo "Updated Superset image tag"
       }
     }
-    stage("Integration Test With Cypress") {
-      steps {
-        echo "Starting Integration test execution."
-        sh "./scripts/execute_cypressTest.sh"
-        echo "Completed Integration test execution."
-      }
-    }
     stage("Build and test") {
       parallel {
 
