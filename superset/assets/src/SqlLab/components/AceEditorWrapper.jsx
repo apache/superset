@@ -157,6 +157,19 @@ class AceEditorWrapper extends React.PureComponent {
       }
     });
   }
+  getAceAnnotations() {
+    const validationResult = this.props.queryEditor.validationResult;
+    if (validationResult.completed && validationResult.errors.length > 0) {
+      let errors = validationResult.errors.map(err => ({
+        type: 'error',
+        row: err.line_number - 1,
+        column: err.start_column - 1,
+        text: err.message,
+      }));
+      return errors;
+    }
+    return [];
+  }
   render() {
     return (
       <AceEditor
@@ -170,6 +183,7 @@ class AceEditorWrapper extends React.PureComponent {
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion
         value={this.state.sql}
+        annotations={this.getAceAnnotations()}
       />
     );
   }
