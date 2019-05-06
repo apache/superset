@@ -149,7 +149,7 @@ export default function sqlLabReducer(state = {}, action) {
           id: action.query.id,
           errors: [],
           completed: false,
-        }
+        },
       });
       return newState;
     },
@@ -162,19 +162,18 @@ export default function sqlLabReducer(state = {}, action) {
       // only valid for the SQL text they correspond to -- once the SQL has
       // changed, the old validation doesn't tell us anything useful anymore.
       const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
-      if (qe.validationResult.id != action.query.id) {
+      if (qe.validationResult.id !== action.query.id) {
         return state;
       }
       // Otherwise, persist the results on the queryEditor state
       let newState = Object.assign({}, state);
-      const errors = action.results
       const sqlEditor = { id: action.query.sqlEditorId };
       newState = alterInArr(newState, 'queryEditors', sqlEditor, {
         validationResult: {
           id: action.query.id,
           errors: action.results,
           completed: true,
-        }
+        },
       });
       return newState;
     },
@@ -187,7 +186,7 @@ export default function sqlLabReducer(state = {}, action) {
       // only valid for the SQL text they correspond to -- once the SQL has
       // changed, the old validation doesn't tell us anything useful anymore.
       const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
-      if (qe.validationResult.id != action.query.id) {
+      if (qe.validationResult.id !== action.query.id) {
         return state;
       }
       // Otherwise, persist the results on the queryEditor state
@@ -203,7 +202,7 @@ export default function sqlLabReducer(state = {}, action) {
             message: `The server failed to validate your query.\n${action.message}`,
           }],
           completed: true,
-        }
+        },
       });
       return newState;
     },

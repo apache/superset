@@ -100,7 +100,7 @@ class SqlEditor extends React.PureComponent {
     this.getSqlEditorHeight = this.getSqlEditorHeight.bind(this);
     this.requestValidation = debounce(
       this.requestValidation.bind(this),
-      VALIDATION_DEBOUNCE_MS
+      VALIDATION_DEBOUNCE_MS,
     );
   }
   componentWillMount() {

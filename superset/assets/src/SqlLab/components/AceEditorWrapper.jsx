@@ -159,8 +159,9 @@ class AceEditorWrapper extends React.PureComponent {
   }
   getAceAnnotations() {
     const validationResult = this.props.queryEditor.validationResult;
-    if (validationResult.completed && validationResult.errors.length > 0) {
-      let errors = validationResult.errors.map(err => ({
+    const resultIsReady = (validationResult && validationResult.completed);
+    if (resultIsReady && validationResult.errors.length > 0) {
+      const errors = validationResult.errors.map(err => ({
         type: 'error',
         row: err.line_number - 1,
         column: err.start_column - 1,

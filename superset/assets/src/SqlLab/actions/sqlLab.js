@@ -82,11 +82,6 @@ export function resetState() {
 }
 
 export function startQueryValidation(query) {
-  if (query == null) {
-    const msg = "programmer error: tried to validate a null query object";
-    console.error(msg);
-    throw msg;
-  }
   Object.assign(query, {
     id: query.id ? query.id : shortid.generate(),
   });
@@ -213,12 +208,6 @@ export function runQuery(query) {
 
 export function validateQuery(query) {
   return function (dispatch) {
-    if (query == null) {
-      const msg = "programmer error: tried to validate a null query object";
-      console.error(msg);
-      throw msg;
-    }
-
     dispatch(startQueryValidation(query));
 
     const postPayload = {
