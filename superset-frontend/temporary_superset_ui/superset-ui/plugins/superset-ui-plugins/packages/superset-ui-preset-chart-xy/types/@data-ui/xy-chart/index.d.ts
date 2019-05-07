@@ -20,15 +20,16 @@ declare module '@data-ui/xy-chart' {
     onMouseMove?: (...args: any[]) => void;
     onMouseLeave?: (...args: any[]) => void;
     renderTooltip: any;
-    showYGrid: boolean;
-    snapTooltipToDataX: boolean;
-    theme: any;
-    tooltipData: any;
+    showYGrid?: boolean;
+    snapTooltipToDataX?: boolean;
+    theme?: any;
+    tooltipData?: any;
     xScale: any;
     yScale: any;
   }
 
   export class AreaSeries extends React.PureComponent<Props, {}> {}
+  export class BoxPlotSeries extends React.PureComponent<Props, {}> {}
   export class CrossHair extends React.PureComponent<Props, {}> {}
   export class LinearGradient extends React.PureComponent<Props, {}> {}
   export class LineSeries extends React.PureComponent<Props, {}> {}
