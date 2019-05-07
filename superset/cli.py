@@ -19,13 +19,9 @@
 from datetime import datetime
 import logging
 from subprocess import Popen
-<<<<<<< Updated upstream
 from sys import stdout, exit
-=======
-from sys import stdout
 import pkgutil
 import importlib
->>>>>>> Stashed changes
 
 import click
 from colorama import Fore, Style
@@ -146,8 +142,8 @@ def show():
         try: 
             print('{}: {}'.format(modname, module.DESCRIPTION))
         except AttributeError as e:
+            print(modname)
             pass
-            
         
 
 @examples.command()
@@ -224,7 +220,6 @@ def import_dashboards(path, recursive):
     '--print_stdout', '-p', is_flag=True, default=False,
     help='Print JSON to stdout')
 @click.option(
-<<<<<<< Updated upstream
     '--dashboard-ids', '-i', default=None, type=int, multiple=True,
     help='Specify dashboard id to export')
 @click.option(
