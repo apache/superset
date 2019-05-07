@@ -598,23 +598,9 @@ WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
-# Send user to a link where they can read more about Superset
-DOCUMENTATION_URL = None
 
-# What is the Last N days relative in the time selector to:
-# 'today' means it is midnight (00:00:00) of today in the local timezone
-# 'now' means it is relative to the query issue time
-DEFAULT_RELATIVE_END_TIME = 'today'
-
-# Is epoch_s/epoch_ms datetime format supposed to be considered since UTC ?
-# If not, it is sassumed then the epoch_s/epoch_ms is seconds since 1/1/1970
-# localtime (in the tz where the superset webserver is running)
-IS_EPOCH_S_TRULY_UTC = False
-
-# Configure which SQL validator to use for each engine
-SQL_VALIDATORS_BY_ENGINE = {
-    'presto': 'PrestoDBSQLValidator',
-}
+# Directory to export data to
+EXPORT_DIRECTORY = '/tmp/'
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

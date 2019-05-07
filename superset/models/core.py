@@ -61,6 +61,7 @@ config = app.config
 custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
 stats_logger = config.get('STATS_LOGGER')
 log_query = config.get('QUERY_LOGGER')
+export_dir = config.get('EXPORT_DIRECTORY')
 metadata = Model.metadata  # pylint: disable=no-member
 
 PASSWORD_MASK = 'X' * 10
@@ -615,7 +616,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             return copied_dash.id
 
     @classmethod
-    def export_dashboards(cls, dashboard_ids):
+    def export_dashboards(cls, dashboard_ids, export_data=False):
         copied_dashboards = []
         datasource_ids = set()
         for dashboard_id in dashboard_ids:
@@ -649,6 +650,24 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 )
                 make_transient(eager_datasource)
                 eager_datasources.append(eager_datasource)
+            
+            if export_data:
+                for data_table in eager_datasources:
+                    engine = data_table.database.get_sqla_engine()
+                    columns = [c.get_sqla_col() for c in data_table.columns]
+
+                    qry = (
+                        select(columns)
+                        .select_from(text(data_table.name))
+                    )
+                    qry.compile(engine)
+                    sql = '{}'.format(
+                        qry.compile(engine),
+                    )
+                    
+                    df = pd.read_sql_query(sql=sql, con=engine)
+                    file_name = f'{export_dir}/{data_table.name}.csv.gz'
+                    df.to_csv(file_name, compression='gzip')
 
         return json.dumps({
             'dashboards': copied_dashboards,

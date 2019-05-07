@@ -40,6 +40,7 @@ def import_dashboards(session, data_stream, import_time=None):
             dashboard, import_time=import_time)
     session.commit()
 
+<<<<<<< Updated upstream
 def export_dashboards(session, dashboard_ids=None, dashboard_titles=None):
     """Returns all dashboards metadata as a json dump"""
     logging.info('Starting export')
@@ -58,5 +59,6 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None):
         logging.error('No dashboards found!')
         raise DashboardNotFoundException('No dashboards found!')
     else:
-        data = Dashboard.export_dashboards(export_dashboard_ids) if export_dashboard_ids else {}
+        data = Dashboard.export_dashboards(export_dashboard_ids)
+
     return data

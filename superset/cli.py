@@ -19,7 +19,13 @@
 from datetime import datetime
 import logging
 from subprocess import Popen
+<<<<<<< Updated upstream
 from sys import stdout, exit
+=======
+from sys import stdout
+import pkgutil
+import importlib
+>>>>>>> Stashed changes
 
 import click
 from colorama import Fore, Style
@@ -125,6 +131,35 @@ def load_examples(load_test_data):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     load_examples_run(load_test_data)
 
+@app.cli.group()
+def examples():
+    """Manages example Slices/Dashboards/datasets"""
+    pass
+
+@examples.command()
+def show():
+    """List example Slices/Dashboards/datasets"""
+    print('Available examples:\n')
+    for importer, modname, ispkg in pkgutil.iter_modules(data.__path__):
+        #print("Found submodule %s (is a package: %s)" % (modname, ispkg))
+        module = importlib.import_module('superset.data.' + modname)
+        try: 
+            print('{}: {}'.format(modname, module.DESCRIPTION))
+        except AttributeError as e:
+            pass
+            
+        
+
+@examples.command()
+def load():
+    """Load an example Slice/Dashboard/dataset"""
+    pass
+
+@examples.command()
+def remove():
+    """Remove an example Slice/Dashboard/dataset"""
+    pass
+
 
 @app.cli.command()
 @click.option('--datasource', '-d', help='Specify which datasource name to load, if '
@@ -189,6 +224,7 @@ def import_dashboards(path, recursive):
     '--print_stdout', '-p', is_flag=True, default=False,
     help='Print JSON to stdout')
 @click.option(
+<<<<<<< Updated upstream
     '--dashboard-ids', '-i', default=None, type=int, multiple=True,
     help='Specify dashboard id to export')
 @click.option(
@@ -210,7 +246,6 @@ def export_dashboards(print_stdout, dashboard_file, dashboard_ids, dashboard_tit
         logging.info('Exporting dashboards to %s', dashboard_file)
         with open(dashboard_file, 'w') as data_stream:
             data_stream.write(data)
-
 
 @app.cli.command()
 @click.option(
