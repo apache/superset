@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isEqual } from 'lodash';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 
 // We cache formData objects so that our connected container components don't always trigger
@@ -28,12 +30,22 @@ export default function getFormDataWithExtraFilters({
   chart = {},
   dashboardMetadata,
   filters,
+  colorScheme,
+  colorNamespace,
   sliceId,
 }) {
+  // Propagate color mapping to chart
+  const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
+  const labelColors = scale.getColorMap();
+
   // if dashboard metadata + filters have not changed, use cache if possible
   if (
     (cachedDashboardMetadataByChart[sliceId] || {}) === dashboardMetadata &&
     (cachedFiltersByChart[sliceId] || {}) === filters &&
+    (colorScheme == null ||
+      cachedFormdataByChart[sliceId].color_scheme === colorScheme) &&
+    cachedFormdataByChart[sliceId].color_namespace === colorNamespace &&
+    isEqual(cachedFormdataByChart[sliceId].label_colors, labelColors) &&
     !!cachedFormdataByChart[sliceId]
   ) {
     return cachedFormdataByChart[sliceId];
@@ -41,6 +53,8 @@ export default function getFormDataWithExtraFilters({
 
   const formData = {
     ...chart.formData,
+    ...(colorScheme && { color_scheme: colorScheme }),
+    label_colors: labelColors,
     extra_filters: getEffectiveExtraFilters({
       dashboardMetadata,
       filters,

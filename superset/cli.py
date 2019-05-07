@@ -24,11 +24,10 @@ from sys import stdout
 import click
 from colorama import Fore, Style
 from pathlib2 import Path
-import werkzeug.serving
 import yaml
 
 from superset import (
-    app, data, db, security_manager,
+    app, appbuilder, data, db, security_manager,
 )
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
@@ -50,98 +49,8 @@ def make_shell_context():
 def init():
     """Inits the Superset application"""
     utils.get_or_create_main_db()
+    appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
-
-
-def debug_run(app, port, use_reloader):
-    click.secho(
-        '[DEPRECATED] As of Flask >=1.0.0, this command is no longer '
-        'supported, please use `flask run` instead, as documented in our '
-        'CONTRIBUTING.md',
-        fg='red',
-    )
-    click.secho('[example]', fg='yellow')
-    click.secho(
-        'flask run -p 8080 --with-threads --reload --debugger',
-        fg='green',
-    )
-
-
-def console_log_run(app, port, use_reloader):
-    from console_log import ConsoleLog
-    from gevent import pywsgi
-    from geventwebsocket.handler import WebSocketHandler
-
-    app.wsgi_app = ConsoleLog(app.wsgi_app, app.logger)
-
-    def run():
-        server = pywsgi.WSGIServer(
-            ('0.0.0.0', int(port)),
-            app,
-            handler_class=WebSocketHandler)
-        server.serve_forever()
-
-    if use_reloader:
-        from gevent import monkey
-        monkey.patch_all()
-        run = werkzeug.serving.run_with_reloader(run)
-
-    run()
-
-
-@app.cli.command()
-@click.option('--debug', '-d', is_flag=True, help='Start the web server in debug mode')
-@click.option('--console-log', is_flag=True,
-              help='Create logger that logs to the browser console (implies -d)')
-@click.option('--no-reload', '-n', 'use_reloader', flag_value=False,
-              default=config.get('FLASK_USE_RELOAD'),
-              help='Don\'t use the reloader in debug mode')
-@click.option('--address', '-a', default=config.get('SUPERSET_WEBSERVER_ADDRESS'),
-              help='Specify the address to which to bind the web server')
-@click.option('--port', '-p', default=config.get('SUPERSET_WEBSERVER_PORT'),
-              help='Specify the port on which to run the web server')
-@click.option('--workers', '-w', default=config.get('SUPERSET_WORKERS', 2),
-              help='Number of gunicorn web server workers to fire up [DEPRECATED]')
-@click.option('--timeout', '-t', default=config.get('SUPERSET_WEBSERVER_TIMEOUT'),
-              help='Specify the timeout (seconds) for the '
-                   'gunicorn web server [DEPRECATED]')
-@click.option('--socket', '-s', default=config.get('SUPERSET_WEBSERVER_SOCKET'),
-              help='Path to a UNIX socket as an alternative to address:port, e.g. '
-                   '/var/run/superset.sock. '
-                   'Will override the address and port values. [DEPRECATED]')
-def runserver(debug, console_log, use_reloader, address, port, timeout, workers, socket):
-    """Starts a Superset web server."""
-    debug = debug or config.get('DEBUG') or console_log
-    if debug:
-        print(Fore.BLUE + '-=' * 20)
-        print(
-            Fore.YELLOW + 'Starting Superset server in ' +
-            Fore.RED + 'DEBUG' +
-            Fore.YELLOW + ' mode')
-        print(Fore.BLUE + '-=' * 20)
-        print(Style.RESET_ALL)
-        if console_log:
-            console_log_run(app, port, use_reloader)
-        else:
-            debug_run(app, port, use_reloader)
-    else:
-        logging.info(
-            "The Gunicorn 'superset runserver' command is deprecated. Please "
-            "use the 'gunicorn' command instead.")
-        addr_str = f' unix:{socket} ' if socket else f' {address}:{port} '
-        cmd = (
-            'gunicorn '
-            f'-w {workers} '
-            f'--timeout {timeout} '
-            f'-b {addr_str} '
-            '--limit-request-line 0 '
-            '--limit-request-field_size 0 '
-            'superset:app'
-        )
-        print(Fore.GREEN + 'Starting server with command: ')
-        print(Fore.YELLOW + cmd)
-        print(Style.RESET_ALL)
-        Popen(cmd, shell=True).wait()
 
 
 @app.cli.command()

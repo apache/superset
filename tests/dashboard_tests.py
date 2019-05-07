@@ -191,17 +191,60 @@ class DashboardTests(SupersetTestCase):
         data['dashboard_title'] = origin_title
         self.get_resp(url, data=dict(data=json.dumps(data)))
 
+    def test_save_dash_with_colors(self, username='admin'):
+        self.login(username=username)
+        dash = (
+            db.session.query(models.Dashboard)
+            .filter_by(slug='births')
+            .first()
+        )
+        positions = self.get_mock_positions(dash)
+        new_label_colors = {
+            'data value': 'random color',
+        }
+        data = {
+            'css': '',
+            'expanded_slices': {},
+            'positions': positions,
+            'dashboard_title': dash.dashboard_title,
+            'color_namespace': 'Color Namespace Test',
+            'color_scheme': 'Color Scheme Test',
+            'label_colors': new_label_colors,
+
+        }
+        url = '/superset/save_dash/{}/'.format(dash.id)
+        self.get_resp(url, data=dict(data=json.dumps(data)))
+        updatedDash = (
+            db.session.query(models.Dashboard)
+            .filter_by(slug='births')
+            .first()
+        )
+        self.assertIn('color_namespace', updatedDash.json_metadata)
+        self.assertIn('color_scheme', updatedDash.json_metadata)
+        self.assertIn('label_colors', updatedDash.json_metadata)
+        # bring back original dashboard
+        del data['color_namespace']
+        del data['color_scheme']
+        del data['label_colors']
+        self.get_resp(url, data=dict(data=json.dumps(data)))
+
     def test_copy_dash(self, username='admin'):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
         positions = self.get_mock_positions(dash)
+        new_label_colors = {
+            'data value': 'random color',
+        }
         data = {
             'css': '',
             'duplicate_slices': False,
             'expanded_slices': {},
             'positions': positions,
             'dashboard_title': 'Copy Of Births',
+            'color_namespace': 'Color Namespace Test',
+            'color_scheme': 'Color Scheme Test',
+            'label_colors': new_label_colors,
         }
 
         # Save changes to Births dashboard and retrieve updated dash

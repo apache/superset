@@ -100,7 +100,7 @@ class TableColumn(Model, BaseColumn):
         backref=backref('columns', cascade='all, delete-orphan'),
         foreign_keys=[table_id])
     is_dttm = Column(Boolean, default=False)
-    expression = Column(Text, default='')
+    expression = Column(Text)
     python_date_format = Column(String(255))
     database_expression = Column(String(255))
 
@@ -209,7 +209,7 @@ class SqlMetric(Model, BaseMetric):
         'SqlaTable',
         backref=backref('metrics', cascade='all, delete-orphan'),
         foreign_keys=[table_id])
-    expression = Column(Text)
+    expression = Column(Text, nullable=False)
 
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'table_id', 'expression',

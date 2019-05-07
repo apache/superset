@@ -226,9 +226,9 @@ export function startPeriodicRender(interval) {
   };
 }
 
-export const TOGGLE_BUILDER_PANE = 'TOGGLE_BUILDER_PANE';
-export function toggleBuilderPane() {
-  return { type: TOGGLE_BUILDER_PANE };
+export const SHOW_BUILDER_PANE = 'SHOW_BUILDER_PANE';
+export function showBuilderPane(builderPaneType) {
+  return { type: SHOW_BUILDER_PANE, builderPaneType };
 }
 
 export function addSliceToDashboard(id) {
@@ -264,6 +264,18 @@ export function removeSliceFromDashboard(id) {
   return dispatch => {
     dispatch(removeSlice(id));
     dispatch(removeChart(id));
+  };
+}
+
+export const SET_COLOR_SCHEME = 'SET_COLOR_SCHEME';
+export function setColorScheme(colorScheme) {
+  return { type: SET_COLOR_SCHEME, colorScheme };
+}
+
+export function setColorSchemeAndUnsavedChanges(colorScheme) {
+  return dispatch => {
+    dispatch(setColorScheme(colorScheme));
+    dispatch(setUnsavedChanges(true));
   };
 }
 

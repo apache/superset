@@ -32,6 +32,7 @@ import {
   Radio,
   Tab,
   Tabs,
+  Tooltip,
 } from 'react-bootstrap';
 import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
@@ -311,15 +312,30 @@ export default class DateFilterControl extends React.Component {
         {grain}
       </MenuItem>
       ));
-    const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => (
-      <Radio
-        key={timeFrame.replace(' ', '').toLowerCase()}
-        checked={this.state.common === timeFrame}
-        onChange={() => this.setState(getStateFromCommonTimeFrame(timeFrame))}
-      >
-        {timeFrame}
-      </Radio>
-      ));
+    const timeFrames = COMMON_TIME_FRAMES.map((timeFrame) => {
+      const nextState = getStateFromCommonTimeFrame(timeFrame);
+      return (
+        <OverlayTrigger
+          key={timeFrame}
+          placement="left"
+          overlay={
+            <Tooltip id={`tooltip-${timeFrame}`}>
+              {nextState.since}<br />{nextState.until}
+            </Tooltip>
+          }
+        >
+          <div>
+            <Radio
+              key={timeFrame.replace(' ', '').toLowerCase()}
+              checked={this.state.common === timeFrame}
+              onChange={() => this.setState(nextState)}
+            >
+              {timeFrame}
+            </Radio>
+          </div>
+        </OverlayTrigger>
+      );
+    });
     return (
       <Popover id="filter-popover" placement="top" positionTop={0}>
         <div style={{ width: '250px' }}>

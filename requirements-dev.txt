@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-console_log==0.2.10
 coverage==4.5.3
 flake8-commas==2.0.0
 flake8-import-order==0.18
