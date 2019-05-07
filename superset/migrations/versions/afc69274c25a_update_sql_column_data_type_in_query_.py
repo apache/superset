@@ -29,7 +29,7 @@ import sqlalchemy as sa
 revision = 'afc69274c25a'
 down_revision = 'e9df189e5c7e'
 
-text_len = 2 ** 32 - 1
+text_len = 10 ** 9 - 1
 
 
 def upgrade():
