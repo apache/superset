@@ -1,9 +1,15 @@
 import { Value } from 'vega-lite/build/src/channeldef';
 import { ObjectWithKeysFromAndValueType } from './types/Base';
-import { ChannelOptions, EncodingFromChannelsAndOutputs, ChannelType } from './types/Channel';
+import {
+  ChannelOptions,
+  EncodingFromChannelsAndOutputs,
+  ChannelType,
+  ChannelInput,
+} from './types/Channel';
 import { FullSpec, BaseOptions, PartialSpec } from './types/Specification';
-import { isFieldDef } from './types/ChannelDef';
+import { isFieldDef, isTypedFieldDef } from './types/ChannelDef';
 import ChannelEncoder from './ChannelEncoder';
+import { Dataset } from './types/Data';
 
 export default abstract class AbstractEncoder<
   // The first 3 generics depends on each other
@@ -114,6 +120,43 @@ export default abstract class AbstractEncoder<
       .filter(field => field !== '');
 
     return Array.from(new Set(fields));
+  }
+
+  getLegendInfos(data: Dataset) {
+    return Object.keys(this.legends)
+      .map((field: string) => {
+        const channelNames = this.legends[field];
+        const channelEncoder = this.channels[channelNames[0]];
+
+        if (isTypedFieldDef(channelEncoder.definition)) {
+          // Only work for nominal channels now
+          // TODO: Add support for numerical scale
+          if (channelEncoder.definition.type === 'nominal') {
+            const domain = Array.from(new Set(data.map(channelEncoder.get)));
+
+            return domain.map((value: ChannelInput) => ({
+              field,
+              value,
+              // eslint-disable-next-line sort-keys
+              encodedValues: channelNames.reduce(
+                (
+                  prev: Partial<ObjectWithKeysFromAndValueType<ChannelTypes, Value | undefined>>,
+                  curr,
+                ) => {
+                  const map = prev;
+                  map[curr] = this.channels[curr].encodeValue(value);
+
+                  return map;
+                },
+                {},
+              ),
+            }));
+          }
+        }
+
+        return [];
+      })
+      .filter(items => items.length > 0);
   }
 
   hasLegend() {
