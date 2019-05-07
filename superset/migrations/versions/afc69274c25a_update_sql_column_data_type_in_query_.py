@@ -29,22 +29,33 @@ import sqlalchemy as sa
 revision = 'afc69274c25a'
 down_revision = 'e9df189e5c7e'
 
+text_len = 2 ** 32 - 1
+
 
 def upgrade():
-    with op.batch_alter_table('query') as batch_op:
-        batch_op.alter_column(
-            'sql', existing_type=sa.Text, type_=sa.Text(2 ** 32 - 1))
-        batch_op.alter_column(
-            'select_sql', existing_type=sa.Text, type_=sa.Text(2 ** 32 - 1))
-        batch_op.alter_column(
-            'executed_sql', existing_type=sa.Text, type_=sa.Text(2 ** 32 - 1))
+    try:
+        # Set text length if database accepts it
+        with op.batch_alter_table('query') as batch_op:
+            batch_op.alter_column(
+                'sql', existing_type=sa.Text, type_=sa.Text(length=text_len))
+            batch_op.alter_column(
+                'select_sql', existing_type=sa.Text, type_=sa.Text(length=text_len))
+            batch_op.alter_column(
+                'executed_sql', existing_type=sa.Text, type_=sa.Text(length=text_len))
+    except:
+        # Many databases do not have a length on text objects
+        # so skip altering for those databases
+        pass
 
 
 def downgrade():
-    with op.batch_alter_table('query') as batch_op:
-        batch_op.alter_column(
-            'sql', existing_type=sa.Text(2 ** 32 - 1), type_=sa.Text)
-        batch_op.alter_column(
-            'select_sql', existing_type=sa.Text(2 ** 32 - 1), type_=sa.Text)
-        batch_op.alter_column(
-            'executed_sql', existing_type=sa.Text(2 ** 32 - 1), type_=sa.Text)
+    try:
+        with op.batch_alter_table('query') as batch_op:
+            batch_op.alter_column(
+                'sql', existing_type=sa.Text(length=text_len), type_=sa.Text)
+            batch_op.alter_column(
+                'select_sql', existing_type=sa.Text(length=text_len), type_=sa.Text)
+            batch_op.alter_column(
+                'executed_sql', existing_type=sa.Text(length=text_len), type_=sa.Text)
+    except:
+        pass
