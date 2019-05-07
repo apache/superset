@@ -9,7 +9,7 @@ import Encoder from './Encoder';
 const MARK_STYLE = { marginRight: 4 };
 
 export default function createTooltip(encoder: Encoder, allSeries: Series[]) {
-  function LineTooltip({
+  return function LineTooltip({
     datum,
     series = {},
   }: {
@@ -57,7 +57,5 @@ export default function createTooltip(encoder: Encoder, allSeries: Series[]) {
         </>
       </TooltipFrame>
     );
-  }
-
-  return LineTooltip;
+  };
 }
