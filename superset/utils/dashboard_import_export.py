@@ -45,7 +45,8 @@ def export_dashboards(session, dashboard_id=None, dashboard_title=None):
     dashboard_ids = []
     for dashboard in dashboards:
         if dashboard_id or dashboard_title:
-            if dashboard.id == dashboard_id or dashboard.dashboard_title == dashboard_title:
+            if dashboard.id == dashboard_id or \
+                dashboard.dashboard_title == dashboard_title:
                 dashboard_ids.append(dashboard.id)
         else:
             dashboard_ids.append(dashboard.id)
