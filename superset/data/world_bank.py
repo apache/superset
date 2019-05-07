@@ -71,7 +71,7 @@ def load_world_bank_health_n_pop():
 
     metrics = [
         'sum__SP_POP_TOTL', 'sum__SH_DYN_AIDS', 'sum__SH_DYN_AIDS',
-        'sum__SP_RUR_TOTL_ZS', 'sum__SP_DYN_LE00_IN',
+        'sum__SP_RUR_TOTL_ZS', 'sum__SP_DYN_LE00_IN', 'sum__SP_RUR_TOTL'
     ]
     for m in metrics:
         if not any(col.metric_name == m for col in tbl.metrics):
