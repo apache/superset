@@ -439,8 +439,8 @@ The connection string for Teradata looks like this ::
 
 Required environment variables: ::
 
-    export ODBCINI=/.../teradata/client/ODBC_64/odbc.ini  
-    export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini 
+    export ODBCINI=/.../teradata/client/ODBC_64/odbc.ini
+    export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini
 
 See `Teradata SQLAlchemy <https://github.com/Teradata/sqlalchemy-teradata>`_.
 
@@ -811,6 +811,19 @@ in this dictionary are made available for users to use in their SQL.
         'my_crazy_macro': lambda x: x*2,
     }
 
+SQL Lab also includes a live query validation feature with pluggable backends.
+You can configure which validation implementation is used with which database
+engine by adding a block like the following to your config.py:
+
+.. code-block:: python
+     FEATURE_FLAGS = {
+         'SQL_VALIDATORS_BY_ENGINE': {
+             'presto': 'PrestoDBSQLValidator',
+         }
+     }
+
+The available validators and names can be found in `sql_validators/`.
+
 **Scheduling queries**
 
 You can optionally allow your users to schedule queries directly in SQL Lab.
@@ -967,7 +980,7 @@ Note that the above command will install Superset into ``default`` namespace of 
 Custom OAuth2 configuration
 ---------------------------
 
-Beyond FAB supported providers (github, twitter, linkedin, google, azure), its easy to connect Superset with other OAuth2 Authorization Server implementations that support "code" authorization. 
+Beyond FAB supported providers (github, twitter, linkedin, google, azure), its easy to connect Superset with other OAuth2 Authorization Server implementations that support "code" authorization.
 
 The first step: Configure authorization in Superset ``superset_config.py``.
 
@@ -986,10 +999,10 @@ The first step: Configure authorization in Superset ``superset_config.py``.
                 },
                 'access_token_method':'POST',    # HTTP Method to call access_token_url
                 'access_token_params':{        # Additional parameters for calls to access_token_url
-                    'client_id':'myClientId'     
+                    'client_id':'myClientId'
                 },
-                'access_token_headers':{    # Additional headers for calls to access_token_url 
-                    'Authorization': 'Basic Base64EncodedClientIdAndSecret' 
+                'access_token_headers':{    # Additional headers for calls to access_token_url
+                    'Authorization': 'Basic Base64EncodedClientIdAndSecret'
                 },
                 'base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
                 'access_token_url':'https://myAuthorizationServer/oauth2AuthorizationServer/token',
@@ -997,25 +1010,25 @@ The first step: Configure authorization in Superset ``superset_config.py``.
             }
         }
     ]
-    
+
     # Will allow user self registration, allowing to create Flask users from Authorized User
     AUTH_USER_REGISTRATION = True
-    
+
     # The default user self registration role
     AUTH_USER_REGISTRATION_ROLE = "Public"
-    
+
 Second step: Create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager` and overrides `oauth_user_info`:
 
 .. code-block:: python
-    
+
     from superset.security import SupersetSecurityManager
-    
+
     class CustomSsoSecurityManager(SupersetSecurityManager):
 
         def oauth_user_info(self, provider, response=None):
             logging.debug("Oauth2 provider: {0}.".format(provider))
             if provider == 'egaSSO':
-                # As example, this line request a GET to base_url + '/' + userDetails with Bearer  Authentication, 
+                # As example, this line request a GET to base_url + '/' + userDetails with Bearer  Authentication,
         # and expects that authorization server checks the token, and response with user details
                 me = self.appbuilder.sm.oauth_remotes[provider].get('userDetails').data
                 logging.debug("user_data: {0}".format(me))
@@ -1027,7 +1040,6 @@ This file must be located at the same directory than ``superset_config.py`` with
 Then we can add this two lines to ``superset_config.py``:
 
 .. code-block:: python
-  
+
   from custom_sso_security_manager import CustomSsoSecurityManager
   CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
-
