@@ -76,6 +76,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         # engine spec's handle_cursor implementation since we don't record
         # these EXPLAIN queries done in validation as proper Query objects
         # in the superset ORM.
+        from pyhive.exc import DatabaseError
         try:
             db_engine_spec.execute(cursor, sql)
             polled = cursor.poll()
@@ -90,7 +91,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 polled = cursor.poll()
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
-        from pyhive.exc import DatabaseError
         except DatabaseError as db_error:
             # The pyhive presto client yields EXPLAIN (TYPE VALIDATE) responses
             # as though they were normal queries. In other words, it doesn't
