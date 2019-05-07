@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """update the sql, select_sql, and executed_sql columns in the
-   query table to support larger text
+   query table in mysql dbs to be long text columns
 
 Revision ID: afc69274c25a
 Revises: e9df189e5c7e
@@ -23,39 +23,34 @@ Create Date: 2019-05-06 14:30:26.181449
 
 """
 from alembic import op
+from sqlalchemy.databases import mysql
+from sqlalchemy.dialects.mysql.base import MySQLDialect
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'afc69274c25a'
 down_revision = 'e9df189e5c7e'
 
-text_len = 10 ** 9 - 1
-
 
 def upgrade():
-    try:
-        # Set text length if database accepts it
+    bind = op.get_bind()
+    if isinstance(bind.dialect, MySQLDialect):
         with op.batch_alter_table('query') as batch_op:
             batch_op.alter_column(
-                'sql', existing_type=sa.Text, type_=sa.Text(length=text_len))
+                'sql', existing_type=sa.Text, type_=mysql.LONGTEXT)
             batch_op.alter_column(
-                'select_sql', existing_type=sa.Text, type_=sa.Text(length=text_len))
+                'select_sql', existing_type=sa.Text, type_=mysql.LONGTEXT)
             batch_op.alter_column(
-                'executed_sql', existing_type=sa.Text, type_=sa.Text(length=text_len))
-    except:
-        # Many databases do not have a length on text objects
-        # so skip altering for those databases
-        pass
+                'executed_sql', existing_type=sa.Text, type_=mysql.LONGTEXT)
 
 
 def downgrade():
-    try:
+    bind = op.get_bind()
+    if isinstance(bind.dialect, MySQLDialect):
         with op.batch_alter_table('query') as batch_op:
             batch_op.alter_column(
-                'sql', existing_type=sa.Text(length=text_len), type_=sa.Text)
+                'sql', existing_type=mysql.LONGTEXT, type_=sa.Text)
             batch_op.alter_column(
-                'select_sql', existing_type=sa.Text(length=text_len), type_=sa.Text)
+                'select_sql', existing_type=mysql.LONGTEXT, type_=sa.Text)
             batch_op.alter_column(
-                'executed_sql', existing_type=sa.Text(length=text_len), type_=sa.Text)
-    except:
-        pass
+                'executed_sql', existing_type=mysql.LONGTEXT, type_=sa.Text)
