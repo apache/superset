@@ -57,6 +57,18 @@ export interface SuperChartProps {
 export default class SuperChart extends React.PureComponent<SuperChartProps, {}> {
   static defaultProps = defaultProps;
 
+  processChartProps: (input: {
+    chartProps: ChartProps;
+    preTransformProps?: PreTransformProps;
+    transformProps?: TransformProps;
+    postTransformProps?: PostTransformProps;
+  }) => any;
+
+  createLoadableRenderer: (input: {
+    chartType: string;
+    overrideTransformProps?: TransformProps;
+  }) => LoadableRenderer<RenderProps, LoadedModules> | (() => null);
+
   constructor(props: SuperChartProps) {
     super(props);
 
@@ -115,18 +127,6 @@ export default class SuperChart extends React.PureComponent<SuperChartProps, {}>
       },
     );
   }
-
-  processChartProps: (input: {
-    chartProps: ChartProps;
-    preTransformProps?: PreTransformProps;
-    transformProps?: TransformProps;
-    postTransformProps?: PostTransformProps;
-  }) => any;
-
-  createLoadableRenderer: (input: {
-    chartType: string;
-    overrideTransformProps?: TransformProps;
-  }) => LoadableRenderer<RenderProps, LoadedModules> | (() => null);
 
   renderChart(loaded: LoadedModules, props: RenderProps) {
     const { Chart, transformProps } = loaded;
