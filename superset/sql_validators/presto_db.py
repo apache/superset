@@ -26,7 +26,6 @@ from typing import (
 )
 
 from flask import g
-from pyhive.exc import DatabaseError
 
 from superset import app, security_manager
 from superset.sql_parse import ParsedQuery
@@ -91,6 +90,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 polled = cursor.poll()
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
+        from pyhive.exc import DatabaseError
         except DatabaseError as db_error:
             # The pyhive presto client yields EXPLAIN (TYPE VALIDATE) responses
             # as though they were normal queries. In other words, it doesn't
