@@ -19,7 +19,7 @@
 from datetime import datetime
 import logging
 from subprocess import Popen
-from sys import stdout
+from sys import stdout, exit
 
 import click
 from colorama import Fore, Style
@@ -31,6 +31,7 @@ from superset import (
 )
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
+from superset.exceptions import DashboardNotFoundException
 
 config = app.config
 celery_app = utils.get_celery_app(config)
@@ -188,17 +189,21 @@ def import_dashboards(path, recursive):
     '--print_stdout', '-p', is_flag=True, default=False,
     help='Print JSON to stdout')
 @click.option(
-    '--dashboard-id', '-i', default=None, type=int,
+    '--dashboard-ids', '-i', default=None, type=int, multiple=True,
     help='Specify dashboard id to export')
 @click.option(
-    '--dashboard-title', '-t', default=None,
+    '--dashboard-titles', '-t', default=None, multiple=True,
     help='Specify dashboard title to export')
-def export_dashboards(print_stdout, dashboard_file, dashboard_id, dashboard_title):
+def export_dashboards(print_stdout, dashboard_file, dashboard_ids, dashboard_titles):
     """Export dashboards to JSON"""
-    data = dashboard_import_export.export_dashboards(
-        db.session, 
-        dashboard_id=dashboard_id, 
-        dashboard_title=dashboard_title)
+    try:
+        data = dashboard_import_export.export_dashboards(
+            db.session, 
+            dashboard_ids=dashboard_ids, 
+            dashboard_titles=dashboard_titles)
+    except DashboardNotFoundException as e:
+        click.echo(click.style(str(e), fg='red'))
+        exit(1)
     if print_stdout or not dashboard_file:
         print(data)
     if dashboard_file:
