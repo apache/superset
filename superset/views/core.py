@@ -1566,8 +1566,8 @@ class Superset(BaseSupersetView):
         """Endpoint to fetch the list of tables for given database"""
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == 'true'
-        schema = utils.js_string_to_python(schema)
-        substr = utils.js_string_to_python(substr)
+        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
+        substr = utils.parse_js_uri_path_item(substr, eval_undefined=True)
         database = db.session.query(models.Database).filter_by(id=db_id).one()
 
         if schema:
@@ -2350,11 +2350,11 @@ class Superset(BaseSupersetView):
         }))
 
     @has_access
-    @expose('/table/<database_id>/<path:table_name>/<schema>/')
+    @expose('/table/<database_id>/<table_name>/<schema>/')
     @log_this
     def table(self, database_id, table_name, schema):
-        schema = utils.js_string_to_python(schema)
-        table_name = parse.unquote_plus(table_name)
+        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
+        table_name = utils.parse_js_uri_path_item(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload_columns = []
         indexes = []
@@ -2410,11 +2410,11 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(tbl))
 
     @has_access
-    @expose('/extra_table_metadata/<database_id>/<path:table_name>/<schema>/')
+    @expose('/extra_table_metadata/<database_id>/<table_name>/<schema>/')
     @log_this
     def extra_table_metadata(self, database_id, table_name, schema):
-        schema = utils.js_string_to_python(schema)
-        table_name = parse.unquote_plus(table_name)
+        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
+        table_name = utils.parse_js_uri_path_item(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload = mydb.db_engine_spec.extra_table_metadata(
             mydb, table_name, schema)
@@ -2427,6 +2427,8 @@ class Superset(BaseSupersetView):
     def select_star(self, database_id, table_name, schema=None):
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
+        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
+        table_name = utils.parse_js_uri_path_item(table_name)
         return json_success(
             mydb.select_star(
                 table_name,

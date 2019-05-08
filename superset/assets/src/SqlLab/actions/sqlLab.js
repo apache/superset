@@ -285,7 +285,8 @@ export function addTable(query, tableName, schemaName) {
       }),
     );
 
-    SupersetClient.get({ endpoint: `/superset/table/${query.dbId}/${tableName}/${schemaName}/` })
+    SupersetClient.get({ endpoint: encodeURI(`/superset/table/${query.dbId}/` +
+            `${encodeURIComponent(tableName)}/${encodeURIComponent(schemaName)}/`) })
       .then(({ json }) => {
         const dataPreviewQuery = {
           id: shortid.generate(),
@@ -322,7 +323,8 @@ export function addTable(query, tableName, schemaName) {
       );
 
     SupersetClient.get({
-      endpoint: `/superset/extra_table_metadata/${query.dbId}/${tableName}/${schemaName}/`,
+      endpoint: encodeURI(`/superset/extra_table_metadata/${query.dbId}/` +
+          `${encodeURIComponent(tableName)}/${encodeURIComponent(schemaName)}/`),
     })
       .then(({ json }) =>
         dispatch(mergeTable({ ...table, ...json, isExtraMetadataLoading: false })),
