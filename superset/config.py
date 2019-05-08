@@ -599,8 +599,8 @@ WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
 
-# Directory to export data to
-EXPORT_DIRECTORY = '/tmp/'
+# Default dashboard export directory
+DASHBOARD_EXPORT_DIR = '/tmp/'
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

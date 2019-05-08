@@ -226,17 +226,23 @@ def import_dashboards(path, recursive):
     '--dashboard-titles', '-t', default=None, multiple=True,
     help='Specify dashboard title to export')
 @click.option(
-    '--export-data-dir', '-d', default=config.get('EXPORT_DIRECTORY'),
-    help='Specify directory to export the dashboard\'s data tables as CSV files.'
+    '--export-data', '-x', default=None, is_flag=True,
+    help='Export the dashboard\'s data tables as CSV files.'
+)
+@click.option(
+    '--export-data-dir', '-d', default=config.get('DASHBOARD_EXPORT_DIR'),
+    help='Specify export directory path. Defaults to \'/tmp\'.'
 )
 def export_dashboards(print_stdout, dashboard_file, dashboard_ids, 
-                      dashboard_titles):
+                      dashboard_titles, export_data, export_data_dir):
     """Export dashboards to JSON"""
     try:
         data = dashboard_import_export.export_dashboards(
             db.session, 
             dashboard_ids=dashboard_ids, 
-            dashboard_titles=dashboard_titles)
+            dashboard_titles=dashboard_titles,
+            export_data=export_data,
+            export_data_dir=export_data_dir)
     except DashboardNotFoundException as e:
         click.echo(click.style(str(e), fg='red'))
         exit(1)
