@@ -18,7 +18,7 @@ before_script:
   - yarn build
 
 script:
-  - yarn lint
+  - yarn test
 
 after_script:
   - codecov
