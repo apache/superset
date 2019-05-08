@@ -4613,19 +4613,17 @@ msgstr "您无法访问此数据源。< a href = ‘{}’> (获取权限) </a>"
 msgid "You don't have access to this datasource"
 msgstr "你不能访问这个数据源"
 
-#: superset/views/core.py:90
+#: superset/views/core.py:98
 #, python-format
 msgid ""
-"This view requires the database %(name)s or `all_datasource_access` "
-"permission"
+"This view requires the database %(name)s or "
+"`all_datasource_access` permission"
 msgstr "此视图需要数据库 %(name)s或“all_datasource_access”权限"
 
-#: superset/views/core.py:95
+#: superset/views/core.py:82
 #, python-format
-msgid ""
-"This endpoint requires the datasource %(name)s, database or "
-"`all_datasource_access` permission"
-msgstr "此端点需要数据源 %(name)s、数据库或“all_datasource_access”权限"
+msgid "This endpoint requires the `all_datasource_access` permission"
+msgstr "此端点需要“all_datasource_access”权限"
 
 #: superset/views/core.py:189
 msgid "List Databases"
