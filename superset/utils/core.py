@@ -51,10 +51,11 @@ import pandas as pd
 import parsedatetime
 from pydruid.utils.having import Having
 import sqlalchemy as sa
-from sqlalchemy import event, exc, select, Text
+from sqlalchemy import create_engine, event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator
+from sqlalchemy_utils import database_exists, create_database
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
 from superset.utils.dates import datetime_to_epoch, EPOCH
@@ -879,6 +880,15 @@ def get_or_create_main_db():
     db.session.add(dbobj)
     db.session.commit()
     return dbobj
+
+
+def get_or_create_import_db_engine():
+    """Get a SQLAlchemy engine for imported dashboard data"""
+    from superset import conf
+    engine = create_engine(conf.get('SQLALCHEMY_IMPORT_URI'))
+    if not database_exists(engine.url):
+        create_database(engine.url)
+    return engine
 
 
 def get_main_database(session):
