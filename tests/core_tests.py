@@ -151,6 +151,31 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(slc.explore_json_url)
         assert '"Jennifer"' in resp
 
+    @mock.patch('superset.views.core.is_feature_enabled')
+    def test_explore_json_endpoint(self, mock_is_feature_enabled):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+
+        # when feature ENABLE_EXPLORE_JSON_CSRF_PROTECTION is enabled
+        # explore_json should only allow POST method
+        mock_is_feature_enabled.side_effect = \
+            lambda x: {'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': True}[x]
+
+        resp = self.client.get(slc.explore_json_url)
+        self.assertEqual(resp.status_code, 405)
+        resp = self.client.post(slc.explore_json_url)
+        self.assertEqual(resp.status_code, 200)
+
+        # by default, feature ENABLE_EXPLORE_JSON_CSRF_PROTECTION is disabled,
+        # explore_json should allow GET and POST method
+        mock_is_feature_enabled.side_effect = \
+            lambda x: {'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False}[x]
+
+        resp = self.client.get(slc.explore_json_url)
+        self.assertEqual(resp.status_code, 200)
+        resp = self.client.post(slc.explore_json_url)
+        self.assertEqual(resp.status_code, 200)
+
     def test_old_slice_csv_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)

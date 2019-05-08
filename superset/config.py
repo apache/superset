@@ -203,6 +203,7 @@ LANGUAGES = {
 DEFAULT_FEATURE_FLAGS = {
     # Experimental feature introducing a client (browser) cache
     'CLIENT_CACHE': False,
+    'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False,
 }
 
 # A function that receives a dict of all feature flags

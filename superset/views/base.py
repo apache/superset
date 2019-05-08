@@ -32,6 +32,7 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from flask_wtf.form import FlaskForm
 import simplejson as json
+from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
 import yaml
 
@@ -127,6 +128,12 @@ def handle_api_exception(f):
             return json_error_response(utils.error_msg_from_exception(e),
                                        stacktrace=traceback.format_exc(),
                                        status=e.status)
+        except HTTPException as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e),
+                                       stacktrace=traceback.format_exc(),
+                                       status=e.code)
+
         except Exception as e:
             logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e),

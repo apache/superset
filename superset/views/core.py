@@ -40,12 +40,13 @@ import sqlalchemy as sqla
 from sqlalchemy import and_, create_engine, MetaData, or_, update
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
+from werkzeug.exceptions import MethodNotAllowed
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, conf, db, get_feature_flags, results_backend,
-    security_manager, sql_lab, viz)
+    app, appbuilder, cache, conf, db, get_feature_flags, is_feature_enabled,
+    results_backend, security_manager, sql_lab, viz)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
@@ -1238,9 +1239,12 @@ class Superset(BaseSupersetView):
         requests that GETs or POSTs a form_data.
 
         `self.generate_json` receives this input and returns different
-        payloads based on the request args in the first block
+        payloads based on the request args in the first block"""
+        if (request.method != 'POST' and
+                is_feature_enabled('ENABLE_EXPLORE_JSON_CSRF_PROTECTION')):
+            raise MethodNotAllowed(valid_methods=['POST'])
 
-        TODO: break into one endpoint for each return shape"""
+        # TODO: break into one endpoint for each return shape
         csv = request.args.get('csv') == 'true'
         query = request.args.get('query') == 'true'
         results = request.args.get('results') == 'true'
