@@ -23,6 +23,7 @@ import functools
 import json
 import logging
 import textwrap
+import uuid
 
 from flask import escape, g, Markup, request
 from flask_appbuilder import Model
@@ -43,6 +44,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import select, text
 from sqlalchemy_utils import EncryptedType
+from sqlalchemy_utils.types.uuid import UUIDType
 import sqlparse
 
 from superset import app, db, db_engine_specs, security_manager
@@ -399,6 +401,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
+    uuid = Column(UUIDType(binary=False), unique=True, default=uuid.uuid4) 
     dashboard_title = Column(String(500))
     position_json = Column(utils.MediumText())
     description = Column(Text)
@@ -676,7 +679,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                         'types': types,
                     }
                     data['tables'].append(table_record)
-                    df.to_csv(file_name, compression='gzip')
+                    df.to_csv(file_name)
             data['includes_data'] = len(data['tables']) > 0
 
         return json.dumps({
