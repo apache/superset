@@ -33,6 +33,7 @@ import smtplib
 import sys
 from time import struct_time
 from typing import List, Optional, Tuple
+from urllib.parse import unquote_plus
 import uuid
 import zlib
 
@@ -141,8 +142,18 @@ def memoized(func=None, watch=None):
         return wrapper
 
 
-def js_string_to_python(item: str) -> Optional[str]:
-    return None if item in ('null', 'undefined') else item
+def parse_js_uri_path_item(item: Optional[str], unquote: bool = True,
+                           eval_undefined: bool = False) -> Optional[str]:
+    """Parse a uri path item made with js.
+
+    :param item: a uri path component
+    :param unquote: Perform unquoting of string using urllib.parse.unquote_plus()
+    :param eval_undefined: When set to True and item is either 'null'  or 'undefined',
+    assume item is undefined and return None.
+    :return: Either None, the original item or unquoted item
+    """
+    item = None if eval_undefined and item in ('null', 'undefined') else item
+    return unquote_plus(item) if unquote and item else item
 
 
 def string_to_num(s: str):
