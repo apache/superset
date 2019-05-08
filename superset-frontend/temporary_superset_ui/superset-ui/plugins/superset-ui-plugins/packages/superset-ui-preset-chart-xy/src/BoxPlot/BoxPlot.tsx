@@ -25,7 +25,7 @@ import { createSelector } from 'reselect';
 import createTooltip from './createTooltip';
 import XYChartLayout from '../utils/XYChartLayout';
 import WithLegend from '../components/WithLegend';
-import ChartLegend from '../components/ChartLegend';
+import ChartLegend from '../components/legend/ChartLegend';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 
@@ -52,6 +52,9 @@ type Props = {
 export default class BoxPlot extends React.PureComponent<Props> {
   static defaultProps = defaultProps;
 
+  encoder: Encoder;
+  private createEncoder: () => void;
+
   constructor(props: Props) {
     super(props);
 
@@ -67,9 +70,6 @@ export default class BoxPlot extends React.PureComponent<Props> {
     this.encoder = createEncoder(this.props.encoding);
     this.renderChart = this.renderChart.bind(this);
   }
-
-  encoder: Encoder;
-  private createEncoder: () => void;
 
   renderChart(dim: Dimension) {
     const { width, height } = dim;
