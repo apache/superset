@@ -50,8 +50,8 @@ const propTypes = {
 };
 
 class ExploreChartHeader extends React.PureComponent {
-  runQuery() {
-    this.props.actions.runQuery(this.props.form_data, true,
+  postChartFormData() {
+    this.props.actions.postChartFormData(this.props.form_data, true,
       this.props.timeout, this.props.chart.id);
   }
 
@@ -142,7 +142,7 @@ class ExploreChartHeader extends React.PureComponent {
             />}
           {chartFinished && queryResponse && queryResponse.is_cached &&
             <CachedLabel
-              onClick={this.runQuery.bind(this)}
+              onClick={this.postChartFormData.bind(this)}
               cachedTimestamp={queryResponse.cached_dttm}
             />}
           <Timer

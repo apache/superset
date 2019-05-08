@@ -34,8 +34,7 @@ import wtforms_json
 from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
-from superset.utils.core import (
-    get_update_perms_flag, pessimistic_connection_handling, setup_cache)
+from superset.utils.core import pessimistic_connection_handling, setup_cache
 
 wtforms_json.init()
 
@@ -196,14 +195,14 @@ if not issubclass(custom_sm, SupersetSecurityManager):
          not FAB's security manager.
          See [4565] in UPDATING.md""")
 
-appbuilder = AppBuilder(
-    app,
-    db.session,
-    base_template='superset/base.html',
-    indexview=MyIndexView,
-    security_manager_class=custom_sm,
-    update_perms=get_update_perms_flag(),
-)
+with app.app_context():
+    appbuilder = AppBuilder(
+        app,
+        db.session,
+        base_template='superset/base.html',
+        indexview=MyIndexView,
+        security_manager_class=custom_sm,
+    )
 
 security_manager = appbuilder.sm
 
@@ -226,11 +225,6 @@ def is_feature_enabled(feature):
     return get_feature_flags().get(feature)
 
 
-# Registering sources
-module_datasource_map = app.config.get('DEFAULT_MODULE_DS_MAP')
-module_datasource_map.update(app.config.get('ADDITIONAL_MODULE_DS_MAP'))
-ConnectorRegistry.register_sources(module_datasource_map)
-
 # Flask-Compress
 if conf.get('ENABLE_FLASK_COMPRESS'):
     Compress(app)
@@ -242,3 +236,8 @@ if flask_app_mutator:
     flask_app_mutator(app)
 
 from superset import views  # noqa
+
+# Registering sources
+module_datasource_map = app.config.get('DEFAULT_MODULE_DS_MAP')
+module_datasource_map.update(app.config.get('ADDITIONAL_MODULE_DS_MAP'))
+ConnectorRegistry.register_sources(module_datasource_map)

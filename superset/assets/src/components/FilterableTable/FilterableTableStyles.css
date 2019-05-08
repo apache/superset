@@ -72,3 +72,8 @@
 }
 .even-row { background: #f2f2f2; }
 .odd-row { background: #ffffff; }
+.header-style {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
