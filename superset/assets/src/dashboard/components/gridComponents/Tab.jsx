@@ -133,6 +133,7 @@ export default class Tab extends React.PureComponent {
       onResize,
       onResizeStop,
       editMode,
+      isComponentVisible,
     } = this.props;
 
     return (
@@ -169,6 +170,7 @@ export default class Tab extends React.PureComponent {
             onResizeStart={onResizeStart}
             onResize={onResize}
             onResizeStop={onResizeStop}
+            isComponentVisible={isComponentVisible}
           />
         ))}
         {/* Make bottom of tab droppable */}
