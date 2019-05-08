@@ -88,6 +88,8 @@ class RolePermissionTests(SupersetTestCase):
 
         self.assertIn(
             ('all_datasource_access', 'all_datasource_access'), perm_set)
+        self.assertIn(
+            ('all_database_access', 'all_database_access'), perm_set)
         self.assertIn(('muldelete', 'DruidDatasourceModelView'), perm_set)
 
     def assert_cannot_alpha(self, perm_set):
@@ -130,6 +132,9 @@ class RolePermissionTests(SupersetTestCase):
         self.assertTrue(security_manager.is_admin_only(
             security_manager.find_permission_view_menu(
                 'can_approve', 'Superset')))
+        self.assertFalse(security_manager.is_admin_only(
+            security_manager.find_permission_view_menu(
+                'all_database_access', 'all_database_access')))
 
     def test_is_alpha_only(self):
         self.assertFalse(security_manager.is_alpha_only(
@@ -137,6 +142,9 @@ class RolePermissionTests(SupersetTestCase):
 
         self.assertTrue(security_manager.is_alpha_only(
             security_manager.find_permission_view_menu('muldelete', 'TableModelView')))
+        self.assertTrue(security_manager.is_alpha_only(
+            security_manager.find_permission_view_menu(
+                'all_database_access', 'all_database_access')))
         self.assertTrue(security_manager.is_alpha_only(
             security_manager.find_permission_view_menu(
                 'all_datasource_access', 'all_datasource_access')))
