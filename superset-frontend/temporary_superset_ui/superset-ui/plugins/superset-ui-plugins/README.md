@@ -1,6 +1,6 @@
 # @superset-ui/plugins 🔌💡
 
-[![Codecov branch](https://img.shields.io/codecov/c/github/apache-superset/superset-ui-plugins/master.svg?style=flat-square)](http://codecov.io/github/apache-superset/superset-ui-plugins/coverage.svg?branch=master)
+[![Codecov branch](https://img.shields.io/codecov/c/github/apache-superset/superset-ui-plugins/master.svg?style=flat-square)](https://codecov.io/gh/apache-superset/superset-ui-plugins/branch/master)
 [![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui-plugins/master.svg?style=flat-square
 )](https://travis-ci.com/apache-superset/superset-ui-plugins)
 [![David](https://img.shields.io/david/dev/apache-superset/superset-ui-plugins.svg?style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins?type=dev)
