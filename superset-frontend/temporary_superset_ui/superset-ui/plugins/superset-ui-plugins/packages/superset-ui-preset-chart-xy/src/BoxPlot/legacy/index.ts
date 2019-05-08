@@ -19,12 +19,11 @@
 import { ChartPlugin } from '@superset-ui/chart';
 import createMetadata from '../createMetadata';
 import transformProps from './transformProps';
-import Chart from '../BoxPlot';
 
 export default class BoxPlotChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      Chart,
+      loadChart: () => import('../BoxPlot'),
       metadata: createMetadata(true),
       transformProps,
     });
