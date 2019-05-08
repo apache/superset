@@ -58,5 +58,5 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None):
         logging.error('No dashboards found!')
         raise DashboardNotFoundException('No dashboards found!')
     else:
-        data = Dashboard.export_dashboards(export_dashboard_ids) if export_dashboard_ids else {}
+        data = Dashboard.export_dashboards(export_dashboard_ids)
     return data
