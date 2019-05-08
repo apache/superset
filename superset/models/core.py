@@ -41,6 +41,7 @@ from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.sql import select, text
 from sqlalchemy_utils import EncryptedType
 import sqlparse
 
@@ -61,7 +62,6 @@ config = app.config
 custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
 stats_logger = config.get('STATS_LOGGER')
 log_query = config.get('QUERY_LOGGER')
-export_dir = config.get('EXPORT_DIRECTORY')
 metadata = Model.metadata  # pylint: disable=no-member
 
 PASSWORD_MASK = 'X' * 10
@@ -616,7 +616,8 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             return copied_dash.id
 
     @classmethod
-    def export_dashboards(cls, dashboard_ids, export_data=False):
+    def export_dashboards(cls, dashboard_ids, export_data=False, 
+                          export_data_dir=None):
         copied_dashboards = []
         datasource_ids = set()
         for dashboard_id in dashboard_ids:
@@ -651,7 +652,8 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 make_transient(eager_datasource)
                 eager_datasources.append(eager_datasource)
             
-            if export_data:
+            export_files = []
+            if export_data and export_data_dir:
                 for data_table in eager_datasources:
                     engine = data_table.database.get_sqla_engine()
                     columns = [c.get_sqla_col() for c in data_table.columns]
@@ -664,14 +666,17 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                     sql = '{}'.format(
                         qry.compile(engine),
                     )
-                    
+
                     df = pd.read_sql_query(sql=sql, con=engine)
-                    file_name = f'{export_dir}/{data_table.name}.csv.gz'
+                    file_name = f'{export_data_dir}/{data_table.name}.csv.gz'
+                    export_files.append(file_name)
                     df.to_csv(file_name, compression='gzip')
 
         return json.dumps({
             'dashboards': copied_dashboards,
             'datasources': eager_datasources,
+            'files': export_files,
+            'includes_data': True if export_data else False
         }, cls=utils.DashboardEncoder, indent=4)
 
 

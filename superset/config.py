@@ -600,7 +600,7 @@ WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 BUG_REPORT_URL = None
 
 # Default dashboard export directory
-DASHBOARD_EXPORT_DIR = '/tmp/'
+DASHBOARD_EXPORT_DIR = '/tmp'
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
