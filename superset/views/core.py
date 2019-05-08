@@ -539,7 +539,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     }
 
     add_form_query_rel_fields = {
-        'dashboards': [['name', DashboardFilter, None]]
+        'dashboards': [['name', DashboardFilter, None]],
     }
 
     edit_form_query_rel_fields = add_form_query_rel_fields
