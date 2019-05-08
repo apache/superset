@@ -117,6 +117,9 @@ def load_examples_run(load_test_data):
         print('Loading DECK.gl demo')
         data.load_deck_dash()
 
+    print('Loading [Tabbed dashboard]')
+    data.load_tabbed_dashboard()
+
 
 @app.cli.command()
 @click.option('--load-test-data', '-t', is_flag=True, help='Load additional test data')
