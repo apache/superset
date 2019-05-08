@@ -15,15 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-import sys
 import json
 import logging
 import time
 
 from superset import db
 from superset.models.core import Dashboard
-from superset.utils.core import decode_dashboards
 from superset.exceptions import DashboardNotFoundException
+from superset.utils.core import decode_dashboards
 
 
 def import_dashboards(session, data_stream, import_time=None):
@@ -40,17 +39,18 @@ def import_dashboards(session, data_stream, import_time=None):
             dashboard, import_time=import_time)
     session.commit()
 
-def export_dashboards(session, dashboard_ids=None, dashboard_titles=None):
+
+def export_dashboards(session, dashboard_ids=None, dashboard_titles=None, export_data=False):
     """Returns all dashboards metadata as a json dump"""
     logging.info('Starting export')
     export_dashboard_ids = []
-    
+
     session = db.session()
     query = session.query(Dashboard)
     if dashboard_ids or dashboard_titles:
-        query = query.filter(Dashboard.id.in_(dashboard_ids) | \
+        query = query.filter(Dashboard.id.in_(dashboard_ids) |
                              Dashboard.dashboard_title.in_(dashboard_titles))
-    
+
     export_dashboard_ids = [d.id for d in query.all()]
 
     data = {}

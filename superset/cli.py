@@ -29,9 +29,9 @@ import yaml
 from superset import (
     app, appbuilder, data, db, security_manager,
 )
+from superset.exceptions import DashboardNotFoundException
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
-from superset.exceptions import DashboardNotFoundException
 
 config = app.config
 celery_app = utils.get_celery_app(config)
@@ -194,7 +194,12 @@ def import_dashboards(path, recursive):
 @click.option(
     '--dashboard-titles', '-t', default=None, multiple=True,
     help='Specify dashboard title to export')
-def export_dashboards(print_stdout, dashboard_file, dashboard_ids, dashboard_titles):
+@click.option(
+    '--export-data-dir', '-d', default=config.get('EXPORT_DIRECTORY'),
+    help='Specify directory to export the dashboard\'s data tables as CSV files.'
+)
+def export_dashboards(print_stdout, dashboard_file, dashboard_ids, 
+                      dashboard_titles):
     """Export dashboards to JSON"""
     try:
         data = dashboard_import_export.export_dashboards(
