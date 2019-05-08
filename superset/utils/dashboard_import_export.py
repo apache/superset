@@ -19,10 +19,11 @@ import json
 import logging
 import time
 
+import pandas as pd
 from superset import db
 from superset.models.core import Dashboard
 from superset.exceptions import DashboardNotFoundException
-from superset.utils.core import decode_dashboards
+from superset.utils.core import decode_dashboards, get_or_create_import_db_engine
 
 
 def import_dashboards(session, data_stream, import_time=None):
@@ -30,13 +31,25 @@ def import_dashboards(session, data_stream, import_time=None):
     current_tt = int(time.time())
     import_time = current_tt if import_time is None else import_time
     data = json.loads(data_stream.read(), object_hook=decode_dashboards)
+
     # TODO: import DRUID datasources
-    for table in data['datasources']:
-        type(table).import_obj(table, import_time=import_time)
     session.commit()
     for dashboard in data['dashboards']:
         Dashboard.import_obj(
             dashboard, import_time=import_time)
+
+    if data['data']['includes_data']:
+        engine = get_or_create_import_db_engine()
+        for table in data['data']['tables']:
+            df = pd.read_csv(table['file_path'], parse_dates=True, 
+                             infer_datetime_format=True, compression='infer')
+            df.to_sql(
+                table['name'],
+                engine,
+                if_exists='replace',
+                chunksize=500,
+                index=False)
+
     session.commit()
 
 
