@@ -652,11 +652,12 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 make_transient(eager_datasource)
                 eager_datasources.append(eager_datasource)
             
-            export_files = []
+            data = {'tables': []}
             if export_data and export_data_dir:
                 for data_table in eager_datasources:
                     engine = data_table.database.get_sqla_engine()
                     columns = [c.get_sqla_col() for c in data_table.columns]
+                    types = {c.name:c.type for c in columns}
 
                     qry = (
                         select(columns)
@@ -669,14 +670,19 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
                     df = pd.read_sql_query(sql=sql, con=engine)
                     file_name = f'{export_data_dir}/{data_table.name}.csv.gz'
-                    export_files.append(file_name)
+                    table_record = {
+                        'name': data_table.name,
+                        'file_path': file_name,
+                        'types': types,
+                    }
+                    data['tables'].append(table_record)
                     df.to_csv(file_name, compression='gzip')
+            data['includes_data'] = len(data['tables']) > 0
 
         return json.dumps({
             'dashboards': copied_dashboards,
             'datasources': eager_datasources,
-            'files': export_files,
-            'includes_data': True if export_data else False
+            'data': data,
         }, cls=utils.DashboardEncoder, indent=4)
 
 
