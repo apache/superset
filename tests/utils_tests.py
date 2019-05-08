@@ -35,6 +35,7 @@ from superset.utils.core import (
     merge_extra_filters,
     merge_request_params,
     parse_human_timedelta,
+    parse_js_uri_path_item,
     validate_json,
     zlib_compress,
     zlib_decompress_to_string,
@@ -756,3 +757,18 @@ class UtilsTestCase(unittest.TestCase):
         }
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEquals(form_data, expected)
+
+    def test_parse_js_uri_path_items_eval_undefined(self):
+        self.assertIsNone(parse_js_uri_path_item('undefined', eval_undefined=True))
+        self.assertIsNone(parse_js_uri_path_item('null', eval_undefined=True))
+        self.assertEqual('undefined', parse_js_uri_path_item('undefined'))
+        self.assertEqual('null', parse_js_uri_path_item('null'))
+
+    def test_parse_js_uri_path_items_unquote(self):
+        self.assertEqual('slashed/name', parse_js_uri_path_item('slashed%2fname'))
+        self.assertEqual('slashed%2fname', parse_js_uri_path_item('slashed%2fname',
+                                                                  unquote=False))
+
+    def test_parse_js_uri_path_items_item_optional(self):
+        self.assertIsNone(parse_js_uri_path_item(None))
+        self.assertIsNotNone(parse_js_uri_path_item('item'))

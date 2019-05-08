@@ -37,6 +37,7 @@ import re
 import textwrap
 import time
 from typing import List, Tuple
+from urllib import parse
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -577,6 +578,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         if '/' in uri.database:
             database = uri.database.split('/')[0]
         if selected_schema:
+            selected_schema = parse.quote(selected_schema, safe='')
             uri.database = database + '/' + selected_schema
         return uri
 
@@ -757,7 +759,7 @@ class MySQLEngineSpec(BaseEngineSpec):
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         if selected_schema:
-            uri.database = selected_schema
+            uri.database = parse.quote(selected_schema, safe='')
         return uri
 
     @classmethod
@@ -1081,6 +1083,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     def adjust_database_uri(cls, uri, selected_schema=None):
         database = uri.database
         if selected_schema and database:
+            selected_schema = parse.quote(selected_schema, safe='')
             if '/' in database:
                 database = database.split('/')[0] + '/' + selected_schema
             else:
@@ -1484,7 +1487,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         if selected_schema:
-            uri.database = selected_schema
+            uri.database = parse.quote(selected_schema, safe='')
         return uri
 
     @classmethod
