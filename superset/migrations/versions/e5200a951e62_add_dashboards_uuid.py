@@ -21,21 +21,99 @@ Revises: e9df189e5c7e
 Create Date: 2019-05-08 13:42:48.479145
 
 """
+import uuid
+from alembic import op
+from sqlalchemy import Column, Integer
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy_utils.types.uuid import UUIDType
+
+from superset import db
 
 # revision identifiers, used by Alembic.
 revision = 'e5200a951e62'
 down_revision = 'e9df189e5c7e'
 
-from alembic import op
-import sqlalchemy as sa
-from sqlalchemy_utils.types.uuid import UUIDType
+Base = declarative_base()
+
+
+get_uuid = lambda: str(uuid.uuid4())
+
+class Dashboard(Base):
+    __tablename__ = 'dashboards'
+    id = Column(Integer, primary_key=True)
+    uuid = Column(UUIDType(binary=False), default=get_uuid)
+
+class Datasource(Base):
+    __tablename__ = 'datasources'
+    id = Column(Integer, primary_key=True)
+    uuid = Column(UUIDType(binary=False), default=get_uuid)
+
+class Slice(Base):
+    __tablename__ = 'slices'
+    id = Column(Integer, primary_key=True)
+    uuid = Column(UUIDType(binary=False), default=get_uuid)
+
+class Database(Base):
+    __tablename__ = 'dbs'
+    id = Column(Integer, primary_key=True)
+    uuid = Column(UUIDType(binary=False), default=get_uuid)
 
 
 def upgrade():
-    print('Adding columns dashboards.uuid=UUIDType')
-    op.add_column('dashboards', sa.Column('uuid', UUIDType(binary=False), nullable=True))
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
+    with op.batch_alter_table('dashboards') as batch_op:
+        batch_op.add_column(Column('uuid', UUIDType(binary=False), default=get_uuid))
+    for d in session.query(Dashboard):
+        d.uuid = get_uuid()
+        session.merge(d)
+    with op.batch_alter_table('dashboards') as batch_op:
+        batch_op.alter_column('uuid', nullable=False)
+        batch_op.create_unique_constraint('uq_uuid', 'uuid')
+    session.commit()
+    
+    with op.batch_alter_table('datasources') as batch_op:
+        batch_op.add_column(Column('uuid', UUIDType(binary=False), default=get_uuid))
+    for d in session.query(Datasource):
+        d.uuid = get_uuid()
+        session.merge(d)
+    with op.batch_alter_table('datasources') as batch_op:
+        batch_op.alter_column('uuid', nullable=False)
+        batch_op.create_unique_constraint('uq_uuid', 'uuid')
+    session.commit()
+
+    with op.batch_alter_table('slices') as batch_op:
+        batch_op.add_column(Column('uuid', UUIDType(binary=False), default=get_uuid))
+    for s in session.query(Slice):
+        s.uuid = get_uuid()
+        session.merge(s)
+    with op.batch_alter_table('slices') as batch_op:
+        batch_op.alter_column('uuid', nullable=False)
+        batch_op.create_unique_constraint('uq_uuid', 'uuid')
+    session.commit()
+
+    with op.batch_alter_table('dbs') as batch_op:
+        batch_op.add_column(Column('uuid', UUIDType(binary=False), default=get_uuid))
+    for d in session.query(Database):
+        d.uuid = get_uuid()
+        session.merge(d)
+    with op.batch_alter_table('slices') as batch_op:
+        batch_op.alter_column('uuid', nullable=False)
+        batch_op.create_unique_constraint('uq_uuid', 'uuid')
+    session.commit()
+    
+    session.close()
 
 def downgrade():
-    print('Removing column dashboards.uuid=UUIDType')
     with op.batch_alter_table('dashboards') as batch_op:
+        batch_op.drop_column('uuid')
+
+    with op.batch_alter_table('datasources') as batch_op:
+        batch_op.drop_column('uuid')
+
+    with op.batch_alter_table('slices') as batch_op:
+        batch_op.drop_column('uuid')
+    
+    with op.batch_alter_table('dbs') as batch_op:
         batch_op.drop_column('uuid')
