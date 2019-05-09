@@ -23,7 +23,7 @@ croniter==0.3.29
 cryptography==2.4.2
 decorator==4.3.0          # via retry
 defusedxml==0.5.0         # via python3-openid
-flask-appbuilder==2.0.0
+flask-appbuilder==2.1.0
 flask-babel==0.11.1       # via flask-appbuilder
 flask-caching==1.4.0
 flask-compress==1.4.0
@@ -31,7 +31,7 @@ flask-jwt-extended==3.18.1  # via flask-appbuilder
 flask-login==0.4.1        # via flask-appbuilder
 flask-migrate==2.1.1
 flask-openid==1.2.5       # via flask-appbuilder
-flask-sqlalchemy==2.3.2   # via flask-appbuilder, flask-migrate
+flask-sqlalchemy==2.4.0   # via flask-appbuilder, flask-migrate
 flask-wtf==0.14.2
 flask==1.0.2
 geopy==1.11.0
@@ -58,7 +58,7 @@ prison==0.1.0             # via flask-appbuilder
 py==1.7.0                 # via retry
 pycparser==2.19           # via cffi
 pydruid==0.5.2
-pyjwt==1.7.1              # via flask-appbuilder, flask-jwt-extended
+pyjwt==1.7.1              # via flask-jwt-extended
 pyrsistent==0.14.11       # via jsonschema
 python-dateutil==2.6.1
 python-editor==1.0.3      # via alembic
