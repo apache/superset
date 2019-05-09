@@ -5129,6 +5129,46 @@ msgstr ""
 "此数据源的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。"
 "注意，如果未定义，这默认为集群超时。"
 
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:624
+msgid "Layer Configuration"
+msgstr "配置Layer"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:625
+msgid "Configure the basics of your Annotation Layer."
+msgstr "注释层基本配置"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:633
+msgid "Mandatory"
+msgstr "必填参数"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:637
+msgid "Hide Layer"
+msgstr "隐藏Layer"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:644
+msgid "Annotation Layer Type"
+msgstr "注释层类型"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:643
+msgid "Choose the Annotation Layer Type"
+msgstr "选择注释层类型"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:528
+msgid "Display configuration"
+msgstr "显示配置"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:533
+msgid "Style"
+msgstr "风格"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:529
+msgid "Configure your how you overlay is displayed here."
+msgstr "配置如何在这里显示您的覆盖。"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:577
+msgid "Line Width"
+msgstr "线宽"
+
 
 #~ msgid "Please choose at least one \"Group by\" field"
 #~ msgstr "请至少选择一个“分组”字段"
