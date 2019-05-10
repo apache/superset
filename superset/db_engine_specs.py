@@ -122,7 +122,7 @@ class BaseEngineSpec(object):
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
-    remove_schema_from_table_name = True
+    try_remove_schema_from_table_name = True
 
     @classmethod
     def get_time_expr(cls, expr, pdf, time_grain, grain):
@@ -353,14 +353,14 @@ class BaseEngineSpec(object):
     @classmethod
     def get_table_names(cls, inspector, schema):
         tables = inspector.get_table_names(schema)
-        if schema and cls.remove_schema_from_table_name:
+        if schema and cls.try_remove_schema_from_table_name:
             tables = [re.sub(f'^{schema}\\.', '', table) for table in tables]
         return sorted(tables)
 
     @classmethod
     def get_view_names(cls, inspector, schema):
         views = inspector.get_view_names(schema)
-        if schema and cls.remove_schema_from_table_name:
+        if schema and cls.try_remove_schema_from_table_name:
             views = [re.sub(f'^{schema}\\.', '', view) for view in views]
         return sorted(views)
 
@@ -534,6 +534,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = 'postgresql'
     max_column_name_length = 63
+    try_remove_schema_from_table_name = False
 
     @classmethod
     def get_table_names(cls, inspector, schema):
