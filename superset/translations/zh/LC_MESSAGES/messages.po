@@ -4483,10 +4483,12 @@ msgid ""
 "schema, and table name"
 msgstr "找不到 [{}] 表，请仔细检查您的数据库连接、Schema 和 表名"
 
-#: superset/connectors/sqla/views.py:270
+#: superset/connectors/sqla/views.py:291
 msgid ""
-"The table was created. As part of this two phase configuration process, you "
-"should now click the edit button by the new table to configure it."
+"The table was created. "
+"As part of this two-phase configuration "
+"process, you should now click the edit button by "
+"the new table to configure it."
 msgstr ""
 "表被创建。作为这两个阶段配置过程的一部分，您现在应该单击新表的编辑按钮来配置"
 "它。"
