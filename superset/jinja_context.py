@@ -113,8 +113,11 @@ def filter_values(column, default=None):
 
         for f in form_data[filter_type]:
             if f['col'] == column:
-                for v in f['val']:
-                    return_val.append(v)
+                if isinstance(f['val'], list):
+                    for v in f['val']:
+                        return_val.append(v)
+                else:
+                    return_val.append(f['val'])
 
     if return_val:
         return return_val
