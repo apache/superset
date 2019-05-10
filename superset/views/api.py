@@ -16,8 +16,7 @@
 # under the License.
 # pylint: disable=R
 from flask import request
-from flask_appbuilder import expose
-from flask_appbuilder.security.decorators import has_access_api
+from flask_appbuilder.api import BaseApi, expose, protect, safe
 import simplejson as json
 
 from superset import appbuilder, db, security_manager
@@ -26,15 +25,18 @@ from superset.legacy import update_time_range
 import superset.models.core as models
 from superset.models.core import Log
 from superset.utils import core as utils
-from .base import api, BaseSupersetView, handle_api_exception
 
 
-class Api(BaseSupersetView):
+class QueryApi(BaseApi):
+
+    resource_name = 'query'
+    allow_browser_login = True
+    class_permission_name = 'Api'
+
     @Log.log_this
-    @api
-    @handle_api_exception
-    @has_access_api
-    @expose('/v1/query/', methods=['POST'])
+    @expose('', methods=['POST'])
+    @protect()
+    @safe
     def query(self):
         """
         Takes a query_obj constructed in the client and returns payload data response
@@ -50,11 +52,17 @@ class Api(BaseSupersetView):
             ignore_nan=True,
         )
 
+
+class SliceApi(BaseApi):
+
+    resource_name = 'form_data'
+    allow_browser_login = True
+    class_permission_name = 'Api'
+
     @Log.log_this
-    @api
-    @handle_api_exception
-    @has_access_api
-    @expose('/v1/form_data/', methods=['GET'])
+    @expose('', methods=['GET'])
+    @protect()
+    @safe
     def query_form_data(self):
         """
         Get the formdata stored in the database for existing slice.
@@ -72,4 +80,5 @@ class Api(BaseSupersetView):
         return json.dumps(form_data)
 
 
-appbuilder.add_view_no_menu(Api)
+appbuilder.add_api(QueryApi)
+appbuilder.add_api(SliceApi)
