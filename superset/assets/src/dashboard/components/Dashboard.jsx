@@ -30,7 +30,6 @@ import {
   loadStatsPropShape,
 } from '../util/propShapes';
 import { areObjectsEqual } from '../../reduxUtils';
-import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import { LOG_ACTIONS_MOUNT_DASHBOARD } from '../../logger/LogUtils';
 import OmniContainer from '../../components/OmniContainer';
 
@@ -40,7 +39,7 @@ const propTypes = {
   actions: PropTypes.shape({
     addSliceToDashboard: PropTypes.func.isRequired,
     removeSliceFromDashboard: PropTypes.func.isRequired,
-    postChartFormData: PropTypes.func.isRequired,
+    triggerQuery: PropTypes.func.isRequired,
     logEvent: PropTypes.func.isRequired,
   }).isRequired,
   dashboardInfo: dashboardInfoPropShape.isRequired,
@@ -149,21 +148,7 @@ class Dashboard extends React.PureComponent {
     this.getAllCharts().forEach(chart => {
       // filterKey is a string, immune array contains numbers
       if (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1) {
-        const updatedFormData = getFormDataWithExtraFilters({
-          chart,
-          dashboardMetadata: this.props.dashboardInfo.metadata,
-          filters: this.props.dashboardState.filters,
-          colorScheme: this.props.dashboardState.colorScheme,
-          colorNamespace: this.props.dashboardState.colorNamespace,
-          sliceId: chart.id,
-        });
-
-        this.props.actions.postChartFormData(
-          updatedFormData,
-          false,
-          this.props.timeout,
-          chart.id,
-        );
+        this.props.actions.triggerQuery(true, chart.id);
       }
     });
   }

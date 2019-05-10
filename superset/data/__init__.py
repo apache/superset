@@ -28,5 +28,6 @@ from .multiformat_time_series import load_multiformat_time_series  # noqa
 from .paris import load_paris_iris_geojson  # noqa
 from .random_time_series import load_random_time_series_data  # noqa
 from .sf_population_polygons import load_sf_population_polygons  # noqa
+from .tabbed_dashboard import load_tabbed_dashboard # noqa
 from .unicode_test_data import load_unicode_test_data  # noqa
 from .world_bank import load_world_bank_health_n_pop  # noqa
