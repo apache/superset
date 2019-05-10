@@ -329,15 +329,15 @@ export const databases = {
 export const tables = {
   options: [
     {
-      value: {'schema': 'main', 'table': 'birth_names'},
+      value: { schema: 'main', table: 'birth_names' },
       label: 'birth_names',
     },
     {
-      value: {'schema': 'main', 'table': 'energy_usage'},
+      value: { schema: 'main', table: 'energy_usage' },
       label: 'energy_usage',
     },
     {
-      value: {'schema': 'main', 'table': 'wb_health_population'},
+      value: { schema: 'main', table: 'wb_health_population' },
       label: 'wb_health_population',
     },
   ],
