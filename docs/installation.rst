@@ -170,11 +170,12 @@ Follow these few simple steps to install Superset.::
     # Install superset
     pip install superset
 
-    # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
-    fabmanager create-admin --app superset
-
     # Initialize the database
     superset db upgrade
+
+    # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
+    $ export FLASK_APP=superset
+    flask fab create-admin
 
     # Load some data to play with
     superset load_examples
@@ -183,7 +184,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    superset runserver -d
+    flask run -p 8080 --with-threads --reload --debugger
 
 
 After installation, you should be able to point your browser to the right
@@ -236,17 +237,11 @@ workers this creates a lot of contention and race conditions when defining
 permissions and views.
 
 To alleviate this issue, the automatic updating of permissions can be disabled
-by setting the environment variable
-`SUPERSET_UPDATE_PERMS` environment variable to `0`.
-The value `1` enables it, `0` disables it. Note if undefined the functionality
-is enabled to maintain backwards compatibility.
+by setting `FAB_UPDATE_PERMS = False` (defaults to True).
 
 In a production environment initialization could take on the following form:
 
-  export SUPERSET_UPDATE_PERMS=1
   superset init
-
-  export SUPERSET_UPDATE_PERMS=0
   gunicorn -w 10 ... superset:app
 
 Configuration behind a load balancer
