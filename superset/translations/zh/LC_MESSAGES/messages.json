@@ -3330,36 +3330,6 @@
       ],
       "Saved Queries": [
         "已保存查询"
-      ],
-      "Layer Configuration": [
-        "配置Layer"
-      ],
-      "Configure the basics of your Annotation Layer.": [
-        "注释层基本配置"
-      ],
-      "Mandatory": [
-        "必填参数"
-      ],
-      "Hide Layer": [
-        "隐藏Layer"
-      ],
-      "Annotation Layer Type": [
-        "注释层类型"
-      ],
-      "Choose the Annotation Layer Type": [
-        "选择注释层类型"
-      ],
-      "Display configuration": [
-        "显示配置"
-      ],
-      "Style": [
-        "风格"
-      ],
-      "Configure your how you overlay is displayed here.": [
-        "配置如何在这里显示您的覆盖。"
-      ],
-      "Line Width": [
-        "线宽"
       ]
     }
   }
