@@ -267,6 +267,7 @@ function nvd3Vis(element, props) {
       svg = d3Element.append('svg');
     }
     const height = vizType === 'bullet' ? Math.min(maxHeight, 50) : maxHeight;
+    let annotatedLayerMarkerWidth = 1;
     const isTimeSeries = isVizTypes(TIMESERIES_VIZ_TYPES);
 
     // Handling xAxis ticks settings
@@ -919,11 +920,19 @@ function nvd3Vis(element, props) {
           .attr('height', height)
           .attr('width', width)
           .call(chart);
+        if (vizType === 'line' && annotationLayers && annotationLayers.length > 0) {
+          annotationLayers.forEach(annotatedLayer => {
+            if (annotatedLayer.annotationType === ANNOTATION_TYPES.TIME_SERIES) {
+              annotatedLayerMarkerWidth = annotatedLayer.markerWidth;
+            }
+          });
+        }  
 
         // Display styles for Time Series Annotations
         d3.selectAll('.slice_container .nv-timeseries-annotation-layer.showMarkerstrue .nv-point')
           .style('stroke-opacity', 1)
-          .style('fill-opacity', 1);
+          .style('fill-opacity', 1)
+          .style('stroke-width', annotatedLayerMarkerWidth);
         d3.selectAll('.slice_container .nv-timeseries-annotation-layer.hideLinetrue')
           .style('stroke-width', 0);
       }
