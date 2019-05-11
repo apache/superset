@@ -46,6 +46,18 @@ const getDashboards = query =>
             title: t('An error occurred while fethching Dashboards'),
         }));
 
+const getTables = query => SupersetClient.get({
+        endpoint: `/tablemodelview/api/read?_flt_2_table_name=${query}` })
+    .then(({ json }) => json.result.map(item => ({
+        title: item.table_name,
+        ...item,
+      }),
+    ))
+    .catch(() => ({
+        title: t('An error occurred while fethching Dashboards'),
+    }));
+
+
 class OmniContainer extends React.Component {
   constructor(props) {
     super(props);
@@ -84,7 +96,7 @@ class OmniContainer extends React.Component {
   render() {
       return (
         <Modal show={this.state.showOmni} style={{ marginTop: '25%' }}>
-          <Omnibar className="Omnibar" placeholder="Search all dashboards" extensions={[getDashboards]} />
+          <Omnibar className="Omnibar" placeholder="Search all dashboards" extensions={[getDashboards, getTables]} />
         </Modal>
       );
   }
