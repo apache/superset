@@ -713,7 +713,7 @@ function nvd3Vis(element, props) {
         .call(chart);
 
       // on scroll, hide tooltips. throttle to only 4x/second.
-      window.addEventListener('scroll', throttle(hideTooltips, 250));
+      window.addEventListener('scroll', throttle(() => hideTooltips(false), 250));
 
       // The below code should be run AFTER rendering because chart is updated in call()
       if (isTimeSeries && activeAnnotationLayers.length > 0) {
