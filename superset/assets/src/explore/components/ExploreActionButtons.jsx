@@ -39,7 +39,11 @@ export default function ExploreActionButtons({
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
     'disabled disabledButton': !canDownload,
   });
+  const exportToXLSXClasses = cx('btn btn-default btn-sm', {
+    'disabled disabledButton': !canDownload,
+  });
   const doExportCSV = exportChart.bind(this, latestQueryFormData, 'csv');
+  const doExportXLSX = exportChart.bind(this, latestQueryFormData, 'xlsx');
   const doExportChart = exportChart.bind(this, latestQueryFormData, 'json');
 
   return (
@@ -74,6 +78,16 @@ export default function ExploreActionButtons({
           rel="noopener noreferrer"
         >
           <i className="fa fa-file-text-o" /> .csv
+        </a>}
+      {latestQueryFormData &&
+        <a
+          onClick={doExportXLSX}
+          className={exportToXLSXClasses}
+          title={t('Export to .xlsx format')}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <i className="fa fa-file-text-o" /> .xlsx
         </a>}
       <DisplayQueryButton
         queryResponse={queryResponse}

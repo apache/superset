@@ -17,6 +17,7 @@
 # pylint: disable=C,R,W
 from datetime import datetime, timedelta
 import inspect
+import io
 import logging
 import os
 import re
@@ -65,7 +66,7 @@ from .base import (
     check_ownership,
     CsvResponse, data_payload_response, DeleteMixin, generate_download_headers,
     get_error_msg, handle_api_exception, json_error_response, json_success,
-    SupersetFilter, SupersetModelView, YamlExportMixin,
+    SupersetFilter, SupersetModelView, XlsxResponse, YamlExportMixin,
 )
 from .utils import bootstrap_user_data, get_datasource_info, get_form_data, get_viz
 
@@ -1167,13 +1168,21 @@ class Superset(BaseSupersetView):
         })
 
     def generate_json(
-            self, viz_obj, csv=False, query=False, results=False, samples=False):
+            self, viz_obj, csv=False, xlsx=False, query=False,
+            results=False, samples=False):
         if csv:
             return CsvResponse(
                 viz_obj.get_csv(),
                 status=200,
                 headers=generate_download_headers('csv'),
                 mimetype='application/csv')
+
+        if xlsx:
+            return XlsxResponse(
+                viz_obj.get_xlsx(),
+                status=200,
+                headers=generate_download_headers('xlsx'),
+                mimetype='application/xlsx')
 
         if query:
             return self.get_query_string_response(viz_obj)
@@ -1241,6 +1250,7 @@ class Superset(BaseSupersetView):
 
         TODO: break into one endpoint for each return shape"""
         csv = request.args.get('csv') == 'true'
+        xlsx = request.args.get('xlsx') == 'true'
         query = request.args.get('query') == 'true'
         results = request.args.get('results') == 'true'
         samples = request.args.get('samples') == 'true'
@@ -1259,6 +1269,7 @@ class Superset(BaseSupersetView):
         return self.generate_json(
             viz_obj,
             csv=csv,
+            xlsx=xlsx,
             query=query,
             results=results,
             samples=samples,
@@ -2688,6 +2699,55 @@ class Superset(BaseSupersetView):
             csv = df.to_csv(index=False, **config.get('CSV_EXPORT'))
         response = Response(csv, mimetype='text/csv')
         response.headers['Content-Disposition'] = f'attachment; filename={query.name}.csv'
+        logging.info('Ready to return response')
+        return response
+
+    @has_access
+    @expose('/xlsx/<client_id>')
+    @log_this
+    def xlsx(self, client_id):
+        """Download the query results as xlsx."""
+        logging.info('Exporting XLSX file [{}]'.format(client_id))
+        query = (
+            db.session.query(Query)
+            .filter_by(client_id=client_id)
+            .one()
+        )
+
+        rejected_tables = security_manager.rejected_datasources(
+            query.sql, query.database, query.schema)
+        if rejected_tables:
+            flash(
+                security_manager.get_table_access_error_msg('{}'.format(rejected_tables)))
+            return redirect('/')
+        blob = None
+        if results_backend and query.results_key:
+            logging.info(
+                'Fetching XLSX from results backend '
+                '[{}]'.format(query.results_key))
+            blob = results_backend.get(query.results_key)
+
+        # Writes Excel data into IO
+        data = io.BytesIO()
+        if blob:
+            logging.info('Decompressing')
+            json_payload = utils.zlib_decompress_to_string(blob)
+            obj = json.loads(json_payload)
+            columns = [c['name'] for c in obj['columns']]
+            df = pd.DataFrame.from_records(obj['data'], columns=columns)
+            logging.info('Using pandas to convert to XLSX')
+            df.to_xlsx(data, index=False, **config.get('XLSX_EXPORT'))
+        else:
+            logging.info('Running a query to turn into XLSX')
+            sql = query.select_sql or query.executed_sql
+            df = query.database.get_df(sql, query.schema)
+            # TODO(bkyryliuk): add compression=gzip for big files.
+            df.to_excel(data, index=False, **config.get('XLSX_EXPORT'))
+
+        data.seek(0)
+        response = Response(data.read(), mimetype='text/xlsx')
+        response.headers['Content-Disposition'] = \
+            f'attachment; filename={query.name}.xlsx'
         logging.info('Ready to return response')
         return response
 

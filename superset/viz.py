@@ -26,6 +26,7 @@ from datetime import datetime, timedelta
 from functools import reduce
 import hashlib
 import inspect
+import io
 from itertools import product
 import logging
 import math
@@ -483,6 +484,14 @@ class BaseViz(object):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
+
+    def get_xlsx(self):
+        data = io.BytesIO()
+        df = self.get_df()
+        include_index = not isinstance(df.index, pd.RangeIndex)
+        df.to_excel(data, index=include_index, **config.get('XLSX_EXPORT'))
+        data.seek(0)
+        return data.read()
 
     def get_data(self, df):
         return df.to_dict(orient='records')
