@@ -1,15 +1,16 @@
 /* eslint-disable sort-keys, no-magic-numbers, complexity */
-import React from 'react';
-import { BoxPlotSeries, XYChart } from '@data-ui/xy-chart';
+import React, { PureComponent } from 'react';
+import { XYChart, PointSeries } from '@data-ui/xy-chart';
 import { chartTheme, ChartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
+import { extent as d3Extent } from 'd3-array';
 import { createSelector } from 'reselect';
 import createTooltip from './createTooltip';
 import XYChartLayout from '../utils/XYChartLayout';
 import WithLegend from '../components/WithLegend';
-import ChartLegend from '../components/legend/ChartLegend';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
+import ChartLegend from '../components/legend/ChartLegend';
 import { PartialSpec } from '../encodeable/types/Specification';
 
 chartTheme.gridStyles.stroke = '#f1f3f5';
@@ -32,7 +33,16 @@ type Props = {
 } & PartialSpec<Encoding> &
   Readonly<typeof defaultProps>;
 
-export default class BoxPlot extends React.PureComponent<Props> {
+export interface EncodedPoint {
+  x: Outputs['x'];
+  y: Outputs['y'];
+  size: Outputs['size'];
+  fill: Outputs['fill'];
+  stroke: Outputs['stroke'];
+  data: PlainObject;
+}
+
+export default class ScatterPlot extends PureComponent<Props> {
   static defaultProps = defaultProps;
 
   encoder: Encoder;
@@ -61,23 +71,30 @@ export default class BoxPlot extends React.PureComponent<Props> {
     const { data, margin, theme } = this.props;
     const { channels } = this.encoder;
 
-    const isHorizontal = channels.y.definition.type === 'nominal';
+    if (typeof channels.size.scale !== 'undefined') {
+      const domain = d3Extent(data, d => channels.size.get<number>(d));
+      const [min, max] = domain;
+      const adjustedDomain = [Math.min(min || 0, 0), Math.max(max || 1, 1)];
+      channels.size.scale.setDomain(adjustedDomain);
+    }
+
+    const encodedData = data.map(d => ({
+      x: channels.x.get(d),
+      y: channels.y.get(d),
+      size: channels.size.encode(d),
+      fill: channels.fill.encode(d),
+      stroke: channels.stroke.encode(d),
+      data: d,
+    }));
 
     const children = [
-      <BoxPlotSeries
+      <PointSeries
         key={channels.x.definition.field}
-        animated
-        data={
-          isHorizontal
-            ? data.map(row => ({ ...row, y: channels.y.get(row) }))
-            : data.map(row => ({ ...row, x: channels.x.get(row) }))
-        }
-        fill={(datum: PlainObject) => channels.color.encode(datum, '#55acee')}
-        fillOpacity={0.4}
-        stroke={(datum: PlainObject) => channels.color.encode(datum)}
-        strokeWidth={1}
-        widthRatio={0.6}
-        horizontal={channels.y.definition.type === 'nominal'}
+        data={encodedData}
+        fill={(d: EncodedPoint) => d.fill}
+        fillOpacity={0.5}
+        stroke={(d: EncodedPoint) => d.stroke}
+        size={(d: EncodedPoint) => d.size}
       />,
     ];
 
@@ -121,7 +138,7 @@ export default class BoxPlot extends React.PureComponent<Props> {
 
     return (
       <WithLegend
-        className={`superset-chart-box-plot ${className}`}
+        className={`superset-chart-scatter-plot ${className}`}
         width={width}
         height={height}
         position="top"

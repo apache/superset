@@ -33,6 +33,7 @@ declare module '@data-ui/xy-chart' {
   export class CrossHair extends React.PureComponent<Props, {}> {}
   export class LinearGradient extends React.PureComponent<Props, {}> {}
   export class LineSeries extends React.PureComponent<Props, {}> {}
+  export class PointSeries extends React.PureComponent<Props, {}> {}
   export class WithTooltip extends React.PureComponent<Props, {}> {}
   export class XYChart extends React.PureComponent<XYChartProps, {}> {}
   export class XAxis extends React.PureComponent<Props, {}> {}
