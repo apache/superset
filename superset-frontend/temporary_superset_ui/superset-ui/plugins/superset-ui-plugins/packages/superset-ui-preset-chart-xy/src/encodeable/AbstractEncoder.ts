@@ -7,7 +7,7 @@ import {
   ChannelInput,
 } from './types/Channel';
 import { FullSpec, BaseOptions, PartialSpec } from './types/Specification';
-import { isFieldDef, isTypedFieldDef } from './types/ChannelDef';
+import { isFieldDef, isTypedFieldDef, FieldDef } from './types/ChannelDef';
 import ChannelEncoder from './ChannelEncoder';
 import { Dataset } from './types/Data';
 
@@ -26,6 +26,11 @@ export default abstract class AbstractEncoder<
   readonly spec: FullSpec<Encoding, Options>;
   readonly channels: {
     readonly [k in keyof ChannelTypes]: ChannelEncoder<Encoding[k], Outputs[k]>
+  };
+
+  readonly commonChannels: {
+    group: ChannelEncoder<FieldDef, Value>[];
+    tooltip: ChannelEncoder<FieldDef, Value>[];
   };
 
   readonly legends: {
@@ -67,6 +72,25 @@ export default abstract class AbstractEncoder<
         return all;
       }, {}) as Channels;
 
+    this.commonChannels = {
+      group: this.spec.commonEncoding.group.map(
+        (def, i) =>
+          new ChannelEncoder({
+            definition: def,
+            name: `group${i}`,
+            type: 'Text',
+          }),
+      ),
+      tooltip: this.spec.commonEncoding.tooltip.map(
+        (def, i) =>
+          new ChannelEncoder({
+            definition: def,
+            name: `tooltip${i}`,
+            type: 'Text',
+          }),
+      ),
+    };
+
     // Group the channels that use the same field together
     // so they can share the same legend.
     this.legends = {};
@@ -94,9 +118,14 @@ export default abstract class AbstractEncoder<
       return spec as FullSpec<Encoding, Options>;
     }
 
-    const { encoding, ...rest } = spec;
+    const { encoding, commonEncoding = {}, ...rest } = spec;
+    const { group = [], tooltip = [] } = commonEncoding;
 
     return {
+      commonEncoding: {
+        group,
+        tooltip,
+      },
       ...rest,
       encoding: {
         ...defaultEncoding,
