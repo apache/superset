@@ -142,7 +142,7 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
 
     if (this.channelEncoder.isX()) {
       if (strategyForLabelOverlap === 'flat') {
-        const labelHeight = labelDimensions[0].height;
+        const labelHeight = labelDimensions.length > 0 ? labelDimensions[0].height : 0;
         labelOffset = labelHeight + labelPadding;
         requiredMargin += labelHeight;
       } else if (strategyForLabelOverlap === 'rotate') {

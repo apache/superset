@@ -19,6 +19,7 @@ import WithLegend from '../components/WithLegend';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import ChartLegend from '../components/legend/ChartLegend';
+import { PartialSpec } from '../encodeable/types/Specification';
 
 chartTheme.gridStyles.stroke = '#f1f3f5';
 
@@ -35,10 +36,10 @@ type Props = {
   width: string | number;
   height: string | number;
   margin?: Margin;
-  encoding: Encoding;
   data: Dataset;
   theme?: ChartTheme;
-} & Readonly<typeof defaultProps>;
+} & PartialSpec<Encoding> &
+  Readonly<typeof defaultProps>;
 
 export interface Series {
   key: string;
@@ -67,15 +68,17 @@ class LineChart extends PureComponent<Props> {
     super(props);
 
     const createEncoder = createSelector(
-      (enc: Encoding) => enc,
-      (enc: Encoding) => new Encoder({ encoding: enc }),
+      (p: PartialSpec<Encoding>) => p.encoding,
+      p => p.commonEncoding,
+      p => p.options,
+      (encoding, commonEncoding, options) => new Encoder({ encoding, commonEncoding, options }),
     );
 
     this.createEncoder = () => {
-      this.encoder = createEncoder(this.props.encoding);
+      this.encoder = createEncoder(this.props);
     };
 
-    this.encoder = createEncoder(this.props.encoding);
+    this.encoder = createEncoder(this.props);
     this.renderChart = this.renderChart.bind(this);
   }
 
