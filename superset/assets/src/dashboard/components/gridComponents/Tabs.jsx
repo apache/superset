@@ -238,6 +238,7 @@ class Tabs extends React.PureComponent {
                       onResize={onResize}
                       onResizeStop={onResizeStop}
                       onDropOnTab={this.handleDropOnTab}
+                      isComponentVisible={selectedTabIndex === tabIndex}
                     />
                   )}
                 </BootstrapTab>

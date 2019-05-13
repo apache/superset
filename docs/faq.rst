@@ -186,8 +186,8 @@ by setting the ``stagger_refresh`` to ``false`` and modify the stagger period by
 Here, the entire dashboard will refresh at once if periodic refresh is on. The stagger time of
 2.5 seconds is ignored.
 
-Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
-------------------------------------------------------------------------------------------------------------
+Why does 'flask fab' or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
+-------------------------------------------------------------------------------------------------------------
 By default, superset creates and uses an sqlite database at ``~/.superset/superset.db``. Sqlite is known to `don't work well if used on NFS`__ due to broken file locking implementation on NFS.
 
 __ https://www.sqlite.org/lockingv3.html

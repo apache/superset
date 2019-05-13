@@ -195,6 +195,7 @@ the world know they are using Superset. Join our growing community!
  1. [Konfío](http://konfio.mx)
  1. [Kuaishou](https://www.kuaishou.com/)
  1. [Lime](https://www.limebike.com/)
+ 1. [Living Goods](https://www.livinggoods.org)
  1. [Lyft](https://www.lyft.com/)
  1. [Maieutical Labs](https://maieuticallabs.it)
  1. [Myra Labs](http://www.myralabs.com/)

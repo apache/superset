@@ -18,10 +18,28 @@
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
+from wtforms.validators import StopValidation
 
 from superset import appbuilder
 from superset.models.annotations import Annotation, AnnotationLayer
 from .base import DeleteMixin, SupersetModelView
+
+
+class StartEndDttmValidator(object):
+    """
+    Validates dttm fields.
+    """
+    def __call__(self, form, field):
+        if not form['start_dttm'].data and not form['end_dttm'].data:
+            raise StopValidation(
+                _('annotation start time or end time is required.'),
+            )
+        elif (form['end_dttm'].data and
+                form['start_dttm'].data and
+                form['end_dttm'].data < form['start_dttm'].data):
+            raise StopValidation(
+                _('Annotation end time must be no earlier than start time.'),
+            )
 
 
 class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
@@ -53,17 +71,17 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
          annotation needs to add more context.',
     }
 
+    validators_columns = {
+        'start_dttm': [
+            StartEndDttmValidator(),
+        ],
+    }
+
     def pre_add(self, obj):
-        if not obj.layer:
-            raise Exception('Annotation layer is required.')
-        if not obj.start_dttm and not obj.end_dttm:
-            raise Exception('Annotation start time or end time is required.')
-        elif not obj.start_dttm:
+        if not obj.start_dttm:
             obj.start_dttm = obj.end_dttm
         elif not obj.end_dttm:
             obj.end_dttm = obj.start_dttm
-        elif obj.end_dttm < obj.start_dttm:
-            raise Exception('Annotation end time must be no earlier than start time.')
 
     def pre_update(self, obj):
         self.pre_add(obj)
