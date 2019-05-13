@@ -64,7 +64,7 @@ export default class FilterableTable extends PureComponent {
 
     this.widthsForColumnsByKey = this.getWidthsForColumns();
     this.totalTableWidth = props.orderedColumnKeys
-    .map(key => this.widthsForColumnsByKey[key])
+      .map(key => this.widthsForColumnsByKey[key])
       .reduce((curr, next) => curr + next);
     this.totalTableHeight = props.height;
 
