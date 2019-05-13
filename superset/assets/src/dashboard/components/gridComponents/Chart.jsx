@@ -37,6 +37,7 @@ const propTypes = {
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   updateSliceName: PropTypes.func.isRequired,
+  isComponentVisible: PropTypes.bool,
 
   // from redux
   chart: PropTypes.shape(chartPropShape).isRequired,
@@ -61,6 +62,7 @@ const propTypes = {
 
 const defaultProps = {
   isCached: false,
+  isComponentVisible: true,
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
@@ -99,19 +101,27 @@ class Chart extends React.Component {
       return true;
     }
 
-    for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
-      const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
-      if (nextProps[prop] !== this.props[prop]) {
+    // allow chart update/re-render only if visible:
+    // under selected tab or no tab layout
+    if (nextProps.isComponentVisible) {
+      if (nextProps.chart.triggerQuery) {
         return true;
       }
-    }
 
-    if (
-      nextProps.width !== this.props.width ||
-      nextProps.height !== this.props.height
-    ) {
-      clearTimeout(this.resizeTimeout);
-      this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+      for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
+        const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
+        if (nextProps[prop] !== this.props[prop]) {
+          return true;
+        }
+      }
+
+      if (
+        nextProps.width !== this.props.width ||
+        nextProps.height !== this.props.height
+      ) {
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+      }
     }
 
     return false;
