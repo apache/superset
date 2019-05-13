@@ -1118,7 +1118,8 @@ class DruidDatasource(Model, BaseDatasource):
             columns.append('__time')
             del qry['post_aggregations']
             del qry['aggregations']
-            qry['dimensions'] = columns
+            del qry['dimensions']
+            qry['columns'] = columns
             qry['metrics'] = []
             qry['granularity'] = 'all'
             qry['limit'] = row_limit
