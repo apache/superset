@@ -538,27 +538,14 @@ class SupersetSecurityManager(SecurityManager):
     def is_dashboard_viewer_pvm(self, pvm):
         return ( self.is_base_view_pvm(pvm) or self.is_base_security_pvm(pvm) or
             pvm.permission.name in {
-                'can_dashboard', 'can_explore_json',
+                'can_dashboard', 'can_explore_json', 'can_slice_json'
             } or (pvm.permission.name in {'can_list'} and pvm.view_menu.name in {'CssTemplateAsyncModelView', 'DashboardModelViewAsync' })
             )
 
     def is_base_view_pvm(self, pvm):
         return (
             pvm.permission.name in {
-                'can_fave_slices', 'can_fave_dashboards', 'can_recent_activity',
-            })
-
-    def is_dashboard_viewer_pvm(self, pvm):
-        return ( self.is_base_view_pvm(pvm) or self.is_base_security_pvm(pvm) or
-            pvm.permission.name in {
-                'can_dashboard', 'can_explore_json',
-            } or (pvm.permission.name in {'can_list'} and pvm.view_menu.name in {'CssTemplateAsyncModelView', 'DashboardModelViewAsync' })
-            )
-
-    def is_base_view_pvm(self, pvm):
-        return (
-            pvm.permission.name in {
-                'can_fave_slices', 'can_fave_dashboards', 'can_recent_activity',
+                'can_fave_slices', 'can_fave_dashboards', 'can_recent_activity', 'can_favstar'
             })
 
     def is_base_security_pvm(self, pvm):
