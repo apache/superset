@@ -142,7 +142,7 @@ function TableVis(element, props) {
       const val = row[key];
       let html;
       const isMetric = metrics.indexOf(key) >= 0;
-      if (key === '__timestamp') {
+      if (key === '__timestamp' || key === 'show_timestamp') {
         html = tsFormatter(val);
       }
       if (typeof (val) === 'string') {
