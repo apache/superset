@@ -39,6 +39,7 @@
             <button type="submit" class="btn btn-sm btn-primary" id="search-action">
                 Search&nbsp;&nbsp;<i class="fa fa-search"></i>
             </button>
+	    <br />
             </div>
         </div>
     </form>
@@ -53,7 +54,7 @@
                 $('.filters a.remove-filter').on('click', checkSearchButton);
                 $('.filter-action').toggle(true);
             } else {
-                $('.filter-action').text("Refresh");
+                $('.filter-action > button').html('Refresh&nbsp;&nbsp;<i class="fa fa-refresh"></i>');
             }
         }
 
