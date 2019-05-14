@@ -206,16 +206,16 @@ class QueryContext:
                         df=df if df is not None else None,
                         query=query,
                     )
-                    cache_value = pkl.dumps(
+                    cache_binary = pkl.dumps(
                         cache_value, protocol=pkl.HIGHEST_PROTOCOL)
 
                     logging.info('Caching {} chars at key {}'.format(
-                        len(cache_value), cache_key))
+                        len(cache_binary), cache_key))
 
                     stats_logger.incr('set_cache_key')
                     cache.set(
                         cache_key,
-                        cache_value,
+                        cache_value=cache_binary,
                         timeout=self.cache_timeout)
                 except Exception as e:
                     # cache.set call can fail if the backend is down or if
