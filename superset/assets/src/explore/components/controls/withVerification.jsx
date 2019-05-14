@@ -22,41 +22,54 @@ import { SupersetClient } from '@superset-ui/connection';
 import { isEqual } from 'lodash';
 
 export default function withVerification(WrappedComponent, optionLabel, optionsName) {
-  return class extends React.Component {
+  class withVerificationComponent extends React.Component {
     constructor(props) {
       super(props);
       this.state = {
-        validOptions: [],
+        validOptions: new Set(),
         hasRunVerification: false,
       };
+
+      this.getValidOptions = this.getValidOptions.bind(this);
     }
 
-    componentWillReceiveProps(nextProps) {
-      const { hasRunVerification } = this.state;
-      const endpoint = nextProps.getEndpoint(nextProps.controlValues);
-      if (endpoint) {
-        if (!isEqual(this.props.controlValues, nextProps.controlValues) || !hasRunVerification) {
-          SupersetClient.get({
-            endpoint,
-          }).then(({ json }) => {
-            if (Array.isArray(json)) {
-              this.setState({ validOptions: json || [] });
-            }
-          }).catch(error => console.log(error));
+    componentDidMount() {
+      const endpoint = this.props.getEndpoint(this.props.controlValues);
+      this.getValidOptions(endpoint);
+    }
 
-          this.setState({ hasRunVerification: true });
+    componentDidUpdate(prevProps) {
+      const { hasRunVerification } = this.state;
+      const endpoint = this.props.getEndpoint(this.props.controlValues);
+      if (endpoint) {
+        if (!isEqual(this.props.controlValues, prevProps.controlValues) || !hasRunVerification) {
+          this.getValidOptions(endpoint);
         }
+      }
+    }
+
+    getValidOptions(endpoint) {
+      SupersetClient.get({
+        endpoint,
+      }).then(({ json }) => {
+        if (Array.isArray(json)) {
+          this.setState({ validOptions: new Set(json) || new Set() });
+        }
+      }).catch(error => console.log(error));
+
+      if (!this.state.hasRunVerification) {
+        this.setState({ hasRunVerification: true });
       }
     }
 
     render() {
       const { validOptions } = this.state;
-      let options = this.props[optionsName];
-      if (validOptions.length) {
-        options = options.filter(o => (validOptions.indexOf(o[optionLabel]) >= 0));
-      }
+      const options = this.props[optionsName];
+      const verifiedOptions = validOptions.size ?
+        options.filter(o => (validOptions.has(o[optionLabel]))) :
+        options;
 
-      const newProps = { ...this.props, [optionsName]: options };
+      const newProps = { ...this.props, [optionsName]: verifiedOptions };
 
       return (
         <WrappedComponent
@@ -64,6 +77,8 @@ export default function withVerification(WrappedComponent, optionLabel, optionsN
         />
       );
     }
-  };
+  }
+  withVerificationComponent.propTypes = WrappedComponent.propTypes;
+  return withVerificationComponent;
 }
 
