@@ -3083,7 +3083,7 @@ appbuilder.add_separator('Sources')
 
 
 @app.after_request
-def apply_caching(response):
+def apply_http_headers(response):
     """Applies the configuration's http headers to all responses"""
     for k, v in config.get('HTTP_HEADERS').items():
         response.headers[k] = v
