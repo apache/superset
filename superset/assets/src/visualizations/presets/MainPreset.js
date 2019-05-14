@@ -54,7 +54,7 @@ import DeckGLChartPreset from './DeckGLChartPreset';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
 
-export default class LegacyChartPreset extends Preset {
+export default class MainPreset extends Preset {
   constructor() {
     super({
       name: 'Legacy charts',
