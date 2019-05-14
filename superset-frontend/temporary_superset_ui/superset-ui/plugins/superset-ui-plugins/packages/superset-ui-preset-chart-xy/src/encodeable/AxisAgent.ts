@@ -1,10 +1,10 @@
 /* eslint-disable no-magic-numbers */
 import { CSSProperties } from 'react';
 import { Value } from 'vega-lite/build/src/channeldef';
-import { getTextDimension } from '@superset-ui/dimension';
+import { getTextDimension, Margin } from '@superset-ui/dimension';
 import { CategoricalColorScale } from '@superset-ui/color';
 import { extractFormatFromTypeAndFormat } from './parsers/extractFormat';
-import { CoreAxis, LabelOverlapStrategy } from './types/Axis';
+import { CoreAxis, LabelOverlapStrategy, AxisOrient } from './types/Axis';
 import { PositionFieldDef, ChannelDef } from './types/ChannelDef';
 import ChannelEncoder from './ChannelEncoder';
 import { DEFAULT_LABEL_ANGLE } from '../utils/constants';
@@ -108,7 +108,14 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
     labelAngle?: number;
     tickLength: number;
     tickTextStyle: CSSProperties;
-  }) {
+  }): {
+    labelAngle: number;
+    labelOffset: number;
+    labelOverlap: 'flat' | 'rotate';
+    minMargin: Partial<Margin>;
+    orient: AxisOrient;
+    tickTextAnchor?: string;
+  } {
     const tickLabels = this.getTickLabels();
 
     const labelDimensions = tickLabels.map((text: string) =>

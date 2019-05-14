@@ -1,5 +1,6 @@
 import { DateTime } from 'vega-lite/build/src/datetime';
-import { AxisOrient } from 'vega';
+
+export type AxisOrient = 'top' | 'bottom' | 'left' | 'right';
 
 export type LabelOverlapStrategy = 'auto' | 'flat' | 'rotate';
 
