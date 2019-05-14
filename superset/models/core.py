@@ -868,8 +868,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                     self.db_engine_spec.execute(cursor, sql)
                     try:
                         cursor.fetchall()
-                    except:
-                        None
+                    except BaseException:
+                        pass
 
                 _log_query(sqls[-1])
                 self.db_engine_spec.execute(cursor, sqls[-1])
