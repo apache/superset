@@ -33,7 +33,7 @@ import smtplib
 import sys
 from time import struct_time
 import traceback
-from typing import List, NamedTuple, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 from urllib.parse import unquote_plus
 import uuid
 import zlib
@@ -1203,3 +1203,10 @@ class DatasourceName(NamedTuple):
 def get_stacktrace():
     if current_app.config.get("SHOW_STACKTRACE"):
         return traceback.format_exc()
+
+
+def merge_dicts(*args) -> dict:
+    target: Dict[Any, Any] = dict()
+    for d in args:
+        target.update(d)
+    return target

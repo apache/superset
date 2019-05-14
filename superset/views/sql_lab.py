@@ -48,6 +48,8 @@ class QueryFilter(SupersetFilter):
 class QueryView(SupersetModelView):
     datamodel = SQLAInterface(Query)
 
+    class_permission_name = "Query"
+
     list_title = _("List Query")
     show_title = _("Show Query")
     add_title = _("Add Query")
@@ -78,6 +80,8 @@ appbuilder.add_view(
 
 class SavedQueryView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(SavedQuery)
+
+    class_permission_name = "SavedQuery"
 
     list_title = _("List Saved Query")
     show_title = _("Show Saved Query")

@@ -36,6 +36,8 @@ class DatabaseFilter(SupersetFilter):
 
 
 class DatabaseMixin:  # noqa
+    class_permission_name = "Database"
+
     list_title = _("Databases")
     show_title = _("Show Database")
     add_title = _("Add Database")

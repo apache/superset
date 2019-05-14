@@ -17,8 +17,12 @@
 # pylint: disable=C,R,W
 from flask_babel import lazy_gettext as _
 
+from superset.views.base import SupersetModelView
 
-class LogMixin:
+
+class LogMixin(SupersetModelView):
+    class_permission_name = "Log"
+
     list_title = _("Logs")
     show_title = _("Show Log")
     add_title = _("Add Log")

@@ -47,6 +47,8 @@ logger = logging.getLogger(__name__)
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
 
+    class_permission_name = "Datasource"
+
     list_title = _("Columns")
     show_title = _("Show Column")
     add_title = _("Add Column")
@@ -140,6 +142,8 @@ appbuilder.add_view_no_menu(TableColumnInlineView)
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
 
+    class_permission_name = "Datasource"
+
     list_title = _("Metrics")
     show_title = _("Show Metric")
     add_title = _("Add Metric")
@@ -221,6 +225,8 @@ appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
+
+    class_permission_name = "Datasource"
 
     list_title = _("Tables")
     show_title = _("Show Table")

@@ -65,7 +65,7 @@ PermissionModelView.list_widget = SupersetSecurityListWidget
 
 
 class SupersetSecurityManager(SecurityManager):
-    READ_ONLY_MODEL_VIEWS = {"DatabaseAsync", "DatabaseView", "DruidClusterModelView"}
+    READ_ONLY_MODEL_VIEWS = {"Database"}
 
     USER_MODEL_VIEWS = {
         "UserDBModelView",
@@ -75,14 +75,7 @@ class SupersetSecurityManager(SecurityManager):
         "UserRemoteUserModelView",
     }
 
-    GAMMA_READ_ONLY_MODEL_VIEWS = {
-        "SqlMetricInlineView",
-        "TableColumnInlineView",
-        "TableModelView",
-        "DruidColumnInlineView",
-        "DruidDatasourceModelView",
-        "DruidMetricInlineView",
-    } | READ_ONLY_MODEL_VIEWS
+    GAMMA_READ_ONLY_MODEL_VIEWS = {"Datasource"} | READ_ONLY_MODEL_VIEWS
 
     ADMIN_ONLY_VIEW_MENUS = {
         "AccessRequestsModelView",
@@ -106,7 +99,7 @@ class SupersetSecurityManager(SecurityManager):
         "can_update_role",
     }
 
-    READ_ONLY_PERMISSION = {"can_show", "can_list"}
+    READ_ONLY_PERMISSION = {"can_show", "can_list", "can_read"}
 
     ALPHA_ONLY_PERMISSIONS = {
         "muldelete",
@@ -503,3 +496,9 @@ class SupersetSecurityManager(SecurityManager):
                 self.get_datasource_access_error_msg(datasource),
                 self.get_datasource_access_link(datasource),
             )
+
+    '''
+    def security_cleanup(self, baseview, menu):
+        """Preventing FAB from clearing Superset-defined perms"""
+        raise NotImplementedError("Preventing FAB from clearing Superset-defined perms")
+    '''

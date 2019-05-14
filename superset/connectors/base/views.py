@@ -22,6 +22,9 @@ from superset.views.base import SupersetModelView
 
 
 class DatasourceModelView(SupersetModelView):
+
+    class_permission_name = "Datasource"
+
     def pre_delete(self, obj):
         if obj.slices:
             raise SupersetException(

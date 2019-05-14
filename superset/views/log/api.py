@@ -25,7 +25,6 @@ from . import LogMixin
 class LogRestApi(LogMixin, ModelRestApi):
     datamodel = SQLAInterface(models.Log)
 
-    class_permission_name = "LogModelView"
     method_permission_name = {
         "get_list": "list",
         "get": "show",

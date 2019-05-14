@@ -19,21 +19,25 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import appbuilder
 import superset.models.core as models
+from superset.utils.core import merge_dicts
+from superset.views.base import SupersetModelView
 from . import DatabaseFilter, DatabaseMixin
 
 
 class DatabaseRestApi(DatabaseMixin, ModelRestApi):
     datamodel = SQLAInterface(models.Database)
 
-    class_permission_name = "DatabaseAsync"
-    method_permission_name = {
-        "get_list": "list",
-        "get": "show",
-        "post": "add",
-        "put": "edit",
-        "delete": "delete",
-        "info": "list",
-    }
+    method_permission_name = merge_dicts(
+        SupersetModelView.method_permission_name,
+        {
+            "get_list": "read",
+            "get": "read",
+            "post": "write",
+            "put": "write",
+            "delete": "write",
+            "info": "read",
+        },
+    )
     resource_name = "database"
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]
