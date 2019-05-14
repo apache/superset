@@ -80,6 +80,7 @@ setup(
         'flask-appbuilder>=2.1.2, <2.3.0',
         'flask-caching',
         'flask-compress',
+        'flask-talisman',
         'flask-migrate',
         'flask-wtf',
         'geopy',

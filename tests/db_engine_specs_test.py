@@ -190,7 +190,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
     def test_simple_limit_query(self):
         self.sql_limit_regex(
             'SELECT * FROM a',
-            'SELECT * FROM a LIMIT 1000',
+            'SELECT * FROM a\nLIMIT 1000',
         )
 
     def test_modify_limit_query(self):
@@ -288,7 +288,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                     'LIMIT 777'""",
             """
                 SELECT
-                    'LIMIT 777' LIMIT 1000""",
+                    'LIMIT 777'\nLIMIT 1000""",
         )
 
     def test_time_grain_blacklist(self):
