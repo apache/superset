@@ -62,6 +62,7 @@ superset-ui/
 ```sh
 git clone ...superset-ui && cd superset-ui
 yarn install
+yarn build
 ```
 
 ### Builds, linting, and testing
