@@ -866,7 +866,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 for sql in sqls[:-1]:
                     _log_query(sql)
                     self.db_engine_spec.execute(cursor, sql)
-                    cursor.fetchall()
+                    try:
+                        cursor.fetchall()
+                    except:
+                        None
 
                 _log_query(sqls[-1])
                 self.db_engine_spec.execute(cursor, sqls[-1])
