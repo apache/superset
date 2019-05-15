@@ -93,7 +93,7 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
         'modified', 'pop_tab_link']
     show_columns = [
         'id', 'label', 'user', 'database',
-        'description', 'sql', 'pop_tab_link', 'extra_json']
+        'description', 'sql', 'pop_tab_link']
     search_columns = ('label', 'user', 'database', 'schema', 'changed_on')
     add_columns = ['label', 'database', 'description', 'sql']
     edit_columns = add_columns
