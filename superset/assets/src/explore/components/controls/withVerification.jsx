@@ -34,31 +34,30 @@ export default function withVerification(WrappedComponent, optionLabel, optionsN
     }
 
     componentDidMount() {
-      const endpoint = this.props.getEndpoint(this.props.controlValues);
-      this.getValidOptions(endpoint);
+      this.getValidOptions();
     }
 
     componentDidUpdate(prevProps) {
       const { hasRunVerification } = this.state;
-      const endpoint = this.props.getEndpoint(this.props.controlValues);
-      if (endpoint) {
-        if (!isEqual(this.props.controlValues, prevProps.controlValues) || !hasRunVerification) {
-          this.getValidOptions(endpoint);
-        }
+      if (!isEqual(this.props.controlValues, prevProps.controlValues) || !hasRunVerification) {
+        this.getValidOptions();
       }
     }
 
-    getValidOptions(endpoint) {
-      SupersetClient.get({
-        endpoint,
-      }).then(({ json }) => {
-        if (Array.isArray(json)) {
-          this.setState({ validOptions: new Set(json) || new Set() });
-        }
-      }).catch(error => console.log(error));
+    getValidOptions() {
+      const endpoint = this.props.getEndpoint(this.props.controlValues);
+      if (endpoint) {
+        SupersetClient.get({
+          endpoint,
+        }).then(({ json }) => {
+          if (Array.isArray(json)) {
+            this.setState({ validOptions: new Set(json) || new Set() });
+          }
+        }).catch(error => console.log(error));
 
-      if (!this.state.hasRunVerification) {
-        this.setState({ hasRunVerification: true });
+        if (!this.state.hasRunVerification) {
+          this.setState({ hasRunVerification: true });
+        }
       }
     }
 
