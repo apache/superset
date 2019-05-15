@@ -66,7 +66,9 @@ const propTypes = {
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   bigNumber: PropTypes.number.isRequired,
+  bigNumberPercentage: PropTypes.number.isRequired,
   formatBigNumber: PropTypes.func,
+  formatPercentage: PropTypes.func,
   subheader: PropTypes.string,
   showTrendLine: PropTypes.bool,
   startYAxisAtZero: PropTypes.bool,
@@ -77,6 +79,7 @@ const propTypes = {
 const defaultProps = {
   className: '',
   formatBigNumber: identity,
+  formatPercentage: identity,
   subheader: '',
   showTrendLine: false,
   startYAxisAtZero: true,
@@ -109,34 +112,67 @@ class BigNumberVis extends React.PureComponent {
   }
 
   renderHeader(maxHeight) {
-    const { bigNumber, formatBigNumber, width } = this.props;
+    const { bigNumber, bigNumberPercentage, formatBigNumber, formatPercentage, width } = this.props;
+    // Using text variable to show absolute number
     const text = formatBigNumber(bigNumber);
 
     const container = this.createTemporaryContainer();
     document.body.appendChild(container);
+
+    // Keeping font size for both absolute and percentage numbers will be same.
     const fontSize = computeMaxFontSize({
       text,
       maxWidth: Math.floor(width),
-      maxHeight,
+      maxHeight: maxHeight,
       className: 'header_line',
       container,
     });
+
     document.body.removeChild(container);
 
-    return (
-      <div
-        className="header_line"
-        style={{
-          fontSize,
-          height: maxHeight,
-        }}
-      >
-        <span>{text}</span>
-      </div>
-    );
+    // Using percentage_text variable to show percentage number
+    if (bigNumberPercentage != undefined) {
+      const fontSize = computeMaxFontSize({
+        text,
+        maxWidth: Math.floor(width/2),
+        maxHeight: maxHeight/2,
+        className: 'header_line',
+        container,
+      });
+
+      const percentage_text = formatPercentage(bigNumberPercentage);
+
+      return (
+        <div
+          className="header_line bn_layout"
+          style={{
+            fontSize,
+            height: maxHeight,
+          }}
+        >
+          <div>{text}</div>
+          <div>{percentage_text}</div>
+        </div>
+      );
+    }
+    else {
+      return (
+        <div
+          className="header_line"
+          style={{
+            fontSize,
+            height: maxHeight,
+          }}
+        >
+          <div>{text}</div>
+        </div>
+      );
+    }
   }
 
   renderSubheader(maxHeight) {
+    // Relative to addition of one more field as percentage, 
+    // not adding another sub header.
     const { subheader, width } = this.props;
     let fontSize = 0;
     if (subheader) {

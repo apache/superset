@@ -25,6 +25,7 @@ export default {
       expanded: true,
       controlSetRows: [
         ['metric'],
+        ['percentageMetric'],
         ['adhoc_filters'],
       ],
     },
@@ -34,12 +35,16 @@ export default {
       controlSetRows: [
         ['subheader'],
         ['y_axis_format'],
+        ['percentage_format'],
       ],
     },
   ],
   controlOverrides: {
     y_axis_format: {
       label: t('Number format'),
+    },
+    percentage_format: {
+      label: t('Percent format'),
     },
   },
 };

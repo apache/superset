@@ -29,11 +29,13 @@ export default function transformProps(chartProps) {
     compareLag: compareLagInput,
     compareSuffix = '',
     metric,
+    percentageMetric,
     showTrendLine,
     startYAxisAtZero,
     subheader = '',
     vizType,
     yAxisFormat,
+    percentageFormat,
   } = formData;
   const { data } = payload;
 
@@ -44,13 +46,16 @@ export default function transformProps(chartProps) {
   }
 
   let bigNumber;
+  let bigNumberPercentage;
   let trendLineData;
   const metricName = metric && metric.label ? metric.label : metric;
+  const percentageMetricName = percentageMetric && percentageMetric.label ? percentageMetric.label : percentageMetric;
   const compareLag = +compareLagInput || 0;
   const supportTrendLine = vizType === 'big_number';
   const supportAndShowTrendLine = supportTrendLine && showTrendLine;
   let percentChange = 0;
   let formattedSubheader = subheader;
+  let formattedBigNumberPercentage = 0;
   if (supportTrendLine) {
     const sortedData = [...data].sort((a, b) => a[TIME_COLUMN] - b[TIME_COLUMN]);
     bigNumber = sortedData[sortedData.length - 1][metricName];
@@ -69,6 +74,11 @@ export default function transformProps(chartProps) {
       : null;
   } else {
     bigNumber = data[0][metricName];
+    
+    if(percentageMetricName && data[0].hasOwnProperty(percentageMetricName)) {
+      bigNumberPercentage = data[0][percentageMetricName];
+    }
+    
     trendLineData = null;
   }
 
@@ -80,13 +90,16 @@ export default function transformProps(chartProps) {
   }
 
   const formatValue = getNumberFormatter(yAxisFormat);
+  const percentageFormatValue = getNumberFormatter(percentageFormat);
 
   return {
     width,
     height,
     bigNumber,
+    bigNumberPercentage,
     className,
     formatBigNumber: formatValue,
+    formatPercentage: percentageFormatValue,
     mainColor,
     renderTooltip: renderTooltipFactory(formatValue),
     showTrendLine: supportAndShowTrendLine,

@@ -89,6 +89,11 @@ const D3_FORMAT_OPTIONS = [
   ['$,.2f', '$,.2f (12345.432 => $12,345.43)'],
 ];
 
+const D3_PERCENT_FORMAT_OPTIONS = [
+  [',.1%', ',.1% (12345.432 => 1,234,543.2%)'],
+  ['.3%', '.3% (12345.432 => 1234543.200%)'],
+];
+
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 
 const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
@@ -147,6 +152,25 @@ const groupByControl = {
   commaChoosesOption: false,
 };
 
+const percentageMetric = {
+  type: 'MetricsControl',
+  multi: false,
+  label: t('Percentage Metric'),
+  validators: [],
+  mapStateToProps: (state) => {
+    const datasource = state.datasource;
+    return {
+      columns: datasource ? datasource.columns : [],
+      savedMetrics: datasource ? datasource.metrics : [],
+      datasourceType: datasource && datasource.type,
+    };
+  },
+  description: t('Metric for percentage values to be displayed'),
+  default: props => {
+    return null;
+  },
+};
+
 const metrics = {
   type: 'MetricsControl',
   multi: true,
@@ -165,6 +189,7 @@ const metrics = {
   },
   description: t('One or many metrics to display'),
 };
+
 const metric = {
   ...metrics,
   multi: false,
@@ -223,6 +248,8 @@ export const controls = {
   metrics,
 
   metric,
+
+  percentageMetric,
 
   datasource: {
     type: 'DatasourceControl',
@@ -1303,6 +1330,16 @@ export const controls = {
     default: '.3s',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
+  },
+
+  percentage_format: {
+    type: 'SelectControl',
+    freeForm: true,
+    renderTrigger: true,
+    default: ',.1%',
+    label: t('Percent Format'),
+    choices: D3_PERCENT_FORMAT_OPTIONS,
+    description: t('Only applicable on Percentage Metric'),
   },
 
   date_time_format: {

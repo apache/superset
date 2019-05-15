@@ -64,7 +64,7 @@ stats_logger = config.get('STATS_LOGGER')
 relative_end = config.get('DEFAULT_RELATIVE_END_TIME', 'today')
 
 METRIC_KEYS = [
-    'metric', 'metrics', 'percent_metrics', 'metric_2', 'secondary_metric',
+    'metric', 'percentageMetric', 'metrics', 'percent_metrics', 'metric_2', 'secondary_metric',
     'x', 'y', 'size',
 ]
 
@@ -1094,7 +1094,13 @@ class BigNumberTotalViz(BaseViz):
         metric = self.form_data.get('metric')
         if not metric:
             raise Exception(_('Pick a metric!'))
-        d['metrics'] = [self.form_data.get('metric')]
+
+        if self.form_data['percentageMetric'] is not None:
+            percentageMetric = self.form_data.get('percentageMetric')
+            d['metrics'] = [metric, percentageMetric]
+        else: 
+            d['metrics'] = [metric]
+
         self.form_data['metric'] = metric
         return d
 
