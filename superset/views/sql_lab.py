@@ -24,9 +24,11 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
+import simplejson as json
 
-from superset import appbuilder, security_manager
+from superset import appbuilder, db, get_feature_flags, security_manager
 from superset.models.sql_lab import Query, SavedQuery
+from superset.utils import core as utils
 from .base import BaseSupersetView, DeleteMixin, SupersetFilter, SupersetModelView
 
 
@@ -91,7 +93,7 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
         'modified', 'pop_tab_link']
     show_columns = [
         'id', 'label', 'user', 'database',
-        'description', 'sql', 'pop_tab_link']
+        'description', 'sql', 'pop_tab_link', 'extra_json']
     search_columns = ('label', 'user', 'database', 'schema', 'changed_on')
     add_columns = ['label', 'database', 'description', 'sql']
     edit_columns = add_columns
@@ -107,11 +109,40 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
         'changed_on': _('Changed on'),
     }
 
+    show_template = 'superset/models/savedquery/show.html'
+
     def pre_add(self, obj):
         obj.user = g.user
 
     def pre_update(self, obj):
         self.pre_add(obj)
+
+    @expose('show/<pk>')
+    def show(self, pk):
+        pk = self._deserialize_pk_if_composite(pk)
+        widgets = self._show(pk)
+
+        # load object to get extra_json
+        session = db.create_scoped_session()
+        obj = session.query(SavedQuery).filter_by(id=pk).first()
+        extra_json = obj.extra_json
+
+        payload = {
+            'common': {
+                'feature_flags': get_feature_flags(),
+                'extra_json': json.loads(extra_json),
+            },
+        }
+
+        return self.render_template(
+            self.show_template,
+            pk=pk,
+            title=self.show_title,
+            widgets=widgets,
+            related_views=self._related_views,
+            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
+        )
+
 
 
 class SavedQueryViewApi(SavedQueryView):

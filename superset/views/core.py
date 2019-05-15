@@ -1372,7 +1372,7 @@ class Superset(BaseSupersetView):
             'standalone': standalone,
             'user_id': user_id,
             'forced_height': request.args.get('height'),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
         table_name = datasource.table_name \
             if datasource_type == 'table' \
@@ -2231,7 +2231,7 @@ class Superset(BaseSupersetView):
             'user_id': g.user.get_id(),
             'dashboard_data': dashboard_data,
             'datasources': {ds.uid: ds.data for ds in datasources},
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
             'editMode': edit_mode,
         }
 
@@ -2919,7 +2919,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             'user': bootstrap_user_data(),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -2938,7 +2938,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             'user': bootstrap_user_data(username, include_perms=True),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -2954,7 +2954,7 @@ class Superset(BaseSupersetView):
         """SQL Editor"""
         d = {
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
         return self.render_template(
             'superset/basic.html',
