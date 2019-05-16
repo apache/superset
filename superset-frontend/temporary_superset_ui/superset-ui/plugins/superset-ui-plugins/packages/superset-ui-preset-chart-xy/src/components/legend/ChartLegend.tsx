@@ -21,14 +21,17 @@ const LEGEND_CONTAINER_STYLE: CSSProperties = {
   position: 'relative',
 };
 
-type Props<Encoder, ChannelTypes> = {
-  data: Dataset;
-  encoder: Encoder;
+export type Hooks<ChannelTypes> = {
   LegendGroupRenderer?: LegendGroupRendererType<ChannelTypes>;
   LegendItemRenderer?: LegendItemRendererType<ChannelTypes>;
   LegendItemMarkRenderer?: LegendItemMarkRendererType<ChannelTypes>;
   LegendItemLabelRenderer?: LegendItemLabelRendererType<ChannelTypes>;
 };
+
+export type Props<Encoder, ChannelTypes> = {
+  data: Dataset;
+  encoder: Encoder;
+} & Hooks<ChannelTypes>;
 
 export default class ChartLegend<
   ChannelTypes extends ObjectWithKeysFromAndValueType<Outputs, ChannelType>,

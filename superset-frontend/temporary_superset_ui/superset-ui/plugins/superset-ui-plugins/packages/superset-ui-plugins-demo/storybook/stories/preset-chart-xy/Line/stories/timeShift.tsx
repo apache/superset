@@ -38,7 +38,7 @@ export default [
                     title: 'Score',
                   },
                 },
-                color: {
+                stroke: {
                   value: '#1abc9c',
                   type: 'nominal',
                   scale: false,

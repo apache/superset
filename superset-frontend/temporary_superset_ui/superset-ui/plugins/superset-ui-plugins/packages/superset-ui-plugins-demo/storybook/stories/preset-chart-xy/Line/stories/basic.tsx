@@ -51,7 +51,7 @@ export default [
                     ),
                   },
                 },
-                color: {
+                stroke: {
                   field: 'name',
                   type: 'nominal',
                   legend: true,

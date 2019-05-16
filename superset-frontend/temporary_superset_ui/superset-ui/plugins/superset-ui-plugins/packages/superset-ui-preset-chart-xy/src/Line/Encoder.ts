@@ -6,8 +6,8 @@ import { EncodingFromChannelsAndOutputs } from '../encodeable/types/Channel';
  * Define channel types
  */
 const channelTypes = {
-  color: 'Color',
   fill: 'Category',
+  stroke: 'Color',
   strokeDasharray: 'Category',
   x: 'X',
   y: 'Y',
@@ -21,7 +21,7 @@ export type ChannelTypes = typeof channelTypes;
 export interface Outputs {
   x: number | null;
   y: number | null;
-  color: string;
+  stroke: string;
   fill: boolean;
   strokeDasharray: string;
 }
@@ -33,8 +33,8 @@ export type Encoding = EncodingFromChannelsAndOutputs<ChannelTypes, Outputs>;
 
 export default class Encoder extends AbstractEncoder<ChannelTypes, Outputs> {
   static readonly DEFAULT_ENCODINGS: Encoding = {
-    color: { value: '#222' },
     fill: { value: false },
+    stroke: { value: '#222' },
     strokeDasharray: { value: '' },
     x: { field: 'x', type: 'quantitative' },
     y: { field: 'y', type: 'quantitative' },
