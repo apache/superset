@@ -51,7 +51,7 @@ export default function transformProps(chartProps: ChartProps) {
           title: yAxisLabel,
         },
       },
-      color: {
+      stroke: {
         field: 'name',
         type: 'nominal',
         scale: {

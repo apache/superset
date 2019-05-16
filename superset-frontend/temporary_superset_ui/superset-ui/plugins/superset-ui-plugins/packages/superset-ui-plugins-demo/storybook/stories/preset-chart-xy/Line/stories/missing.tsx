@@ -43,7 +43,7 @@ export default [
                     title: 'Score',
                   },
                 },
-                color: {
+                stroke: {
                   field: 'name',
                   type: 'nominal',
                   scale: {},

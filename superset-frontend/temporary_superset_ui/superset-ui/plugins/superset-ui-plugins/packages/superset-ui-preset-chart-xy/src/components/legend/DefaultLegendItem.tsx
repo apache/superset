@@ -18,7 +18,12 @@ export default function DefaultLegendItem<ChannelTypes>({
           <circle
             fill={
               // @ts-ignore
-              item.encodedValues.color || item.encodedValues.fill || '#ccc'
+              item.encodedValues.color ||
+              // @ts-ignore
+              item.encodedValues.stroke ||
+              // @ts-ignore
+              item.encodedValues.fill ||
+              '#ccc'
             }
             stroke={
               // @ts-ignore
