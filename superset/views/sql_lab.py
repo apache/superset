@@ -26,7 +26,7 @@ from flask_babel import lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
 import simplejson as json
 
-from superset import appbuilder, db, get_feature_flags, security_manager
+from superset import appbuilder, get_feature_flags, security_manager
 from superset.models.sql_lab import Query, SavedQuery
 from superset.utils import core as utils
 from .base import BaseSupersetView, DeleteMixin, SupersetFilter, SupersetModelView
