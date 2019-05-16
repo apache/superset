@@ -38,7 +38,7 @@ class QueryAutoRefresh extends React.PureComponent {
   }
   shouldCheckForQueries() {
     // if there are started or running queries, this method should return true
-    const { queries, queriesLastUpdate } = this.props;
+    const { queries } = this.props;
     const now = new Date().getTime();
 
     // due to a race condition, queries can be marked as successful before the
@@ -50,7 +50,6 @@ class QueryAutoRefresh extends React.PureComponent {
     );
 
     return (
-      queriesLastUpdate > 0 &&
       Object.values(queries).some(
         q => isQueryRunning(q) &&
         now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
