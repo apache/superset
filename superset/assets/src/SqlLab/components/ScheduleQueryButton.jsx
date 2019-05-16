@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Form from 'react-jsonschema-form';
-import Sugar from 'sugar';
+import chrono from 'chrono-node';
 import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
@@ -39,7 +39,7 @@ function getJSONSchema() {
     if (properties.default && properties.format === 'date-time') {
       jsonSchema.properties[key] = {
         ...properties,
-        default: Sugar.Date.format(Sugar.Date.create(properties.default), 'ISO8601'),
+        default: chrono.parseDate(properties.default).toISOString(),
       };
     }
   });

@@ -859,16 +859,16 @@ To allow scheduled queries, add the following to your `config.py`:
                     'start_date': {
                         'type': 'string',
                         'title': 'Start date',
-                        # date-time is parsed using the Sugar library, see
-                        # https://sugarjs.com/dates/#/Parsing for examples
+                        # date-time is parsed using the chrono library, see
+                        # https://www.npmjs.com/package/chrono-node#usage
                         'format': 'date-time',
                         'default': 'tomorrow at 9am',
                     },
                     'end_date': {
                         'type': 'string',
                         'title': 'End date',
-                        # date-time is parsed using the Sugar library, see
-                        # https://sugarjs.com/dates/#/Parsing for examples
+                        # date-time is parsed using the chrono library, see
+                        # https://www.npmjs.com/package/chrono-node#usage
                         'format': 'date-time',
                         'default': '9am in 30 days',
                     },
