@@ -1,12 +1,6 @@
 import { ChartFormData } from '@superset-ui/chart';
-import { Margin } from '@superset-ui/dimension';
-import { ChartTheme } from '@data-ui/theme';
-import { Encoding } from './Encoder';
+import { RenderingFormData } from './Line';
 
-type LineFormData = ChartFormData & {
-  encoding: Encoding;
-  margin?: Margin;
-  theme?: ChartTheme;
-};
+type CombinedFormData = ChartFormData & RenderingFormData;
 
-export default LineFormData;
+export default CombinedFormData;

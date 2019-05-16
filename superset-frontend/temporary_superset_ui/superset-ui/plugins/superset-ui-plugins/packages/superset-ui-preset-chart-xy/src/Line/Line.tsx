@@ -18,9 +18,9 @@ import XYChartLayout from '../utils/XYChartLayout';
 import WithLegend from '../components/WithLegend';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
-import ChartLegend from '../components/legend/ChartLegend';
+import ChartLegend, { Hooks as LegendHooks } from '../components/legend/ChartLegend';
 import { PartialSpec } from '../encodeable/types/Specification';
-import defaultTooltip from './renderTooltip';
+import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 
 chartTheme.gridStyles.stroke = '#f1f3f5';
 
@@ -40,20 +40,28 @@ export interface TooltipInput {
 
 const defaultProps = {
   className: '',
-  renderTooltip: defaultTooltip,
   margin: DEFAULT_MARGIN,
   theme: chartTheme,
+  TooltipRenderer: DefaultTooltipRenderer,
 };
+
+/** Part of formData that is needed for rendering logic in this file */
+export type RenderingFormData = {
+  margin?: Margin;
+  theme?: ChartTheme;
+} & PartialSpec<Encoding>;
+
+export type Hooks = {
+  TooltipRenderer?: React.ComponentType<TooltipInput>;
+} & LegendHooks<ChannelTypes>;
 
 type Props = {
   className?: string;
   width: string | number;
   height: string | number;
-  margin?: Margin;
   data: Dataset;
-  theme?: ChartTheme;
-  renderTooltip?: React.ComponentType<TooltipInput>;
-} & PartialSpec<Encoding> &
+} & Hooks &
+  RenderingFormData &
   Readonly<typeof defaultProps>;
 
 export interface Series {
@@ -94,12 +102,13 @@ class LineChart extends PureComponent<Props> {
     };
 
     this.encoder = createEncoder(this.props);
+    this.renderLegend = this.renderLegend.bind(this);
     this.renderChart = this.renderChart.bind(this);
   }
 
   renderChart(dim: Dimension) {
     const { width, height } = dim;
-    const { data, margin, theme, renderTooltip } = this.props;
+    const { data, margin, theme, TooltipRenderer } = this.props;
 
     const { channels } = this.encoder;
     const fieldNames = this.encoder.getGroupBys();
@@ -198,15 +207,15 @@ class LineChart extends PureComponent<Props> {
               y: number;
             };
           };
-        }) =>
-          renderTooltip({
-            encoder: this.encoder,
-            allSeries,
-            theme,
-            datum,
-            series,
-          })
-        }
+        }) => (
+          <TooltipRenderer
+            encoder={this.encoder}
+            allSeries={allSeries}
+            datum={datum}
+            series={series}
+            theme={theme}
+          />
+        )}
       >
         {({
           onMouseLeave,
@@ -258,14 +267,31 @@ class LineChart extends PureComponent<Props> {
     ));
   }
 
+  renderLegend() {
+    const {
+      data,
+      LegendGroupRenderer,
+      LegendItemRenderer,
+      LegendItemLabelRenderer,
+      LegendItemMarkRenderer,
+    } = this.props;
+
+    return (
+      <ChartLegend<ChannelTypes, Outputs, Encoding>
+        data={data}
+        encoder={this.encoder}
+        LegendGroupRenderer={LegendGroupRenderer}
+        LegendItemRenderer={LegendItemRenderer}
+        LegendItemMarkRenderer={LegendItemMarkRenderer}
+        LegendItemLabelRenderer={LegendItemLabelRenderer}
+      />
+    );
+  }
+
   render() {
-    const { className, data, width, height } = this.props;
+    const { className, width, height } = this.props;
 
     this.createEncoder();
-    const renderLegend = this.encoder.hasLegend()
-      ? // eslint-disable-next-line react/jsx-props-no-multi-spaces
-        () => <ChartLegend<ChannelTypes, Outputs, Encoding> data={data} encoder={this.encoder} />
-      : undefined;
 
     return (
       <WithLegend
@@ -273,7 +299,7 @@ class LineChart extends PureComponent<Props> {
         width={width}
         height={height}
         position="top"
-        renderLegend={renderLegend}
+        renderLegend={this.encoder.hasLegend() ? this.renderLegend : undefined}
         renderChart={this.renderChart}
       />
     );

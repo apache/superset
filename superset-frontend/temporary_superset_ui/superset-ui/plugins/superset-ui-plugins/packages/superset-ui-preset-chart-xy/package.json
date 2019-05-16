@@ -47,7 +47,7 @@
     "vega-lite": "^3.1.0"
   },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.10.2 || ^0.11.0",
+    "@superset-ui/chart": "^0.10.2 || ^0.11.6",
     "@superset-ui/color": "^0.10.0 || ^0.11.0",
     "@superset-ui/core": "^0.10.0 || ^0.11.0",
     "@superset-ui/dimension": "^0.10.4 || ^0.11.0",
