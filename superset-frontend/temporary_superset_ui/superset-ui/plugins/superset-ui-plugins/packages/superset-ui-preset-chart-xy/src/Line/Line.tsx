@@ -1,6 +1,7 @@
 /* eslint-disable sort-keys, no-magic-numbers, complexity */
 
 import React, { PureComponent } from 'react';
+import { kebabCase, groupBy, flatMap, uniqueId, values } from 'lodash';
 import {
   AreaSeries,
   LinearGradient,
@@ -11,7 +12,7 @@ import {
 } from '@data-ui/xy-chart';
 import { chartTheme, ChartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
-import { groupBy, flatMap, uniqueId, values } from 'lodash';
+
 import { createSelector } from 'reselect';
 import createTooltip from './createTooltip';
 import XYChartLayout from '../utils/XYChartLayout';
@@ -95,7 +96,7 @@ class LineChart extends PureComponent<Props> {
       const firstDatum = seriesData[0];
       const key = fieldNames.map(f => firstDatum[f]).join(',');
       const series: Series = {
-        key: key.length === 0 ? channels.y.getTitle() : key,
+        key: kebabCase(key.length === 0 ? channels.y.definition.field : key),
         color: channels.color.encode(firstDatum, '#222'),
         fill: channels.fill.encode(firstDatum, false),
         strokeDasharray: channels.strokeDasharray.encode(firstDatum, ''),
