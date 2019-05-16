@@ -122,12 +122,7 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
     def show(self, pk):
         pk = self._deserialize_pk_if_composite(pk)
         widgets = self._show(pk)
-
-        # load object to get extra_json
-        session = db.create_scoped_session()
-        obj = session.query(SavedQuery).filter_by(id=pk).first()
-        extra_json = obj.extra_json
-
+        extra_json = self.datamodel.get(pk).extra_json
         payload = {
             'common': {
                 'feature_flags': get_feature_flags(),
