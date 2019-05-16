@@ -8,7 +8,7 @@ import { TooltipInput } from './Line';
 
 const MARK_STYLE = { marginRight: 4 };
 
-export default function renderTooltip({
+export default function DefaultTooltipRenderer({
   allSeries,
   datum,
   encoder,
