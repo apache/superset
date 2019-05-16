@@ -22,6 +22,7 @@ interface ChartPropsConfig {
   filters?: Filters;
   formData?: SnakeCaseFormData;
   height?: number;
+  hooks?: PlainObject;
   onAddFilter?: HandlerFunction;
   onError?: HandlerFunction;
   payload?: QueryData;
@@ -45,6 +46,7 @@ export default class ChartProps {
   formData: CamelCaseFormData;
   rawFormData: SnakeCaseFormData;
   height: number;
+  hooks: PlainObject;
   onAddFilter: HandlerFunction;
   onError: HandlerFunction;
   payload: QueryData;
@@ -58,6 +60,7 @@ export default class ChartProps {
       datasource = {},
       filters = [],
       formData = {},
+      hooks = {},
       onAddFilter = NOOP,
       onError = NOOP,
       payload = {},
@@ -73,6 +76,7 @@ export default class ChartProps {
     this.rawDatasource = datasource;
     this.filters = filters;
     this.formData = convertKeysToCamelCase(formData);
+    this.hooks = hooks;
     this.rawFormData = formData;
     this.onAddFilter = onAddFilter;
     this.onError = onError;
@@ -89,6 +93,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.filters,
     input => input.formData,
     input => input.height,
+    input => input.hooks,
     input => input.onAddFilter,
     input => input.onError,
     input => input.payload,
@@ -101,6 +106,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       filters,
       formData,
       height,
+      hooks,
       onAddFilter,
       onError,
       payload,
@@ -114,6 +120,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         filters,
         formData,
         height,
+        hooks,
         onAddFilter,
         onError,
         payload,
