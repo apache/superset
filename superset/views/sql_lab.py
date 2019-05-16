@@ -117,6 +117,7 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
     def pre_update(self, obj):
         self.pre_add(obj)
 
+    @has_access
     @expose('show/<pk>')
     def show(self, pk):
         pk = self._deserialize_pk_if_composite(pk)
@@ -153,6 +154,11 @@ class SavedQueryViewApi(SavedQueryView):
         'label', 'db_id', 'schema', 'description', 'sql', 'extra_json']
     add_columns = show_columns
     edit_columns = add_columns
+
+    @has_access_api
+    @expose('show/<pk>')
+    def show(self, pk):
+        return super().show(pk)
 
 
 appbuilder.add_view_no_menu(SavedQueryViewApi)
