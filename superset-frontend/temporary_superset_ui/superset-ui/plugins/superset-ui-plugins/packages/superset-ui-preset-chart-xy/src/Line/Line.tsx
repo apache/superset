@@ -14,20 +14,33 @@ import { chartTheme, ChartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 
 import { createSelector } from 'reselect';
-import createTooltip from './createTooltip';
 import XYChartLayout from '../utils/XYChartLayout';
 import WithLegend from '../components/WithLegend';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import ChartLegend from '../components/legend/ChartLegend';
 import { PartialSpec } from '../encodeable/types/Specification';
+import defaultTooltip from './renderTooltip';
 
 chartTheme.gridStyles.stroke = '#f1f3f5';
 
 const DEFAULT_MARGIN = { top: 20, right: 20, left: 20, bottom: 20 };
 
+export interface TooltipInput {
+  encoder: Encoder;
+  allSeries: Series[];
+  datum: SeriesValue;
+  series: {
+    [key: string]: {
+      y: number;
+    };
+  };
+  theme: ChartTheme;
+}
+
 const defaultProps = {
   className: '',
+  renderTooltip: defaultTooltip,
   margin: DEFAULT_MARGIN,
   theme: chartTheme,
 };
@@ -39,12 +52,13 @@ type Props = {
   margin?: Margin;
   data: Dataset;
   theme?: ChartTheme;
+  renderTooltip?: React.ComponentType<TooltipInput>;
 } & PartialSpec<Encoding> &
   Readonly<typeof defaultProps>;
 
 export interface Series {
   key: string;
-  color: Outputs['color'];
+  stroke: Outputs['stroke'];
   fill: Outputs['fill'];
   strokeDasharray: Outputs['strokeDasharray'];
   values: SeriesValue[];
@@ -85,7 +99,7 @@ class LineChart extends PureComponent<Props> {
 
   renderChart(dim: Dimension) {
     const { width, height } = dim;
-    const { data, margin, theme } = this.props;
+    const { data, margin, theme, renderTooltip } = this.props;
 
     const { channels } = this.encoder;
     const fieldNames = this.encoder.getGroupBys();
@@ -96,9 +110,9 @@ class LineChart extends PureComponent<Props> {
       const firstDatum = seriesData[0];
       const key = fieldNames.map(f => firstDatum[f]).join(',');
       const series: Series = {
-        key: kebabCase(key.length === 0 ? channels.y.definition.field : key),
-        color: channels.color.encode(firstDatum, '#222'),
+        key: key.length === 0 ? channels.y.definition.field : key,
         fill: channels.fill.encode(firstDatum, false),
+        stroke: channels.stroke.encode(firstDatum, '#222'),
         strokeDasharray: channels.strokeDasharray.encode(firstDatum, ''),
         values: [],
       };
@@ -124,13 +138,13 @@ class LineChart extends PureComponent<Props> {
       allSeries
         .filter(({ fill }) => fill)
         .map(series => {
-          const gradientId = uniqueId(`gradient-${series.key}`);
+          const gradientId = uniqueId(kebabCase(`gradient-${series.key}`));
 
           return [
             <LinearGradient
               key={`${series.key}-gradient`}
               id={gradientId}
-              from={series.color}
+              from={series.stroke}
               to="#fff"
             />,
             <AreaSeries
@@ -139,7 +153,7 @@ class LineChart extends PureComponent<Props> {
               data={series.values}
               interpolation="linear"
               fill={`url(#${gradientId})`}
-              stroke={series.color}
+              stroke={series.stroke}
               strokeWidth={1.5}
             />,
           ];
@@ -154,7 +168,7 @@ class LineChart extends PureComponent<Props> {
           seriesKey={series.key}
           interpolation="linear"
           data={series.values}
-          stroke={series.color}
+          stroke={series.stroke}
           strokeDasharray={series.strokeDasharray}
           strokeWidth={1.5}
         />
@@ -173,7 +187,27 @@ class LineChart extends PureComponent<Props> {
     });
 
     return layout.renderChartWithFrame((chartDim: Dimension) => (
-      <WithTooltip renderTooltip={createTooltip(this.encoder, allSeries)}>
+      <WithTooltip
+        renderTooltip={({
+          datum,
+          series,
+        }: {
+          datum: SeriesValue;
+          series: {
+            [key: string]: {
+              y: number;
+            };
+          };
+        }) =>
+          renderTooltip({
+            encoder: this.encoder,
+            allSeries,
+            theme,
+            datum,
+            series,
+          })
+        }
+      >
         {({
           onMouseLeave,
           onMouseMove,
@@ -207,11 +241,11 @@ class LineChart extends PureComponent<Props> {
               strokeDasharray=""
               showHorizontalLine={false}
               circleFill={(d: SeriesValue) =>
-                d.y === tooltipData.datum.y ? d.parent.color : '#fff'
+                d.y === tooltipData.datum.y ? d.parent.stroke : '#fff'
               }
               circleSize={(d: SeriesValue) => (d.y === tooltipData.datum.y ? 6 : 4)}
               circleStroke={(d: SeriesValue) =>
-                d.y === tooltipData.datum.y ? '#fff' : d.parent.color
+                d.y === tooltipData.datum.y ? '#fff' : d.parent.stroke
               }
               circleStyles={CIRCLE_STYLE}
               stroke="#ccc"
