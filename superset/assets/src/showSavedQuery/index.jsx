@@ -23,9 +23,9 @@ import Form from 'react-jsonschema-form';
 const scheduleInfoContainer = document.getElementById('schedule-info');
 const bootstrapData = JSON.parse(scheduleInfoContainer.getAttribute('data-bootstrap'));
 const schemas = bootstrapData.common.feature_flags.SCHEDULED_QUERIES;
-const schedule_info = bootstrapData.common.extra_json.schedule_info;
+const scheduleInfo = bootstrapData.common.extra_json.schedule_info;
 
-if (schedule_info && schemas) {
+if (scheduleInfo && schemas) {
   // hide instructions when showing schedule info
   schemas.JSONSCHEMA.description = '';
 
@@ -33,10 +33,10 @@ if (schedule_info && schemas) {
     <Form
       schema={schemas.JSONSCHEMA}
       uiSchema={schemas.UISCHEMA}
-      formData={schedule_info}
+      formData={scheduleInfo}
       disabled
     >
-      <br/>
+      <br />
     </Form>,
     scheduleInfoContainer,
   );
