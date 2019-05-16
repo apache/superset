@@ -22,6 +22,11 @@ import { SupersetClient } from '@superset-ui/connection';
 import { isEqual } from 'lodash';
 
 export default function withVerification(WrappedComponent, optionLabel, optionsName) {
+  /*
+   * This function will verify control options before passing them to the control by calling an
+   * endpoint on mount and when the controlValues change. controlValues should be set in
+   * mapStateToProps that can be added as a control override along with getEndpoint.
+   */
   class withVerificationComponent extends React.Component {
     constructor(props) {
       super(props);
