@@ -38,11 +38,10 @@ class QueryAutoRefresh extends React.PureComponent {
   }
   shouldCheckForQueries() {
     // if there are started or running queries, this method should return true
-    const { queries, queriesLastUpdate } = this.props;
+    const { queries } = this.props;
     const now = new Date().getTime();
 
     return (
-      queriesLastUpdate > 0 &&
       Object.values(queries).some(
         q => ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0 &&
         now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
