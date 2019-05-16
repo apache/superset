@@ -231,9 +231,7 @@ if conf.get('ENABLE_FLASK_COMPRESS'):
     Compress(app)
 
 if app.config['TALISMAN_ENABLED']:
-    talisman_config = app.config.get('TALISMAN_CONFIG') or {
-        'content_security_policy': None,
-    }
+    talisman_config = app.config.get('TALISMAN_CONFIG')
     Talisman(app, **talisman_config)
 
 # Hook that provides administrators a handle on the Flask APP
