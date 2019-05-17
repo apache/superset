@@ -16,5 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.btn-add { display: none; }
-.linkback { padding: 0 10px 20px 2px; }
+
+export function getNestedValue(obj, id, separator = '.') {
+  /*
+   * Given a nested object and an id, return the nested value.
+   *
+   * > getNestedValue({a:{b:1}}, 'a.b')
+   * < 1
+   */
+  const index = id.indexOf(separator);
+  if (index === -1) {
+    return obj[id];
+  }
+  const name = id.slice(0, index);
+  const rest = id.slice(index + separator.length);
+  return getNestedValue(obj[name], rest);
+}
+
+export function interpolate(str, obj) {
+  /*
+   * Programmatic template string for interpolation.
+   *
+   * > interpolate('foo ${a.b}', {a:{b:1}})
+   * < "foo 1"
+   */
+  return str.replace(/\$\{(.+?)\}/g, (match, id) => getNestedValue(obj, id));
+}

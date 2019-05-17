@@ -19,6 +19,7 @@
 import React from 'react';
 import ReactDom from 'react-dom';
 import Form from 'react-jsonschema-form';
+import { interpolate } from 'src/showSavedQuery/utils';
 import './index.css';
 
 const scheduleInfoContainer = document.getElementById('schedule-info');
@@ -26,33 +27,6 @@ const bootstrapData = JSON.parse(scheduleInfoContainer.getAttribute('data-bootst
 const config = bootstrapData.common.feature_flags.SCHEDULED_QUERIES;
 const query = bootstrapData.common.query;
 const scheduleInfo = query.extra_json.schedule_info;
-
-function getNestedValue(obj, id, separator = '.') {
-  /*
-   * Given a nested object and an id, return the nested value.
-   *
-   * > getNestedValue({a:{b:1}}, 'a.b')
-   * < 1
-   */
-  const index = id.indexOf(separator);
-  if (index === -1) {
-    return obj[id];
-  }
-  const name = id.slice(0, index);
-  const rest = id.slice(index + separator.length);
-  return getNestedValue(obj[name], rest);
-}
-
-function interpolate(str, obj) {
-  /*
-   * Programmatic template string for interpolation.
-   *
-   * > interpolate('foo ${a.b}', {a:{b:1}})
-   * < "foo 1"
-   */
-  return str.replace(/\$\{(.+?)\}/g, (match, id) => getNestedValue(obj, id));
-}
-
 const linkback = config.linkback
   ? interpolate(config.linkback, query)
   : null;
