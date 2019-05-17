@@ -83,7 +83,8 @@ export default class XYChartLayout {
     if (typeof yEncoder.axis !== 'undefined') {
       this.yLayout = yEncoder.axis.computeLayout({
         axisWidth: Math.max(height - margin.top - margin.bottom),
-        tickLength: theme.yTickStyles.length,
+        // @ts-ignore
+        tickLength: theme.yTickStyles.length || theme.yTickStyles.tickLength,
         tickTextStyle: theme.yTickStyles.label.right,
       });
     }
@@ -98,7 +99,8 @@ export default class XYChartLayout {
       this.xLayout = xEncoder.axis.computeLayout({
         axisWidth: innerWidth,
         labelAngle: this.recommendXLabelAngle(xEncoder.axis.config.orient as 'top' | 'bottom'),
-        tickLength: theme.xTickStyles.length,
+        // @ts-ignore
+        tickLength: theme.xTickStyles.length || theme.xTickStyles.tickLength,
         tickTextStyle: theme.xTickStyles.label.bottom,
       });
     }
@@ -106,6 +108,7 @@ export default class XYChartLayout {
     const finalMargin = this.xLayout
       ? mergeMargin(secondMargin, this.xLayout.minMargin)
       : secondMargin;
+
     const innerHeight = Math.max(height - finalMargin.top - finalMargin.bottom, minContentHeight);
 
     const chartWidth = Math.round(innerWidth + finalMargin.left + finalMargin.right);
