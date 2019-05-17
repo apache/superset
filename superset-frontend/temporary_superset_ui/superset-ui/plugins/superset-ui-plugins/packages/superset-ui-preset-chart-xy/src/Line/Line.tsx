@@ -25,7 +25,7 @@ chartTheme.gridStyles.stroke = '#f1f3f5';
 
 const DEFAULT_MARGIN = { top: 20, right: 20, left: 20, bottom: 20 };
 
-export interface TooltipInput {
+export interface TooltipProps {
   encoder: Encoder;
   allSeries: Series[];
   datum: SeriesValue;
@@ -45,13 +45,13 @@ const defaultProps = {
 };
 
 /** Part of formData that is needed for rendering logic in this file */
-export type RenderingFormData = {
+export type FormDataProps = {
   margin?: Margin;
   theme?: typeof chartTheme;
 } & PartialSpec<Encoding>;
 
-export type Hooks = {
-  TooltipRenderer?: React.ComponentType<TooltipInput>;
+export type HookProps = {
+  TooltipRenderer?: React.ComponentType<TooltipProps>;
 } & LegendHooks<ChannelTypes>;
 
 type Props = {
@@ -59,8 +59,8 @@ type Props = {
   width: string | number;
   height: string | number;
   data: Dataset;
-} & Hooks &
-  RenderingFormData &
+} & HookProps &
+  FormDataProps &
   Readonly<typeof defaultProps>;
 
 export interface Series {

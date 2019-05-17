@@ -3,7 +3,7 @@
 import React from 'react';
 import { TooltipFrame, TooltipTable } from '@superset-ui/chart-composition';
 import { chartTheme } from '@data-ui/theme';
-import { TooltipInput } from './Line';
+import { TooltipProps } from './Line';
 
 const MARK_STYLE = { marginRight: 4 };
 
@@ -13,7 +13,7 @@ export default function DefaultTooltipRenderer({
   encoder,
   series = {},
   theme = chartTheme,
-}: TooltipInput) {
+}: TooltipProps) {
   return (
     <TooltipFrame>
       <>
