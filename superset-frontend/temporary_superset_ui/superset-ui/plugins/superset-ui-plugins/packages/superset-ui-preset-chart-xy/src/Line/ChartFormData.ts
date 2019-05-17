@@ -1,6 +1,6 @@
 import { ChartFormData } from '@superset-ui/chart';
-import { RenderingFormData } from './Line';
+import { FormDataProps } from './Line';
 
-type CombinedFormData = ChartFormData & RenderingFormData;
+type CombinedFormData = ChartFormData & FormDataProps;
 
 export default CombinedFormData;
