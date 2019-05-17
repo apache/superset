@@ -78,12 +78,16 @@ const propTypes = {
   animation: PropTypes.bool,
   onSchedule: PropTypes.func,
   scheduleQueryWarning: PropTypes.string,
+  disabled: PropTypes.bool,
+  tooltip: PropTypes.string,
 };
 const defaultProps = {
   defaultLabel: t('Undefined'),
   animation: true,
   onSchedule: () => {},
   scheduleQueryWarning: null,
+  disabled: false,
+  tooltip: null,
 };
 
 class ScheduleQueryButton extends React.PureComponent {
@@ -157,7 +161,13 @@ class ScheduleQueryButton extends React.PureComponent {
           modalTitle={t('Schedule Query')}
           modalBody={this.renderModalBody()}
           triggerNode={
-            <Button bsSize="small" className="toggleSchedule" onClick={this.toggleSchedule}>
+            <Button
+              bsSize="small"
+              className="toggleSchedule"
+              onClick={this.toggleSchedule}
+              disabled={this.props.disabled}
+              tooltip={this.props.tooltip}
+            >
               <i className="fa fa-calendar" /> {t('Schedule Query')}
             </Button>
           }

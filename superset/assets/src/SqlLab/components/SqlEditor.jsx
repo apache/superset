@@ -335,6 +335,10 @@ class SqlEditor extends React.PureComponent {
         </OverlayTrigger>
       );
     }
+    const successful = this.props.latestQuery && this.props.latestQuery.state === 'success';
+    const scheduleToolTip = successful
+      ? t('Schedule the query periodically')
+      : t('You must run the query successfully first');
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div>
@@ -360,6 +364,8 @@ class SqlEditor extends React.PureComponent {
                 schema={qe.schema}
                 dbId={qe.dbId}
                 scheduleQueryWarning={this.props.scheduleQueryWarning}
+                tooltip={scheduleToolTip}
+                disabled={!successful}
               />
             </span>
             }
