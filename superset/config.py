@@ -600,6 +600,15 @@ DEFAULT_RELATIVE_END_TIME = 'today'
 IS_EPOCH_S_TRULY_UTC = False
 
 
+# Do you want Talisman enabled?
+TALISMAN_ENABLED = True
+# If you want Talisman, how do you want it configured??
+TALISMAN_CONFIG = {
+    'content_security_policy': None,
+    'force_https': True,
+    'force_https_permanent': False,
+}
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
