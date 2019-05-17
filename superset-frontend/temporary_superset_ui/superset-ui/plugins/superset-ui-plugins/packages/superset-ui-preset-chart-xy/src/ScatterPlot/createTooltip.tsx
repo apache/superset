@@ -1,8 +1,7 @@
 /* eslint-disable no-magic-numbers */
 
 import React from 'react';
-import TooltipFrame from '../components/tooltip/TooltipFrame';
-import TooltipTable from '../components/tooltip/TooltipTable';
+import { TooltipFrame, TooltipTable } from '@superset-ui/chart-composition';
 import Encoder from './Encoder';
 import { isFieldDef } from '../encodeable/types/ChannelDef';
 import { EncodedPoint } from './ScatterPlot';

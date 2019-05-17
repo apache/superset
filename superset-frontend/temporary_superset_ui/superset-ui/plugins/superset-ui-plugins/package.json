@@ -42,6 +42,7 @@
     "@superset-ui/build-config": "^0.0.9",
     "@superset-ui/commit-config": "^0.0.9",
     "@superset-ui/chart": "^0.11.6",
+    "@superset-ui/chart-composition": "^0.11.5",
     "@superset-ui/color": "^0.11.3",
     "@superset-ui/connection": "^0.11.0",
     "@superset-ui/core": "^0.11.0",

@@ -12,10 +12,9 @@ import {
 } from '@data-ui/xy-chart';
 import { chartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
-
+import { WithLegend } from '@superset-ui/chart-composition';
 import { createSelector } from 'reselect';
 import XYChartLayout from '../utils/XYChartLayout';
-import WithLegend from '../components/WithLegend';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import ChartLegend, { Hooks as LegendHooks } from '../components/legend/ChartLegend';

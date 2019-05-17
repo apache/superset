@@ -1,9 +1,8 @@
 /* eslint-disable no-magic-numbers */
 
 import React from 'react';
+import { TooltipFrame, TooltipTable } from '@superset-ui/chart-composition';
 import { chartTheme } from '@data-ui/theme';
-import TooltipFrame from '../components/tooltip/TooltipFrame';
-import TooltipTable from '../components/tooltip/TooltipTable';
 import { TooltipInput } from './Line';
 
 const MARK_STYLE = { marginRight: 4 };
