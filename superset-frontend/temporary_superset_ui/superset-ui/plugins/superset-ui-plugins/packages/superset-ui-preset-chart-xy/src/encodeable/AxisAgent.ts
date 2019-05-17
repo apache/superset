@@ -98,16 +98,16 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
     gapBetweenAxisLabelAndBorder = 8,
     gapBetweenTickAndTickLabel = 4,
     labelAngle = this.config.labelAngle,
-    tickLength,
-    tickTextStyle,
+    tickLength = 8,
+    tickTextStyle = {},
   }: {
     axisTitleHeight?: number;
     axisWidth: number;
     gapBetweenAxisLabelAndBorder?: number;
     gapBetweenTickAndTickLabel?: number;
     labelAngle?: number;
-    tickLength: number;
-    tickTextStyle: CSSProperties;
+    tickLength?: number;
+    tickTextStyle?: CSSProperties;
   }): {
     labelAngle: number;
     labelOffset: number;
@@ -127,7 +127,7 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
 
     const { labelOverlap, labelPadding, orient } = this.config;
 
-    const maxWidth = Math.max(...labelDimensions.map(d => d.width));
+    const maxWidth = Math.max(...labelDimensions.map(d => d.width), 0);
 
     // TODO: Add other strategies: stagger, chop, wrap.
     let strategyForLabelOverlap = labelOverlap;
