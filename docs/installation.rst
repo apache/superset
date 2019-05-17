@@ -858,13 +858,19 @@ To allow scheduled queries, add the following to your `config.py`:
                     },
                     'start_date': {
                         'type': 'string',
-                        'format': 'date-time',
                         'title': 'Start date',
+                        # date-time is parsed using the chrono library, see
+                        # https://www.npmjs.com/package/chrono-node#usage
+                        'format': 'date-time',
+                        'default': 'tomorrow at 9am',
                     },
                     'end_date': {
                         'type': 'string',
-                        'format': 'date-time',
                         'title': 'End date',
+                        # date-time is parsed using the chrono library, see
+                        # https://www.npmjs.com/package/chrono-node#usage
+                        'format': 'date-time',
+                        'default': '9am in 30 days',
                     },
                     'schedule_interval': {
                         'type': 'string',
@@ -890,6 +896,16 @@ To allow scheduled queries, add the following to your `config.py`:
                     ),
                 },
             },
+            'VALIDATION': [
+                # ensure that start_date <= end_date
+                {
+                    'name': 'less_equal',
+                    'arguments': ['start_date', 'end_date'],
+                    'message': 'End date cannot be before start date',
+                    # this is where the error message is shown
+                    'container': 'end_date',
+                },
+            ],
         },
     }
 
