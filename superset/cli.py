@@ -52,8 +52,8 @@ def init():
     utils.get_or_create_main_db()
     security_manager.sync_role_definitions()
     role_admin = security_manager.find_role(security_manager.auth_role_admin)
-    username = firstname = lastname = password = "superset"
-    email = "superset@fab.org"
+    username = firstname = lastname = password = "admin"
+    email = "admin@fab.org"
     user = security_manager.find_user(username)
     if user is None:
         user = security_manager.add_user(username, firstname, lastname, email, role_admin, password)
