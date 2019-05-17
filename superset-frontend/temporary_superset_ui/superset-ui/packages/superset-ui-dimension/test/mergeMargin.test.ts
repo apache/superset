@@ -163,4 +163,28 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
       right: -1,
     });
   });
+  it('if there are NaN or null, use another value', () => {
+    expect(
+      mergeMargin(
+        // @ts-ignore to let us pass `null` for testing
+        {
+          top: 10,
+          left: null,
+          bottom: 20,
+          right: NaN,
+        },
+        {
+          top: NaN,
+          left: 30,
+          bottom: null,
+          right: 40,
+        },
+      ),
+    ).toEqual({
+      top: 10,
+      left: 30,
+      bottom: 20,
+      right: 40,
+    });
+  });
 });
