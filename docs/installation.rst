@@ -905,7 +905,7 @@ To allow scheduled queries, add the following to your `config.py`:
                     # this is where the error message is shown
                     'container': 'end_date',
                 },
-            ],
+            ]
         },
     }
 
