@@ -10,7 +10,7 @@ import {
   CrossHair,
   WithTooltip,
 } from '@data-ui/xy-chart';
-import { chartTheme, ChartTheme } from '@data-ui/theme';
+import { chartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 
 import { createSelector } from 'reselect';
@@ -35,7 +35,7 @@ export interface TooltipInput {
       y: number;
     };
   };
-  theme: ChartTheme;
+  theme: typeof chartTheme;
 }
 
 const defaultProps = {
@@ -48,7 +48,7 @@ const defaultProps = {
 /** Part of formData that is needed for rendering logic in this file */
 export type RenderingFormData = {
   margin?: Margin;
-  theme?: ChartTheme;
+  theme?: typeof chartTheme;
 } & PartialSpec<Encoding>;
 
 export type Hooks = {
@@ -81,7 +81,7 @@ export interface SeriesValue {
 
 const CIRCLE_STYLE = { strokeWidth: 1.5 };
 
-class LineChart extends PureComponent<Props> {
+export default class LineChart extends PureComponent<Props> {
   static defaultProps = defaultProps;
 
   encoder: Encoder;
@@ -119,7 +119,7 @@ class LineChart extends PureComponent<Props> {
       const firstDatum = seriesData[0];
       const key = fieldNames.map(f => firstDatum[f]).join(',');
       const series: Series = {
-        key: key.length === 0 ? channels.y.definition.field : key,
+        key: key.length === 0 ? channels.y.getTitle() : key,
         fill: channels.fill.encode(firstDatum, false),
         stroke: channels.stroke.encode(firstDatum, '#222'),
         strokeDasharray: channels.strokeDasharray.encode(firstDatum, ''),
@@ -305,5 +305,3 @@ class LineChart extends PureComponent<Props> {
     );
   }
 }
-
-export default LineChart;
