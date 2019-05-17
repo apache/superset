@@ -30,7 +30,7 @@ export function getNestedValue(obj, id, separator = '.') {
   }
   const name = id.slice(0, index);
   const rest = id.slice(index + separator.length);
-  return getNestedValue(obj[name], rest);
+  return getNestedValue(obj[name], rest, separator);
 }
 
 export function interpolate(str, obj) {
