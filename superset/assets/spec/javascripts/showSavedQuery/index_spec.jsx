@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNestedValue, interpolate } from '../../../src/showSavedQuery/index';
+import { getNestedValue, interpolate } from '../../../src/showSavedQuery/utils';
 
 describe('getNestedValue', () => {
   it('is a function', () => {
