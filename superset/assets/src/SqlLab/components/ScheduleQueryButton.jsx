@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Form from 'react-jsonschema-form';
 import chrono from 'chrono-node';
-import { Row, Col } from 'react-bootstrap';
+import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
@@ -130,7 +130,35 @@ class ScheduleQueryButton extends React.PureComponent {
   }
   renderModalBody() {
     return (
-      <div>
+      <FormGroup>
+        <Row>
+          <Col md={12}>
+            <label className="control-label" htmlFor="embed-height">
+              {t('Label')}
+            </label>
+            <FormControl
+              type="text"
+              placeholder={t('Label for your query')}
+              value={this.state.label}
+              onChange={this.onLabelChange}
+            />
+          </Col>
+        </Row>
+        <br />
+        <Row>
+          <Col md={12}>
+            <label className="control-label" htmlFor="embed-height">
+              {t('Description')}
+            </label>
+            <FormControl
+              componentClass="textarea"
+              placeholder={t('Write a description for your query')}
+              value={this.state.description}
+              onChange={this.onDescriptionChange}
+            />
+          </Col>
+        </Row>
+        <br />
         <Row>
           <Col md={12}>
             <Form
@@ -150,7 +178,7 @@ class ScheduleQueryButton extends React.PureComponent {
             </Col>
           </Row>
         )}
-      </div>
+      </FormGroup>
     );
   }
   render() {
