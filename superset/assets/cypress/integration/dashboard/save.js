@@ -52,7 +52,7 @@ export default () => describe('save', () => {
     });
   });
 
-  it('should save/overwrite dashboard', () => {
+  it.skip('should save/overwrite dashboard', () => {
     cy.wait('@copyRequest');
 
     // should have box_plot chart
