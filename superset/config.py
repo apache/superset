@@ -357,8 +357,9 @@ DEFAULT_SQLLAB_LIMIT = 1000
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
 MAX_TABLE_NAMES = 3000
 
-# Adds a warning message on sqllab save query modal.
+# Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
+SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 # If defined, shows this text in an alert-warning box in the navbar
 # one example use case may be "STAGING" to make it clear that this is

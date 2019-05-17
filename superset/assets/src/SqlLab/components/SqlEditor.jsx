@@ -67,13 +67,14 @@ const propTypes = {
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
   saveQueryWarning: PropTypes.string,
+  scheduleQueryWarning: PropTypes.string,
 };
 
 const defaultProps = {
   database: null,
   latestQuery: null,
   hideLeftBar: false,
-  saveQueryWarning: null,
+  scheduleQueryWarning: null,
 };
 
 class SqlEditor extends React.PureComponent {
@@ -355,9 +356,10 @@ class SqlEditor extends React.PureComponent {
                 defaultLabel={qe.title}
                 sql={qe.sql}
                 className="m-r-5"
-                onSchedule={this.props.actions.saveQuery}
+                onSchedule={this.props.actions.scheduleQuery}
                 schema={qe.schema}
                 dbId={qe.dbId}
+                scheduleQueryWarning={this.props.scheduleQueryWarning}
               />
             </span>
             }

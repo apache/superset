@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Form from 'react-jsonschema-form';
 import chrono from 'chrono-node';
+import { Row, Col } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
@@ -76,11 +77,13 @@ const propTypes = {
   dbId: PropTypes.number.isRequired,
   animation: PropTypes.bool,
   onSchedule: PropTypes.func,
+  scheduleQueryWarning: PropTypes.string,
 };
 const defaultProps = {
   defaultLabel: t('Undefined'),
   animation: true,
   onSchedule: () => {},
+  scheduleQueryWarning: null,
 };
 
 class ScheduleQueryButton extends React.PureComponent {
@@ -123,12 +126,27 @@ class ScheduleQueryButton extends React.PureComponent {
   }
   renderModalBody() {
     return (
-      <Form
-        schema={getJSONSchema()}
-        uiSchema={getUISchema()}
-        onSubmit={this.onSchedule}
-        validate={getValidator()}
-      />
+      <div>
+        <Row>
+          <Col md={12}>
+            <Form
+              schema={getJSONSchema()}
+              uiSchema={getUISchema()}
+              onSubmit={this.onSchedule}
+              validate={getValidator()}
+            />
+          </Col>
+        </Row>
+        {this.props.scheduleQueryWarning && (
+          <Row>
+            <Col md={12}>
+              <small>
+                {this.props.scheduleQueryWarning}
+              </small>
+            </Col>
+          </Row>
+        )}
+      </div>
     );
   }
   render() {
