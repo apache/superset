@@ -5,8 +5,8 @@ import collectScalesFromProps from '@data-ui/xy-chart/esm/utils/collectScalesFro
 import { XAxis, YAxis } from '@data-ui/xy-chart';
 import { ChartTheme } from '@data-ui/theme';
 import { Margin, mergeMargin } from '@superset-ui/dimension';
+import { ChartFrame } from '@superset-ui/chart-composition';
 import createTickComponent from './createTickComponent';
-import ChartFrame from '../components/ChartFrame';
 import ChannelEncoder from '../encodeable/ChannelEncoder';
 import { AxisOrient } from '../encodeable/types/Axis';
 import { XFieldDef, YFieldDef } from '../encodeable/types/ChannelDef';
