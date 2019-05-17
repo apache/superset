@@ -30,7 +30,7 @@ elif [ "$SUPERSET_ENV" = "production" ]; then
     celery worker --app=superset.tasks.celery_app:app --pool=prefork --max-tasks-per-child=128 -Ofair -c 4 &
     gunicorn --bind  0.0.0.0:8088 \
         --workers $((2 * $(getconf _NPROCESSORS_ONLN) + 1)) \
-        --timeout 60 \
+        --timeout 60 *12 \
         --limit-request-line 0 \
         --limit-request-field_size 0 \
         superset:app

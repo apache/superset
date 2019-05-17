@@ -17,7 +17,7 @@ services:
       MYSQL_USER: superset
       MYSQL_PASSWORD: superset
   superset:
-    image: qventus/superset:0.31.2
+    image: qventus/superset:0.31.3
     restart: always
     environment:
       MYSQL_DB: superset

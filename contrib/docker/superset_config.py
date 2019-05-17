@@ -16,6 +16,7 @@
 # under the License.
 import os
 from celery.schedules import crontab
+from ssm import ssm_password_lookup
 
 
 def get_env_variable(var_name, default=None):
@@ -134,3 +135,4 @@ SMTP_USER = 'analyticsmd'
 SMTP_PORT = 465 #465 , 587
 SMTP_PASSWORD = 'D0ndeMail'
 SMTP_MAIL_FROM = 'superset@superset.com'
+SQLALCHEMY_CUSTOM_PASSWORD_STORE = ssm_password_lookup
