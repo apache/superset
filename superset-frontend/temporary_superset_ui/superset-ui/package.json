@@ -43,7 +43,7 @@
     "@superset-ui/build-config": "^0.0.9",
     "@superset-ui/commit-config": "^0.0.9",
     "fast-glob": "^2.2.6",
-    "fs-extra": "^7.0.1",
+    "fs-extra": "^8.0.1",
     "husky": "^1.1.2",
     "lerna": "^3.2.1",
     "lint-staged": "^8.0.4",
