@@ -31,6 +31,7 @@ pycodestyle==2.4.0
 pyhive==0.6.1
 pylint==1.9.2
 python-dotenv==0.10.1
+python-git==2018.2.1
 redis==2.10.6
 statsd==3.3.0
 thrift==0.11.0
