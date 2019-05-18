@@ -20,8 +20,8 @@ import logging
 import time
 
 from superset import db
-from superset.models.core import Dashboard
 from superset.exceptions import DashboardNotFoundException
+from superset.models.core import Dashboard
 from superset.utils.core import decode_dashboards
 
 
