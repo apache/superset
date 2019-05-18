@@ -231,7 +231,7 @@ def load_birth_names():
             The source dataset came from
             <a href='https://github.com/hadley/babynames' target='_blank'>[here]</a>
         </p>
-        <img src='/static/assets/images/babytux.jpg'>
+        <img src="https://i.imgur.com/aLOIXcC.png">
     </div>
     """)),
         Slice(
@@ -527,7 +527,7 @@ def load_birth_names():
     "MARKDOWN-00178c27": {
         "meta": {
             "width": 5,
-            "code": "<div style=\\"text-align:center\\">\\n <h1>Birth Names Dashboard</h1>\\n <p>\\n The source dataset came from\\n <a href=\\"https://github.com/hadley/babynames\\" target=\\"_blank\\">[here]</a>\\n </p>\\n <img src=\\"/static/assets/images/babytux.jpg\\">\\n</div>\\n",
+            "code": "<div style=\\"text-align:center\\">\\n <h1>Birth Names Dashboard</h1>\\n <p>\\n The source dataset came from\\n <a href=\\"https://github.com/hadley/babynames\\" target=\\"_blank\\">[here]</a>\\n </p>\\n <img src=\\"https://i.imgur.com/aLOIXcC.png\\" style=\\"width:55%;\\">\\n</div>\\n",
             "height": 38
         },
         "type": "MARKDOWN",
