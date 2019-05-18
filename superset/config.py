@@ -411,13 +411,9 @@ CELERY_CONFIG = CeleryConfig
 CELERY_CONFIG = None
 """
 
-# static http headers to be served by your Superset server.
-# This header prevents iFrames from other domains and
-# "clickjacking" as a result
-HTTP_HEADERS = {'X-Frame-Options': 'SAMEORIGIN'}
-# If you need to allow iframes from other domains (and are
-# aware of the risks), you can disable this header:
-# HTTP_HEADERS = {}
+# Additional static HTTP headers to be served by your Superset server. Note
+# Flask-Talisman aplies the relevant security HTTP headers.
+HTTP_HEADERS = {}
 
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
@@ -606,6 +602,15 @@ BUG_REPORT_URL = None
 
 # Default dashboard export directory
 DASHBOARD_EXPORT_DIR = '/tmp'
+
+# Do you want Talisman enabled?
+TALISMAN_ENABLED = True
+# If you want Talisman, how do you want it configured??
+TALISMAN_CONFIG = {
+    'content_security_policy': None,
+    'force_https': True,
+    'force_https_permanent': False,
+}
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

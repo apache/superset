@@ -26,7 +26,6 @@ from typing import (
 )
 
 from flask import g
-from pyhive.exc import DatabaseError
 
 from superset import app, security_manager
 from superset.sql_parse import ParsedQuery
@@ -77,6 +76,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         # engine spec's handle_cursor implementation since we don't record
         # these EXPLAIN queries done in validation as proper Query objects
         # in the superset ORM.
+        from pyhive.exc import DatabaseError
         try:
             db_engine_spec.execute(cursor, sql)
             polled = cursor.poll()

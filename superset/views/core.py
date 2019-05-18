@@ -1372,7 +1372,7 @@ class Superset(BaseSupersetView):
             'standalone': standalone,
             'user_id': user_id,
             'forced_height': request.args.get('height'),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
         table_name = datasource.table_name \
             if datasource_type == 'table' \
@@ -1566,8 +1566,8 @@ class Superset(BaseSupersetView):
         """Endpoint to fetch the list of tables for given database"""
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == 'true'
-        schema = utils.js_string_to_python(schema)
-        substr = utils.js_string_to_python(substr)
+        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
+        substr = utils.parse_js_uri_path_item(substr, eval_undefined=True)
         database = db.session.query(models.Database).filter_by(id=db_id).one()
 
         if schema:
@@ -2231,7 +2231,7 @@ class Superset(BaseSupersetView):
             'user_id': g.user.get_id(),
             'dashboard_data': dashboard_data,
             'datasources': {ds.uid: ds.data for ds in datasources},
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
             'editMode': edit_mode,
         }
 
@@ -2350,11 +2350,11 @@ class Superset(BaseSupersetView):
         }))
 
     @has_access
-    @expose('/table/<database_id>/<path:table_name>/<schema>/')
+    @expose('/table/<database_id>/<table_name>/<schema>/')
     @log_this
     def table(self, database_id, table_name, schema):
-        schema = utils.js_string_to_python(schema)
-        table_name = parse.unquote_plus(table_name)
+        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
+        table_name = utils.parse_js_uri_path_item(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload_columns = []
         indexes = []
@@ -2410,11 +2410,11 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(tbl))
 
     @has_access
-    @expose('/extra_table_metadata/<database_id>/<path:table_name>/<schema>/')
+    @expose('/extra_table_metadata/<database_id>/<table_name>/<schema>/')
     @log_this
     def extra_table_metadata(self, database_id, table_name, schema):
-        schema = utils.js_string_to_python(schema)
-        table_name = parse.unquote_plus(table_name)
+        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
+        table_name = utils.parse_js_uri_path_item(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload = mydb.db_engine_spec.extra_table_metadata(
             mydb, table_name, schema)
@@ -2427,6 +2427,8 @@ class Superset(BaseSupersetView):
     def select_star(self, database_id, table_name, schema=None):
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
+        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
+        table_name = utils.parse_js_uri_path_item(table_name)
         return json_success(
             mydb.select_star(
                 table_name,
@@ -2577,9 +2579,8 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             msg = _(
-                'Failed to validate your SQL query text. Please check that '
-                f'you have configured the {validator.name} validator '
-                'correctly and that any services it depends on are up. '
+                f'{validator.name} was unable to check your query.\nPlease '
+                'make sure that any services it depends on are available\n'
                 f'Exception: {e}')
             return json_error_response(f'{msg}')
 
@@ -2918,7 +2919,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             'user': bootstrap_user_data(),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -2937,7 +2938,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             'user': bootstrap_user_data(username, include_perms=True),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -2953,7 +2954,7 @@ class Superset(BaseSupersetView):
         """SQL Editor"""
         d = {
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
         return self.render_template(
             'superset/basic.html',
@@ -3081,7 +3082,7 @@ appbuilder.add_separator('Sources')
 
 
 @app.after_request
-def apply_caching(response):
+def apply_http_headers(response):
     """Applies the configuration's http headers to all responses"""
     for k, v in config.get('HTTP_HEADERS').items():
         response.headers[k] = v
