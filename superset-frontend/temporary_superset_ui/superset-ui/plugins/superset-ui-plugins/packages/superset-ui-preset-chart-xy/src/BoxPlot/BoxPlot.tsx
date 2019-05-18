@@ -12,8 +12,6 @@ import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import { PartialSpec } from '../encodeable/types/Specification';
 
-chartTheme.gridStyles.stroke = '#f1f3f5';
-
 const DEFAULT_MARGIN = { top: 20, right: 20, left: 20, bottom: 20 };
 
 const defaultProps = {

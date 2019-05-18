@@ -21,8 +21,6 @@ import ChartLegend, { Hooks as LegendHooks } from '../components/legend/ChartLeg
 import { PartialSpec } from '../encodeable/types/Specification';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 
-chartTheme.gridStyles.stroke = '#f1f3f5';
-
 const DEFAULT_MARGIN = { top: 20, right: 20, left: 20, bottom: 20 };
 
 export interface TooltipProps {
