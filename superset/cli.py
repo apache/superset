@@ -19,7 +19,7 @@
 from datetime import datetime
 import logging
 from subprocess import Popen
-from sys import stdout, exit
+from sys import exit, stdout
 
 import click
 from colorama import Fore, Style
@@ -197,13 +197,13 @@ def import_dashboards(path, recursive):
 @click.option(
     '--dashboard-titles', '-t', default=None, multiple=True,
     help='Specify dashboard title to export')
-def export_dashboards(print_stdout, dashboard_file, dashboard_ids, 
+def export_dashboards(print_stdout, dashboard_file, dashboard_ids,
                       dashboard_titles):
     """Export dashboards to JSON"""
     try:
         data = dashboard_import_export.export_dashboards(
-            db.session, 
-            dashboard_ids=dashboard_ids, 
+            db.session,
+            dashboard_ids=dashboard_ids,
             dashboard_titles=dashboard_titles)
     except DashboardNotFoundException as e:
         click.echo(click.style(str(e), fg='red'))
