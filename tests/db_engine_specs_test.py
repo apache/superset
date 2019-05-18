@@ -190,7 +190,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
     def test_simple_limit_query(self):
         self.sql_limit_regex(
             'SELECT * FROM a',
-            'SELECT * FROM a LIMIT 1000',
+            'SELECT * FROM a\nLIMIT 1000',
         )
 
     def test_modify_limit_query(self):
@@ -288,7 +288,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                     'LIMIT 777'""",
             """
                 SELECT
-                    'LIMIT 777' LIMIT 1000""",
+                    'LIMIT 777'\nLIMIT 1000""",
         )
 
     def test_time_grain_blacklist(self):
@@ -382,6 +382,29 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             ('column_name.nested_array', 'ARRAY'),
             ('column_name.nested_obj', 'FLOAT')]
         self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_fields(self):
+        cols = [
+            {'name': 'column'},
+            {'name': 'column.nested_obj'},
+            {'name': 'column."quoted.nested obj"'}]
+        actual_results = PrestoEngineSpec._get_fields(cols)
+        expected_results = [
+            {'name': '"column"', 'label': 'column'},
+            {'name': '"column"."nested_obj"', 'label': 'column.nested_obj'},
+            {'name': '"column"."quoted.nested obj"',
+             'label': 'column."quoted.nested obj"'}]
+        for actual_result, expected_result in zip(actual_results, expected_results):
+            self.assertEqual(actual_result.element.name, expected_result['name'])
+            self.assertEqual(actual_result.name, expected_result['label'])
+
+    def test_presto_filter_presto_cols(self):
+        cols = [
+            {'name': 'column', 'type': 'ARRAY'},
+            {'name': 'column.nested_obj', 'type': 'FLOAT'}]
+        actual_results = PrestoEngineSpec._filter_presto_cols(cols)
+        expected_results = [cols[0]]
+        self.assertEqual(actual_results, expected_results)
 
     def test_hive_get_view_names_return_empty_list(self):
         self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))

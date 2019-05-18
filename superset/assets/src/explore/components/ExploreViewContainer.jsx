@@ -106,7 +106,6 @@ class ExploreViewContainer extends React.Component {
   componentWillReceiveProps(nextProps) {
     if (nextProps.controls.viz_type.value !== this.props.controls.viz_type.value) {
       this.props.actions.resetControls();
-      this.props.actions.triggerQuery(true, this.props.chart.id);
     }
     if (
       nextProps.controls.datasource &&

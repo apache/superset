@@ -4483,10 +4483,12 @@ msgid ""
 "schema, and table name"
 msgstr "找不到 [{}] 表，请仔细检查您的数据库连接、Schema 和 表名"
 
-#: superset/connectors/sqla/views.py:270
+#: superset/connectors/sqla/views.py:291
 msgid ""
-"The table was created. As part of this two phase configuration process, you "
-"should now click the edit button by the new table to configure it."
+"The table was created. "
+"As part of this two-phase configuration "
+"process, you should now click the edit button by "
+"the new table to configure it."
 msgstr ""
 "表被创建。作为这两个阶段配置过程的一部分，您现在应该单击新表的编辑按钮来配置"
 "它。"
@@ -4613,19 +4615,17 @@ msgstr "您无法访问此数据源。< a href = ‘{}’> (获取权限) </a>"
 msgid "You don't have access to this datasource"
 msgstr "你不能访问这个数据源"
 
-#: superset/views/core.py:90
+#: superset/views/core.py:98
 #, python-format
 msgid ""
-"This view requires the database %(name)s or `all_datasource_access` "
-"permission"
+"This view requires the database %(name)s or "
+"`all_datasource_access` permission"
 msgstr "此视图需要数据库 %(name)s或“all_datasource_access”权限"
 
-#: superset/views/core.py:95
+#: superset/views/core.py:82
 #, python-format
-msgid ""
-"This endpoint requires the datasource %(name)s, database or "
-"`all_datasource_access` permission"
-msgstr "此端点需要数据源 %(name)s、数据库或“all_datasource_access”权限"
+msgid "This endpoint requires the `all_datasource_access` permission"
+msgstr "此端点需要“all_datasource_access”权限"
 
 #: superset/views/core.py:189
 msgid "List Databases"
@@ -5130,6 +5130,46 @@ msgid ""
 msgstr ""
 "此数据源的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。"
 "注意，如果未定义，这默认为集群超时。"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:624
+msgid "Layer Configuration"
+msgstr "配置Layer"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:625
+msgid "Configure the basics of your Annotation Layer."
+msgstr "注释层基本配置"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:633
+msgid "Mandatory"
+msgstr "必填参数"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:637
+msgid "Hide Layer"
+msgstr "隐藏Layer"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:644
+msgid "Annotation Layer Type"
+msgstr "注释层类型"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:643
+msgid "Choose the Annotation Layer Type"
+msgstr "选择注释层类型"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:528
+msgid "Display configuration"
+msgstr "显示配置"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:533
+msgid "Style"
+msgstr "风格"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:529
+msgid "Configure your how you overlay is displayed here."
+msgstr "配置如何在这里显示您的覆盖。"
+
+#: superset\assets\src\explore\components\controls\AnnotationLayer.jsx:577
+msgid "Line Width"
+msgstr "线宽"
 
 
 #~ msgid "Please choose at least one \"Group by\" field"

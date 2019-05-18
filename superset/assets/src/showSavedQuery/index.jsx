@@ -16,20 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
-import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
-import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
-import MapBoxChartPlugin from '@superset-ui/legacy-plugin-chart-map-box';
+import React from 'react';
+import ReactDom from 'react-dom';
+import Form from 'react-jsonschema-form';
 
-export default class MapChartPreset extends Preset {
-  constructor() {
-    super({
-      name: 'Maps',
-      plugins: [
-        new CountryMapChartPlugin().configure({ key: 'country_map' }),
-        new MapBoxChartPlugin().configure({ key: 'mapbox' }),
-        new WorldMapChartPlugin().configure({ key: 'world_map' }),
-      ],
-    });
-  }
+const scheduleInfoContainer = document.getElementById('schedule-info');
+const bootstrapData = JSON.parse(scheduleInfoContainer.getAttribute('data-bootstrap'));
+const schemas = bootstrapData.common.feature_flags.SCHEDULED_QUERIES;
+const scheduleInfo = bootstrapData.common.extra_json.schedule_info;
+
+if (scheduleInfo && schemas) {
+  // hide instructions when showing schedule info
+  schemas.JSONSCHEMA.description = '';
+
+  ReactDom.render(
+    <Form
+      schema={schemas.JSONSCHEMA}
+      uiSchema={schemas.UISCHEMA}
+      formData={scheduleInfo}
+      disabled
+    >
+      <br />
+    </Form>,
+    scheduleInfoContainer,
+  );
 }
