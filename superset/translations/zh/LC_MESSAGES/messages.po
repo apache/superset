@@ -15,11 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # Chinese translations for Apache Superset.
-# Copyright (C) 2016 ORGANIZATION
-# This file is distributed under the same license as the Apache Superset
-# project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2016.
-#
 msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"

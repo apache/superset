@@ -14,12 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# Spanish translations for PROJECT.
-# Copyright (C) 2016 ORGANIZATION
-# This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2016.
-# Joe Bordes <joe@tsolucio.com>, 2018.
-#
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
