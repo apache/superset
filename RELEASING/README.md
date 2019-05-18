@@ -22,17 +22,18 @@ To make a fresh tarball of a git reference on apache/incubator-superset
 (push your tag first!)
 
 ```bash
-docker build -f Dockerfile.make_tarball . --build-arg VERSION=0.32.0rc1
+docker build -t make_tarball -f Dockerfile.make_tarball . --build-arg VERSION=0.33.0rc1
+docker run make_tarball -f Dockerfile.make_tarball --env VERSION=0.33.0rc1
 ```
 
 To make a working build given a tarball
 ```bash
 # Building a docker from a tarball
-VERSION=0.32.0rc2 && \
+VERSION=0.33.0rc2 && \
 docker build -t apache-superset:$VERSION -f Dockerfile.from_tarball . --build-arg VERSION=$VERSION
 
 # testing the resulting docker
-docker run -p 5001:8088 apache-superset:0.32.0rc2
+docker run -p 5001:8088 apache-superset:0.33.0rc2
 # you should be able to access localhost:5001 on your browser
 # login using admin/admin
 ```
@@ -76,14 +77,14 @@ First you need to setup a few things. This is a one-off and doesn't
 need to be done at every release.
 
 ```bash
-    # Create PGP Key
+    # Create PGP Key, and use your @apache.org email address
     gpg --gen-key
      
     # Checkout ASF dist repo
 
     svn checkout https://dist.apache.org/repos/dist/dev/incubator/superset/ ~/svn/superset_dev
 
-    svn checkout https://dist.apache.org/repos/dist/incubator/superset/ ~/svn/superset
+    svn checkout https://dist.apache.org/repos/dist/release/incubator/superset/ ~/svn/superset
     cd ~/svn/superset
  
   
