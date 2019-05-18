@@ -16,5 +16,4 @@
 #
 FROM python:3.6-jessie
 COPY make_tarball.sh /entrypoint.sh
-RUN mkdir /root/.gnupg
 ENTRYPOINT ["/entrypoint.sh"]

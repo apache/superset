@@ -17,14 +17,22 @@
 #
 set -ex
 
+if [ -z "$VERSION" ]; then
+  echo "VERSION is required to run this container"
+  exit 1
+fi
+
+
+echo "version: $VERSION"
 cd /tmp
 git clone --depth 1 --branch $VERSION https://github.com/apache/incubator-superset.git
 mkdir ~/$VERSION
 cd incubator-superset && \
 git archive \
-    --format=tar.gz HEAD \
-    -o ~/$VERSION/apache-incubator-superset.tar.gz
+    --format=tar.gz \
+    --prefix=apache-superset-incubating-$VERSION/ \
+    HEAD \
+    -o ~/$VERSION/apache-superset-incubating.tar.gz
 
-ls /root/.gnupg
-#gpg --armor --output apache-incubator-superset.tar.gz.asc --detach-sig apache-incubator-superset.tar.gz
-#gpg --print-md SHA512 apache-incubator-superset.tar.gz > apache-incubator-superset.tar.gz.sha512
+gpg --armor --output apache-superset-incubating.tar.gz.asc --detach-sig apache-superset-incubating.tar.gz
+gpg --print-md SHA512 apache-superset-incubating.tar.gz > apache-superset-incubating.tar.gz.sha512
