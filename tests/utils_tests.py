@@ -43,7 +43,9 @@ from superset.utils.core import (
 
 
 def mock_parse_human_datetime(s):
-    if s in ['now', 'today']:
+    if s == 'now':
+        return datetime(2016, 11, 7, 9, 30, 10)
+    elif s == 'today':
         return datetime(2016, 11, 7)
     elif s == 'yesterday':
         return datetime(2016, 11, 6)
@@ -51,6 +53,8 @@ def mock_parse_human_datetime(s):
         return datetime(2016, 11, 8)
     elif s == 'Last year':
         return datetime(2015, 11, 7)
+    elif s == 'Last week':
+        return datetime(2015, 10, 31)
     elif s == 'Last 5 months':
         return datetime(2016, 6, 7)
     elif s == 'Next 5 months':
@@ -600,7 +604,7 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEqual(result, expected)
 
         result = get_since_until(' : now')
-        expected = None, datetime(2016, 11, 7)
+        expected = None, datetime(2016, 11, 7, 9, 30, 10)
         self.assertEqual(result, expected)
 
         result = get_since_until('yesterday : tomorrow')
@@ -636,7 +640,19 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEqual(result, expected)
 
         result = get_since_until(time_range='5 days : now')
-        expected = datetime(2016, 11, 2), datetime(2016, 11, 7)
+        expected = datetime(2016, 11, 2), datetime(2016, 11, 7, 9, 30, 10)
+        self.assertEqual(result, expected)
+
+        result = get_since_until('Last week', relative_end='now')
+        expected = datetime(2016, 10, 31), datetime(2016, 11, 7, 9, 30, 10)
+        self.assertEqual(result, expected)
+
+        result = get_since_until('Last week', relative_start='now')
+        expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        result = get_since_until('Last week', relative_start='now', relative_end='now')
+        expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
         self.assertEqual(result, expected)
 
         with self.assertRaises(ValueError):
