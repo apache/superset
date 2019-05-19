@@ -78,6 +78,11 @@ class SqlMetric(Base):
     id = Column(Integer, primary_key=True)
     uuid = Column(UUIDType(binary=False), default=get_uuid)
 
+class TableColumn(Base):
+    __tablename__ = 'table_columns'
+    id = Column(Integer, primary_key=True)
+    uuid = Column(UUIDType(binary=False), default=get_uuid)
+
 class DashboardEmailSchedule(Base):
     __tablename__ = 'dashboard_email_schedules'
     id = Column(Integer, primary_key=True)
@@ -113,6 +118,7 @@ def upgrade():
     add_uuid_column('slices', Slice)
     add_uuid_column('sql_metrics', SqlMetric)
     add_uuid_column('tables', SqlaTable)
+    add_uuid_column('table_columns', TableColumn)
     add_uuid_column('dashboard_email_schedules', DashboardEmailSchedule)
     add_uuid_column('slice_email_schedules', SliceEmailSchedule)
 
@@ -141,6 +147,9 @@ def downgrade():
         batch_op.drop_column('uuid')
     
     with op.batch_alter_table('tables') as batch_op:
+        batch_op.drop_column('uuid')
+
+    with op.batch_alter_table('table_columns') as batch_op:
         batch_op.drop_column('uuid')
 
     with op.batch_alter_table('dashboard_email_schedules') as batch_op:
