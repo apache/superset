@@ -205,7 +205,7 @@ def list_minus(l: List, minus: List) -> List:
     return [o for o in l if o not in minus]
 
 
-def parse_human_datetime(s):
+def parse_human_datetime(s: Optional[str]) -> Optional[datetime]:
     """
     Returns ``datetime.datetime`` from human readable strings
 
@@ -237,14 +237,14 @@ def parse_human_datetime(s):
             # when time is not extracted, we 'reset to midnight'
             if parsed_flags & 2 == 0:
                 parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
-            dttm = dttm_from_timtuple(parsed_dttm.utctimetuple())
+            dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
         except Exception as e:
             logging.exception(e)
             raise ValueError("Couldn't parse date string [{}]".format(s))
     return dttm
 
 
-def dttm_from_timtuple(d: struct_time) -> datetime:
+def dttm_from_timetuple(d: struct_time) -> datetime:
     return datetime(
         d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
 
@@ -306,7 +306,7 @@ def parse_human_timedelta(s: str):
     True
     """
     cal = parsedatetime.Calendar()
-    dttm = dttm_from_timtuple(datetime.now().timetuple())
+    dttm = dttm_from_timetuple(datetime.now().timetuple())
     d = cal.parse(s or '', dttm)[0]
     d = datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
     return d - dttm
