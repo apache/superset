@@ -132,7 +132,7 @@ def load_examples(load_test_data):
 @click.option('--datasource', '-d', help='Specify which datasource name to load, if '
                                          'omitted, all datasources will be refreshed')
 @click.option('--merge', '-m', is_flag=True, default=False,
-              help='Specify using \'merge\' property during operation. '
+              help="Specify using 'merge' property during operation. "
                    'Default value is False.')
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
