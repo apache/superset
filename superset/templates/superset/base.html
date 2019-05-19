@@ -20,7 +20,7 @@
 
   {% block head_css %}
     {{super()}}
-    <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+    <link rel="icon" type="image/png" href="/static/assets/images/guavus.ico">
     {% for entry in get_unloaded_chunks(css_manifest('theme'), loaded_chunks) %}
       <link rel="stylesheet" type="text/css" href="{{ entry }}" />
     {% endfor %}
