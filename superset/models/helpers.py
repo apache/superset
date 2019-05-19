@@ -58,7 +58,7 @@ class ImportMixin(object):
     # The names of the attributes
     # that are available for import and export
 
-    uuid = Column(UUIDType(binary=False), unique=True, default=uuid.uuid4) 
+    uuid = sa.Column(UUIDType(binary=False), unique=True, default=uuid.uuid4) 
 
     @classmethod
     def _parent_foreign_key_mappings(cls):
