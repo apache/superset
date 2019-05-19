@@ -46,6 +46,7 @@ superset_config.py
 superset.egg-info/
 superset/bin/supersetc
 tmp
+rat-results.txt
 
 # Node.js, webpack artifacts
 *.entry.js
