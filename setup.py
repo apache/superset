@@ -105,6 +105,9 @@ setup(
         'sqlalchemy-utils',
         'sqlparse',
         'unicodecsv',
+        # Pinning werkzeug due to problems encountered with
+        # new config options added in 0.15.x
+        'werkzeug==0.14.1',
         'wtforms-json',
     ],
     extras_require={

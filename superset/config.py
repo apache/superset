@@ -617,8 +617,6 @@ TALISMAN_ENABLED = True
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
     'content_security_policy': None,
-    'force_https': True,
-    'force_https_permanent': False,
 }
 
 try:
