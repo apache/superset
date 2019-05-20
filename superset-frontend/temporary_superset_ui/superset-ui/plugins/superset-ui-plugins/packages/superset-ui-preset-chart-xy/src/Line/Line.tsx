@@ -66,6 +66,7 @@ export interface Series {
   stroke: Outputs['stroke'];
   fill: Outputs['fill'];
   strokeDasharray: Outputs['strokeDasharray'];
+  strokeWidth: Outputs['strokeWidth'];
   values: SeriesValue[];
 }
 
@@ -120,6 +121,7 @@ export default class LineChart extends PureComponent<Props> {
         fill: channels.fill.encode(firstDatum, false),
         stroke: channels.stroke.encode(firstDatum, '#222'),
         strokeDasharray: channels.strokeDasharray.encode(firstDatum, ''),
+        strokeWidth: channels.strokeWidth.encode(firstDatum, 1),
         values: [],
       };
 
@@ -160,7 +162,7 @@ export default class LineChart extends PureComponent<Props> {
               interpolation="linear"
               fill={`url(#${gradientId})`}
               stroke={series.stroke}
-              strokeWidth={1.5}
+              strokeWidth={series.strokeWidth}
             />,
           ];
         }),
@@ -176,7 +178,7 @@ export default class LineChart extends PureComponent<Props> {
           data={series.values}
           stroke={series.stroke}
           strokeDasharray={series.strokeDasharray}
-          strokeWidth={1.5}
+          strokeWidth={series.strokeWidth}
         />
       ));
 
