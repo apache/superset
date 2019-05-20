@@ -46,7 +46,7 @@ class QueryAutoRefresh extends React.PureComponent {
     // problem
     const isQueryRunning = q => (
       ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0 ||
-      (q.state === 'success' && q.resultsKey === null)
+      (q.state === 'success' && q.asyncRun && q.resultsKey === null)
     );
 
     return (

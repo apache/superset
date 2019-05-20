@@ -126,6 +126,7 @@ class Query(Model, ExtraJSONMixin):
             'resultsKey': self.results_key,
             'trackingUrl': self.tracking_url,
             'extra': self.extra,
+            'asyncRun': self.database.allow_run_async,
         }
 
     @property
