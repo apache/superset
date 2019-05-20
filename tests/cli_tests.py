@@ -46,7 +46,7 @@ class SupersetCliTestCase(SupersetTestCase):
         self.assertEqual(ids[0], 5)
 
     def test_export_dashboard_by_title(self):
-        """Test `superset export_dashboards -i 3`"""
+        """Test `superset export_dashboards -t World's Bank Data`"""
         self.runner.invoke(app.cli, ['load_examples'])
         result = self.runner.invoke(
             app.cli, ['export_dashboards', '-t', "World's Bank Data"])
