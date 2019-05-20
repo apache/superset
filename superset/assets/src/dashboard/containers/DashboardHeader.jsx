@@ -34,6 +34,7 @@ import {
   saveDashboardRequest,
   setMaxUndoHistoryExceeded,
   maxUndoHistoryToast,
+  onReconcile,
 } from '../actions/dashboardState';
 
 import {
@@ -98,6 +99,7 @@ function mapDispatchToProps(dispatch) {
       onSave: saveDashboardRequest,
       setMaxUndoHistoryExceeded,
       maxUndoHistoryToast,
+      onReconcile,
     },
     dispatch,
   );

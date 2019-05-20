@@ -24,6 +24,7 @@ import Dashboard from '../components/Dashboard';
 import {
   addSliceToDashboard,
   removeSliceFromDashboard,
+  reconcileSuccess,
 } from '../actions/dashboardState';
 import { runQuery } from '../../chart/chartAction';
 import getLoadStatsPerTopLevelComponent from '../util/logging/getLoadStatsPerTopLevelComponent';
@@ -64,6 +65,7 @@ function mapDispatchToProps(dispatch) {
         addSliceToDashboard,
         removeSliceFromDashboard,
         runQuery,
+        reconcileSuccess,
       },
       dispatch,
     ),

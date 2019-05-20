@@ -135,6 +135,23 @@ export function onSave() {
   return { type: ON_SAVE };
 }
 
+export const ON_RECONCILE = 'ON_RECONCILE';
+export function onReconcile() {
+  return { type: ON_RECONCILE };
+}
+
+export const ON_SUCCESS_RECONCILE = 'ON_SUCCESS_RECONCILE';
+export function onSuccessReconcile(publishSubscriberMap) {
+  return { type: ON_SUCCESS_RECONCILE, publishSubscriberMap };
+}
+
+export function reconcileSuccess(data, id) {
+  return dispatch => {
+    dispatch(onSuccessReconcile(data.pub_sub_info))
+    dispatch(saveDashboardRequest(data, id, SAVE_TYPE_OVERWRITE, 'This dashboard was reconcile successfully.'));
+  };
+}
+
 export function saveDashboardRequestSuccess() {
   return dispatch => {
     dispatch(onSave());
@@ -143,7 +160,7 @@ export function saveDashboardRequestSuccess() {
   };
 }
 
-export function saveDashboardRequest(data, id, saveType) {
+export function saveDashboardRequest(data, id, saveType, sucessMessage = 'This dashboard was saved successfully.') {
   const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
 
   return dispatch =>
@@ -155,7 +172,7 @@ export function saveDashboardRequest(data, id, saveType) {
         Promise.all([
           dispatch(saveDashboardRequestSuccess()),
           dispatch(
-            addSuccessToast(t('This dashboard was saved successfully.')),
+            addSuccessToast(t(sucessMessage)),
           ),
         ]).then(() => Promise.resolve(response)),
       )

@@ -44,6 +44,7 @@ describe('HeaderActionsDropdown', () => {
     filters: {},
     expandedSlices: {},
     onSave: () => {},
+    reconcileDashboard: () => {},
   };
 
   function setup(overrideProps) {
@@ -66,9 +67,9 @@ describe('HeaderActionsDropdown', () => {
       expect(wrapper.find(SaveModal)).toHaveLength(0);
     });
 
-    it('should render one MenuItem', () => {
+    it('should render two MenuItem', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(MenuItem)).toHaveLength(1);
+      expect(wrapper.find(MenuItem)).toHaveLength(2);
     });
 
     it('should render the RefreshIntervalModal', () => {
@@ -100,9 +101,9 @@ describe('HeaderActionsDropdown', () => {
       expect(wrapper.find(SaveModal)).toHaveLength(1);
     });
 
-    it('should render two MenuItems', () => {
+    it('should render three MenuItems', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(MenuItem)).toHaveLength(2);
+      expect(wrapper.find(MenuItem)).toHaveLength(3);
     });
 
     it('should render the RefreshIntervalModal', () => {
@@ -134,9 +135,9 @@ describe('HeaderActionsDropdown', () => {
       expect(wrapper.find(SaveModal)).toHaveLength(1);
     });
 
-    it('should render three MenuItems', () => {
+    it('should render four MenuItems', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(MenuItem)).toHaveLength(3);
+      expect(wrapper.find(MenuItem)).toHaveLength(4);
     });
 
     it('should render the RefreshIntervalModal', () => {

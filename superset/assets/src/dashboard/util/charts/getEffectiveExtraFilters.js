@@ -16,10 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function getEffectiveExtraFilters({
+
+import * as _ from 'lodash';
+
+export const filterKeys = [
+  '__time_range',
+  '__time_col',
+  '__time_grain',
+  '__time_origin',
+  '__granularity',
+];
+
+const getOperatorOfColumn = (linkedSlicesExistInFilters, filteringSliceId, col) => {
+  let op = 'in';
+
+  let subscribe_slice = _.find(linkedSlicesExistInFilters, function (slice) {
+    const sliceId = Object.keys(slice) && Object.keys(slice)[0];
+    return (sliceId == filteringSliceId)
+  });
+
+  let subscribe_columns = subscribe_slice ? subscribe_slice[filteringSliceId] : [];
+
+  let columnInfo = _.find(subscribe_columns, function (item) {
+    return (item.col == col);
+  });
+
+  op = columnInfo ? columnInfo.op : op;
+
+  return op;
+}
+
+const getFilter = (col, op, val) => {
+  return {
+    col: col,
+    op: op,
+    val: val,
+  }
+}
+
+export function getEffectiveExtraFilters({
   dashboardMetadata,
   filters,
   sliceId,
+  linkedSlicesExistInFilters,
 }) {
   const immuneSlices = dashboardMetadata.filter_immune_slices || [];
 
@@ -47,14 +86,35 @@ export default function getEffectiveExtraFilters({
     const filtersFromSlice = filters[filteringSliceId];
     Object.keys(filtersFromSlice).forEach(field => {
       if (!immuneToFields.includes(field)) {
-        effectiveFilters.push({
-          col: field,
-          op: 'in',
-          val: filtersFromSlice[field],
-        });
+        if (filterKeys.indexOf(field) == -1) {
+          let op = getOperatorOfColumn(linkedSlicesExistInFilters, filteringSliceId, field);
+          if (Array.isArray(filtersFromSlice[field])) {
+            if (op == 'in' || op == 'not in') {
+              effectiveFilters.push(getFilter(field, op, filtersFromSlice[field]));
+            } else {
+              filtersFromSlice[field].forEach(val => {
+                effectiveFilters.push(getFilter(field, op, val.toString()));
+              })
+            }
+          } else {
+            if (op == 'in' || op == 'not in') {
+              effectiveFilters.push(getFilter(field, op, [filtersFromSlice[field]]));
+            } else {
+              effectiveFilters.push(getFilter(field, op, filtersFromSlice[field].toString()));
+            }
+          }
+        } else {
+          effectiveFilters.push(getFilter(field, "in", filtersFromSlice[field]));
+        }
       }
     });
   });
 
   return effectiveFilters;
+}
+
+
+export default {
+  filterKeys,
+  getEffectiveExtraFilters,
 }

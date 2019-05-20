@@ -44,21 +44,196 @@ describe('getFormDataWithExtraFilters', () => {
       },
     },
     sliceId: chartId,
+    publishSubscriberMap: {
+      publishers: undefined,
+      subscribers: {
+        chartId: {
+          actions: [
+            "APPLY_FILTER"
+          ],
+          linked_slices: {
+            filterId: [
+              { col: 'region',op: 'in'},
+              { col: 'color', op: 'in'},
+            ]
+          }
+        }
+      }
+    },
   };
 
   it('should include filters from the passed filters', () => {
     const result = getFormDataWithExtraFilters(mockArgs);
+    expect(result.extra_filters).toHaveLength(2);
+    expect(result.extra_filters[0]).toEqual({
+      col: 'region',
+      op: 'in',
+      val: ['Spain'],
+    });
+    expect(result.extra_filters[1]).toEqual({
+      col: 'color',
+      op: 'in',
+      val: ['pink', 'purple'],
+    });
+  });
+
+  it('should include filters with __time_range also', () => {
+    const result = getFormDataWithExtraFilters({ 
+      ...mockArgs,
+      filters: {
+        filterId: {
+          region: ['Spain'],
+          color: ['pink', 'purple'],
+          __time_range: "No Filter",
+        },
+      },
+    });
+    expect(result.extra_filters).toHaveLength(3);
+  });
+
+  it('should include filter applied by the slice dont apply to itself', () => {
+    const result = getFormDataWithExtraFilters({ 
+      ...mockArgs,
+      filters: {
+        chartId: {
+          region: ['Spain'],
+          color: ['pink', 'purple'],
+          __time_range: "No Filter",
+        },
+      },
+      publishSubscriberMap: {
+        publishers: undefined,
+        subscribers: {
+          chartId: {
+            actions: [
+              "APPLY_FILTER"
+            ],
+            linked_slices: {
+              chartId: [
+                { col: 'region',op: 'in'},
+                { col: 'color', op: 'in'},
+              ]
+            }
+          }
+        }
+      },
+    });
+
+    const result2 = getFormDataWithExtraFilters({ 
+      ...mockArgs,
+      filters: {
+        chartId: {
+          region: ['Spain'],
+          color: ['pink', 'purple'],
+          __time_range: "No Filter",
+        },
+      },
+    });
     expect(result.extra_filters).toHaveLength(0);
-    // expect(result.extra_filters[0]).toEqual({
-    //   col: 'region',
-    //   op: 'in',
-    //   val: ['Spain'],
-    // });
-    // expect(result.extra_filters[1]).toEqual({
-    //   col: 'color',
-    //   op: 'in',
-    //   val: ['pink', 'purple'],
-    // });
+    expect(result2.extra_filters).toHaveLength(0);
+  });
+
+
+  it('Convert filter column value from string to array in case of operator in', () => {
+    const result = getFormDataWithExtraFilters({ 
+        ...mockArgs,
+        filters: {
+          filterId: {
+            region: 'Spain',
+          },
+        },  
+        publishSubscriberMap: {
+          publishers: undefined,
+          subscribers: {
+            chartId: {
+              actions: [
+                "APPLY_FILTER"
+              ],
+              linked_slices: {
+                filterId: [
+                  { col: 'region',op: 'in'},
+                ]
+              }
+            }
+          }
+        }
+    });
+
+    const result2 = getFormDataWithExtraFilters({ 
+        ...mockArgs,
+        filters: {
+          filterId: {
+            region: 'Spain',
+          },
+        },  
+        publishSubscriberMap: {
+            publishers: undefined,
+            subscribers: {
+              chartId: {
+                actions: [
+                  "APPLY_FILTER"
+                ],
+                linked_slices: {
+                  filterId: [
+                    { col: 'region',op: '=='},
+                  ]
+                }
+              }
+            }
+        }
+    });
+    
+    expect(result.extra_filters).toHaveLength(1);
+    expect(result.extra_filters[0]['val']).toEqual(['Spain']);
+
+    expect(result2.extra_filters).toHaveLength(1);
+    expect(result2.extra_filters[0]['val']).toEqual('Spain');
+  });
+
+  it('should include filters from the passed filters with equal operator && convert  filter column value from Array to string in case of operator except "in"|"not in"', () => {
+    const result = getFormDataWithExtraFilters({ 
+      ...mockArgs,
+      publishSubscriberMap: {
+        publishers: undefined,
+        subscribers: {
+          chartId: {
+            actions: [
+              "APPLY_FILTER"
+            ],
+            linked_slices: {
+              filterId: [
+                { col: 'region',op: '=='},
+                { col: 'color', op: '=='},
+              ]
+            }
+          }
+        }
+      },
+    });
+    expect(result.extra_filters).toHaveLength(3);
+  });
+
+  it('should include filters only when subscribers have action APPLY_FILTER', () => {
+    const result = getFormDataWithExtraFilters({ 
+      ...mockArgs,
+      publishSubscriberMap: {
+        publishers: undefined,
+        subscribers: {
+          chartId: {
+            actions: [
+              "APPLY_SCHEMA"
+            ],
+            linked_slices: {
+              filterId: [
+                { col: 'region',op: '=='},
+                { col: 'color', op: '=='},
+              ]
+            }
+          }
+        }
+      },
+    });
+    expect(result.extra_filters).toHaveLength(0);
   });
 
   it('should not add additional filters if the slice is immune to them', () => {
@@ -67,7 +242,7 @@ describe('getFormDataWithExtraFilters', () => {
       dashboardMetadata: {
         filter_immune_slices: [chartId],
       },
-    });
+  });
     expect(result.extra_filters).toHaveLength(0);
   });
 
@@ -80,6 +255,6 @@ describe('getFormDataWithExtraFilters', () => {
         },
       },
     });
-    expect(result.extra_filters).toHaveLength(0);
+    expect(result.extra_filters).toHaveLength(1);
   });
 });

@@ -1712,6 +1712,9 @@ class Superset(BaseSupersetView):
             {key: v for key, v in default_filters_data.items()
              if int(key) in slice_ids}
         md['default_filters'] = json.dumps(applicable_filters)
+        #store pub_sub_info ins metadata
+        if 'pub_sub_info' in data:
+            md['pub_sub_info'] =  json.dumps(data['pub_sub_info'])
         dashboard.json_metadata = json.dumps(md)
 
     @api

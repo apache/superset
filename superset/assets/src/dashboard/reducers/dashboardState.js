@@ -30,10 +30,18 @@ import {
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
   UPDATE_CSS,
+  ON_RECONCILE,
+  ON_SUCCESS_RECONCILE,
 } from '../actions/dashboardState';
 
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
+    [ON_RECONCILE]() {
+      return { ...state, doReconcile: true };
+    },
+    [ON_SUCCESS_RECONCILE]() {
+      return { ...state, doReconcile: false, publishSubscriberMap: action.publishSubscriberMap };
+    },
     [UPDATE_CSS]() {
       return { ...state, css: action.css };
     },

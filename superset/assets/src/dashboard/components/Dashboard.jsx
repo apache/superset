@@ -43,6 +43,8 @@ import OmniContianer from '../../components/OmniContainer';
 
 import '../stylesheets/index.less';
 
+import getPublishSubscriberMap from '../util/getPublishSubscriberMap';
+import { DASHBOARD_HEADER_ID } from '../util/constants';
 const propTypes = {
   actions: PropTypes.shape({
     addSliceToDashboard: PropTypes.func.isRequired,
@@ -171,7 +173,22 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    const { refresh, filters, hasUnsavedChanges } = this.props.dashboardState;
+    const { refresh, filters, hasUnsavedChanges, doReconcile } = this.props.dashboardState;
+    //reconcile dashboard
+    if (doReconcile) {
+      const publishSubscriberMap = getPublishSubscriberMap(this.getAllCharts());
+      const savePayload = {
+        positions: this.props.layout,
+        css: this.props.dashboardState.css,
+        expanded_slices: this.props.dashboardState.expandedSlices,
+        dashboard_title: this.props.layout[DASHBOARD_HEADER_ID].meta.text,
+        default_filters: JSON.stringify(this.props.dashboardState.filters),
+        duplicate_slices: false,
+        pub_sub_info: publishSubscriberMap,
+      };
+      const dashID = this.props.dashboardInfo.id;
+      this.props.actions.reconcileSuccess(savePayload, dashID);
+    }
     if (refresh) {
       // refresh charts if a filter was removed, added, or changed
       let changedFilterKey = null;
@@ -211,15 +228,17 @@ class Dashboard extends React.PureComponent {
 
   refreshExcept(filterKey) {
     const immune = this.props.dashboardInfo.metadata.filter_immune_slices || [];
+    const publishers = this.props.dashboardState.publishSubscriberMap && this.props.dashboardState.publishSubscriberMap.publishers;
 
     this.getAllCharts().forEach(chart => {
       // filterKey is a string, immune array contains numbers
-      if (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1 && this.isFilterkeyExistInLinkedSlices(chart, filterKey)) {
+      if (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1 && this.isFilterkeyExistInLinkedSlices(publishers, chart.id, filterKey)) {
         const updatedFormData = getFormDataWithExtraFilters({
           chart,
           dashboardMetadata: this.props.dashboardInfo.metadata,
           filters: this.props.dashboardState.filters,
           sliceId: chart.id,
+          publishSubscriberMap: this.props.dashboardState.publishSubscriberMap,
         });
 
         this.props.actions.runQuery(
@@ -232,16 +251,13 @@ class Dashboard extends React.PureComponent {
     });
   }
 
-  isFilterkeyExistInLinkedSlices(chart, filterKey) {
-    const propExist = chart.formData.hasOwnProperty("linked_slice");
+  isFilterkeyExistInLinkedSlices(publishers, sliceId, filterKey) {
     let keyExists = false;
-    if (propExist) {
-      const linked_slices = chart.formData.linked_slice;
-      const key = parseInt(filterKey);
+    if (publishers && publishers[filterKey]) {
+      const linked_slices = publishers[filterKey].subcribers;
+      const key = parseInt(sliceId);
       if (linked_slices instanceof Array) {
-        keyExists = linked_slices.indexOf(key) != -1
-      } else {
-        keyExists = linked_slices === key
+        keyExists = linked_slices.indexOf(sliceId) != -1
       }
     }
     return keyExists
