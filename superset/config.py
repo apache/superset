@@ -601,7 +601,7 @@ IS_EPOCH_S_TRULY_UTC = False
 
 
 # Do you want Talisman enabled?
-TALISMAN_ENABLED = True
+TALISMAN_ENABLED = False
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
     'content_security_policy': None,
