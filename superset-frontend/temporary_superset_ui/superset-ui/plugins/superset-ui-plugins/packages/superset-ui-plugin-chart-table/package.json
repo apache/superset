@@ -1,0 +1,40 @@
+{
+  "name": "@superset-ui/plugin-chart-table",
+  "version": "0.10.0",
+  "description": "Superset Chart - Table",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui-plugins.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui-plugins/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui-plugins#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@airbnb/lunar": "^1.8.1",
+    "@airbnb/lunar-icons": "^1.1.1",
+    "core-js": "^3.0.1",
+    "dompurify": "^1.0.3"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart": "^0.10.0",
+    "@superset-ui/number-format": "^0.10.0",
+    "@superset-ui/time-format": "^0.10.0",
+    "@superset-ui/translation": "^0.10.0"
+  }
+}

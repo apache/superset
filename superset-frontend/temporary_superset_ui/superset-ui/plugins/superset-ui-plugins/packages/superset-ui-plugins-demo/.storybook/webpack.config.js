@@ -4,7 +4,7 @@ const webpack = require('webpack');
 
 const BABEL_TYPESCRIPT_OPTIONS = {
   presets: [
-    ['@babel/preset-env', { useBuiltIns: 'entry' }],
+    ['@babel/preset-env', { useBuiltIns: 'entry', corejs: 3 }],
     '@babel/preset-react',
     '@babel/preset-typescript',
   ],
