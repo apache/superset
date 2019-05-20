@@ -27,7 +27,7 @@ export default function DefaultTooltipRenderer({
               .filter(({ key }) => series[key])
               .concat()
               .sort((a, b) => series[b.key].y - series[a.key].y)
-              .map(({ key, stroke, strokeDasharray }) => ({
+              .map(({ key, stroke, strokeDasharray, strokeWidth }) => ({
                 key,
                 keyColumn: (
                   <>
@@ -37,7 +37,7 @@ export default function DefaultTooltipRenderer({
                         y1="3"
                         y2="3"
                         stroke={stroke}
-                        strokeWidth="2"
+                        strokeWidth={strokeWidth}
                         strokeDasharray={strokeDasharray}
                       />
                     </svg>
