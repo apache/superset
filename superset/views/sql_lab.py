@@ -96,7 +96,7 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
         'description', 'sql', 'pop_tab_link']
     search_columns = ('label', 'user', 'database', 'schema', 'changed_on')
     add_columns = ['label', 'database', 'description', 'sql']
-    edit_columns = add_columns
+    edit_columns = add_columns + ['extra_json']
     base_order = ('changed_on', 'desc')
     label_columns = {
         'label': _('Label'),
@@ -110,6 +110,7 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
     }
 
     show_template = 'superset/models/savedquery/show.html'
+    edit_template = 'superset/models/savedquery/edit.html'
 
     def pre_add(self, obj):
         obj.user = g.user
@@ -139,6 +140,31 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
 
+    @has_access
+    @expose('edit/<pk>', methods=['GET', 'POST'])
+    def edit(self, pk):
+        pk = self._deserialize_pk_if_composite(pk)
+        widgets = self._edit(pk)
+        if not widgets:
+            return self.post_edit_redirect()
+        query = self.datamodel.get(pk).to_json()
+        query['extra_json'] = json.loads(query['extra_json'])
+        payload = {
+            'common': {
+                'feature_flags': get_feature_flags(),
+                'query': query,
+            },
+        }
+
+        return self.render_template(
+            self.edit_template,
+            pk=pk,
+            title=self.edit_title,
+            widgets=widgets,
+            related_views=self._related_views,
+            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
+        )
+
 
 class SavedQueryViewApi(SavedQueryView):
     list_columns = [
@@ -153,6 +179,11 @@ class SavedQueryViewApi(SavedQueryView):
     @expose('show/<pk>')
     def show(self, pk):
         return super().show(pk)
+
+    @has_access_api
+    @expose('edit/<pk>')
+    def edit(self, pk):
+        return super().edit(pk)
 
 
 appbuilder.add_view_no_menu(SavedQueryViewApi)

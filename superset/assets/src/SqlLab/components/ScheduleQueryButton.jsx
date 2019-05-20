@@ -71,25 +71,32 @@ function getValidator() {
 
 const propTypes = {
   defaultLabel: PropTypes.string,
+  defaultDescription: PropTypes.string,
   sql: PropTypes.string.isRequired,
   schema: PropTypes.string.isRequired,
   dbId: PropTypes.number.isRequired,
   animation: PropTypes.bool,
   onSchedule: PropTypes.func,
+  modalTitle: PropTypes.string,
+  formData: PropTypes.object,
 };
 const defaultProps = {
   defaultLabel: t('Undefined'),
+  defaultDescription: '',
   animation: true,
   onSchedule: () => {},
+  modalTitle: t('Schedule Query'),
+  formData: null,
 };
 
 class ScheduleQueryButton extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      description: '',
+      description: props.defaultDescription,
       label: props.defaultLabel,
       showSchedule: false,
+      formData: props.formData,
     };
     this.toggleSchedule = this.toggleSchedule.bind(this);
     this.onSchedule = this.onSchedule.bind(this);
@@ -108,6 +115,7 @@ class ScheduleQueryButton extends React.PureComponent {
     };
     this.props.onSchedule(query);
     this.saveModal.close();
+    this.setState({ formData });
   }
   onCancel() {
     this.saveModal.close();
@@ -128,6 +136,7 @@ class ScheduleQueryButton extends React.PureComponent {
         uiSchema={getUISchema()}
         onSubmit={this.onSchedule}
         validate={getValidator()}
+        formData={this.state.formData}
       />
     );
   }
@@ -136,14 +145,13 @@ class ScheduleQueryButton extends React.PureComponent {
       <span className="ScheduleQueryButton">
         <ModalTrigger
           ref={(ref) => { this.saveModal = ref; }}
-          modalTitle={t('Schedule Query')}
+          modalTitle={this.props.modalTitle}
           modalBody={this.renderModalBody()}
           triggerNode={
             <Button bsSize="small" className="toggleSchedule" onClick={this.toggleSchedule}>
-              <i className="fa fa-calendar" /> {t('Schedule Query')}
+              <i className="fa fa-calendar" /> {this.props.modalTitle}
             </Button>
           }
-          bsSize="medium"
         />
       </span>
     );

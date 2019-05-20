@@ -20,7 +20,7 @@ import React from 'react';
 import ReactDom from 'react-dom';
 import Form from 'react-jsonschema-form';
 
-const scheduleInfoContainer = document.getElementById('schedule-info');
+const scheduleInfoContainer = document.getElementById('js-show-savedquery-container');
 const bootstrapData = JSON.parse(scheduleInfoContainer.getAttribute('data-bootstrap'));
 const schemas = bootstrapData.common.feature_flags.SCHEDULED_QUERIES;
 const scheduleInfo = bootstrapData.common.extra_json.schedule_info;
