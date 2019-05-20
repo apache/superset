@@ -241,7 +241,7 @@ export default class ResultSet extends React.PureComponent {
         <ProgressBar
           striped
           now={query.progress}
-          label={`${query.progress}%`}
+          label={`${query.progress.toFixed(0)}%`}
         />);
     }
     if (query.trackingUrl) {

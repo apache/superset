@@ -27,6 +27,7 @@ from flask_appbuilder import AppBuilder, IndexView, SQLA
 from flask_appbuilder.baseviews import expose
 from flask_compress import Compress
 from flask_migrate import Migrate
+from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
 import wtforms_json
@@ -228,6 +229,8 @@ def is_feature_enabled(feature):
 # Flask-Compress
 if conf.get('ENABLE_FLASK_COMPRESS'):
     Compress(app)
+
+Talisman(app, content_security_policy=None)
 
 # Hook that provides administrators a handle on the Flask APP
 # after initialization

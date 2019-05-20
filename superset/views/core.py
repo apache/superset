@@ -1377,7 +1377,7 @@ class Superset(BaseSupersetView):
             'standalone': standalone,
             'user_id': user_id,
             'forced_height': request.args.get('height'),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
         table_name = datasource.table_name \
             if datasource_type == 'table' \
@@ -2236,7 +2236,7 @@ class Superset(BaseSupersetView):
             'user_id': g.user.get_id(),
             'dashboard_data': dashboard_data,
             'datasources': {ds.uid: ds.data for ds in datasources},
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
             'editMode': edit_mode,
         }
 
@@ -2587,9 +2587,8 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             msg = _(
-                'Failed to validate your SQL query text. Please check that '
-                f'you have configured the {validator.name} validator '
-                'correctly and that any services it depends on are up. '
+                f'{validator.name} was unable to check your query.\nPlease '
+                'make sure that any services it depends on are available\n'
                 f'Exception: {e}')
             return json_error_response(f'{msg}')
 
@@ -2934,7 +2933,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             'user': bootstrap_user_data(),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -2953,7 +2952,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             'user': bootstrap_user_data(username, include_perms=True),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -2969,7 +2968,7 @@ class Superset(BaseSupersetView):
         """SQL Editor"""
         d = {
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
         return self.render_template(
             'superset/basic.html',
@@ -3097,7 +3096,7 @@ appbuilder.add_separator('Sources')
 
 
 @app.after_request
-def apply_caching(response):
+def apply_http_headers(response):
     """Applies the configuration's http headers to all responses"""
     for k, v in config.get('HTTP_HEADERS').items():
         response.headers[k] = v

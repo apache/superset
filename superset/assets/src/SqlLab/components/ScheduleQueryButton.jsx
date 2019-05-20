@@ -19,10 +19,55 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Form from 'react-jsonschema-form';
+import chrono from 'chrono-node';
 import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
 import ModalTrigger from '../../components/ModalTrigger';
+
+const validators = {
+  greater: (a, b) => a > b,
+  greater_equal: (a, b) => a >= b,
+  less: (a, b) => a < b,
+  less_equal: (a, b) => a <= b,
+};
+
+function getJSONSchema() {
+  const jsonSchema = window.featureFlags.SCHEDULED_QUERIES.JSONSCHEMA;
+  // parse date-time into usable value (eg, 'today' => `new Date()`)
+  Object.entries(jsonSchema.properties).forEach(([key, properties]) => {
+    if (properties.default && properties.format === 'date-time') {
+      jsonSchema.properties[key] = {
+        ...properties,
+        default: chrono.parseDate(properties.default).toISOString(),
+      };
+    }
+  });
+  return jsonSchema;
+}
+
+function getUISchema() {
+  return window.featureFlags.SCHEDULED_QUERIES.UISCHEMA;
+}
+
+function getValidationRules() {
+  return window.featureFlags.SCHEDULED_QUERIES.VALIDATION || [];
+}
+
+function getValidator() {
+  const rules = getValidationRules();
+  return (formData, errors) => {
+    rules.forEach((rule) => {
+      const test = validators[rule.name];
+      const args = rule.arguments.map(name => formData[name]);
+      const container = rule.container || rule.arguments.slice(-1)[0];
+      if (!test(...args)) {
+        errors[container].addError(rule.message);
+      }
+    });
+    return errors;
+  };
+}
 
 const propTypes = {
   defaultLabel: PropTypes.string,
@@ -79,9 +124,10 @@ class ScheduleQueryButton extends React.PureComponent {
   renderModalBody() {
     return (
       <Form
-        schema={window.featureFlags.SCHEDULED_QUERIES.JSONSCHEMA}
-        uiSchema={window.featureFlags.SCHEDULED_QUERIES.UISCHEMA}
+        schema={getJSONSchema()}
+        uiSchema={getUISchema()}
         onSubmit={this.onSchedule}
+        validate={getValidator()}
       />
     );
   }
