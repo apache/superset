@@ -205,7 +205,7 @@ def list_minus(l: List, minus: List) -> List:
     return [o for o in l if o not in minus]
 
 
-def parse_human_datetime(s: Optional[str]) -> Optional[datetime]:
+def parse_human_datetime(s):
     """
     Returns ``datetime.datetime`` from human readable strings
 
