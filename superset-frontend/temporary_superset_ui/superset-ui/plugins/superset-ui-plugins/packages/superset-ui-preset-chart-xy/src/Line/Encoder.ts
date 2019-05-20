@@ -9,6 +9,7 @@ const channelTypes = {
   fill: 'Category',
   stroke: 'Color',
   strokeDasharray: 'Category',
+  strokeWidth: 'Numeric',
   x: 'X',
   y: 'Y',
 } as const;
@@ -21,9 +22,10 @@ export type ChannelTypes = typeof channelTypes;
 export interface Outputs {
   x: number | null;
   y: number | null;
-  stroke: string;
   fill: boolean;
+  stroke: string;
   strokeDasharray: string;
+  strokeWidth: number;
 }
 
 /**
@@ -36,6 +38,7 @@ export default class Encoder extends AbstractEncoder<ChannelTypes, Outputs> {
     fill: { value: false },
     stroke: { value: '#222' },
     strokeDasharray: { value: '' },
+    strokeWidth: { value: 1 },
     x: { field: 'x', type: 'quantitative' },
     y: { field: 'y', type: 'quantitative' },
   };

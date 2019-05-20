@@ -63,6 +63,16 @@ export default [
                   },
                   legend: false,
                 },
+                strokeWidth: {
+                  field: 'snapshot',
+                  type: 'nominal',
+                  scale: {
+                    type: 'ordinal',
+                    domain: ['Current', 'Last year'],
+                    range: [3, 1.5],
+                  },
+                  legend: false,
+                },
               },
             },
             height: 400,
