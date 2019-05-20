@@ -264,7 +264,7 @@ class SupersetSecurityManager(SecurityManager):
 
     def merge_perm(self, permission_name, view_menu_name):
         logging.warning(
-            "This method 'merge_perm' is deprecated use add_permission_view_menu"
+            "This method 'merge_perm' is deprecated use add_permission_view_menu",
         )
         self.add_permission_view_menu(permission_name, view_menu_name)
 
