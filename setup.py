@@ -107,7 +107,7 @@ setup(
         'unicodecsv',
         # Pinning werkzeug due to problems encountered with
         # new config options added in 0.15.x
-        'werkzeug==0.14.1',
+        'werkzeug<0.15.0',
         'wtforms-json',
     ],
     extras_require={
