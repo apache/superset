@@ -262,6 +262,9 @@ class SupersetSecurityManager(SecurityManager):
             full_names = {d.full_name for d in user_datasources}
             return [d for d in datasource_names if d in full_names]
 
+    def merge_perm(self, permission_name, view_menu_name):
+        self.add_permission_view_menu(permission_name, view_menu_name)
+
     def is_user_defined_permission(self, perm):
         return perm.permission.name in self.OBJECT_SPEC_PERMISSIONS
 
