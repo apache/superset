@@ -23,7 +23,7 @@ import pandas as pd
 from superset import db
 from superset.models.core import Dashboard
 from superset.exceptions import DashboardNotFoundException
-from superset.utils.core import decode_dashboards, get_or_create_import_db_engine
+from superset.utils.core import DashboardEncoder, decode_dashboards, get_or_create_import_db_engine
 
 
 def import_dashboards(session, data_stream, import_time=None):
@@ -54,7 +54,8 @@ def import_dashboards(session, data_stream, import_time=None):
 
 
 def export_dashboards(session, dashboard_ids=None, dashboard_titles=None, 
-                      export_data=False, export_data_dir=None):
+                      export_data=False, export_data_dir=None, description=None,
+                      export_title=None, _license='Apache 2.0'):
     """Returns all dashboards metadata as a json dump"""
     logging.info('Starting export')
     export_dashboard_ids = []
@@ -75,4 +76,10 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
         data = Dashboard.export_dashboards(export_dashboard_ids, 
                                            export_data, export_data_dir)
 
-    return data
+    if export_title:
+        data['title'] = export_title
+    if description:
+        data['description'] = description
+    data['license'] = _license
+    
+    return json.dumps(data, cls=DashboardEncoder, indent=4)

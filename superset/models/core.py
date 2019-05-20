@@ -22,6 +22,8 @@ from datetime import datetime
 import functools
 import json
 import logging
+import os
+import pathlib
 import textwrap
 
 from flask import escape, g, Markup, request
@@ -161,7 +163,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     owners = relationship(security_manager.user_model, secondary=slice_user)
 
     export_fields = ('slice_name', 'datasource_type', 'datasource_name',
-                     'viz_type', 'params', 'cache_timeout')
+                     'viz_type', 'params', 'cache_timeout', 'uuid')
 
     def __repr__(self):
         return self.slice_name or str(self.id)
@@ -410,7 +412,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
 
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
-                     'description', 'css', 'slug')
+                     'description', 'css', 'slug', 'uuid')
 
     def __repr__(self):
         return self.dashboard_title or str(self.id)
@@ -652,8 +654,11 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 make_transient(eager_datasource)
                 eager_datasources.append(eager_datasource)
             
-            data = {'tables': []}
+            files = []
+            total_file_size = 0
+            total_file_rows = 0
             if export_data and export_data_dir:
+
                 for data_table in eager_datasources:
                     engine = data_table.database.get_sqla_engine()
                     columns = [c.get_sqla_col() for c in data_table.columns]
@@ -669,21 +674,48 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                     )
 
                     df = pd.read_sql_query(sql=sql, con=engine)
-                    file_name = f'{export_data_dir}/{data_table.name}.csv.gz'
-                    table_record = {
-                        'name': data_table.name,
-                        'file_path': file_name,
-                        'types': types,
-                    }
-                    data['tables'].append(table_record)
-                    df.to_csv(file_name)
-            data['includes_data'] = len(data['tables']) > 0
+                    row_count = len(df.index)
 
-        return json.dumps({
+                    file_name = f'{data_table.name}.csv.gz'
+                    file_dir = f'{export_data_dir}/{data_table.name}'
+                    file_path = f'{file_dir}/{file_name}'
+                    
+                    if not os.path.exists(file_dir):
+                        os.makedirs(file_dir)
+                    df.to_csv(file_path)
+
+                    file_size = os.path.getsize(file_path)
+
+                    table_record = {
+                        'file_name': file_name,
+                        'file_path': file_path,
+                        'rows': row_count,
+                        'size': file_size,
+                        'table_name': data_table.name,
+                        'types': types,
+                        #'uri': pathlib.Path(file_path).as_uri()
+                    }
+                    
+                    total_file_rows += row_count
+                    total_file_size += file_size
+
+                    files.append(table_record)
+
+            # Partially fill out the bibliography
+            desc = {
+                'total_size': total_file_size,
+                'total_size_mb': round(total_file_size / (1024.0 * 1024.0), 2),
+                'total_rows': total_file_rows,
+                'file_count': len(files),
+                'created_at': datetime.now().isoformat()
+            }
+
+        return {
+            'description': desc,
             'dashboards': copied_dashboards,
             'datasources': eager_datasources,
-            'data': data,
-        }, cls=utils.DashboardEncoder, indent=4)
+            'files': files
+        }
 
 
 class Database(Model, AuditMixinNullable, ImportMixin):
@@ -721,7 +753,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
                      'expose_in_sqllab', 'allow_run_async',
-                     'allow_ctas', 'allow_csv_upload', 'extra')
+                     'allow_ctas', 'allow_csv_upload', 'extra', 'uuid')
     export_children = ['tables']
 
     def __repr__(self):
