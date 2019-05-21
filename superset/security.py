@@ -263,26 +263,22 @@ class SupersetSecurityManager(SecurityManager):
             return [d for d in datasource_names if d in full_names]
 
     def merge_perm(self, permission_name, view_menu_name):
-        # Implementation copied from sm.find_permission_view_menu.
-        # TODO: use sm.find_permission_view_menu once issue
-        #       https://github.com/airbnb/superset/issues/1944 is resolved.
-        permission = self.find_permission(permission_name)
-        view_menu = self.find_view_menu(view_menu_name)
-        pv = None
-        if permission and view_menu:
-            pv = self.get_session.query(self.permissionview_model).filter_by(
-                permission=permission, view_menu=view_menu).first()
-        if not pv and permission_name and view_menu_name:
-            self.add_permission_view_menu(permission_name, view_menu_name)
+        logging.warning(
+            "This method 'merge_perm' is deprecated use add_permission_view_menu",
+        )
+        self.add_permission_view_menu(permission_name, view_menu_name)
 
     def is_user_defined_permission(self, perm):
         return perm.permission.name in self.OBJECT_SPEC_PERMISSIONS
 
     def create_custom_permissions(self):
         # Global perms
-        self.merge_perm('all_datasource_access', 'all_datasource_access')
-        self.merge_perm('all_database_access', 'all_database_access')
-        self.merge_perm('can_only_access_owned_queries', 'can_only_access_owned_queries')
+        self.add_permission_view_menu('all_datasource_access', 'all_datasource_access')
+        self.add_permission_view_menu('all_database_access', 'all_database_access')
+        self.add_permission_view_menu(
+            'can_only_access_owned_queries',
+            'can_only_access_owned_queries',
+        )
 
     def create_missing_perms(self):
         """Creates missing perms for datasources, schemas and metrics"""
@@ -299,7 +295,7 @@ class SupersetSecurityManager(SecurityManager):
         def merge_pv(view_menu, perm):
             """Create permission view menu only if it doesn't exist"""
             if view_menu and perm and (view_menu, perm) not in all_pvs:
-                self.merge_perm(view_menu, perm)
+                self.add_permission_view_menu(view_menu, perm)
 
         logging.info('Creating missing datasource permissions.')
         datasources = ConnectorRegistry.get_all_datasources(db.session)
