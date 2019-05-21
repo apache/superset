@@ -310,10 +310,10 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     def pre_add(self, db):
         self.check_extra(db)
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
-        security_manager.merge_perm('database_access', db.perm)
+        security_manager.add_permission_view_menu('database_access', db.perm)
         # adding a new database we always want to force refresh schema list
         for schema in db.all_schema_names():
-            security_manager.merge_perm(
+            security_manager.add_permission_view_menu(
                 'schema_access', security_manager.get_schema_perm(db, schema))
 
     def pre_update(self, db):
