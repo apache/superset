@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
 
 import { ChartProps, Metric, FormDataMetric } from '@superset-ui/chart';
 
 const DTTM_ALIAS = '__timestamp';
 
-function transformData(data: ChartProps['payload'][], formData: ChartProps['formData']) {
+type PlainObject = {
+  [key: string]: any;
+};
+
+function transformData(data: PlainObject[], formData: PlainObject) {
   const columns = new Set(
     [...formData.groupby, ...formData.metrics, ...formData.allColumns].map(
       column => column.label || column,
@@ -88,8 +91,7 @@ export default function transformProps(chartProps: ChartProps) {
     timeseriesLimitMetric,
   } = formData;
   const { columnFormats, verboseMap } = datasource;
-  const data = payload.data || payload[0].data;
-  const { records, columns } = transformData(data, formData);
+  const { records, columns } = transformData(payload.data, formData);
 
   const processedColumns = columns.map((key: string) => {
     let label = verboseMap[key];

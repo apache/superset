@@ -3,13 +3,14 @@ import DataTable from '@airbnb/lunar/lib/components/DataTable';
 import { Renderers, RendererProps } from '@airbnb/lunar/lib/components/DataTable/types';
 import { HEIGHT_TO_PX } from '@airbnb/lunar/lib/components/DataTable/constants';
 import { FormDataMetric, Metric } from '@superset-ui/chart';
-import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
-import { getTimeFormatter } from '@superset-ui/time-format';
 
 type ColumnType = {
   key: string;
   label: string;
-  format: string;
+  format?: (value: any) => string;
+  type: 'metric' | 'string';
+  maxValue?: number;
+  minValue?: number;
 };
 
 type Props = {
@@ -58,8 +59,6 @@ type TableState = {
 const NEGATIVE_COLOR = '#ff8787';
 const POSITIVE_COLOR = '#ced4da';
 
-const formatPercent = getNumberFormatter(NumberFormats.PERCENT_3_POINT);
-
 class TableVis extends React.Component<TableProps, TableState> {
   static defaultProps = defaultProps;
 
@@ -91,7 +90,10 @@ class TableVis extends React.Component<TableProps, TableState> {
     });
   };
 
-  static getDerivedStateFromProps(props: TableProps, state: TableState) {
+  static getDerivedStateFromProps: React.GetDerivedStateFromProps<TableProps, TableState> = (
+    props: TableProps,
+    state: TableState,
+  ) => {
     const { filters } = props;
     const { selectedCells } = state;
     const newSelectedCells = new Set(Array.from(selectedCells));
@@ -104,62 +106,25 @@ class TableVis extends React.Component<TableProps, TableState> {
       ...state,
       selectedCells: newSelectedCells,
     };
-  }
+  };
 
   render() {
     const {
-      metrics: rawMetrics,
+      metrics,
       timeseriesLimitMetric,
       orderDesc,
-      percentMetrics,
       data,
       alignPositiveNegative,
       colorPositiveNegative,
       columns,
-      tableTimestampFormat,
       tableFilter,
     } = this.props;
     const { selectedCells } = this.state;
-    const metrics = (rawMetrics || [])
-      .map(m => (m as Metric).label || (m as string))
-      // Add percent metrics
-      .concat((percentMetrics || []).map(m => `%${m}`))
-      // Removing metrics (aggregates) that are strings
-      .filter(m => typeof data[0][m as string] === 'number');
-    const dataArray: {
-      [key: string]: any;
-    } = {};
 
     const sortByKey =
       timeseriesLimitMetric &&
       ((timeseriesLimitMetric as Metric).label || (timeseriesLimitMetric as string));
 
-    metrics.forEach(metric => {
-      const arr = [];
-      for (let i = 0; i < data.length; i += 1) {
-        arr.push(data[i][metric]);
-      }
-
-      dataArray[metric] = arr;
-    });
-
-    const maxes: {
-      [key: string]: number;
-    } = {};
-    const mins: {
-      [key: string]: number;
-    } = {};
-
-    for (let i = 0; i < metrics.length; i += 1) {
-      if (alignPositiveNegative) {
-        maxes[metrics[i]] = Math.max(...dataArray[metrics[i]].map(Math.abs));
-      } else {
-        maxes[metrics[i]] = Math.max(...dataArray[metrics[i]]);
-        mins[metrics[i]] = Math.min(...dataArray[metrics[i]]);
-      }
-    }
-
-    // const tsFormatter = getTimeFormatter(tableTimestampFormat);
     let formattedData = data.map(row => ({
       data: row,
     }));
@@ -183,8 +148,6 @@ class TableVis extends React.Component<TableProps, TableState> {
       }
     }
 
-    const tsFormatter = getTimeFormatter(tableTimestampFormat);
-
     const heightType = 'small';
     const getRenderer = (column: ColumnType) => (props: RendererProps) => {
       const { key } = props;
@@ -197,10 +160,12 @@ class TableVis extends React.Component<TableProps, TableState> {
         let left = 0;
         let width = 0;
         if (alignPositiveNegative) {
-          width = Math.abs(Math.round((value / maxes[key]) * 100));
+          width = Math.abs(
+            Math.round((value / Math.max(column.maxValue!, Math.abs(column.minValue!))) * 100),
+          );
         } else {
-          const posExtent = Math.abs(Math.max(maxes[key], 0));
-          const negExtent = Math.abs(Math.min(mins[key], 0));
+          const posExtent = Math.abs(Math.max(column.maxValue!, 0));
+          const negExtent = Math.abs(Math.min(column.minValue!, 0));
           const tot = posExtent + negExtent;
           left = Math.round((Math.min(negExtent + value, negExtent) / tot) * 100);
           width = Math.round((Math.abs(value) / tot) * 100);
@@ -236,16 +201,7 @@ class TableVis extends React.Component<TableProps, TableState> {
             </div>
           );
         };
-
-        if (key[0] === '%') {
-          value = formatPercent(value);
-        } else {
-          value = getNumberFormatter(column.format)(value);
-        }
       } else {
-        if (key === '__timestamp') {
-          value = tsFormatter(value);
-        }
         Parent = ({ children }: { children: React.ReactNode }) => (
           <React.Fragment>{children}</React.Fragment>
         );
@@ -255,10 +211,10 @@ class TableVis extends React.Component<TableProps, TableState> {
         <div
           onClick={this.handleCellSelected({
             key,
-            value: props.row.rowData.data[key],
+            value,
           })}
         >
-          <Parent>{value}</Parent>
+          <Parent>{column.format ? column.format(value) : value}</Parent>
         </div>
       );
     };
