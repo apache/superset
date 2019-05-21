@@ -188,13 +188,14 @@ class ImportMixin(object):
         """Export obj to dictionary"""
         cls = self.__class__
         parent_excludes = {}
+        export_fields = set(self.export_fields) | {'id'}
         if recursive and not include_parent_ref:
             parent_ref = cls.__mapper__.relationships.get(cls.export_parent)
             if parent_ref:
                 parent_excludes = {c.name for c in parent_ref.local_columns}
         dict_rep = {c.name: getattr(self, c.name)
                     for c in cls.__table__.columns
-                    if (c.name in self.export_fields and
+                    if (c.name in export_fields and
                         c.name not in parent_excludes and
                         (include_defaults or (
                             getattr(self, c.name) is not None and
@@ -212,7 +213,7 @@ class ImportMixin(object):
                             include_defaults=include_defaults,
                         ) for child in getattr(self, c)
                     ],
-                    key=lambda k: sorted(k.items()))
+                    key=lambda k: k.get('id', 0))
 
         return dict_rep
 
