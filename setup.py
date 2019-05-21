@@ -95,6 +95,7 @@ setup(
         'polyline',
         'pydruid>=0.5.2',
         'python-dateutil',
+        'python-dotenv',
         'python-geohash',
         'pyyaml>=3.13',
         'requests>=2.20.0',
