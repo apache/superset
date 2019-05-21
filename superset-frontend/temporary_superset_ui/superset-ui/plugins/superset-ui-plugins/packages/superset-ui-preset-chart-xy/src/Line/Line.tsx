@@ -14,14 +14,13 @@ import { chartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
 import { createSelector } from 'reselect';
-import XYChartLayout, { XYChartLayoutConfig } from '../utils/XYChartLayout';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import ChartLegend, { Hooks as LegendHooks } from '../components/legend/ChartLegend';
 import { PartialSpec } from '../encodeable/types/Specification';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
-
-const DEFAULT_MARGIN = { top: 20, right: 20, left: 20, bottom: 20 };
+import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
+import createXYChartLayoutSelector from '../utils/selectors/createXYChartLayoutSelector';
 
 export interface TooltipProps {
   encoder: Encoder;
@@ -178,57 +177,9 @@ export default class LineChart extends PureComponent<Props> {
     },
   );
 
-  private createMargin = createSelector(
-    (margin: Partial<Margin>) => margin.left,
-    margin => margin.right,
-    margin => margin.top,
-    margin => margin.bottom,
-    (
-      left = DEFAULT_MARGIN.left,
-      right = DEFAULT_MARGIN.right,
-      top = DEFAULT_MARGIN.top,
-      bottom = DEFAULT_MARGIN.bottom,
-    ) => ({
-      left,
-      right,
-      top,
-      bottom,
-    }),
-  );
+  private createMargin = createMarginSelector();
 
-  private createXYChartLayout = createSelector(
-    (input: XYChartLayoutConfig) => input.width,
-    input => input.height,
-    input => input.minContentWidth,
-    input => input.minContentHeight,
-    input => input.margin,
-    input => input.xEncoder,
-    input => input.yEncoder,
-    input => input.children,
-    input => input.theme,
-    (
-      width,
-      height,
-      minContentWidth,
-      minContentHeight,
-      margin,
-      xEncoder,
-      yEncoder,
-      children,
-      theme,
-    ) =>
-      new XYChartLayout({
-        width,
-        height,
-        minContentWidth,
-        minContentHeight,
-        margin,
-        xEncoder,
-        yEncoder,
-        children,
-        theme,
-      }),
-  );
+  private createXYChartLayout = createXYChartLayoutSelector();
 
   constructor(props: Props) {
     super(props);

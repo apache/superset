@@ -7,13 +7,12 @@ import { WithLegend } from '@superset-ui/chart-composition';
 import { extent as d3Extent } from 'd3-array';
 import { createSelector } from 'reselect';
 import createTooltip from './createTooltip';
-import XYChartLayout from '../utils/XYChartLayout';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import ChartLegend from '../components/legend/ChartLegend';
 import { PartialSpec } from '../encodeable/types/Specification';
-
-const DEFAULT_MARGIN = { top: 20, right: 20, left: 20, bottom: 20 };
+import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
+import createXYChartLayoutSelector from '../utils/selectors/createXYChartLayoutSelector';
 
 const defaultProps = {
   className: '',
@@ -45,6 +44,10 @@ export default class ScatterPlot extends PureComponent<Props> {
 
   encoder: Encoder;
   private createEncoder: () => void;
+
+  private createMargin = createMarginSelector();
+
+  private createXYChartLayout = createXYChartLayoutSelector();
 
   constructor(props: Props) {
     super(props);
@@ -96,10 +99,10 @@ export default class ScatterPlot extends PureComponent<Props> {
       />,
     ];
 
-    const layout = new XYChartLayout({
+    const layout = this.createXYChartLayout({
       width,
       height,
-      margin: { ...DEFAULT_MARGIN, ...margin },
+      margin: this.createMargin(margin),
       theme,
       xEncoder: channels.x,
       yEncoder: channels.y,
