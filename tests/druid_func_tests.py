@@ -771,6 +771,13 @@ class DruidFuncTestCase(unittest.TestCase):
         })
         assert(druid_type == 'cardinality')
 
+        druid_type = DruidDatasource.druid_type_from_adhoc_metric({
+            'column': {'type': 'hyperUnique', 'column_name': 'value'},
+            'aggregate': 'COUNT_DISTINCT',
+            'label': 'My Adhoc Metric',
+        })
+        assert(druid_type == 'hyperUnique')
+
     def test_run_query_order_by_metrics(self):
         client = Mock()
         client.query_builder.last_query.query_dict = {'mock': 0}
