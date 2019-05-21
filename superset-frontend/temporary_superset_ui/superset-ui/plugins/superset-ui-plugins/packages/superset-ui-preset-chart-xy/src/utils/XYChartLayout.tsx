@@ -4,7 +4,7 @@ import React, { ReactNode } from 'react';
 import collectScalesFromProps from '@data-ui/xy-chart/esm/utils/collectScalesFromProps';
 import { XAxis, YAxis } from '@data-ui/xy-chart';
 import { ChartTheme } from '@data-ui/theme';
-import { Margin, mergeMargin } from '@superset-ui/dimension';
+import { Margin, mergeMargin, Dimension } from '@superset-ui/dimension';
 import { ChartFrame } from '@superset-ui/chart-composition';
 import createTickComponent from './createTickComponent';
 import ChannelEncoder from '../encodeable/ChannelEncoder';
@@ -16,7 +16,7 @@ import { DEFAULT_LABEL_ANGLE } from './constants';
 // Additional margin to avoid content hidden behind scroll bar
 const OVERFLOW_MARGIN = 8;
 
-interface Input {
+export interface XYChartLayoutConfig {
   width: number;
   height: number;
   minContentWidth?: number;
@@ -34,7 +34,7 @@ export default class XYChartLayout {
   containerWidth: number;
   containerHeight: number;
   margin: Margin;
-  spec: Input;
+  config: XYChartLayoutConfig;
 
   xLayout?: {
     labelOffset: number;
@@ -52,8 +52,8 @@ export default class XYChartLayout {
   };
 
   // eslint-disable-next-line complexity
-  constructor(spec: Input) {
-    this.spec = spec;
+  constructor(config: XYChartLayoutConfig) {
+    this.config = config;
 
     const {
       width,
@@ -65,7 +65,7 @@ export default class XYChartLayout {
       yEncoder,
       children,
       theme,
-    } = spec;
+    } = config;
 
     const { xScale, yScale } = collectScalesFromProps({
       width,
@@ -130,7 +130,7 @@ export default class XYChartLayout {
   }
 
   recommendXLabelAngle(xOrient: 'top' | 'bottom' = 'bottom') {
-    const { axis } = this.spec.yEncoder;
+    const { axis } = this.config.yEncoder;
 
     return !this.yLayout ||
       (typeof axis !== 'undefined' &&
@@ -140,7 +140,7 @@ export default class XYChartLayout {
       : -DEFAULT_LABEL_ANGLE;
   }
 
-  renderChartWithFrame(renderChart: (input: { width: number; height: number }) => ReactNode) {
+  renderChartWithFrame(renderChart: (input: Dimension) => ReactNode) {
     return (
       <ChartFrame
         width={this.containerWidth}
@@ -153,7 +153,7 @@ export default class XYChartLayout {
   }
 
   renderXAxis(props?: PlainObject) {
-    const { axis } = this.spec.xEncoder;
+    const { axis } = this.config.xEncoder;
 
     return axis && this.xLayout ? (
       <XAxis
@@ -169,7 +169,7 @@ export default class XYChartLayout {
   }
 
   renderYAxis(props?: PlainObject) {
-    const { axis } = this.spec.yEncoder;
+    const { axis } = this.config.yEncoder;
 
     return axis && this.yLayout ? (
       <YAxis
