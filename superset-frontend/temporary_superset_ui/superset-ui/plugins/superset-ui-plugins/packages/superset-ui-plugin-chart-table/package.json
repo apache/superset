@@ -27,14 +27,13 @@
   },
   "dependencies": {
     "@airbnb/lunar": "^1.8.1",
-    "@airbnb/lunar-icons": "^1.1.1",
-    "core-js": "^3.0.1",
-    "dompurify": "^1.0.3"
+    "@airbnb/lunar-icons": "^1.1.1"
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.10.0",
     "@superset-ui/number-format": "^0.10.0",
     "@superset-ui/time-format": "^0.10.0",
-    "@superset-ui/translation": "^0.10.0"
+    "@superset-ui/translation": "^0.10.0",
+    "core-js": "^3.0.1"
   }
 }
