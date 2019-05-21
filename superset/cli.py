@@ -18,10 +18,12 @@
 # pylint: disable=C,R,W
 from datetime import datetime
 import logging
+import os
 from subprocess import Popen
 from sys import stdout, exit
 import pkgutil
-import importlib
+import tarfile
+import tempfile
 
 import click
 from colorama import Fore, Style
@@ -31,6 +33,7 @@ import yaml
 from superset import (
     app, appbuilder, data, db, security_manager,
 )
+from superset.data.helpers import list_examples_table
 from superset.exceptions import DashboardNotFoundException
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
@@ -127,35 +130,93 @@ def load_examples_run(load_test_data):
 @app.cli.command()
 @click.option('--load-test-data', '-t', is_flag=True, help='Load additional test data')
 def load_examples(load_test_data):
-    """Loads a set of Slices and Dashboards and a supporting dataset """
+    """Loads a set of Slices and Dashboards and a supporting dataset"""
     load_examples_run(load_test_data)
+
+def exclusive(ctx_params, exclusive_params, error_message):
+    """Provide exclusive option grouping"""
+    if sum([1 if ctx_params[p] else 0 for p in exclusive_params]) > 1:
+        raise click.UsageError(error_message)
 
 @app.cli.group()
 def examples():
     """Manages example Slices/Dashboards/datasets"""
     pass
 
-@examples.command()
-def show():
-    """List example Slices/Dashboards/datasets"""
-    print('Available examples:\n')
-    for importer, modname, ispkg in pkgutil.iter_modules(data.__path__):
-        #print("Found submodule %s (is a package: %s)" % (modname, ispkg))
-        module = importlib.import_module('superset.data.' + modname)
-        try: 
-            print('{}: {}'.format(modname, module.DESCRIPTION))
-        except AttributeError as e:
-            print(modname)
-            pass
-        
+@examples.command('create')
+@click.option(
+    '--dashboard-id', '-i', default=None, type=int,
+    help='Specify dashboard id to export')
+@click.option(
+    '--dashboard-title', '-t', default=None,
+    help='Specify dashboard title to export')
+@click.option(
+    '--description', '-d', help='Description of new example', required=True)
+@click.option(
+    '--example-title', '-e', help='Title for new example', required=True)
+@click.option(
+    '--file-name', '-f', default='dashboard.tar.gz',
+    help='Specify export file name. Defaults to dashboard.tar.gz')
+@click.option(
+    '--license', '-l', '_license', default='Apache 2.0', 
+    help='License of the example dashboard')
+def create_example(dashboard_id, dashboard_title, description, example_title, 
+                   file_name, _license):
+    """Create example Slice/Dashboard/datasets"""
+    if not (dashboard_id or dashboard_title):
+        raise click.UsageError('must supply --dashboard-id/-i or --dashboard-title/-t')
+    exclusive(
+        click.get_current_context().params, 
+        ['dashboard_id', 'dashboard_title'], 
+        'options --dashboard-id/-i and --dashboard-title/-t mutually exclusive')
+    
+    # Export into a temporary directory and then tarball that directory
+    with tempfile.TemporaryDirectory() as tmp_dir_name:
 
-@examples.command()
-def load():
+        try:
+            data = dashboard_import_export.export_dashboards(
+                db.session, 
+                dashboard_ids=[dashboard_id], 
+                dashboard_titles=[dashboard_title],
+                export_data=True,
+                export_data_dir=tmp_dir_name,
+                description=description,
+                export_title=example_title,
+                _license=_license)
+            
+            dashboard_slug = dashboard_import_export.get_slug(
+                db.session,
+                dashboard_id=dashboard_id, 
+                dashboard_title=dashboard_title)
+
+            out_path = f'{tmp_dir_name}/dashboard.json'
+
+            with open(out_path, 'w') as data_stream:
+                data_stream.write(data)
+
+            with tarfile.open(file_name, "w:gz") as tar:
+                tar.add(tmp_dir_name, arcname=f'{dashboard_slug}')
+            
+            click.echo(f'Exported example to {file_name}')
+
+        except DashboardNotFoundException as e:
+            click.echo(click.style(str(e), fg='red'))
+            exit(1)
+
+@examples.command('list')
+def _list_examples():
+    """List example Slices/Dashboards/datasets"""
+    click.echo(
+        list_examples_table(config.get('EXAMPLES_GIT_TAG')))
+    pass
+
+@examples.command('load')
+def load_example():
     """Load an example Slice/Dashboard/dataset"""
     pass
 
-@examples.command()
-def remove():
+@examples.command('remove')
+def remove_example():
     """Remove an example Slice/Dashboard/dataset"""
     pass
 
@@ -238,7 +299,7 @@ def import_dashboards(path, recursive):
 )
 def export_dashboards(print_stdout, dashboard_file, dashboard_ids, 
                       dashboard_titles, export_data, export_data_dir):
-    """Export dashboards to JSON"""
+    """Export dashboards to JSON and optionally tables to CSV"""
     try:
         data = dashboard_import_export.export_dashboards(
             db.session, 

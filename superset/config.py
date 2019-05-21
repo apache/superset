@@ -633,3 +633,6 @@ try:
             superset_config.__file__))
 except ImportError:
     pass
+
+# The git tag of examples to load
+EXAMPLES_GIT_TAG = 'v0.0.3'

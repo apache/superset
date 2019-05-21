@@ -16,9 +16,11 @@
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
 # pylint: disable=C,R,W
+import csv
 from io import BytesIO
 import json
 import os
+import sys
 import zlib
 
 import requests
@@ -26,8 +28,6 @@ import requests
 from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models import core as models
-
-BASE_URL = 'https://github.com/apache-superset/examples-data/blob/master/'
 
 # Shortcuts
 DB = models.Database
@@ -37,6 +37,11 @@ Dash = models.Dashboard
 TBL = ConnectorRegistry.sources['table']
 
 config = app.config
+
+BLOB_BASE_URL = f'https://github.com/rjurney/examples-data/blob/{ config.get("EXAMPLES_GIT_TAG") }/'
+RAW_BASE_URL = f'https://github.com/rjurney/examples-data/raw/{ config.get("EXAMPLES_GIT_TAG") }/'
+LIST_URL = f'https://api.github.com/repos/rjurney/examples-data/contents/?ref={ config.get("EXAMPLES_GIT_TAG") }'
+RAW_BASE_URL = f'https://github.com/rjurney/examples-data/raw/{ config.get("EXAMPLES_GIT_TAG") }/'
 
 DATA_FOLDER = os.path.join(config.get('BASE_DIR'), 'data')
 
@@ -69,9 +74,39 @@ def get_slice_json(defaults, **kwargs):
 
 
 def get_example_data(filepath, is_gzip=True, make_bytes=False):
-    content = requests.get(f'{BASE_URL}{filepath}?raw=true').content
+    content = requests.get(f'{BLOB_BASE_URL}{filepath}?raw=true').content
     if is_gzip:
         content = zlib.decompress(content, zlib.MAX_WBITS|16)
     if make_bytes:
         content = BytesIO(content)
     return content
+
+
+def list_examples(tag='master'):
+    """Use the Github Get contents API to list available examples"""
+    content = json.loads(requests.get(LIST_URL).content)
+    dirs = [x for x in content if x['type'] == 'dir']
+
+    # Write CSV to stdout
+    csv_writer = csv.DictWriter(sys.stdout, 
+        fieldnames=['Title', 'Description', 'Total Size (MB)', 'Total Rows',
+                    'File Count', 'Created Date', 'Updated Date'],
+        delimiter="\t")
+    csv_writer.writeheader()
+
+    for _dir in dirs:
+        link = _dir['_links']['self']
+        sub_content = json.loads(requests.get(link).content)
+        dashboard = list(filter(lambda x: x['name'] == 'dashboard.json', sub_content))[0]
+        files = filter(lambda x: x['name'] != 'dashboard.json', sub_content)
+        
+        bio = dashboard['bibliography']
+        csv_writer.writerow({
+            'Title': bio['title'], 
+            'Description': bio['description'], 
+            'Total Size (MB)': bio['total_size_mb'],
+            'Total Rows': bio['total_rows'],
+            'File Count': bio['file_count'],
+            'Created Date': bio['created_at'],
+            'Updated Date': bio['updated_at']})
+        

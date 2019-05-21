@@ -20,15 +20,12 @@ class SupersetCliTestCase(SupersetTestCase):
         """Test `superset version`"""
         version_result = self.runner.invoke(app.cli, ['version'])
         # Version result should contain version string
-        logging.error(config.get('VERSION_STRING'))
-        logging.error(version_result.output)
         self.assertTrue(config.get('VERSION_STRING') in version_result.output)
 
     def test_export_all_test_dashboards(self):
         """Test `superset export_dashboards`"""
         self.runner.invoke(app.cli, ['load_examples'])
         result = self.runner.invoke(app.cli, ['export_dashboards'])
-        logging.error(result.output)
         data = json.loads(result.output)
 
         # Should export at least all 5 test dashboards
@@ -94,7 +91,12 @@ class SupersetCliTestCase(SupersetTestCase):
 
     def test_examples_create(self):
         """Test `superset examples create`"""
-        pass
-
-if __name__ == '__main__':
-    unittest.main()
+        self.runner.invoke(app.cli, ['load_examples'])
+        result = self.runner.invoke(
+            app.cli,
+            ['examples', 'create', '--dashboard-title', 'World\'s Bank Data', '--description',
+                'World Bank Data example about world health populations from 1960-2010.',
+                '--example-title', 'World Bank Health Information']
+        )
+        logging.info(result.output)
+        

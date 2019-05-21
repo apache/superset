@@ -60,7 +60,7 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
     logging.info('Starting export')
     export_dashboard_ids = []
 
-    session = db.session()
+    session = db.session() if not session else session
     query = session.query(Dashboard)
     if dashboard_ids or dashboard_titles:
         query = query.filter(Dashboard.id.in_(dashboard_ids) |
@@ -77,9 +77,22 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
                                            export_data, export_data_dir)
 
     if export_title:
-        data['title'] = export_title
+        data['description']['title'] = export_title
     if description:
-        data['description'] = description
-    data['license'] = _license
+        data['description']['description'] = description
+    data['description']['license'] = _license
     
     return json.dumps(data, cls=DashboardEncoder, indent=4)
+
+
+def get_slug(session, dashboard_id=None, dashboard_title=None):
+    """Get the slug for the name of the directory inside the tarballed example"""
+    session = db.session() if not session else session
+    query = session.query(Dashboard)
+    slug = None
+    if dashboard_id or dashboard_title:
+        query = query.filter((Dashboard.id == dashboard_id) |
+                             (Dashboard.dashboard_title == dashboard_title))
+        dashboard = query.first()
+        slug = getattr(dashboard, 'slug', None)
+    return slug

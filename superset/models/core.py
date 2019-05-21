@@ -677,18 +677,16 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                     row_count = len(df.index)
 
                     file_name = f'{data_table.name}.csv.gz'
-                    file_dir = f'{export_data_dir}/{data_table.name}'
-                    file_path = f'{file_dir}/{file_name}'
+                    file_path = f'{export_data_dir}/{file_name}'
                     
-                    if not os.path.exists(file_dir):
-                        os.makedirs(file_dir)
+                    if not os.path.exists(export_data_dir):
+                        os.makedirs(export_data_dir)
                     df.to_csv(file_path)
 
                     file_size = os.path.getsize(file_path)
 
                     table_record = {
                         'file_name': file_name,
-                        'file_path': file_path,
                         'rows': row_count,
                         'size': file_size,
                         'table_name': data_table.name,
