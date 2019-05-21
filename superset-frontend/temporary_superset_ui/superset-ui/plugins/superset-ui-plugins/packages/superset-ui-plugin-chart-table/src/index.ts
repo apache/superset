@@ -17,14 +17,15 @@
  * under the License.
  */
 import { ChartPlugin } from '@superset-ui/chart';
+import Core from '@airbnb/lunar/lib';
 import transformProps from './transformProps';
 import createMetadata from './createMetadata';
 import buildQuery from './buildQuery';
-import Core from '@airbnb/lunar/lib';
+import TableFormData from './TableFormData';
 
 Core.initialize({ name: 'superset-datatable' });
 
-export default class TableChartPlugin extends ChartPlugin {
+export default class TableChartPlugin extends ChartPlugin<TableFormData> {
   constructor() {
     super({
       buildQuery,
