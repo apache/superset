@@ -63,6 +63,7 @@ pydruid==0.5.2
 pyjwt==1.7.1              # via flask-appbuilder, flask-jwt-extended
 pyrsistent==0.14.11       # via jsonschema
 python-dateutil==2.6.1
+python-dotenv==0.10.1
 python-editor==1.0.3      # via alembic
 python-geohash==0.8.5
 python3-openid==3.1.0     # via flask-openid
