@@ -1361,6 +1361,26 @@ export const controls = {
     'computing the total rows and columns'),
   },
 
+  unstacked_column: {
+    type: 'SelectControl',
+    label: t('Unstacked column'),
+    clearable: true,
+    renderTrigger: true,
+    default: '',
+    description: t('Name of the column to be unstacked'),
+    mapStateToProps: state => ({
+      choices: columnChoices(state.datasource),
+    }),
+  },
+
+  unstacked_na_value: {
+    type: 'TextControl',
+    label: t('Unstacked N/A value'),
+    renderTrigger: true,
+    default: '0',
+    description: t('The value to be used for NULL(N/A) cells'),
+  },
+
   js_agg_function: {
     type: 'SelectControl',
     label: t('Dynamic Aggregation Function'),
