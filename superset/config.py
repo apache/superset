@@ -81,9 +81,9 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
 # The SQLAlchemy connection string for incoming examples
-SQLALCHEMY_IMPORT_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'examples.db')
-# SQLALCHEMY_IMPORT_URI = 'mysql://myapp@localhost/examples'
-# SQLALCHEMY_IMPORT_URI = 'postgresql://root:password@localhost/examples'
+SQLALCHEMY_EXAMPLES_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'examples.db')
+# SQLALCHEMY_EXAMPLES_URI = 'mysql://myapp@localhost/examples'
+# SQLALCHEMY_EXAMPLES_URI = 'postgresql://root:password@localhost/examples'
 
 # In order to hook up a custom password store for all SQLALCHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',

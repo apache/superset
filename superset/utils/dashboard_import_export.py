@@ -23,7 +23,8 @@ import pandas as pd
 from superset import db
 from superset.models.core import Dashboard
 from superset.exceptions import DashboardNotFoundException
-from superset.utils.core import DashboardEncoder, decode_dashboards, get_or_create_import_db_engine
+from superset.utils.core import DashboardEncoder, decode_dashboards, get_or_create_main_db, \
+    get_or_create_example_db_engine
 
 
 def import_dashboards(session, data_stream, import_time=None):
@@ -39,7 +40,7 @@ def import_dashboards(session, data_stream, import_time=None):
             dashboard, import_time=import_time)
 
     if data['data']['includes_data']:
-        engine = get_or_create_import_db_engine()
+        engine = get_or_create_main_db()
         for table in data['data']['tables']:
             df = pd.read_csv(table['file_path'], parse_dates=True, 
                              infer_datetime_format=True, compression='infer')
@@ -82,7 +83,7 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
         data['description']['description'] = description
     data['description']['license'] = _license
     
-    return json.dumps(data, cls=DashboardEncoder, indent=4)
+    return json.dumps(data, cls=DashboardEncoder, indent=4, sort_keys=True)
 
 
 def get_slug(session, dashboard_id=None, dashboard_title=None):

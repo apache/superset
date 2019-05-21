@@ -893,10 +893,10 @@ def get_or_create_main_db():
     return dbobj
 
 
-def get_or_create_import_db_engine():
+def get_or_create_example_db_engine():
     """Get a SQLAlchemy engine for imported dashboard data"""
     from superset import conf
-    engine = create_engine(conf.get('SQLALCHEMY_IMPORT_URI'))
+    engine = create_engine(conf.get('SQLALCHEMY_EXAMPLE_URI'))
     if not database_exists(engine.url):
         create_database(engine.url)
     return engine
