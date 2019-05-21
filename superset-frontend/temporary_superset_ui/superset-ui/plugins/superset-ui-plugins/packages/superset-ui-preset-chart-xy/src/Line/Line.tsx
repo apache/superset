@@ -14,7 +14,7 @@ import { chartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
 import { createSelector } from 'reselect';
-import XYChartLayout from '../utils/XYChartLayout';
+import XYChartLayout, { XYChartLayoutConfig } from '../utils/XYChartLayout';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import ChartLegend, { Hooks as LegendHooks } from '../components/legend/ChartLegend';
@@ -82,24 +82,157 @@ const CIRCLE_STYLE = { strokeWidth: 1.5 };
 export default class LineChart extends PureComponent<Props> {
   static defaultProps = defaultProps;
 
-  encoder: Encoder;
-  private createEncoder: () => void;
+  private createEncoder = createSelector(
+    (p: PartialSpec<Encoding>) => p.encoding,
+    p => p.commonEncoding,
+    p => p.options,
+    (encoding, commonEncoding, options) => new Encoder({ encoding, commonEncoding, options }),
+  );
+
+  private createAllSeries = createSelector(
+    (input: { encoder: Encoder; data: Dataset }) => input.encoder,
+    input => input.data,
+    (encoder, data) => {
+      const { channels } = encoder;
+      const fieldNames = encoder.getGroupBys();
+
+      const groups = groupBy(data, row => fieldNames.map(f => `${f}=${row[f]}`).join(','));
+
+      const allSeries = values(groups).map(seriesData => {
+        const firstDatum = seriesData[0];
+        const key = fieldNames.map(f => firstDatum[f]).join(',');
+        const series: Series = {
+          key: key.length === 0 ? channels.y.getTitle() : key,
+          fill: channels.fill.encode(firstDatum, false),
+          stroke: channels.stroke.encode(firstDatum, '#222'),
+          strokeDasharray: channels.strokeDasharray.encode(firstDatum, ''),
+          strokeWidth: channels.strokeWidth.encode(firstDatum, 1),
+          values: [],
+        };
+
+        series.values = seriesData
+          .map(v => ({
+            x: channels.x.get<number | Date>(v),
+            y: channels.y.get<number>(v),
+            data: v,
+            parent: series,
+          }))
+          .sort((a: SeriesValue, b: SeriesValue) => {
+            const aTime = a.x instanceof Date ? a.x.getTime() : a.x;
+            const bTime = b.x instanceof Date ? b.x.getTime() : b.x;
+
+            return aTime - bTime;
+          });
+
+        return series;
+      });
+
+      return allSeries;
+    },
+  );
+
+  private createChildren = createSelector(
+    (allSeries: Series[]) => allSeries,
+    allSeries => {
+      const filledSeries = flatMap(
+        allSeries
+          .filter(({ fill }) => fill)
+          .map(series => {
+            const gradientId = uniqueId(kebabCase(`gradient-${series.key}`));
+
+            return [
+              <LinearGradient
+                key={`${series.key}-gradient`}
+                id={gradientId}
+                from={series.stroke}
+                to="#fff"
+              />,
+              <AreaSeries
+                key={`${series.key}-fill`}
+                seriesKey={series.key}
+                data={series.values}
+                interpolation="linear"
+                fill={`url(#${gradientId})`}
+                stroke={series.stroke}
+                strokeWidth={series.strokeWidth}
+              />,
+            ];
+          }),
+      );
+
+      const unfilledSeries = allSeries
+        .filter(({ fill }) => !fill)
+        .map(series => (
+          <LineSeries
+            key={series.key}
+            seriesKey={series.key}
+            interpolation="linear"
+            data={series.values}
+            stroke={series.stroke}
+            strokeDasharray={series.strokeDasharray}
+            strokeWidth={series.strokeWidth}
+          />
+        ));
+
+      return filledSeries.concat(unfilledSeries);
+    },
+  );
+
+  private createMargin = createSelector(
+    (margin: Partial<Margin>) => margin.left,
+    margin => margin.right,
+    margin => margin.top,
+    margin => margin.bottom,
+    (
+      left = DEFAULT_MARGIN.left,
+      right = DEFAULT_MARGIN.right,
+      top = DEFAULT_MARGIN.top,
+      bottom = DEFAULT_MARGIN.bottom,
+    ) => ({
+      left,
+      right,
+      top,
+      bottom,
+    }),
+  );
+
+  private createXYChartLayout = createSelector(
+    (input: XYChartLayoutConfig) => input.width,
+    input => input.height,
+    input => input.minContentWidth,
+    input => input.minContentHeight,
+    input => input.margin,
+    input => input.xEncoder,
+    input => input.yEncoder,
+    input => input.children,
+    input => input.theme,
+    (
+      width,
+      height,
+      minContentWidth,
+      minContentHeight,
+      margin,
+      xEncoder,
+      yEncoder,
+      children,
+      theme,
+    ) =>
+      new XYChartLayout({
+        width,
+        height,
+        minContentWidth,
+        minContentHeight,
+        margin,
+        xEncoder,
+        yEncoder,
+        children,
+        theme,
+      }),
+  );
 
   constructor(props: Props) {
     super(props);
 
-    const createEncoder = createSelector(
-      (p: PartialSpec<Encoding>) => p.encoding,
-      p => p.commonEncoding,
-      p => p.options,
-      (encoding, commonEncoding, options) => new Encoder({ encoding, commonEncoding, options }),
-    );
-
-    this.createEncoder = () => {
-      this.encoder = createEncoder(this.props);
-    };
-
-    this.encoder = createEncoder(this.props);
     this.renderLegend = this.renderLegend.bind(this);
     this.renderChart = this.renderChart.bind(this);
   }
@@ -108,86 +241,14 @@ export default class LineChart extends PureComponent<Props> {
     const { width, height } = dim;
     const { data, margin, theme, TooltipRenderer } = this.props;
 
-    const { channels } = this.encoder;
-    const fieldNames = this.encoder.getGroupBys();
-
-    const groups = groupBy(data, row => fieldNames.map(f => `${f}=${row[f]}`).join(','));
-
-    const allSeries = values(groups).map(seriesData => {
-      const firstDatum = seriesData[0];
-      const key = fieldNames.map(f => firstDatum[f]).join(',');
-      const series: Series = {
-        key: key.length === 0 ? channels.y.getTitle() : key,
-        fill: channels.fill.encode(firstDatum, false),
-        stroke: channels.stroke.encode(firstDatum, '#222'),
-        strokeDasharray: channels.strokeDasharray.encode(firstDatum, ''),
-        strokeWidth: channels.strokeWidth.encode(firstDatum, 1),
-        values: [],
-      };
-
-      series.values = seriesData
-        .map(v => ({
-          x: channels.x.get<number | Date>(v),
-          y: channels.y.get<number>(v),
-          data: v,
-          parent: series,
-        }))
-        .sort((a: SeriesValue, b: SeriesValue) => {
-          const aTime = a.x instanceof Date ? a.x.getTime() : a.x;
-          const bTime = b.x instanceof Date ? b.x.getTime() : b.x;
-
-          return aTime - bTime;
-        });
-
-      return series;
-    });
-
-    const filledSeries = flatMap(
-      allSeries
-        .filter(({ fill }) => fill)
-        .map(series => {
-          const gradientId = uniqueId(kebabCase(`gradient-${series.key}`));
-
-          return [
-            <LinearGradient
-              key={`${series.key}-gradient`}
-              id={gradientId}
-              from={series.stroke}
-              to="#fff"
-            />,
-            <AreaSeries
-              key={`${series.key}-fill`}
-              seriesKey={series.key}
-              data={series.values}
-              interpolation="linear"
-              fill={`url(#${gradientId})`}
-              stroke={series.stroke}
-              strokeWidth={series.strokeWidth}
-            />,
-          ];
-        }),
-    );
-
-    const unfilledSeries = allSeries
-      .filter(({ fill }) => !fill)
-      .map(series => (
-        <LineSeries
-          key={series.key}
-          seriesKey={series.key}
-          interpolation="linear"
-          data={series.values}
-          stroke={series.stroke}
-          strokeDasharray={series.strokeDasharray}
-          strokeWidth={series.strokeWidth}
-        />
-      ));
-
-    const children = filledSeries.concat(unfilledSeries);
-
-    const layout = new XYChartLayout({
+    const encoder = this.createEncoder(this.props);
+    const { channels } = encoder;
+    const allSeries = this.createAllSeries({ encoder, data });
+    const children = this.createChildren(allSeries);
+    const layout = this.createXYChartLayout({
       width,
       height,
-      margin: { ...DEFAULT_MARGIN, ...margin },
+      margin: this.createMargin(margin),
       theme,
       xEncoder: channels.x,
       yEncoder: channels.y,
@@ -208,7 +269,7 @@ export default class LineChart extends PureComponent<Props> {
           };
         }) => (
           <TooltipRenderer
-            encoder={this.encoder}
+            encoder={encoder}
             allSeries={allSeries}
             datum={datum}
             series={series}
@@ -275,10 +336,12 @@ export default class LineChart extends PureComponent<Props> {
       LegendItemMarkRenderer,
     } = this.props;
 
+    const encoder = this.createEncoder(this.props);
+
     return (
       <ChartLegend<ChannelTypes, Outputs, Encoding>
         data={data}
-        encoder={this.encoder}
+        encoder={encoder}
         LegendGroupRenderer={LegendGroupRenderer}
         LegendItemRenderer={LegendItemRenderer}
         LegendItemMarkRenderer={LegendItemMarkRenderer}
@@ -290,7 +353,7 @@ export default class LineChart extends PureComponent<Props> {
   render() {
     const { className, width, height } = this.props;
 
-    this.createEncoder();
+    const encoder = this.createEncoder(this.props);
 
     return (
       <WithLegend
@@ -298,7 +361,7 @@ export default class LineChart extends PureComponent<Props> {
         width={width}
         height={height}
         position="top"
-        renderLegend={this.encoder.hasLegend() ? this.renderLegend : undefined}
+        renderLegend={encoder.hasLegend() ? this.renderLegend : undefined}
         renderChart={this.renderChart}
       />
     );
