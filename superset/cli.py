@@ -204,19 +204,39 @@ def create_example(dashboard_id, dashboard_title, description, example_title,
             exit(1)
 
 @examples.command('list')
-def _list_examples():
+@click.option(
+    '--examples-revision', '-r', help='Revision of examples to list', 
+    default=config.get('EXAMPLES_GIT_TAG')
+)
+def _list_examples(revision):
     """List example Slices/Dashboards/datasets"""
     click.echo(
-        list_examples_table(config.get('EXAMPLES_GIT_TAG')))
+        list_examples_table(revision))
     pass
 
 @examples.command('load')
-def load_example():
+@click.option(
+    '--database-uri', '-d', help='Database URI to load example to', 
+    default=config.get('SQLALCHEMY_EXAMPLES_URI')
+)
+@click.option(
+    '--examples-revision', '-r', help='Revision of examples to list', 
+    default=config.get('EXAMPLES_GIT_TAG')
+)
+@click.option(
+    '--example-title', '-e', help='Title of example to load', required=True)
+def load_example(example_title, database_uri):
     """Load an example Slice/Dashboard/dataset"""
     pass
 
 @examples.command('remove')
-def remove_example():
+@click.option(
+    '--example-title', '-e', help='Title of example to remove', required=True)
+@click.option(
+    '--database-uri', '-d', help='Database URI to load example to', 
+    default=config.get('SQLALCHEMY_EXAMPLES_URI')
+)
+def remove_example(example_title, database_uri):
     """Remove an example Slice/Dashboard/dataset"""
     pass
 
@@ -249,7 +269,7 @@ def refresh_druid(datasource, merge):
 
 @app.cli.command()
 @click.option(
-    '--path', '-p',
+    '--path', '-p', required=True,
     help='Path to a single JSON file or path containing multiple JSON files'
          'files to import (*.json)')
 @click.option(
