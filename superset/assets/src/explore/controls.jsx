@@ -2068,6 +2068,23 @@ export const controls = {
     tabOverride: 'data',
   },
 
+  subscriber_layers : {
+    type: 'SubscriberLayerControl',
+    label: '',
+    default: [],
+    description: 'Subscriber Layers',
+    renderTrigger: true,
+    tabOverride: 'data',
+    mapStateToProps: (state) => {
+      const newState = {};
+      if (state.slices) {
+        newState.options = state.slices.filter( slice => state.slice ? slice.id != state.slice.slice_id : true).map( slice =>  ({label: slice.title, value: slice.id, columns: slice.column_names}))
+      }
+      return newState;
+    },
+    provideFormDataToProps: true,
+  },
+
   adhoc_filters: {
     type: 'AdhocFilterControl',
     label: t('Filters'),
@@ -2102,6 +2119,7 @@ export const controls = {
     description: t('The id of the active chart'),
   },
   linked_slice: {
+    "hidden": true,
     "type": "SelectControl",
     "label": "Subscribe Slices",
     "multi": true,
@@ -2109,7 +2127,7 @@ export const controls = {
     ],
     "description": "Select slices to subscribe",
     "renderTrigger": false,
-    mapStateToProps: (state, control) => {
+    mapStateToProps: (state) => {
       const newState = {};
       if (state.slices) {
         newState.options = state.slices.filter( slice => state.slice ? slice.id != state.slice.slice_id : true).map( slice =>  ({label: slice.title, value: slice.id}))

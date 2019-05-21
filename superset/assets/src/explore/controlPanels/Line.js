@@ -53,7 +53,7 @@ export default {
       ],
     },
     NVD3TimeSeries[1],
-    annotations,
+    annotations
   ],
   controlOverrides: {
     x_axis_format: {

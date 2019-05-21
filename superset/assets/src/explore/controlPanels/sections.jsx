@@ -40,7 +40,7 @@ export const datasourceAndVizType = {
 };
 
 export const linkedSlices = {
-  label: t('Publish & Subscribe'),
+  label: t('Publication'),
   expanded: true,
   controlSetRows: [
     ['publish_columns'],
@@ -79,6 +79,14 @@ export const annotations = {
   expanded: true,
   controlSetRows: [
     ['annotation_layers'],
+  ],
+};
+
+export const subscribers = {
+  label: t('Subscription'),
+  expanded: true,
+  controlSetRows: [
+    ['subscriber_layers'],
   ],
 };
 

@@ -83,7 +83,7 @@ function getLinkedSlices(slices, publishers) {
             ls[element] = createFilterDataFromPublishColumns(publishers[element]);
         }
         // as per new ds
-        else if (element instanceof Object && publishers.hasOwnProperty(element.publisher_id)) {
+        else if (element instanceof Object && publishers && publishers.hasOwnProperty(element.publisher_id)) {
             ls[element.publisher_id] = element.subscribe_columns;
         }
     });
@@ -119,10 +119,33 @@ function getSubscriberMap(slices, publishers) {
 }
 
 export default function getPublishSubscriberMap(slices) {
-    var publishers = getPublisherMap(slices);
-    var subscribers = getSubscriberMap(slices, publishers);
+    slices = updateSlices(slices);
+    let publishers = getPublisherMap(slices);
+    let subscribers = publishers ? getSubscriberMap(slices, publishers): undefined;
     return {
         publishers: publishers,
         subscribers: subscribers
     };
+}
+
+function updateSlices(slices) {
+    let updatedSlices = _.clone(slices);
+    updatedSlices.forEach(slice => {
+      let linkedSlices = getLinkedSlicesFromSubscriberLayer(slice.formData.subscriber_layers);
+      slice.formData.linked_slice = linkedSlices ? linkedSlices : slice.formData.linked_slice;
+      slice.formData.actions = ['APPLY_FILTER'];
+    });
+
+    return updatedSlices;
+  }
+
+function getLinkedSlicesFromSubscriberLayer(subscriberLayer) {
+    let linkedSlices = [];
+    subscriberLayer.forEach(element => {
+        element.linked_slice.forEach(item => {
+            linkedSlices.push(item);
+        });
+    });
+
+    return linkedSlices;
 }

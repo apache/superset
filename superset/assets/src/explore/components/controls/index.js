@@ -17,6 +17,7 @@
  * under the License.
  */
 import AnnotationLayerControl from './AnnotationLayerControl';
+import SubscriberLayerControl from './SubscriberLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
 import CollectionControl from './CollectionControl';
@@ -43,6 +44,7 @@ import AdhocColumnControl from './AdhocColumnControl'
 
 const controlMap = {
   AnnotationLayerControl,
+  SubscriberLayerControl,
   BoundsControl,
   CheckboxControl,
   CollectionControl,
