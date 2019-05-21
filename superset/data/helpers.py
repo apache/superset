@@ -23,6 +23,7 @@ import os
 import sys
 import zlib
 
+from prettytable import PrettyTable
 import requests
 
 from superset import app, db
@@ -82,31 +83,24 @@ def get_example_data(filepath, is_gzip=True, make_bytes=False):
     return content
 
 
-def list_examples(tag='master'):
+def list_examples_table(tag='master'):
     """Use the Github Get contents API to list available examples"""
     content = json.loads(requests.get(LIST_URL).content)
     dirs = [x for x in content if x['type'] == 'dir']
 
     # Write CSV to stdout
-    csv_writer = csv.DictWriter(sys.stdout, 
-        fieldnames=['Title', 'Description', 'Total Size (MB)', 'Total Rows',
-                    'File Count', 'Created Date', 'Updated Date'],
-        delimiter="\t")
-    csv_writer.writeheader()
+    t = PrettyTable(field_names=['Title', 'Description', 'Total Size (MB)', 'Total Rows',
+                                 'File Count', 'Created Date'])
 
     for _dir in dirs:
         link = _dir['_links']['self']
         sub_content = json.loads(requests.get(link).content)
-        dashboard = list(filter(lambda x: x['name'] == 'dashboard.json', sub_content))[0]
-        files = filter(lambda x: x['name'] != 'dashboard.json', sub_content)
-        
-        bio = dashboard['bibliography']
-        csv_writer.writerow({
-            'Title': bio['title'], 
-            'Description': bio['description'], 
-            'Total Size (MB)': bio['total_size_mb'],
-            'Total Rows': bio['total_rows'],
-            'File Count': bio['file_count'],
-            'Created Date': bio['created_at'],
-            'Updated Date': bio['updated_at']})
-        
+        dashboard_info = list(filter(lambda x: x['name'] == 'dashboard.json', sub_content))[0]
+        #file_urls = filter(lambda x: x['name'] != 'dashboard.json', sub_content)
+
+        d = json.loads(requests.get(dashboard_info['download_url']).content)['description']
+        t.add_row([
+            d['title'], d['description'], d['total_size_mb'], d['total_rows'], 
+            d['file_count'], d['created_at']])     
+
+    return t
