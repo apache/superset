@@ -23,7 +23,7 @@
   ],
   "devDependencies": {
     "yeoman-assert": "^3.1.0",
-    "yeoman-test": "^1.9.1"
+    "yeoman-test": "^2.0.0"
   },
   "engines": {
     "npm": ">= 4.0.0"
