@@ -91,6 +91,8 @@ OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for m
 
 Or if you're curious and want to install superset from bottom up, then go ahead.
 
+See also `contrib/docker/README.md <https://github.com/apache/incubator-superset/blob/master/contrib/docker/README.md>`_
+
 OS dependencies
 ---------------
 
@@ -121,7 +123,13 @@ that the required dependencies are installed: ::
     sudo yum upgrade python-setuptools
     sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
 
-**OSX**, system python is not recommended. brew's python also ships with pip  ::
+**Mac OS X** If possible, you should upgrade to the latest version of OS X as issues are more likely to be resolved for that version. 
+You *will likely need* the latest version of XCode available for your installed version of OS X. You should also install
+the XCode command line tools: ::
+
+    xcode-select --install
+
+System python is not recommended. Homebrew's python also ships with pip: ::
 
     brew install pkg-config libffi openssl python
     env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==2.4.2
@@ -184,8 +192,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    flask run -p 8080 --with-threads --reload --debugger
-
+    superset run -p 8080 --with-threads --reload --debugger
 
 After installation, you should be able to point your browser to the right
 hostname:port `http://localhost:8088 <http://localhost:8088>`_, login using
@@ -219,10 +226,8 @@ Refer to the
 `Gunicorn documentation <https://docs.gunicorn.org/en/stable/design.html>`_
 for more information.
 
-Note that *gunicorn* does not
-work on Windows so the `superset runserver` command is not expected to work
-in that context. Also, note that the development web
-server (`superset runserver -d`) is not intended for production use.
+Note that the development web
+server (`superset run` or `flask run`) is not intended for production use.
 
 If not using gunicorn, you may want to disable the use of flask-compress
 by setting `ENABLE_FLASK_COMPRESS = False` in your `superset_config.py`
