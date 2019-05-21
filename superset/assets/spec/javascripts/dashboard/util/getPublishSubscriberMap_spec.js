@@ -101,7 +101,7 @@ describe('getPublishSubscriberMap', () => {
       ];
       const result = {
         publishers: undefined,
-        subscribers: {"2":{"id":2,"viz_type":"leaflet_map","actions":["APPLY_FILTER"],"linked_slices":{},"extras":{}}}
+        subscribers: undefined
       };
       expect(getPublishSubscriberMap(charts)).toEqual(result);
     });

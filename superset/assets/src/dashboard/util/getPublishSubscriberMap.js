@@ -121,7 +121,7 @@ function getSubscriberMap(slices, publishers) {
 export default function getPublishSubscriberMap(slices) {
     slices = updateSlices(slices);
     let publishers = getPublisherMap(slices);
-    let subscribers = publishers ? getSubscriberMap(slices, publishers): undefined;
+    let subscribers = publishers ? getSubscriberMap(slices, publishers) : undefined;
     return {
         publishers: publishers,
         subscribers: subscribers
@@ -131,21 +131,24 @@ export default function getPublishSubscriberMap(slices) {
 function updateSlices(slices) {
     let updatedSlices = _.clone(slices);
     updatedSlices.forEach(slice => {
-      let linkedSlices = getLinkedSlicesFromSubscriberLayer(slice.formData.subscriber_layers);
-      slice.formData.linked_slice = linkedSlices ? linkedSlices : slice.formData.linked_slice;
-      slice.formData.actions = ['APPLY_FILTER'];
+        let linkedSlices = getLinkedSlicesFromSubscriberLayer(slice.formData.subscriber_layers);
+        slice.formData.linked_slice = linkedSlices ? linkedSlices : slice.formData.linked_slice;
+        slice.formData.actions = ['APPLY_FILTER'];
     });
 
     return updatedSlices;
-  }
+}
 
 function getLinkedSlicesFromSubscriberLayer(subscriberLayer) {
-    let linkedSlices = [];
-    subscriberLayer.forEach(element => {
-        element.linked_slice.forEach(item => {
-            linkedSlices.push(item);
+    let linkedSlices;
+    if (subscriberLayer) {
+        linkedSlices = [];
+        subscriberLayer.forEach(element => {
+            element.linked_slice.forEach(item => {
+                linkedSlices.push(item);
+            });
         });
-    });
+    }
 
     return linkedSlices;
 }
