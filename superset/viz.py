@@ -853,7 +853,7 @@ class BoxPlotViz(NVD3Viz):
     viz_type = 'box_plot'
     verbose_name = _('Box Plot')
     sort_series = False
-    is_timeseries = True
+    is_timeseries = False
 
     def to_series(self, df, classed='', title_suffix=''):
         label_sep = ' - '
