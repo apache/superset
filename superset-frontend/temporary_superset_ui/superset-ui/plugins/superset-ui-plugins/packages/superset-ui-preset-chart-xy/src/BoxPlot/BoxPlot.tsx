@@ -5,19 +5,31 @@ import { chartTheme, ChartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
 import { createSelector } from 'reselect';
-import createTooltip from './createTooltip';
+import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import ChartLegend from '../components/legend/ChartLegend';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import { PartialSpec } from '../encodeable/types/Specification';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
 import createXYChartLayoutSelector from '../utils/selectors/createXYChartLayoutSelector';
+import { BoxPlotDataRow } from './types';
+
+export interface TooltipProps {
+  datum: BoxPlotDataRow;
+  color: string;
+  encoder: Encoder;
+}
 
 const defaultProps = {
   className: '',
   margin: DEFAULT_MARGIN,
   theme: chartTheme,
+  TooltipRenderer: DefaultTooltipRenderer,
 } as const;
+
+export type HookProps = {
+  TooltipRenderer?: React.ComponentType<TooltipProps>;
+};
 
 type Props = {
   className?: string;
@@ -27,6 +39,7 @@ type Props = {
   data: Dataset;
   theme?: ChartTheme;
 } & PartialSpec<Encoding> &
+  HookProps &
   Readonly<typeof defaultProps>;
 
 export default class BoxPlot extends React.PureComponent<Props> {
@@ -59,7 +72,7 @@ export default class BoxPlot extends React.PureComponent<Props> {
 
   renderChart(dim: Dimension) {
     const { width, height } = dim;
-    const { data, margin, theme } = this.props;
+    const { data, margin, theme, TooltipRenderer } = this.props;
     const { channels } = this.encoder;
 
     const isHorizontal = channels.y.definition.type === 'nominal';
@@ -98,7 +111,9 @@ export default class BoxPlot extends React.PureComponent<Props> {
         height={chartDim.height}
         ariaLabel="BoxPlot"
         margin={layout.margin}
-        renderTooltip={createTooltip(this.encoder)}
+        renderTooltip={({ datum, color }: { datum: BoxPlotDataRow; color: string }) => (
+          <TooltipRenderer datum={datum} color={color} encoder={this.encoder} />
+        )}
         showYGrid
         theme={theme}
         xScale={channels.x.definition.scale}

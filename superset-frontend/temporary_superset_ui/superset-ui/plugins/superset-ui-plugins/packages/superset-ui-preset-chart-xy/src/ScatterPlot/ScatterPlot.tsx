@@ -6,19 +6,29 @@ import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
 import { extent as d3Extent } from 'd3-array';
 import { createSelector } from 'reselect';
-import createTooltip from './createTooltip';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import ChartLegend from '../components/legend/ChartLegend';
 import { PartialSpec } from '../encodeable/types/Specification';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
 import createXYChartLayoutSelector from '../utils/selectors/createXYChartLayoutSelector';
+import DefaultTooltipRenderer from './DefaultTooltipRenderer';
+
+export interface TooltipProps {
+  datum: EncodedPoint;
+  encoder: Encoder;
+}
 
 const defaultProps = {
   className: '',
   margin: DEFAULT_MARGIN,
   theme: chartTheme,
+  TooltipRenderer: DefaultTooltipRenderer,
 } as const;
+
+export type HookProps = {
+  TooltipRenderer?: React.ComponentType<TooltipProps>;
+};
 
 type Props = {
   className?: string;
@@ -28,6 +38,7 @@ type Props = {
   data: Dataset;
   theme?: ChartTheme;
 } & PartialSpec<Encoding> &
+  HookProps &
   Readonly<typeof defaultProps>;
 
 export interface EncodedPoint {
@@ -69,7 +80,7 @@ export default class ScatterPlot extends PureComponent<Props> {
 
   renderChart(dim: Dimension) {
     const { width, height } = dim;
-    const { data, margin, theme } = this.props;
+    const { data, margin, theme, TooltipRenderer } = this.props;
     const { channels } = this.encoder;
 
     if (typeof channels.size.scale !== 'undefined') {
@@ -115,7 +126,9 @@ export default class ScatterPlot extends PureComponent<Props> {
         height={chartDim.height}
         ariaLabel="BoxPlot"
         margin={layout.margin}
-        renderTooltip={createTooltip(this.encoder)}
+        renderTooltip={({ datum }: { datum: EncodedPoint }) => (
+          <TooltipRenderer datum={datum} encoder={this.encoder} />
+        )}
         showYGrid
         theme={theme}
         xScale={channels.x.definition.scale}
