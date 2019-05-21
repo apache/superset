@@ -132,7 +132,7 @@ export function getControlState(controlKey, vizType, state, value) {
 }
 
 export function getControlsStateHelper(vizType, datasourceType, state, formData) {
-  const controlsState = {}; // this might have to be updated into a different type of array
+  const controlsState = {};
   sectionsToRender(vizType, datasourceType).forEach(
     section => section.controlSetRows.forEach(
       fieldsetRow => fieldsetRow.forEach((field) => {
