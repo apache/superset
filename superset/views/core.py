@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+from contextlib import closing
 from datetime import datetime, timedelta
 import inspect
 import logging
@@ -38,7 +39,8 @@ import pandas as pd
 import simplejson as json
 import sqlalchemy as sqla
 from sqlalchemy import (
-    and_, Column, create_engine, ForeignKey, Integer, MetaData, or_, Table, update)
+    and_, Column, create_engine, ForeignKey, Integer, MetaData, or_, select, Table,
+    update)
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from werkzeug.routing import BaseConverter
@@ -1806,8 +1808,9 @@ class Superset(BaseSupersetView):
                 connect_args['configuration'] = configuration
 
             engine = create_engine(uri, **engine_params)
-            engine.connect()
-            return json_success(json.dumps(engine.table_names(), indent=4))
+
+            with closing(engine.connect()) as conn:
+                return json_success(json.dumps(conn.scalar(select([1]))))
         except Exception as e:
             logging.exception(e)
             return json_error_response((
