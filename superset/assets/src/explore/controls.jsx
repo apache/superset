@@ -1850,7 +1850,7 @@ export const controls = {
     'on the largest cluster'),
     mapStateToProps: state => ({
       choices: formatSelectOptions(['Auto']).concat(columnChoices(state.datasource)),
-    }), 
+    }),
   },
 
   point_radius_unit: {
