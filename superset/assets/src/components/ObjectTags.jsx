@@ -23,7 +23,7 @@ import { Glyphicon, Label } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
 
-import './ObjectTags.css';
+import './ObjectTags.less';
 
 const propTypes = {
   fetchTags: PropTypes.func,
