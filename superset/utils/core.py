@@ -125,6 +125,7 @@ class _memoized:  # noqa
     def __get__(self, obj, objtype):
         if not self.is_method:
             copy = self.__copy__()
+            copy.is_method = True
             return functools.partial(copy.__call__, obj)
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
