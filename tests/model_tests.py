@@ -315,3 +315,21 @@ class SqlaTableModelTestCase(SupersetTestCase):
         self.assertIn('--COMMENT', sql)
 
         app.config['SQL_QUERY_MUTATOR'] = None
+
+
+    #test for get_query_str_extended
+    def test_get_query_str_extended(self):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+        json_endpoint = '/superset/explore_json/'
+        form_data = slc.form_data
+        form_data.update({
+            'filters': [{'col': 'state', 'op': 'in', 'val': ['N/A']}],
+        })
+
+        # data = self.get_json_resp(
+        #     json_endpoint,
+        #     {'form_data': json.dumps(form_data)},
+        # )
+        # self.assertEqual(data['status'], utils.QueryStatus.SUCCESS)
+        #self.assertEqual(data['error'], 'No data')

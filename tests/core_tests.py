@@ -789,6 +789,26 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp('/superset/select_star/1/birth_names')
         self.assertIn('gender', resp)
 
+    #test get_query_string_response
+    def test_get_query_string_response(self):
+        maindb = get_main_database(db.session)
+        backend = maindb.backend
+        data = self.get_json_resp(
+            '/superset/table/{}/ab_user/null/'.format(maindb.id))
+        self.assertEqual(data['name'], 'ab_user')
+        assert len(data['columns']) > 5
+        assert data.get('selectStar').startswith('SELECT')
+
+        # Engine specific tests
+        if backend in ('mysql', 'postgresql'):
+            self.assertEqual(data.get('primaryKey').get('type'), 'pk')
+            self.assertEqual(
+                data.get('primaryKey').get('column_names')[0], 'id')
+            self.assertEqual(len(data.get('foreignKeys')), 2)
+            if backend == 'mysql':
+                self.assertEqual(len(data.get('indexes')), 7)
+            elif backend == 'postgresql':
+                self.assertEqual(len(data.get('indexes')), 5)
 
 if __name__ == '__main__':
     unittest.main()

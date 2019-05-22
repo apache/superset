@@ -37,6 +37,7 @@ import TimeSeriesColumnControl from './TimeSeriesColumnControl';
 import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricsControl';
+import StepsControl from './StepsControl';
 import AdhocFilterControl from './AdhocFilterControl';
 import FilterPanel from './FilterPanel';
 import FilterBoxItemControl from './FilterBoxItemControl';
@@ -63,6 +64,7 @@ const controlMap = {
   ViewportControl,
   VizTypeControl,
   MetricsControl,
+  StepsControl,
   AdhocFilterControl,
   FilterPanel,
   FilterBoxItemControl,

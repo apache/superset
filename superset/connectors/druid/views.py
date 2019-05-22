@@ -235,7 +235,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
     order_columns = ['datasource_link', 'modified']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
-        'datasource_name', 'cluster', 'description', 'owners',
+        'datasource_name', 'druid_datasource_name', 'cluster', 'description', 'owners',
         'is_hidden',
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
@@ -303,7 +303,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
                 .filter(models.DruidDatasource.datasource_name ==
                         datasource.datasource_name,
                         models.DruidDatasource.cluster_name ==
-                        datasource.cluster.id)
+                        datasource.cluster.name)
             )
             if db.session.query(query.exists()).scalar():
                 raise Exception(get_datasource_exist_error_msg(

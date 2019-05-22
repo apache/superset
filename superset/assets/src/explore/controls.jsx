@@ -95,6 +95,7 @@ const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
 
 export const D3_TIME_FORMAT_OPTIONS = [
+  ['%a %b %d, %I %p', '%a %b %d, %I %p | Tue Sep 19, 05 PM'],
   ['smart_date', 'Adaptative formating'],
   ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
@@ -785,7 +786,7 @@ export const controls = {
     type: 'SelectControl',
     label: t('X Tick Layout'),
     choices: formatSelectOptions(['auto', 'flat', '45°', 'staggered']),
-    default: 'auto',
+    default: '45°',
     clearable: false,
     renderTrigger: true,
     description: t('The way the ticks are laid out on the X-axis'),
@@ -1548,6 +1549,16 @@ export const controls = {
     description: t('Whether to include a client-side search box'),
   },
 
+  include_selectedrows: {
+    type: 'SelectControl',
+    freeForm: true,
+    renderTrigger: true,
+    label: t('Select Top Rows'),
+    default: 0,
+    choices: formatSelectOptions([0, 1, 2, 3, 4, 5, 6, 7, 8,9,10,15,20,25,30]),
+    description: t('To Include Top Rows, 0 means all the rows will be returned'),
+  },
+
   table_filter: {
     type: 'CheckboxControl',
     label: t('Emit Filter Events'),
@@ -2023,6 +2034,39 @@ export const controls = {
     description: 'Annotation Layers',
     renderTrigger: true,
     tabOverride: 'data',
+  },
+
+  funnel_steps: {
+    type: 'StepsControl',
+    label: '',
+    default: [],
+    description: 'Steps',
+    renderTrigger: true,
+    tabOverride: 'data',
+    mapStateToProps: (state) => {
+        const datasource = state.datasource;
+        return {
+            columns: datasource ? datasource.columns : [],
+            savedMetrics: datasource ? datasource.metrics : [],
+            datasourceType: datasource && datasource.type,
+            datasource: state.datasource,
+        };
+    },
+  },
+
+  step_label: {
+    type: 'TextControl',
+    label: t('Label'),
+    renderTrigger: true,
+    default: '',
+  },
+
+  formatter: {
+      type: 'CheckboxControl',
+      label: t('Enable Formatter'),
+      renderTrigger: true,
+      default: true,
+      description: t('This enable formatter for the values for steps'),
   },
 
   adhoc_filters: {

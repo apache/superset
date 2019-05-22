@@ -93,6 +93,8 @@
     "deck.gl": "^5.3.5",
     "dnd-core": "^2.6.0",
     "dompurify": "^1.0.3",
+    "echarts": "^4.1.0",
+    "echarts-for-react": "^2.0.15-beta.0",
     "geolib": "^2.0.24",
     "immutable": "^3.8.2",
     "jquery": "3.1.1",

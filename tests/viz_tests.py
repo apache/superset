@@ -1096,3 +1096,118 @@ class TimeSeriesVizTestCase(SupersetTestCase):
                 u'key': (u'Real Madrid C.F.\U0001f1fa\U0001f1f8\U0001f1ec\U0001f1e7',)},
         ]
         self.assertEqual(expected, viz_data)
+
+class TimeSeriesVizTestCase(SupersetTestCase):
+
+    def test_timeseries_unicode_data(self):
+        datasource = self.get_datasource_mock()
+        form_data = {
+            'groupby': ['name'],
+            'metrics': ['sum__payout'],
+        }
+        raw = {}
+        raw['name'] = [
+            'Real Madrid C.F.🇺🇸🇬🇧', 'Real Madrid C.F.🇺🇸🇬🇧',
+            'Real Madrid Basket', 'Real Madrid Basket',
+        ]
+        raw['__timestamp'] = [
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+        ]
+        raw['sum__payout'] = [2, 2, 4, 4]
+        df = pd.DataFrame(raw)
+
+        test_viz = viz.NVD3TimeSeriesViz(datasource, form_data)
+        viz_data = {}
+        viz_data = test_viz.get_data(df)
+        expected = [
+            {u'values': [
+                {u'y': 4, u'x': u'2018-02-20T00:00:00'},
+                {u'y': 4, u'x': u'2018-03-09T00:00:00'}],
+                u'key': (u'Real Madrid Basket',)},
+            {u'values': [
+                {u'y': 2, u'x': u'2018-02-20T00:00:00'},
+                {u'y': 2, u'x': u'2018-03-09T00:00:00'}],
+                u'key': (u'Real Madrid C.F.\U0001f1fa\U0001f1f8\U0001f1ec\U0001f1e7',)},
+        ]
+        self.assertEqual(expected, viz_data)
+
+# Funnel_Viz Test Case
+class FunnelVizTestCase(SupersetTestCase):
+
+    def test_get_data_metrics(self):
+        form_data = {
+            'metrics': ['sum__A', 'count'],
+            'groupby': [],
+        }
+        datasource = self.get_datasource_mock()
+        raw = {}
+        t1 = pd.Timestamp('2000')
+        t2 = pd.Timestamp('2002')
+        raw[DTTM_ALIAS] = [t1, t2]
+        raw['sum__A'] = [15, 20]
+        raw['count'] = [6, 7]
+        df = pd.DataFrame(raw)
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        # Check method correctly transforms data
+        self.assertEqual(set(['count', 'sum__A']), set(data['columns']))
+        time_format = '%Y-%m-%d %H:%M:%S'
+        expected = {
+            t1.strftime(time_format): {
+                'sum__A': 15,
+                'count': 6,
+            },
+            t2.strftime(time_format): {
+                'sum__A': 20,
+                'count': 7,
+            },
+        }
+        self.assertEqual(expected, data['records'])
+
+    def test_get_data_group_by(self):
+        form_data = {
+            'metrics': ['sum__A'],
+            'groupby': ['groupby1'],
+        }
+        datasource = self.get_datasource_mock()
+        raw = {}
+        t1 = pd.Timestamp('2000')
+        t2 = pd.Timestamp('2002')
+        raw[DTTM_ALIAS] = [t1, t1, t1, t2, t2, t2]
+        raw['sum__A'] = [15, 20, 25, 30, 35, 40]
+        raw['groupby1'] = ['a1', 'a2', 'a3', 'a1', 'a2', 'a3']
+        df = pd.DataFrame(raw)
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        # Check method correctly transforms data
+        self.assertEqual(set(['a1', 'a2', 'a3']), set(data['columns']))
+        time_format = '%Y-%m-%d %H:%M:%S'
+        expected = {
+            t1.strftime(time_format): {
+                'a1': 15,
+                'a2': 20,
+                'a3': 25,
+            },
+            t2.strftime(time_format): {
+                'a1': 30,
+                'a2': 35,
+                'a3': 40,
+            },
+        }
+        self.assertEqual(expected, data['records'])
+
+    @patch('superset.viz.BaseViz.query_obj')
+    def test_query_obj_throws_metrics_and_groupby(self, super_query_obj):
+        datasource = self.get_datasource_mock()
+        form_data = {
+            'groupby': ['a'],
+        }
+        super_query_obj.return_value = {}
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        with self.assertRaises(Exception):
+            test_viz.query_obj()
+        form_data['metrics'] = ['x', 'y']
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        with self.assertRaises(Exception):
+            test_viz.query_obj()

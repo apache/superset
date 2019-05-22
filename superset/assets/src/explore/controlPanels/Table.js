@@ -57,6 +57,7 @@ export default {
         ['page_length', null],
         ['include_search', 'table_filter'],
         ['align_pn', 'color_pn'],
+        ['include_selectedrows', null],
       ],
     },
   ],

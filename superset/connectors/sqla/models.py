@@ -478,12 +478,15 @@ class SqlaTable(Model, BaseDatasource):
             table=self, database=self.database, **kwargs)
 
     def get_query_str_extended(self, query_obj):
+
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
+
         if query_obj['is_prequery']:
             query_obj['prequeries'].append(sql)
+
         sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(labels_expected=sqlaq.labels_expected, sql=sql)
 

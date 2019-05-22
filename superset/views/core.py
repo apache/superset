@@ -1136,21 +1136,43 @@ class Superset(BaseSupersetView):
 
     def get_query_string_response(self, viz_obj):
         query = None
+
+        funnel_query = ""
+        isfunnel = False
         try:
-            query_obj = viz_obj.query_obj()
+            if viz_obj.viz_type == "funnel":
+                query_obj = viz_obj.query_obj(True)
+                isfunnel = True
+            else:
+                query_obj = viz_obj.query_obj()
+
             if query_obj:
-                query = viz_obj.datasource.get_query_str(query_obj)
+                if isfunnel:
+                    i = 0
+                    while True:
+                        if query_obj.get(str(i)):
+                            funnel_query += viz_obj.datasource.get_query_str(query_obj[str(i)]) + '\n\n'
+                        else: break
+                        i += 1
+                else:
+                    query = viz_obj.datasource.get_query_str(query_obj)
+
         except Exception as e:
             logging.exception(e)
             return json_error_response(e)
 
-        if query_obj and query_obj['prequeries']:
+        if query_obj and query_obj.get('prequeries'):
             query_obj['prequeries'].append(query)
             query = ';\n\n'.join(query_obj['prequeries'])
         if query:
             query += ';'
         else:
             query = 'No query.'
+
+        if isfunnel:
+            query = funnel_query
+
+        # logging.debug("____get_query_response_funnel_query___\n%s", query)
 
         return self.json_response({
             'query': query,

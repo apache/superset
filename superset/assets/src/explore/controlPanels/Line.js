@@ -58,7 +58,7 @@ export default {
   controlOverrides: {
     x_axis_format: {
       choices: D3_TIME_FORMAT_OPTIONS,
-      default: 'smart_date',
+      default: '%a %b %d, %I %p',
     },
     row_limit: {
       default: 50000,

@@ -56,7 +56,6 @@ from superset.utils.core import (
     to_adhoc,
 )
 
-
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
 relative_end = config.get('DEFAULT_RELATIVE_END_TIME', 'today')
@@ -65,6 +64,10 @@ METRIC_KEYS = [
     'metric', 'metrics', 'percent_metrics', 'metric_2', 'secondary_metric',
     'x', 'y', 'size',
 ]
+
+global_dd = []
+global_flag = False
+global_query = {}
 
 
 class BaseViz(object):
@@ -231,7 +234,20 @@ class BaseViz(object):
             if self.enforce_numerical_metrics:
                 self.df_metrics_to_num(df)
 
+<<<<<<< HEAD
             df.replace([np.inf, -np.inf], np.nan, inplace=True)
+=======
+            df.replace([np.inf, -np.inf], np.nan)
+            df = self.handle_nulls(df)
+
+        global global_flag
+        if global_flag:
+            df = df.from_dict(global_dd)
+            global_flag = False
+
+        # logging.debug("____base_get_df________",df)
+
+>>>>>>> 47aa544... squashed commit for Funnel visualization for frontend and backend work
         return df
 
     def df_metrics_to_num(self, df):
@@ -248,6 +264,11 @@ class BaseViz(object):
 
     def query_obj(self):
         """Building a query object"""
+        # logging.debug("_____________BaseViz_____Query_obj____________\n%s",self.form_data)
+
+        # for updateed form data
+        self.process_metrics()
+
         form_data = self.form_data
         self.process_query_filters()
         gb = form_data.get('groupby') or []
@@ -257,6 +278,8 @@ class BaseViz(object):
         for o in gb + columns:
             if o not in groupby:
                 groupby.append(o)
+
+        # logging.debug("_________%s\n%s", groupby, self.all_metrics)
 
         is_timeseries = self.is_timeseries
         if DTTM_ALIAS in groupby:
@@ -323,8 +346,8 @@ class BaseViz(object):
         if self.datasource.cache_timeout is not None:
             return self.datasource.cache_timeout
         if (
-                hasattr(self.datasource, 'database') and
-                self.datasource.database.cache_timeout) is not None:
+                    hasattr(self.datasource, 'database') and
+                    self.datasource.database.cache_timeout) is not None:
             return self.datasource.database.cache_timeout
         return config.get('CACHE_DEFAULT_TIMEOUT')
 
@@ -349,12 +372,29 @@ class BaseViz(object):
         cache_dict = copy.copy(query_obj)
         cache_dict.update(extra)
 
-        for k in ['from_dttm', 'to_dttm']:
-            del cache_dict[k]
+        # logging.debug("_____cache_____\n%s", cache_dict)
 
-        cache_dict['time_range'] = self.form_data.get('time_range')
-        cache_dict['datasource'] = self.datasource.uid
-        json_data = self.json_dumps(cache_dict, sort_keys=True)
+        i = 0
+        json_data = ""
+        if cache_dict.get(str(i)):
+            while True:
+                if not cache_dict.get(str(i)): break;
+                # logging.debug("______cache_in_____\n%s", cache_dict[str(i)])
+                for k in ['from_dttm', 'to_dttm']:
+                    if cache_dict[str(i)].get(k):
+                        del cache_dict[str(i)][k]
+
+                cache_dict[str(i)]['time_range'] = self.form_data.get('time_range')
+                cache_dict[str(i)]['datasource'] = self.datasource.uid
+                json_data += self.json_dumps(cache_dict[str(i)], sort_keys=True)
+                i += 1
+        else:
+            for k in ['from_dttm', 'to_dttm']:
+                del cache_dict[k]
+
+            cache_dict['time_range'] = self.form_data.get('time_range')
+            cache_dict['datasource'] = self.datasource.uid
+            json_data = self.json_dumps(cache_dict,sort_keys=True)
         return hashlib.md5(json_data.encode('utf-8')).hexdigest()
 
     def get_payload(self, query_obj=None):
@@ -363,6 +403,7 @@ class BaseViz(object):
         payload = self.get_df_payload(query_obj)
 
         df = payload.get('df')
+
         if self.status != utils.QueryStatus.FAILED:
             if df is not None and df.empty:
                 payload['error'] = 'No data'
@@ -370,10 +411,12 @@ class BaseViz(object):
                 payload['data'] = self.get_data(df)
         if 'df' in payload:
             del payload['df']
+        # logging.debug("___payload__\n%s", payload)
         return payload
 
     def get_df_payload(self, query_obj=None, **kwargs):
         """Handles caching around the df payload retrieval"""
+
         if not query_obj:
             query_obj = self.query_obj()
         cache_key = self.cache_key(query_obj, **kwargs) if query_obj else None
@@ -402,6 +445,8 @@ class BaseViz(object):
 
         if query_obj and not is_loaded:
             try:
+                # logging.debug("_________query_base______", query_obj)
+
                 df = self.get_df(query_obj)
                 if self.status != utils.QueryStatus.FAILED:
                     stats_logger.incr('loaded_from_source')
@@ -414,10 +459,10 @@ class BaseViz(object):
                 stacktrace = traceback.format_exc()
 
             if (
-                    is_loaded and
-                    cache_key and
-                    cache and
-                    self.status != utils.QueryStatus.FAILED):
+                                is_loaded and
+                                cache_key and
+                            cache and
+                            self.status != utils.QueryStatus.FAILED):
                 try:
                     cache_value = dict(
                         dttm=cached_dttm,
@@ -441,6 +486,7 @@ class BaseViz(object):
                     logging.warning('Could not cache key {}'.format(cache_key))
                     logging.exception(e)
                     cache.delete(cache_key)
+
         return {
             'cache_key': self._any_cache_key,
             'cached_dttm': self._any_cached_dttm,
@@ -465,7 +511,7 @@ class BaseViz(object):
 
     def payload_json_and_has_error(self, payload):
         has_error = payload.get('status') == utils.QueryStatus.FAILED or \
-            payload.get('error') is not None
+                    payload.get('error') is not None
         return self.json_dumps(payload), has_error
 
     @property
@@ -492,8 +538,123 @@ class BaseViz(object):
         return json.dumps(self.data)
 
 
-class TableViz(BaseViz):
+class FunnelViz(BaseViz):
+    """A multi filter, multi-choice filter box to make dashboards interactive"""
 
+    viz_type = 'funnel'
+    verbose_name = _('Funnel')
+    is_timeseries = False
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
+    cache_type = 'get_data'
+    filter_row_limit = 1000
+
+    def query_obj(self, get_query=False):
+
+        fd = self.form_data
+
+        if not fd.get('funnel_steps'):
+            raise Exception(_('Add at least one Step'))
+
+        logging.debug("________funnel_form_data_____________\n%s", fd)
+
+        if isinstance(fd.get('funnel_steps'), list):
+            raise Exception(_('No selected values'))
+
+        sel_values = fd['funnel_steps']['selectedValues']
+
+        step_count = len(fd['funnel_steps']['queries'])
+
+        global global_query
+        global_query = {}
+        for i in range(0, step_count):
+            index = str(fd['funnel_steps']['queries'][i]['id'])
+            # logging.debug("_______index_______\n%s",index)
+            fd['metrics'] = []
+            fd['adhoc_filters'] = []
+            fd['filters'] = []
+            fd['metrics'].append(sel_values[index]['metric'])
+            if sel_values[index].get('adhoc_filters'):
+                fd['adhoc_filters'] = sel_values[index]['adhoc_filters']
+
+            qry = super(FunnelViz, self).query_obj()
+
+            global_query[str(i)] = qry
+
+        # logging.debug("________funnel_form_data_____________\n%s", self.form_data)
+
+        d = super(FunnelViz, self).query_obj()
+
+        # logging.debug("_________funnel_query_obj_____________\n%s", d)
+        # logging.debug("_________query_obj_global_query_______\n%s", global_query)
+        #
+        if get_query:
+            return global_query
+        else:
+            return d
+
+    def get_data(self, df):
+
+        fd = self.form_data
+
+        if not fd.get('funnel_steps'):
+            raise Exception(_('Add at least one Step'))
+
+        if isinstance(fd.get('funnel_steps'), list):
+            raise Exception(_('No selected values'))
+
+        sel_values = fd['funnel_steps']['selectedValues']
+        step_count = len(fd['funnel_steps']['queries'])
+
+        ddd = {}
+        d = []
+
+        logging.debug("_get_data__form_data_\n%s", fd)
+        for i in range(0, step_count):
+            index = str(fd['funnel_steps']['queries'][i]['id'])
+            # logging.debug("_get_data__data_index_\n%s",index)
+            fd['metrics'] = []
+            fd['adhoc_filters'] = []
+            fd['filters'] = []
+            fd['metrics'].append(sel_values[index]['metric'])
+            if sel_values[index].get('adhoc_filters'):
+                fd['adhoc_filters'] = sel_values[index]['adhoc_filters']
+
+            logging.debug("_get_data_fd_\n%s", fd)
+            qry = super(FunnelViz, self).query_obj()
+
+            # logging.debug("_________Query________\n%s", qry)
+
+            dfd = self.get_df_payload(query_obj=qry).get('df')
+
+            # logging.debug("_________DFF________\n%s", dfd)
+
+            dd = dfd.to_dict(orient='records')
+
+            for key in dd[0]:
+                # logging.debug("______dd_0_____\n%s", dd[0])
+                d_key = key
+                i = 1
+                if key in ddd.keys():
+                    while True:
+                        if not key + "_" + str(i) in ddd.keys(): break
+                        else: i += 1
+                    d_key += ("_" + str(i))
+                ddd[d_key] = dd[0][key]
+
+        d.append(ddd)
+
+        global global_dd
+        global global_flag
+
+        global_dd = d
+        global_flag = True
+
+        # logging.debug("_____global_dd________", global_dd)
+        logging.debug("___________get_data__________\n%s",d)
+        return d
+
+
+class TableViz(BaseViz):
     """A basic html table that is sortable and searchable"""
 
     viz_type = 'table'
@@ -504,7 +665,6 @@ class TableViz(BaseViz):
 
     def should_be_timeseries(self):
         fd = self.form_data
-        # TODO handle datasource-type-specific code in datasource
         conditions_met = (
             (fd.get('granularity') and fd.get('granularity') != 'all') or
             (fd.get('granularity_sqla') and fd.get('time_grain_sqla'))
@@ -549,6 +709,115 @@ class TableViz(BaseViz):
     def get_data(self, df):
         fd = self.form_data
         if (
+                        not self.should_be_timeseries() and
+                            df is not None and
+                        DTTM_ALIAS in df
+        ):
+            del df[DTTM_ALIAS]
+
+        # Sum up and compute percentages for all percent metrics
+        percent_metrics = fd.get('percent_metrics') or []
+        percent_metrics = [utils.get_metric_name(m) for m in percent_metrics]
+
+        if len(percent_metrics):
+            percent_metrics = list(filter(lambda m: m in df, percent_metrics))
+            metric_sums = {
+                m: reduce(lambda a, b: a + b, df[m])
+                for m in percent_metrics
+            }
+            metric_percents = {
+                m: list(map(
+                    lambda a: None if metric_sums[m] == 0 else a / metric_sums[m], df[m]))
+                for m in percent_metrics
+            }
+            for m in percent_metrics:
+                m_name = '%' + m
+                df[m_name] = pd.Series(metric_percents[m], name=m_name)
+            # Remove metrics that are not in the main metrics list
+            metrics = fd.get('metrics') or []
+            metrics = [utils.get_metric_name(m) for m in metrics]
+            for m in filter(
+                    lambda m: m not in metrics and m in df.columns,
+                    percent_metrics,
+            ):
+                del df[m]
+
+        data = self.handle_js_int_overflow(
+            dict(
+                records=df.to_dict(orient='records'),
+                columns=list(df.columns),
+            ))
+
+        return data
+
+    def json_dumps(self, obj, sort_keys=False):
+        return json.dumps(
+            obj,
+            default=utils.json_iso_dttm_ser,
+            sort_keys=sort_keys,
+            ignore_nan=True)
+
+
+class TableDrillDownViz(BaseViz):
+
+    viz_type = 'table_drill_down'
+    verbose_name = _('Table Drill Down View')
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
+    is_timeseries = False
+    enforce_numerical_metrics = False
+
+    def should_be_timeseries(self):
+        fd = self.form_data
+        conditions_met = (
+            (fd.get('granularity') and fd.get('granularity') != 'all') or
+            (fd.get('granularity_sqla') and fd.get('time_grain_sqla'))
+        )
+        if fd.get('include_time') and not conditions_met:
+            raise Exception(_(
+                'Pick a granularity in the Time section or '
+                "uncheck 'Include Time'"))
+        return fd.get('include_time')
+
+    def query_obj(self):
+
+        fd = self.form_data
+        logging.debug("_________form_data____________\n%s", fd)
+        # fd['adhoc_filters'] = fd['drill_down_metrics']
+        d = super().query_obj()
+
+        if fd.get('all_columns') and (fd.get('groupby') or- fd.get('metrics')):
+            raise Exception(_(
+                'Choose either fields to [Group By] and [Metrics] or '
+                '[Columns], not both'))
+
+        sort_by = fd.get('timeseries_limit_metric')
+        if fd.get('all_columns'):
+            d['columns'] = fd.get('all_columns')
+            d['groupby'] = []
+            order_by_cols = fd.get('order_by_cols') or []
+            d['orderby'] = [json.loads(t) for t in order_by_cols]
+        elif sort_by:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in utils.get_metric_names(d['metrics']):
+                d['metrics'] += [sort_by]
+            d['orderby'] = [(sort_by, not fd.get('order_desc', True))]
+
+        # Add all percent metrics that are not already in the list
+        if 'percent_metrics' in fd:
+            d['metrics'] = d['metrics'] + list(filter(
+                lambda m: m not in d['metrics'],
+                fd['percent_metrics'] or [],
+            ))
+
+        d['is_timeseries'] = self.should_be_timeseries()
+
+        # logging.debug("____drill_down_query___\n%s", d)
+
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+        if (
                 not self.should_be_timeseries() and
                 df is not None and
                 DTTM_ALIAS in df
@@ -588,7 +857,45 @@ class TableViz(BaseViz):
                 columns=list(df.columns),
             ))
 
-        return data
+        logging.debug("___data___\n%s",data)
+
+        fd = self.form_data
+
+        # ddd = {}
+        d = []
+
+        fd['adhoc_filters'] = fd['drill_down_metrics']
+        qry = super(TableDrillDownViz, self).query_obj()
+        dfd = self.get_df_payload(query_obj=qry).get('df')
+        # dd = dfd.to_dict(orient='records')
+        # logging.debug("____filter_data___\n%s", dd)
+        data_filter = self.handle_js_int_overflow(
+            dict(
+                records=dfd.to_dict(orient='records'),
+                columns=list(dfd.columns),
+            ))
+
+        fd['adhoc_filters'] = []
+        fd['filters'] = []
+        # logging.debug("___form_data__\n%s", fd)
+        qry = super(TableDrillDownViz, self).query_obj()
+        # logging.debug("___query___\n%s", qry)
+        dfd = self.get_df_payload(query_obj=qry).get('df')
+        # dd = dfd.to_dict(orient='records')
+        # logging.debug("___no_filter_data___\n%s", dd)
+
+        data_no_filter = self.handle_js_int_overflow(
+            dict(
+                records=dfd.to_dict(orient='records'),
+                columns=list(dfd.columns),
+            ))
+
+        d.append(data_filter)
+        d.append(data_no_filter)
+
+        logging.debug("__final_data__\n%s", d)
+
+        return data_filter
 
     def json_dumps(self, obj, sort_keys=False):
         return json.dumps(
@@ -599,7 +906,6 @@ class TableViz(BaseViz):
 
 
 class TimeTableViz(BaseViz):
-
     """A data table with rich time-series related columns"""
 
     viz_type = 'time_table'
@@ -642,7 +948,6 @@ class TimeTableViz(BaseViz):
 
 
 class PivotTableViz(BaseViz):
-
     """A pivot table view, define your rows, columns and metrics"""
 
     viz_type = 'pivot_table'
@@ -664,15 +969,15 @@ class PivotTableViz(BaseViz):
         if not metrics:
             raise Exception(_('Please choose at least one metric'))
         if (
-                any(v in groupby for v in columns) or
-                any(v in columns for v in groupby)):
+                    any(v in groupby for v in columns) or
+                    any(v in columns for v in groupby)):
             raise Exception(_("Group By' and 'Columns' can't overlap"))
         return d
 
     def get_data(self, df):
         if (
-                self.form_data.get('granularity') == 'all' and
-                DTTM_ALIAS in df):
+                        self.form_data.get('granularity') == 'all' and
+                        DTTM_ALIAS in df):
             del df[DTTM_ALIAS]
 
         aggfunc = self.form_data.get('pandas_aggfunc')
@@ -703,7 +1008,6 @@ class PivotTableViz(BaseViz):
 
 
 class MarkupViz(BaseViz):
-
     """Use html or markdown to create a free form widget"""
 
     viz_type = 'markup'
@@ -725,7 +1029,6 @@ class MarkupViz(BaseViz):
 
 
 class SeparatorViz(MarkupViz):
-
     """Use to create section headers in a dashboard, similar to `Markup`"""
 
     viz_type = 'separator'
@@ -733,7 +1036,6 @@ class SeparatorViz(MarkupViz):
 
 
 class WordCloudViz(BaseViz):
-
     """Build a colorful word cloud
 
     Uses the nice library at:
@@ -751,7 +1053,6 @@ class WordCloudViz(BaseViz):
 
 
 class TreemapViz(BaseViz):
-
     """Tree map visualisation for hierarchical data."""
 
     viz_type = 'treemap'
@@ -777,7 +1078,6 @@ class TreemapViz(BaseViz):
 
 
 class CalHeatmapViz(BaseViz):
-
     """Calendar heatmap."""
 
     viz_type = 'cal_heatmap'
@@ -797,7 +1097,7 @@ class CalHeatmapViz(BaseViz):
                 v = obj[DTTM_ALIAS]
                 if hasattr(v, 'value'):
                     v = v.value
-                values[str(v / 10**9)] = obj.get(metric)
+                values[str(v / 10 ** 9)] = obj.get(metric)
             data[metric] = values
 
         start, end = utils.get_since_until(relative_end=relative_end,
@@ -837,7 +1137,6 @@ class CalHeatmapViz(BaseViz):
 
 
 class NVD3Viz(BaseViz):
-
     """Base class for all nvd3 vizs"""
 
     credits = '<a href="http://nvd3.org/">NVD3.org</a>'
@@ -847,7 +1146,6 @@ class NVD3Viz(BaseViz):
 
 
 class BoxPlotViz(NVD3Viz):
-
     """Box plot viz from ND3"""
 
     viz_type = 'box_plot'
@@ -932,7 +1230,6 @@ class BoxPlotViz(NVD3Viz):
 
 
 class BubbleViz(NVD3Viz):
-
     """Based on the NVD3 bubble chart"""
 
     viz_type = 'bubble'
@@ -982,7 +1279,6 @@ class BubbleViz(NVD3Viz):
 
 
 class BulletViz(NVD3Viz):
-
     """Based on the NVD3 bullet chart"""
 
     viz_type = 'bullet'
@@ -1030,7 +1326,6 @@ class BulletViz(NVD3Viz):
 
 
 class BigNumberViz(BaseViz):
-
     """Put emphasis on a single metric with this big number viz"""
 
     viz_type = 'big_number'
@@ -1049,7 +1344,6 @@ class BigNumberViz(BaseViz):
 
 
 class BigNumberTotalViz(BaseViz):
-
     """Put emphasis on a single metric with this big number viz"""
 
     viz_type = 'big_number_total'
@@ -1068,7 +1362,6 @@ class BigNumberTotalViz(BaseViz):
 
 
 class NVD3TimeSeriesViz(NVD3Viz):
-
     """A rich line chart component with tons of options"""
 
     viz_type = 'line'
@@ -1100,9 +1393,9 @@ class NVD3TimeSeriesViz(NVD3Viz):
             else:
                 series_title = str(name)
             if (
-                    isinstance(series_title, (list, tuple)) and
-                    len(series_title) > 1 and
-                    len(self.metric_labels) == 1):
+                            isinstance(series_title, (list, tuple)) and
+                                len(series_title) > 1 and
+                            len(self.metric_labels) == 1):
                 # Removing metric from series name if only one metric
                 series_title = series_title[1:]
             if title_suffix:
@@ -1220,7 +1513,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
             df2 = self.get_df_payload(query_object, time_compare=option).get('df')
             if df2 is not None and DTTM_ALIAS in df2:
-                label = '{} offset'. format(option)
+                label = '{} offset'.format(option)
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
                 self._extra_chart_data.append((label, df2))
@@ -1269,7 +1562,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
 
 class MultiLineViz(NVD3Viz):
-
     """Pile on multiple line charts"""
 
     viz_type = 'line_multi'
@@ -1298,7 +1590,6 @@ class MultiLineViz(NVD3Viz):
 
 
 class NVD3DualLineViz(NVD3Viz):
-
     """A rich line chart with dual axis"""
 
     viz_type = 'dual_line'
@@ -1317,7 +1608,7 @@ class NVD3DualLineViz(NVD3Viz):
             raise Exception(_('Pick a metric for right axis!'))
         if m1 == m2:
             raise Exception(_('Please choose different metrics'
-                            ' on left and right axis'))
+                              ' on left and right axis'))
         return d
 
     def to_series(self, df, classed=''):
@@ -1374,7 +1665,6 @@ class NVD3DualLineViz(NVD3Viz):
 
 
 class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
-
     """A bar chart where the x axis is time"""
 
     viz_type = 'bar'
@@ -1383,7 +1673,6 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
 
 
 class NVD3TimePivotViz(NVD3TimeSeriesViz):
-
     """Time Series - Periodicity Pivot"""
 
     viz_type = 'time_pivot'
@@ -1426,7 +1715,6 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
 
 
 class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
-
     """A line chart component where you can compare the % change over time"""
 
     viz_type = 'compare'
@@ -1434,7 +1722,6 @@ class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
 
 
 class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
-
     """A rich stack area chart"""
 
     viz_type = 'area'
@@ -1443,7 +1730,6 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
 
 
 class DistributionPieViz(NVD3Viz):
-
     """Annoy visualization snobs with this controversial pie chart"""
 
     viz_type = 'pie'
@@ -1460,11 +1746,11 @@ class DistributionPieViz(NVD3Viz):
         df.sort_values(by=metric, ascending=False, inplace=True)
         df = df.reset_index()
         df.columns = ['x', 'y']
+
         return df.to_dict(orient='records')
 
 
 class HistogramViz(BaseViz):
-
     """Histogram"""
 
     viz_type = 'histogram'
@@ -1511,7 +1797,6 @@ class HistogramViz(BaseViz):
 
 
 class DistributionBarViz(DistributionPieViz):
-
     """A good old bar chart"""
 
     viz_type = 'dist_bar'
@@ -1522,8 +1807,8 @@ class DistributionBarViz(DistributionPieViz):
         d = super().query_obj()  # noqa
         fd = self.form_data
         if (
-            len(d['groupby']) <
-            len(fd.get('groupby') or []) + len(fd.get('columns') or [])
+                    len(d['groupby']) <
+                        len(fd.get('groupby') or []) + len(fd.get('columns') or [])
         ):
             raise Exception(
                 _("Can't have overlap between Series and Breakdowns"))
@@ -1531,6 +1816,7 @@ class DistributionBarViz(DistributionPieViz):
             raise Exception(_('Pick at least one metric'))
         if not fd.get('groupby'):
             raise Exception(_('Pick at least one field for [Series]'))
+
         return d
 
     def get_data(self, df):
@@ -1575,11 +1861,11 @@ class DistributionBarViz(DistributionPieViz):
                 'values': values,
             }
             chart_data.append(d)
+
         return chart_data
 
 
 class SunburstViz(BaseViz):
-
     """A multi level sunburst chart"""
 
     viz_type = 'sunburst'
@@ -1610,7 +1896,6 @@ class SunburstViz(BaseViz):
 
 
 class SankeyViz(BaseViz):
-
     """A Sankey diagram that requires a parent-child dataset"""
 
     viz_type = 'sankey'
@@ -1661,7 +1946,6 @@ class SankeyViz(BaseViz):
 
 
 class DirectedForceViz(BaseViz):
-
     """An animated directed force layout graph visualization"""
 
     viz_type = 'directed_force'
@@ -1682,7 +1966,6 @@ class DirectedForceViz(BaseViz):
 
 
 class ChordViz(BaseViz):
-
     """A Chord diagram"""
 
     viz_type = 'chord'
@@ -1715,7 +1998,6 @@ class ChordViz(BaseViz):
 
 
 class CountryMapViz(BaseViz):
-
     """A country centric"""
 
     viz_type = 'country_map'
@@ -1743,7 +2025,6 @@ class CountryMapViz(BaseViz):
 
 
 class WorldMapViz(BaseViz):
-
     """A country centric world map"""
 
     viz_type = 'world_map'
@@ -1796,7 +2077,6 @@ class WorldMapViz(BaseViz):
 
 
 class FilterBoxViz(BaseViz):
-
     """A multi filter, multi-choice filter box to make dashboards interactive"""
 
     viz_type = 'filter_box'
@@ -1854,7 +2134,6 @@ class FilterBoxViz(BaseViz):
 
 
 class IFrameViz(BaseViz):
-
     """You can squeeze just about anything in this iFrame component"""
 
     viz_type = 'iframe'
@@ -1873,7 +2152,6 @@ class IFrameViz(BaseViz):
 
 
 class ParallelCoordinatesViz(BaseViz):
-
     """Interactive parallel coordinate implementation
 
     Uses this amazing javascript library
@@ -1898,7 +2176,6 @@ class ParallelCoordinatesViz(BaseViz):
 
 
 class HeatmapViz(BaseViz):
-
     """A nice heatmap visualization that support high density through canvas"""
 
     viz_type = 'heatmap'
@@ -1951,7 +2228,6 @@ class HeatmapViz(BaseViz):
 
 
 class HorizonViz(NVD3TimeSeriesViz):
-
     """Horizon chart
 
     https://www.npmjs.com/package/d3-horizon-chart
@@ -1965,7 +2241,6 @@ class HorizonViz(NVD3TimeSeriesViz):
 
 
 class MapboxViz(BaseViz):
-
     """Rich maps made with Mapbox"""
 
     viz_type = 'mapbox'
@@ -1997,18 +2272,18 @@ class MapboxViz(BaseViz):
         else:
             # Ensuring columns chosen are all in group by
             if (label_col and len(label_col) >= 1 and
-                    label_col[0] != 'count' and
-                    label_col[0] not in fd.get('groupby')):
+                        label_col[0] != 'count' and
+                        label_col[0] not in fd.get('groupby')):
                 raise Exception(_(
                     'Choice of [Label] must be present in [Group By]'))
 
             if (fd.get('point_radius') != 'Auto' and
-                    fd.get('point_radius') not in fd.get('groupby')):
+                        fd.get('point_radius') not in fd.get('groupby')):
                 raise Exception(_(
                     'Choice of [Point Radius] must be present in [Group By]'))
 
             if (fd.get('all_columns_x') not in fd.get('groupby') or
-                    fd.get('all_columns_y') not in fd.get('groupby')):
+                        fd.get('all_columns_y') not in fd.get('groupby')):
                 raise Exception(_(
                     '[Longitude] and [Latitude] columns must be present in [Group By]'))
         return d
@@ -2082,7 +2357,6 @@ class MapboxViz(BaseViz):
 
 
 class DeckGLMultiLayer(BaseViz):
-
     """Pile on multiple DeckGL layers"""
 
     viz_type = 'deck_multi'
@@ -2108,7 +2382,6 @@ class DeckGLMultiLayer(BaseViz):
 
 
 class BaseDeckGLViz(BaseViz):
-
     """Base class for deck.gl visualizations"""
 
     is_timeseries = False
@@ -2265,7 +2538,6 @@ class BaseDeckGLViz(BaseViz):
 
 
 class DeckScatterViz(BaseDeckGLViz):
-
     """deck.gl's ScatterLayer"""
 
     viz_type = 'deck_scatter'
@@ -2310,7 +2582,6 @@ class DeckScatterViz(BaseDeckGLViz):
 
 
 class DeckScreengrid(BaseDeckGLViz):
-
     """deck.gl's ScreenGridLayer"""
 
     viz_type = 'deck_screengrid'
@@ -2336,7 +2607,6 @@ class DeckScreengrid(BaseDeckGLViz):
 
 
 class DeckGrid(BaseDeckGLViz):
-
     """deck.gl's DeckLayer"""
 
     viz_type = 'deck_grid'
@@ -2366,7 +2636,6 @@ def geohash_to_json(geohash_code):
 
 
 class DeckPathViz(BaseDeckGLViz):
-
     """deck.gl's PathLayer"""
 
     viz_type = 'deck_path'
@@ -2413,7 +2682,6 @@ class DeckPathViz(BaseDeckGLViz):
 
 
 class DeckPolygon(DeckPathViz):
-
     """deck.gl's Polygon Layer"""
 
     viz_type = 'deck_polygon'
@@ -2442,7 +2710,6 @@ class DeckPolygon(DeckPathViz):
 
 
 class DeckHex(BaseDeckGLViz):
-
     """deck.gl's DeckLayer"""
 
     viz_type = 'deck_hex'
@@ -2461,7 +2728,6 @@ class DeckHex(BaseDeckGLViz):
 
 
 class DeckGeoJson(BaseDeckGLViz):
-
     """deck.gl's GeoJSONLayer"""
 
     viz_type = 'deck_geojson'
@@ -2480,7 +2746,6 @@ class DeckGeoJson(BaseDeckGLViz):
 
 
 class DeckArc(BaseDeckGLViz):
-
     """deck.gl's Arc Layer"""
 
     viz_type = 'deck_arc'
@@ -2513,7 +2778,6 @@ class DeckArc(BaseDeckGLViz):
 
 
 class EventFlowViz(BaseViz):
-
     """A visualization to explore patterns in event sequences"""
 
     viz_type = 'event_flow'
@@ -2544,7 +2808,6 @@ class EventFlowViz(BaseViz):
 
 
 class PairedTTestViz(BaseViz):
-
     """A table displaying paired t-test values"""
 
     viz_type = 'paired_ttest'
@@ -2604,7 +2867,6 @@ class PairedTTestViz(BaseViz):
 
 
 class RoseViz(NVD3TimeSeriesViz):
-
     viz_type = 'rose'
     verbose_name = _('Time Series - Nightingale Rose Chart')
     sort_series = False
@@ -2630,7 +2892,6 @@ class RoseViz(NVD3TimeSeriesViz):
 
 
 class PartitionViz(NVD3TimeSeriesViz):
-
     """
     A hierarchical data visualization with support for time series.
     """
@@ -2768,6 +3029,6 @@ class PartitionViz(NVD3TimeSeriesViz):
 viz_types = {
     o.viz_type: o for o in globals().values()
     if (
-        inspect.isclass(o) and
-        issubclass(o, BaseViz) and
-        o.viz_type not in config.get('VIZ_TYPE_BLACKLIST'))}
+    inspect.isclass(o) and
+    issubclass(o, BaseViz) and
+    o.viz_type not in config.get('VIZ_TYPE_BLACKLIST'))}

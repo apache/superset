@@ -72,6 +72,14 @@ export const annotations = {
   ],
 };
 
+export const steps = {
+  label: t('Steps'),
+  expanded: true,
+  controlSetRows: [
+    ['funnel_steps'],
+  ],
+};
+
 export const NVD3TimeSeries = [
   {
     label: t('Query'),

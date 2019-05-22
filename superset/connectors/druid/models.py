@@ -415,6 +415,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     # Columns
     datasource_name = Column(String(255), nullable=False)
+    druid_datasource_name = Column(String(255))
     is_hidden = Column(Boolean, default=False)
     filter_select_enabled = Column(Boolean, default=True)  # override default
     fetch_values_from = Column(String(100))
@@ -450,6 +451,9 @@ class DruidDatasource(Model, BaseDatasource):
     @property
     def name(self):
         return self.datasource_name
+
+    def get_query_datasource_name(self):
+        return self.datasource_name if self.druid_datasource_name is None else self.druid_datasource_name
 
     @property
     def schema(self):
@@ -556,7 +560,7 @@ class DruidDatasource(Model, BaseDatasource):
         segment_metadata = None
         try:
             segment_metadata = client.segment_metadata(
-                datasource=self.datasource_name,
+                datasource=self.get_query_datasource_name(),
                 intervals=lbound + '/' + rbound,
                 merge=self.merge_flag,
                 analysisTypes=[])
@@ -572,7 +576,7 @@ class DruidDatasource(Model, BaseDatasource):
                 rbound = datetime(2050, 1, 1).isoformat()[:10]
             try:
                 segment_metadata = client.segment_metadata(
-                    datasource=self.datasource_name,
+                    datasource=self.get_query_datasource_name(),
                     intervals=lbound + '/' + rbound,
                     merge=self.merge_flag,
                     analysisTypes=[])
@@ -868,7 +872,7 @@ class DruidDatasource(Model, BaseDatasource):
             from_dttm = datetime(1970, 1, 1)
 
         qry = dict(
-            datasource=self.datasource_name,
+            datasource=self.get_query_datasource_name(),
             granularity='all',
             intervals=from_dttm.isoformat() + '/' + datetime.now().isoformat(),
             aggregations=dict(count=count('count')),
@@ -1092,7 +1096,7 @@ class DruidDatasource(Model, BaseDatasource):
         dimensions = self.get_dimensions(groupby, columns_dict)
         extras = extras or {}
         qry = dict(
-            datasource=self.datasource_name,
+            datasource=self.get_query_datasource_name(),
             dimensions=dimensions,
             aggregations=aggregations,
             granularity=DruidDatasource.granularity(
