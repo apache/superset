@@ -178,12 +178,12 @@ class SavedQueryViewApi(SavedQueryView):
     @has_access_api
     @expose('show/<pk>')
     def show(self, pk):
-        return super().show(pk)
+        return SupersetModelView.show(self, pk)
 
     @has_access_api
     @expose('edit/<pk>')
     def edit(self, pk):
-        return super().edit(pk)
+        return SupersetModelView.edit(self, pk)
 
 
 appbuilder.add_view_no_menu(SavedQueryViewApi)
