@@ -131,7 +131,7 @@ class ScheduleQueryButton extends React.PureComponent {
   renderModalBody() {
     return (
       <FormGroup>
-        <Row>
+        <Row style={{ paddingBottom: '10px' }}>
           <Col md={12}>
             <label className="control-label" htmlFor="embed-height">
               {t('Label')}
@@ -144,8 +144,7 @@ class ScheduleQueryButton extends React.PureComponent {
             />
           </Col>
         </Row>
-        <br />
-        <Row>
+        <Row style={{ paddingBottom: '10px' }}>
           <Col md={12}>
             <label className="control-label" htmlFor="embed-height">
               {t('Description')}
@@ -158,7 +157,6 @@ class ScheduleQueryButton extends React.PureComponent {
             />
           </Col>
         </Row>
-        <br />
         <Row>
           <Col md={12}>
             <Form
