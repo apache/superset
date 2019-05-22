@@ -83,7 +83,7 @@ try:
             If statsd_client argument is given, all other arguments are ignored and the
             supplied client will be used to emit metrics.
             """
-            BaseStatsLogger.__init__(self, prefix)
+            super(BaseStatsLogger, self).__init__(prefix)
             if statsd_client:
                 self.client = statsd_client
             else:

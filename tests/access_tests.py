@@ -482,8 +482,9 @@ class RequestAccessTests(SupersetTestCase):
     def test_dashboard_endpoint_malicious_redirect(self):
         # todo(gianluca.ciccarelli@bolt.eu): I need a dashboard ID that will
         #  never be used as a real ID in test.
+        unused_dashboard_id = 9999
         resp = self.client.get(
-            '/superset/request_access?dashboard_id=1001&action=go&',
+            '/superset/request_access?dashboard_id={}&action=go&'.format(unused_dashboard_id),
             follow_redirects=True)
         assert resp.status_code == 404
 
