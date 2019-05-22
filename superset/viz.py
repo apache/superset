@@ -698,9 +698,15 @@ class PivotTableViz(BaseViz):
             margins=self.form_data.get('pivot_margins'),
             dropna=False,
         )
+
         # Display metrics side by side with each column
         if self.form_data.get('combine_metric'):
             df = df.stack(0).unstack()
+
+        if self.form_data.get('unstacked_column'):
+            df = df.unstack(self.form_data.get('unstacked_column'),
+                            self.form_data.get('unstacked_na_value'))
+
         return dict(
             columns=list(df.columns),
             html=df.to_html(
