@@ -1075,7 +1075,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             autoload_with=self.get_sqla_engine())
 
     def get_columns(self, table_name, schema=None):
-        return self.inspector.get_columns(table_name, schema)
+        return self.db_engine_spec.get_columns(self.inspector, table_name, schema)
 
     def get_indexes(self, table_name, schema=None):
         return self.inspector.get_indexes(table_name, schema)

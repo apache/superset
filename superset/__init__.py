@@ -27,6 +27,7 @@ from flask_appbuilder import AppBuilder, IndexView, SQLA
 from flask_appbuilder.baseviews import expose
 from flask_compress import Compress
 from flask_migrate import Migrate
+from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
 import wtforms_json
@@ -195,13 +196,14 @@ if not issubclass(custom_sm, SupersetSecurityManager):
          not FAB's security manager.
          See [4565] in UPDATING.md""")
 
-appbuilder = AppBuilder(
-    app,
-    db.session,
-    base_template='superset/base.html',
-    indexview=MyIndexView,
-    security_manager_class=custom_sm,
-)
+with app.app_context():
+    appbuilder = AppBuilder(
+        app,
+        db.session,
+        base_template='superset/base.html',
+        indexview=MyIndexView,
+        security_manager_class=custom_sm,
+    )
 
 security_manager = appbuilder.sm
 
@@ -227,6 +229,10 @@ def is_feature_enabled(feature):
 # Flask-Compress
 if conf.get('ENABLE_FLASK_COMPRESS'):
     Compress(app)
+
+if app.config['TALISMAN_ENABLED']:
+    talisman_config = app.config.get('TALISMAN_CONFIG')
+    Talisman(app, **talisman_config)
 
 # Hook that provides administrators a handle on the Flask APP
 # after initialization

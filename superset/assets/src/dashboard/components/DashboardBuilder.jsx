@@ -222,6 +222,7 @@ class DashboardBuilder extends React.Component {
                           // see isValidChild for why tabs do not increment the depth of their children
                           depth={DASHBOARD_ROOT_DEPTH + 1} // (topLevelTabs ? 0 : 1)}
                           width={width}
+                          isComponentVisible={index === tabIndex}
                         />
                       </TabPane>
                     ))}

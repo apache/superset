@@ -80,6 +80,7 @@ setup(
         'flask-appbuilder>=2.0.0, <2.3.0',
         'flask-caching',
         'flask-compress',
+        'flask-talisman',
         'flask-migrate',
         'flask-wtf',
         'geopy',
@@ -92,8 +93,9 @@ setup(
         'parsedatetime',
         'pathlib2',
         'polyline',
-        'pydruid>=0.4.3',
+        'pydruid>=0.5.2',
         'python-dateutil',
+        'python-dotenv',
         'python-geohash',
         'pyyaml>=3.13',
         'requests>=2.20.0',
@@ -108,7 +110,6 @@ setup(
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],
-        'console_log': ['console_log==0.2.10'],
         'hive': [
             'pyhive[hive]>=0.6.1',
             'tableschema',

@@ -22,6 +22,7 @@ import { Alert } from 'react-bootstrap';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
+import { safeStringify } from '../utils/safeStringify';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import StackTraceMessage from '../components/StackTraceMessage';
@@ -69,25 +70,38 @@ class Chart extends React.PureComponent {
     super(props);
     this.handleRenderContainerFailure = this.handleRenderContainerFailure.bind(this);
   }
+
   componentDidMount() {
     if (this.props.triggerQuery) {
-      if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
-        // Load saved chart with a GET request
-        this.props.actions.getSavedChart(
-          this.props.formData,
-          false,
-          this.props.timeout,
-          this.props.chartId,
-        );
-      } else {
-        // Create chart with POST request
-        this.props.actions.postChartFormData(
-          this.props.formData,
-          false,
-          this.props.timeout,
-          this.props.chartId,
-        );
-      }
+      this.runQuery();
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.triggerQuery &&
+      safeStringify(prevProps.formData) !== safeStringify(this.props.formData)
+    ) {
+      this.runQuery();
+    }
+  }
+
+  runQuery() {
+    if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
+      // Load saved chart with a GET request
+      this.props.actions.getSavedChart(
+        this.props.formData,
+        false,
+        this.props.timeout,
+        this.props.chartId,
+      );
+    } else {
+      // Create chart with POST request
+      this.props.actions.postChartFormData(
+        this.props.formData,
+        false,
+        this.props.timeout,
+        this.props.chartId,
+      );
     }
   }
 
