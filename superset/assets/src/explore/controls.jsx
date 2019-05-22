@@ -1849,8 +1849,8 @@ export const controls = {
     'Either a numerical column or `Auto`, which scales the point based ' +
     'on the largest cluster'),
     mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
+      choices: formatSelectOptions(['Auto']).concat(columnChoices(state.datasource)),
+    }), 
   },
 
   point_radius_unit: {
