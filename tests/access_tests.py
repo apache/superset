@@ -484,7 +484,8 @@ class RequestAccessTests(SupersetTestCase):
         #  never be used as a real ID in test.
         unused_dashboard_id = 9999
         resp = self.client.get(
-            '/superset/request_access?dashboard_id={}&action=go&'.format(unused_dashboard_id),
+            '/superset/request_access?dashboard_id={}&action=go&'
+                .format(unused_dashboard_id),
             follow_redirects=True)
         assert resp.status_code == 404
 
