@@ -28,7 +28,7 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 import hashlib
 import inspect
 import logging
@@ -158,6 +158,10 @@ class BaseEngineSpec(object):
         if cls.limit_method == LimitMethod.FETCH_MANY:
             return cursor.fetchmany(limit)
         return cursor.fetchall()
+
+    @classmethod
+    def expand_data(cls, columns, data):
+        return columns, data
 
     @classmethod
     def alter_new_orm_column(cls, orm_col):
@@ -827,7 +831,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return []
 
     @classmethod
-    def _create_column_info(cls, column: RowProxy, name: str, data_type: str) -> dict:
+    def _create_column_info(cls, name: str, data_type: str, column: RowProxy = None) -> dict:
         """
         Create column info object
         :param column: column object
@@ -839,7 +843,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             'name': name,
             'type': data_type,
             # newer Presto no longer includes this column
-            'nullable': getattr(column, 'Null', True),
+            'nullable': getattr(column, 'Null', True) if column else True,
             'default': None,
         }
 
@@ -879,13 +883,12 @@ class PrestoEngineSpec(BaseEngineSpec):
             r'{}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'.format(delimiter), data_type)
 
     @classmethod
-    def _parse_structural_column(cls, column: RowProxy, result: List[dict]) -> None:
+    def _parse_structural_column(cls, full_data_type: str, result: List[dict], column: RowProxy = None) -> None:
         """
         Parse a row or array column
         :param column: column
         :param result: list tracking the results
         """
-        full_data_type = '{} {}'.format(column.Column, column.Type)
         # split on open parenthesis ( to get the structural
         # data type and its component types
         data_types = cls._split_data_type(full_data_type, r'\(')
@@ -900,8 +903,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                     stack.pop()
                 elif cls._has_nested_data_types(inner_type):
                     # split on comma , to get individual data types
-                    single_fields = cls._split_data_type(inner_type, ', ')
+                    single_fields = cls._split_data_type(inner_type, ',')
                     for single_field in single_fields:
+                        single_field = single_field.strip()
                         # If component type starts with a comma, the first single field
                         # will be an empty string. Disregard this empty string.
                         if not single_field:
@@ -914,13 +918,14 @@ class PrestoEngineSpec(BaseEngineSpec):
                             stack.append((field_info[0], field_info[1]))
                             full_parent_path = cls._get_full_name(stack)
                             result.append(cls._create_column_info(
-                                column, full_parent_path,
-                                presto_type_map[field_info[1]]()))
+                                full_parent_path,
+                                presto_type_map[field_info[1]](),
+                                column))
                         else:  # otherwise this field is a basic data type
                             full_parent_path = cls._get_full_name(stack)
                             column_name = '{}.{}'.format(full_parent_path, field_info[0])
                             result.append(cls._create_column_info(
-                                column, column_name, presto_type_map[field_info[1]]()))
+                                column_name, presto_type_map[field_info[1]](), column))
                     # If the component type ends with a structural data type, do not pop
                     # the stack. We have run across a structural data type within the
                     # overall structural data type. Otherwise, we have completely parsed
@@ -972,7 +977,8 @@ class PrestoEngineSpec(BaseEngineSpec):
             try:
                 # parse column if it is a row or array
                 if 'array' in column.Type or 'row' in column.Type:
-                    cls._parse_structural_column(column, result)
+                    full_data_type = '{} {}'.format(column.Column, column.Type)
+                    cls._parse_structural_column(full_data_type, result, column)
                     continue
                 else:  # otherwise column is a basic data type
                     column_type = presto_type_map[column.Type]()
@@ -980,7 +986,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 logging.info('Did not recognize type {} of column {}'.format(
                     column.Type, column.Column))
                 column_type = types.NullType
-            result.append(cls._create_column_info(column, column.Column, column_type))
+            result.append(cls._create_column_info(column.Column, column_type, column))
         return result
 
     @classmethod
@@ -1025,7 +1031,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return column_clauses
 
     @classmethod
-    def _filter_presto_cols(cls, cols: List[dict]) -> List[dict]:
+    def _filter_presto_cols(cls, cols: List[dict]) -> Tuple[List[dict], List[dict]]:
         """
         We want to filter out columns that correspond to array content because expanding
         arrays would require us to use unnest and join. This can lead to a large,
@@ -1047,20 +1053,23 @@ class PrestoEngineSpec(BaseEngineSpec):
         :return: filtered list of columns
         """
         filtered_cols = []
+        array_cols = []
         curr_array_col_name = ''
-        for col in cols:
+        for index, col in enumerate(cols):
             # col corresponds to an array's content and should be skipped
             if curr_array_col_name and col['name'].startswith(curr_array_col_name):
+                array_cols.append(col)
                 continue
             # col is an array so we need to check if subsequent
             # columns correspond to the array's contents
             elif str(col['type']) == 'ARRAY':
                 curr_array_col_name = col['name']
+                array_cols.append(col)
                 filtered_cols.append(col)
             else:
                 curr_array_col_name = ''
                 filtered_cols.append(col)
-        return filtered_cols
+        return filtered_cols, array_cols
 
     @classmethod
     def select_star(cls, my_db, table_name: str, engine: Engine, schema: str = None,
@@ -1073,7 +1082,10 @@ class PrestoEngineSpec(BaseEngineSpec):
         """
         presto_cols = cols
         if show_cols:
-            presto_cols = cls._filter_presto_cols(cols)
+            # presto_cols = cls._filter_presto_cols(cols)
+            dot_regex = r'\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
+            presto_cols = [
+                col for col in presto_cols if re.search(dot_regex, col['name']) is None]
         return super(PrestoEngineSpec, cls).select_star(
             my_db, table_name, engine, schema, limit,
             show_cols, indent, latest_partition, presto_cols,
@@ -1125,6 +1137,109 @@ class PrestoEngineSpec(BaseEngineSpec):
             result_sets.append('{}.{}'.format(
                 row['table_schema'], row['table_name']))
         return result_sets
+
+    @classmethod
+    def create_column_hierarchy(cls, columns, column_hierarchy, parent_columns):
+        if len(columns) == 0:
+            return
+        # get root column name
+        root_column = columns.pop(0)
+        # empty list
+        nested_columns = {'type': root_column['type'], 'children': []}
+        column_hierarchy[root_column['name']] = nested_columns
+        # while there are columns to explore
+        while columns:
+            column_head = columns[0]
+            if not column_head['name'].startswith('{}.'.format(root_column['name'])):
+                break
+            # if column is of parent type, recursive call
+            if str(column_head['type']) in parent_columns:
+                cls.create_column_hierarchy(columns, column_hierarchy, parent_columns)
+                nested_columns['children'].append(column_head['name'])
+                continue
+            # assign column to list
+            else:
+                nested_columns['children'].append(column_head['name'])
+                # remove column
+                columns.pop(0)
+
+    @classmethod
+    def expand_row_data(cls, datum, column, column_hierarchy):
+        row_data = datum[column]
+        row_children = column_hierarchy[column]['children']
+        if row_data and len(row_data) != len(row_children):
+            raise Exception("mismatched arrays")
+        elif row_data:
+            for index, data_value in enumerate(row_data):
+                datum[row_children[index]] = data_value
+        else:
+            for index, row_child in enumerate(row_children):
+                datum[row_child] = ''
+
+    @classmethod
+    def expand_data(cls, columns, data):
+        expanded_columns = []
+        for column in columns:
+            if column['type'].startswith('ARRAY') or column['type'].startswith('ROW'):
+                full_data_type = '{} {}'.format(column['name'], column['type'].lower())
+                cls._parse_structural_column(full_data_type, expanded_columns)
+            else:
+                expanded_columns.append(column)
+
+        row_column_hierarchy = OrderedDict()
+        array_column_hierarchy = OrderedDict()
+        expanded_array_columns = []
+        for column in columns:
+            if column['type'].startswith('ROW'):
+                parsed_row_columns = []
+                full_data_type = '{} {}'.format(column['name'], column['type'].lower())
+                cls._parse_structural_column(full_data_type, parsed_row_columns)
+                filtered_row_columns, array_columns = cls._filter_presto_cols(parsed_row_columns)
+                expanded_array_columns = expanded_array_columns + array_columns
+                cls.create_column_hierarchy(filtered_row_columns, row_column_hierarchy, ['ROW'])
+                cls.create_column_hierarchy(array_columns, array_column_hierarchy, ['ROW', 'ARRAY'])
+            elif column['type'].startswith('ARRAY'):
+                parsed_array_columns = []
+                full_data_type = '{} {}'.format(column['name'], column['type'].lower())
+                cls._parse_structural_column(full_data_type, parsed_array_columns)
+                expanded_array_columns = expanded_array_columns + parsed_array_columns
+                cls.create_column_hierarchy(parsed_array_columns, array_column_hierarchy, ['ROW', 'ARRAY'])
+
+        ordered_row_columns = row_column_hierarchy.keys()
+        for data_index, datum in enumerate(data):
+            for row_column in ordered_row_columns:
+                cls.expand_row_data(datum, row_column, row_column_hierarchy)
+
+        # This part of the code addresses arrays and is buggy
+        ordered_array_columns = array_column_hierarchy.keys()
+        expanded_array_dict = {}
+        for data_index, datum in enumerate(data):
+            expanded_array_data = [datum.copy()]
+            datum_copy = expanded_array_data[0]
+            for array_column in ordered_array_columns:
+                array_data = datum_copy[array_column]
+                array_children = array_column_hierarchy[array_column]
+                if str(array_column_hierarchy[array_column]['type']) == 'ROW':
+                    new_data = expanded_array_dict.values()
+                    for expanded_array_datum in expanded_array_data:
+                        cls.expand_row(expanded_array_datum, array_column, array_column_hierarchy)
+                elif array_data and array_children:
+                    for array_index, data_value in enumerate(array_data):
+                        if array_index >= len(expanded_array_data):
+                            expanded_array_data.append({})
+                        for index, datum_value in enumerate(data_value):
+                            expanded_array_data[array_index][array_children['children'][index]] = datum_value
+                elif array_data:
+                    for array_index, data_value in enumerate(array_data):
+                        if array_index >= len(expanded_array_data):
+                            expanded_array_data.append({})
+                        expanded_array_data[array_index][array_column] = data_value
+                else:
+                    for index, array_child in enumerate(array_children):
+                        for expanded_array_datum in expanded_array_data:
+                            expanded_array_datum[array_children['children'][index]] = ''
+            expanded_array_dict[data_index] = expanded_array_data
+        return expanded_columns, data
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
