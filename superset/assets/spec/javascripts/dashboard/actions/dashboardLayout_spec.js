@@ -1,4 +1,21 @@
-import { expect } from 'chai';
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import sinon from 'sinon';
 
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
@@ -22,7 +39,10 @@ import {
 } from '../../../../src/dashboard/actions/dashboardLayout';
 
 import { setUnsavedChanges } from '../../../../src/dashboard/actions/dashboardState';
-import { addInfoToast } from '../../../../src/messageToasts/actions';
+import {
+  addWarningToast,
+  ADD_TOAST,
+} from '../../../../src/messageToasts/actions';
 
 import {
   DASHBOARD_GRID_TYPE,
@@ -67,8 +87,8 @@ describe('dashboardLayout actions', () => {
       const nextComponents = { 1: {} };
       const thunk = updateComponents(nextComponents);
       thunk(dispatch, getState);
-      expect(dispatch.callCount).to.equal(1);
-      expect(dispatch.getCall(0).args[0]).to.deep.equal({
+      expect(dispatch.callCount).toBe(1);
+      expect(dispatch.getCall(0).args[0]).toEqual({
         type: UPDATE_COMPONENTS,
         payload: { nextComponents },
       });
@@ -81,10 +101,8 @@ describe('dashboardLayout actions', () => {
       const nextComponents = { 1: {} };
       const thunk = updateComponents(nextComponents);
       thunk(dispatch, getState);
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0]).to.deep.equal(
-        setUnsavedChanges(true),
-      );
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
     });
   });
 
@@ -93,8 +111,8 @@ describe('dashboardLayout actions', () => {
       const { getState, dispatch } = setup();
       const thunk = deleteComponent('id', 'parentId');
       thunk(dispatch, getState);
-      expect(dispatch.callCount).to.equal(1);
-      expect(dispatch.getCall(0).args[0]).to.deep.equal({
+      expect(dispatch.callCount).toBe(1);
+      expect(dispatch.getCall(0).args[0]).toEqual({
         type: DELETE_COMPONENT,
         payload: { id: 'id', parentId: 'parentId' },
       });
@@ -106,10 +124,8 @@ describe('dashboardLayout actions', () => {
       });
       const thunk = deleteComponent('id', 'parentId');
       thunk(dispatch, getState);
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0]).to.deep.equal(
-        setUnsavedChanges(true),
-      );
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
     });
   });
 
@@ -122,7 +138,7 @@ describe('dashboardLayout actions', () => {
       const thunk2 = dispatch.getCall(0).args[0];
       thunk2(dispatch, getState);
 
-      expect(dispatch.getCall(1).args[0]).to.deep.equal({
+      expect(dispatch.getCall(1).args[0]).toEqual({
         type: UPDATE_COMPONENTS,
         payload: {
           nextComponents: {
@@ -133,7 +149,7 @@ describe('dashboardLayout actions', () => {
         },
       });
 
-      expect(dispatch.callCount).to.equal(2);
+      expect(dispatch.callCount).toBe(2);
     });
   });
 
@@ -143,8 +159,8 @@ describe('dashboardLayout actions', () => {
       const dropResult = {};
       const thunk = createTopLevelTabs(dropResult);
       thunk(dispatch, getState);
-      expect(dispatch.callCount).to.equal(1);
-      expect(dispatch.getCall(0).args[0]).to.deep.equal({
+      expect(dispatch.callCount).toBe(1);
+      expect(dispatch.getCall(0).args[0]).toEqual({
         type: CREATE_TOP_LEVEL_TABS,
         payload: { dropResult },
       });
@@ -157,10 +173,8 @@ describe('dashboardLayout actions', () => {
       const dropResult = {};
       const thunk = createTopLevelTabs(dropResult);
       thunk(dispatch, getState);
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0]).to.deep.equal(
-        setUnsavedChanges(true),
-      );
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
     });
   });
 
@@ -170,8 +184,8 @@ describe('dashboardLayout actions', () => {
       const dropResult = {};
       const thunk = deleteTopLevelTabs(dropResult);
       thunk(dispatch, getState);
-      expect(dispatch.callCount).to.equal(1);
-      expect(dispatch.getCall(0).args[0]).to.deep.equal({
+      expect(dispatch.callCount).toBe(1);
+      expect(dispatch.getCall(0).args[0]).toEqual({
         type: DELETE_TOP_LEVEL_TABS,
         payload: {},
       });
@@ -184,10 +198,8 @@ describe('dashboardLayout actions', () => {
       const dropResult = {};
       const thunk = deleteTopLevelTabs(dropResult);
       thunk(dispatch, getState);
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0]).to.deep.equal(
-        setUnsavedChanges(true),
-      );
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
     });
   });
 
@@ -217,8 +229,8 @@ describe('dashboardLayout actions', () => {
       const thunk2 = dispatch.getCall(0).args[0];
       thunk2(dispatch, getState);
 
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0]).to.deep.equal({
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual({
         type: UPDATE_COMPONENTS,
         payload: {
           nextComponents: {
@@ -234,7 +246,7 @@ describe('dashboardLayout actions', () => {
         },
       });
 
-      expect(dispatch.callCount).to.equal(2);
+      expect(dispatch.callCount).toBe(2);
     });
 
     it('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
@@ -248,7 +260,7 @@ describe('dashboardLayout actions', () => {
       const thunk2 = dispatch.getCall(0).args[0];
       thunk2(dispatch, getState);
 
-      expect(dispatch.callCount).to.equal(3);
+      expect(dispatch.callCount).toBe(3);
     });
   });
 
@@ -267,14 +279,14 @@ describe('dashboardLayout actions', () => {
       const createComponentThunk = dispatch.getCall(0).args[0];
       createComponentThunk(dispatch, getState);
 
-      expect(dispatch.getCall(1).args[0]).to.deep.equal({
+      expect(dispatch.getCall(1).args[0]).toEqual({
         type: CREATE_COMPONENT,
         payload: {
           dropResult,
         },
       });
 
-      expect(dispatch.callCount).to.equal(2);
+      expect(dispatch.callCount).toBe(2);
     });
 
     it('should move a component if the component is not new', () => {
@@ -296,14 +308,14 @@ describe('dashboardLayout actions', () => {
       const moveComponentThunk = dispatch.getCall(0).args[0];
       moveComponentThunk(dispatch, getState);
 
-      expect(dispatch.getCall(1).args[0]).to.deep.equal({
+      expect(dispatch.getCall(1).args[0]).toEqual({
         type: MOVE_COMPONENT,
         payload: {
           dropResult,
         },
       });
 
-      expect(dispatch.callCount).to.equal(2);
+      expect(dispatch.callCount).toBe(2);
     });
 
     it('should dispatch a toast if the drop overflows the destination', () => {
@@ -325,11 +337,11 @@ describe('dashboardLayout actions', () => {
 
       const thunk = handleComponentDrop(dropResult);
       thunk(dispatch, getState);
-      expect(dispatch.getCall(0).args[0].type).to.deep.equal(
-        addInfoToast('').type,
+      expect(dispatch.getCall(0).args[0].type).toEqual(
+        addWarningToast('').type,
       );
 
-      expect(dispatch.callCount).to.equal(1);
+      expect(dispatch.callCount).toBe(1);
     });
 
     it('should delete a parent Row or Tabs if the moved child was the only child', () => {
@@ -360,7 +372,7 @@ describe('dashboardLayout actions', () => {
       const deleteThunk = dispatch.getCall(1).args[0];
       deleteThunk(dispatch, getState);
 
-      expect(dispatch.getCall(2).args[0]).to.deep.equal({
+      expect(dispatch.getCall(2).args[0]).toEqual({
         type: DELETE_COMPONENT,
         payload: {
           id: 'tabsId',
@@ -369,7 +381,7 @@ describe('dashboardLayout actions', () => {
       });
 
       // move thunk, delete thunk, delete result actions
-      expect(dispatch.callCount).to.equal(3);
+      expect(dispatch.callCount).toBe(3);
     });
 
     it('should create top-level tabs if dropped on root', () => {
@@ -386,14 +398,72 @@ describe('dashboardLayout actions', () => {
       const thunk2 = dispatch.getCall(0).args[0];
       thunk2(dispatch, getState);
 
-      expect(dispatch.getCall(1).args[0]).to.deep.equal({
+      expect(dispatch.getCall(1).args[0]).toEqual({
         type: CREATE_TOP_LEVEL_TABS,
         payload: {
           dropResult,
         },
       });
 
-      expect(dispatch.callCount).to.equal(2);
+      expect(dispatch.callCount).toBe(2);
+    });
+
+    it('should dispatch a toast if drop top-level tab into nested tab', () => {
+      const { getState, dispatch } = setup({
+        dashboardLayout: {
+          present: {
+            [DASHBOARD_ROOT_ID]: {
+              children: ['TABS-ROOT_TABS'],
+              id: DASHBOARD_ROOT_ID,
+              type: 'ROOT',
+            },
+            'TABS-ROOT_TABS': {
+              children: ['TAB-iMppmTOQy', 'TAB-rt1y8cQ6K9', 'TAB-X_pnCIwPN'],
+              id: 'TABS-ROOT_TABS',
+              meta: {},
+              parents: ['ROOT_ID'],
+              type: TABS_TYPE,
+            },
+            'TABS-ROW_TABS': {
+              children: [
+                'TAB-dKIDBT03bQ',
+                'TAB-PtxY5bbTe',
+                'TAB-Wc2P-yGMz',
+                'TAB-U-xe_si7i',
+              ],
+              id: 'TABS-ROW_TABS',
+              meta: {},
+              parents: ['ROOT_ID', 'TABS-ROOT_TABS', 'TAB-X_pnCIwPN'],
+              type: TABS_TYPE,
+            },
+          },
+        },
+      });
+      const dropResult = {
+        source: {
+          id: 'TABS-ROOT_TABS',
+          index: 1,
+          type: TABS_TYPE,
+        },
+        destination: {
+          id: 'TABS-ROW_TABS',
+          index: 1,
+          type: TABS_TYPE,
+        },
+        dragging: {
+          id: 'TAB-rt1y8cQ6K9',
+          meta: { text: 'New Tab' },
+          type: 'TAB',
+        },
+      };
+
+      const thunk1 = handleComponentDrop(dropResult);
+      thunk1(dispatch, getState);
+
+      const thunk2 = dispatch.getCall(0).args[0];
+      thunk2(dispatch, getState);
+
+      expect(dispatch.getCall(1).args[0].type).toEqual(ADD_TOAST);
     });
   });
 
@@ -405,10 +475,8 @@ describe('dashboardLayout actions', () => {
       const thunk = undoLayoutAction();
       thunk(dispatch, getState);
 
-      expect(dispatch.callCount).to.equal(1);
-      expect(dispatch.getCall(0).args[0]).to.deep.equal(
-        UndoActionCreators.undo(),
-      );
+      expect(dispatch.callCount).toBe(1);
+      expect(dispatch.getCall(0).args[0]).toEqual(UndoActionCreators.undo());
     });
 
     it('should dispatch a setUnsavedChanges(false) action history length is zero', () => {
@@ -418,10 +486,8 @@ describe('dashboardLayout actions', () => {
       const thunk = undoLayoutAction();
       thunk(dispatch, getState);
 
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0]).to.deep.equal(
-        setUnsavedChanges(false),
-      );
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(false));
     });
   });
 
@@ -431,10 +497,8 @@ describe('dashboardLayout actions', () => {
       const thunk = redoLayoutAction();
       thunk(dispatch, getState);
 
-      expect(dispatch.callCount).to.equal(1);
-      expect(dispatch.getCall(0).args[0]).to.deep.equal(
-        UndoActionCreators.redo(),
-      );
+      expect(dispatch.callCount).toBe(1);
+      expect(dispatch.getCall(0).args[0]).toEqual(UndoActionCreators.redo());
     });
 
     it('should dispatch a setUnsavedChanges(true) action if hasUnsavedChanges=false', () => {
@@ -444,10 +508,8 @@ describe('dashboardLayout actions', () => {
       const thunk = redoLayoutAction();
       thunk(dispatch, getState);
 
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0]).to.deep.equal(
-        setUnsavedChanges(true),
-      );
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
     });
   });
 });

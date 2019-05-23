@@ -1,34 +1,53 @@
-# -*- coding: utf-8 -*-
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from datetime import datetime
 import functools
 import logging
 import traceback
+from typing import Any, Dict
 
 from flask import abort, flash, g, get_flashed_messages, redirect, Response
 from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
+from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
+from flask_wtf.form import FlaskForm
 import simplejson as json
+from wtforms.fields.core import Field, UnboundField
 import yaml
 
-from superset import conf, db, security_manager, utils
-from superset.exceptions import SupersetSecurityException
+from superset import conf, db, get_feature_flags, security_manager
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
+from superset.utils import core as utils
 
 FRONTEND_CONF_KEYS = (
     'SUPERSET_WEBSERVER_TIMEOUT',
     'SUPERSET_DASHBOARD_POSITION_DATA_LIMIT',
     'ENABLE_JAVASCRIPT_CONTROLS',
+    'DEFAULT_SQLLAB_LIMIT',
+    'SQL_MAX_ROW',
+    'SUPERSET_WEBSERVER_DOMAINS',
+    'SQLLAB_SAVE_WARNING_MESSAGE',
 )
 
 
@@ -56,6 +75,15 @@ def json_error_response(msg=None, status=500, stacktrace=None, payload=None, lin
         status=status, mimetype='application/json')
 
 
+def json_success(json_msg, status=200):
+    return Response(json_msg, status=status, mimetype='application/json')
+
+
+def data_payload_response(payload_json, has_error=False):
+    status = 400 if has_error else 200
+    return json_success(payload_json, status=status)
+
+
 def generate_download_headers(extension, filename=None):
     filename = filename if filename else datetime.now().strftime('%Y%m%d_%H%M%S')
     content_disp = 'attachment; filename={}.{}'.format(filename, extension)
@@ -80,12 +108,38 @@ def api(f):
     return functools.update_wrapper(wraps, f)
 
 
+def handle_api_exception(f):
+    """
+    A decorator to catch superset exceptions. Use it after the @api decorator above
+    so superset exception handler is triggered before the handler for generic exceptions.
+    """
+    def wraps(self, *args, **kwargs):
+        try:
+            return f(self, *args, **kwargs)
+        except SupersetSecurityException as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e),
+                                       status=e.status,
+                                       stacktrace=traceback.format_exc(),
+                                       link=e.link)
+        except SupersetException as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e),
+                                       stacktrace=traceback.format_exc(),
+                                       status=e.status)
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e),
+                                       stacktrace=traceback.format_exc())
+    return functools.update_wrapper(wraps, f)
+
+
 def get_datasource_exist_error_msg(full_name):
     return __('Datasource %(name)s already exists', name=full_name)
 
 
 def get_user_roles():
-    if g.user.is_anonymous():
+    if g.user.is_anonymous:
         public_role = conf.get('AUTH_ROLE_PUBLIC')
         return [security_manager.find_role(public_role)] if public_role else []
     return g.user.roles
@@ -99,7 +153,7 @@ class BaseSupersetView(BaseView):
             status=status,
             mimetype='application/json')
 
-    def common_bootsrap_payload(self):
+    def common_bootstrap_payload(self):
         """Common data always sent to the client"""
         messages = get_flashed_messages(with_categories=True)
         locale = str(get_locale())
@@ -108,7 +162,7 @@ class BaseSupersetView(BaseView):
             'conf': {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
             'locale': locale,
             'language_pack': get_language_pack(locale),
-            'feature_flags': conf.get('FEATURE_FLAGS'),
+            'feature_flags': get_feature_flags(),
         }
 
 
@@ -289,7 +343,7 @@ def check_ownership(obj, raise_if_false=True):
     security_exception = SupersetSecurityException(
         "You don't have the rights to alter [{}]".format(obj))
 
-    if g.user.is_anonymous():
+    if g.user.is_anonymous:
         if raise_if_false:
             raise security_exception
         return False
@@ -318,3 +372,26 @@ def check_ownership(obj, raise_if_false=True):
         raise security_exception
     else:
         return False
+
+
+def bind_field(
+        self,
+        form: DynamicForm,
+        unbound_field: UnboundField,
+        options: Dict[Any, Any],
+    ) -> Field:
+    """
+    Customize how fields are bound by stripping all whitespace.
+
+    :param form: The form
+    :param unbound_field: The unbound field
+    :param options: The field options
+    :returns: The bound field
+    """
+
+    filters = unbound_field.kwargs.get('filters', [])
+    filters.append(lambda x: x.strip() if isinstance(x, str) else x)
+    return unbound_field.bind(form=form, filters=filters, **options)
+
+
+FlaskForm.Meta.bind_field = bind_field

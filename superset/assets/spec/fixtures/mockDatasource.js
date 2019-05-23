@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 export const id = 7;
 export const datasourceId = `${id}__table`;
 
@@ -20,7 +38,6 @@ export default {
       avg__num: 'avg__num',
       avg__sum_boys: 'avg__sum_boys',
     },
-    gb_cols: [['gender', 'gender'], ['name', 'name'], ['state', 'state']],
     metrics: [
       {
         expression: 'SUM(birth_names.num)',
@@ -160,20 +177,6 @@ export default {
       ['P1W', 'week'],
       ['P1M', 'month'],
     ],
-    filterable_cols: [
-      ['gender', 'gender'],
-      ['name', 'name'],
-      ['state', 'state'],
-    ],
-    all_cols: [
-      ['ds', 'ds'],
-      ['gender', 'gender'],
-      ['name', 'name'],
-      ['num', 'num'],
-      ['state', 'state'],
-      ['sum_boys', 'sum_boys'],
-      ['sum_girls', 'sum_girls'],
-    ],
     filter_select: true,
     order_by_choices: [
       ['["ds", true]', 'ds [asc]'],
@@ -190,15 +193,6 @@ export default {
       ['["sum_boys", false]', 'sum_boys [desc]'],
       ['["sum_girls", true]', 'sum_girls [asc]'],
       ['["sum_girls", false]', 'sum_girls [desc]'],
-    ],
-    metrics_combo: [
-      ['count', 'COUNT(*)'],
-      ['avg__num', 'avg__num'],
-      ['avg__sum_boys', 'avg__sum_boys'],
-      ['avg__sum_girls', 'avg__sum_girls'],
-      ['sum__num', 'sum__num'],
-      ['sum__sum_boys', 'sum__sum_boys'],
-      ['sum__sum_girls', 'sum__sum_girls'],
     ],
     type: 'table',
     edit_url: '/tablemodelview/edit/7',

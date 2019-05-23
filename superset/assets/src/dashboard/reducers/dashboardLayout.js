@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_GRID_ID,
@@ -6,6 +24,7 @@ import {
 import componentIsResizable from '../util/componentIsResizable';
 import findParentId from '../util/findParentId';
 import getComponentWidthFromDrop from '../util/getComponentWidthFromDrop';
+import updateComponentParentsList from '../util/updateComponentParentsList';
 import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
@@ -14,6 +33,7 @@ import { ROW_TYPE, TAB_TYPE, TABS_TYPE } from '../util/componentTypes';
 
 import {
   UPDATE_COMPONENTS,
+  UPDATE_COMPONENTS_PARENTS_LIST,
   DELETE_COMPONENT,
   CREATE_COMPONENT,
   MOVE_COMPONENT,
@@ -236,6 +256,21 @@ const actionHandlers = {
     };
 
     return nextEntities;
+  },
+
+  [UPDATE_COMPONENTS_PARENTS_LIST](state) {
+    const nextState = {
+      ...state,
+    };
+
+    updateComponentParentsList({
+      currentComponent: nextState[DASHBOARD_ROOT_ID],
+      layout: nextState,
+    });
+
+    return {
+      ...nextState,
+    };
   },
 };
 

@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -14,20 +32,25 @@ import {
   Radio,
   Tab,
   Tabs,
+  Tooltip,
 } from 'react-bootstrap';
 import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';
+import { t } from '@superset-ui/translation';
 
 import './DateFilterControl.css';
 import ControlHeader from '../ControlHeader';
-import { t } from '../../../locales';
 import PopoverSection from '../../../components/PopoverSection';
 
 const TYPES = Object.freeze({
   DEFAULTS: 'defaults',
   CUSTOM_START_END: 'custom_start_end',
   CUSTOM_RANGE: 'custom_range',
+});
+const TABS = Object.freeze({
+  DEFAULTS: 'defaults',
+  CUSTOM: 'custom',
 });
 const RELATIVE_TIME_OPTIONS = Object.freeze({
   LAST: 'Last',
@@ -78,12 +101,13 @@ function isValidMoment(s) {
 
 function getStateFromSeparator(value) {
   const [since, until] = value.split(SEPARATOR, 2);
-  return { since, until, type: TYPES.CUSTOM_START_END };
+  return { since, until, type: TYPES.CUSTOM_START_END, tab: TABS.CUSTOM };
 }
 
 function getStateFromCommonTimeFrame(value) {
   const units = value.split(' ')[1] + 's';
   return {
+    tab: TABS.DEFAULTS,
     type: TYPES.DEFAULTS,
     common: value,
     since: moment().startOf('day').subtract(1, units).format(MOMENT_FORMAT),
@@ -109,6 +133,7 @@ function getStateFromCustomRange(value) {
     since = moment().startOf('day').format(MOMENT_FORMAT);
   }
   return {
+    tab: TABS.CUSTOM,
     type: TYPES.CUSTOM_RANGE,
     common: null,
     rel,
@@ -124,6 +149,7 @@ export default class DateFilterControl extends React.Component {
     super(props);
     this.state = {
       type: TYPES.DEFAULTS,
+      tab: TABS.DEFAULTS,
 
       // default time frames, for convenience
       common: COMMON_TIME_FRAMES[0],
@@ -145,6 +171,15 @@ export default class DateFilterControl extends React.Component {
       untilViewMode: 'days',
     };
 
+    const value = props.value;
+    if (value.indexOf(SEPARATOR) >= 0) {
+      this.state = { ...this.state, ...getStateFromSeparator(value) };
+    } else if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
+      this.state = { ...this.state, ...getStateFromCommonTimeFrame(value) };
+    } else {
+      this.state = { ...this.state, ...getStateFromCustomRange(value) };
+    }
+
     this.close = this.close.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.isValidSince = this.isValidSince.bind(this);
@@ -156,18 +191,13 @@ export default class DateFilterControl extends React.Component {
     this.setTypeCustomRange = this.setTypeCustomRange.bind(this);
     this.setTypeCustomStartEnd = this.setTypeCustomStartEnd.bind(this);
     this.toggleCalendar = this.toggleCalendar.bind(this);
+    this.changeTab = this.changeTab.bind(this);
   }
+
   componentDidMount() {
-    const value = this.props.value;
-    if (value.indexOf(SEPARATOR) >= 0) {
-      this.state = { ...this.state, ...getStateFromSeparator(value) };
-    } else if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
-      this.state = { ...this.state, ...getStateFromCommonTimeFrame(value) };
-    } else {
-      this.state = { ...this.state, ...getStateFromCustomRange(value) };
-    }
     document.addEventListener('click', this.handleClick);
   }
+
   componentWillUnmount() {
     document.removeEventListener('click', this.handleClick);
   }
@@ -201,6 +231,16 @@ export default class DateFilterControl extends React.Component {
   setTypeCustomStartEnd() {
     this.setState({ type: TYPES.CUSTOM_START_END });
   }
+
+  changeTab() {
+    const { tab } = this.state;
+    if (tab === TABS.CUSTOM) {
+      this.setState({ tab: TABS.DEFAULTS });
+    } else if (tab === TABS.DEFAULTS) {
+      this.setState({ tab: TABS.CUSTOM });
+    }
+  }
+
   handleClick(e) {
     // switch to `TYPES.CUSTOM_START_END` when the calendar is clicked
     if (this.startEndSectionRef && this.startEndSectionRef.contains(e.target)) {
@@ -209,7 +249,7 @@ export default class DateFilterControl extends React.Component {
   }
   close() {
     let val;
-    if (this.state.type === TYPES.DEFAULTS) {
+    if (this.state.type === TYPES.DEFAULTS || this.state.tab === TABS.DEFAULTS) {
       val = this.state.common;
     } else if (this.state.type === TYPES.CUSTOM_RANGE) {
       val = `${this.state.rel} ${this.state.num} ${this.state.grain}`;
@@ -272,22 +312,38 @@ export default class DateFilterControl extends React.Component {
         {grain}
       </MenuItem>
       ));
-    const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => (
-      <Radio
-        key={timeFrame.replace(' ', '').toLowerCase()}
-        checked={this.state.common === timeFrame}
-        onChange={() => this.setState(getStateFromCommonTimeFrame(timeFrame))}
-      >
-        {timeFrame}
-      </Radio>
-      ));
+    const timeFrames = COMMON_TIME_FRAMES.map((timeFrame) => {
+      const nextState = getStateFromCommonTimeFrame(timeFrame);
+      return (
+        <OverlayTrigger
+          key={timeFrame}
+          placement="left"
+          overlay={
+            <Tooltip id={`tooltip-${timeFrame}`}>
+              {nextState.since}<br />{nextState.until}
+            </Tooltip>
+          }
+        >
+          <div>
+            <Radio
+              key={timeFrame.replace(' ', '').toLowerCase()}
+              checked={this.state.common === timeFrame}
+              onChange={() => this.setState(nextState)}
+            >
+              {timeFrame}
+            </Radio>
+          </div>
+        </OverlayTrigger>
+      );
+    });
     return (
       <Popover id="filter-popover" placement="top" positionTop={0}>
         <div style={{ width: '250px' }}>
           <Tabs
-            defaultActiveKey={this.state.type === TYPES.DEFAULTS ? 1 : 2}
+            defaultActiveKey={this.state.tab === TABS.DEFAULTS ? 1 : 2}
             id="type"
             className="time-filter-tabs"
+            onSelect={this.changeTab}
           >
             <Tab eventKey={1} title="Defaults">
               <FormGroup>{timeFrames}</FormGroup>
@@ -406,7 +462,7 @@ export default class DateFilterControl extends React.Component {
   }
   render() {
     let value = this.props.value || defaultProps.value;
-    value = value.split(SEPARATOR).map(v => v.replace('T00:00:00', '') || '∞').join(SEPARATOR);
+    value = value.split(SEPARATOR).map((v, idx) => v.replace('T00:00:00', '') || (idx === 0 ? '-∞' : '∞')).join(SEPARATOR);
     return (
       <div>
         <ControlHeader {...this.props} />

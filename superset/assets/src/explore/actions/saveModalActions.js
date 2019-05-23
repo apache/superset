@@ -1,6 +1,23 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { SupersetClient } from '@superset-ui/connection';
 import { getExploreUrlAndPayload } from '../exploreUtils';
-
-const $ = window.$ = require('jquery');
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
 export function fetchDashboardsSucceeded(choices) {
@@ -13,22 +30,19 @@ export function fetchDashboardsFailed(userId) {
 }
 
 export function fetchDashboards(userId) {
-  return function (dispatch) {
-    const url = '/dashboardasync/api/read?_flt_0_owners=' + userId;
-    return $.ajax({
-      type: 'GET',
-      url,
-      success: (data) => {
-        const choices = [];
-        for (let i = 0; i < data.pks.length; i++) {
-          choices.push({ value: data.pks[i], label: data.result[i].dashboard_title });
-        }
-        dispatch(fetchDashboardsSucceeded(choices));
-      },
-      error: () => {
-        dispatch(fetchDashboardsFailed(userId));
-      },
-    });
+  return function fetchDashboardsThunk(dispatch) {
+    return SupersetClient.get({
+      endpoint: `/dashboardasync/api/read?_flt_0_owners=${userId}`,
+    })
+      .then(({ json }) => {
+        const choices = json.pks.map((id, index) => ({
+          value: id,
+          label: (json.result[index] || {}).dashboard_title,
+        }));
+
+        return dispatch(fetchDashboardsSucceeded(choices));
+      })
+      .catch(() => dispatch(fetchDashboardsFailed(userId)));
   };
 }
 
@@ -55,18 +69,9 @@ export function saveSlice(formData, requestParams) {
       curUrl: null,
       requestParams,
     });
-    return $.ajax({
-      type: 'POST',
-      url,
-      data: {
-        form_data: JSON.stringify(payload),
-      },
-      success: ((data) => {
-        dispatch(saveSliceSuccess(data));
-      }),
-      error: (() => {
-        dispatch(saveSliceFailed());
-      }),
-    });
+
+    return SupersetClient.post({ url, postPayload: { form_data: payload } })
+      .then(({ json }) => dispatch(saveSliceSuccess(json)))
+      .catch(() => dispatch(saveSliceFailed()));
   };
 }

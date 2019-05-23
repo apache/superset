@@ -1,23 +1,46 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import { exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
 import MissingChart from '../MissingChart';
-import { chartPropType } from '../../../chart/chartReducer';
-import { slicePropShape } from '../../util/propShapes';
-import { VIZ_TYPES } from '../../../visualizations';
+import { slicePropShape, chartPropShape } from '../../util/propShapes';
+import {
+  LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
+  LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
+  LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_FORCE_REFRESH_CHART,
+} from '../../../logger/LogUtils';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
+  componentId: PropTypes.string.isRequired,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   updateSliceName: PropTypes.func.isRequired,
+  isComponentVisible: PropTypes.bool,
 
   // from redux
-  chart: PropTypes.shape(chartPropType).isRequired,
+  chart: PropTypes.shape(chartPropShape).isRequired,
   formData: PropTypes.object.isRequired,
   datasource: PropTypes.object.isRequired,
   slice: slicePropShape.isRequired,
@@ -25,12 +48,21 @@ const propTypes = {
   timeout: PropTypes.number.isRequired,
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
+  logEvent: PropTypes.func.isRequired,
   toggleExpandSlice: PropTypes.func.isRequired,
   addFilter: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   isExpanded: PropTypes.bool.isRequired,
+  isCached: PropTypes.bool,
   supersetCanExplore: PropTypes.bool.isRequired,
+  supersetCanCSV: PropTypes.bool.isRequired,
   sliceCanEdit: PropTypes.bool.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
+};
+
+const defaultProps = {
+  isCached: false,
+  isComponentVisible: true,
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
@@ -39,7 +71,7 @@ const RESIZE_TIMEOUT = 350;
 const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
   prop => prop !== 'width' && prop !== 'height',
 );
-const OVERFLOWABLE_VIZ_TYPES = new Set([VIZ_TYPES.filter_box]);
+const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 
 class Chart extends React.Component {
   constructor(props) {
@@ -53,7 +85,6 @@ class Chart extends React.Component {
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
-    this.getFilters = this.getFilters.bind(this);
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
@@ -70,19 +101,27 @@ class Chart extends React.Component {
       return true;
     }
 
-    for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
-      const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
-      if (nextProps[prop] !== this.props[prop]) {
+    // allow chart update/re-render only if visible:
+    // under selected tab or no tab layout
+    if (nextProps.isComponentVisible) {
+      if (nextProps.chart.triggerQuery) {
         return true;
       }
-    }
 
-    if (
-      nextProps.width !== this.props.width ||
-      nextProps.height !== this.props.height
-    ) {
-      clearTimeout(this.resizeTimeout);
-      this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+      for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
+        const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
+        if (nextProps[prop] !== this.props[prop]) {
+          return true;
+        }
+      }
+
+      if (
+        nextProps.width !== this.props.width ||
+        nextProps.height !== this.props.height
+      ) {
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+      }
     }
 
     return false;
@@ -90,10 +129,6 @@ class Chart extends React.Component {
 
   componentWillUnmount() {
     clearTimeout(this.resizeTimeout);
-  }
-
-  getFilters() {
-    return this.props.filters;
   }
 
   getChartHeight() {
@@ -123,37 +158,60 @@ class Chart extends React.Component {
     this.setState(() => ({ width, height }));
   }
 
-  addFilter(...args) {
-    this.props.addFilter(this.props.chart, ...args);
+  addFilter(...[col, vals, merge, refresh]) {
+    this.props.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
+      id: this.props.chart.id,
+      column: col,
+      value_count: Array.isArray(vals) ? vals.length : (vals && 1) || 0,
+      merge,
+      refresh,
+    });
+    this.props.addFilter(this.props.chart, col, vals, merge, refresh);
   }
 
   exploreChart() {
+    this.props.logEvent(LOG_ACTIONS_EXPLORE_DASHBOARD_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+    });
     exportChart(this.props.formData);
   }
 
   exportCSV() {
+    this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+    });
     exportChart(this.props.formData, 'csv');
   }
 
   forceRefresh() {
+    this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+    });
     return this.props.refreshChart(this.props.chart, true, this.props.timeout);
   }
 
   render() {
     const {
       id,
+      componentId,
       chart,
       slice,
       datasource,
       isExpanded,
       editMode,
+      filters,
       formData,
       updateSliceName,
       sliceName,
       toggleExpandSlice,
       timeout,
       supersetCanExplore,
+      supersetCanCSV,
       sliceCanEdit,
+      addDangerToast,
     } = this.props;
 
     const { width } = this.state;
@@ -187,7 +245,11 @@ class Chart extends React.Component {
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
+          supersetCanCSV={supersetCanCSV}
           sliceCanEdit={sliceCanEdit}
+          componentId={componentId}
+          filters={filters}
+          addDangerToast={addDangerToast}
         />
 
         {/*
@@ -197,15 +259,14 @@ class Chart extends React.Component {
           and
              https://github.com/apache/incubator-superset/commit/b6fcc22d5a2cb7a5e92599ed5795a0169385a825
         */}
-        {isExpanded &&
-          slice.description_markeddown && (
-            <div
-              className="slice_description bs-callout bs-callout-default"
-              ref={this.setDescriptionRef}
-              // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
-            />
-          )}
+        {isExpanded && slice.description_markeddown && (
+          <div
+            className="slice_description bs-callout bs-callout-default"
+            ref={this.setDescriptionRef}
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
+          />
+        )}
 
         <div
           className={cx(
@@ -214,27 +275,20 @@ class Chart extends React.Component {
           )}
         >
           <ChartContainer
-            containerId={`slice-container-${id}`}
-            chartId={id}
-            datasource={datasource}
-            formData={formData}
-            headerHeight={this.getHeaderHeight()}
-            height={this.getChartHeight()}
             width={width}
-            timeout={timeout}
-            vizType={slice.viz_type}
+            height={this.getChartHeight()}
             addFilter={this.addFilter}
-            getFilters={this.getFilters}
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}
+            chartId={id}
             chartStatus={chart.chartStatus}
-            chartUpdateEndTime={chart.chartUpdateEndTime}
-            chartUpdateStartTime={chart.chartUpdateStartTime}
-            latestQueryFormData={chart.latestQueryFormData}
-            lastRendered={chart.lastRendered}
+            datasource={datasource}
+            filters={filters}
+            formData={formData}
             queryResponse={chart.queryResponse}
-            queryRequest={chart.queryRequest}
+            timeout={timeout}
             triggerQuery={chart.triggerQuery}
+            vizType={slice.viz_type}
           />
         </div>
       </div>
@@ -243,5 +297,6 @@ class Chart extends React.Component {
 }
 
 Chart.propTypes = propTypes;
+Chart.defaultProps = defaultProps;
 
 export default Chart;

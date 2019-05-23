@@ -1,3 +1,20 @@
+..  Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+..    http://www.apache.org/licenses/LICENSE-2.0
+
+..  Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 FAQ
 ===
 
@@ -88,7 +105,7 @@ It's easy: use the ``Filter Box`` widget, build a slice, and add it to your
 dashboard.
 
 The ``Filter Box`` widget allows you to define a query to populate dropdowns
-that can be use for filtering. To build the list of distinct values, we
+that can be used for filtering. To build the list of distinct values, we
 run a query, and sort the result by the metric you provide, sorting
 descending.
 
@@ -169,8 +186,8 @@ by setting the ``stagger_refresh`` to ``false`` and modify the stagger period by
 Here, the entire dashboard will refresh at once if periodic refresh is on. The stagger time of
 2.5 seconds is ignored.
 
-Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
-------------------------------------------------------------------------------------------------------------
+Why does 'flask fab' or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
+-------------------------------------------------------------------------------------------------------------
 By default, superset creates and uses an sqlite database at ``~/.superset/superset.db``. Sqlite is known to `don't work well if used on NFS`__ due to broken file locking implementation on NFS.
 
 __ https://www.sqlite.org/lockingv3.html
@@ -255,7 +272,7 @@ Superset in the :ref:`ref_database_deps` section of the docs. Database
 engines not listed in this page may work too. We rely on the
 community to contribute to this knowledge base.
 
-.. _SQLAlchemy dialect: http://docs.sqlalchemy.org/en/latest/dialects/
+.. _SQLAlchemy dialect: https://docs.sqlalchemy.org/en/latest/dialects/
 .. _DBAPI driver: https://www.python.org/dev/peps/pep-0249/
 
 For a database engine to be supported in Superset through the

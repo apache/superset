@@ -1,28 +1,48 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/dist/light';
-import html from 'react-syntax-highlighter/languages/hljs/htmlbars';
-import markdown from 'react-syntax-highlighter/languages/hljs/markdown';
-import sql from 'react-syntax-highlighter/languages/hljs/sql';
-import json from 'react-syntax-highlighter/languages/hljs/json';
+import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/light';
+import htmlSyntax from 'react-syntax-highlighter/languages/hljs/htmlbars';
+import markdownSyntax from 'react-syntax-highlighter/languages/hljs/markdown';
+import sqlSyntax from 'react-syntax-highlighter/languages/hljs/sql';
+import jsonSyntax from 'react-syntax-highlighter/languages/hljs/json';
 import github from 'react-syntax-highlighter/styles/hljs/github';
 import { DropdownButton, MenuItem, Row, Col, FormControl } from 'react-bootstrap';
-import { Table } from 'reactable';
-import $ from 'jquery';
+import { Table } from 'reactable-arc';
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
 
+import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreUrlAndPayload } from '../exploreUtils';
 
 import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';
 import Button from '../../components/Button';
-import { t } from '../../locales';
 import RowCountLabel from './RowCountLabel';
+import { prepareCopyToClipboardTabularData } from '../../utils/common';
 
-registerLanguage('markdown', markdown);
-registerLanguage('html', html);
-registerLanguage('sql', sql);
-registerLanguage('json', json);
+registerLanguage('markdown', markdownSyntax);
+registerLanguage('html', htmlSyntax);
+registerLanguage('sql', sqlSyntax);
+registerLanguage('json', jsonSyntax);
 
 const propTypes = {
   onOpenInEditor: PropTypes.func,
@@ -57,28 +77,27 @@ export default class DisplayQueryButton extends React.PureComponent {
       formData: this.props.latestQueryFormData,
       endpointType,
     });
-    $.ajax({
-      type: 'POST',
+    SupersetClient.post({
       url,
-      data: {
-        form_data: JSON.stringify(payload),
-      },
-      success: (data) => {
+      postPayload: { form_data: payload },
+    })
+      .then(({ json }) => {
         this.setState({
-          language: data.language,
-          query: data.query,
-          data: data.data,
+          language: json.language,
+          query: json.query,
+          data: json.data,
           isLoading: false,
           error: null,
         });
-      },
-      error: (data) => {
-        this.setState({
-          error: data.responseJSON ? data.responseJSON.error : t('Error...'),
-          isLoading: false,
-        });
-      },
-    });
+      })
+      .catch(response =>
+        getClientErrorObject(response).then(({ error, statusText }) => {
+          this.setState({
+            error: error || statusText || t('Sorry, An error occurred'),
+            isLoading: false,
+          });
+        }),
+      );
   }
   changeFilterText(event) {
     this.setState({ filterText: event.target.value });
@@ -113,11 +132,7 @@ export default class DisplayQueryButton extends React.PureComponent {
   }
   renderResultsModalBody() {
     if (this.state.isLoading) {
-      return (<img
-        className="loading"
-        alt={t('Loading...')}
-        src="/static/assets/images/loading.gif"
-      />);
+      return <Loading />;
     } else if (this.state.error) {
       return <pre>{this.state.error}</pre>;
     } else if (this.state.data) {
@@ -134,6 +149,15 @@ export default class DisplayQueryButton extends React.PureComponent {
         <Row>
           <Col md={9}>
             <RowCountLabel rowcount={data.length} suffix={t('rows retrieved')} />
+            <CopyToClipboard
+              text={prepareCopyToClipboardTabularData(data)}
+              wrapped={false}
+              copyNode={
+                <Button style={{ padding: '2px 10px', fontSize: '11px' }}>
+                  <i className="fa fa-clipboard" />
+                </Button>
+              }
+            />
           </Col>
           <Col md={3}>
             <FormControl
@@ -213,12 +237,14 @@ export default class DisplayQueryButton extends React.PureComponent {
           modalBody={this.renderSamplesModalBody()}
           eventKey="2"
         />
-        {this.state.sqlSupported && <MenuItem
-          eventKey="3"
-          onClick={this.redirectSQLLab.bind(this)}
-        >
-          {t('Run in SQL Lab')}
-        </MenuItem>}
+        {this.state.sqlSupported && (
+          <MenuItem
+            eventKey="3"
+            onClick={this.redirectSQLLab.bind(this)}
+          >
+            {t('Run in SQL Lab')}
+          </MenuItem>
+        )}
       </DropdownButton>
     );
   }
