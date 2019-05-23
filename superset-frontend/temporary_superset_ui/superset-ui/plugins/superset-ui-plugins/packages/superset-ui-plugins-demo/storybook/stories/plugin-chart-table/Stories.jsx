@@ -54,7 +54,7 @@ export default [
           formData: {
             alignPn: false,
             colorPn: true,
-            includeSearch: false,
+            includeSearch: true,
             pageLength: 0,
             metrics: ['sum__num', 'trend'],
             orderDesc: true,
