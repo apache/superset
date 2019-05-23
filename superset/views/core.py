@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+from contextlib import closing
 from datetime import datetime, timedelta
 import inspect
 import logging
@@ -37,7 +38,7 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
 import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, MetaData, or_, update
+from sqlalchemy import and_, create_engine, MetaData, or_, select, update
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from werkzeug.routing import BaseConverter
@@ -310,10 +311,10 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     def pre_add(self, db):
         self.check_extra(db)
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
-        security_manager.merge_perm('database_access', db.perm)
+        security_manager.add_permission_view_menu('database_access', db.perm)
         # adding a new database we always want to force refresh schema list
         for schema in db.all_schema_names():
-            security_manager.merge_perm(
+            security_manager.add_permission_view_menu(
                 'schema_access', security_manager.get_schema_perm(db, schema))
 
     def pre_update(self, db):
@@ -1372,7 +1373,7 @@ class Superset(BaseSupersetView):
             'standalone': standalone,
             'user_id': user_id,
             'forced_height': request.args.get('height'),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
         table_name = datasource.table_name \
             if datasource_type == 'table' \
@@ -1813,8 +1814,9 @@ class Superset(BaseSupersetView):
                 connect_args['configuration'] = configuration
 
             engine = create_engine(uri, **engine_params)
-            engine.connect()
-            return json_success(json.dumps(engine.table_names(), indent=4))
+
+            with closing(engine.connect()) as conn:
+                return json_success(json.dumps(conn.scalar(select([1]))))
         except Exception as e:
             logging.exception(e)
             return json_error_response((
@@ -2231,7 +2233,7 @@ class Superset(BaseSupersetView):
             'user_id': g.user.get_id(),
             'dashboard_data': dashboard_data,
             'datasources': {ds.uid: ds.data for ds in datasources},
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
             'editMode': edit_mode,
         }
 
@@ -2579,9 +2581,8 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             msg = _(
-                'Failed to validate your SQL query text. Please check that '
-                f'you have configured the {validator.name} validator '
-                'correctly and that any services it depends on are up. '
+                f'{validator.name} was unable to check your query.\nPlease '
+                'make sure that any services it depends on are available\n'
                 f'Exception: {e}')
             return json_error_response(f'{msg}')
 
@@ -2920,7 +2921,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             'user': bootstrap_user_data(),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -2939,7 +2940,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             'user': bootstrap_user_data(username, include_perms=True),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -2955,7 +2956,7 @@ class Superset(BaseSupersetView):
         """SQL Editor"""
         d = {
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
-            'common': self.common_bootsrap_payload(),
+            'common': self.common_bootstrap_payload(),
         }
         return self.render_template(
             'superset/basic.html',
@@ -3083,7 +3084,7 @@ appbuilder.add_separator('Sources')
 
 
 @app.after_request
-def apply_caching(response):
+def apply_http_headers(response):
     """Applies the configuration's http headers to all responses"""
     for k, v in config.get('HTTP_HEADERS').items():
         response.headers[k] = v

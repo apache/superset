@@ -371,7 +371,7 @@ def load_test_users_run():
             security_manager.add_permission_role(gamma_sqllab_role, perm)
         utils.get_or_create_main_db()
         db_perm = utils.get_main_database(security_manager.get_session).perm
-        security_manager.merge_perm('database_access', db_perm)
+        security_manager.add_permission_view_menu('database_access', db_perm)
         db_pvm = security_manager.find_permission_view_menu(
             view_menu_name=db_perm, permission_name='database_access')
         gamma_sqllab_role.permissions.append(db_pvm)

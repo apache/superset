@@ -141,6 +141,71 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.REMOVE_TABLE]() {
       return removeFromArr(state, 'tables', action.table);
     },
+    [actions.START_QUERY_VALIDATION]() {
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        validationResult: {
+          id: action.query.id,
+          errors: [],
+          completed: false,
+        },
+      });
+      return newState;
+    },
+    [actions.QUERY_VALIDATION_RETURNED]() {
+      // If the server is very slow about answering us, we might get validation
+      // responses back out of order. This check confirms the response we're
+      // handling corresponds to the most recently dispatched request.
+      //
+      // We don't care about any but the most recent because validations are
+      // only valid for the SQL text they correspond to -- once the SQL has
+      // changed, the old validation doesn't tell us anything useful anymore.
+      const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
+      if (qe.validationResult.id !== action.query.id) {
+        return state;
+      }
+      // Otherwise, persist the results on the queryEditor state
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        validationResult: {
+          id: action.query.id,
+          errors: action.results,
+          completed: true,
+        },
+      });
+      return newState;
+    },
+    [actions.QUERY_VALIDATION_FAILED]() {
+      // If the server is very slow about answering us, we might get validation
+      // responses back out of order. This check confirms the response we're
+      // handling corresponds to the most recently dispatched request.
+      //
+      // We don't care about any but the most recent because validations are
+      // only valid for the SQL text they correspond to -- once the SQL has
+      // changed, the old validation doesn't tell us anything useful anymore.
+      const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
+      if (qe.validationResult.id !== action.query.id) {
+        return state;
+      }
+      // Otherwise, persist the results on the queryEditor state
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        validationResult: {
+          id: action.query.id,
+          errors: [{
+            line_number: 1,
+            start_column: 1,
+            end_column: 1,
+            message: `The server failed to validate your query.\n${action.message}`,
+          }],
+          completed: true,
+        },
+      });
+      return newState;
+    },
     [actions.START_QUERY]() {
       let newState = Object.assign({}, state);
       if (action.query.sqlEditorId) {

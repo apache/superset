@@ -201,7 +201,8 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual(
             'CREATE TABLE tmp_async_1 AS \n'
             'SELECT name FROM ab_role '
-            "WHERE name='Admin' LIMIT 666", query.executed_sql)
+            "WHERE name='Admin'\n"
+            'LIMIT 666', query.executed_sql)
         self.assertEqual(sql_where, query.sql)
         self.assertEqual(0, query.rows)
         self.assertEqual(False, query.limit_used)
