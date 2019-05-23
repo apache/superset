@@ -22,6 +22,12 @@ import { ChartProps, FormDataMetric, Metric } from '@superset-ui/chart';
 import { getNumberFormatter, NumberFormats, NumberFormatter } from '@superset-ui/number-format';
 import { getTimeFormatter, TimeFormatter } from '@superset-ui/time-format';
 
+const DTTM_ALIAS = '__timestamp';
+
+type PlainObject = {
+  [key: string]: any;
+};
+
 export default function transformProps(chartProps: ChartProps) {
   const { height, datasource, filters, formData, onAddFilter, payload } = chartProps;
   const {
@@ -47,8 +53,37 @@ export default function transformProps(chartProps: ChartProps) {
     .filter(m => typeof records[0][m as string] === 'number');
 
   const dataArray: {
-    [key: string]: any;
+    [key: string]: any[];
   } = {};
+
+  const sortByKey =
+    timeseriesLimitMetric &&
+    ((timeseriesLimitMetric as Metric).label || (timeseriesLimitMetric as string));
+
+  let formattedData: {
+    data: PlainObject;
+  }[] = records.map((row: PlainObject) => ({
+    data: row,
+  }));
+
+  if (sortByKey) {
+    formattedData = formattedData.sort((a, b) => {
+      const delta = a.data[sortByKey] - b.data[sortByKey];
+      if (orderDesc) {
+        return -delta;
+      }
+      return delta;
+    });
+    if (metrics.indexOf(sortByKey) < 0) {
+      formattedData = formattedData.map(row => {
+        const data = { ...row.data };
+        delete data[sortByKey];
+        return {
+          data,
+        };
+      });
+    }
+  }
 
   metrics.forEach(metric => {
     const arr = [];
@@ -91,7 +126,7 @@ export default function transformProps(chartProps: ChartProps) {
       }
     }
 
-    if (key === '__timestamp') {
+    if (key === DTTM_ALIAS) {
       formatFunction = tsFormatter;
     }
 
@@ -116,19 +151,15 @@ export default function transformProps(chartProps: ChartProps) {
 
   return {
     height,
-    data: records,
+    data: formattedData,
     alignPositiveNegative: alignPn,
     colorPositiveNegative: colorPn,
     columns: processedColumns,
     filters,
     includeSearch,
-    metrics,
     onAddFilter,
     orderDesc,
     pageLength: pageLength && parseInt(pageLength, 10),
-    percentMetrics,
     tableFilter,
-    tableTimestampFormat,
-    timeseriesLimitMetric,
   };
 }
