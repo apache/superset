@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Form from 'react-jsonschema-form';
 import chrono from 'chrono-node';
+import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
@@ -76,11 +77,17 @@ const propTypes = {
   dbId: PropTypes.number.isRequired,
   animation: PropTypes.bool,
   onSchedule: PropTypes.func,
+  scheduleQueryWarning: PropTypes.string,
+  disabled: PropTypes.bool,
+  tooltip: PropTypes.string,
 };
 const defaultProps = {
   defaultLabel: t('Undefined'),
   animation: true,
   onSchedule: () => {},
+  scheduleQueryWarning: null,
+  disabled: false,
+  tooltip: null,
 };
 
 class ScheduleQueryButton extends React.PureComponent {
@@ -123,12 +130,53 @@ class ScheduleQueryButton extends React.PureComponent {
   }
   renderModalBody() {
     return (
-      <Form
-        schema={getJSONSchema()}
-        uiSchema={getUISchema()}
-        onSubmit={this.onSchedule}
-        validate={getValidator()}
-      />
+      <FormGroup>
+        <Row style={{ paddingBottom: '10px' }}>
+          <Col md={12}>
+            <label className="control-label" htmlFor="embed-height">
+              {t('Label')}
+            </label>
+            <FormControl
+              type="text"
+              placeholder={t('Label for your query')}
+              value={this.state.label}
+              onChange={this.onLabelChange}
+            />
+          </Col>
+        </Row>
+        <Row style={{ paddingBottom: '10px' }}>
+          <Col md={12}>
+            <label className="control-label" htmlFor="embed-height">
+              {t('Description')}
+            </label>
+            <FormControl
+              componentClass="textarea"
+              placeholder={t('Write a description for your query')}
+              value={this.state.description}
+              onChange={this.onDescriptionChange}
+            />
+          </Col>
+        </Row>
+        <Row>
+          <Col md={12}>
+            <Form
+              schema={getJSONSchema()}
+              uiSchema={getUISchema()}
+              onSubmit={this.onSchedule}
+              validate={getValidator()}
+            />
+          </Col>
+        </Row>
+        {this.props.scheduleQueryWarning && (
+          <Row>
+            <Col md={12}>
+              <small>
+                {this.props.scheduleQueryWarning}
+              </small>
+            </Col>
+          </Row>
+        )}
+      </FormGroup>
     );
   }
   render() {
@@ -139,7 +187,13 @@ class ScheduleQueryButton extends React.PureComponent {
           modalTitle={t('Schedule Query')}
           modalBody={this.renderModalBody()}
           triggerNode={
-            <Button bsSize="small" className="toggleSchedule" onClick={this.toggleSchedule}>
+            <Button
+              bsSize="small"
+              className="toggleSchedule"
+              onClick={this.toggleSchedule}
+              disabled={this.props.disabled}
+              tooltip={this.props.tooltip}
+            >
               <i className="fa fa-calendar" /> {t('Schedule Query')}
             </Button>
           }
