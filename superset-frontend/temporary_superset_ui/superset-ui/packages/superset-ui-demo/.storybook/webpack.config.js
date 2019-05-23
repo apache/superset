@@ -9,6 +9,7 @@ module.exports = async ({ config }) => {
       ],
     },
     test: /\.tsx?$/,
+    exclude: /node_modules/,
   });
 
   config.resolve.extensions.push('.ts', '.tsx');

@@ -1,11 +1,15 @@
-import Metrics from './Metrics';
+/* eslint-disable camelcase */
 import { QueryObject } from '../types/Query';
-import { ChartFormData, DruidFormData, SqlaFormData } from '../types/ChartFormData';
+import { ChartFormData, isSqlaFormData } from '../types/ChartFormData';
+import convertMetric from './convertMetric';
+import processFilters from './processFilters';
+import processMetrics from './processMetrics';
+import processExtras from './processExtras';
 
-const DTTM_ALIAS = '__timestamp';
+export const DTTM_ALIAS = '__timestamp';
 
-function getGranularity(formData: ChartFormData): string {
-  return 'granularity_sqla' in formData ? formData.granularity_sqla : formData.granularity;
+function processGranularity(formData: ChartFormData): string {
+  return isSqlaFormData(formData) ? formData.granularity_sqla : formData.granularity;
 }
 
 // Build the common segments of all query objects (e.g. the granularity field derived from
@@ -14,38 +18,40 @@ function getGranularity(formData: ChartFormData): string {
 // Note the type of the formData argument passed in here is the type of the formData for a
 // specific viz, which is a subtype of the generic formData shared among all viz types.
 export default function buildQueryObject<T extends ChartFormData>(formData: T): QueryObject {
-  const extras = {
-    druid_time_origin: (formData as DruidFormData).druid_time_origin || '',
-    having: (formData as SqlaFormData).having || '',
-    having_druid: (formData as DruidFormData).having_druid || '',
-    time_grain_sqla: (formData as SqlaFormData).time_grain_sqla || '',
-    where: formData.where || '',
-  };
+  const {
+    time_range,
+    since,
+    until,
+    columns = [],
+    groupby = [],
+    order_desc,
+    row_limit,
+    limit,
+    timeseries_limit_metric,
+  } = formData;
 
-  const { columns = [], groupby = [] } = formData;
   const groupbySet = new Set([...columns, ...groupby]);
-  const limit = formData.limit ? Number(formData.limit) : 0;
-  const rowLimit = Number(formData.row_limit);
-  const orderDesc = formData.order_desc === undefined ? true : formData.order_desc;
-  const isTimeseries = groupbySet.has(DTTM_ALIAS);
 
-  return {
-    extras,
-    granularity: getGranularity(formData),
+  const queryObject: QueryObject = {
+    extras: processExtras(formData),
+    granularity: processGranularity(formData),
     groupby: Array.from(groupbySet),
     is_prequery: false,
-    is_timeseries: isTimeseries,
-    metrics: new Metrics(formData).getMetrics(),
-    order_desc: orderDesc,
+    is_timeseries: groupbySet.has(DTTM_ALIAS),
+    metrics: processMetrics(formData),
+    order_desc: typeof order_desc === 'undefined' ? true : order_desc,
     orderby: [],
     prequeries: [],
-    row_limit: rowLimit,
-    since: formData.since,
-    time_range: formData.time_range,
-    timeseries_limit: limit,
-    timeseries_limit_metric: formData.timeseries_limit_metric
-      ? Metrics.formatMetric(formData.timeseries_limit_metric)
+    row_limit: Number(row_limit),
+    since,
+    time_range,
+    timeseries_limit: limit ? Number(limit) : 0,
+    timeseries_limit_metric: timeseries_limit_metric
+      ? convertMetric(timeseries_limit_metric)
       : null,
-    until: formData.until,
+    until,
+    ...processFilters(formData),
   };
+
+  return queryObject;
 }

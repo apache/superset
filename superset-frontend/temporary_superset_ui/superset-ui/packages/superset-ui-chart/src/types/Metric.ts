@@ -15,28 +15,16 @@ export enum MetricKey {
   SIZE = 'size',
 }
 
-export enum Aggregate {
-  AVG = 'AVG',
-  COUNT = 'COUNT ',
-  COUNT_DISTINCT = 'COUNT_DISTINCT',
-  MAX = 'MAX',
-  MIN = 'MIN',
-  SUM = 'SUM',
-}
-
-export enum ExpressionType {
-  SIMPLE = 'SIMPLE',
-  SQL = 'SQL',
-}
+export type Aggregate = 'AVG' | 'COUNT' | 'COUNT_DISTINCT' | 'MAX' | 'MIN' | 'SUM';
 
 interface AdhocMetricSimple {
-  expressionType: ExpressionType.SIMPLE;
+  expressionType: 'SIMPLE';
   column: Column;
   aggregate: Aggregate;
 }
 
 interface AdhocMetricSQL {
-  expressionType: ExpressionType.SQL;
+  expressionType: 'SQL';
   sqlExpression: string;
 }
 
@@ -44,12 +32,3 @@ export type AdhocMetric = {
   label?: string;
   optionName?: string;
 } & (AdhocMetricSimple | AdhocMetricSQL);
-
-// Type of metrics in form data
-export type FormDataMetric = string | AdhocMetric;
-
-// Type of Metric the client provides to server after unifying various forms
-// of metrics in form data
-export type Metric = {
-  label: string;
-} & Partial<AdhocMetric>;
