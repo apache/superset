@@ -44,7 +44,7 @@
     "@superset-ui/commit-config": "^0.0.9",
     "fast-glob": "^2.2.6",
     "fs-extra": "^8.0.1",
-    "husky": "^1.1.2",
+    "husky": "^2.3.0",
     "lerna": "^3.2.1",
     "lint-staged": "^8.0.4",
     "react": "^15 || ^16",
