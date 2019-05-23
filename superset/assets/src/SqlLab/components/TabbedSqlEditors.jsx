@@ -41,11 +41,13 @@ const propTypes = {
   tables: PropTypes.array.isRequired,
   offline: PropTypes.bool,
   saveQueryWarning: PropTypes.string,
+  scheduleQueryWarning: PropTypes.string,
 };
 const defaultProps = {
   queryEditors: [],
   offline: false,
   saveQueryWarning: null,
+  scheduleQueryWarning: null,
 };
 
 let queryCount = 1;
@@ -250,6 +252,7 @@ class TabbedSqlEditors extends React.PureComponent {
               defaultQueryLimit={this.props.defaultQueryLimit}
               maxRow={this.props.maxRow}
               saveQueryWarning={this.props.saveQueryWarning}
+              scheduleQueryWarning={this.props.scheduleQueryWarning}
             />
           )}
         </Tab>
@@ -294,6 +297,7 @@ function mapStateToProps({ sqlLab, common }) {
     defaultQueryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     maxRow: common.conf.SQL_MAX_ROW,
     saveQueryWarning: common.conf.SQLLAB_SAVE_WARNING_MESSAGE,
+    scheduleQueryWarning: common.conf.SQLLAB_SCHEDULE_WARNING_MESSAGE,
   };
 }
 function mapDispatchToProps(dispatch) {

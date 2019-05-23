@@ -911,6 +911,12 @@ To allow scheduled queries, add the following to your `config.py`:
                     'container': 'end_date',
                 },
             ],
+            # link to the scheduler; this example links to an Airflow pipeline
+            # that uses the query id and the output table as its name
+            'linkback': (
+                'https://airflow.example.com/admin/airflow/tree?'
+                'dag_id=query_${id}_${extra_json.schedule_info.output_table}'
+            ),
         },
     }
 
