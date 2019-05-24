@@ -291,6 +291,7 @@ def execute_sql_statements(
         'expanded_columns': expanded_columns,
         'query': query.to_dict(),
     })
+    payload['query']['state'] = QueryStatus.SUCCESS
 
     if store_results:
         key = str(uuid.uuid4())
