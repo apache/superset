@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-histogram",
-  "version": "0.10.11",
+  "version": "0.10.24",
   "description": "Superset Legacy Chart - Histogram",
   "sideEffects": [
     "*.css"
