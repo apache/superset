@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@types/d3-scale": "^2.0.2",
-    "d3-scale": "^2.1.2"
+    "d3-scale": "^3.0.0"
   },
   "peerDependencies": {
     "@superset-ui/core": "^0.11.0"
