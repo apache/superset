@@ -238,10 +238,14 @@ export default class MetricsControl extends React.PureComponent {
   }
 
   optionsForSelect(props) {
+    const { columns, savedMetrics } = props;
+    const aggregates = columns && columns.length ?
+      Object.keys(AGGREGATES).map(aggregate => ({ aggregate_name: aggregate })) :
+      [];
     const options = [
-      ...props.columns,
-      ...Object.keys(AGGREGATES).map(aggregate => ({ aggregate_name: aggregate })),
-      ...props.savedMetrics,
+      ...columns,
+      ...aggregates,
+      ...savedMetrics,
     ];
 
     return options.reduce((results, option) => {
