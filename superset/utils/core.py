@@ -119,14 +119,9 @@ class _memoized:  # noqa
         """Return the function's docstring."""
         return self.func.__doc__
 
-    def __copy__(self):
-        return _memoized(self.func, self.watch)
-
     def __get__(self, obj, objtype):
         if not self.is_method:
-            copy = self.__copy__()
-            copy.is_method = True
-            return functools.partial(copy.__call__, obj)
+            self.is_method = True  # lgtm[py/mutable-descriptor]
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
 
