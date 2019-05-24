@@ -1,12 +1,44 @@
+## [0.11.8](https://github.com/apache-superset/superset-ui/compare/v0.11.7...v0.11.8) (2019-05-23)
+
+
+### ✨ Features
+
+* update ChartFormData and QueryObject to support filters. ([#164](https://github.com/apache-superset/superset-ui/issues/164)) ([025d5bc](https://github.com/apache-superset/superset-ui/commit/025d5bc))
+
+
+
+## [0.11.7](https://github.com/apache-superset/superset-ui/compare/v0.11.6...v0.11.7) (2019-05-17)
+
+
+### ✨ Features
+
+* improve margin merging ([#159](https://github.com/apache-superset/superset-ui/issues/159)) ([7832747](https://github.com/apache-superset/superset-ui/commit/7832747))
+
+
+
+## [0.11.6](https://github.com/apache-superset/superset-ui/compare/v0.11.5...v0.11.6) (2019-05-16)
+
+
+### 🐞 Bug Fixes
+
+* lint ([#144](https://github.com/apache-superset/superset-ui/issues/144)) ([bf24316](https://github.com/apache-superset/superset-ui/commit/bf24316))
+
+
+### ✨ Features
+
+* add hooks ([#158](https://github.com/apache-superset/superset-ui/issues/158)) ([7b3ab5f](https://github.com/apache-superset/superset-ui/commit/7b3ab5f))
+
+
+
 ## [0.11.5](https://github.com/apache-superset/superset-ui/compare/v0.11.4...v0.11.5) (2019-04-27)
 
 
-### Bug Fixes
+### 🐞 Bug Fixes
 
 * broken build due to failing unit tests ([#141](https://github.com/apache-superset/superset-ui/issues/141)) ([58d56d5](https://github.com/apache-superset/superset-ui/commit/58d56d5))
 
 
-### Features
+### ✨ Features
 
 * add chart companion components ([#139](https://github.com/apache-superset/superset-ui/issues/139)) ([a82faec](https://github.com/apache-superset/superset-ui/commit/a82faec))
 
@@ -15,7 +47,7 @@
 ## [0.11.4](https://github.com/apache-superset/superset-ui/compare/v0.11.3...v0.11.4) (2019-04-26)
 
 
-### Bug Fixes
+### 🐞 Bug Fixes
 
 * make translation module type check correctly ([#140](https://github.com/apache-superset/superset-ui/issues/140)) ([c05fe3a](https://github.com/apache-superset/superset-ui/commit/c05fe3a))
 
