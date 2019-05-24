@@ -16,7 +16,10 @@ import { WithLegend } from '@superset-ui/chart-composition';
 import { createSelector } from 'reselect';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
-import ChartLegend, { Hooks as LegendHooks } from '../components/legend/ChartLegend';
+import ChartLegend, {
+  Props as LegendProps,
+  Hooks as LegendHooks,
+} from '../components/legend/ChartLegend';
 import { PartialSpec } from '../encodeable/types/Specification';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
@@ -38,6 +41,7 @@ const defaultProps = {
   className: '',
   margin: DEFAULT_MARGIN,
   theme: chartTheme,
+  LegendRenderer: ChartLegend,
   TooltipRenderer: DefaultTooltipRenderer,
 };
 
@@ -48,6 +52,7 @@ export type FormDataProps = {
 } & PartialSpec<Encoding>;
 
 export type HookProps = {
+  LegendRenderer?: React.ComponentType<LegendProps<Encoder, ChannelTypes>>;
   TooltipRenderer?: React.ComponentType<TooltipProps>;
 } & LegendHooks<ChannelTypes>;
 
@@ -281,6 +286,7 @@ export default class LineChart extends PureComponent<Props> {
   renderLegend() {
     const {
       data,
+      LegendRenderer,
       LegendGroupRenderer,
       LegendItemRenderer,
       LegendItemLabelRenderer,
@@ -290,7 +296,7 @@ export default class LineChart extends PureComponent<Props> {
     const encoder = this.createEncoder(this.props);
 
     return (
-      <ChartLegend<ChannelTypes, Outputs, Encoding>
+      <LegendRenderer
         data={data}
         encoder={encoder}
         LegendGroupRenderer={LegendGroupRenderer}
