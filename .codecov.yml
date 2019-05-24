@@ -8,9 +8,7 @@ coverage:
         threshold: 1%
     patch:
       default:
-        # Due to the current low code coverage, setting a
-        # specific target for diffs
-        target: 80%
+        threshold: 1%
 
 ignore:
 - "superset/assets/src/visualizations/"
