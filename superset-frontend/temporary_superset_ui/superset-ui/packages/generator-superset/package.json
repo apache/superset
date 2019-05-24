@@ -31,7 +31,7 @@
   "dependencies": {
     "chalk": "^2.4.1",
     "lodash": "^4.17.11",
-    "yeoman-generator": "^3.1.1",
+    "yeoman-generator": "^4.0.0",
     "yosay": "^2.0.2"
   },
   "license": "Apache-2.0",
