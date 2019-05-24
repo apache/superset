@@ -1210,35 +1210,73 @@ class PrestoEngineSpec(BaseEngineSpec):
             for row_column in ordered_row_columns:
                 cls.expand_row_data(datum, row_column, row_column_hierarchy)
 
-        # This part of the code addresses arrays and is buggy
-        ordered_array_columns = array_column_hierarchy.keys()
-        expanded_array_dict = {}
-        for data_index, datum in enumerate(data):
-            expanded_array_data = [datum.copy()]
-            datum_copy = expanded_array_data[0]
+        while array_column_hierarchy:
+            ready_array_columns = []
+            child_arrays = set()
+            unprocessed_array_columns = set()
+            ordered_array_columns = list(array_column_hierarchy.keys())
+            child_array = ''
             for array_column in ordered_array_columns:
-                array_data = datum_copy[array_column]
-                array_children = array_column_hierarchy[array_column]
-                if str(array_column_hierarchy[array_column]['type']) == 'ROW':
-                    new_data = expanded_array_dict.values()
-                    for expanded_array_datum in expanded_array_data:
-                        cls.expand_row(expanded_array_datum, array_column, array_column_hierarchy)
-                elif array_data and array_children:
-                    for array_index, data_value in enumerate(array_data):
-                        if array_index >= len(expanded_array_data):
-                            expanded_array_data.append({})
-                        for index, datum_value in enumerate(data_value):
-                            expanded_array_data[array_index][array_children['children'][index]] = datum_value
-                elif array_data:
-                    for array_index, data_value in enumerate(array_data):
-                        if array_index >= len(expanded_array_data):
-                            expanded_array_data.append({})
-                        expanded_array_data[array_index][array_column] = data_value
-                else:
-                    for index, array_child in enumerate(array_children):
+                if array_column in data[0]:
+                    ready_array_columns.append(array_column)
+                elif str(array_column_hierarchy[array_column]['type']) == 'ARRAY':
+                    child_array = array_column
+                    child_arrays.add(array_column)
+                    unprocessed_array_columns.add(child_array)
+                elif child_array and array_column.startswith(child_array):
+                    unprocessed_array_columns.add(array_column)
+
+            filtered_array_data = {}
+            for data_index, datum in enumerate(data):
+                filtered_array_datum = {}
+                for array_column in ready_array_columns:
+                    filtered_array_datum[array_column] = datum[array_column]
+                filtered_array_data[data_index] = [filtered_array_datum]
+
+            for org_data_index, expanded_array_data in filtered_array_data.items():
+                for array_column in ordered_array_columns:
+                    if array_column in unprocessed_array_columns:
+                        continue
+                    if str(array_column_hierarchy[array_column]['type']) == 'ROW':
                         for expanded_array_datum in expanded_array_data:
-                            expanded_array_datum[array_children['children'][index]] = ''
-            expanded_array_dict[data_index] = expanded_array_data
+                            cls.expand_row_data(expanded_array_datum, array_column, array_column_hierarchy)
+                        continue
+                    array_data = expanded_array_data[0][array_column]
+                    array_children = array_column_hierarchy[array_column]
+                    if not array_data and not array_children['children']:
+                        continue
+                    elif array_data and array_children['children']:
+                        for array_index, data_value in enumerate(array_data):
+                            if array_index >= len(expanded_array_data):
+                                expanded_array_data.append({})
+                            for index, datum_value in enumerate(data_value):
+                                expanded_array_data[array_index][array_children['children'][index]] = datum_value
+                    elif array_data:
+                        for array_index, data_value in enumerate(array_data):
+                            if array_index >= len(expanded_array_data):
+                                expanded_array_data.append({})
+                            expanded_array_data[array_index][array_column] = data_value
+                    else:
+                        for index, array_child in enumerate(array_children):
+                            for expanded_array_datum in expanded_array_data:
+                                expanded_array_datum[array_children['children'][index]] = ''
+
+            data_index = 0
+            org_data_index = 0
+            while data_index < len(data):
+                data[data_index] = {**filtered_array_data[org_data_index][0], **data[data_index]}
+                filtered_array_data[org_data_index].pop(0)
+                data[data_index + 1:data_index + 1] = filtered_array_data[org_data_index]
+                data_index = data_index + len(filtered_array_data[org_data_index]) + 1
+                org_data_index = org_data_index + 1
+
+            next_processed_arrays = unprocessed_array_columns
+            for array_column in ordered_array_columns:
+                if array_column in next_processed_arrays:
+                    continue
+                else:
+                    del array_column_hierarchy[array_column]
+
         return expanded_columns, data
 
     @classmethod
