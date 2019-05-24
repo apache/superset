@@ -14,10 +14,13 @@ import {
 import DefaultLegendGroup from './DefaultLegendGroup';
 
 const LEGEND_CONTAINER_STYLE: CSSProperties = {
+  display: 'flex',
+  flexBasis: 'auto',
+  flexGrow: 1,
+  flexShrink: 1,
   maxHeight: 100,
   overflowY: 'auto',
-  paddingLeft: 14,
-  paddingTop: 6,
+  padding: 8,
   position: 'relative',
 };
 
@@ -31,6 +34,7 @@ export type Hooks<ChannelTypes> = {
 export type Props<Encoder, ChannelTypes> = {
   data: Dataset;
   encoder: Encoder;
+  style?: CSSProperties;
 } & Hooks<ChannelTypes>;
 
 export default class ChartLegend<
@@ -53,13 +57,18 @@ export default class ChartLegend<
       LegendItemRenderer,
       LegendItemMarkRenderer,
       LegendItemLabelRenderer,
+      style,
     } = this.props;
 
     const LegendGroup =
       typeof LegendGroupRenderer === 'undefined' ? DefaultLegendGroup : LegendGroupRenderer;
+    const combinedStyle =
+      typeof style === 'undefined'
+        ? LEGEND_CONTAINER_STYLE
+        : { ...LEGEND_CONTAINER_STYLE, ...style };
 
     return (
-      <div style={LEGEND_CONTAINER_STYLE}>
+      <div style={combinedStyle}>
         {encoder.getLegendInfos(data).map(items => (
           <LegendGroup
             key={items[0].field}
