@@ -26,7 +26,7 @@ export interface XAxis extends Axis {
 }
 
 export interface WithXAxis {
-  axis?: XAxis;
+  axis?: XAxis | boolean;
 }
 
 export interface YAxis extends Axis {
