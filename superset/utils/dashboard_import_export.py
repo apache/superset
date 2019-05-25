@@ -20,11 +20,12 @@ import logging
 import time
 
 import pandas as pd
+
 from superset import db
-from superset.models.core import Dashboard
 from superset.exceptions import DashboardNotFoundException
-from superset.utils.core import DashboardEncoder, decode_dashboards, get_or_create_main_db, \
-    get_or_create_example_db_engine
+from superset.models.core import Dashboard
+from superset.utils.core import DashboardEncoder, decode_dashboards, \
+    get_or_create_example_db_engine, get_or_create_main_db
 
 
 def import_dashboards(session, data_stream, import_time=None):
@@ -42,7 +43,7 @@ def import_dashboards(session, data_stream, import_time=None):
     if data['data']['includes_data']:
         engine = get_or_create_main_db()
         for table in data['data']['tables']:
-            df = pd.read_csv(table['file_path'], parse_dates=True, 
+            df = pd.read_csv(table['file_path'], parse_dates=True,
                              infer_datetime_format=True, compression='infer')
             df.to_sql(
                 table['name'],
@@ -54,7 +55,7 @@ def import_dashboards(session, data_stream, import_time=None):
     session.commit()
 
 
-def export_dashboards(session, dashboard_ids=None, dashboard_titles=None, 
+def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
                       export_data=False, export_data_dir=None, description=None,
                       export_title=None, _license='Apache 2.0'):
     """Returns all dashboards metadata as a json dump"""
@@ -74,7 +75,7 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
         logging.error('No dashboards found!')
         raise DashboardNotFoundException('No dashboards found!')
     else:
-        data = Dashboard.export_dashboards(export_dashboard_ids, 
+        data = Dashboard.export_dashboards(export_dashboard_ids,
                                            export_data, export_data_dir)
 
     if export_title:
@@ -82,7 +83,7 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
     if description:
         data['description']['description'] = description
     data['description']['license'] = _license
-    
+
     return json.dumps(data, cls=DashboardEncoder, indent=4, sort_keys=True)
 
 

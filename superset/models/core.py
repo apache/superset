@@ -23,7 +23,6 @@ import functools
 import json
 import logging
 import os
-import pathlib
 import textwrap
 
 from flask import escape, g, Markup, request
@@ -618,7 +617,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             return copied_dash.id
 
     @classmethod
-    def export_dashboards(cls, dashboard_ids, export_data=False, 
+    def export_dashboards(cls, dashboard_ids, export_data=False,
                           export_data_dir=None):
         copied_dashboards = []
         datasource_ids = set()
@@ -653,7 +652,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 )
                 make_transient(eager_datasource)
                 eager_datasources.append(eager_datasource)
-            
+
             files = []
             total_file_size = 0
             total_file_rows = 0
@@ -673,14 +672,14 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                     )
 
                     df = pd.read_sql_query(sql=sql, con=engine)
-                    row_count = len(df.index)
+                    row_count = len(df.index) + 1 # plus one for header
 
                     file_name = f'{data_table.name}.csv.gz'
                     file_path = f'{export_data_dir}/{file_name}'
-                    
+
                     if not os.path.exists(export_data_dir):
                         os.makedirs(export_data_dir)
-                    df.to_csv(file_path)
+                    df.to_csv(file_path, compression='gzip')
 
                     file_size = os.path.getsize(file_path)
 
@@ -689,9 +688,8 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                         'rows': row_count,
                         'size': file_size,
                         'table_name': data_table.name,
-                        #'uri': pathlib.Path(file_path).as_uri()
                     }
-                    
+
                     total_file_rows += row_count
                     total_file_size += file_size
 
@@ -703,14 +701,14 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 'total_size_mb': round(total_file_size / (1024.0 * 1024.0), 2),
                 'total_rows': total_file_rows,
                 'file_count': len(files),
-                'created_at': datetime.now().isoformat()
+                'created_at': datetime.now().isoformat(),
             }
 
         return {
             'description': desc,
             'dashboards': copied_dashboards,
             'datasources': eager_datasources,
-            'files': files
+            'files': files,
         }
 
 
