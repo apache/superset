@@ -1,8 +1,5 @@
-import csv
-from io import StringIO
 import json
 import logging
-import unittest
 
 from superset import app, cli
 from tests.base_tests import SupersetTestCase
@@ -13,8 +10,8 @@ config = app.config
 class SupersetCliTestCase(SupersetTestCase):
 
     @classmethod
-    def setUp(self):
-        self.runner = app.test_cli_runner()
+    def setUp(cls):
+        cls.runner = app.test_cli_runner()
 
     def test_version(self):
         """Test `superset version`"""
@@ -56,47 +53,50 @@ class SupersetCliTestCase(SupersetTestCase):
         self.assertEqual(ids[0], "World's Bank Data")
 
     def test_examples_menu(self):
-        """Test `superset examples`"""
+        """Test `superset examples` menu"""
         result = self.runner.invoke(app.cli, ['examples'])
-        self.assertIn('load', result.output)
+        self.assertIn('import', result.output)
         self.assertIn('list', result.output)
         self.assertIn('remove', result.output)
+        self.assertIn('export', result.output)
 
     def test_examples_list(self):
         """Test `superset examples list`"""
         result = self.runner.invoke(
-            app.cli, ['examples', 'list']
-        )
-        output_f = StringIO(result.output)
-        csv_reader = csv.DictReader(output_f, delimiter="\t",
-            fieldnames=['title', 'description', 'total_size_mb', 
-                'total_rows', 'updated_at'])
-        examples = []
-        for example in csv_reader:
-            examples.append(example)
-        examples = [e for e in csv_reader]
-        self.assertGreater(len(examples), 0)
+            app.cli, ['examples', 'list'])
 
-        wb = {'title': "World's Bank Data"}
-        title_matches = list(filter(lambda x: all(item in x.items() for item in wb.items()) > 0, examples))
-        self.assertEqual(len(title_matches), 1)
+        found = False
+        for i, line in enumerate(result.output.split('\n')):
+            # skip header
+            if i < 3:
+                continue
+            # Odd lines have data
+            if (i % 2) != 1:
+                row = line[1:-1]
+                parts = [i.strip() for i in row.split('|')]
+                if parts[0] == 'World Bank Health Information':
+                    found = True
 
-    def test_examples_load(self):
-        """Test `superset examples load`"""
+        # Did we find the example in the list?
+        self.assertEqual(found, True)
+
+    def test_examples_import(self):
+        """Test `superset examples import`"""
         pass
 
     def test_examples_remove(self):
         """Test `superset examples remove`"""
         pass
 
-    def test_examples_create(self):
-        """Test `superset examples create`"""
+    def test_examples_export(self):
+        """Test `superset examples export`"""
         self.runner.invoke(app.cli, ['load_examples'])
         result = self.runner.invoke(
             app.cli,
-            ['examples', 'create', '--dashboard-title', 'World\'s Bank Data', '--description',
+            [
+                'examples', 'export', '--dashboard-title', 'World\'s Bank Data',
+                '--description',
                 'World Bank Data example about world health populations from 1960-2010.',
-                '--example-title', 'World Bank Health Information']
-        )
+                '--example-title', 'World Bank Health Information',
+            ])
         logging.info(result.output)
-        

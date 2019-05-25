@@ -18,10 +18,8 @@
 # pylint: disable=C,R,W
 from datetime import datetime
 import logging
-import os
 from subprocess import Popen
-from sys import stdout, exit
-import pkgutil
+from sys import exit, stdout
 import tarfile
 import tempfile
 
@@ -130,20 +128,23 @@ def load_examples_run(load_test_data):
 @app.cli.command()
 @click.option('--load-test-data', '-t', is_flag=True, help='Load additional test data')
 def load_examples(load_test_data):
-    """Loads a set of Slices and Dashboards and a supporting dataset"""
+    """Loads a set of charts and dashboards and a supporting dataset"""
     load_examples_run(load_test_data)
+
 
 def exclusive(ctx_params, exclusive_params, error_message):
     """Provide exclusive option grouping"""
     if sum([1 if ctx_params[p] else 0 for p in exclusive_params]) > 1:
         raise click.UsageError(error_message)
 
+
 @app.cli.group()
 def examples():
-    """Manages example Slices/Dashboards/datasets"""
+    """Manages example dashboards/datasets"""
     pass
 
-@examples.command('create')
+
+@examples.command('export')
 @click.option(
     '--dashboard-id', '-i', default=None, type=int,
     help='Specify dashboard id to export')
@@ -158,35 +159,35 @@ def examples():
     '--file-name', '-f', default='dashboard.tar.gz',
     help='Specify export file name. Defaults to dashboard.tar.gz')
 @click.option(
-    '--license', '-l', '_license', default='Apache 2.0', 
+    '--license', '-l', '_license', default='Apache 2.0',
     help='License of the example dashboard')
-def create_example(dashboard_id, dashboard_title, description, example_title, 
+def export_example(dashboard_id, dashboard_title, description, example_title,
                    file_name, _license):
-    """Create example Slice/Dashboard/datasets"""
+    """Exmport example dashboard/datasets tarball"""
     if not (dashboard_id or dashboard_title):
         raise click.UsageError('must supply --dashboard-id/-i or --dashboard-title/-t')
     exclusive(
-        click.get_current_context().params, 
-        ['dashboard_id', 'dashboard_title'], 
+        click.get_current_context().params,
+        ['dashboard_id', 'dashboard_title'],
         'options --dashboard-id/-i and --dashboard-title/-t mutually exclusive')
-    
+
     # Export into a temporary directory and then tarball that directory
     with tempfile.TemporaryDirectory() as tmp_dir_name:
 
         try:
             data = dashboard_import_export.export_dashboards(
-                db.session, 
-                dashboard_ids=[dashboard_id], 
+                db.session,
+                dashboard_ids=[dashboard_id],
                 dashboard_titles=[dashboard_title],
                 export_data=True,
                 export_data_dir=tmp_dir_name,
                 description=description,
                 export_title=example_title,
                 _license=_license)
-            
+
             dashboard_slug = dashboard_import_export.get_slug(
                 db.session,
-                dashboard_id=dashboard_id, 
+                dashboard_id=dashboard_id,
                 dashboard_title=dashboard_title)
 
             out_path = f'{tmp_dir_name}/dashboard.json'
@@ -194,50 +195,60 @@ def create_example(dashboard_id, dashboard_title, description, example_title,
             with open(out_path, 'w') as data_stream:
                 data_stream.write(data)
 
-            with tarfile.open(file_name, "w:gz") as tar:
+            with tarfile.open(file_name, 'w:gz') as tar:
                 tar.add(tmp_dir_name, arcname=f'{dashboard_slug}')
-            
+
             click.echo(f'Exported example to {file_name}')
 
         except DashboardNotFoundException as e:
             click.echo(click.style(str(e), fg='red'))
             exit(1)
 
+
 @examples.command('list')
 @click.option(
-    '--examples-revision', '-r', help='Revision of examples to list', 
-    default=config.get('EXAMPLES_GIT_TAG')
-)
-def _list_examples(revision):
-    """List example Slices/Dashboards/datasets"""
+    '--examples-repo', '-r', 
+    help='Full name of Github repository containing examples, ex: \'apache-superset/examples-data\'',
+    default=None)
+@click.option(
+    '--examples-tag', '-r', 
+    help='Tag or branch of Github repository containing examples. Defaults to \'master\'',
+    default='master')
+def _list_examples(examples_repo, examples_tag):
+    """List example dashboards/datasets"""
+
     click.echo(
-        list_examples_table(revision))
+        list_examples_table(examples_repo, examples_tag=examples_tag))
     pass
 
-@examples.command('load')
+
+@examples.command('import')
 @click.option(
-    '--database-uri', '-d', help='Database URI to load example to', 
-    default=config.get('SQLALCHEMY_EXAMPLES_URI')
-)
+    '--database-uri', '-d', help='Database URI to import example to',
+    default=config.get('SQLALCHEMY_EXAMPLES_URI'))
 @click.option(
-    '--examples-revision', '-r', help='Revision of examples to list', 
-    default=config.get('EXAMPLES_GIT_TAG')
-)
+    '--examples-repo', '-r', 
+    help='Full name of Github repository containing examples, ex: \'apache-superset/examples-data\'',
+    default=None)
 @click.option(
-    '--example-title', '-e', help='Title of example to load', required=True)
-def load_example(example_title, database_uri):
-    """Load an example Slice/Dashboard/dataset"""
+    '--examples-tag', '-r', 
+    help='Tag or branch of Github repository containing examples. Defaults to \'master\'',
+    default='master')
+@click.option(
+    '--example-title', '-e', help='Title of example to import', required=True)
+def import_example(example_title, examples_repo, examples_tag, database_uri):
+    """Import an example dashboard/dataset"""
     pass
+
 
 @examples.command('remove')
 @click.option(
     '--example-title', '-e', help='Title of example to remove', required=True)
 @click.option(
-    '--database-uri', '-d', help='Database URI to load example to', 
-    default=config.get('SQLALCHEMY_EXAMPLES_URI')
-)
+    '--database-uri', '-d', help='Database URI to remove example from',
+    default=config.get('SQLALCHEMY_EXAMPLES_URI'))
 def remove_example(example_title, database_uri):
-    """Remove an example Slice/Dashboard/dataset"""
+    """Remove an example dashboard/dataset"""
     pass
 
 
@@ -311,19 +322,17 @@ def import_dashboards(path, recursive):
     help='Specify dashboard title to export')
 @click.option(
     '--export-data', '-x', default=None, is_flag=True,
-    help='Export the dashboard\'s data tables as CSV files.'
-)
+    help='Export the dashboard\'s data tables as CSV files.')
 @click.option(
     '--export-data-dir', '-d', default=config.get('DASHBOARD_EXPORT_DIR'),
-    help='Specify export directory path. Defaults to \'/tmp\'.'
-)
-def export_dashboards(print_stdout, dashboard_file, dashboard_ids, 
+    help='Specify export directory path. Defaults to \'/tmp\'.')
+def export_dashboards(print_stdout, dashboard_file, dashboard_ids,
                       dashboard_titles, export_data, export_data_dir):
     """Export dashboards to JSON and optionally tables to CSV"""
     try:
         data = dashboard_import_export.export_dashboards(
-            db.session, 
-            dashboard_ids=dashboard_ids, 
+            db.session,
+            dashboard_ids=dashboard_ids,
             dashboard_titles=dashboard_titles,
             export_data=export_data,
             export_data_dir=export_data_dir)
@@ -336,6 +345,7 @@ def export_dashboards(print_stdout, dashboard_file, dashboard_ids,
         logging.info('Exporting dashboards to %s', dashboard_file)
         with open(dashboard_file, 'w') as data_stream:
             data_stream.write(data)
+
 
 @app.cli.command()
 @click.option(
