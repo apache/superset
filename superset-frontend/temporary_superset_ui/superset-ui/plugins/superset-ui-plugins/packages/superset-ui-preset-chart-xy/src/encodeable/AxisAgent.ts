@@ -95,7 +95,7 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
   computeLayout({
     axisTitleHeight = 20,
     axisWidth,
-    gapBetweenAxisLabelAndBorder = 8,
+    gapBetweenAxisLabelAndBorder = 4,
     gapBetweenTickAndTickLabel = 4,
     labelAngle = this.config.labelAngle,
     tickLength = 8,
