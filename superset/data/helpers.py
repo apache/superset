@@ -16,11 +16,10 @@
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
 # pylint: disable=C,R,W
-import csv
+from datetime import datetime
 from io import BytesIO
 import json
 import os
-import sys
 import zlib
 
 from prettytable import PrettyTable
@@ -38,11 +37,6 @@ Dash = models.Dashboard
 TBL = ConnectorRegistry.sources['table']
 
 config = app.config
-
-BLOB_BASE_URL = f'https://github.com/rjurney/examples-data/blob/{ config.get("EXAMPLES_GIT_TAG") }/'
-RAW_BASE_URL = f'https://github.com/rjurney/examples-data/raw/{ config.get("EXAMPLES_GIT_TAG") }/'
-LIST_URL = f'https://api.github.com/repos/rjurney/examples-data/contents/?ref={ config.get("EXAMPLES_GIT_TAG") }'
-RAW_BASE_URL = f'https://github.com/rjurney/examples-data/raw/{ config.get("EXAMPLES_GIT_TAG") }/'
 
 DATA_FOLDER = os.path.join(config.get('BASE_DIR'), 'data')
 
@@ -74,33 +68,80 @@ def get_slice_json(defaults, **kwargs):
     return json.dumps(d, indent=4, sort_keys=True)
 
 
+def get_examples_uris(repo_name, tag):
+    """Given a full Github repo name return the base urls to the contents and blog APIs"""
+    contents_uri = f'https://api.github.com/repos/{repo_name}/contents/?ref={tag}'
+    blob_uri = f'https://github.com/{repo_name}/blob/{tag}/'
+    print(contents_uri, blob_uri)
+    return contents_uri, blob_uri
+
+
 def get_example_data(filepath, is_gzip=True, make_bytes=False):
-    content = requests.get(f'{BLOB_BASE_URL}{filepath}?raw=true').content
+    examples_repos_uris = \
+        [get_examples_uris(r[0], r[1]) for r in config.get('EXAMPLE_REPOS_TAGS')]
+    contents_uri, blob_uri = examples_repos_uris[0]
+    content = requests.get(f'{blob_uri}/{filepath}?raw=true').content
     if is_gzip:
-        content = zlib.decompress(content, zlib.MAX_WBITS|16)
+        content = zlib.decompress(content, zlib.MAX_WBITS | 16)
     if make_bytes:
         content = BytesIO(content)
     return content
 
 
-def list_examples_table(tag='master'):
+def list_examples_table(examples_repo, examples_tag='master'):
     """Use the Github Get contents API to list available examples"""
-    content = json.loads(requests.get(LIST_URL).content)
-    dirs = [x for x in content if x['type'] == 'dir']
+    # Write a pretty table to stdout
+    t = PrettyTable(field_names=['Title', 'Description', 'Size (MB)', 'Rows',
+                                 'Files', 'Created Date', 'Repository', 'Tag'])
 
-    # Write CSV to stdout
-    t = PrettyTable(field_names=['Title', 'Description', 'Total Size (MB)', 'Total Rows',
-                                 'File Count', 'Created Date'])
+    # Optionally replace the default examples repo with a specified one
+    examples_repos_uris = [(r[0], r[1]) + get_examples_uris(r[0], r[1])
+                           for r in config.get('EXAMPLE_REPOS_TAGS')]
+    if examples_repo:
+        examples_repos_uris = [
+            (examples_repo,
+             examples_tag) +
+            get_examples_uris(examples_repo, examples_tag),
+        ]
 
-    for _dir in dirs:
-        link = _dir['_links']['self']
-        sub_content = json.loads(requests.get(link).content)
-        dashboard_info = list(filter(lambda x: x['name'] == 'dashboard.json', sub_content))[0]
-        #file_urls = filter(lambda x: x['name'] != 'dashboard.json', sub_content)
+    def shorten(val, length):
+        result = val
+        if len(val) > length:
+            result = val[0:length] + '...'
+        return result
 
-        d = json.loads(requests.get(dashboard_info['download_url']).content)['description']
-        t.add_row([
-            d['title'], d['description'], d['total_size_mb'], d['total_rows'], 
-            d['file_count'], d['created_at']])     
+    def date_format(iso_date):
+        dt = datetime.strptime(iso_date, '%Y-%m-%dT%H:%M:%S.%f')
+        return dt.isoformat(timespec='minutes')
+
+    for (repo_name, repo_tag, contents_url, blob_url) in examples_repos_uris:
+
+        # Github authentication via a Personal Access Token for rate limit problems
+        headers = None
+        token = config.get('GITHUB_AUTH_TOKEN')
+        if token:
+            headers = {'Authorization': 'token %s' % config.get('GITHUB_AUTH_TOKEN')}
+
+        content = json.loads(requests.get(contents_url, headers=headers).content)
+        dirs = [x for x in content if x['type'] == 'dir']
+
+        for _dir in dirs:
+            link = _dir['_links']['self']
+            sub_content = json.loads(requests.get(link, headers=headers).content)
+            dashboard_info = list(filter(
+                lambda x: x['name'] == 'dashboard.json', sub_content))[0]
+
+            d = json.loads(
+                requests.get(dashboard_info['download_url']).content)['description']
+            t.add_row([
+                d['title'],
+                shorten(d['description'], 50),
+                d['total_size_mb'],
+                d['total_rows'],
+                d['file_count'],
+                date_format(d['created_at']),
+                shorten(repo_name, 30),
+                shorten(repo_tag, 20),
+            ])
 
     return t
