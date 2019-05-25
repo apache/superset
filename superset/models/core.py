@@ -662,7 +662,6 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 for data_table in eager_datasources:
                     engine = data_table.database.get_sqla_engine()
                     columns = [c.get_sqla_col() for c in data_table.columns]
-                    types = {c.name:c.type for c in columns}
 
                     qry = (
                         select(columns)
@@ -690,7 +689,6 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                         'rows': row_count,
                         'size': file_size,
                         'table_name': data_table.name,
-                        'types': types,
                         #'uri': pathlib.Path(file_path).as_uri()
                     }
                     
