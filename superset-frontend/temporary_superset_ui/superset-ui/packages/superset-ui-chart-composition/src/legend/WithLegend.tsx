@@ -26,9 +26,7 @@ const LEGEND_STYLE_BASE: CSSProperties = {
   display: 'flex',
   flexGrow: 0,
   flexShrink: 0,
-  fontSize: '0.9em',
   order: -1,
-  paddingTop: '5px',
 };
 
 const CHART_STYLE_BASE: CSSProperties = {
