@@ -672,7 +672,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                     )
 
                     df = pd.read_sql_query(sql=sql, con=engine)
-                    row_count = len(df.index) + 1 # plus one for header
+                    row_count = len(df.index) + 1  # plus one for header
 
                     file_name = f'{data_table.name}.csv.gz'
                     file_path = f'{export_data_dir}/{file_name}'
