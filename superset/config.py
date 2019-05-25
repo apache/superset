@@ -634,5 +634,10 @@ try:
 except ImportError:
     pass
 
-# The git tag of examples to load
-EXAMPLES_GIT_TAG = 'v0.0.3'
+# Tuple format: Gitub repo full name, tag/branch
+EXAMPLE_REPOS_TAGS = [
+    ('rjurney/examples-data', 'v0.0.3')
+]
+
+# Github Authorization Token - in case the examples commands exceed rate limits
+GITHUB_AUTH_TOKEN = None
