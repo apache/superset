@@ -27,13 +27,13 @@ from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 import humanize
 import sqlalchemy as sa
-from sqlalchemy import and_, or_, UniqueConstraint, Column
+from sqlalchemy import and_, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy_utils.types.uuid import UUIDType
 import yaml
 
 from superset.utils.core import QueryStatus
-from sqlalchemy_utils.types.uuid import UUIDType
 
 
 def json_to_dict(json_str):
@@ -58,7 +58,7 @@ class ImportMixin(object):
     # The names of the attributes
     # that are available for import and export
 
-    uuid = sa.Column(UUIDType(binary=False), unique=True, default=uuid.uuid4) 
+    uuid = sa.Column(UUIDType(binary=False), unique=True, default=uuid.uuid4)
 
     @classmethod
     def _parent_foreign_key_mappings(cls):
