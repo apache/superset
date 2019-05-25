@@ -15,12 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+from contextlib import closing
 from datetime import datetime, timedelta
 import inspect
 import logging
 import os
 import re
-import time
 import traceback
 from typing import List  # noqa: F401
 from urllib import parse
@@ -36,8 +36,7 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
-import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, MetaData, or_, update
+from sqlalchemy import and_, create_engine, MetaData, or_, select
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from werkzeug.routing import BaseConverter
@@ -310,10 +309,10 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     def pre_add(self, db):
         self.check_extra(db)
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
-        security_manager.merge_perm('database_access', db.perm)
+        security_manager.add_permission_view_menu('database_access', db.perm)
         # adding a new database we always want to force refresh schema list
         for schema in db.all_schema_names():
-            security_manager.merge_perm(
+            security_manager.add_permission_view_menu(
                 'schema_access', security_manager.get_schema_perm(db, schema))
 
     def pre_update(self, db):
@@ -1813,8 +1812,9 @@ class Superset(BaseSupersetView):
                 connect_args['configuration'] = configuration
 
             engine = create_engine(uri, **engine_params)
-            engine.connect()
-            return json_success(json.dumps(engine.table_names(), indent=4))
+
+            with closing(engine.connect()) as conn:
+                return json_success(json.dumps(conn.scalar(select([1]))))
         except Exception as e:
             logging.exception(e)
             return json_error_response((
@@ -1844,7 +1844,7 @@ class Superset(BaseSupersetView):
                 M.Slice.id == M.Log.slice_id,
             )
             .filter(
-                sqla.and_(
+                and_(
                     ~M.Log.action.in_(('queries', 'shortner', 'sql_json')),
                     M.Log.user_id == user_id,
                 ),
@@ -1914,7 +1914,7 @@ class Superset(BaseSupersetView):
             )
             .join(
                 models.FavStar,
-                sqla.and_(
+                and_(
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == 'Dashboard',
                     models.Dashboard.id == models.FavStar.obj_id,
@@ -1952,7 +1952,7 @@ class Superset(BaseSupersetView):
                 Dash,
             )
             .filter(
-                sqla.or_(
+                or_(
                     Dash.created_by_fk == user_id,
                     Dash.changed_by_fk == user_id,
                 ),
@@ -1985,13 +1985,13 @@ class Superset(BaseSupersetView):
             db.session.query(Slice,
                              FavStar.dttm).join(
                 models.FavStar,
-                sqla.and_(
+                and_(
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == 'slice',
                     models.Slice.id == models.FavStar.obj_id,
                 ),
                 isouter=True).filter(
-                sqla.or_(
+                or_(
                     Slice.created_by_fk == user_id,
                     Slice.changed_by_fk == user_id,
                     FavStar.user_id == user_id,
@@ -2022,7 +2022,7 @@ class Superset(BaseSupersetView):
         qry = (
             db.session.query(Slice)
             .filter(
-                sqla.or_(
+                or_(
                     Slice.created_by_fk == user_id,
                     Slice.changed_by_fk == user_id,
                 ),
@@ -2054,7 +2054,7 @@ class Superset(BaseSupersetView):
             )
             .join(
                 models.FavStar,
-                sqla.and_(
+                and_(
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == 'slice',
                     models.Slice.id == models.FavStar.obj_id,
@@ -2801,35 +2801,6 @@ class Superset(BaseSupersetView):
             .all()
         )
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
-
-        now = int(round(time.time() * 1000))
-
-        unfinished_states = [
-            QueryStatus.PENDING,
-            QueryStatus.RUNNING,
-        ]
-
-        queries_to_timeout = [
-            client_id for client_id, query_dict in dict_queries.items()
-            if (
-                query_dict['state'] in unfinished_states and (
-                    now - query_dict['startDttm'] >
-                    config.get('SQLLAB_ASYNC_TIME_LIMIT_SEC') * 1000
-                )
-            )
-        ]
-
-        if queries_to_timeout:
-            update(Query).where(
-                and_(
-                    Query.user_id == g.user.get_id(),
-                    Query.client_id in queries_to_timeout,
-                ),
-            ).values(state=QueryStatus.TIMED_OUT)
-
-            for client_id in queries_to_timeout:
-                dict_queries[client_id]['status'] = QueryStatus.TIMED_OUT
-
         return json_success(
             json.dumps(dict_queries, default=utils.json_int_dttm_ser))
 

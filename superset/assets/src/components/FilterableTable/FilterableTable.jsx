@@ -27,6 +27,7 @@ import {
   SortIndicator,
 } from 'react-virtualized';
 import { getTextDimension } from '@superset-ui/dimension';
+import TooltipWrapper from '../TooltipWrapper';
 
 function getTextWidth(text, font = '12px Roboto') {
   return getTextDimension({ text, style: { font } }).width;
@@ -138,12 +139,14 @@ export default class FilterableTable extends PureComponent {
 
   headerRenderer({ dataKey, label, sortBy, sortDirection }) {
     return (
-      <div className="header-style">
-        {label}
-        {sortBy === dataKey &&
-          <SortIndicator sortDirection={sortDirection} />
-        }
-      </div>
+      <TooltipWrapper label="header" tooltip={label}>
+        <div className="header-style">
+          {label}
+          {sortBy === dataKey &&
+            <SortIndicator sortDirection={sortDirection} />
+          }
+        </div>
+      </TooltipWrapper>
     );
   }
 
