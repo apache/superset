@@ -759,8 +759,6 @@ class DrillEngineSpec(BaseEngineSpec):
 
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema):
-        if '/' in uri.database:
-            database = uri.database.split('/')[0]
         if selected_schema:
             uri.database = parse.quote(selected_schema, safe='')
         return uri
