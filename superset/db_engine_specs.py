@@ -767,10 +767,6 @@ class DrillEngineSpec(BaseEngineSpec):
         return uri
 
     @classmethod
-    def extra_table_metadata(cls, database, table_name, schema_name):
-        return super().extra_table_metadata(database, table_name, schema_name)
-
-    @classmethod
     def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
                     show_cols=False, indent=True, latest_partition=True,
                     cols=None):
