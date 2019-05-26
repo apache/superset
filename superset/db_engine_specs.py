@@ -759,21 +759,11 @@ class DrillEngineSpec(BaseEngineSpec):
 
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema):
-        database = uri.database
         if '/' in uri.database:
             database = uri.database.split('/')[0]
         if selected_schema:
-            uri.database = database + '/' + selected_schema
+            uri.database = parse.quote(selected_schema, safe='')
         return uri
-
-    @classmethod
-    def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
-                    show_cols=False, indent=True, latest_partition=True,
-                    cols=None):
-
-        return super().select_star(my_db, table_name, engine,
-                                   schema, limit,
-                                   show_cols, indent, latest_partition, cols)
 
 
 class MySQLEngineSpec(BaseEngineSpec):
