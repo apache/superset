@@ -1363,11 +1363,12 @@ export const controls = {
 
   unstacked_column: {
     type: 'SelectControl',
-    label: t('Unstacked column'),
+    multi: true,
+    label: t('Unstacked column(s)'),
     clearable: true,
     renderTrigger: true,
     default: '',
-    description: t('Name of the column to be unstacked'),
+    description: t('Name of the column(s) to be unstacked'),
     mapStateToProps: state => ({
       choices: columnChoices(state.datasource),
     }),
