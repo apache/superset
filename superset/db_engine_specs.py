@@ -775,14 +775,6 @@ class DrillEngineSpec(BaseEngineSpec):
                                    schema, limit,
                                    show_cols, indent, latest_partition, cols)
 
-    @classmethod
-    def get_table_names(cls, inspector, schema):
-        return sorted(inspector.get_table_names(schema))
-
-    @classmethod
-    def get_view_names(cls, inspector, schema):
-        return sorted(inspector.get_view_names(schema))
-
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
