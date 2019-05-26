@@ -464,3 +464,22 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         query = str(sel.compile(dialect=dialect, compile_kwargs={'literal_binds': True}))
         query_expected = "SELECT col, unicode_col \nFROM tbl \nWHERE col = 'abc' AND unicode_col = N'abc'"  # noqa
         self.assertEqual(query, query_expected)
+
+    def test_get_table_names(self):
+        inspector = mock.Mock()
+        inspector.get_table_names = mock.Mock(return_value=['schema.table', 'table_2'])
+        inspector.get_foreign_table_names = mock.Mock(return_value=['table_3'])
+
+        """ Make sure base engine spec removes schema name from table name
+        ie. when try_remove_schema_from_table_name == True. """
+        base_result_expected = ['table', 'table_2']
+        base_result = db_engine_specs.BaseEngineSpec.get_table_names(
+            schema='schema', inspector=inspector)
+        self.assertListEqual(base_result_expected, base_result)
+
+        """ Make sure postgres doesn't try to remove schema name from table name
+        ie. when try_remove_schema_from_table_name == False. """
+        pg_result_expected = ['schema.table', 'table_2', 'table_3']
+        pg_result = db_engine_specs.PostgresEngineSpec.get_table_names(
+            schema='schema', inspector=inspector)
+        self.assertListEqual(pg_result_expected, pg_result)
