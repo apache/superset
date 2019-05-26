@@ -22,7 +22,7 @@ import logging
 import os
 import re
 import traceback
-from typing import List  # noqa: F401
+from typing import Dict, List  # noqa: F401
 from urllib import parse
 
 from flask import (
@@ -311,7 +311,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.add_permission_view_menu('database_access', db.perm)
         # adding a new database we always want to force refresh schema list
-        for schema in db.all_schema_names():
+        for schema in db.get_all_schema_names():
             security_manager.add_permission_view_menu(
                 'schema_access', security_manager.get_schema_perm(db, schema))
 
@@ -1545,7 +1545,7 @@ class Superset(BaseSupersetView):
             .first()
         )
         if database:
-            schemas = database.all_schema_names(
+            schemas = database.get_all_schema_names(
                 cache=database.schema_cache_enabled,
                 cache_timeout=database.schema_cache_timeout,
                 force=force_refresh)
@@ -1570,50 +1570,57 @@ class Superset(BaseSupersetView):
         database = db.session.query(models.Database).filter_by(id=db_id).one()
 
         if schema:
-            table_names = database.all_table_names_in_schema(
+            tables = database.get_all_table_names_in_schema(
                 schema=schema, force=force_refresh,
                 cache=database.table_cache_enabled,
-                cache_timeout=database.table_cache_timeout)
-            view_names = database.all_view_names_in_schema(
+                cache_timeout=database.table_cache_timeout) or []
+            views = database.get_all_view_names_in_schema(
                 schema=schema, force=force_refresh,
                 cache=database.table_cache_enabled,
-                cache_timeout=database.table_cache_timeout)
+                cache_timeout=database.table_cache_timeout) or []
         else:
-            table_names = database.all_table_names_in_database(
+            tables = database.get_all_table_names_in_database(
                 cache=True, force=False, cache_timeout=24 * 60 * 60)
-            view_names = database.all_view_names_in_database(
+            views = database.get_all_view_names_in_database(
                 cache=True, force=False, cache_timeout=24 * 60 * 60)
-        table_names = security_manager.accessible_by_user(database, table_names, schema)
-        view_names = security_manager.accessible_by_user(database, view_names, schema)
+        tables = security_manager.get_datasources_accessible_by_user(
+            database, tables, schema)
+        views = security_manager.get_datasources_accessible_by_user(
+            database, views, schema)
+
+        def get_datasource_label(ds_name: utils.DatasourceName) -> str:
+            return ds_name.table if schema else f'{ds_name.schema}.{ds_name.table}'
 
         if substr:
-            table_names = [tn for tn in table_names if substr in tn]
-            view_names = [vn for vn in view_names if substr in vn]
+            tables = [tn for tn in tables if substr in get_datasource_label(tn)]
+            views = [vn for vn in views if substr in get_datasource_label(vn)]
 
         if not schema and database.default_schemas:
-            def get_schema(tbl_or_view_name):
-                return tbl_or_view_name.split('.')[0] if '.' in tbl_or_view_name else None
-
             user_schema = g.user.email.split('@')[0]
             valid_schemas = set(database.default_schemas + [user_schema])
 
-            table_names = [tn for tn in table_names if get_schema(tn) in valid_schemas]
-            view_names = [vn for vn in view_names if get_schema(vn) in valid_schemas]
+            tables = [tn for tn in tables if tn.schema in valid_schemas]
+            views = [vn for vn in views if vn.schema in valid_schemas]
 
-        max_items = config.get('MAX_TABLE_NAMES') or len(table_names)
-        total_items = len(table_names) + len(view_names)
-        max_tables = len(table_names)
-        max_views = len(view_names)
+        max_items = config.get('MAX_TABLE_NAMES') or len(tables)
+        total_items = len(tables) + len(views)
+        max_tables = len(tables)
+        max_views = len(views)
         if total_items and substr:
-            max_tables = max_items * len(table_names) // total_items
-            max_views = max_items * len(view_names) // total_items
+            max_tables = max_items * len(tables) // total_items
+            max_views = max_items * len(views) // total_items
 
-        table_options = [{'value': tn, 'label': tn}
-                         for tn in table_names[:max_tables]]
-        table_options.extend([{'value': vn, 'label': '[view] {}'.format(vn)}
-                              for vn in view_names[:max_views]])
+        def get_datasource_value(ds_name: utils.DatasourceName) -> Dict[str, str]:
+            return {'schema': ds_name.schema, 'table': ds_name.table}
+
+        table_options = [{'value': get_datasource_value(tn),
+                          'label': get_datasource_label(tn)}
+                         for tn in tables[:max_tables]]
+        table_options.extend([{'value': get_datasource_value(vn),
+                               'label': f'[view] {get_datasource_label(vn)}'}
+                              for vn in views[:max_views]])
         payload = {
-            'tableLength': len(table_names) + len(view_names),
+            'tableLength': len(tables) + len(views),
             'options': table_options,
         }
         return json_success(json.dumps(payload))
