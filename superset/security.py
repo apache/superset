@@ -17,6 +17,7 @@
 # pylint: disable=C,R,W
 """A set of constants and methods to manage permissions and security"""
 import logging
+from typing import List
 
 from flask import g
 from flask_appbuilder.security.sqla import models as ab_models
@@ -26,6 +27,7 @@ from sqlalchemy import or_
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetSecurityException
+from superset.utils.core import DatasourceName
 
 
 class SupersetSecurityManager(SecurityManager):
@@ -240,7 +242,9 @@ class SupersetSecurityManager(SecurityManager):
                     subset.add(t.schema)
         return sorted(list(subset))
 
-    def accessible_by_user(self, database, datasource_names, schema=None):
+    def get_datasources_accessible_by_user(
+            self, database, datasource_names: List[DatasourceName],
+            schema: str = None) -> List[DatasourceName]:
         from superset import db
         if self.database_access(database) or self.all_datasource_access():
             return datasource_names

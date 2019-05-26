@@ -208,19 +208,20 @@ describe('TableSelector', () => {
 
     it('test 1', () => {
       wrapper.instance().changeTable({
-        value: 'birth_names',
+        value: { schema: 'main', table: 'birth_names' },
         label: 'birth_names',
       });
       expect(wrapper.state().tableName).toBe('birth_names');
     });
 
-    it('test 2', () => {
+    it('should call onTableChange with schema from table object', () => {
+      wrapper.setProps({ schema: null });
       wrapper.instance().changeTable({
-        value: 'main.my_table',
-        label: 'my_table',
+        value: { schema: 'other_schema', table: 'my_table' },
+        label: 'other_schema.my_table',
       });
       expect(mockedProps.onTableChange.getCall(0).args[0]).toBe('my_table');
-      expect(mockedProps.onTableChange.getCall(0).args[1]).toBe('main');
+      expect(mockedProps.onTableChange.getCall(0).args[1]).toBe('other_schema');
     });
   });
 
