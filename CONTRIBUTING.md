@@ -336,6 +336,9 @@ superset load_examples
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 ```
 
+If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
+`FLASK_ENV=development superset run -p 8088 --reload --debugger`
+
 #### Logging to the browser console
 
 This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console using the [ConsoleLog](https://github.com/betodealmeida/consolelog) package. You need to mutate the app, by adding the following to your `config.py` or `superset_config.py`:
