@@ -335,6 +335,9 @@ superset load_examples
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 ```
+If you have made changes to the FAB-managed templates, which are not build the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
+
+`FLASK_ENV=development superset run -p 8088 --reload --debugger`
 
 #### Logging to the browser console
 
