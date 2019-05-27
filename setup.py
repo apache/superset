@@ -105,6 +105,7 @@ setup(
         'sqlparse',
         'unicodecsv',
         'wtforms-json',
+        'openpyxl>=2.6.2',
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],

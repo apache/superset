@@ -81,3 +81,5 @@ webencodings==0.5.1       # via bleach
 werkzeug==0.14.1          # via flask, flask-jwt-extended
 wtforms-json==0.3.3
 wtforms==2.2.1            # via flask-wtf, wtforms-json
+openpyxl==2.6.2
+
