@@ -26,7 +26,11 @@ describe('table viz', () => {
   const BASE_CHART_PROPS = {
     height: 100,
     datasource: {
-      verboseMap: {},
+      verboseMap: {__buttonrenderer: "Details"},
+      columns: [
+        {column_name: 'gender'},
+        {column_name: '__buttonrenderer', expression: 'gender'}
+      ]
     },
     filters: {},
     formData: {
@@ -52,6 +56,16 @@ describe('table viz', () => {
         { gender: 'girl', count: 36446, 'SUM(sum_boys)': 0 },
       ],
       columns: ['gender', 'count', 'SUM(sum_boys)'],
+    },
+  };
+
+  const PAYLOAD3 = {
+    data: {
+      records: [
+        { gender: 'boy', count: 39245, 'Details': 48133355 },
+        { gender: 'girl', count: 36446, 'Details': 0 },
+      ],
+      columns: ['gender', 'count', '__buttonrenderer'],
     },
   };
 
@@ -114,5 +128,44 @@ describe('table viz', () => {
     Table(container, transformProps(chartProps));
     const tableBody = $container.find('.dataTable')[1];
     expect($(tableBody).find('th')).toHaveLength(3);
+  });
+
+  it('added expression and labels for __buttonrenderer', () => {
+    const chartProps = {
+      ...BASE_CHART_PROPS,
+      payload: PAYLOAD3,
+    };
+    const columns = transformProps(chartProps).columns;
+    expect(columns).toHaveLength(3);
+    const details_Column = columns.filter( (column) => {return column.key == '__buttonrenderer'})[0];
+
+    expect(details_Column.expression).toEqual('gender');
+    expect(details_Column.label).toEqual('Details');
+  });
+  it('works with datasource columns with no __buttonrenderer', () => {
+    const chartProps = {
+      ...BASE_CHART_PROPS,
+      datasource: {
+        verboseMap: {}
+      },
+      payload: PAYLOAD3,
+    };
+    const columns = transformProps(chartProps).columns;
+    expect(columns).toHaveLength(3);
+    const details_Column = columns.filter( (column) => {return column.key == '__buttonrenderer'})[0];
+    expect(details_Column.expression).toBeUndefined();
+  });
+
+  it('Button has rendered on table', () => {
+    const chartProps = {
+      ...BASE_CHART_PROPS,
+      payload: PAYLOAD3,
+    };
+    const columns = transformProps(chartProps).columns;
+    Table(container, transformProps(chartProps));
+    const tableBody = $container.find('.dataTable')[1];
+    const buttons = $(tableBody).find('button');
+    expect(buttons).toHaveLength(2);
+    expect($(buttons[0]).text()).toEqual('Details');
   });
 });

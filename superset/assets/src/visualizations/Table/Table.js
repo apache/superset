@@ -130,6 +130,10 @@ function TableVis(element, props) {
     'table-condensed table-hover dataTable no-footer', true)
     .attr('width', '100%');
 
+  function buttoRenderer(label) {
+      return `<button type="button" class="btn btn-sm btn-default">${label}</button>`;
+  }
+
   table.append('thead').append('tr')
     .selectAll('th')
     .data(columns.map(c => c.label))
@@ -151,12 +155,13 @@ function TableVis(element, props) {
         } else {
           d3.selectAll(".selected-row").classed('selected-row', false);
           d3.select(this).classed('selected-row', true);
-          publishSelections(ADD,d)
+          publishSelections(ADD,d);
         }
       }
     })
     .selectAll('td')
-    .data(row => columns.map(({ key, format }) => {
+    .data(row => columns.map(({ key, format, label, expression }) => {
+      let columnName = key;
       const val = row[key];
       let html;
       const isMetric = metrics.indexOf(key) >= 0;
@@ -172,9 +177,12 @@ function TableVis(element, props) {
       if (key[0] === '%') {
         html = formatPercent(val);
       }
-
+      if (key === '__buttonrenderer') {
+        html = buttoRenderer(label);
+        columnName = expression;
+      }
       return {
-        col: key,
+        col: columnName,
         val,
         html,
         isMetric,
