@@ -1964,25 +1964,26 @@ class Superset(BaseSupersetView):
             .order_by(Slice.slice_name.asc())
         )
         
+        
         payload = []
-
+        
         for o in qry.all():
             publish_columns = []
             property = False
             property = 'publish_columns' in o.Slice.form_data
             if property:
                 publish_columns = o.Slice.form_data['publish_columns']
-                if len(publish_columns) > 0:
-                    obj = {
-                        'id': o.Slice.id,
-                        'title': o.Slice.slice_name,
-                        'url': o.Slice.slice_url,
-                        'column_names': publish_columns,
-                        'data': o.Slice.form_data,
-                        'dttm': o.dttm if o.dttm else o.Slice.changed_on,
-                        'viz_type': o.Slice.viz_type
-                    }
-                    payload.append(obj)
+            obj = {
+                'id': o.Slice.id,
+                'title': o.Slice.slice_name,
+                'url': o.Slice.slice_url,
+                'column_names': publish_columns,
+                'data': o.Slice.form_data,
+                'dttm': o.dttm if o.dttm else o.Slice.changed_on,
+                'viz_type': o.Slice.viz_type
+            }
+            payload.append(obj)
+
         return json_success(
             json.dumps(payload, default=utils.json_int_dttm_ser))
 
