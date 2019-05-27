@@ -96,6 +96,7 @@ export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter)
   d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
   d.series.forEach((series) => {
     const key = getFormattedKey(series.key, true);
+    let value = series.value != null ? valueFormatter(series.value) : "NA";
     tooltip += (
       `<tr class="${series.highlight ? 'emph' : ''}">` +
         `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
@@ -104,7 +105,7 @@ export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter)
           '></div>' +
         '</td>' +
         `<td>${key}</td>` +
-        `<td>${valueFormatter(series.value)}</td>` +
+        `<td>${value}</td>` +
       '</tr>'
     );
   });
