@@ -745,6 +745,10 @@ class DrillEngineSpec(BaseEngineSpec):
     # Returns a function to convert a Unix timestamp in milliseconds to a date
     @classmethod
     def epoch_to_dttm(cls):
+        return cls.epoch_ms_to_dttm().replace('{col}', '({col}*1000)')
+
+    @classmethod
+    def epoch_ms_to_dttm(cls):
         return 'TO_DATE({col})'
 
     @classmethod
