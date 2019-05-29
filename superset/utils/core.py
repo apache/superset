@@ -287,11 +287,14 @@ def decode_dashboards(o):
 
 
 class DashboardEncoder(json.JSONEncoder):
+    """JSONEncoder for Dashboard and their Slice objects"""
     # pylint: disable=E0202
     def default(self, o):
         try:
             vals = {
                 k: v for k, v in o.__dict__.items() if k != '_sa_instance_state'}
+            if type(o) == uuid.UUID:
+                return str(o)
             return {'__{}__'.format(o.__class__.__name__): vals}
         except Exception:
             if type(o) == datetime:
