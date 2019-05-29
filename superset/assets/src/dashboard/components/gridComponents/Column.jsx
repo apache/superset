@@ -112,6 +112,7 @@ class Column extends React.PureComponent {
       onResizeStop,
       handleComponentDrop,
       editMode,
+      isComponentVisible,
     } = this.props;
 
     const columnItems = columnComponent.children || [];
@@ -191,6 +192,7 @@ class Column extends React.PureComponent {
                     onResizeStart={onResizeStart}
                     onResize={onResize}
                     onResizeStop={onResizeStop}
+                    isComponentVisible={isComponentVisible}
                   />
                 ))}
 

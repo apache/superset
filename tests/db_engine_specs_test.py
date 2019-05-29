@@ -19,6 +19,7 @@ from unittest import mock
 
 from sqlalchemy import column, select, table
 from sqlalchemy.dialects.mssql import pymssql
+from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.types import String, UnicodeText
 
 from superset import db_engine_specs
@@ -107,7 +108,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             '{...} errorMessage="Error while compiling statement: FAILED: '
             'SemanticException [Error 10001]: Line 4'
             ':5 Table not found \'fact_ridesfdslakj\'", statusCode=3, '
-            'sqlState=\'42S02\', errorCode=10001)){...}')
+            "sqlState='42S02', errorCode=10001)){...}")
         self.assertEquals((
             'Error while compiling statement: FAILED: '
             'SemanticException [Error 10001]: Line 4:5 '
@@ -189,7 +190,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
     def test_simple_limit_query(self):
         self.sql_limit_regex(
             'SELECT * FROM a',
-            'SELECT * FROM a LIMIT 1000',
+            'SELECT * FROM a\nLIMIT 1000',
         )
 
     def test_modify_limit_query(self):
@@ -287,7 +288,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                     'LIMIT 777'""",
             """
                 SELECT
-                    'LIMIT 777' LIMIT 1000""",
+                    'LIMIT 777'\nLIMIT 1000""",
         )
 
     def test_time_grain_blacklist(self):
@@ -321,6 +322,89 @@ class DbEngineSpecsTestCase(SupersetTestCase):
 
     def test_presto_get_view_names_return_empty_list(self):
         self.assertEquals([], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY))
+
+    def verify_presto_column(self, column, expected_results):
+        inspector = mock.Mock()
+        inspector.engine.dialect.identifier_preparer.quote_identifier = mock.Mock()
+        keymap = {'Column': (None, None, 0),
+                  'Type': (None, None, 1),
+                  'Null': (None, None, 2)}
+        row = RowProxy(mock.Mock(), column, [None, None, None, None], keymap)
+        inspector.bind.execute = mock.Mock(return_value=[row])
+        results = PrestoEngineSpec.get_columns(inspector, '', '')
+        self.assertEqual(len(expected_results), len(results))
+        for expected_result, result in zip(expected_results, results):
+            self.assertEqual(expected_result[0], result['name'])
+            self.assertEqual(expected_result[1], str(result['type']))
+
+    def test_presto_get_column(self):
+        presto_column = ('column_name', 'boolean', '')
+        expected_results = [('column_name', 'BOOLEAN')]
+        self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_simple_row_column(self):
+        presto_column = ('column_name', 'row(nested_obj double)', '')
+        expected_results = [
+            ('column_name', 'ROW'),
+            ('column_name.nested_obj', 'FLOAT')]
+        self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_simple_row_column_with_tricky_name(self):
+        presto_column = ('column_name', 'row("Field Name(Tricky, Name)" double)', '')
+        expected_results = [
+            ('column_name', 'ROW'),
+            ('column_name."Field Name(Tricky, Name)"', 'FLOAT')]
+        self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_simple_array_column(self):
+        presto_column = ('column_name', 'array(double)', '')
+        expected_results = [('column_name', 'ARRAY')]
+        self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_row_within_array_within_row_column(self):
+        presto_column = (
+            'column_name',
+            'row(nested_array array(row(nested_row double)), nested_obj double)', '')
+        expected_results = [
+            ('column_name', 'ROW'),
+            ('column_name.nested_array', 'ARRAY'),
+            ('column_name.nested_array.nested_row', 'FLOAT'),
+            ('column_name.nested_obj', 'FLOAT'),
+        ]
+        self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_array_within_row_within_array_column(self):
+        presto_column = (
+            'column_name',
+            'array(row(nested_array array(double), nested_obj double))', '')
+        expected_results = [
+            ('column_name', 'ARRAY'),
+            ('column_name.nested_array', 'ARRAY'),
+            ('column_name.nested_obj', 'FLOAT')]
+        self.verify_presto_column(presto_column, expected_results)
+
+    def test_presto_get_fields(self):
+        cols = [
+            {'name': 'column'},
+            {'name': 'column.nested_obj'},
+            {'name': 'column."quoted.nested obj"'}]
+        actual_results = PrestoEngineSpec._get_fields(cols)
+        expected_results = [
+            {'name': '"column"', 'label': 'column'},
+            {'name': '"column"."nested_obj"', 'label': 'column.nested_obj'},
+            {'name': '"column"."quoted.nested obj"',
+             'label': 'column."quoted.nested obj"'}]
+        for actual_result, expected_result in zip(actual_results, expected_results):
+            self.assertEqual(actual_result.element.name, expected_result['name'])
+            self.assertEqual(actual_result.name, expected_result['label'])
+
+    def test_presto_filter_presto_cols(self):
+        cols = [
+            {'name': 'column', 'type': 'ARRAY'},
+            {'name': 'column.nested_obj', 'type': 'FLOAT'}]
+        actual_results = PrestoEngineSpec._filter_presto_cols(cols)
+        expected_results = [cols[0]]
+        self.assertEqual(actual_results, expected_results)
 
     def test_hive_get_view_names_return_empty_list(self):
         self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))
@@ -380,3 +464,22 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         query = str(sel.compile(dialect=dialect, compile_kwargs={'literal_binds': True}))
         query_expected = "SELECT col, unicode_col \nFROM tbl \nWHERE col = 'abc' AND unicode_col = N'abc'"  # noqa
         self.assertEqual(query, query_expected)
+
+    def test_get_table_names(self):
+        inspector = mock.Mock()
+        inspector.get_table_names = mock.Mock(return_value=['schema.table', 'table_2'])
+        inspector.get_foreign_table_names = mock.Mock(return_value=['table_3'])
+
+        """ Make sure base engine spec removes schema name from table name
+        ie. when try_remove_schema_from_table_name == True. """
+        base_result_expected = ['table', 'table_2']
+        base_result = db_engine_specs.BaseEngineSpec.get_table_names(
+            schema='schema', inspector=inspector)
+        self.assertListEqual(base_result_expected, base_result)
+
+        """ Make sure postgres doesn't try to remove schema name from table name
+        ie. when try_remove_schema_from_table_name == False. """
+        pg_result_expected = ['schema.table', 'table_2', 'table_3']
+        pg_result = db_engine_specs.PostgresEngineSpec.get_table_names(
+            schema='schema', inspector=inspector)
+        self.assertListEqual(pg_result_expected, pg_result)

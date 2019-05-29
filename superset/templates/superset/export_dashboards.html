@@ -18,7 +18,16 @@
 #}
 <script>
     window.onload = function() {
-        window.open(window.location += '&action=go', '_blank');
-        window.location = '{{ dashboards_url }}';
+
+        // See issue #7353, window.open fails
+        var a = document.createElement('a');
+        a.href = window.location + '&action=go';
+        a.download = 'dashboards.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        window.location = '{{ dashboards_url }}';    
+
     };
 </script>

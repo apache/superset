@@ -65,6 +65,10 @@ export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
 export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
 export const CHANGE_DATA_PREVIEW_ID = 'CHANGE_DATA_PREVIEW_ID';
 
+export const START_QUERY_VALIDATION = 'START_QUERY_VALIDATION';
+export const QUERY_VALIDATION_RETURNED = 'QUERY_VALIDATION_RETURNED';
+export const QUERY_VALIDATION_FAILED = 'QUERY_VALIDATION_FAILED';
+
 export const CREATE_DATASOURCE_STARTED = 'CREATE_DATASOURCE_STARTED';
 export const CREATE_DATASOURCE_SUCCESS = 'CREATE_DATASOURCE_SUCCESS';
 export const CREATE_DATASOURCE_FAILED = 'CREATE_DATASOURCE_FAILED';
@@ -77,6 +81,21 @@ export function resetState() {
   return { type: RESET_STATE };
 }
 
+export function startQueryValidation(query) {
+  Object.assign(query, {
+    id: query.id ? query.id : shortid.generate(),
+  });
+  return { type: START_QUERY_VALIDATION, query };
+}
+
+export function queryValidationReturned(query, results) {
+  return { type: QUERY_VALIDATION_RETURNED, query, results };
+}
+
+export function queryValidationFailed(query, message, error) {
+  return { type: QUERY_VALIDATION_FAILED, query, message, error };
+}
+
 export function saveQuery(query) {
   return dispatch =>
     SupersetClient.post({
@@ -86,6 +105,17 @@ export function saveQuery(query) {
     })
       .then(() => dispatch(addSuccessToast(t('Your query was saved'))))
       .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
+}
+
+export function scheduleQuery(query) {
+  return dispatch =>
+    SupersetClient.post({
+      endpoint: '/savedqueryviewapi/api/create',
+      postPayload: query,
+      stringify: false,
+    })
+      .then(() => dispatch(addSuccessToast(t('Your query has been scheduled. To see details of your query, navigate to Saved Queries'))))
+      .catch(() => dispatch(addDangerToast(t('Your query could not be scheduled'))));
 }
 
 export function startQuery(query) {
@@ -182,6 +212,41 @@ export function runQuery(query) {
             message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
           }
           dispatch(queryFailed(query, message, error.link));
+        }),
+      );
+  };
+}
+
+export function validateQuery(query) {
+  return function (dispatch) {
+    dispatch(startQueryValidation(query));
+
+    const postPayload = {
+      client_id: query.id,
+      database_id: query.dbId,
+      json: true,
+      schema: query.schema,
+      sql: query.sql,
+      sql_editor_id: query.sqlEditorId,
+      templateParams: query.templateParams,
+      validate_only: true,
+    };
+
+    return SupersetClient.post({
+      endpoint: `/superset/validate_sql_json/${window.location.search}`,
+      postPayload,
+      stringify: false,
+    })
+      .then(({ json }) => {
+        dispatch(queryValidationReturned(query, json));
+      })
+      .catch(response =>
+        getClientErrorObject(response).then((error) => {
+          let message = error.error || error.statusText || t('Unknown error');
+          if (message.includes('CSRF token')) {
+            message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
+          }
+          dispatch(queryValidationFailed(query, message, error));
         }),
       );
   };
@@ -285,7 +350,8 @@ export function addTable(query, tableName, schemaName) {
       }),
     );
 
-    SupersetClient.get({ endpoint: `/superset/table/${query.dbId}/${tableName}/${schemaName}/` })
+    SupersetClient.get({ endpoint: encodeURI(`/superset/table/${query.dbId}/` +
+            `${encodeURIComponent(tableName)}/${encodeURIComponent(schemaName)}/`) })
       .then(({ json }) => {
         const dataPreviewQuery = {
           id: shortid.generate(),
@@ -322,7 +388,8 @@ export function addTable(query, tableName, schemaName) {
       );
 
     SupersetClient.get({
-      endpoint: `/superset/extra_table_metadata/${query.dbId}/${tableName}/${schemaName}/`,
+      endpoint: encodeURI(`/superset/extra_table_metadata/${query.dbId}/` +
+          `${encodeURIComponent(tableName)}/${encodeURIComponent(schemaName)}/`),
     })
       .then(({ json }) =>
         dispatch(mergeTable({ ...table, ...json, isExtraMetadataLoading: false })),

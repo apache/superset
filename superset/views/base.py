@@ -153,7 +153,7 @@ class BaseSupersetView(BaseView):
             status=status,
             mimetype='application/json')
 
-    def common_bootsrap_payload(self):
+    def common_bootstrap_payload(self):
         """Common data always sent to the client"""
         messages = get_flashed_messages(with_categories=True)
         locale = str(get_locale())

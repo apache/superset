@@ -932,7 +932,7 @@ class DruidDatasource(Model, BaseDatasource):
         if aggregate == 'count':
             return 'count'
         if aggregate == 'count_distinct':
-            return 'cardinality'
+            return 'hyperUnique' if column_type == 'hyperunique' else 'cardinality'
         else:
             return column_type + aggregate.capitalize()
 
@@ -1118,7 +1118,8 @@ class DruidDatasource(Model, BaseDatasource):
             columns.append('__time')
             del qry['post_aggregations']
             del qry['aggregations']
-            qry['dimensions'] = columns
+            del qry['dimensions']
+            qry['columns'] = columns
             qry['metrics'] = []
             qry['granularity'] = 'all'
             qry['limit'] = row_limit

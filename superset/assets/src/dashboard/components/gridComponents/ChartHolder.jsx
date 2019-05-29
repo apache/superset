@@ -109,6 +109,7 @@ class ChartHolder extends React.Component {
       onResizeStop,
       handleComponentDrop,
       editMode,
+      isComponentVisible,
     } = this.props;
 
     // inherit the size of parent columns
@@ -163,6 +164,7 @@ class ChartHolder extends React.Component {
                 )}
                 sliceName={component.meta.sliceName || ''}
                 updateSliceName={this.handleUpdateSliceName}
+                isComponentVisible={isComponentVisible}
               />
               {editMode && (
                 <HoverMenu position="top">

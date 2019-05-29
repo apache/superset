@@ -16,20 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
-import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
-import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
-import MapBoxChartPlugin from '@superset-ui/legacy-plugin-chart-map-box';
-
-export default class MapChartPreset extends Preset {
-  constructor() {
-    super({
-      name: 'Maps',
-      plugins: [
-        new CountryMapChartPlugin().configure({ key: 'country_map' }),
-        new MapBoxChartPlugin().configure({ key: 'mapbox' }),
-        new WorldMapChartPlugin().configure({ key: 'world_map' }),
-      ],
-    });
-  }
-}
+.btn-add { display: none; }
+.linkback { padding: 0 10px 20px 2px; }
