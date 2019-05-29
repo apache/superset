@@ -112,7 +112,7 @@ class ExploreViewContainer extends React.Component {
       (this.props.controls.datasource == null ||
         nextProps.controls.datasource.value !== this.props.controls.datasource.value)
     ) {
-      fetchDatasourceMetadata(nextProps.form_data.datasource, true);
+      fetchDatasourceMetadata(nextProps.form_data.datasource);
     }
 
     const changedControlKeys = this.findChangedControlKeys(this.props.controls, nextProps.controls);
