@@ -17,9 +17,9 @@
 # under the License.
 # pylint: disable=C,R,W
 from datetime import datetime
+from io import StringIO
 import json
 import logging
-import requests
 from subprocess import Popen
 from sys import exit, stdout
 import tarfile
@@ -28,6 +28,7 @@ import tempfile
 import click
 from colorama import Fore, Style
 from pathlib2 import Path
+import requests
 import yaml
 
 from superset import (
@@ -38,6 +39,8 @@ from superset.data.helpers import get_examples_file_list, get_examples_uris, \
 from superset.exceptions import DashboardNotFoundException, ExampleNotFoundException
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
+
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 config = app.config
 celery_app = utils.get_celery_app(config)
@@ -257,24 +260,28 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
 
     download_urls = [x['metadata_file']['download_url'] for x in examples_files]
 
+    import_example_json = None
     import_example_metadata = None
     for download_url in download_urls:
-        example_metadata = json.loads(requests.get(download_url, headers=headers).content)
+        example_json = requests.get(download_url, headers=headers).content
+        example_metadata = json.loads(example_json)
         if example_metadata['description']['title'] == example_title:
+            import_example_json = example_json
             import_example_metadata = example_metadata
-            logging.info('Importing example \'{example_title}\' from {download_url} ...')
+            logging.info(f'Importing example \'{example_title}\' from {download_url} ...')
 
-    if not import_example_metadata:
-        raise ExampleNotFoundException(f'Example {example_title} not found!')
+    if not (import_example_json and import_example_metadata):
+        e = ExampleNotFoundException(f'Example {example_title} not found!')
+        click.echo(click.style(str(e), fg='red'))
+        exit(1)
 
+    data_stream = StringIO(import_example_json.decode())
     try:
-        with f.open() as data_stream:
-            dashboard_import_export.import_dashboards(
-                db.session, data_stream)
+        dashboard_import_export.import_dashboards(
+            db.session, data_stream, database_uri=database_uri)
     except Exception as e:
-        logging.error('Error when importing dashboard from file %s', f)
+        logging.error(f'Error importing example dashboard \'{example_title}\'!')
         logging.error(e)
-
 
 
 @examples.command('remove')
