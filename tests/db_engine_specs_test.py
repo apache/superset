@@ -108,7 +108,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             '{...} errorMessage="Error while compiling statement: FAILED: '
             'SemanticException [Error 10001]: Line 4'
             ':5 Table not found \'fact_ridesfdslakj\'", statusCode=3, '
-            'sqlState=\'42S02\', errorCode=10001)){...}')
+            "sqlState='42S02', errorCode=10001)){...}")
         self.assertEquals((
             'Error while compiling statement: FAILED: '
             'SemanticException [Error 10001]: Line 4:5 '

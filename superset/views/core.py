@@ -1340,12 +1340,12 @@ class Superset(BaseSupersetView):
 
         if action == 'overwrite' and not slice_overwrite_perm:
             return json_error_response(
-                _('You don\'t have the rights to ') + _('alter this ') + _('chart'),
+                _("You don't have the rights to ") + _('alter this ') + _('chart'),
                 status=400)
 
         if action == 'saveas' and not slice_add_perm:
             return json_error_response(
-                _('You don\'t have the rights to ') + _('create a ') + _('chart'),
+                _("You don't have the rights to ") + _('create a ') + _('chart'),
                 status=400)
 
         if action in ('saveas', 'overwrite'):
@@ -1452,7 +1452,7 @@ class Superset(BaseSupersetView):
             dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
             if not dash_overwrite_perm:
                 return json_error_response(
-                    _('You don\'t have the rights to ') + _('alter this ') +
+                    _("You don't have the rights to ") + _('alter this ') +
                     _('dashboard'),
                     status=400)
 
@@ -1466,7 +1466,7 @@ class Superset(BaseSupersetView):
             dash_add_perm = security_manager.can_access('can_add', 'DashboardModelView')
             if not dash_add_perm:
                 return json_error_response(
-                    _('You don\'t have the rights to ') + _('create a ') + _('dashboard'),
+                    _("You don't have the rights to ") + _('create a ') + _('dashboard'),
                     status=400)
 
             dash = models.Dashboard(
