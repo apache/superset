@@ -58,6 +58,7 @@ export default function withVerification(WrappedComponent, optionLabel, optionsN
           if (Array.isArray(json)) {
             this.setState({ validOptions: new Set(json) });
           }
+          /* eslint no-console: 0 */
         }).catch(error => console.log(error));
 
         if (!this.state.hasRunVerification) {

@@ -125,7 +125,7 @@ class ScheduleQueryButton extends React.PureComponent {
   onDescriptionChange(e) {
     this.setState({ description: e.target.value });
   }
-  toggleSchedule(e) {
+  toggleSchedule() {
     this.setState({ showSchedule: !this.state.showSchedule });
   }
   renderModalBody() {
