@@ -148,7 +148,7 @@ def list_examples_table(examples_repo, examples_tag='master'):
 
     def date_format(iso_date):
         dt = datetime.strptime(iso_date, '%Y-%m-%dT%H:%M:%S.%f')
-        return dt.isoformat(timespec='minutes')
+        return dt.isoformat()
 
     for file_info in file_info_list:
 
