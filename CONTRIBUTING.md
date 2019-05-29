@@ -296,9 +296,9 @@ python setup.py build_sphinx
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps. 
+Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
 
-Developers should use a virtualenv. 
+Developers should use a virtualenv.
 
 ```
 pip install virtualenv
@@ -333,7 +333,7 @@ superset load_examples
 # Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have css at this point.
 # See instructions below how to build the front-end assets.
-FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+flask run -p 8088 --with-threads
 ```
 
 #### Logging to the browser console
@@ -733,7 +733,7 @@ to work on `async` related features.
 
 To do this, you'll need to:
 * Add an additional database entry. We recommend you copy the connection
-  string from the database labeled `main`, and then enable `SQL Lab` and the 
+  string from the database labeled `main`, and then enable `SQL Lab` and the
   features you want to use. Don't forget to check the `Async` box
 * Configure a results backend, here's a local `FileSystemCache` example,
   not recommended for production,

@@ -34,7 +34,7 @@ flask-openid==1.2.5       # via flask-appbuilder
 flask-sqlalchemy==2.3.2   # via flask-appbuilder, flask-migrate
 flask-talisman==0.6.0
 flask-wtf==0.14.2
-flask==1.0.2
+flask[dotenv]==1.0.2
 geopy==1.11.0
 gunicorn==19.8.0
 humanize==0.5.1
@@ -62,7 +62,7 @@ pydruid==0.5.2
 pyjwt==1.7.1              # via flask-appbuilder, flask-jwt-extended
 pyrsistent==0.14.11       # via jsonschema
 python-dateutil==2.6.1
-python-dotenv==0.10.1
+python-dotenv==0.10.2     # via flask
 python-editor==1.0.3      # via alembic
 python-geohash==0.8.5
 python3-openid==3.1.0     # via flask-openid
