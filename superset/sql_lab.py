@@ -279,14 +279,16 @@ def execute_sql_statements(
             latest_partition=False)
     query.end_time = now_as_float()
 
-    columns = cdf.columns if cdf.columns else []
+    selected_columns = cdf.columns if cdf.columns else []
     data = cdf.data if cdf.data else []
-    columns, data = db_engine_spec.expand_data(columns, data)
+    all_columns, data, expanded_columns = db_engine_spec.expand_data(selected_columns, data)
 
     payload.update({
         'status': query.status,
         'data': data,
-        'columns': columns,
+        'columns': all_columns,
+        'selected_columns': selected_columns,
+        'expanded_columns': expanded_columns,
         'query': query.to_dict(),
     })
 

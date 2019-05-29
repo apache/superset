@@ -161,7 +161,7 @@ class BaseEngineSpec(object):
 
     @classmethod
     def expand_data(cls, columns, data):
-        return columns, data
+        return columns, data, []
 
     @classmethod
     def alter_new_orm_column(cls, orm_col):
@@ -1165,26 +1165,28 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def expand_row_data(cls, datum, column, column_hierarchy):
-        row_data = datum[column]
-        row_children = column_hierarchy[column]['children']
-        if row_data and len(row_data) != len(row_children):
-            raise Exception("mismatched arrays")
-        elif row_data:
-            for index, data_value in enumerate(row_data):
-                datum[row_children[index]] = data_value
-        else:
-            for index, row_child in enumerate(row_children):
-                datum[row_child] = ''
+        if column in datum:
+            row_data = datum[column]
+            row_children = column_hierarchy[column]['children']
+            if row_data and len(row_data) != len(row_children):
+                raise Exception("mismatched arrays")
+            elif row_data:
+                for index, data_value in enumerate(row_data):
+                    datum[row_children[index]] = data_value
+            else:
+                for index, row_child in enumerate(row_children):
+                    datum[row_child] = ''
 
     @classmethod
     def expand_data(cls, columns, data):
+        all_columns = []
         expanded_columns = []
         for column in columns:
             if column['type'].startswith('ARRAY') or column['type'].startswith('ROW'):
                 full_data_type = '{} {}'.format(column['name'], column['type'].lower())
-                cls._parse_structural_column(full_data_type, expanded_columns)
+                cls._parse_structural_column(full_data_type, all_columns)
             else:
-                expanded_columns.append(column)
+                all_columns.append(column)
 
         row_column_hierarchy = OrderedDict()
         array_column_hierarchy = OrderedDict()
@@ -1194,6 +1196,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 parsed_row_columns = []
                 full_data_type = '{} {}'.format(column['name'], column['type'].lower())
                 cls._parse_structural_column(full_data_type, parsed_row_columns)
+                expanded_columns = expanded_columns + parsed_row_columns[1:]
                 filtered_row_columns, array_columns = cls._filter_presto_cols(parsed_row_columns)
                 expanded_array_columns = expanded_array_columns + array_columns
                 cls.create_column_hierarchy(filtered_row_columns, row_column_hierarchy, ['ROW'])
@@ -1202,6 +1205,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 parsed_array_columns = []
                 full_data_type = '{} {}'.format(column['name'], column['type'].lower())
                 cls._parse_structural_column(full_data_type, parsed_array_columns)
+                expanded_columns = expanded_columns + parsed_array_columns[1:]
                 expanded_array_columns = expanded_array_columns + parsed_array_columns
                 cls.create_column_hierarchy(parsed_array_columns, array_column_hierarchy, ['ROW', 'ARRAY'])
 
@@ -1248,23 +1252,29 @@ class PrestoEngineSpec(BaseEngineSpec):
                     elif array_data and array_children['children']:
                         for array_index, data_value in enumerate(array_data):
                             if array_index >= len(expanded_array_data):
-                                expanded_array_data.append({})
+                                empty_dict = {}
+                                for expanded_column in all_columns:
+                                    empty_dict[expanded_column['name']] = ''
+                                expanded_array_data.append(empty_dict)
                             for index, datum_value in enumerate(data_value):
                                 expanded_array_data[array_index][array_children['children'][index]] = datum_value
                     elif array_data:
                         for array_index, data_value in enumerate(array_data):
                             if array_index >= len(expanded_array_data):
-                                expanded_array_data.append({})
+                                empty_dict = {}
+                                for expanded_column in all_columns:
+                                    empty_dict[expanded_column['name']] = ''
+                                expanded_array_data.append(empty_dict)
                             expanded_array_data[array_index][array_column] = data_value
                     else:
-                        for index, array_child in enumerate(array_children):
+                        for index, array_child in enumerate(array_children['children']):
                             for expanded_array_datum in expanded_array_data:
-                                expanded_array_datum[array_children['children'][index]] = ''
+                                expanded_array_datum[array_child] = ''
 
             data_index = 0
             org_data_index = 0
             while data_index < len(data):
-                data[data_index] = {**filtered_array_data[org_data_index][0], **data[data_index]}
+                data[data_index].update(filtered_array_data[org_data_index][0])
                 filtered_array_data[org_data_index].pop(0)
                 data[data_index + 1:data_index + 1] = filtered_array_data[org_data_index]
                 data_index = data_index + len(filtered_array_data[org_data_index]) + 1
@@ -1277,7 +1287,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 else:
                     del array_column_hierarchy[array_column]
 
-        return expanded_columns, data
+        return all_columns, data, expanded_columns
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
