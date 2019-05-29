@@ -281,7 +281,7 @@ class BaseViz(object):
                                              since=form_data.get('since'),
                                              until=form_data.get('until'))
         time_shift = form_data.get('time_shift', '')
-        self.time_shift = utils.parse_human_timedelta(time_shift)
+        self.time_shift = utils.parse_past_timedelta(time_shift)
         from_dttm = None if since is None else (since - self.time_shift)
         to_dttm = None if until is None else (until - self.time_shift)
         if from_dttm and to_dttm and from_dttm > to_dttm:
@@ -1210,7 +1210,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
         for option in time_compare:
             query_object = self.query_obj()
-            delta = utils.parse_human_timedelta(option)
+            delta = utils.parse_past_timedelta(option)
             query_object['inner_from_dttm'] = query_object['from_dttm']
             query_object['inner_to_dttm'] = query_object['to_dttm']
 
