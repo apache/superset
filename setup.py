@@ -116,9 +116,12 @@ setup(
         'hive': [
             'pyhive[hive]>=0.6.1',
             'tableschema',
+            'thrift>=0.11.0, <1.0.0',
         ],
         'presto': ['pyhive[presto]>=0.4.0'],
         'gsheets': ['gsheetsdb>=0.1.9'],
+        'mysql': ['mysqlclient==1.3.13'],
+        'postgres': ['psycopg2-binary==2.7.5'],
     },
     author='Apache Software Foundation',
     author_email='dev@superset.incubator.apache.org',
