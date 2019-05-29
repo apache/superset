@@ -261,24 +261,23 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
     download_urls = [x['metadata_file']['download_url'] for x in examples_files]
 
     import_example_json = None
-    import_example_metadata = None
     for download_url in download_urls:
         example_json = requests.get(download_url, headers=headers).content
         example_metadata = json.loads(example_json)
         if example_metadata['description']['title'] == example_title:
             import_example_json = example_json
-            import_example_metadata = example_metadata
             logging.info(f'Importing example \'{example_title}\' from {download_url} ...')
 
-    if not (import_example_json and import_example_metadata):
+    if not import_example_json:
         e = ExampleNotFoundException(f'Example {example_title} not found!')
         click.echo(click.style(str(e), fg='red'))
         exit(1)
 
-    data_stream = StringIO(import_example_json.decode())
     try:
-        dashboard_import_export.import_dashboards(
-            db.session, data_stream, database_uri=database_uri)
+        dashboard_import_export.import_example_dashboard(
+            db.session,
+            import_example_json,
+            database_uri)
     except Exception as e:
         logging.error(f'Error importing example dashboard \'{example_title}\'!')
         logging.error(e)
