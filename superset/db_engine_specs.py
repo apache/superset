@@ -529,13 +529,6 @@ class BaseEngineSpec(object):
             label = label[:cls.max_column_name_length]
         return label
 
-    @staticmethod
-    def get_timestamp_column(expression, column_name):
-        """Return the expression if defined, otherwise return column_name. Some
-        engines require forcing quotes around column name, in which case this method
-        can be overridden."""
-        return expression or column_name
-
     @classmethod
     def column_datatype_to_string(cls, sqla_column_type, dialect):
         return sqla_column_type.compile(dialect=dialect).upper()

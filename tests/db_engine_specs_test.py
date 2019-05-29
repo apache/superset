@@ -823,4 +823,8 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             main_db.db_engine_spec.column_datatype_to_string(c.type, dialect)
             for c in sqla_table.columns
         ]
-        self.assertEquals(col_names, ['VARCHAR(255)', 'VARCHAR(255)', 'FLOAT'])
+        if main_db.backend == 'postgresql':
+            expected = ['VARCHAR(255)', 'VARCHAR(255)', 'DOUBLE PRECISION']
+        else:
+            expected = ['VARCHAR(255)', 'VARCHAR(255)', 'FLOAT']
+        self.assertEquals(col_names, expected)
