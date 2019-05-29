@@ -56,7 +56,7 @@ export default function withVerification(WrappedComponent, optionLabel, optionsN
           endpoint,
         }).then(({ json }) => {
           if (Array.isArray(json)) {
-            this.setState({ validOptions: new Set(json) || new Set() });
+            this.setState({ validOptions: new Set(json) });
           }
         }).catch(error => console.log(error));
 

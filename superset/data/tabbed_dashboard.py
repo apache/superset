@@ -17,25 +17,12 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
 # pylint: disable=C,R,W
 import json
-import os
 import textwrap
 
-import pandas as pd
-from sqlalchemy import DateTime, String
-
 from superset import db
-from superset.connectors.sqla.models import SqlMetric
-from superset.utils import core as utils
 from .helpers import (
-    config,
     Dash,
-    DATA_FOLDER,
-    get_example_data,
-    get_slice_json,
-    merge_slice,
-    misc_dash_slices,
     Slice,
-    TBL,
     update_slice_ids,
 )
 

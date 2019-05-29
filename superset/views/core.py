@@ -2582,7 +2582,6 @@ class Superset(BaseSupersetView):
             except Exception:
                 # sqla.types.JSON __str__ has a bug, so using __class__.
                 dtype = col["type"].__class__.__name__
-                pass
             payload_columns.append(
                 {
                     "name": col["name"],

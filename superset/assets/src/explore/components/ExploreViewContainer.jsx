@@ -99,7 +99,7 @@ class ExploreViewContainer extends React.Component {
     // Trigger the chart if there are no errors
     const { chart } = this.props;
     if (!this.hasErrors()) {
-      this.props.actions.triggerQuery(true, this.props.chart.id);
+      this.props.actions.triggerQuery(true, chart.id);
     }
   }
 
@@ -273,8 +273,8 @@ class ExploreViewContainer extends React.Component {
     // Returns an error message as a node if any errors are in the store
     const errors = [];
     const ctrls = this.props.controls;
-    for (const controlName in this.props.controls) {
-      const control = this.props.controls[controlName];
+    for (const controlName in ctrls) {
+      const control = ctrls[controlName];
       if (control.validationErrors && control.validationErrors.length > 0) {
         errors.push(
           <div key={controlName}>
