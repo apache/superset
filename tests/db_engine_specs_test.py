@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import inspect
+import unittest
 from unittest import mock
 
 from sqlalchemy import column, literal_column, select, table
@@ -247,10 +249,18 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 LIMIT         1000""",
         )
 
-    def test_get_datatype(self):
-        self.assertEquals('STRING', PrestoEngineSpec.get_datatype('string'))
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('mysqlclient'), 'mysqlclient not installed')
+    def test_get_datatype_mysql(self):
         self.assertEquals('TINY', MySQLEngineSpec.get_datatype(1))
         self.assertEquals('VARCHAR', MySQLEngineSpec.get_datatype(15))
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pyhive'), 'pyhive not installed')
+    def test_get_datatype_presto(self):
+        self.assertEquals('STRING', PrestoEngineSpec.get_datatype('string'))
+
+    def test_get_datatype(self):
         self.assertEquals('VARCHAR', BaseEngineSpec.get_datatype('VARCHAR'))
 
     def test_limit_with_implicit_offset(self):
