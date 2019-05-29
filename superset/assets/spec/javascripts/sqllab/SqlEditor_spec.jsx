@@ -40,7 +40,6 @@ describe('SqlEditor', () => {
     queryEditor: initialState.sqlLab.queryEditors[0],
     latestQuery: queries[0],
     tables: [table],
-    queries,
     getHeight: () => ('100px'),
     editorQueries: [],
     dataPreviewQueries: [],
