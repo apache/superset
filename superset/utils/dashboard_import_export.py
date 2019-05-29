@@ -57,7 +57,7 @@ def import_dashboards(session, data_stream, import_time=None):
 
 def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
                       export_data=False, export_data_dir=None, description=None,
-                      export_title=None, _license='Apache 2.0'):
+                      export_title=None, _license='Apache 2.0', strip_database=False):
     """Returns all dashboards metadata as a json dump"""
     logging.info('Starting export')
     export_dashboard_ids = []
@@ -84,7 +84,16 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
         data['description']['description'] = description
     data['description']['license'] = _license
 
-    return json.dumps(data, cls=DashboardEncoder, indent=4, sort_keys=True)
+    export_json = json.dumps(data, cls=DashboardEncoder, indent=4, sort_keys=True)
+
+    # Remove datasources[].__SqlaTable__.database for example export
+    if strip_database:
+        parsed_json = json.loads(export_json)
+        for datasource in parsed_json['datasources']:
+            datasource['__SqlaTable__']['database'] = None
+        export_json = json.dumps(parsed_json, indent=4, sort_keys=True)
+
+    return export_json
 
 
 def get_slug(session, dashboard_id=None, dashboard_title=None):

@@ -72,7 +72,6 @@ def get_examples_uris(repo_name, tag):
     """Given a full Github repo name return the base urls to the contents and blog APIs"""
     contents_uri = f'https://api.github.com/repos/{repo_name}/contents/?ref={tag}'
     blob_uri = f'https://github.com/{repo_name}/blob/{tag}/'
-    print(contents_uri, blob_uri)
     return contents_uri, blob_uri
 
 
@@ -88,8 +87,40 @@ def get_example_data(filepath, is_gzip=True, make_bytes=False):
     return content
 
 
+def get_examples_file_list(examples_repos_uris, examples_tag='master'):
+    """Use the Github get contents API to list available examples"""
+    examples = []
+
+    for (repo_name, repo_tag, contents_uri, blob_uri) in examples_repos_uris:
+
+        # Github authentication via a Personal Access Token for rate limit problems
+        headers = None
+        token = config.get('GITHUB_AUTH_TOKEN')
+        if token:
+            headers = {'Authorization': 'token %s' % token}
+
+        content = json.loads(requests.get(contents_uri, headers=headers).content)
+        dirs = [x for x in content if x['type'] == 'dir']  # examples are in sub-dirs
+
+        for _dir in dirs:
+            link = _dir['_links']['self']
+            sub_content = json.loads(requests.get(link, headers=headers).content)
+            dashboard_info = list(filter(
+                lambda x: x['name'] == 'dashboard.json', sub_content))[0]
+            data_files = list(filter(
+                lambda x: x['name'].endswith('.csv.gz'), sub_content))
+            examples.append({
+                'repo_name': repo_name,
+                'repo_tag': repo_tag,
+                'metadata_file': dashboard_info,
+                'data_files': data_files,
+            })
+
+    return examples
+
+
 def list_examples_table(examples_repo, examples_tag='master'):
-    """Use the Github Get contents API to list available examples"""
+    """Turn a list of available examples into a PrettyTable"""
     # Write a pretty table to stdout
     t = PrettyTable(field_names=['Title', 'Description', 'Size (MB)', 'Rows',
                                  'Files', 'Created Date', 'Repository', 'Tag'])
@@ -97,12 +128,16 @@ def list_examples_table(examples_repo, examples_tag='master'):
     # Optionally replace the default examples repo with a specified one
     examples_repos_uris = [(r[0], r[1]) + get_examples_uris(r[0], r[1])
                            for r in config.get('EXAMPLE_REPOS_TAGS')]
+
+    # Replace the configured repos with the examples repo specified
     if examples_repo:
         examples_repos_uris = [
             (examples_repo,
              examples_tag) +
             get_examples_uris(examples_repo, examples_tag),
         ]
+
+    file_info_list = get_examples_file_list(examples_repos_uris)
 
     def shorten(val, length):
         result = val
@@ -114,34 +149,21 @@ def list_examples_table(examples_repo, examples_tag='master'):
         dt = datetime.strptime(iso_date, '%Y-%m-%dT%H:%M:%S.%f')
         return dt.isoformat(timespec='minutes')
 
-    for (repo_name, repo_tag, contents_url, blob_url) in examples_repos_uris:
+    for file_info in file_info_list:
 
-        # Github authentication via a Personal Access Token for rate limit problems
-        headers = None
-        token = config.get('GITHUB_AUTH_TOKEN')
-        if token:
-            headers = {'Authorization': 'token %s' % config.get('GITHUB_AUTH_TOKEN')}
-
-        content = json.loads(requests.get(contents_url, headers=headers).content)
-        dirs = [x for x in content if x['type'] == 'dir']
-
-        for _dir in dirs:
-            link = _dir['_links']['self']
-            sub_content = json.loads(requests.get(link, headers=headers).content)
-            dashboard_info = list(filter(
-                lambda x: x['name'] == 'dashboard.json', sub_content))[0]
-
-            d = json.loads(
-                requests.get(dashboard_info['download_url']).content)['description']
-            t.add_row([
-                d['title'],
-                shorten(d['description'], 50),
-                d['total_size_mb'],
-                d['total_rows'],
-                d['file_count'],
-                date_format(d['created_at']),
-                shorten(repo_name, 30),
-                shorten(repo_tag, 20),
-            ])
+        d = json.loads(
+            requests.get(
+                file_info['metadata_file']['download_url']).content)['description']
+        row = [
+            d['title'],
+            shorten(d['description'], 50),
+            d['total_size_mb'],
+            d['total_rows'],
+            d['file_count'],
+            date_format(d['created_at']),
+            shorten(file_info['repo_name'], 30),
+            shorten(file_info['repo_tag'], 20),
+        ]
+        t.add_row(row)
 
     return t

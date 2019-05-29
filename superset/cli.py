@@ -17,7 +17,9 @@
 # under the License.
 # pylint: disable=C,R,W
 from datetime import datetime
+import json
 import logging
+import requests
 from subprocess import Popen
 from sys import exit, stdout
 import tarfile
@@ -31,8 +33,9 @@ import yaml
 from superset import (
     app, appbuilder, data, db, security_manager,
 )
-from superset.data.helpers import list_examples_table
-from superset.exceptions import DashboardNotFoundException
+from superset.data.helpers import get_examples_file_list, get_examples_uris, \
+    list_examples_table
+from superset.exceptions import DashboardNotFoundException, ExampleNotFoundException
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
 
@@ -183,7 +186,8 @@ def export_example(dashboard_id, dashboard_title, description, example_title,
                 export_data_dir=tmp_dir_name,
                 description=description,
                 export_title=example_title,
-                _license=_license)
+                _license=_license,
+                strip_database=True)
 
             dashboard_slug = dashboard_import_export.get_slug(
                 db.session,
@@ -216,7 +220,6 @@ def export_example(dashboard_id, dashboard_title, description, example_title,
     default='master')
 def _list_examples(examples_repo, examples_tag):
     """List example dashboards/datasets"""
-
     click.echo(
         list_examples_table(examples_repo, examples_tag=examples_tag))
     pass
@@ -238,7 +241,40 @@ def _list_examples(examples_repo, examples_tag):
     '--example-title', '-e', help='Title of example to import', required=True)
 def import_example(example_title, examples_repo, examples_tag, database_uri):
     """Import an example dashboard/dataset"""
-    pass
+
+    # First fetch the example information from Github
+    examples_repos = [(examples_repo, examples_tag)] \
+        if examples_repo else config.get('EXAMPLE_REPOS_TAGS')
+    examples_repos_uris = [(r[0], r[1]) + get_examples_uris(r[0], r[1])
+                           for r in examples_repos]
+    examples_files = get_examples_file_list(examples_repos_uris)
+
+    # Github authentication via a Personal Access Token for rate limit problems
+    headers = None
+    token = config.get('GITHUB_AUTH_TOKEN')
+    if token:
+        headers = {'Authorization': 'token %s' % token}
+
+    download_urls = [x['metadata_file']['download_url'] for x in examples_files]
+
+    import_example_metadata = None
+    for download_url in download_urls:
+        example_metadata = json.loads(requests.get(download_url, headers=headers).content)
+        if example_metadata['description']['title'] == example_title:
+            import_example_metadata = example_metadata
+            logging.info('Importing example \'{example_title}\' from {download_url} ...')
+
+    if not import_example_metadata:
+        raise ExampleNotFoundException(f'Example {example_title} not found!')
+
+    try:
+        with f.open() as data_stream:
+            dashboard_import_export.import_dashboards(
+                db.session, data_stream)
+    except Exception as e:
+        logging.error('Error when importing dashboard from file %s', f)
+        logging.error(e)
+
 
 
 @examples.command('remove')

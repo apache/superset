@@ -55,5 +55,10 @@ class SupersetTemplateException(SupersetException):
 class SpatialException(SupersetException):
     pass
 
-class DashboardNotFoundException(Exception):
+
+class DashboardNotFoundException(SupersetException):
+    pass
+
+
+class ExampleNotFoundException(SupersetException):
     pass
