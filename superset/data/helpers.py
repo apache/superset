@@ -76,6 +76,7 @@ def get_examples_uris(repo_name, tag):
 
 
 def get_example_data(filepath, is_gzip=True, make_bytes=False):
+    """Get the examples data for the legacy examples"""
     examples_repos_uris = \
         [get_examples_uris(r[0], r[1]) for r in config.get('EXAMPLE_REPOS_TAGS')]
     contents_uri, blob_uri = examples_repos_uris[0]
