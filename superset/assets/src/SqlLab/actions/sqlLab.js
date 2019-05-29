@@ -107,6 +107,17 @@ export function saveQuery(query) {
       .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
 }
 
+export function scheduleQuery(query) {
+  return dispatch =>
+    SupersetClient.post({
+      endpoint: '/savedqueryviewapi/api/create',
+      postPayload: query,
+      stringify: false,
+    })
+      .then(() => dispatch(addSuccessToast(t('Your query has been scheduled. To see details of your query, navigate to Saved Queries'))))
+      .catch(() => dispatch(addDangerToast(t('Your query could not be scheduled'))));
+}
+
 export function startQuery(query) {
   Object.assign(query, {
     id: query.id ? query.id : shortid.generate(),

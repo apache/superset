@@ -83,17 +83,10 @@ export default class SqlEditorLeftBar extends React.PureComponent {
       this.setState({ tableName: '' });
       return;
     }
-    const namePieces = tableOpt.value.split('.');
-    let tableName = namePieces[0];
-    let schemaName = this.props.queryEditor.schema;
-    if (namePieces.length === 1) {
-      this.setState({ tableName });
-    } else {
-      schemaName = namePieces[0];
-      tableName = namePieces[1];
-      this.setState({ tableName });
-      this.props.actions.queryEditorSetSchema(this.props.queryEditor, schemaName);
-    }
+    const schemaName = tableOpt.value.schema;
+    const tableName = tableOpt.value.table;
+    this.setState({ tableName });
+    this.props.actions.queryEditorSetSchema(this.props.queryEditor, schemaName);
     this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
   }
 
