@@ -3,12 +3,9 @@ coverage:
     project:
       default:
         # Commits pushed to master should not make the overall
-        # project coverage decrease by more than 1%:
+        # project coverage decrease:
         target: auto
-        threshold: 1%
+        threshold: 0%
     patch:
       default:
-        threshold: 1%
-
-ignore:
-- "superset/assets/src/visualizations/"
+        threshold: 0%
