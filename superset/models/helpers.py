@@ -45,6 +45,10 @@ def json_to_dict(json_str):
         return {}
 
 
+def get_uuid():
+    return str(uuid.uuid4())
+
+
 class ImportMixin(object):
     export_parent = None
     # The name of the attribute
@@ -58,7 +62,7 @@ class ImportMixin(object):
     # The names of the attributes
     # that are available for import and export
 
-    uuid = sa.Column(UUIDType(binary=False), unique=True, default=uuid.uuid4)
+    uuid = sa.Column(UUIDType(binary=False), unique=True, default=get_uuid)
 
     @classmethod
     def _parent_foreign_key_mappings(cls):
