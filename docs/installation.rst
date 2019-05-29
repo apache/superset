@@ -392,6 +392,12 @@ Here's a list of some of the recommended packages.
 |  Pinot        | ``pip install pinotdb``             | ``pinot+http://controller:5436/``               |
 |               |                                     | ``query?server=http://controller:5983/``        |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Apache Drill |                                     | For the REST API:``                             |
+|               |                                     | ``drill+sadrill://``                            |
+|               |                                     | For JDBC                                        |
+|               |                                     | ``drill+jdbc://``                               |
++---------------+-------------------------------------+-------------------------------------------------+
+
 
 Note that many other databases are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
@@ -448,6 +454,31 @@ Required environment variables: ::
     export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini
 
 See `Teradata SQLAlchemy <https://github.com/Teradata/sqlalchemy-teradata>`_.
+
+Apache Drill
+---------
+At the time of writing, the SQLAlchemy Dialect is not available on pypi and must be downloaded here:
+`SQLAlchemy Drill <https://github.com/JohnOmernik/sqlalchemy-drill>`_
+
+Alternatively, you can install it completely from the command line as follows: ::
+
+    git clone https://github.com/JohnOmernik/sqlalchemy-drill
+    cd sqlalchemy-drill
+    python3 setup.py install
+
+Once that is done, you can connect to Drill in two ways, either via the REST interface or by JDBC.  If you are connecting via JDBC, you must have the
+Drill JDBC Driver installed.
+
+The basic connection string for Drill looks like this ::
+
+    drill+sadrill://{username}:{password}@{host}:{port}/{storage_plugin}?use_ssl=True
+
+If you are using JDBC to connect to Drill, the connection string looks like this: ::
+
+    drill+jdbc://{username}:{password}@{host}:{port}/{storage_plugin}
+
+For a complete tutorial about how to use Apache Drill with Superset, see this tutorial:
+`Visualize Anything with Superset and Drill <http://thedataist.com/visualize-anything-with-superset-and-drill/>`_
 
 Caching
 -------
