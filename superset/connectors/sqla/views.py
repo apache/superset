@@ -155,11 +155,11 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 
     def post_add(self, metric):
         if metric.is_restricted:
-            security_manager.merge_perm('metric_access', metric.get_perm())
+            security_manager.add_permission_view_menu('metric_access', metric.get_perm())
 
     def post_update(self, metric):
         if metric.is_restricted:
-            security_manager.merge_perm('metric_access', metric.get_perm())
+            security_manager.add_permission_view_menu('metric_access', metric.get_perm())
 
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
@@ -283,9 +283,9 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     def post_add(self, table, flash_message=True):
         table.fetch_metadata()
-        security_manager.merge_perm('datasource_access', table.get_perm())
+        security_manager.add_permission_view_menu('datasource_access', table.get_perm())
         if table.schema:
-            security_manager.merge_perm('schema_access', table.schema_perm)
+            security_manager.add_permission_view_menu('schema_access', table.schema_perm)
 
         if flash_message:
             flash(_(

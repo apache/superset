@@ -294,7 +294,17 @@ python setup.py build_sphinx
 
 ### Flask server
 
-Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
+#### OS Dependencies
+
+Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps. 
+
+Developers should use a virtualenv. 
+
+```
+pip install virtualenv
+```
+
+Then proceed with:
 
 ```bash
 # Create a virtual environemnt and activate it (recommended)
@@ -304,10 +314,11 @@ source venv/bin/activate
 # Install external dependencies
 pip install -r requirements.txt
 pip install -r requirements-dev.txt
+
 # Install Superset in editable (development) mode
 pip install -e .
 
-# Create an admin user
+# Create an admin user in your metadata database
 fabmanager create-admin --app superset
 
 # Initialize the database
@@ -319,11 +330,10 @@ superset init
 # Load some data to play with
 superset load_examples
 
-# Start the Flask dev web server from inside the `superset` dir at port 8088
+# Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have css at this point.
 # See instructions below how to build the front-end assets.
-cd superset
-FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger
+FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 ```
 
 #### Logging to the browser console
@@ -355,7 +365,14 @@ app.logger.info(form_data)
 
 Frontend assets (JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset/assets` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
 
-First, be sure you are using recent versions of NodeJS and npm. Using [nvm](https://github.com/creationix/nvm) to manage them is recommended.
+#### nvm and node
+
+First, be sure you are using recent versions of NodeJS and npm. Using [nvm](https://github.com/creationix/nvm) to manage them is recommended. Check the docs at the link to be sure, but at the time of writing the following would install nvm and node:
+
+```bash
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
+nvm install node
+```
 
 #### Prerequisite
 
@@ -394,6 +411,12 @@ npm run dev
 
 # Compile the Javascript and CSS in production/optimized mode for official releases
 npm run prod
+```
+
+If you run this service from somewhere other than your local machine, you may need to add hostname value to webpack.config.js at .devServer.public specifying the endpoint at which you will access the app. For example: myhost:9001. For convenience you may want to install webpack, webpack-cli and webpack-dev-server globally so that you can run them directly:
+
+```bash
+npm install --global webpack webpack-cli webpack-dev-server
 ```
 
 #### Updating NPM packages
@@ -517,14 +540,15 @@ superset db upgrade
 superset init
 superset load_test_users
 superset load_examples
-superset runserver
+superset run --port 8081
 ```
 
 Run Cypress tests:
 
 ```bash
-cd /superset/superset/assets
+cd superset/assets
 npm run build
+npm run install-cypress
 npm run cypress run
 
 # run tests from a specific file
@@ -533,6 +557,8 @@ npm run cypress run -- --spec cypress/integration/explore/link.test.js
 # run specific file with video capture
 npm run cypress run -- --spec cypress/integration/dashboard/index.test.js --config video=true
 ```
+
+See [`superset/assets/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset/assets/cypress_build.sh).
 
 ## Translating
 

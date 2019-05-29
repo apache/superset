@@ -170,13 +170,8 @@ export default class TableSelector extends React.PureComponent {
       this.setState({ tableName: '' });
       return;
     }
-    const namePieces = tableOpt.value.split('.');
-    let tableName = namePieces[0];
-    let schemaName = this.props.schema;
-    if (namePieces.length > 1) {
-      schemaName = namePieces[0];
-      tableName = namePieces[1];
-    }
+    const schemaName = tableOpt.value.schema;
+    const tableName = tableOpt.value.table;
     if (this.props.tableNameSticky) {
       this.setState({ tableName }, this.onChange);
     }

@@ -91,6 +91,8 @@ OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for m
 
 Or if you're curious and want to install superset from bottom up, then go ahead.
 
+See also `contrib/docker/README.md <https://github.com/apache/incubator-superset/blob/master/contrib/docker/README.md>`_
+
 OS dependencies
 ---------------
 
@@ -121,7 +123,13 @@ that the required dependencies are installed: ::
     sudo yum upgrade python-setuptools
     sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
 
-**OSX**, system python is not recommended. brew's python also ships with pip  ::
+**Mac OS X** If possible, you should upgrade to the latest version of OS X as issues are more likely to be resolved for that version. 
+You *will likely need* the latest version of XCode available for your installed version of OS X. You should also install
+the XCode command line tools: ::
+
+    xcode-select --install
+
+System python is not recommended. Homebrew's python also ships with pip: ::
 
     brew install pkg-config libffi openssl python
     env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==2.4.2
@@ -184,8 +192,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    flask run -p 8080 --with-threads --reload --debugger
-
+    superset run -p 8080 --with-threads --reload --debugger
 
 After installation, you should be able to point your browser to the right
 hostname:port `http://localhost:8088 <http://localhost:8088>`_, login using
@@ -219,10 +226,8 @@ Refer to the
 `Gunicorn documentation <https://docs.gunicorn.org/en/stable/design.html>`_
 for more information.
 
-Note that *gunicorn* does not
-work on Windows so the `superset runserver` command is not expected to work
-in that context. Also, note that the development web
-server (`superset runserver -d`) is not intended for production use.
+Note that the development web
+server (`superset run` or `flask run`) is not intended for production use.
 
 If not using gunicorn, you may want to disable the use of flask-compress
 by setting `ENABLE_FLASK_COMPRESS = False` in your `superset_config.py`
@@ -387,6 +392,12 @@ Here's a list of some of the recommended packages.
 |  Pinot        | ``pip install pinotdb``             | ``pinot+http://controller:5436/``               |
 |               |                                     | ``query?server=http://controller:5983/``        |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Apache Drill |                                     | For the REST API:``                             |
+|               |                                     | ``drill+sadrill://``                            |
+|               |                                     | For JDBC                                        |
+|               |                                     | ``drill+jdbc://``                               |
++---------------+-------------------------------------+-------------------------------------------------+
+
 
 Note that many other databases are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
@@ -443,6 +454,31 @@ Required environment variables: ::
     export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini
 
 See `Teradata SQLAlchemy <https://github.com/Teradata/sqlalchemy-teradata>`_.
+
+Apache Drill
+---------
+At the time of writing, the SQLAlchemy Dialect is not available on pypi and must be downloaded here:
+`SQLAlchemy Drill <https://github.com/JohnOmernik/sqlalchemy-drill>`_
+
+Alternatively, you can install it completely from the command line as follows: ::
+
+    git clone https://github.com/JohnOmernik/sqlalchemy-drill
+    cd sqlalchemy-drill
+    python3 setup.py install
+
+Once that is done, you can connect to Drill in two ways, either via the REST interface or by JDBC.  If you are connecting via JDBC, you must have the
+Drill JDBC Driver installed.
+
+The basic connection string for Drill looks like this ::
+
+    drill+sadrill://{username}:{password}@{host}:{port}/{storage_plugin}?use_ssl=True
+
+If you are using JDBC to connect to Drill, the connection string looks like this: ::
+
+    drill+jdbc://{username}:{password}@{host}:{port}/{storage_plugin}
+
+For a complete tutorial about how to use Apache Drill with Superset, see this tutorial:
+`Visualize Anything with Superset and Drill <http://thedataist.com/visualize-anything-with-superset-and-drill/>`_
 
 Caching
 -------
@@ -905,7 +941,13 @@ To allow scheduled queries, add the following to your `config.py`:
                     # this is where the error message is shown
                     'container': 'end_date',
                 },
-            ]
+            ],
+            # link to the scheduler; this example links to an Airflow pipeline
+            # that uses the query id and the output table as its name
+            'linkback': (
+                'https://airflow.example.com/admin/airflow/tree?'
+                'dag_id=query_${id}_${extra_json.schedule_info.output_table}'
+            ),
         },
     }
 

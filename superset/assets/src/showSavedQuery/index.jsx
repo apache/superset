@@ -19,25 +19,39 @@
 import React from 'react';
 import ReactDom from 'react-dom';
 import Form from 'react-jsonschema-form';
+import { interpolate } from 'src/showSavedQuery/utils';
+import './index.css';
 
 const scheduleInfoContainer = document.getElementById('schedule-info');
 const bootstrapData = JSON.parse(scheduleInfoContainer.getAttribute('data-bootstrap'));
-const schemas = bootstrapData.common.feature_flags.SCHEDULED_QUERIES;
-const scheduleInfo = bootstrapData.common.extra_json.schedule_info;
+const config = bootstrapData.common.feature_flags.SCHEDULED_QUERIES;
+const query = bootstrapData.common.query;
+const scheduleInfo = query.extra_json.schedule_info;
+const linkback = config.linkback
+  ? interpolate(config.linkback, query)
+  : null;
 
-if (scheduleInfo && schemas) {
+if (scheduleInfo && config) {
   // hide instructions when showing schedule info
-  schemas.JSONSCHEMA.description = '';
+  config.JSONSCHEMA.description = '';
 
   ReactDom.render(
-    <Form
-      schema={schemas.JSONSCHEMA}
-      uiSchema={schemas.UISCHEMA}
-      formData={scheduleInfo}
-      disabled
-    >
-      <br />
-    </Form>,
+    <div>
+      <Form
+        schema={config.JSONSCHEMA}
+        uiSchema={config.UISCHEMA}
+        formData={scheduleInfo}
+        disabled
+      >
+        <br />
+      </Form>
+      {linkback && <div className="linkback">
+        <a href={linkback}>
+          <i className="fa fa-link" />&nbsp;
+          Pipeline status
+        </a>
+      </div>}
+    </div>,
     scheduleInfoContainer,
   );
 }

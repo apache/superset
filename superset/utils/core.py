@@ -32,7 +32,7 @@ import signal
 import smtplib
 import sys
 from time import struct_time
-from typing import List, Optional, Tuple
+from typing import List, NamedTuple, Optional, Tuple
 from urllib.parse import unquote_plus
 import uuid
 import zlib
@@ -1100,3 +1100,8 @@ def MediumText() -> Variant:
 
 def shortid() -> str:
     return '{}'.format(uuid.uuid4())[-12:]
+
+
+class DatasourceName(NamedTuple):
+    table: str
+    schema: str

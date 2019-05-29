@@ -855,7 +855,7 @@ class BoxPlotViz(NVD3Viz):
     viz_type = 'box_plot'
     verbose_name = _('Box Plot')
     sort_series = False
-    is_timeseries = True
+    is_timeseries = False
 
     def to_series(self, df, classed='', title_suffix=''):
         label_sep = ' - '
@@ -1767,9 +1767,7 @@ class WorldMapViz(BaseViz):
         columns = ['country', 'm1', 'm2']
         if metric == secondary_metric:
             ndf = df[cols]
-            # df[metric] will be a DataFrame
-            # because there are duplicate column names
-            ndf['m1'] = df[metric].iloc[:, 0]
+            ndf['m1'] = df[metric]
             ndf['m2'] = ndf['m1']
         else:
             if secondary_metric:

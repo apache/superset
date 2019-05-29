@@ -67,13 +67,14 @@ const propTypes = {
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
   saveQueryWarning: PropTypes.string,
+  scheduleQueryWarning: PropTypes.string,
 };
 
 const defaultProps = {
   database: null,
   latestQuery: null,
   hideLeftBar: false,
-  saveQueryWarning: null,
+  scheduleQueryWarning: null,
 };
 
 class SqlEditor extends React.PureComponent {
@@ -334,6 +335,10 @@ class SqlEditor extends React.PureComponent {
         </OverlayTrigger>
       );
     }
+    const successful = this.props.latestQuery && this.props.latestQuery.state === 'success';
+    const scheduleToolTip = successful
+      ? t('Schedule the query periodically')
+      : t('You must run the query successfully first');
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div>
@@ -355,9 +360,12 @@ class SqlEditor extends React.PureComponent {
                 defaultLabel={qe.title}
                 sql={qe.sql}
                 className="m-r-5"
-                onSchedule={this.props.actions.saveQuery}
+                onSchedule={this.props.actions.scheduleQuery}
                 schema={qe.schema}
                 dbId={qe.dbId}
+                scheduleQueryWarning={this.props.scheduleQueryWarning}
+                tooltip={scheduleToolTip}
+                disabled={!successful}
               />
             </span>
             }
