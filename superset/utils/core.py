@@ -893,20 +893,40 @@ def get_or_create_main_db():
     return dbobj
 
 
-def get_or_create_example_db_engine():
-    """Get a SQLAlchemy engine for imported dashboard data"""
-    from superset import conf
-    engine = create_engine(conf.get('SQLALCHEMY_EXAMPLE_URI'))
-    if not database_exists(engine.url):
-        create_database(engine.url)
-    return engine
-
-
 def get_main_database(session):
     from superset.models import core as models
     return (
         session.query(models.Database)
         .filter_by(database_name='main')
+        .first()
+    )
+
+
+def get_or_create_example_db(database_uri=None):
+    """Get or create the examples Database connection"""
+    from superset import conf, db
+    from superset.models import core as models
+
+    logging.info('Creating database reference')
+    dbobj = get_examples_database(db.session)
+    if not dbobj:
+        dbobj = models.Database(
+            database_name='examples',
+            allow_csv_upload=True,
+            expose_in_sqllab=True,
+        )
+    dbobj.set_sqlalchemy_uri(
+        database_uri or conf.get('SQLALCHEMY_EXAMPLE_URI'))
+    db.session.add(dbobj)
+    db.session.commit()
+    return dbobj
+
+
+def get_examples_database(session):
+    from superset.models import core as models
+    return (
+        session.query(models.Database)
+        .filter_by(database_name='examples')
         .first()
     )
 
