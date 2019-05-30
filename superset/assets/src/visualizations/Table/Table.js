@@ -148,15 +148,18 @@ function TableVis(element, props) {
     .append('tr')
     .on('click', function (d) {
       if (!enableCellClick) {
-        const tr = d3.select(this);
-        if (tr.classed('selected-row')) {
-          d3.select(this).classed('selected-row', false);
-          publishSelections(REMOVE,d)
-        } else {
-          d3.selectAll(".selected-row").classed('selected-row', false);
-          d3.select(this).classed('selected-row', true);
-          publishSelections(ADD,d);
-        }
+        const rowNodeClicked = d3.select(this);
+        if(!d3.event.shiftKey){
+          resetPublishSelection();    
+          table.selectAll('.selected-row').classed('selected-row', function () {
+            const currentNode = d3.select(this); 
+            return rowNodeClicked.node() != currentNode.node() ? false : rowNodeClicked.classed('selected-row');
+          }); 
+        } 
+        //publish the row selection
+        rowNodeClicked.classed('selected-row') ? publishSelections(REMOVE,d) : publishSelections(ADD,d) ;
+        //update the row seletion
+        rowNodeClicked.classed('selected-row', !rowNodeClicked.classed('selected-row'));  
       }
     })
     .selectAll('td')
@@ -236,27 +239,32 @@ function TableVis(element, props) {
   )
     .on('click', function (d) {
       if (enableCellClick && tableFilter && !d.isMetric) {
-        const td = d3.select(this);
-        if (td.classed('filtered')) {
-          onRemoveFilter(d.col, [d.val]);
-          d3.select(this).classed('filtered', false);
-        } else {
-          d3.select(this).classed('filtered', true);
-          onAddFilter(d.col, [d.val]);
-        }
+        const cellNodeClicked = d3.select(this);
+
+        cellNodeClicked.classed('filtered') ? onRemoveFilter(d.col, [d.val]) : onAddFilter(d.col, [d.val]);
+        cellNodeClicked.classed('filtered', !cellNodeClicked.classed('filtered'));
       }
     })
     .style('cursor', d => (!d.isMetric) ? 'pointer' : '')
     .html(d => d.html ? d.html : d.val);
   
+  let publishColumnsKeyValueMap = {} 
+  
+  const resetPublishSelection = () => {
+    publishColumnsKeyValueMap = {}
+  }
   const publishSelections = (function (type,data){
     if(tableFilter){
       publishColumns.forEach((column) => {
-        if(type == REMOVE){
-          onAddFilter(column, [], false);
-        }else {
-          onAddFilter(column, [data[column]], false);
+        if(!publishColumnsKeyValueMap[column]){
+          publishColumnsKeyValueMap[column] = []
         }
+        if(type == REMOVE){
+          publishColumnsKeyValueMap[column] = publishColumnsKeyValueMap[column].filter(item => item !== data[column])
+        }else {
+          publishColumnsKeyValueMap[column] = [...publishColumnsKeyValueMap[column],data[column]]
+        }
+        onAddFilter(column, publishColumnsKeyValueMap[column], false);
       });
     }
   })

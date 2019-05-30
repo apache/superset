@@ -26,6 +26,15 @@ table.table thead th.sorting:after, table.table thead th.sorting_asc:after, tabl
   top: 0px;
 }
 
+tr {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
 .like-pre {
   white-space: pre-wrap;
 }
