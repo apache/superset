@@ -24,6 +24,7 @@ import { PartialSpec } from '../encodeable/types/Specification';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
 import createXYChartLayoutSelector from '../utils/selectors/createXYChartLayoutSelector';
+import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
 
 export interface TooltipProps {
   encoder: Encoder;
@@ -255,8 +256,8 @@ export default class LineChart extends PureComponent<Props> {
             snapTooltipToDataX
             theme={theme}
             tooltipData={tooltipData}
-            xScale={channels.x.definition.scale}
-            yScale={channels.y.definition.scale}
+            xScale={convertScaleToDataUIScale(channels.x.scale!.config)}
+            yScale={convertScaleToDataUIScale(channels.y.scale!.config)}
           >
             {children}
             {layout.renderXAxis()}
