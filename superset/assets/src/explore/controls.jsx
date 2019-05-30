@@ -59,7 +59,7 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import { getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/color';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, getFeatureFlag } from 'src/featureFlags';
 
 import {
   formatSelectOptionsForRange,
@@ -77,10 +77,6 @@ const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
-
-const EXTRA_POLYGON_ENCODINGS = isFeatureEnabled(FeatureFlag.EXTRA_POLYGON_ENCODINGS)
-  ? FeatureFlag.EXTRA_POLYGON_ENCODINGS
-  : [];
 
 // input choices & options
 const D3_FORMAT_OPTIONS = [
@@ -2198,14 +2194,16 @@ export const controls = {
     clearable: false,
     default: 'json',
     description: t('The encoding format of the lines'),
-    choices: [
-      ...[
-        ['polyline', 'Polyline'],
-        ['json', 'JSON'],
-        ['geohash', 'geohash (square)'],
+    mapStateToProps: () => ({
+      choices: [
+        ...[
+          ['polyline', 'Polyline'],
+          ['json', 'JSON'],
+          ['geohash', 'geohash (square)'],
+        ],
+        ...(getFeatureFlag(FeatureFlag.EXTRA_POLYGON_ENCODINGS) || []),
       ],
-      ...EXTRA_POLYGON_ENCODINGS,
-    ],
+    }),
   },
 
   line_width: {
