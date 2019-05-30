@@ -12,6 +12,7 @@ import { AxisOrient } from '../encodeable/types/Axis';
 import { XFieldDef, YFieldDef } from '../encodeable/types/ChannelDef';
 import { PlainObject } from '../encodeable/types/Data';
 import { DEFAULT_LABEL_ANGLE } from './constants';
+import convertScaleToDataUIScale from './convertScaleToDataUIScaleShape';
 
 // Additional margin to avoid content hidden behind scroll bar
 const OVERFLOW_MARGIN = 8;
@@ -71,8 +72,8 @@ export default class XYChartLayout {
       width,
       height,
       margin,
-      xScale: xEncoder.definition.scale || {},
-      yScale: yEncoder.definition.scale || {},
+      xScale: convertScaleToDataUIScale(xEncoder.scale!.config || {}),
+      yScale: convertScaleToDataUIScale(yEncoder.scale!.config || {}),
       theme,
       children,
     });

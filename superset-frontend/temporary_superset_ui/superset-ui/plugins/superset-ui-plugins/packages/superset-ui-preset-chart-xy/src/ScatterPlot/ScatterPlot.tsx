@@ -13,6 +13,7 @@ import { PartialSpec } from '../encodeable/types/Specification';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
 import createXYChartLayoutSelector from '../utils/selectors/createXYChartLayoutSelector';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
+import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
 
 export interface TooltipProps {
   datum: EncodedPoint;
@@ -131,8 +132,8 @@ export default class ScatterPlot extends PureComponent<Props> {
         )}
         showYGrid
         theme={theme}
-        xScale={channels.x.definition.scale}
-        yScale={channels.y.definition.scale}
+        xScale={convertScaleToDataUIScale(channels.x.scale!.config)}
+        yScale={convertScaleToDataUIScale(channels.y.scale!.config)}
       >
         {children}
         {layout.renderXAxis()}
