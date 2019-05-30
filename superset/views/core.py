@@ -64,7 +64,11 @@ from superset import (
 )
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
-from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.exceptions import (
+    DatabaseNotFound,
+    SupersetException,
+    SupersetSecurityException,
+)
 from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
 from superset.legacy import update_time_range
@@ -1441,7 +1445,26 @@ class Superset(BaseSupersetView):
         """Overrides the dashboards using json instances from the file."""
         f = request.files.get("file")
         if request.method == "POST" and f:
-            dashboard_import_export.import_dashboards(db.session, f.stream)
+            try:
+                dashboard_import_export.import_dashboards(db.session, f.stream)
+            except DatabaseNotFound as e:
+                flash(
+                    _(
+                        "Cannot import dashboard: %(db_error)s.\n"
+                        "Make sure to create the database before "
+                        "importing the dashboard.",
+                        db_error=e,
+                    ),
+                    "danger",
+                )
+            except Exception:
+                flash(
+                    _(
+                        "An unknown error occurred. "
+                        "Please contact your Superset administrator"
+                    ),
+                    "danger",
+                )
             return redirect("/dashboard/list/")
         return self.render_template("superset/import_dashboards.html")
 
