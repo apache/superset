@@ -366,11 +366,13 @@ export const runningQuery = {
   id: 'ryhMUZCGb',
   progress: 90,
   state: 'running',
+  startDttm: Date.now() - 500,
 };
 export const cachedQuery = Object.assign({}, queries[0], { cached: true });
 
 export const initialState = {
   sqlLab: {
+    offline: false,
     alerts: [],
     queries: {},
     databases: {},
