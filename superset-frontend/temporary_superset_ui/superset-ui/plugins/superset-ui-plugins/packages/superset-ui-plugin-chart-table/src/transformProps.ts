@@ -17,7 +17,10 @@
  * under the License.
  */
 
-import { ChartProps, Metric, FormDataMetric } from '@superset-ui/chart';
+import { ChartProps, FormDataMetric, Metric } from '@superset-ui/chart';
+import processColumns from './processColumns';
+import processMetrics from './processMetrics';
+import processData from './processData';
 
 const DTTM_ALIAS = '__timestamp';
 
@@ -26,10 +29,10 @@ type PlainObject = {
 };
 
 function transformData(data: PlainObject[], formData: PlainObject) {
+  const { groupby = [], metrics = [], allColumns = [] } = formData;
+
   const columns = new Set(
-    [...formData.groupby, ...formData.metrics, ...formData.allColumns].map(
-      column => column.label || column,
-    ),
+    [...groupby, ...metrics, ...allColumns].map(column => column.label || column),
   );
 
   let records = data;
@@ -43,6 +46,7 @@ function transformData(data: PlainObject[], formData: PlainObject) {
   const percentMetrics: string[] = (formData.percentMetrics || []).map(
     (metric: FormDataMetric) => (metric as Metric).label || (metric as string),
   );
+
   if (percentMetrics.length > 0) {
     const sumPercentMetrics = data.reduce((sumMetrics, item) => {
       const newSumMetrics = { ...sumMetrics };
@@ -82,7 +86,7 @@ export default function transformProps(chartProps: ChartProps) {
     alignPn,
     colorPn,
     includeSearch,
-    metrics,
+    metrics: rawMetrics,
     orderDesc,
     pageLength,
     percentMetrics,
@@ -90,37 +94,40 @@ export default function transformProps(chartProps: ChartProps) {
     tableTimestampFormat,
     timeseriesLimitMetric,
   } = formData;
-  const { columnFormats, verboseMap } = datasource;
   const { records, columns } = transformData(payload.data, formData);
 
-  const processedColumns = columns.map((key: string) => {
-    let label = verboseMap[key];
-    // Handle verbose names for percents
-    if (!label) {
-      label = key;
-    }
-    return {
-      key,
-      label,
-      format: columnFormats && columnFormats[key],
-    };
+  const metrics = processMetrics({
+    metrics: rawMetrics,
+    percentMetrics,
+    records,
+  });
+
+  const processedData = processData({
+    timeseriesLimitMetric,
+    orderDesc,
+    records,
+    metrics,
+  });
+
+  const processedColumns = processColumns({
+    columns,
+    metrics,
+    records,
+    tableTimestampFormat,
+    datasource,
   });
 
   return {
     height,
-    data: records,
+    data: processedData,
     alignPositiveNegative: alignPn,
     colorPositiveNegative: colorPn,
     columns: processedColumns,
     filters,
     includeSearch,
-    metrics,
     onAddFilter,
     orderDesc,
     pageLength: pageLength && parseInt(pageLength, 10),
-    percentMetrics,
     tableFilter,
-    tableTimestampFormat,
-    timeseriesLimitMetric,
   };
 }

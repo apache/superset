@@ -1,8 +1,9 @@
 import React from 'react';
 import DataTable from '@airbnb/lunar/lib/components/DataTable';
+import Text from '@airbnb/lunar/lib/components/Text';
 import Input from '@airbnb/lunar/lib/components/Input';
 import withStyles, { css, WithStylesProps } from '@airbnb/lunar/lib/composers/withStyles';
-import { Renderers, ParentRow } from '@airbnb/lunar/lib/components/DataTable/types';
+import { Renderers, ParentRow, ColumnMetadata } from '@airbnb/lunar/lib/components/DataTable/types';
 import { getRenderer, ColumnType, heightType, Cell } from './renderer';
 
 type Props = {
@@ -84,7 +85,6 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
   };
 
   handleSearch = (value: string) => {
-    console.log(value);
     const { searchKeyword } = this.state;
     const { data } = this.props;
     if (searchKeyword !== value) {
@@ -94,7 +94,6 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
           .toLowerCase();
         return content.indexOf(value) >= 0;
       });
-      console.log(filteredRows);
       this.setState({
         searchKeyword: value,
         filteredRows,
@@ -142,8 +141,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     const renderers: Renderers = {};
 
     const dataToRender = searchKeyword !== '' ? filteredRows : data;
-
-    console.log(dataToRender);
+    const columnMetadata: ColumnMetadata = {};
 
     columns.forEach(column => {
       renderers[column.key] = getRenderer({
@@ -154,24 +152,35 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
         isSelected: this.isSelected,
         handleCellSelected: this.handleCellSelected,
       });
+      if (column.type == 'metric') {
+        columnMetadata[column.key] = {
+          rightAlign: 1,
+        };
+      }
     });
 
     return (
       <React.Fragment>
         {includeSearch && (
           <div {...css(styles.searchBar)}>
-            <Input
-              name="search"
-              label=""
-              placeholder="Search"
-              onChange={this.handleSearch}
-              compact
-              value={searchKeyword}
-            />
+            <div {...css(styles.searchBox)}>
+              <Input
+                name="search"
+                label=""
+                placeholder="Search"
+                onChange={this.handleSearch}
+                compact
+                value={searchKeyword}
+              />
+            </div>
+            <Text small>
+              Showing {dataToRender.length} out of {data.length} rows
+            </Text>
           </div>
         )}
         <DataTable
           data={dataToRender}
+          columnMetadata={columnMetadata}
           zebra
           rowHeight={heightType}
           renderers={renderers}
@@ -182,9 +191,16 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
   }
 }
 
-export default withStyles(() => ({
+export default withStyles(({ unit }) => ({
   searchBar: {
     display: 'flex',
+    flexGrow: 0,
     flexDirection: 'row-reverse',
+    marginBottom: unit,
+    alignItems: 'baseline',
+  },
+  searchBox: {
+    width: 25 * unit,
+    marginLeft: unit,
   },
 }))(TableVis);

@@ -2,9 +2,9 @@ import React, { CSSProperties } from 'react';
 import { HEIGHT_TO_PX } from '@airbnb/lunar/lib/components/DataTable/constants';
 import { RendererProps } from '@airbnb/lunar/lib/components/DataTable/types';
 
-const NEGATIVE_COLOR = '#ff8787';
+const NEGATIVE_COLOR = '#FFA8A8';
 const POSITIVE_COLOR = '#ced4da';
-const SELECTION_COLOR = '#ffec99';
+const SELECTION_COLOR = '#EBEBEB';
 
 export const heightType = 'micro';
 
@@ -70,19 +70,27 @@ export const getRenderer = ({
         alignItems: 'center',
         margin: '0px 16px',
       };
+
       const barStyle: CSSProperties = {
         background: color,
         width: `${width}%`,
         left: `${left}%`,
         position: 'absolute',
-        height: HEIGHT_TO_PX[heightType] / 2,
+        height: HEIGHT_TO_PX[heightType] / 2 + 4,
+        borderRadius: 3,
+      };
+
+      const numberStyle: CSSProperties = {
+        zIndex: 10,
+        marginLeft: 'auto',
+        marginRight: '4px',
       };
 
       return (
         <div style={boxStyle}>
           <div style={boxContainerStyle}>
             <div style={barStyle} />
-            <div style={{ zIndex: 10, marginLeft: 'auto' }}>{children}</div>
+            <div style={numberStyle}>{children}</div>
           </div>
         </div>
       );
