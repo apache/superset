@@ -31,6 +31,7 @@ import {
 import Split from 'react-split';
 import { t } from '@superset-ui/translation';
 import debounce from 'lodash/debounce';
+import throttle from 'lodash/throttle';
 
 import Button from '../../components/Button';
 import LimitControl from './LimitControl';
@@ -43,17 +44,20 @@ import Timer from '../../components/Timer';
 import Hotkeys from '../../components/Hotkeys';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
-import { STATE_BSSTYLE_MAP } from '../constants';
+import {
+  STATE_BSSTYLE_MAP,
+  SQL_EDITOR_GUTTER_HEIGHT,
+  SQL_EDITOR_GUTTER_MARGIN,
+  SQL_TOOLBAR_HEIGHT,
+} from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 
 const SQL_EDITOR_PADDING = 10;
-const SQL_TOOLBAR_HEIGHT = 51;
-const GUTTER_HEIGHT = 5;
-const GUTTER_MARGIN = 3;
 const INITIAL_NORTH_PERCENT = 30;
 const INITIAL_SOUTH_PERCENT = 70;
 const VALIDATION_DEBOUNCE_MS = 600;
+const WINDOW_RESIZE_THROTTLE_MS = 100;
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -83,6 +87,8 @@ class SqlEditor extends React.PureComponent {
     this.state = {
       autorun: props.queryEditor.autorun,
       ctas: '',
+      northPercent: INITIAL_NORTH_PERCENT,
+      southPercent: INITIAL_SOUTH_PERCENT,
       sql: props.queryEditor.sql,
     };
     this.sqlEditorRef = React.createRef();
@@ -103,6 +109,10 @@ class SqlEditor extends React.PureComponent {
       this.requestValidation.bind(this),
       VALIDATION_DEBOUNCE_MS,
     );
+    this.handleWindowResize = throttle(
+      this.handleWindowResize.bind(this),
+      WINDOW_RESIZE_THROTTLE_MS,
+    );
   }
   componentWillMount() {
     if (this.state.autorun) {
@@ -116,6 +126,11 @@ class SqlEditor extends React.PureComponent {
     // the south pane so it gets rendered properly
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({ height: this.getSqlEditorHeight() });
+
+    window.addEventListener('resize', this.handleWindowResize);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleWindowResize);
   }
   onResizeStart() {
     // Set the heights on the ace editor and the ace content area after drag starts
@@ -124,8 +139,7 @@ class SqlEditor extends React.PureComponent {
     document.getElementsByClassName('ace_content')[0].style.height = '100%';
   }
   onResizeEnd([northPercent, southPercent]) {
-    this.setState(this.getAceEditorAndSouthPaneHeights(
-      this.state.height, northPercent, southPercent));
+    this.setState({ northPercent, southPercent });
 
     if (this.northPaneRef.current && this.northPaneRef.current.clientHeight) {
       this.props.actions.persistEditorHeight(this.props.queryEditor,
@@ -149,9 +163,11 @@ class SqlEditor extends React.PureComponent {
   // given the height of the sql editor, north pane percent and south pane percent.
   getAceEditorAndSouthPaneHeights(height, northPercent, southPercent) {
     return {
-      aceEditorHeight: height * northPercent / 100 - (GUTTER_HEIGHT / 2 + GUTTER_MARGIN)
+      aceEditorHeight: height * northPercent / 100
+        - (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN)
         - SQL_TOOLBAR_HEIGHT,
-      southPaneHeight: height * southPercent / 100 - (GUTTER_HEIGHT / 2 + GUTTER_MARGIN),
+      southPaneHeight: height * southPercent / 100
+        - (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN),
     };
   }
   getHotkeyConfig() {
@@ -194,9 +210,12 @@ class SqlEditor extends React.PureComponent {
   setQueryLimit(queryLimit) {
     this.props.actions.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
   }
+  handleWindowResize() {
+    this.setState({ height: this.getSqlEditorHeight() });
+  }
   elementStyle(dimension, elementSize, gutterSize) {
     return {
-      [dimension]: `calc(${elementSize}% - ${gutterSize + GUTTER_MARGIN}px)`,
+      [dimension]: `calc(${elementSize}% - ${gutterSize + SQL_EDITOR_GUTTER_MARGIN}px)`,
     };
   }
   requestValidation() {
@@ -257,15 +276,18 @@ class SqlEditor extends React.PureComponent {
   queryPane() {
     const hotkeys = this.getHotkeyConfig();
     const { aceEditorHeight, southPaneHeight } = this.getAceEditorAndSouthPaneHeights(
-      this.state.height, INITIAL_NORTH_PERCENT, INITIAL_SOUTH_PERCENT);
+      this.state.height,
+      this.state.northPercent,
+      this.state.southPercent,
+    );
     return (
       <Split
         className="queryPane"
-        sizes={[INITIAL_NORTH_PERCENT, INITIAL_SOUTH_PERCENT]}
+        sizes={[this.state.northPercent, this.state.southPercent]}
         elementStyle={this.elementStyle}
         minSize={200}
         direction="vertical"
-        gutterSize={GUTTER_HEIGHT}
+        gutterSize={SQL_EDITOR_GUTTER_HEIGHT}
         onDragStart={this.onResizeStart}
         onDragEnd={this.onResizeEnd}
       >
@@ -277,7 +299,7 @@ class SqlEditor extends React.PureComponent {
             queryEditor={this.props.queryEditor}
             sql={this.props.queryEditor.sql}
             tables={this.props.tables}
-            height={`${this.state.aceEditorHeight || aceEditorHeight}px`}
+            height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
           />
           {this.renderEditorBottomBar(hotkeys)}
@@ -286,7 +308,7 @@ class SqlEditor extends React.PureComponent {
           editorQueries={this.props.editorQueries}
           dataPreviewQueries={this.props.dataPreviewQueries}
           actions={this.props.actions}
-          height={this.state.southPaneHeight || southPaneHeight}
+          height={southPaneHeight}
         />
       </Split>
     );
