@@ -2811,7 +2811,7 @@ class Superset(BaseSupersetView):
             columns = [c['name'] for c in obj['columns']]
             df = pd.DataFrame.from_records(obj['data'], columns=columns)
             logging.info('Using pandas to convert to XLSX')
-            df.to_xlsx(data, index=False, **config.get('XLSX_EXPORT'))
+            df.to_excel(data, index=False, **config.get('XLSX_EXPORT'))
         else:
             logging.info('Running a query to turn into XLSX')
             sql = query.select_sql or query.executed_sql
