@@ -33,9 +33,10 @@ const propTypes = {
 };
 
 const defaultProps = {
-  tables: [],
   actions: {},
+  height: 500,
   offline: false,
+  tables: [],
 };
 
 export default class SqlEditorLeftBar extends React.PureComponent {
