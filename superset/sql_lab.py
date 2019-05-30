@@ -281,7 +281,8 @@ def execute_sql_statements(
 
     selected_columns = cdf.columns if cdf.columns else []
     data = cdf.data if cdf.data else []
-    all_columns, data, expanded_columns = db_engine_spec.expand_data(selected_columns, data)
+    all_columns, data, expanded_columns = db_engine_spec.expand_data(
+        selected_columns, data)
 
     payload.update({
         'status': query.status,

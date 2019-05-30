@@ -36,7 +36,7 @@ import os
 import re
 import textwrap
 import time
-from typing import List, Tuple
+from typing import List, Set, Tuple
 from urllib import parse
 
 from flask import g
@@ -160,7 +160,9 @@ class BaseEngineSpec(object):
         return cursor.fetchall()
 
     @classmethod
-    def expand_data(cls, columns, data):
+    def expand_data(cls,
+                    columns: List[dict],
+                    data: List[dict]) -> Tuple[List[dict], List[dict], List[dict]]:
         return columns, data, []
 
     @classmethod
@@ -831,20 +833,16 @@ class PrestoEngineSpec(BaseEngineSpec):
         return []
 
     @classmethod
-    def _create_column_info(cls, name: str, data_type: str, column: RowProxy = None) -> dict:
+    def _create_column_info(cls, name: str, data_type: str) -> dict:
         """
         Create column info object
-        :param column: column object
         :param name: column name
         :param data_type: column data type
         :return: column info object
         """
         return {
             'name': name,
-            'type': data_type,
-            # newer Presto no longer includes this column
-            'nullable': getattr(column, 'Null', True) if column else True,
-            'default': None,
+            'type': '{}'.format(data_type),
         }
 
     @classmethod
@@ -883,10 +881,9 @@ class PrestoEngineSpec(BaseEngineSpec):
             r'{}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'.format(delimiter), data_type)
 
     @classmethod
-    def _parse_structural_column(cls, full_data_type: str, result: List[dict], column: RowProxy = None) -> None:
+    def _parse_structural_column(cls, full_data_type: str, result: List[dict]) -> None:
         """
         Parse a row or array column
-        :param column: column
         :param result: list tracking the results
         """
         # split on open parenthesis ( to get the structural
@@ -919,13 +916,12 @@ class PrestoEngineSpec(BaseEngineSpec):
                             full_parent_path = cls._get_full_name(stack)
                             result.append(cls._create_column_info(
                                 full_parent_path,
-                                presto_type_map[field_info[1]](),
-                                column))
+                                presto_type_map[field_info[1]]()))
                         else:  # otherwise this field is a basic data type
                             full_parent_path = cls._get_full_name(stack)
                             column_name = '{}.{}'.format(full_parent_path, field_info[0])
                             result.append(cls._create_column_info(
-                                column_name, presto_type_map[field_info[1]](), column))
+                                column_name, presto_type_map[field_info[1]]()))
                     # If the component type ends with a structural data type, do not pop
                     # the stack. We have run across a structural data type within the
                     # overall structural data type. Otherwise, we have completely parsed
@@ -978,7 +974,11 @@ class PrestoEngineSpec(BaseEngineSpec):
                 # parse column if it is a row or array
                 if 'array' in column.Type or 'row' in column.Type:
                     full_data_type = '{} {}'.format(column.Column, column.Type)
-                    cls._parse_structural_column(full_data_type, result, column)
+                    structural_column_index = len(result)
+                    cls._parse_structural_column(full_data_type, result)
+                    result[structural_column_index]['nullable'] = getattr(
+                        column, 'Null', True)
+                    result[structural_column_index]['default'] = None
                     continue
                 else:  # otherwise column is a basic data type
                     column_type = presto_type_map[column.Type]()
@@ -986,7 +986,10 @@ class PrestoEngineSpec(BaseEngineSpec):
                 logging.info('Did not recognize type {} of column {}'.format(
                     column.Type, column.Column))
                 column_type = types.NullType
-            result.append(cls._create_column_info(column.Column, column_type, column))
+            column_info = cls._create_column_info(column.Column, column_type)
+            column_info['nullable'] = getattr(column, 'Null', True)
+            column_info['default'] = None
+            result.append(column_info)
         return result
 
     @classmethod
@@ -1031,18 +1034,12 @@ class PrestoEngineSpec(BaseEngineSpec):
         return column_clauses
 
     @classmethod
-    def _filter_presto_cols(cls, cols: List[dict]) -> Tuple[List[dict], List[dict]]:
+    def _filter_out_array_nested_cols(
+            cls, cols: List[dict]) -> Tuple[List[dict], List[dict]]:
         """
-        We want to filter out columns that correspond to array content because expanding
-        arrays would require us to use unnest and join. This can lead to a large,
-        complicated, and slow query.
-
-        Example: select array_content
-                 from TABLE
-                 cross join UNNEST(array_column) as t(array_content);
-
-        We know which columns to skip because cols is a list provided to us in a specific
-        order where a structural column is positioned right before its content.
+        Filter out columns that correspond to array content. We know which columns to
+        skip because cols is a list provided to us in a specific order where a structural
+        column is positioned right before its content.
 
         Example: Column Name: ColA, Column Data Type: array(row(nest_obj int))
                  cols = [ ..., ColA, ColA.nest_obj, ... ]
@@ -1050,7 +1047,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         When we run across an array, check if subsequent column names start with the
         array name and skip them.
         :param cols: columns
-        :return: filtered list of columns
+        :return: filtered list of columns and list of array columns and its nested fields
         """
         filtered_cols = []
         array_cols = []
@@ -1082,7 +1079,6 @@ class PrestoEngineSpec(BaseEngineSpec):
         """
         presto_cols = cols
         if show_cols:
-            # presto_cols = cls._filter_presto_cols(cols)
             dot_regex = r'\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
             presto_cols = [
                 col for col in presto_cols if re.search(dot_regex, col['name']) is None]
@@ -1139,37 +1135,104 @@ class PrestoEngineSpec(BaseEngineSpec):
         return result_sets
 
     @classmethod
-    def create_column_hierarchy(cls, columns, column_hierarchy, parent_columns):
+    def _build_column_hierarchy(cls,
+                                columns: List[dict],
+                                parent_column_types: List[str],
+                                column_hierarchy: dict) -> None:
+        """
+        Build a graph where the root node represents a column whose data type is in
+        parent_column_types. A node's children represent that column's nested fields
+        :param columns: list of columns
+        :param parent_column_types: list of data types that decide what columns can
+               be root nodes
+        :param column_hierarchy: dictionary representing the graph
+        """
         if len(columns) == 0:
             return
-        # get root column name
-        root_column = columns.pop(0)
-        # empty list
-        nested_columns = {'type': root_column['type'], 'children': []}
-        column_hierarchy[root_column['name']] = nested_columns
-        # while there are columns to explore
+        root = columns.pop(0)
+        root_info = {'type': root['type'], 'children': []}
+        column_hierarchy[root['name']] = root_info
         while columns:
-            column_head = columns[0]
-            if not column_head['name'].startswith('{}.'.format(root_column['name'])):
+            column = columns[0]
+            # If the column name does not start with the root's name,
+            # then this column is not a nested field
+            if not column['name'].startswith('{}.'.format(root['name'])):
                 break
-            # if column is of parent type, recursive call
-            if str(column_head['type']) in parent_columns:
-                cls.create_column_hierarchy(columns, column_hierarchy, parent_columns)
-                nested_columns['children'].append(column_head['name'])
+            # If the column's data type is one of the parent types,
+            # then this column may have nested fields
+            if str(column['type']) in parent_column_types:
+                cls._build_column_hierarchy(columns, parent_column_types,
+                                            column_hierarchy)
+                root_info['children'].append(column['name'])
                 continue
-            # assign column to list
-            else:
-                nested_columns['children'].append(column_head['name'])
-                # remove column
+            else:  # The column is a nested field
+                root_info['children'].append(column['name'])
                 columns.pop(0)
 
     @classmethod
-    def expand_row_data(cls, datum, column, column_hierarchy):
+    def _create_row_and_array_hierarchy(
+            cls, selected_columns: List[dict]) -> Tuple[dict, dict, List[dict]]:
+        """
+        Build graphs where the root node represents a row or array and its children
+        are that column's nested fields
+        :param selected_columns: columns selected in a query
+        :return: graph representing a row, graph representing an array, and a list
+                 of all the nested fields
+        """
+        row_column_hierarchy: OrderedDict = OrderedDict()
+        array_column_hierarchy: OrderedDict = OrderedDict()
+        expanded_columns: List[dict] = []
+        for column in selected_columns:
+            if column['type'].startswith('ROW'):
+                parsed_row_columns: List[dict] = []
+                full_data_type = '{} {}'.format(column['name'], column['type'].lower())
+                cls._parse_structural_column(full_data_type, parsed_row_columns)
+                expanded_columns = expanded_columns + parsed_row_columns[1:]
+                filtered_row_columns, array_columns = cls._filter_out_array_nested_cols(
+                    parsed_row_columns)
+                cls._build_column_hierarchy(filtered_row_columns,
+                                            ['ROW'],
+                                            row_column_hierarchy)
+                cls._build_column_hierarchy(array_columns,
+                                            ['ROW', 'ARRAY'],
+                                            array_column_hierarchy)
+            elif column['type'].startswith('ARRAY'):
+                parsed_array_columns: List[dict] = []
+                full_data_type = '{} {}'.format(column['name'], column['type'].lower())
+                cls._parse_structural_column(full_data_type, parsed_array_columns)
+                expanded_columns = expanded_columns + parsed_array_columns[1:]
+                cls._build_column_hierarchy(parsed_array_columns,
+                                            ['ROW', 'ARRAY'],
+                                            array_column_hierarchy)
+        return row_column_hierarchy, array_column_hierarchy, expanded_columns
+
+    @classmethod
+    def _create_empty_row_of_data(cls, columns: List[dict]) -> dict:
+        """
+        Create an empty row of data
+        :param columns: list of columns
+        :return: dictionary representing an empty row of data
+        """
+        empty_data = {}
+        for column in columns:
+            empty_data[column['name']] = ''
+        return empty_data
+
+    @classmethod
+    def _expand_row_data(cls, datum: dict, column: str, column_hierarchy: dict) -> None:
+        """
+        Separate out nested fields and its value in a row of data
+        :param datum: row of data
+        :param column: row column name
+        :param column_hierarchy: dictionary tracking structural columns and its
+               nested fields
+        """
         if column in datum:
             row_data = datum[column]
             row_children = column_hierarchy[column]['children']
             if row_data and len(row_data) != len(row_children):
-                raise Exception("mismatched arrays")
+                raise Exception('The number of data values and number of nested'
+                                'fields are not equal')
             elif row_data:
                 for index, data_value in enumerate(row_data):
                     datum[row_children[index]] = data_value
@@ -1178,9 +1241,231 @@ class PrestoEngineSpec(BaseEngineSpec):
                     datum[row_child] = ''
 
     @classmethod
-    def expand_data(cls, columns, data):
-        all_columns = []
-        expanded_columns = []
+    def _split_array_columns_by_process_state(
+            cls, array_columns: List[str],
+            array_column_hierarchy: dict,
+            datum: dict) -> Tuple[List[str], Set[str]]:
+        """
+        Take a list of array columns and split them according to whether or not we are
+        ready to process them from a data set
+        :param array_columns: list of array columns
+        :param array_column_hierarchy: graph representing array columns
+        :param datum: row of data
+        :return: list of array columns ready to be processed and set of array columns
+                 not ready to be processed
+        """
+        array_columns_to_process = []
+        unprocessed_array_columns = set()
+        child_array = ''
+        for array_column in array_columns:
+            if array_column in datum:
+                array_columns_to_process.append(array_column)
+            elif str(array_column_hierarchy[array_column]['type']) == 'ARRAY':
+                child_array = array_column
+                unprocessed_array_columns.add(child_array)
+            elif child_array and array_column.startswith(child_array):
+                unprocessed_array_columns.add(array_column)
+        return array_columns_to_process, unprocessed_array_columns
+
+    @classmethod
+    def _convert_data_list_to_array_data_dict(
+            cls, data: List[dict], array_columns_to_process: List[str]) -> dict:
+        """
+        Pull out array data from rows of data into a dictionary where the key represents
+        the index in the data list and the value is the array data values
+        Example:
+          data = [
+              {'ColumnA': [1, 2], 'ColumnB': 3},
+              {'ColumnA': [11, 22], 'ColumnB': 3}
+          ]
+          data dictionary = {
+              0: [{'ColumnA': [1, 2]],
+              1: [{'ColumnA': [11, 22]]
+          }
+        :param data: rows of data
+        :param array_columns_to_process: array columns we want to pull out
+        :return: data dictionary
+        """
+        array_data_dict = {}
+        for data_index, datum in enumerate(data):
+            all_array_datum = {}
+            for array_column in array_columns_to_process:
+                all_array_datum[array_column] = datum[array_column]
+            array_data_dict[data_index] = [all_array_datum]
+        return array_data_dict
+
+    @classmethod
+    def _process_array_data(cls,
+                            data: List[dict],
+                            all_columns: List[dict],
+                            array_column_hierarchy: dict) -> dict:
+        """
+        Pull out array data that is ready to be processed into a dictionary.
+        The key refers to the index in the original data set. The value is
+        a list of data values. Initially this list will contain just one value,
+        the row of data that corresponds to the index in the original data set.
+        As we process arrays, we will pull out array values into separate rows
+        and append them to the list of data values.
+        Example:
+          Original data set = [
+              {'ColumnA': [1, 2], 'ColumnB': [3]},
+              {'ColumnA': [11, 22], 'ColumnB': [33]}
+          ]
+          all_array_data (intially) = {
+              0: [{'ColumnA': [1, 2], 'ColumnB': [3}],
+              1: [{'ColumnA': [11, 22], 'ColumnB': [33]}]
+          }
+          all_array_data (after processing) = {
+              0: [
+                  {'ColumnA': 1, 'ColumnB': 3},
+                  {'ColumnA': 2, 'ColumnB': ''},
+              ],
+              1: [
+                  {'ColumnA': 11, 'ColumnB': 33},
+                  {'ColumnA': 22, 'ColumnB': ''},
+              ],
+          }
+        :param data: rows of data
+        :param all_columns: list of columns
+        :param array_column_hierarchy: graph representing array columns
+        :return: dictionary representing processed array data
+        """
+        array_columns = list(array_column_hierarchy.keys())
+        # Determine what columns are ready to be processed. This is necessary for
+        # array columns that contain rows with nested arrays. We first process
+        # the outer arrays before processing inner arrays.
+        array_columns_to_process, \
+            unprocessed_array_columns = cls._split_array_columns_by_process_state(
+                array_columns, array_column_hierarchy, data[0])
+
+        # Pull out array data that is ready to be processed into a dictionary.
+        all_array_data = cls._convert_data_list_to_array_data_dict(
+            data, array_columns_to_process)
+
+        for original_data_index, expanded_array_data in all_array_data.items():
+            for array_column in array_columns:
+                if array_column in unprocessed_array_columns:
+                    continue
+                # Expand array values that are rows
+                if str(array_column_hierarchy[array_column]['type']) == 'ROW':
+                    for array_value in expanded_array_data:
+                        cls._expand_row_data(array_value,
+                                             array_column,
+                                             array_column_hierarchy)
+                    continue
+                array_data = expanded_array_data[0][array_column]
+                array_children = array_column_hierarchy[array_column]
+                # This is an empty array of primitive data type
+                if not array_data and not array_children['children']:
+                    continue
+                # Pull out complex array values into its own row of data
+                elif array_data and array_children['children']:
+                    for array_index, data_value in enumerate(array_data):
+                        if array_index >= len(expanded_array_data):
+                            empty_data = cls._create_empty_row_of_data(all_columns)
+                            expanded_array_data.append(empty_data)
+                        for index, datum_value in enumerate(data_value):
+                            array_child = array_children['children'][index]
+                            expanded_array_data[array_index][array_child] = datum_value
+                # Pull out primitive array values into its own row of data
+                elif array_data:
+                    for array_index, data_value in enumerate(array_data):
+                        if array_index >= len(expanded_array_data):
+                            empty_data = cls._create_empty_row_of_data(all_columns)
+                            expanded_array_data.append(empty_data)
+                        expanded_array_data[array_index][array_column] = data_value
+                # This is an empty array with nested fields
+                else:
+                    for index, array_child in enumerate(array_children['children']):
+                        for array_value in expanded_array_data:
+                            array_value[array_child] = ''
+        return all_array_data
+
+    @classmethod
+    def _consolidate_array_data_into_data(cls,
+                                          data: List[dict],
+                                          array_data: dict) -> None:
+        """
+        Consolidate data given a list representing rows of data and a dictionary
+        representing expanded array data
+        Example:
+          Original data set = [
+              {'ColumnA': [1, 2], 'ColumnB': [3]},
+              {'ColumnA': [11, 22], 'ColumnB': [33]}
+          ]
+          array_data = {
+              0: [
+                  {'ColumnA': 1, 'ColumnB': 3},
+                  {'ColumnA': 2, 'ColumnB': ''},
+              ],
+              1: [
+                  {'ColumnA': 11, 'ColumnB': 33},
+                  {'ColumnA': 22, 'ColumnB': ''},
+              ],
+          }
+          Final data set = [
+               {'ColumnA': 1, 'ColumnB': 3},
+               {'ColumnA': 2, 'ColumnB': ''},
+               {'ColumnA': 11, 'ColumnB': 33},
+               {'ColumnA': 22, 'ColumnB': ''},
+          ]
+        :param data: list representing rows of data
+        :param array_data: dictionary representing expanded array data
+        :return: list where data and array_data are combined
+        """
+        data_index = 0
+        original_data_index = 0
+        while data_index < len(data):
+            data[data_index].update(array_data[original_data_index][0])
+            array_data[original_data_index].pop(0)
+            data[data_index + 1:data_index + 1] = array_data[original_data_index]
+            data_index = data_index + len(array_data[original_data_index]) + 1
+            original_data_index = original_data_index + 1
+
+    @classmethod
+    def _remove_processed_array_columns(cls,
+                                        array_columns: List[str],
+                                        unprocessed_array_columns: Set[str],
+                                        array_column_hierarchy: dict) -> None:
+        """
+        Remove keys representing array columns that have already been processed
+        :param array_columns: full list of array columns
+        :param unprocessed_array_columns: list of unprocessed array columns
+        :param array_column_hierarchy: graph representing array columns
+        """
+        for array_column in array_columns:
+            if array_column in unprocessed_array_columns:
+                continue
+            else:
+                del array_column_hierarchy[array_column]
+
+    @classmethod
+    def expand_data(cls,
+                    columns: List[dict],
+                    data: List[dict]) -> Tuple[List[dict], List[dict], List[dict]]:
+        """
+        We do not immediately display rows and arrays clearly in the data grid. This
+        method separates out nested fields and data values to help clearly display
+        structural columns.
+
+        Example: ColumnA is a row(nested_obj varchar) and ColumnB is an array(int)
+        Original data set = [
+            {'ColumnA': ['a1'], 'ColumnB': [1, 2]},
+            {'ColumnA': ['a2'], 'ColumnB': [3, 4]},
+        ]
+        Expanded data set = [
+            {'ColumnA': ['a1'], 'ColumnA.nested_obj': 'a1', 'ColumnB': 1},
+            {'ColumnA': '',     'ColumnA.nested_obj': '',   'ColumnB': 2},
+            {'ColumnA': ['a2'], 'ColumnA.nested_obj': 'a2', 'ColumnB': 3},
+            {'ColumnA': '',     'ColumnA.nested_obj': '',   'ColumnB': 4},
+        ]
+        :param columns: columns selected in the query
+        :param data: original data set
+        :return: list of all columns(selected columns and their nested fields),
+                 expanded data set, listed of nested fields
+        """
+        all_columns: List[dict] = []
+        # Get the list of all columns (selected fields and their nested fields)
         for column in columns:
             if column['type'].startswith('ARRAY') or column['type'].startswith('ROW'):
                 full_data_type = '{} {}'.format(column['name'], column['type'].lower())
@@ -1188,104 +1473,33 @@ class PrestoEngineSpec(BaseEngineSpec):
             else:
                 all_columns.append(column)
 
-        row_column_hierarchy = OrderedDict()
-        array_column_hierarchy = OrderedDict()
-        expanded_array_columns = []
-        for column in columns:
-            if column['type'].startswith('ROW'):
-                parsed_row_columns = []
-                full_data_type = '{} {}'.format(column['name'], column['type'].lower())
-                cls._parse_structural_column(full_data_type, parsed_row_columns)
-                expanded_columns = expanded_columns + parsed_row_columns[1:]
-                filtered_row_columns, array_columns = cls._filter_presto_cols(parsed_row_columns)
-                expanded_array_columns = expanded_array_columns + array_columns
-                cls.create_column_hierarchy(filtered_row_columns, row_column_hierarchy, ['ROW'])
-                cls.create_column_hierarchy(array_columns, array_column_hierarchy, ['ROW', 'ARRAY'])
-            elif column['type'].startswith('ARRAY'):
-                parsed_array_columns = []
-                full_data_type = '{} {}'.format(column['name'], column['type'].lower())
-                cls._parse_structural_column(full_data_type, parsed_array_columns)
-                expanded_columns = expanded_columns + parsed_array_columns[1:]
-                expanded_array_columns = expanded_array_columns + parsed_array_columns
-                cls.create_column_hierarchy(parsed_array_columns, array_column_hierarchy, ['ROW', 'ARRAY'])
+        # Build graphs where the root node is a row or array and its children are that
+        # column's nested fields
+        row_column_hierarchy,\
+            array_column_hierarchy,\
+            expanded_columns = cls._create_row_and_array_hierarchy(columns)
 
+        # Pull out a row's nested fields and their values into separate columns
         ordered_row_columns = row_column_hierarchy.keys()
         for data_index, datum in enumerate(data):
             for row_column in ordered_row_columns:
-                cls.expand_row_data(datum, row_column, row_column_hierarchy)
+                cls._expand_row_data(datum, row_column, row_column_hierarchy)
 
         while array_column_hierarchy:
-            ready_array_columns = []
-            child_arrays = set()
-            unprocessed_array_columns = set()
-            ordered_array_columns = list(array_column_hierarchy.keys())
-            child_array = ''
-            for array_column in ordered_array_columns:
-                if array_column in data[0]:
-                    ready_array_columns.append(array_column)
-                elif str(array_column_hierarchy[array_column]['type']) == 'ARRAY':
-                    child_array = array_column
-                    child_arrays.add(array_column)
-                    unprocessed_array_columns.add(child_array)
-                elif child_array and array_column.startswith(child_array):
-                    unprocessed_array_columns.add(array_column)
-
-            filtered_array_data = {}
-            for data_index, datum in enumerate(data):
-                filtered_array_datum = {}
-                for array_column in ready_array_columns:
-                    filtered_array_datum[array_column] = datum[array_column]
-                filtered_array_data[data_index] = [filtered_array_datum]
-
-            for org_data_index, expanded_array_data in filtered_array_data.items():
-                for array_column in ordered_array_columns:
-                    if array_column in unprocessed_array_columns:
-                        continue
-                    if str(array_column_hierarchy[array_column]['type']) == 'ROW':
-                        for expanded_array_datum in expanded_array_data:
-                            cls.expand_row_data(expanded_array_datum, array_column, array_column_hierarchy)
-                        continue
-                    array_data = expanded_array_data[0][array_column]
-                    array_children = array_column_hierarchy[array_column]
-                    if not array_data and not array_children['children']:
-                        continue
-                    elif array_data and array_children['children']:
-                        for array_index, data_value in enumerate(array_data):
-                            if array_index >= len(expanded_array_data):
-                                empty_dict = {}
-                                for expanded_column in all_columns:
-                                    empty_dict[expanded_column['name']] = ''
-                                expanded_array_data.append(empty_dict)
-                            for index, datum_value in enumerate(data_value):
-                                expanded_array_data[array_index][array_children['children'][index]] = datum_value
-                    elif array_data:
-                        for array_index, data_value in enumerate(array_data):
-                            if array_index >= len(expanded_array_data):
-                                empty_dict = {}
-                                for expanded_column in all_columns:
-                                    empty_dict[expanded_column['name']] = ''
-                                expanded_array_data.append(empty_dict)
-                            expanded_array_data[array_index][array_column] = data_value
-                    else:
-                        for index, array_child in enumerate(array_children['children']):
-                            for expanded_array_datum in expanded_array_data:
-                                expanded_array_datum[array_child] = ''
-
-            data_index = 0
-            org_data_index = 0
-            while data_index < len(data):
-                data[data_index].update(filtered_array_data[org_data_index][0])
-                filtered_array_data[org_data_index].pop(0)
-                data[data_index + 1:data_index + 1] = filtered_array_data[org_data_index]
-                data_index = data_index + len(filtered_array_data[org_data_index]) + 1
-                org_data_index = org_data_index + 1
-
-            next_processed_arrays = unprocessed_array_columns
-            for array_column in ordered_array_columns:
-                if array_column in next_processed_arrays:
-                    continue
-                else:
-                    del array_column_hierarchy[array_column]
+            array_columns = list(array_column_hierarchy.keys())
+            # Determine what columns are ready to be processed.
+            array_columns_to_process,\
+                unprocessed_array_columns = cls._split_array_columns_by_process_state(
+                    array_columns, array_column_hierarchy, data[0])
+            all_array_data = cls._process_array_data(data,
+                                                     all_columns,
+                                                     array_column_hierarchy)
+            # Consolidate the original data set and the expanded array data
+            cls._consolidate_array_data_into_data(data, all_array_data)
+            # Remove processed array columns from the graph
+            cls._remove_processed_array_columns(array_columns,
+                                                unprocessed_array_columns,
+                                                array_column_hierarchy)
 
         return all_columns, data, expanded_columns
 
