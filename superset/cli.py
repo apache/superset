@@ -132,7 +132,7 @@ def load_examples(load_test_data):
 @click.option('--datasource', '-d', help='Specify which datasource name to load, if '
                                          'omitted, all datasources will be refreshed')
 @click.option('--merge', '-m', is_flag=True, default=False,
-              help='Specify using \'merge\' property during operation. '
+              help="Specify using 'merge' property during operation. "
                    'Default value is False.')
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
@@ -288,9 +288,9 @@ def update_datasources_cache():
         if database.allow_multi_schema_metadata_fetch:
             print('Fetching {} datasources ...'.format(database.name))
             try:
-                database.all_table_names_in_database(
+                database.get_all_table_names_in_database(
                     force=True, cache=True, cache_timeout=24 * 60 * 60)
-                database.all_view_names_in_database(
+                database.get_all_view_names_in_database(
                     force=True, cache=True, cache_timeout=24 * 60 * 60)
             except Exception as e:
                 print('{}'.format(str(e)))

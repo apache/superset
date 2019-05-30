@@ -85,6 +85,14 @@ describe('MetricsControl', () => {
       ]);
     });
 
+    it('does not show aggregates in options if no columns', () => {
+      const { wrapper } = setup({ columns: [] });
+      expect(wrapper.state('options')).toEqual([
+        { optionName: 'sum__value', metric_name: 'sum__value', expression: 'SUM(energy_usage.value)' },
+        { optionName: 'avg__value', metric_name: 'avg__value', expression: 'AVG(energy_usage.value)' },
+      ]);
+    });
+
     it('coerces Adhoc Metrics from form data into instances of the AdhocMetric class and leaves saved metrics', () => {
       const { wrapper } = setup({
         value: [

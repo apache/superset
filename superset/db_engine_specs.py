@@ -36,19 +36,20 @@ import os
 import re
 import textwrap
 import time
-from typing import List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from urllib import parse
 
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
 import sqlalchemy as sqla
-from sqlalchemy import Column, select, types
+from sqlalchemy import Column, DateTime, select, types
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.sql.expression import TextAsFrom
@@ -90,6 +91,24 @@ builtin_time_grains = {
 }
 
 
+class TimestampExpression(ColumnClause):
+    def __init__(self, expr: str, col: ColumnClause, **kwargs):
+        """Sqlalchemy class that can be can be used to render native column elements
+        respeting engine-specific quoting rules as part of a string-based expression.
+
+        :param expr: Sql expression with '{col}' denoting the locations where the col
+        object will be rendered.
+        :param col: the target column
+        """
+        super().__init__(expr, **kwargs)
+        self.col = col
+
+
+@compiles(TimestampExpression)
+def compile_timegrain_expression(element: TimestampExpression, compiler, **kw):
+    return element.name.replace('{col}', compiler.process(element.col, **kw))
+
+
 def _create_time_grains_tuple(time_grains, time_grain_functions, blacklist):
     ret_list = []
     blacklist = blacklist if blacklist else []
@@ -112,7 +131,7 @@ class BaseEngineSpec(object):
     """Abstract class for database engine specific configurations"""
 
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    time_grain_functions: dict = {}
+    time_grain_functions: Dict[Optional[str], str] = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -122,18 +141,34 @@ class BaseEngineSpec(object):
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
+    try_remove_schema_from_table_name = True
 
     @classmethod
-    def get_time_expr(cls, expr, pdf, time_grain, grain):
+    def get_timestamp_expr(cls, col: ColumnClause, pdf: Optional[str],
+                           time_grain: Optional[str]) -> TimestampExpression:
+        """
+        Construct a TimeExpression to be used in a SQLAlchemy query.
+
+        :param col: Target column for the TimeExpression
+        :param pdf: date format (seconds or milliseconds)
+        :param time_grain: time grain, e.g. P1Y for 1 year
+        :return: TimestampExpression object
+        """
+        if time_grain:
+            time_expr = cls.time_grain_functions.get(time_grain)
+            if not time_expr:
+                raise NotImplementedError(
+                    f'No grain spec for {time_grain} for database {cls.engine}')
+        else:
+            time_expr = '{col}'
+
         # if epoch, translate to DATE using db specific conf
         if pdf == 'epoch_s':
-            expr = cls.epoch_to_dttm().format(col=expr)
+            time_expr = time_expr.replace('{col}', cls.epoch_to_dttm())
         elif pdf == 'epoch_ms':
-            expr = cls.epoch_ms_to_dttm().format(col=expr)
+            time_expr = time_expr.replace('{col}', cls.epoch_ms_to_dttm())
 
-        if grain:
-            expr = grain.function.format(col=expr)
-        return expr
+        return TimestampExpression(time_expr, col, type_=DateTime)
 
     @classmethod
     def get_time_grains(cls):
@@ -285,33 +320,32 @@ class BaseEngineSpec(object):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    def fetch_result_sets(cls, db, datasource_type):
-        """Returns a list of tables [schema1.table1, schema2.table2, ...]
+    def get_all_datasource_names(cls, db, datasource_type: str) \
+            -> List[utils.DatasourceName]:
+        """Returns a list of all tables or views in database.
 
-        Datasource_type can be 'table' or 'view'.
-        Empty schema corresponds to the list of full names of the all
-        tables or views: <schema>.<result_set_name>.
+        :param db: Database instance
+        :param datasource_type: Datasource_type can be 'table' or 'view'
+        :return: List of all datasources in database or schema
         """
-        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
-                                      cache_timeout=db.schema_cache_timeout,
-                                      force=True)
-        all_result_sets = []
+        schemas = db.get_all_schema_names(cache=db.schema_cache_enabled,
+                                          cache_timeout=db.schema_cache_timeout,
+                                          force=True)
+        all_datasources: List[utils.DatasourceName] = []
         for schema in schemas:
             if datasource_type == 'table':
-                all_datasource_names = db.all_table_names_in_schema(
+                all_datasources += db.get_all_table_names_in_schema(
                     schema=schema, force=True,
                     cache=db.table_cache_enabled,
                     cache_timeout=db.table_cache_timeout)
             elif datasource_type == 'view':
-                all_datasource_names = db.all_view_names_in_schema(
+                all_datasources += db.get_all_view_names_in_schema(
                     schema=schema, force=True,
                     cache=db.table_cache_enabled,
                     cache_timeout=db.table_cache_timeout)
             else:
                 raise Exception(f'Unsupported datasource_type: {datasource_type}')
-            all_result_sets += [
-                '{}.{}'.format(schema, t) for t in all_datasource_names]
-        return all_result_sets
+        return all_datasources
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -358,11 +392,17 @@ class BaseEngineSpec(object):
 
     @classmethod
     def get_table_names(cls, inspector, schema):
-        return sorted(inspector.get_table_names(schema))
+        tables = inspector.get_table_names(schema)
+        if schema and cls.try_remove_schema_from_table_name:
+            tables = [re.sub(f'^{schema}\\.', '', table) for table in tables]
+        return sorted(tables)
 
     @classmethod
     def get_view_names(cls, inspector, schema):
-        return sorted(inspector.get_view_names(schema))
+        views = inspector.get_view_names(schema)
+        if schema and cls.try_remove_schema_from_table_name:
+            views = [re.sub(f'^{schema}\\.', '', view) for view in views]
+        return sorted(views)
 
     @classmethod
     def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
@@ -489,13 +529,6 @@ class BaseEngineSpec(object):
             label = label[:cls.max_column_name_length]
         return label
 
-    @staticmethod
-    def get_timestamp_column(expression, column_name):
-        """Return the expression if defined, otherwise return column_name. Some
-        engines require forcing quotes around column name, in which case this method
-        can be overridden."""
-        return expression or column_name
-
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
@@ -534,6 +567,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = 'postgresql'
     max_column_name_length = 63
+    try_remove_schema_from_table_name = False
 
     @classmethod
     def get_table_names(cls, inspector, schema):
@@ -541,16 +575,6 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
         return sorted(tables)
-
-    @staticmethod
-    def get_timestamp_column(expression, column_name):
-        """Postgres is unable to identify mixed case column names unless they
-        are quoted."""
-        if expression:
-            return expression
-        elif column_name.lower() != column_name:
-            return f'"{column_name}"'
-        return column_name
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
@@ -691,28 +715,24 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
-    def fetch_result_sets(cls, db, datasource_type):
-        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
-                                      cache_timeout=db.schema_cache_timeout,
-                                      force=True)
-        all_result_sets = []
+    def get_all_datasource_names(cls, db, datasource_type: str) \
+            -> List[utils.DatasourceName]:
+        schemas = db.get_all_schema_names(cache=db.schema_cache_enabled,
+                                          cache_timeout=db.schema_cache_timeout,
+                                          force=True)
         schema = schemas[0]
         if datasource_type == 'table':
-            all_datasource_names = db.all_table_names_in_schema(
+            return db.get_all_table_names_in_schema(
                 schema=schema, force=True,
                 cache=db.table_cache_enabled,
                 cache_timeout=db.table_cache_timeout)
         elif datasource_type == 'view':
-            all_datasource_names = db.all_view_names_in_schema(
+            return db.get_all_view_names_in_schema(
                 schema=schema, force=True,
                 cache=db.table_cache_enabled,
                 cache_timeout=db.table_cache_timeout)
         else:
             raise Exception(f'Unsupported datasource_type: {datasource_type}')
-
-        all_result_sets += [
-            '{}.{}'.format(schema, t) for t in all_datasource_names]
-        return all_result_sets
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -725,6 +745,50 @@ class SqliteEngineSpec(BaseEngineSpec):
     def get_table_names(cls, inspector, schema):
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())
+
+
+class DrillEngineSpec(BaseEngineSpec):
+    """Engine spec for Apache Drill"""
+    engine = 'drill'
+
+    time_grain_functions = {
+        None: '{col}',
+        'PT1S': "nearestDate({col}, 'SECOND')",
+        'PT1M': "nearestDate({col}, 'MINUTE')",
+        'PT15M': "nearestDate({col}, 'QUARTER_HOUR')",
+        'PT0.5H': "nearestDate({col}, 'HALF_HOUR')",
+        'PT1H': "nearestDate({col}, 'HOUR')",
+        'P1D': 'TO_DATE({col})',
+        'P1W': "nearestDate({col}, 'WEEK_SUNDAY')",
+        'P1M': "nearestDate({col}, 'MONTH')",
+        'P0.25Y': "nearestDate({col}, 'QUARTER')",
+        'P1Y': "nearestDate({col}, 'YEAR')",
+    }
+
+    # Returns a function to convert a Unix timestamp in milliseconds to a date
+    @classmethod
+    def epoch_to_dttm(cls):
+        return cls.epoch_ms_to_dttm().replace('{col}', '({col}*1000)')
+
+    @classmethod
+    def epoch_ms_to_dttm(cls):
+        return 'TO_DATE({col})'
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
+        elif tt == 'TIMESTAMP':
+            return "CAST('{}' AS TIMESTAMP)".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+    @classmethod
+    def adjust_database_uri(cls, uri, selected_schema):
+        if selected_schema:
+            uri.database = parse.quote(selected_schema, safe='')
+        return uri
 
 
 class MySQLEngineSpec(BaseEngineSpec):
@@ -753,7 +817,7 @@ class MySQLEngineSpec(BaseEngineSpec):
               'INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))',
     }
 
-    type_code_map: dict = {}  # loaded from get_datatype only if needed
+    type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -1115,24 +1179,19 @@ class PrestoEngineSpec(BaseEngineSpec):
         return 'from_unixtime({col})'
 
     @classmethod
-    def fetch_result_sets(cls, db, datasource_type):
-        """Returns a list of tables [schema1.table1, schema2.table2, ...]
-
-        Datasource_type can be 'table' or 'view'.
-        Empty schema corresponds to the list of full names of the all
-        tables or views: <schema>.<result_set_name>.
-        """
-        result_set_df = db.get_df(
+    def get_all_datasource_names(cls, db, datasource_type: str) \
+            -> List[utils.DatasourceName]:
+        datasource_df = db.get_df(
             """SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S
                ORDER BY concat(table_schema, '.', table_name)""".format(
                 datasource_type.upper(),
             ),
             None)
-        result_sets = []
-        for unused, row in result_set_df.iterrows():
-            result_sets.append('{}.{}'.format(
-                row['table_schema'], row['table_name']))
-        return result_sets
+        datasource_names: List[utils.DatasourceName] = []
+        for unused, row in datasource_df.iterrows():
+            datasource_names.append(utils.DatasourceName(
+                schema=row['table_schema'], table=row['table_name']))
+        return datasource_names
 
     @classmethod
     def _build_column_hierarchy(cls,
@@ -1762,9 +1821,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
 
     @classmethod
-    def fetch_result_sets(cls, db, datasource_type):
-        return BaseEngineSpec.fetch_result_sets(
-            db, datasource_type)
+    def get_all_datasource_names(cls, db, datasource_type: str) \
+            -> List[utils.DatasourceName]:
+        return BaseEngineSpec.get_all_datasource_names(db, datasource_type)
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -2147,20 +2206,21 @@ class PinotEngineSpec(BaseEngineSpec):
     inner_joins = False
     supports_column_aliases = False
 
-    _time_grain_to_datetimeconvert = {
+    # Pinot does its own conversion below
+    time_grain_functions: Dict[Optional[str], str] = {
         'PT1S': '1:SECONDS',
         'PT1M': '1:MINUTES',
         'PT1H': '1:HOURS',
         'P1D': '1:DAYS',
-        'P1Y': '1:YEARS',
+        'P1W': '1:WEEKS',
         'P1M': '1:MONTHS',
+        'P0.25Y': '3:MONTHS',
+        'P1Y': '1:YEARS',
     }
 
-    # Pinot does its own conversion below
-    time_grain_functions = {k: None for k in _time_grain_to_datetimeconvert.keys()}
-
     @classmethod
-    def get_time_expr(cls, expr, pdf, time_grain, grain):
+    def get_timestamp_expr(cls, col: ColumnClause, pdf: Optional[str],
+                           time_grain: Optional[str]) -> TimestampExpression:
         is_epoch = pdf in ('epoch_s', 'epoch_ms')
         if not is_epoch:
             raise NotImplementedError('Pinot currently only supports epochs')
@@ -2169,11 +2229,12 @@ class PinotEngineSpec(BaseEngineSpec):
         # We are not really converting any time units, just bucketing them.
         seconds_or_ms = 'MILLISECONDS' if pdf == 'epoch_ms' else 'SECONDS'
         tf = f'1:{seconds_or_ms}:EPOCH'
-        granularity = cls._time_grain_to_datetimeconvert.get(time_grain)
+        granularity = cls.time_grain_functions.get(time_grain)
         if not granularity:
             raise NotImplementedError('No pinot grain spec for ' + str(time_grain))
         # In pinot the output is a string since there is no timestamp column like pg
-        return f'DATETIMECONVERT({expr}, "{tf}", "{tf}", "{granularity}")'
+        time_expr = f'DATETIMECONVERT({{col}}, "{tf}", "{tf}", "{granularity}")'
+        return TimestampExpression(time_expr, col)
 
     @classmethod
     def make_select_compatible(cls, groupby_exprs, select_exprs):

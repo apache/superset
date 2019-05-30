@@ -17,15 +17,16 @@
 import inspect
 from unittest import mock
 
-from sqlalchemy import column, select, table
-from sqlalchemy.dialects.mssql import pymssql
+from sqlalchemy import column, literal_column, select, table
+from sqlalchemy.dialects import mssql, oracle, postgresql
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.types import String, UnicodeText
 
 from superset import db_engine_specs
 from superset.db_engine_specs import (
     BaseEngineSpec, BQEngineSpec, HiveEngineSpec, MssqlEngineSpec,
-    MySQLEngineSpec, OracleEngineSpec, PrestoEngineSpec,
+    MySQLEngineSpec, OracleEngineSpec, PinotEngineSpec, PostgresEngineSpec,
+    PrestoEngineSpec,
 )
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
@@ -108,7 +109,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             '{...} errorMessage="Error while compiling statement: FAILED: '
             'SemanticException [Error 10001]: Line 4'
             ':5 Table not found \'fact_ridesfdslakj\'", statusCode=3, '
-            'sqlState=\'42S02\', errorCode=10001)){...}')
+            "sqlState='42S02', errorCode=10001)){...}")
         self.assertEquals((
             'Error while compiling statement: FAILED: '
             'SemanticException [Error 10001]: Line 4:5 '
@@ -565,7 +566,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         assert_type('NTEXT', UnicodeText)
 
     def test_mssql_where_clause_n_prefix(self):
-        dialect = pymssql.dialect()
+        dialect = mssql.dialect()
         spec = MssqlEngineSpec
         str_col = column('col', type_=spec.get_sqla_column_type('VARCHAR(10)'))
         unicode_col = column('unicode_col', type_=spec.get_sqla_column_type('NTEXT'))
@@ -576,5 +577,74 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             where(unicode_col == 'abc')
 
         query = str(sel.compile(dialect=dialect, compile_kwargs={'literal_binds': True}))
-        query_expected = "SELECT col, unicode_col \nFROM tbl \nWHERE col = 'abc' AND unicode_col = N'abc'"  # noqa
+        query_expected = 'SELECT col, unicode_col \n' \
+                         'FROM tbl \n' \
+                         "WHERE col = 'abc' AND unicode_col = N'abc'"
         self.assertEqual(query, query_expected)
+
+    def test_get_table_names(self):
+        inspector = mock.Mock()
+        inspector.get_table_names = mock.Mock(return_value=['schema.table', 'table_2'])
+        inspector.get_foreign_table_names = mock.Mock(return_value=['table_3'])
+
+        """ Make sure base engine spec removes schema name from table name
+        ie. when try_remove_schema_from_table_name == True. """
+        base_result_expected = ['table', 'table_2']
+        base_result = db_engine_specs.BaseEngineSpec.get_table_names(
+            schema='schema', inspector=inspector)
+        self.assertListEqual(base_result_expected, base_result)
+
+        """ Make sure postgres doesn't try to remove schema name from table name
+        ie. when try_remove_schema_from_table_name == False. """
+        pg_result_expected = ['schema.table', 'table_2', 'table_3']
+        pg_result = db_engine_specs.PostgresEngineSpec.get_table_names(
+            schema='schema', inspector=inspector)
+        self.assertListEqual(pg_result_expected, pg_result)
+
+    def test_pg_time_expression_literal_no_grain(self):
+        col = literal_column('COALESCE(a, b)')
+        expr = PostgresEngineSpec.get_timestamp_expr(col, None, None)
+        result = str(expr.compile(dialect=postgresql.dialect()))
+        self.assertEqual(result, 'COALESCE(a, b)')
+
+    def test_pg_time_expression_literal_1y_grain(self):
+        col = literal_column('COALESCE(a, b)')
+        expr = PostgresEngineSpec.get_timestamp_expr(col, None, 'P1Y')
+        result = str(expr.compile(dialect=postgresql.dialect()))
+        self.assertEqual(result, "DATE_TRUNC('year', COALESCE(a, b))")
+
+    def test_pg_time_expression_lower_column_no_grain(self):
+        col = column('lower_case')
+        expr = PostgresEngineSpec.get_timestamp_expr(col, None, None)
+        result = str(expr.compile(dialect=postgresql.dialect()))
+        self.assertEqual(result, 'lower_case')
+
+    def test_pg_time_expression_lower_case_column_sec_1y_grain(self):
+        col = column('lower_case')
+        expr = PostgresEngineSpec.get_timestamp_expr(col, 'epoch_s', 'P1Y')
+        result = str(expr.compile(dialect=postgresql.dialect()))
+        self.assertEqual(result, "DATE_TRUNC('year', (timestamp 'epoch' + lower_case * interval '1 second'))")  # noqa
+
+    def test_pg_time_expression_mixed_case_column_1y_grain(self):
+        col = column('MixedCase')
+        expr = PostgresEngineSpec.get_timestamp_expr(col, None, 'P1Y')
+        result = str(expr.compile(dialect=postgresql.dialect()))
+        self.assertEqual(result, "DATE_TRUNC('year', \"MixedCase\")")
+
+    def test_mssql_time_expression_mixed_case_column_1y_grain(self):
+        col = column('MixedCase')
+        expr = MssqlEngineSpec.get_timestamp_expr(col, None, 'P1Y')
+        result = str(expr.compile(dialect=mssql.dialect()))
+        self.assertEqual(result, 'DATEADD(year, DATEDIFF(year, 0, [MixedCase]), 0)')
+
+    def test_oracle_time_expression_reserved_keyword_1m_grain(self):
+        col = column('decimal')
+        expr = OracleEngineSpec.get_timestamp_expr(col, None, 'P1M')
+        result = str(expr.compile(dialect=oracle.dialect()))
+        self.assertEqual(result, "TRUNC(CAST(\"decimal\" as DATE), 'MONTH')")
+
+    def test_pinot_time_expression_sec_1m_grain(self):
+        col = column('tstamp')
+        expr = PinotEngineSpec.get_timestamp_expr(col, 'epoch_s', 'P1M')
+        result = str(expr.compile())
+        self.assertEqual(result, 'DATETIMECONVERT(tstamp, "1:SECONDS:EPOCH", "1:SECONDS:EPOCH", "1:MONTHS")')  # noqa
