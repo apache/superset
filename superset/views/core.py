@@ -2502,7 +2502,6 @@ class Superset(BaseSupersetView):
         if display_limit:
             payload_json = json.loads(payload)
             payload_json['data'] = payload_json['data'][:display_limit]
-
         return json_success(
             json.dumps(
                 payload_json,
