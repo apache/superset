@@ -21,7 +21,6 @@ import inspect
 import logging
 import os
 import re
-import string
 import traceback
 from typing import Dict, List  # noqa: F401
 from urllib import parse
@@ -2503,21 +2502,6 @@ class Superset(BaseSupersetView):
         if display_limit:
             payload_json = json.loads(payload)
             payload_json['data'] = payload_json['data'][:display_limit]
-
-        # mock new payload
-        payload_json['selected_columns'] = payload_json['columns']
-        payload_json['expanded_columns'] = []
-        for col in payload_json['columns']:
-            for i in range(2):
-                # 0: {name: "event_id", agg: "count_distinct", type: "VARCHAR", is_date: false, is_dim: false}
-                letter = string.ascii_lowercase[i]
-                expanded_col = col.copy()
-                expanded_col['name'] = f'{col["name"]}.{letter}'
-                payload_json['expanded_columns'].append(expanded_col)
-                for j in range(len(payload_json['data'])):
-                    payload_json['data'][j][expanded_col['name']] = i + j * 10
-        payload_json['columns'] = \
-            payload_json['selected_columns'] + payload_json['expanded_columns']
 
         return json_success(
             json.dumps(
