@@ -149,6 +149,7 @@ const propTypes = {
   xAxisLabel: PropTypes.string,
   xAxisShowMinMax: PropTypes.bool,
   xIsLogScale: PropTypes.bool,
+  showOverlay: PropTypes.bool,
   xTicksLayout: PropTypes.oneOf(['auto', 'staggered', '45°']),
   yAxisFormat: PropTypes.string,
   yAxisBounds: PropTypes.arrayOf(PropTypes.number),
@@ -245,6 +246,7 @@ function nvd3Vis(element, props) {
     yAxisShowMinMax = false,
     yField,
     yIsLogScale,
+    showOverlay,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;

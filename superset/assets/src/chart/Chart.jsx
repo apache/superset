@@ -58,19 +58,20 @@ const BLANK = {};
 const defaultProps = {
   addFilter: () => BLANK,
   filters: BLANK,
-  setControlValue() {},
+  setControlValue() { },
   triggerRender: false,
   itemClick: () => BLANK
 };
 
 class Chart extends React.PureComponent {
   componentDidMount() {
-    if (this.props.triggerQuery) {
-      this.props.actions.runQuery(
-        this.props.formData,
+    const { triggerQuery, formData, timeout, chartId, actions } = this.props;
+    if (triggerQuery && !formData.show_overlay) {
+      actions.runQuery(
+        formData,
         false,
-        this.props.timeout,
-        this.props.chartId,
+        timeout,
+        chartId,
       );
     }
   }
@@ -89,10 +90,10 @@ class Chart extends React.PureComponent {
     });
   }
 
-  itemClick(data){
+  itemClick(data) {
     this.props.itemClick(data);
   }
-  
+
   renderStackTraceMessage() {
     const { chartAlert, chartStackTrace, queryResponse } = this.props;
     return (
@@ -100,6 +101,17 @@ class Chart extends React.PureComponent {
         message={chartAlert}
         link={queryResponse ? queryResponse.link : null}
         stackTrace={chartStackTrace}
+      />);
+  }
+
+  renderChartOverlay() {
+    const { width, height, formData } = this.props;
+    return (
+      <RefreshChartOverlay
+        width="100%"
+        height={height}
+        showOverlay={formData.show_overlay}
+        overlayLabel={formData.overlay_label}
       />);
   }
 
@@ -111,6 +123,7 @@ class Chart extends React.PureComponent {
       chartStatus,
       errorMessage,
       onQuery,
+      formData,
       refreshOverlayVisible,
     } = this.props;
 
@@ -120,6 +133,11 @@ class Chart extends React.PureComponent {
     const containerStyles = isLoading ? { height, width } : null;
     const isFaded = refreshOverlayVisible && !errorMessage;
     this.renderContainerStartTime = Logger.getTimestamp();
+   
+    if (formData.show_overlay) {
+      return this.renderChartOverlay();
+    }
+
     if (chartStatus === 'failed') {
       return this.renderStackTraceMessage();
     }

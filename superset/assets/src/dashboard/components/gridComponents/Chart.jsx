@@ -217,6 +217,7 @@ class Chart extends React.Component {
       return <MissingChart height={this.getChartHeight()} />;
     }
 
+    const canExportCSV = !formData.show_overlay;
     const { queryResponse, chartUpdateEndTime } = chart;
     const isCached = queryResponse && queryResponse.is_cached;
     const cachedDttm = queryResponse && queryResponse.cached_dttm;
@@ -237,6 +238,7 @@ class Chart extends React.Component {
           annotationQuery={chart.annotationQuery}
           exploreChart={this.exploreChart}
           exportCSV={this.exportCSV}
+          canExportCSV={canExportCSV}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}

@@ -73,6 +73,8 @@ export default function transformProps(chartProps) {
     yAxisLabel,
     yAxisShowminmax,
     yLogScale,
+    showOverlay,
+    overlayLabel,
   } = formData;
 
   const rawData = payload.data || [];
@@ -132,5 +134,7 @@ export default function transformProps(chartProps) {
     yAxisShowMinMax: yAxisShowminmax,
     yField: y,
     yIsLogScale: yLogScale,
+    showOverlay,
+    overlayLabel
   };
 }

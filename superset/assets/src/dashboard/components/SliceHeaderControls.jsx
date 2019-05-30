@@ -41,6 +41,7 @@ const propTypes = {
   forceRefresh: PropTypes.func,
   exploreChart: PropTypes.func,
   exportCSV: PropTypes.func,
+  canExportCSV: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -53,6 +54,7 @@ const defaultProps = {
   isCached: false,
   isExpanded: false,
   supersetCanExplore: false,
+  canExportCSV: true,
   sliceCanEdit: false,
 };
 
@@ -121,6 +123,10 @@ class SliceHeaderControls extends React.PureComponent {
     });
   }
 
+  getClass() {
+    return this.props.canExportCSV ? "export-csv-enabled" : "export-csv-disabled";
+  }
+
   render() {
     const { slice, isCached, cachedDttm, updatedDttm } = this.props;
     const cachedWhen = moment.utc(cachedDttm).fromNow();
@@ -141,8 +147,8 @@ class SliceHeaderControls extends React.PureComponent {
           <VerticalDotsTrigger />
         </Dropdown.Toggle>
 
-        <Dropdown.Menu className ="slice-header-dropdown-menu">
-          <MenuItem onClick={this.refreshChart}>
+        <Dropdown.Menu className="slice-header-dropdown-menu">
+          <MenuItem className={this.getClass()} onClick={this.refreshChart}>
             {t('Force refresh')}
             <div className="refresh-tooltip">{refreshTooltip}</div>
           </MenuItem>
@@ -161,7 +167,7 @@ class SliceHeaderControls extends React.PureComponent {
             </MenuItem>
           )}
 
-          <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
+          <MenuItem className={this.getClass()} onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
 
           {this.props.supersetCanExplore && (
             <MenuItem onClick={this.exploreChart}>

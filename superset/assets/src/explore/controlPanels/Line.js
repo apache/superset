@@ -32,6 +32,8 @@ export default {
         ['show_brush', 'send_time_range', 'show_legend'],
         ['rich_tooltip', 'show_markers'],
         ['line_interpolation'],
+        ['show_overlay'],
+        ['overlay_label'],
       ],
     },
     {

@@ -112,8 +112,8 @@ const timeColumnOption = {
   verbose_name: 'Time',
   column_name: '__timestamp',
   description: t(
-   'A reference to the [Time] configuration, taking granularity into ' +
-  'account'),
+    'A reference to the [Time] configuration, taking granularity into ' +
+    'account'),
 };
 const sortAxisChoices = [
   ['alpha_asc', 'Axis ascending'],
@@ -177,7 +177,7 @@ const metrics = {
   label: t('Metrics'),
   validators: [v.nonEmpty],
   default: (c) => {
-    return  null;
+    return null;
   },
   mapStateToProps: (state) => {
     const datasource = state.datasource;
@@ -258,7 +258,7 @@ export const controls = {
     description: null,
     mapStateToProps: (state, control, actions) => ({
       datasource: state.datasource,
-      onDatasourceSave: actions ? actions.setDatasource : () => {},
+      onDatasourceSave: actions ? actions.setDatasource : () => { },
     }),
   },
 
@@ -267,9 +267,9 @@ export const controls = {
     label: t('Query with Partitions'),
     default: true,
     renderTrigger: false,
-    description: t('Use this flag to convert time range based '+
-    'WHERE clause query to hive time based partition query. '+
-    'For this, hive partitions must be configured at datasource.'),
+    description: t('Use this flag to convert time range based ' +
+      'WHERE clause query to hive time based partition query. ' +
+      'For this, hive partitions must be configured at datasource.'),
     mapStateToProps: state => ({
       hidden: (state.datasource.database.backend == "hive") ? false : true,
       default: (state.datasource.database.backend == "hive") ? true : false,
@@ -298,9 +298,9 @@ export const controls = {
     renderTrigger: true,
     default: [null, null],
     description: t('Bounds for the Y-axis. When left empty, the bounds are ' +
-    'dynamically defined based on the min/max of the data. Note that ' +
-    "this feature will only expand the axis range. It won't " +
-    "narrow the data's extent."),
+      'dynamically defined based on the min/max of the data. Note that ' +
+      "this feature will only expand the axis range. It won't " +
+      "narrow the data's extent."),
   },
 
   order_by_cols: {
@@ -421,8 +421,8 @@ export const controls = {
     ],
     default: 'heatmap',
     description: t('Color will be rendered based on a ratio ' +
-    'of the cell against the sum of across this ' +
-    'criteria'),
+      'of the cell against the sum of across this ' +
+      'criteria'),
   },
 
   horizon_color_scale: {
@@ -448,7 +448,7 @@ export const controls = {
     ],
     default: 'pixelated',
     description: t('image-rendering CSS attribute of the canvas object that ' +
-    'defines how the browser scales up the image'),
+      'defines how the browser scales up the image'),
   },
 
   xscale_interval: {
@@ -459,7 +459,7 @@ export const controls = {
     default: '1',
     clearable: false,
     description: t('Number of steps to take between ticks when ' +
-    'displaying the X scale'),
+      'displaying the X scale'),
   },
 
   yscale_interval: {
@@ -470,7 +470,7 @@ export const controls = {
     clearable: false,
     renderTrigger: true,
     description: t('Number of steps to take between ticks when ' +
-    'displaying the Y scale'),
+      'displaying the Y scale'),
   },
 
   include_time: {
@@ -541,7 +541,7 @@ export const controls = {
     label: t('Combine Metrics'),
     default: false,
     description: t('Display metrics side by side within each column, as ' +
-    'opposed to each column being displayed side by side for each metric.'),
+      'opposed to each column being displayed side by side for each metric.'),
   },
 
   show_controls: {
@@ -550,8 +550,8 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: t('Whether to show extra controls or not. Extra controls ' +
-    'include things like making mulitBar charts stacked ' +
-    'or side by side.'),
+      'include things like making mulitBar charts stacked ' +
+      'or side by side.'),
   },
 
   reduce_x_ticks: {
@@ -560,10 +560,10 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: t('Reduces the number of X-axis ticks to be rendered. ' +
-    'If true, the x-axis will not overflow and labels may be ' +
-    'missing. If false, a minimum width will be applied ' +
-    'to columns and the width may overflow into an ' +
-    'horizontal scroll.'),
+      'If true, the x-axis will not overflow and labels may be ' +
+      'missing. If false, a minimum width will be applied ' +
+      'to columns and the width may overflow into an ' +
+      'horizontal scroll.'),
   },
 
   include_series: {
@@ -621,7 +621,7 @@ export const controls = {
       ['cca3', 'code ISO 3166-1 alpha-3 (cca3)'],
     ],
     description: t('The country code standard that Superset should expect ' +
-    'to find in the [country] column'),
+      'to find in the [country] column'),
   },
 
   freq: {
@@ -820,7 +820,7 @@ export const controls = {
     ],
     default: null,
     description: t('Defines the origin where time buckets start, ' +
-    'accepts natural dates as in `now`, `sunday` or `1970-01-01`'),
+      'accepts natural dates as in `now`, `sunday` or `1970-01-01`'),
   },
 
   bottom_margin: {
@@ -879,8 +879,8 @@ export const controls = {
       ['P1Y', 'year'],
     ],
     description: t('The time granularity for the visualization. Note that you ' +
-    'can type and use simple natural language as in `10 seconds`, ' +
-    '`1 day` or `56 weeks`'),
+      'can type and use simple natural language as in `10 seconds`, ' +
+      '`1 day` or `56 weeks`'),
   },
 
   domain_granularity: {
@@ -897,7 +897,7 @@ export const controls = {
     default: 'day',
     choices: formatSelectOptions(['min', 'hour', 'day', 'week', 'month']),
     description: t('The time unit for each block. Should be a smaller unit than ' +
-    'domain_granularity. Should be larger or equal to Time Grain'),
+      'domain_granularity. Should be larger or equal to Time Grain'),
   },
 
   link_length: {
@@ -935,10 +935,10 @@ export const controls = {
     type: 'SelectControl',
     label: t('Time Column'),
     description: t('The time column for the visualization. Note that you ' +
-    'can define arbitrary expression that return a DATETIME ' +
-    'column in the table. Also note that the ' +
-    'filter below is applied against this column or ' +
-    'expression'),
+      'can define arbitrary expression that return a DATETIME ' +
+      'column in the table. Also note that the ' +
+      'filter below is applied against this column or ' +
+      'expression'),
     default: control => control.default,
     clearable: false,
     optionRenderer: c => <ColumnOption column={c} showType />,
@@ -964,10 +964,10 @@ export const controls = {
     label: t('Time Grain'),
     default: 'P1D',
     description: t('The time granularity for the visualization. This ' +
-    'applies a date transformation to alter ' +
-    'your time column and defines a new time granularity. ' +
-    'The options here are defined on a per database ' +
-    'engine basis in the Superset source code.'),
+      'applies a date transformation to alter ' +
+      'your time column and defines a new time granularity. ' +
+      'The options here are defined on a per database ' +
+      'engine basis in the Superset source code.'),
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.time_grain_sqla : null,
     }),
@@ -1095,7 +1095,7 @@ export const controls = {
     default: 'None',
     choices: formatSelectOptions(['None', 'mean', 'sum', 'std', 'cumsum']),
     description: t('Defines a rolling window function to apply, works along ' +
-    'with the [Periods] text box'),
+      'with the [Periods] text box'),
   },
 
   multiplier: {
@@ -1112,7 +1112,7 @@ export const controls = {
     label: t('Periods'),
     isInt: true,
     description: t('Defines the size of the rolling window function, ' +
-    'relative to the time granularity selected'),
+      'relative to the time granularity selected'),
   },
 
   cell_size: {
@@ -1169,10 +1169,10 @@ export const controls = {
     label: t('Min Periods'),
     isInt: true,
     description: t('The minimum number of rolling periods required to show ' +
-    'a value. For instance if you do a cumulative sum on 7 days ' +
-    'you may want your "Min Period" to be 7, so that all data points ' +
-    'shown are the total of 7 periods. This will hide the "ramp up" ' +
-    'taking place over the first 7 periods'),
+      'a value. For instance if you do a cumulative sum on 7 days ' +
+      'you may want your "Min Period" to be 7, so that all data points ' +
+      'shown are the total of 7 periods. This will hide the "ramp up" ' +
+      'taking place over the first 7 periods'),
   },
 
   series: {
@@ -1181,8 +1181,8 @@ export const controls = {
     multi: false,
     default: null,
     description: t('Defines the grouping of entities. ' +
-    'Each series is shown as a specific color on the chart and ' +
-    'has a legend toggle'),
+      'Each series is shown as a specific color on the chart and ' +
+      'has a legend toggle'),
   },
 
   entity: {
@@ -1218,7 +1218,7 @@ export const controls = {
     type: 'TextControl',
     label: t('URL'),
     description: t('The URL, this control is templated, so you can integrate ' +
-    '{{ width }} and/or {{ height }} in your URL string.'),
+      '{{ width }} and/or {{ height }} in your URL string.'),
     default: 'https://www.youtube.com/embed/AdSZJzb-aX8',
   },
 
@@ -1311,9 +1311,9 @@ export const controls = {
     description: D3_FORMAT_DOCS,
     mapStateToProps: (state) => {
       const showWarning = (
-          state.controls &&
-          state.controls.comparison_type &&
-          state.controls.comparison_type.value === 'percentage');
+        state.controls &&
+        state.controls.comparison_type &&
+        state.controls.comparison_type.value === 'percentage');
       return {
         warning: showWarning ?
           t('When `Calculation type` is set to "Percentage change", the Y ' +
@@ -1420,7 +1420,7 @@ export const controls = {
     ]),
     default: 'sum',
     description: t('Aggregate function to apply when pivoting and ' +
-    'computing the total rows and columns'),
+      'computing the total rows and columns'),
   },
 
   js_agg_function: {
@@ -1659,6 +1659,31 @@ export const controls = {
     description: t('Whether to display the trend line'),
   },
 
+  show_overlay: {
+    type: 'CheckboxControl',
+    label: t('Show Overlay'),
+    renderTrigger: true,
+    default: false,
+    description: t('Adds overlay on the chart, query of this component will not get fired ' +
+      'unless some external filters drive this chart'),
+  },
+
+  overlay_label: {
+    type: 'TextControl',
+    label: t('Overlay Label'),
+    renderTrigger: true,
+    description: t('Placeholder for a chart to be shown on filters selection. Only applicable in case Show Overlay is checked'),
+    mapStateToProps: (state) => {
+      let props = {};
+      if (state && state.controls) {
+        if (state.controls.hasOwnProperty('show_overlay')) {
+          props = { hidden: (state.controls.show_overlay.value) ? false : true }
+        }
+      }
+      return props;
+    }
+  },
+
   start_y_axis_at_zero: {
     type: 'CheckboxControl',
     label: t('Start y-axis at 0'),
@@ -1689,10 +1714,10 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: t('The rich tooltip shows a list of all series for that ' +
-    'point in time'),
+      'point in time'),
   },
 
-  chart_interactivity:{
+  chart_interactivity: {
     type: 'CheckboxControl',
     label: t('Interactivity'),
     renderTrigger: true,
@@ -1761,9 +1786,9 @@ export const controls = {
       '1 year',
     ]),
     description: t('Overlay one or more timeseries from a ' +
-    'relative time period. Expects relative time deltas ' +
-    'in natural language (example:  24 hours, 7 days, ' +
-    '56 weeks, 365 days)'),
+      'relative time period. Expects relative time deltas ' +
+      'in natural language (example:  24 hours, 7 days, ' +
+      '56 weeks, 365 days)'),
   },
 
   comparison_type: {
@@ -1777,8 +1802,8 @@ export const controls = {
       ['ratio', 'Ratio'],
     ],
     description: t('How to display time shifts: as individual lines; as the ' +
-    'absolute difference between the main time series and each time shift; ' +
-    'as the percentage change; or as the ratio between series and time shifts.'),
+      'absolute difference between the main time series and each time shift; ' +
+      'as the percentage change; or as the ratio between series and time shifts.'),
   },
 
   subheader: {
@@ -1793,9 +1818,9 @@ export const controls = {
     label: t('label'),
     default: [],
     description: t('`count` is COUNT(*) if a group by is used. ' +
-    'Numerical columns will be aggregated with the aggregator. ' +
-    'Non-numerical columns will be used to label points. ' +
-    'Leave empty to get a count of points in each cluster.'),
+      'Numerical columns will be aggregated with the aggregator. ' +
+      'Non-numerical columns will be used to label points. ' +
+      'Leave empty to get a count of points in each cluster.'),
     mapStateToProps: state => ({
       choices: columnChoices(state.datasource),
     }),
@@ -1835,8 +1860,8 @@ export const controls = {
       '1000',
     ]),
     description: t('The radius (in pixels) the algorithm uses to define a cluster. ' +
-    'Choose 0 to turn off clustering, but beware that a large ' +
-    'number of points (>1000) will cause lag.'),
+      'Choose 0 to turn off clustering, but beware that a large ' +
+      'number of points (>1000) will cause lag.'),
   },
 
   point_radius_fixed: {
@@ -1854,8 +1879,8 @@ export const controls = {
     label: t('Point Radius'),
     default: 'Auto',
     description: t('The radius of individual points (ones that are not in a cluster). ' +
-    'Either a numerical column or `Auto`, which scales the point based ' +
-    'on the largest cluster'),
+      'Either a numerical column or `Auto`, which scales the point based ' +
+      'on the largest cluster'),
     mapStateToProps: state => ({
       choices: columnChoices(state.datasource),
     }),
@@ -1891,7 +1916,7 @@ export const controls = {
     default: 1,
     isFloat: true,
     description: t('Opacity of all clusters, points, and labels. ' +
-    'Between 0 and 1.'),
+      'Between 0 and 1.'),
   },
 
   opacity: {
@@ -1987,23 +2012,23 @@ export const controls = {
     label: t('Ranges'),
     default: '',
     description: t('Ranges to highlight with shading'),
-    arcGIS_state : {
+    arcGIS_state: {
       true: {
         lastValue: '',
-        isValueChanged:false
+        isValueChanged: false
       },
-      false :{
+      false: {
         lastValue: '',
-        isValueChanged:false
+        isValueChanged: false
       }
     },
     mapStateToProps: (state) => {
       const props = {};
       if (state && state.controls) {
         props.options = state.controls.ranges;
-        if(state.controls.hasOwnProperty('labels_outside')){
+        if (state.controls.hasOwnProperty('labels_outside')) {
           const val = props.options.arcGIS_state[state.controls.labels_outside.value];
-          if(val.isValueChanged){
+          if (val.isValueChanged) {
             props.options.value = val.lastValue;
           } else {
             props.options.value = (state.controls.labels_outside.value) ? '' : props.options.default;
@@ -2011,9 +2036,9 @@ export const controls = {
         }
       }
       props.textChange = (e) => {
-        if(state.controls.hasOwnProperty('labels_outside')){
+        if (state.controls.hasOwnProperty('labels_outside')) {
           const labelOutsideValue = state.controls.labels_outside.value
-          if(!props.options.arcGIS_state[labelOutsideValue].isValueChanged){
+          if (!props.options.arcGIS_state[labelOutsideValue].isValueChanged) {
             props.options.arcGIS_state[labelOutsideValue].isValueChanged = true;
           }
           props.options.arcGIS_state[labelOutsideValue].lastValue = e;
@@ -2068,7 +2093,7 @@ export const controls = {
     tabOverride: 'data',
   },
 
-  subscriber_layers : {
+  subscriber_layers: {
     type: 'SubscriberLayerControl',
     label: '',
     default: [],
@@ -2078,7 +2103,7 @@ export const controls = {
     mapStateToProps: (state) => {
       const newState = {};
       if (state.slices) {
-        newState.options = state.slices.filter(slice => state.slice ? (slice.id != state.slice.slice_id && slice.data.hasOwnProperty('publish_columns') && slice.data.publish_columns.length > 0) : false) 
+        newState.options = state.slices.filter(slice => state.slice ? (slice.id != state.slice.slice_id && slice.data.hasOwnProperty('publish_columns') && slice.data.publish_columns.length > 0) : false)
           .map(slice => ({ label: slice.title, value: slice.id, columns: slice.column_names }));
       }
       return newState;
@@ -2131,7 +2156,7 @@ export const controls = {
     mapStateToProps: (state) => {
       const newState = {};
       if (state.slices) {
-        newState.options = state.slices.filter( slice => state.slice ? slice.id != state.slice.slice_id : true).map( slice =>  ({label: slice.title, value: slice.id}))
+        newState.options = state.slices.filter(slice => state.slice ? slice.id != state.slice.slice_id : true).map(slice => ({ label: slice.title, value: slice.id }))
       }
       return newState;
     }
@@ -2154,7 +2179,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Order by entity id'),
     description: t('Important! Select this if the table is not already sorted by entity id, ' +
-    'else there is no guarantee that all events for each entity are returned.'),
+      'else there is no guarantee that all events for each entity are returned.'),
     default: true,
   },
 
@@ -2165,7 +2190,7 @@ export const controls = {
     default: 1,
     choices: formatSelectOptionsForRange(1, 10),
     description: t('Leaf nodes that represent fewer than this number of events will be initially ' +
-    'hidden in the visualization'),
+      'hidden in the visualization'),
   },
 
   color_scheme: {
@@ -2285,7 +2310,7 @@ export const controls = {
     default: '5',
     description:
       t('The maximum number of subdivisions of each group; ' +
-      'lower values are pruned first'),
+        'lower values are pruned first'),
   },
 
   min_radius: {
@@ -2296,8 +2321,8 @@ export const controls = {
     renderTrigger: true,
     default: 2,
     description:
-    t('Minimum radius size of the circle, in pixels. As the zoom level changes, this ' +
-      'insures that the circle respects this minimum radius.'),
+      t('Minimum radius size of the circle, in pixels. As the zoom level changes, this ' +
+        'insures that the circle respects this minimum radius.'),
   },
 
   max_radius: {
@@ -2308,8 +2333,8 @@ export const controls = {
     renderTrigger: true,
     default: 250,
     description:
-    t('Maxium radius size of the circle, in pixels. As the zoom level changes, this ' +
-      'insures that the circle respects this maximum radius.'),
+      t('Maxium radius size of the circle, in pixels. As the zoom level changes, this ' +
+        'insures that the circle respects this maximum radius.'),
   },
 
   partition_threshold: {
@@ -2319,7 +2344,7 @@ export const controls = {
     default: '0.05',
     description:
       t('Partitions whose height to parent height proportions are ' +
-      'below this value are pruned'),
+        'below this value are pruned'),
   },
 
   line_column: {

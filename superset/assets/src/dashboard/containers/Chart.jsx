@@ -44,6 +44,17 @@ function mapStateToProps(
   const { id } = ownProps;
   const chart = chartQueries[id] || {};
   const { filters, publishSubscriberMap } = dashboardState;
+  const formData = getFormDataWithExtraFilters({
+    chart,
+    dashboardMetadata: dashboardInfo.metadata,
+    filters,
+    sliceId: id,
+    publishSubscriberMap,
+  })
+
+  if (formData.show_overlay && formData.hasOwnProperty('extra_filters') && formData['extra_filters'].length > 0) {
+    formData.show_overlay = false;
+  }
 
   return {
     chart,
@@ -54,13 +65,7 @@ function mapStateToProps(
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     filters: filters[id] || EMPTY_FILTERS,
     // note: this method caches filters if possible to prevent render cascades
-    formData: getFormDataWithExtraFilters({
-      chart,
-      dashboardMetadata: dashboardInfo.metadata,
-      filters,
-      sliceId: id,
-      publishSubscriberMap,
-    }),
+    formData: formData,
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
