@@ -1,5 +1,5 @@
 import { PlainObject } from './types';
-import { FormDataMetric, Metric } from '@superset-ui/chart';
+import { ChartFormDataMetric, AdhocMetric } from '@superset-ui/chart';
 
 export default function processData({
   timeseriesLimitMetric,
@@ -7,14 +7,14 @@ export default function processData({
   records,
   metrics,
 }: {
-  timeseriesLimitMetric: FormDataMetric;
+  timeseriesLimitMetric: ChartFormDataMetric;
   orderDesc: boolean;
   records: PlainObject[];
   metrics: string[];
 }) {
   const sortByKey =
     timeseriesLimitMetric &&
-    ((timeseriesLimitMetric as Metric).label || (timeseriesLimitMetric as string));
+    ((timeseriesLimitMetric as AdhocMetric).label || (timeseriesLimitMetric as string));
 
   let processedData: {
     data: PlainObject;
