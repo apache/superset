@@ -11,6 +11,7 @@ const LEGEND_GROUP_STYLE: CSSProperties = {
   flexWrap: 'wrap',
   fontSize: '0.8em',
   justifyContent: 'flex-end',
+  padding: 8,
 };
 
 export default function DefaultLegendGroupRenderer<ChannelTypes>({

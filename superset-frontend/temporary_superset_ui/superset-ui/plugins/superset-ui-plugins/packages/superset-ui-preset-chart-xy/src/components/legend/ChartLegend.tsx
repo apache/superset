@@ -20,7 +20,6 @@ const LEGEND_CONTAINER_STYLE: CSSProperties = {
   flexShrink: 1,
   maxHeight: 100,
   overflowY: 'auto',
-  padding: 8,
   position: 'relative',
 };
 
