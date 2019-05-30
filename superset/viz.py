@@ -46,7 +46,13 @@ from pandas.tseries.frequencies import to_offset
 import polyline
 import simplejson as json
 
-from superset import app, cache, get_css_manifest_files
+from superset import (
+    app,
+    cache,
+    get_css_manifest_files,
+    get_feature_flags,
+    is_feature_enabled,
+)
 from superset.exceptions import NullValueException, SpatialException
 from superset.utils import core as utils
 from superset.utils.core import (
@@ -2401,12 +2407,12 @@ class DeckPathViz(BaseDeckGLViz):
         return d
 
     def get_data(self, df):
-        if "EXTRA_POLYGON_ENCODINGS" in config.get("CONF_KEYS", {}):
+        if is_feature_enabled("EXTRA_POLYGON_ENCODINGS"):
             fd = self.form_data
             line_type = fd.get("line_type")
             extra_polygon_encodings = {
                 class_.__name__: class_
-                for class_ in config["CONF_KEYS"]["EXTRA_POLYGON_ENCODINGS"]
+                for class_ in get_feature_flags()["EXTRA_POLYGON_ENCODINGS"]
             }
             class_ = extra_polygon_encodings.get(line_type)
             if class_:

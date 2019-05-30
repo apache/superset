@@ -32,20 +32,14 @@ export type FeatureFlagMap = {
   [key in FeatureFlag]?: boolean;
 };
 
-export type ConfKeysMap = {
-  [key in FeatureFlag]?: {};
-};
-
 declare global {
   interface Window {
     featureFlags: FeatureFlagMap;
-    confKeys: ConfKeysMap;
   }
 }
 
-export function initFeatureFlags(featureFlags: FeatureFlagMap, confKeys: ConfKeysMap) {
+export function initFeatureFlags(featureFlags: FeatureFlagMap) {
   window.featureFlags = featureFlags || {};
-  window.confKeys = confKeys || {};
 }
 
 export function isFeatureEnabled(feature: FeatureFlag) {
