@@ -207,6 +207,9 @@ export default class ResultSet extends React.PureComponent {
         data = results.data;
       }
       if (data && data.length > 0) {
+        const expandendColumns = results.expanded_columns
+          ? results.expanded_columns.map(col => col.name)
+          : [];
         return (
           <React.Fragment>
             {this.renderControls.bind(this)()}
@@ -216,7 +219,7 @@ export default class ResultSet extends React.PureComponent {
               orderedColumnKeys={results.columns.map(col => col.name)}
               height={height}
               filterText={this.state.searchText}
-              expandedColumns={results.expanded_columns.map(col => col.name)}
+              expandedColumns={expandendColumns}
             />
           </React.Fragment>
         );
