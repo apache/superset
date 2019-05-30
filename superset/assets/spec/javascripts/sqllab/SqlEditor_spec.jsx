@@ -20,9 +20,18 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import { defaultQueryEditor, initialState, queries, table } from './fixtures';
+import {
+  SQL_EDITOR_GUTTER_HEIGHT,
+  SQL_EDITOR_GUTTER_MARGIN,
+  SQL_TOOLBAR_HEIGHT,
+} from '../../../src/SqlLab/constants';
+import AceEditorWrapper from '../../../src/SqlLab/components/AceEditorWrapper';
 import LimitControl from '../../../src/SqlLab/components/LimitControl';
+import SouthPane from '../../../src/SqlLab/components/SouthPane';
 import SqlEditor from '../../../src/SqlLab/components/SqlEditor';
 import SqlEditorLeftBar from '../../../src/SqlLab/components/SqlEditorLeftBar';
+
+const MOCKED_SQL_EDITOR_HEIGHT = 500;
 
 describe('SqlEditor', () => {
   const mockedProps = {
@@ -40,7 +49,7 @@ describe('SqlEditor', () => {
   };
 
   beforeAll(() => {
-    jest.spyOn(SqlEditor.prototype, 'getSqlEditorHeight').mockImplementation(() => 500);
+    jest.spyOn(SqlEditor.prototype, 'getSqlEditorHeight').mockImplementation(() => MOCKED_SQL_EDITOR_HEIGHT);
   });
 
   it('is valid', () => {
@@ -51,6 +60,33 @@ describe('SqlEditor', () => {
   it('render a SqlEditorLeftBar', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
     expect(wrapper.find(SqlEditorLeftBar)).toHaveLength(1);
+  });
+  it('render an AceEditorWrapper', () => {
+    const wrapper = shallow(<SqlEditor {...mockedProps} />);
+    expect(wrapper.find(AceEditorWrapper)).toHaveLength(1);
+  });
+  it('render an SouthPane', () => {
+    const wrapper = shallow(<SqlEditor {...mockedProps} />);
+    expect(wrapper.find(SouthPane)).toHaveLength(1);
+  });
+  it('does not overflow the editor window', () => {
+    const wrapper = shallow(<SqlEditor {...mockedProps} />);
+    const totalSize = parseFloat(wrapper.find(AceEditorWrapper).props().height)
+      + wrapper.find(SouthPane).props().height
+      + SQL_TOOLBAR_HEIGHT
+      + (SQL_EDITOR_GUTTER_MARGIN * 2)
+      + SQL_EDITOR_GUTTER_HEIGHT;
+    expect(totalSize).toEqual(MOCKED_SQL_EDITOR_HEIGHT);
+  });
+  it('does not overflow the editor window after resizing', () => {
+    const wrapper = shallow(<SqlEditor {...mockedProps} />);
+    wrapper.setState({ height: 450 });
+    const totalSize = parseFloat(wrapper.find(AceEditorWrapper).props().height)
+      + wrapper.find(SouthPane).props().height
+      + SQL_TOOLBAR_HEIGHT
+      + (SQL_EDITOR_GUTTER_MARGIN * 2)
+      + SQL_EDITOR_GUTTER_HEIGHT;
+    expect(totalSize).toEqual(450);
   });
   it('render a LimitControl with default limit', () => {
     const defaultQueryLimit = 101;
