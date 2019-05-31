@@ -223,6 +223,20 @@ export const queries = [
           type: 'STRING',
         },
       ],
+      selected_columns: [
+        {
+          is_date: true,
+          is_dim: false,
+          name: 'ds',
+          type: 'STRING',
+        },
+        {
+          is_date: false,
+          is_dim: true,
+          name: 'gender',
+          type: 'STRING',
+        },
+      ],
       data: [{ col1: 0, col2: 1 }, { col1: 2, col2: 3 }],
     },
   },
@@ -264,7 +278,7 @@ export const queryWithBadColumns = {
   ...queries[0],
   results: {
     data: queries[0].results.data,
-    columns: [
+    selected_columns: [
       {
         is_date: true,
         is_dim: false,
