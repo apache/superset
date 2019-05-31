@@ -51,9 +51,16 @@ class QueryObject:
             is_prequery: bool = False,
             columns: List[str] = None,
             orderby: List[List] = None,
+            relative_start: str = app.config.get('DEFAULT_RELATIVE_START_TIME', 'today'),
+            relative_end: str = app.config.get('DEFAULT_RELATIVE_END_TIME', 'today'),
     ):
         self.granularity = granularity
-        self.from_dttm, self.to_dttm = utils.get_since_until(time_range, time_shift)
+        self.from_dttm, self.to_dttm = utils.get_since_until(
+            relative_start=relative_start,
+            relative_end=relative_end,
+            time_range=time_range,
+            time_shift=time_shift,
+        )
         self.is_timeseries = is_timeseries
         self.time_range = time_range
         self.time_shift = utils.parse_human_timedelta(time_shift)
