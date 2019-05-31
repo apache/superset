@@ -44,6 +44,7 @@ const propTypes = {
   overscanRowCount: PropTypes.number,
   rowHeight: PropTypes.number,
   striped: PropTypes.bool,
+  expandedColumns: PropTypes.array,
 };
 
 const defaultProps = {
@@ -52,6 +53,7 @@ const defaultProps = {
   overscanRowCount: 10,
   rowHeight: 32,
   striped: true,
+  expandedColumns: [],
 };
 
 export default class FilterableTable extends PureComponent {
@@ -141,7 +143,15 @@ export default class FilterableTable extends PureComponent {
     return (
       <TooltipWrapper label="header" tooltip={label}>
         <div className="header-style">
-          {label}
+          <span
+            className={
+              this.props.expandedColumns.indexOf(label) > -1
+                ? 'header-style-disabled'
+                : ''
+            }
+          >
+            {label}
+          </span>
           {sortBy === dataKey &&
             <SortIndicator sortDirection={sortDirection} />
           }
