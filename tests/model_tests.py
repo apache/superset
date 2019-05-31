@@ -58,7 +58,9 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertEquals('prod', db)
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pyhive'), 'mysqlclient not installed')
+        SupersetTestCase.is_module_installed('thrift'), 'thrift not installed')
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pyhive'), 'pyhive not installed')
     def test_database_schema_hive(self):
         sqlalchemy_uri = 'hive://hive@hive.airbnb.io:10000/default?auth=NOSASL'
         model = Database(sqlalchemy_uri=sqlalchemy_uri)
@@ -69,7 +71,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertEquals('core_db', db)
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('mysqlclient'), 'mysqlclient not installed')
+        SupersetTestCase.is_module_installed('MySQLdb'), 'mysqlclient not installed')
     def test_database_schema_mysql(self):
         sqlalchemy_uri = 'mysql://root@localhost/superset'
         model = Database(sqlalchemy_uri=sqlalchemy_uri)
@@ -81,7 +83,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertEquals('staging', db)
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('mysqlclient'), 'mysqlclient not installed')
+        SupersetTestCase.is_module_installed('MySQLdb'), 'mysqlclient not installed')
     def test_database_impersonate_user(self):
         uri = 'mysql://root@localhost'
         example_user = 'giuseppe'
@@ -115,49 +117,6 @@ class DatabaseModelTestCase(SupersetTestCase):
         FROM energy_usage
         LIMIT 100""")
         assert sql.startswith(expected)
-
-    @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('mysqlclient'), 'mysqlclient not installed')
-    def test_grains_dict(self):
-        uri = 'mysql://root@localhost'
-        database = Database(sqlalchemy_uri=uri)
-        d = database.grains_dict()
-        self.assertEquals(d.get('day').function, 'DATE({col})')
-        self.assertEquals(d.get('P1D').function, 'DATE({col})')
-        self.assertEquals(d.get('Time Column').function, '{col}')
-
-    def test_postgres_expression_time_grain(self):
-        uri = 'postgresql+psycopg2://uid:pwd@localhost:5432/superset'
-        database = Database(sqlalchemy_uri=uri)
-        pdf, time_grain = '', 'P1D'
-        expression, column_name = 'COALESCE(lowercase_col, "MixedCaseCol")', ''
-        grain = database.grains_dict().get(time_grain)
-        col = database.db_engine_spec.get_timestamp_column(expression, column_name)
-        grain_expr = database.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
-        grain_expr_expected = grain.function.replace('{col}', expression)
-        self.assertEqual(grain_expr, grain_expr_expected)
-
-    def test_postgres_lowercase_col_time_grain(self):
-        uri = 'postgresql+psycopg2://uid:pwd@localhost:5432/superset'
-        database = Database(sqlalchemy_uri=uri)
-        pdf, time_grain = '', 'P1D'
-        expression, column_name = '', 'lowercase_col'
-        grain = database.grains_dict().get(time_grain)
-        col = database.db_engine_spec.get_timestamp_column(expression, column_name)
-        grain_expr = database.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
-        grain_expr_expected = grain.function.replace('{col}', column_name)
-        self.assertEqual(grain_expr, grain_expr_expected)
-
-    def test_postgres_mixedcase_col_time_grain(self):
-        uri = 'postgresql+psycopg2://uid:pwd@localhost:5432/superset'
-        database = Database(sqlalchemy_uri=uri)
-        pdf, time_grain = '', 'P1D'
-        expression, column_name = '', 'MixedCaseCol'
-        grain = database.grains_dict().get(time_grain)
-        col = database.db_engine_spec.get_timestamp_column(expression, column_name)
-        grain_expr = database.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
-        grain_expr_expected = grain.function.replace('{col}', f'"{column_name}"')
-        self.assertEqual(grain_expr, grain_expr_expected)
 
     def test_single_statement(self):
         main_db = get_main_database(db.session)
