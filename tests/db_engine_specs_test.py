@@ -399,13 +399,286 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             self.assertEqual(actual_result.element.name, expected_result['name'])
             self.assertEqual(actual_result.name, expected_result['label'])
 
-    def test_presto_filter_presto_cols(self):
+    def test_presto_filter_out_array_nested_cols(self):
         cols = [
             {'name': 'column', 'type': 'ARRAY'},
             {'name': 'column.nested_obj', 'type': 'FLOAT'}]
-        actual_results = PrestoEngineSpec._filter_presto_cols(cols)
-        expected_results = [cols[0]]
-        self.assertEqual(actual_results, expected_results)
+        actual_filtered_cols,\
+            actual_array_cols = PrestoEngineSpec._filter_out_array_nested_cols(cols)
+        expected_filtered_cols = [{'name': 'column', 'type': 'ARRAY'}]
+        self.assertEqual(actual_filtered_cols, expected_filtered_cols)
+        self.assertEqual(actual_array_cols, cols)
+
+    def test_presto_create_row_and_array_hierarchy(self):
+        cols = [
+            {'name': 'row_column',
+             'type': 'ROW(NESTED_OBJ1 VARCHAR, NESTED_ROW ROW(NESTED_OBJ2 VARCHAR)'},
+            {'name': 'array_column',
+             'type': 'ARRAY(ROW(NESTED_ARRAY ARRAY(ROW(NESTED_OBJ VARCHAR))))'}]
+        actual_row_col_hierarchy,\
+            actual_array_col_hierarchy,\
+            actual_expanded_cols = PrestoEngineSpec._create_row_and_array_hierarchy(cols)
+        expected_row_col_hierarchy = {
+            'row_column': {
+                'type': 'ROW',
+                'children': ['row_column.nested_obj1', 'row_column.nested_row'],
+            },
+            'row_column.nested_row': {
+                'type': 'ROW',
+                'children': ['row_column.nested_row.nested_obj2']},
+        }
+        expected_array_col_hierarchy = {
+            'array_column': {
+                'type': 'ARRAY',
+                'children': ['array_column.nested_array'],
+            },
+            'array_column.nested_array': {
+                'type': 'ARRAY',
+                'children': ['array_column.nested_array.nested_obj']},
+        }
+        expected_expanded_cols = [
+            {'name': 'row_column.nested_obj1', 'type': 'VARCHAR'},
+            {'name': 'row_column.nested_row', 'type': 'ROW'},
+            {'name': 'row_column.nested_row.nested_obj2', 'type': 'VARCHAR'},
+            {'name': 'array_column.nested_array', 'type': 'ARRAY'},
+            {'name': 'array_column.nested_array.nested_obj', 'type': 'VARCHAR'}]
+        self.assertEqual(actual_row_col_hierarchy, expected_row_col_hierarchy)
+        self.assertEqual(actual_array_col_hierarchy, expected_array_col_hierarchy)
+        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+
+    def test_presto_expand_row_data(self):
+        datum = {'row_col': [1, 'a']}
+        row_column = 'row_col'
+        row_col_hierarchy = {
+            'row_col': {
+                'type': 'ROW',
+                'children': ['row_col.nested_int', 'row_col.nested_str'],
+            },
+        }
+        PrestoEngineSpec._expand_row_data(datum, row_column, row_col_hierarchy)
+        expected_datum = {
+            'row_col': [1, 'a'], 'row_col.nested_int': 1, 'row_col.nested_str': 'a',
+        }
+        self.assertEqual(datum, expected_datum)
+
+    def test_split_array_columns_by_process_state(self):
+        array_cols = ['array_column', 'array_column.nested_array']
+        array_col_hierarchy = {
+            'array_column': {
+                'type': 'ARRAY',
+                'children': ['array_column.nested_array'],
+            },
+            'array_column.nested_array': {
+                'type': 'ARRAY',
+                'children': ['array_column.nested_array.nested_obj']},
+        }
+        datum = {'array_column': [[[1], [2]]]}
+        actual_array_cols_to_process, actual_unprocessed_array_cols = \
+            PrestoEngineSpec._split_array_columns_by_process_state(
+                array_cols, array_col_hierarchy, datum)
+        expected_array_cols_to_process = ['array_column']
+        expected_unprocessed_array_cols = {'array_column.nested_array'}
+        self.assertEqual(actual_array_cols_to_process, expected_array_cols_to_process)
+        self.assertEqual(actual_unprocessed_array_cols, expected_unprocessed_array_cols)
+
+    def test_presto_convert_data_list_to_array_data_dict(self):
+        data = [
+            {'array_column': [1, 2], 'int_column': 3},
+            {'array_column': [11, 22], 'int_column': 33},
+        ]
+        array_columns_to_process = ['array_column']
+        actual_array_data_dict = PrestoEngineSpec._convert_data_list_to_array_data_dict(
+            data, array_columns_to_process)
+        expected_array_data_dict = {
+            0: [{'array_column': [1, 2]}],
+            1: [{'array_column': [11, 22]}]}
+        self.assertEqual(actual_array_data_dict, expected_array_data_dict)
+
+    def test_presto_process_array_data(self):
+        data = [
+            {'array_column': [[1], [2]], 'int_column': 3},
+            {'array_column': [[11], [22]], 'int_column': 33},
+        ]
+        all_columns = [
+            {'name': 'array_column', 'type': 'ARRAY'},
+            {'name': 'array_column.nested_row', 'type': 'BIGINT'},
+            {'name': 'int_column', 'type': 'BIGINT'},
+        ]
+        array_column_hierarchy = {
+            'array_column': {
+                'type': 'ARRAY',
+                'children': ['array_column.nested_row'],
+            },
+        }
+        actual_array_data = PrestoEngineSpec._process_array_data(
+            data, all_columns, array_column_hierarchy)
+        expected_array_data = {
+            0: [
+                {'array_column': [[1], [2]], 'array_column.nested_row': 1},
+                {'array_column': '', 'array_column.nested_row': 2, 'int_column': ''},
+            ],
+            1: [
+                {'array_column': [[11], [22]], 'array_column.nested_row': 11},
+                {'array_column': '', 'array_column.nested_row': 22, 'int_column': ''},
+            ],
+        }
+        self.assertEqual(actual_array_data, expected_array_data)
+
+    def test_presto_consolidate_array_data_into_data(self):
+        data = [
+            {'arr_col': [[1], [2]], 'int_col': 3},
+            {'arr_col': [[11], [22]], 'int_col': 33},
+        ]
+        array_data = {
+            0: [
+                {'arr_col': [[1], [2]], 'arr_col.nested_row': 1},
+                {'arr_col': '', 'arr_col.nested_row': 2, 'int_col': ''},
+            ],
+            1: [
+                {'arr_col': [[11], [22]], 'arr_col.nested_row': 11},
+                {'arr_col': '', 'arr_col.nested_row': 22, 'int_col': ''},
+            ],
+        }
+        PrestoEngineSpec._consolidate_array_data_into_data(data, array_data)
+        expected_data = [
+            {'arr_col': [[1], [2]], 'arr_col.nested_row': 1, 'int_col': 3},
+            {'arr_col': '', 'arr_col.nested_row': 2, 'int_col': ''},
+            {'arr_col': [[11], [22]], 'arr_col.nested_row': 11, 'int_col': 33},
+            {'arr_col': '', 'arr_col.nested_row': 22, 'int_col': ''},
+        ]
+        self.assertEqual(data, expected_data)
+
+    def test_presto_remove_processed_array_columns(self):
+        array_col_hierarchy = {
+            'array_column': {
+                'type': 'ARRAY',
+                'children': ['array_column.nested_array'],
+            },
+            'array_column.nested_array': {
+                'type': 'ARRAY',
+                'children': ['array_column.nested_array.nested_obj']},
+        }
+        unprocessed_array_cols = {'array_column.nested_array'}
+        PrestoEngineSpec._remove_processed_array_columns(
+            unprocessed_array_cols, array_col_hierarchy)
+        expected_array_col_hierarchy = {
+            'array_column.nested_array': {
+                'type': 'ARRAY',
+                'children': ['array_column.nested_array.nested_obj']},
+        }
+        self.assertEqual(array_col_hierarchy, expected_array_col_hierarchy)
+
+    def test_presto_expand_data_with_simple_structural_columns(self):
+        cols = [
+            {'name': 'row_column', 'type': 'ROW(NESTED_OBJ VARCHAR)'},
+            {'name': 'array_column', 'type': 'ARRAY(BIGINT)'}]
+        data = [
+            {'row_column': ['a'], 'array_column': [1, 2, 3]},
+            {'row_column': ['b'], 'array_column': [4, 5, 6]}]
+        actual_cols, actual_data, actual_expanded_cols = PrestoEngineSpec.expand_data(
+            cols, data)
+        expected_cols = [
+            {'name': 'row_column', 'type': 'ROW'},
+            {'name': 'row_column.nested_obj', 'type': 'VARCHAR'},
+            {'name': 'array_column', 'type': 'ARRAY'}]
+        expected_data = [
+            {'row_column': ['a'], 'row_column.nested_obj': 'a', 'array_column': 1},
+            {'row_column': '', 'row_column.nested_obj': '', 'array_column': 2},
+            {'row_column': '', 'row_column.nested_obj': '', 'array_column': 3},
+            {'row_column': ['b'], 'row_column.nested_obj': 'b', 'array_column': 4},
+            {'row_column': '', 'row_column.nested_obj': '', 'array_column': 5},
+            {'row_column': '', 'row_column.nested_obj': '', 'array_column': 6}]
+        expected_expanded_cols = [
+            {'name': 'row_column.nested_obj', 'type': 'VARCHAR'}]
+        self.assertEqual(actual_cols, expected_cols)
+        self.assertEqual(actual_data, expected_data)
+        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+
+    def test_presto_expand_data_with_complex_row_columns(self):
+        cols = [
+            {'name': 'row_column',
+             'type': 'ROW(NESTED_OBJ1 VARCHAR, NESTED_ROW ROW(NESTED_OBJ2 VARCHAR)'}]
+        data = [
+            {'row_column': ['a1', ['a2']]},
+            {'row_column': ['b1', ['b2']]}]
+        actual_cols, actual_data, actual_expanded_cols = PrestoEngineSpec.expand_data(
+            cols, data)
+        expected_cols = [
+            {'name': 'row_column', 'type': 'ROW'},
+            {'name': 'row_column.nested_obj1', 'type': 'VARCHAR'},
+            {'name': 'row_column.nested_row', 'type': 'ROW'},
+            {'name': 'row_column.nested_row.nested_obj2', 'type': 'VARCHAR'}]
+        expected_data = [
+            {'row_column': ['a1', ['a2']],
+             'row_column.nested_obj1': 'a1',
+             'row_column.nested_row': ['a2'],
+             'row_column.nested_row.nested_obj2': 'a2'},
+            {'row_column': ['b1', ['b2']],
+             'row_column.nested_obj1': 'b1',
+             'row_column.nested_row': ['b2'],
+             'row_column.nested_row.nested_obj2': 'b2'}]
+        expected_expanded_cols = [
+            {'name': 'row_column.nested_obj1', 'type': 'VARCHAR'},
+            {'name': 'row_column.nested_row', 'type': 'ROW'},
+            {'name': 'row_column.nested_row.nested_obj2', 'type': 'VARCHAR'}]
+        self.assertEqual(actual_cols, expected_cols)
+        self.assertEqual(actual_data, expected_data)
+        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+
+    def test_presto_expand_data_with_complex_array_columns(self):
+        cols = [
+            {'name': 'int_column', 'type': 'BIGINT'},
+            {'name': 'array_column',
+             'type': 'ARRAY(ROW(NESTED_ARRAY ARRAY(ROW(NESTED_OBJ VARCHAR))))'}]
+        data = [
+            {'int_column': 1, 'array_column': [[[['a'], ['b']]], [[['c'], ['d']]]]},
+            {'int_column': 2, 'array_column': [[[['e'], ['f']]], [[['g'], ['h']]]]}]
+        actual_cols, actual_data, actual_expanded_cols = PrestoEngineSpec.expand_data(
+            cols, data)
+        expected_cols = [
+            {'name': 'int_column', 'type': 'BIGINT'},
+            {'name': 'array_column', 'type': 'ARRAY'},
+            {'name': 'array_column.nested_array', 'type': 'ARRAY'},
+            {'name': 'array_column.nested_array.nested_obj', 'type': 'VARCHAR'}]
+        expected_data = [
+            {'int_column': 1,
+             'array_column': [[[['a'], ['b']]], [[['c'], ['d']]]],
+             'array_column.nested_array': [['a'], ['b']],
+             'array_column.nested_array.nested_obj': 'a'},
+            {'int_column': '',
+             'array_column': '',
+             'array_column.nested_array': '',
+             'array_column.nested_array.nested_obj': 'b'},
+            {'int_column': '',
+             'array_column': '',
+             'array_column.nested_array': [['c'], ['d']],
+             'array_column.nested_array.nested_obj': 'c'},
+            {'int_column': '',
+             'array_column': '',
+             'array_column.nested_array': '',
+             'array_column.nested_array.nested_obj': 'd'},
+            {'int_column': 2,
+             'array_column': [[[['e'], ['f']]], [[['g'], ['h']]]],
+             'array_column.nested_array': [['e'], ['f']],
+             'array_column.nested_array.nested_obj': 'e'},
+            {'int_column': '',
+             'array_column': '',
+             'array_column.nested_array': '',
+             'array_column.nested_array.nested_obj': 'f'},
+            {'int_column': '',
+             'array_column': '',
+             'array_column.nested_array': [['g'], ['h']],
+             'array_column.nested_array.nested_obj': 'g'},
+            {'int_column': '',
+             'array_column': '',
+             'array_column.nested_array': '',
+             'array_column.nested_array.nested_obj': 'h'}]
+        expected_expanded_cols = [
+            {'name': 'array_column.nested_array', 'type': 'ARRAY'},
+            {'name': 'array_column.nested_array.nested_obj', 'type': 'VARCHAR'}]
+        self.assertEqual(actual_cols, expected_cols)
+        self.assertEqual(actual_data, expected_data)
+        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
     def test_hive_get_view_names_return_empty_list(self):
         self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))
