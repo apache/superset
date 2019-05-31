@@ -906,7 +906,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         """
         return {
             'name': name,
-            'type': '{}'.format(data_type),
+            'type': f'{data_type}',
         }
 
     @classmethod
@@ -1115,8 +1115,8 @@ class PrestoEngineSpec(BaseEngineSpec):
         """
         filtered_cols = []
         array_cols = []
-        curr_array_col_name = ''
-        for index, col in enumerate(cols):
+        curr_array_col_name = None
+        for col in cols:
             # col corresponds to an array's content and should be skipped
             if curr_array_col_name and col['name'].startswith(curr_array_col_name):
                 array_cols.append(col)
@@ -1128,7 +1128,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 array_cols.append(col)
                 filtered_cols.append(col)
             else:
-                curr_array_col_name = ''
+                curr_array_col_name = None
                 filtered_cols.append(col)
         return filtered_cols, array_cols
 
@@ -1145,7 +1145,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         if show_cols:
             dot_regex = r'\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
             presto_cols = [
-                col for col in presto_cols if re.search(dot_regex, col['name']) is None]
+                col for col in presto_cols if not re.search(dot_regex, col['name'])]
         return super(PrestoEngineSpec, cls).select_star(
             my_db, table_name, engine, schema, limit,
             show_cols, indent, latest_partition, presto_cols,
@@ -1215,7 +1215,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             column = columns[0]
             # If the column name does not start with the root's name,
             # then this column is not a nested field
-            if not column['name'].startswith('{}.'.format(root['name'])):
+            if not column['name'].startswith(f"{root['name']}."):
                 break
             # If the column's data type is one of the parent types,
             # then this column may have nested fields
@@ -1272,10 +1272,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         :param columns: list of columns
         :return: dictionary representing an empty row of data
         """
-        empty_data = {}
-        for column in columns:
-            empty_data[column['name']] = ''
-        return empty_data
+        return {column['name']: '' for column in columns}
 
     @classmethod
     def _expand_row_data(cls, datum: dict, column: str, column_hierarchy: dict) -> None:
@@ -1296,7 +1293,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 for index, data_value in enumerate(row_data):
                     datum[row_children[index]] = data_value
             else:
-                for index, row_child in enumerate(row_children):
+                for row_child in row_children:
                     datum[row_child] = ''
 
     @classmethod
@@ -1315,7 +1312,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         """
         array_columns_to_process = []
         unprocessed_array_columns = set()
-        child_array = ''
+        child_array = None
         for array_column in array_columns:
             if array_column in datum:
                 array_columns_to_process.append(array_column)
@@ -1483,15 +1480,14 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _remove_processed_array_columns(cls,
-                                        array_columns: List[str],
                                         unprocessed_array_columns: Set[str],
                                         array_column_hierarchy: dict) -> None:
         """
         Remove keys representing array columns that have already been processed
-        :param array_columns: full list of array columns
         :param unprocessed_array_columns: list of unprocessed array columns
         :param array_column_hierarchy: graph representing array columns
         """
+        array_columns = list(array_column_hierarchy.keys())
         for array_column in array_columns:
             if array_column in unprocessed_array_columns:
                 continue
@@ -1540,7 +1536,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
         # Pull out a row's nested fields and their values into separate columns
         ordered_row_columns = row_column_hierarchy.keys()
-        for data_index, datum in enumerate(data):
+        for datum in data:
             for row_column in ordered_row_columns:
                 cls._expand_row_data(datum, row_column, row_column_hierarchy)
 
@@ -1556,8 +1552,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             # Consolidate the original data set and the expanded array data
             cls._consolidate_array_data_into_data(data, all_array_data)
             # Remove processed array columns from the graph
-            cls._remove_processed_array_columns(array_columns,
-                                                unprocessed_array_columns,
+            cls._remove_processed_array_columns(unprocessed_array_columns,
                                                 array_column_hierarchy)
 
         return all_columns, data, expanded_columns

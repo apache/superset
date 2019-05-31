@@ -279,8 +279,8 @@ def execute_sql_statements(
             latest_partition=False)
     query.end_time = now_as_float()
 
-    selected_columns = cdf.columns if cdf.columns else []
-    data = cdf.data if cdf.data else []
+    selected_columns = cdf.columns or []
+    data = cdf.data or []
     all_columns, data, expanded_columns = db_engine_spec.expand_data(
         selected_columns, data)
 
