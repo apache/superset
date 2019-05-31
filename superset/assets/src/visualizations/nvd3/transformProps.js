@@ -98,6 +98,7 @@ export default function transformProps(chartProps) {
     comparisonType,
     contribution,
     entity,
+    formData,
     isBarStacked: barStacked,
     isDonut: donut,
     isPieLabelOutside: labelsOutside,
@@ -134,7 +135,8 @@ export default function transformProps(chartProps) {
     yAxisShowMinMax: yAxisShowminmax,
     yField: y,
     yIsLogScale: yLogScale,
+    onAddFilter,
     showOverlay,
-    overlayLabel
+    overlayLabel,
   };
 }
