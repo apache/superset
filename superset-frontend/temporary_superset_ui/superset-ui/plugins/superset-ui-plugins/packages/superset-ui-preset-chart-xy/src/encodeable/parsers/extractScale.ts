@@ -48,7 +48,7 @@ export interface ScaleAgent<Output extends Value> {
     | ScaleOrdinal<{ toString(): string }, Output>
     | ScalePoint<{ toString(): string }>
     | ScaleBand<{ toString(): string }>;
-  scaleTypeCategory: 'continuous' | 'discrete' | 'discretizing';
+  scaleTypeCategory: 'continuous' | 'discrete' | 'discretizing' | undefined;
 }
 
 export interface ScaleTypeToD3ScaleType<Output> {
@@ -201,7 +201,7 @@ function createScale<Output extends Value>(
 }
 
 const continuousScaleTypes = new Set(['linear', 'pow', 'sqrt', 'symlog', 'log', 'time', 'utc']);
-const discreteScaleTypes = new Set(['band', 'point']);
+const discreteScaleTypes = new Set(['band', 'point', 'ordinal']);
 const discretizingScaleTypes = new Set(['bin-ordinal', 'quantile', 'quantize', 'threshold']);
 
 function getScaleTypeCategory(scaleType: ScaleType) {
@@ -215,7 +215,9 @@ function getScaleTypeCategory(scaleType: ScaleType) {
     return 'discretizing';
   }
 
-  throw new Error(`Unknown scaleType ${scaleType}`);
+  console.warn(`Unknown scaleType ${scaleType}`);
+
+  return undefined;
 }
 
 export default function extractScale<Output extends Value>(
