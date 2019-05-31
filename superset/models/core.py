@@ -1029,20 +1029,12 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         """Defines time granularity database-specific expressions.
 
         The idea here is to make it easy for users to change the time grain
-        form a datetime (maybe the source grain is arbitrary timestamps, daily
+        from a datetime (maybe the source grain is arbitrary timestamps, daily
         or 5 minutes increments) to another, "truncated" datetime. Since
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
         return self.db_engine_spec.get_time_grains()
-
-    def grains_dict(self):
-        """Allowing to lookup grain by either label or duration
-
-        For backward compatibility"""
-        d = {grain.duration: grain for grain in self.grains()}
-        d.update({grain.label: grain for grain in self.grains()})
-        return d
 
     def get_extra(self):
         extra = {}
