@@ -306,6 +306,7 @@ class SqlEditor extends React.PureComponent {
         </div>
         <SouthPane
           editorQueries={this.props.editorQueries}
+          latestQueryId={this.props.latestQuery ? this.props.latestQuery.id : 0}
           dataPreviewQueries={this.props.dataPreviewQueries}
           actions={this.props.actions}
           height={southPaneHeight}
