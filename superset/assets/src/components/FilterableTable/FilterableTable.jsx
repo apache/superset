@@ -140,18 +140,13 @@ export default class FilterableTable extends PureComponent {
   }
 
   headerRenderer({ dataKey, label, sortBy, sortDirection }) {
+    const className = this.props.expandedColumns.indexOf(label) > -1
+      ? 'header-style-disabled'
+      : 'header-style';
     return (
       <TooltipWrapper label="header" tooltip={label}>
-        <div className="header-style">
-          <span
-            className={
-              this.props.expandedColumns.indexOf(label) > -1
-                ? 'header-style-disabled'
-                : ''
-            }
-          >
-            {label}
-          </span>
+        <div className={className}>
+          {label}
           {sortBy === dataKey &&
             <SortIndicator sortDirection={sortDirection} />
           }
