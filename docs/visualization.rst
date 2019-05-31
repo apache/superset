@@ -1889,34 +1889,34 @@ are created by defining a class in your `superset_config.py` file. For example:
 
 .. code-block:: python
 
-	import geohash
+    import geohash
 
-	from superset.polygon import PolygonEncoding
-
-
-	class GeohashEncoding(PolygonEncoding):
-
-		name = 'geohash (test)'
-
-		@classmethod
-		def to_location(cls, codes, cache):
-			for code in codes:
-				lat, lon = geohash.decode(code)
-				yield lon, lat
-
-		@classmethod
-		def to_polygon(cls, codes, cache):
-			for code in codes:
-				p = geohash.bbox(code)
-				yield [
-					[p.get('w'), p.get('n')],
-					[p.get('e'), p.get('n')],
-					[p.get('e'), p.get('s')],
-					[p.get('w'), p.get('s')],
-					[p.get('w'), p.get('n')],
-				]
+    from superset.polygon import PolygonEncoding
 
 
-	DEFAULT_FEATURE_FLAGS = {
-		'EXTRA_POLYGON_ENCODINGS': [GeohashEncoding],
-	}
+    class GeohashEncoding(PolygonEncoding):
+
+        name = 'geohash (test)'
+
+        @classmethod
+        def to_location(cls, codes, cache):
+            for code in codes:
+                lat, lon = geohash.decode(code)
+                yield lon, lat
+
+        @classmethod
+        def to_polygon(cls, codes, cache):
+            for code in codes:
+                p = geohash.bbox(code)
+                yield [
+                    [p.get('w'), p.get('n')],
+                    [p.get('e'), p.get('n')],
+                    [p.get('e'), p.get('s')],
+                    [p.get('w'), p.get('s')],
+                    [p.get('w'), p.get('n')],
+                ]
+
+
+    DEFAULT_FEATURE_FLAGS = {
+        'EXTRA_POLYGON_ENCODINGS': [GeohashEncoding],
+    }
