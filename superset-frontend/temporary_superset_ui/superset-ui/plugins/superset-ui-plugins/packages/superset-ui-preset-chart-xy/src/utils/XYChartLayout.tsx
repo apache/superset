@@ -8,11 +8,11 @@ import { Margin, mergeMargin, Dimension } from '@superset-ui/dimension';
 import { ChartFrame } from '@superset-ui/chart-composition';
 import createTickComponent from './createTickComponent';
 import ChannelEncoder from '../encodeable/ChannelEncoder';
-import { AxisOrient } from '../encodeable/types/Axis';
 import { XFieldDef, YFieldDef } from '../encodeable/types/ChannelDef';
 import { PlainObject } from '../encodeable/types/Data';
 import { DEFAULT_LABEL_ANGLE } from './constants';
 import convertScaleToDataUIScale from './convertScaleToDataUIScaleShape';
+import { AxisLayout } from '../encodeable/AxisAgent';
 
 // Additional margin to avoid content hidden behind scroll bar
 const OVERFLOW_MARGIN = 8;
@@ -37,20 +37,9 @@ export default class XYChartLayout {
   margin: Margin;
   config: XYChartLayoutConfig;
 
-  xLayout?: {
-    labelOffset: number;
-    labelOverlap: string;
-    labelAngle: number;
-    tickTextAnchor?: string;
-    minMargin: Partial<Margin>;
-    orient: AxisOrient;
-  };
+  xLayout?: AxisLayout;
 
-  yLayout?: {
-    labelOffset: number;
-    minMargin: Partial<Margin>;
-    orient: AxisOrient;
-  };
+  yLayout?: AxisLayout;
 
   // eslint-disable-next-line complexity
   constructor(config: XYChartLayoutConfig) {
