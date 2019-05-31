@@ -211,8 +211,11 @@ function getScaleTypeCategory(scaleType: ScaleType) {
   if (discreteScaleTypes.has(scaleType)) {
     return 'discrete';
   }
+  if (discretizingScaleTypes.has(scaleType)) {
+    return 'discretizing';
+  }
 
-  return 'discretizing';
+  throw new Error(`Unknown scaleType ${scaleType}`);
 }
 
 export default function extractScale<Output extends Value>(
