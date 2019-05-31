@@ -1881,5 +1881,42 @@ To add a new country in country map tools, we need to follow the following steps
     },
        
 
+Deck.gl visualization
+=====================
+
+You can add custom encodings to the Deck.gl polygon visualization. New encodings
+are created by defining a class in your `superset_config.py` file. For example:
+
+.. code-block:: python
+
+	import geohash
+
+	from superset.polygon import PolygonEncoding
 
 
+	class GeohashEncoding(PolygonEncoding):
+
+		name = 'geohash (test)'
+
+		@classmethod
+		def to_location(cls, codes, cache):
+			for code in codes:
+				lat, lon = geohash.decode(code)
+				yield lon, lat
+
+		@classmethod
+		def to_polygon(cls, codes, cache):
+			for code in codes:
+				p = geohash.bbox(code)
+				yield [
+					[p.get('w'), p.get('n')],
+					[p.get('e'), p.get('n')],
+					[p.get('e'), p.get('s')],
+					[p.get('w'), p.get('s')],
+					[p.get('w'), p.get('n')],
+				]
+
+
+	DEFAULT_FEATURE_FLAGS = {
+		'EXTRA_POLYGON_ENCODINGS': [GeohashEncoding],
+	}
