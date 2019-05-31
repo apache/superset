@@ -77,3 +77,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.header-style-disabled {
+  color: #aaa;
+}
