@@ -1,7 +1,7 @@
 /* eslint-disable no-magic-numbers */
 import { CSSProperties } from 'react';
 import { Value } from 'vega-lite/build/src/channeldef';
-import { getTextDimension, Margin } from '@superset-ui/dimension';
+import { getTextDimension, Margin, Dimension } from '@superset-ui/dimension';
 import { CategoricalColorScale } from '@superset-ui/color';
 import { extractFormatFromTypeAndFormat } from './parsers/extractFormat';
 import { CoreAxis, LabelOverlapStrategy, AxisOrient } from './types/Axis';
@@ -30,6 +30,19 @@ const DEFAULT_Y_CONFIG: CoreAxis = {
   labelAngle: 0,
   orient: 'left',
 };
+
+export interface AxisLayout {
+  axisWidth: number;
+  labelAngle: number;
+  labelFlush: number | boolean;
+  labelOffset: number;
+  labelOverlap: 'flat' | 'rotate';
+  minMargin: Partial<Margin>;
+  orient: AxisOrient;
+  tickLabelDimensions: Dimension[];
+  tickLabels: string[];
+  tickTextAnchor?: string;
+}
 
 export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Value = Value> {
   private readonly channelEncoder: ChannelEncoder<Def, Output>;
@@ -108,17 +121,10 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
     labelAngle?: number;
     tickLength?: number;
     tickTextStyle?: CSSProperties;
-  }): {
-    labelAngle: number;
-    labelOffset: number;
-    labelOverlap: 'flat' | 'rotate';
-    minMargin: Partial<Margin>;
-    orient: AxisOrient;
-    tickTextAnchor?: string;
-  } {
+  }): AxisLayout {
     const tickLabels = this.getTickLabels();
 
-    const labelDimensions = tickLabels.map((text: string) =>
+    const tickLabelDimensions = tickLabels.map((text: string) =>
       getTextDimension({
         style: tickTextStyle,
         text,
@@ -127,7 +133,7 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
 
     const { labelOverlap, labelPadding, orient } = this.config;
 
-    const maxWidth = Math.max(...labelDimensions.map(d => d.width), 0);
+    const maxWidth = Math.max(...tickLabelDimensions.map(d => d.width), 0);
 
     // TODO: Add other strategies: stagger, chop, wrap.
     let strategyForLabelOverlap = labelOverlap;
@@ -149,7 +155,7 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
 
     if (this.channelEncoder.isX()) {
       if (strategyForLabelOverlap === 'flat') {
-        const labelHeight = labelDimensions.length > 0 ? labelDimensions[0].height : 0;
+        const labelHeight = tickLabelDimensions.length > 0 ? tickLabelDimensions[0].height : 0;
         labelOffset = labelHeight + labelPadding;
         requiredMargin += labelHeight;
       } else if (strategyForLabelOverlap === 'rotate') {
@@ -168,13 +174,21 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
     }
 
     return {
+      axisWidth,
       labelAngle: strategyForLabelOverlap === 'flat' ? 0 : labelAngle,
+      labelFlush:
+        typeof this.config.labelFlush === 'undefined'
+          ? // If not set, only enable flushing for continuous scales
+            this.channelEncoder.scale!.scaleTypeCategory === 'continuous'
+          : this.config.labelFlush,
       labelOffset,
       labelOverlap: strategyForLabelOverlap,
       minMargin: {
         [orient]: Math.ceil(requiredMargin),
       },
       orient,
+      tickLabelDimensions,
+      tickLabels,
       tickTextAnchor,
     };
   }

@@ -48,6 +48,7 @@ export interface ScaleAgent<Output extends Value> {
     | ScaleOrdinal<{ toString(): string }, Output>
     | ScalePoint<{ toString(): string }>
     | ScaleBand<{ toString(): string }>;
+  scaleTypeCategory: 'continuous' | 'discrete' | 'discretizing';
 }
 
 export interface ScaleTypeToD3ScaleType<Output> {
@@ -199,11 +200,26 @@ function createScale<Output extends Value>(
   return scale;
 }
 
+const continuousScaleTypes = new Set(['linear', 'pow', 'sqrt', 'symlog', 'log', 'time', 'utc']);
+const discreteScaleTypes = new Set(['band', 'point']);
+const discretizingScaleTypes = new Set(['bin-ordinal', 'quantile', 'quantize', 'threshold']);
+
+function getScaleTypeCategory(scaleType: ScaleType) {
+  if (continuousScaleTypes.has(scaleType)) {
+    return 'continuous';
+  }
+  if (discreteScaleTypes.has(scaleType)) {
+    return 'discrete';
+  }
+
+  return 'discretizing';
+}
+
 export default function extractScale<Output extends Value>(
   channelType: ChannelType,
   definition: ChannelDef<Output>,
   namespace?: string,
-) {
+): ScaleAgent<Output> | undefined {
   if (isNonValueDef(definition)) {
     const scaleConfig =
       'scale' in definition && typeof definition.scale !== 'undefined' ? definition.scale : {};
@@ -240,6 +256,7 @@ export default function extractScale<Output extends Value>(
           value: number | string | boolean | null | undefined | Date,
         ) => Output,
         scale,
+        scaleTypeCategory: getScaleTypeCategory(scaleType),
         setDomain,
       };
     }

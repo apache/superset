@@ -1,6 +1,7 @@
 import { LineChartPlugin as LegacyLineChartPlugin } from '../../../../../superset-ui-preset-chart-xy/src/legacy';
 import { LineChartPlugin } from '../../../../../superset-ui-preset-chart-xy/src';
 import BasicStories from './stories/basic';
+import FlushStories from './stories/flush';
 import QueryStories from './stories/query';
 import LegacyStories from './stories/legacy';
 import MissingStories from './stories/missing';
@@ -13,6 +14,7 @@ new LineChartPlugin().configure({ key: LINE_PLUGIN_TYPE }).register();
 export default {
   examples: [
     ...BasicStories,
+    ...FlushStories,
     ...MissingStories,
     ...TimeShiftStories,
     ...LegacyStories,
