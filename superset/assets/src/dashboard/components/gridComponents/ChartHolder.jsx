@@ -115,7 +115,7 @@ class ChartHolder extends React.Component {
       parentComponent.type === COLUMN_TYPE
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
         : component.meta.width || GRID_MIN_COLUMN_COUNT;
-
+        
     return (
       <DragDroppable
         component={component}

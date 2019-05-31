@@ -17,14 +17,20 @@
  * under the License.
  */
 import * as _ from 'lodash';
-const APPLY_FILTER = 'APPLY_FILTER';
+
+import {
+    APPLY_FILTER,
+    isUseAsModalActionExist,
+    getUniqueActionsForSlice,
+} from './publishSubscriberUtil'
 
 function createPublishDataFor(slice, slices) {
     return {
         id: slice.id,
         publish_columns: slice.formData.publish_columns,
         subcribers: getSubsribersFor(slice.id, slices),
-        viz_type: slice.formData.viz_type
+        viz_type: slice.formData.viz_type,
+       
     }
 
 }
@@ -61,7 +67,8 @@ function createFilterDataFromPublishColumns(obj) {
     obj.publish_columns.forEach(element => {
         filterList.push({
             col: element,
-            op: 'in'
+            op: 'in',
+            actions: [APPLY_FILTER],
         })
     });
     return filterList;
@@ -94,9 +101,10 @@ function createSubscriberDataFor(slice, publishers) {
     return {
         id: slice.id,
         viz_type: slice.formData.viz_type,
-        actions: slice.formData.hasOwnProperty('actions') ? slice.formData.actions : [APPLY_FILTER],
+        actions: slice.formData.hasOwnProperty('actions') && slice.formData.actions ? slice.formData.actions : [APPLY_FILTER],
         linked_slices: getLinkedSlices(slice.formData.linked_slice, publishers),
-        extras: slice.formData.hasOwnProperty('extras') ? slice.formData.extras : undefined
+        extras: slice.formData.hasOwnProperty('extras') ? slice.formData.extras : undefined,
+        useAsModal: slice.formData.useAsModal,
     }
 
 }
@@ -131,9 +139,10 @@ export default function getPublishSubscriberMap(slices) {
 function updateSlices(slices) {
     let updatedSlices = _.clone(slices);
     updatedSlices.forEach(slice => {
-        let linkedSlices = getLinkedSlicesFromSubscriberLayer(slice.formData.subscriber_layers);
+        const linkedSlices = getLinkedSlicesFromSubscriberLayer(slice.formData.subscriber_layers);
         slice.formData.linked_slice = linkedSlices ? linkedSlices : slice.formData.linked_slice;
-        slice.formData.actions = ['APPLY_FILTER'];
+        slice.formData.actions = getUniqueActionsForSlice(slice);
+        slice.formData.useAsModal = isUseAsModalActionExist(slice.formData.actions);
     });
 
     return updatedSlices;

@@ -49,10 +49,16 @@ function mapStateToProps(
   const dashboardLayout = undoableLayout.present;
   const { id, parentId } = ownProps;
   const component = dashboardLayout[id];
+  const slice_id = component && component.meta && component.meta.hasOwnProperty('chartId') ? component.meta.chartId : -1;
+  const shouldRenderComponent = () => {
+    let isModalSlice = (dashboardState.modalSliceIds && dashboardState.modalSliceIds.indexOf(slice_id) != -1)
+    return (!isModalSlice || dashboardState.editMode)
+  }
   const props = {
     component,
     parentComponent: dashboardLayout[parentId],
     editMode: dashboardState.editMode,
+    renderComponent: shouldRenderComponent(),
   };
 
   // rows and columns need more data about their child dimensions
@@ -87,9 +93,9 @@ function mapDispatchToProps(dispatch) {
 
 class DashboardComponent extends React.PureComponent {
   render() {
-    const { component } = this.props;
+    const { component, renderComponent } = this.props;
     const Component = component ? ComponentLookup[component.type] : null;
-    return Component ? <Component {...this.props} /> : null;
+    return Component && renderComponent ? <Component {...this.props} /> : null;
   }
 }
 

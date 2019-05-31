@@ -23,6 +23,7 @@ import { t } from '@superset-ui/translation';
 import SelectControl from './SelectControl';
 import PopoverSection from '../../../components/PopoverSection';
 import TextControl from './TextControl';
+import CheckboxControl from './CheckboxControl';
 import { nonEmpty } from '../../validators';
 
 const propTypes = {
@@ -45,6 +46,7 @@ const propTypes = {
   extraValue: PropTypes.string,
   allowMoreColumns: PropTypes.bool,
   allowColumnSelection: PropTypes.bool,
+  useAsModal: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -59,6 +61,7 @@ const defaultProps = {
   extraValue: '',
   allowMoreColumns: false,
   allowColumnSelection: false,
+  useAsModal: false,
 
   addSubscriberLayer: () => { },
   removeSubscriberLayer: () => { },
@@ -82,6 +85,7 @@ export default class SubscriberLayer extends React.PureComponent {
       extraValue,
       allowMoreColumns,
       allowColumnSelection,
+      useAsModal,
     } = props;
 
     this.state = {
@@ -101,8 +105,8 @@ export default class SubscriberLayer extends React.PureComponent {
       subscribe_columns,
       publishedSliceColumns,
       isNew: !this.props.name,
-      isLoadingOptions: true,
       validationErrors: {},
+      useAsModal,
     };
 
     this.state.subscriptionList = this.state.isNew ? [{ columnType: '', operatorType: '', index: 0 }] : this.state.subscriptionList;
@@ -254,9 +258,17 @@ export default class SubscriberLayer extends React.PureComponent {
         }
       });
 
+      this.state.subscribe_columns.map(column =>
+        column['actions'] = ['APPLY_FILTER']
+      );
+
       subscription['actions'] = [
         "APPLY_FILTER"
       ];
+
+      if (subscription['useAsModal']) {
+        subscription['actions'].push('USE_AS_MODAL')
+      }
 
       subscription['linked_slice'] = [
         {
@@ -317,7 +329,7 @@ export default class SubscriberLayer extends React.PureComponent {
   }
 
   render() {
-    const { isNew, columnType, operatorType, sliceId, extraValue, allowMoreColumns, name } = this.state;
+    const { isNew, columnType, operatorType, sliceId, extraValue, allowMoreColumns, name, useAsModal } = this.state;
     const isValid = this.isValidForm();
 
     const publishedSlices = this.getPublishedSlices();
@@ -325,7 +337,7 @@ export default class SubscriberLayer extends React.PureComponent {
     return (
       <div>
         {this.props.error && <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>}
-        <div style={{ display: 'flex', flexDirection: 'row', overflow: 'auto', maxHeight: '275px' }}>
+        <div style={{ display: 'flex', flexDirection: 'row', overflow: 'auto', maxHeight: '320px' }}>
           <div style={{ marginRight: '2rem' }}>
             <PopoverSection
               isSelected
@@ -341,10 +353,21 @@ export default class SubscriberLayer extends React.PureComponent {
                 onChange={v => this.setState({ name: v })}
                 validationErrors={!name ? [t('Mandatory')] : []}
               />
+
+              <CheckboxControl
+              hovered
+                name="subscriber-use-modal"
+                label="Use as modal"
+                description={'This option enables to add this slice in dashboard only as a Modal.'}
+                value={useAsModal}
+                onChange={v => this.setState({ useAsModal: v })}
+              />
+
+
               <SelectControl
-                hovered
-                description={t('Choose the Chart to subscribe')}
-                label={t('Select Chart')}
+              hovered
+                description={t('Choose the chart to subscribe')}
+                label={t('Select chart')}
                 name="publised-layer-name"
                 options={publishedSlices}
                 value={sliceId}
@@ -358,7 +381,7 @@ export default class SubscriberLayer extends React.PureComponent {
               })
               }
 
-              <Button title="Add subscription columns and operators" bsSize="sm" disabled={!allowMoreColumns} onClick={this.addMoreColumns} style={{marginTop: '10px'}}>
+              <Button title="Add subscription columns and operators" bsSize="sm" disabled={!allowMoreColumns} onClick={this.addMoreColumns} style={{ marginTop: '10px' }}>
                 {'+'}
               </Button>
               {/* <TextControl

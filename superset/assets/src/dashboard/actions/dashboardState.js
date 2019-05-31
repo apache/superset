@@ -258,6 +258,27 @@ export const TOGGLE_BUILDER_PANE = 'TOGGLE_BUILDER_PANE';
 export function toggleBuilderPane() {
   return { type: TOGGLE_BUILDER_PANE };
 }
+export const UPDATE_MODAL_CHART_ID = 'UPDATE_MODAL_CHART_ID';
+export function updateModalChartId(id) {
+  return { type: UPDATE_MODAL_CHART_ID, modalChartId: id };
+}
+
+export const CLOSE_MODAL = 'CLOSE_MODAL';
+export function closeModal() {
+  return { type: CLOSE_MODAL };
+}
+
+export function updateModalChart(id) {
+  return dispatch => {
+    dispatch(updateModalChartId(id));
+  };
+}
+
+export function hideModal() {
+  return dispatch => {
+    dispatch(closeModal());
+  };
+}
 
 export function addSliceToDashboard(id) {
   return (dispatch, getState) => {

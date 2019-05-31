@@ -40,28 +40,28 @@ describe('dashboardState reducer', () => {
   it('should add a slice', () => {
     expect(
       dashboardStateReducer(
-        { sliceIds: [1] },
+        { "modalSliceIds": [], sliceIds: [1] },
         { type: ADD_SLICE, slice: { slice_id: 2 } },
       ),
-    ).toEqual({ sliceIds: [1, 2] });
+    ).toEqual({ "modalSliceIds": [], sliceIds: [1, 2] });
   });
 
   it('should remove a slice', () => {
     expect(
       dashboardStateReducer(
-        { sliceIds: [1, 2], filters: {} },
+        { "modalSliceIds": [], sliceIds: [1, 2], filters: {} },
         { type: REMOVE_SLICE, sliceId: 2 },
       ),
-    ).toEqual({ sliceIds: [1], refresh: false, filters: {} });
+    ).toEqual({ "modalSliceIds": [], sliceIds: [1], refresh: false, filters: {} });
   });
 
   it('should reset filters if a removed slice is a filter', () => {
     expect(
       dashboardStateReducer(
-        { sliceIds: [1, 2], filters: { 2: {}, 1: {} } },
+        { "modalSliceIds": [], sliceIds: [1, 2], filters: { 2: {}, 1: {} } },
         { type: REMOVE_SLICE, sliceId: 2 },
       ),
-    ).toEqual({ sliceIds: [1], filters: { 1: {} }, refresh: true });
+    ).toEqual({ "modalSliceIds": [], sliceIds: [1], filters: { 1: {} }, refresh: true });
   });
 
   it('should toggle fav star', () => {

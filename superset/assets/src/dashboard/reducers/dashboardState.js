@@ -32,10 +32,20 @@ import {
   UPDATE_CSS,
   ON_RECONCILE,
   ON_SUCCESS_RECONCILE,
+  UPDATE_MODAL_CHART_ID,
+  CLOSE_MODAL,
 } from '../actions/dashboardState';
+
+import { isModalSlice } from '../util/publishSubscriberUtil'
 
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
+    [UPDATE_MODAL_CHART_ID]() {
+      return { ...state, modalChartId: action.modalChartId };
+    },
+    [CLOSE_MODAL]() {
+      return { ...state, modalChartId: -1 };
+    },
     [ON_RECONCILE]() {
       return { ...state, doReconcile: true };
     },
@@ -48,15 +58,24 @@ export default function dashboardStateReducer(state = {}, action) {
     [ADD_SLICE]() {
       const updatedSliceIds = new Set(state.sliceIds);
       updatedSliceIds.add(action.slice.slice_id);
+      // update modalslices
+      const updatedModalSliceIds = new Set(state.modalSliceIds);
+      if (isModalSlice(action.slice)) {
+        updatedModalSliceIds.add(action.slice.slice_id)
+      }
       return {
         ...state,
         sliceIds: Array.from(updatedSliceIds),
+        modalSliceIds: Array.from(updatedModalSliceIds),
       };
     },
     [REMOVE_SLICE]() {
       const sliceId = action.sliceId;
       const updatedSliceIds = new Set(state.sliceIds);
       updatedSliceIds.delete(sliceId);
+      // update modalslices
+      const updatedModalSliceIds = new Set(state.modalSliceIds);
+      updatedModalSliceIds.delete(sliceId)
 
       const key = sliceId;
       // if this slice is a filter
@@ -69,6 +88,7 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         sliceIds: Array.from(updatedSliceIds),
+        modalSliceIds: Array.from(updatedModalSliceIds),
         filters: newFilter,
         refresh,
       };
@@ -129,9 +149,9 @@ export default function dashboardStateReducer(state = {}, action) {
         '__granularity',
       ];
       // TODO: we want to revisit the condition for more generic filter implementation
-      if ( 
+      if (
         filterKeys.indexOf(col) >= 0 ||
-        action.chart.formData.publish_columns.indexOf(col) !== -1 
+        action.chart.formData.publish_columns.indexOf(col) !== -1
       ) {
         let newFilter = {};
         if (!(sliceId in filters)) {
@@ -147,7 +167,7 @@ export default function dashboardStateReducer(state = {}, action) {
         }
         filters = { ...filters, [sliceId]: newFilter };
 
-     // commneting ::: below as we need deselection feature so we will maintain empty list of filters
+        // commneting ::: below as we need deselection feature so we will maintain empty list of filters
         // remove any empty filters so they don't pollute the logs
         // Object.keys(filters).forEach(chartId => {
         //   Object.keys(filters[chartId]).forEach(column => {
@@ -163,7 +183,7 @@ export default function dashboardStateReducer(state = {}, action) {
         //   }
         // });
 
-       
+
       }
       return { ...state, filters, refresh };
     },

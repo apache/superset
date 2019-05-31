@@ -25,6 +25,9 @@ import {
   addSliceToDashboard,
   removeSliceFromDashboard,
   reconcileSuccess,
+  changeFilter,
+  updateModalChart,
+  hideModal,
 } from '../actions/dashboardState';
 import { runQuery } from '../../chart/chartAction';
 import getLoadStatsPerTopLevelComponent from '../util/logging/getLoadStatsPerTopLevelComponent';
@@ -66,6 +69,9 @@ function mapDispatchToProps(dispatch) {
         removeSliceFromDashboard,
         runQuery,
         reconcileSuccess,
+        changeFilter,
+        updateModalChart,
+        hideModal,
       },
       dispatch,
     ),

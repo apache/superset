@@ -39,6 +39,8 @@ import {
   ROW_TYPE,
 } from '../util/componentTypes';
 
+import { isModalSlice } from '../util/publishSubscriberUtil'
+
 export default function (bootstrapData) {
   const { user_id, datasources, common, editMode } = bootstrapData;
 
@@ -155,6 +157,8 @@ export default function (bootstrapData) {
   const chartQueries = {};
   const slices = {};
   const sliceIds = new Set();
+  const modalSliceIds = new Set();
+
   dashboard.slices.forEach(slice => {
     const key = slice.slice_id;
     if (['separator', 'markup'].indexOf(slice.form_data.viz_type) === -1) {
@@ -178,6 +182,11 @@ export default function (bootstrapData) {
         modified: slice.modified,
         changed_on: new Date(slice.changed_on).getTime(),
       };
+
+      // update modalslices
+      if (isModalSlice(slice)) {
+        modalSliceIds.add(key)
+      }
 
       sliceIds.add(key);
 
@@ -265,6 +274,7 @@ export default function (bootstrapData) {
       maxUndoHistoryExceeded: false,
       publishSubscriberMap: publishSubscriberMap,
       doReconcile: false,
+      modalSliceIds: Array.from(modalSliceIds),
     },
     dashboardLayout,
     messageToasts: [],

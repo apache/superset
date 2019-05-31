@@ -1,1 +1,1 @@
-# Design PR for intra dashboard interaction
+# show slice as  popup in dashbaord design pr

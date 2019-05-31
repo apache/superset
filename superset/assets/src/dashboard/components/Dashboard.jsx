@@ -45,6 +45,11 @@ import '../stylesheets/index.less';
 
 import getPublishSubscriberMap from '../util/getPublishSubscriberMap';
 import { DASHBOARD_HEADER_ID } from '../util/constants';
+
+import ChartModal from './ChartModal';
+import { getModalSliceIDFor } from '../util/publishSubscriberUtil';
+import { chart as initChart } from '../../chart/chartReducer';
+
 const propTypes = {
   actions: PropTypes.shape({
     addSliceToDashboard: PropTypes.func.isRequired,
@@ -97,6 +102,12 @@ class Dashboard extends React.PureComponent {
     });
     Logger.start(this.actionLog);
     this.initTs = new Date().getTime();
+    //init  required modal props 
+    this.modalChart = { ...initChart };
+    this.modalDatasource = {};
+    this.closeModal = this.closeModal.bind(this);
+    this.modalAddFilterHandler = this.modalAddFilterHandler.bind(this);
+
   }
 
   componentDidMount() {
@@ -170,6 +181,16 @@ class Dashboard extends React.PureComponent {
         this.props.actions.removeSliceFromDashboard(removedChartId),
       );
     }
+
+    if (nextProps.dashboardState.modalChartId != this.props.dashboardState.modalChartId) {
+      // update modal  chart  state renedered
+      this.updateModalProps(nextProps.dashboardState.modalChartId, (nextProps.dashboardState.modalChartId != -1))
+    }
+
+  }
+
+  modalAddFilterHandler(...args) {
+    this.props.actions.changeFilter(this.modalChart, ...args);
   }
 
   componentDidUpdate(prevProps) {
@@ -210,6 +231,7 @@ class Dashboard extends React.PureComponent {
         !!changedFilterKey ||
         currFilterKeys.length !== prevFilterKeys.length
       ) {
+        this.openModal(changedFilterKey);
         this.refreshExcept(changedFilterKey);
       }
     }
@@ -219,6 +241,35 @@ class Dashboard extends React.PureComponent {
     } else {
       Dashboard.onBeforeUnload(false);
     }
+  }
+
+  openModal(filterKey) {
+    const slice_id = getModalSliceIDFor(this.props.dashboardState.publishSubscriberMap, filterKey);
+    if (slice_id) {
+      // open modal with chart in loading state
+      this.updateModalProps(slice_id, true,'loading')
+    }
+  }
+
+  updateModalProps(slice_id, showModal,status = undefined) {
+    this.showModal = showModal
+    this.modalChart = this.props.charts[slice_id];
+    if (this.modalChart) {
+      this.modalChartStatus = status ? status : this.modalChart.chartStatus;
+      this.modalTitle = this.props.slices[slice_id].slice_name;
+      this.modalDatasource = this.props.datasources[this.modalChart.formData.datasource];
+    }
+  }
+
+  updateModalChart(filterKey, responseChatId) {
+    const slice_id = getModalSliceIDFor(this.props.dashboardState.publishSubscriberMap, filterKey);
+    if (slice_id == responseChatId) {
+      this.props.actions.updateModalChart(slice_id)
+    }
+  }
+
+  closeModal() {
+    this.props.actions.hideModal();
   }
 
   // return charts in array
@@ -246,7 +297,15 @@ class Dashboard extends React.PureComponent {
           false,
           this.props.timeout,
           chart.id,
-        );
+        ).then((responses) => {
+          // 1st promise response is always about chart status
+          const response = responses[0];
+          if (this.props.dashboardState.modalSliceIds.indexOf(response.key) != -1) {
+            this.updateModalChart(filterKey, response.key);
+          }
+        }).catch((response) => {
+          console.log(response)
+        });
       }
     });
   }
@@ -273,6 +332,14 @@ class Dashboard extends React.PureComponent {
       <React.Fragment>
         <OmniContianer impressionId={impressionId} dashboardId={id} />
         <DashboardBuilder />
+        <ChartModal showModal={this.showModal}
+          chart={this.modalChart}
+          addFilter={this.modalAddFilterHandler}
+          modalTitle={this.modalTitle}
+          datasource={this.modalDatasource}
+          close={this.closeModal}
+          chartStatus={this.modalChartStatus}
+        />
       </React.Fragment>
     );
   }
