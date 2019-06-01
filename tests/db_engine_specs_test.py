@@ -23,11 +23,15 @@ from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.types import String, UnicodeText
 
 from superset import db_engine_specs
-from superset.db_engine_specs import (
-    BaseEngineSpec, BQEngineSpec, HiveEngineSpec, MssqlEngineSpec,
-    MySQLEngineSpec, OracleEngineSpec, PinotEngineSpec, PostgresEngineSpec,
-    PrestoEngineSpec,
-)
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.bigquery import BQEngineSpec
+from superset.db_engine_specs.hive import HiveEngineSpec
+from superset.db_engine_specs.mssql import MssqlEngineSpec
+from superset.db_engine_specs.mysql import MySQLEngineSpec
+from superset.db_engine_specs.oracle import OracleEngineSpec
+from superset.db_engine_specs.pinot import PinotEngineSpec
+from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
 
