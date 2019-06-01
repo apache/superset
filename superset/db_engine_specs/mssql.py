@@ -2,8 +2,7 @@ import re
 
 from sqlalchemy.types import String, UnicodeText
 
-from superset.db_engine_specs.base import LimitMethod
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 
 class MssqlEngineSpec(BaseEngineSpec):

@@ -1,6 +1,6 @@
-from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
-
 from urllib import parse
+
+from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):

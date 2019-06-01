@@ -1,7 +1,7 @@
 from typing import List
 
-from superset.utils import core as utils
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 
 class SqliteEngineSpec(BaseEngineSpec):

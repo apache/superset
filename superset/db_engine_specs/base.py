@@ -5,8 +5,8 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 from flask import g
-import pandas as pd
 from flask_babel import lazy_gettext as _
+import pandas as pd
 from sqlalchemy import column, DateTime, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.reflection import Inspector

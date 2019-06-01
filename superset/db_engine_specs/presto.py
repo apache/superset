@@ -3,10 +3,10 @@ import logging
 import re
 import textwrap
 import time
-from urllib import parse
 from typing import List, Set, Tuple
+from urllib import parse
 
-from sqlalchemy import literal_column, Column, types
+from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
