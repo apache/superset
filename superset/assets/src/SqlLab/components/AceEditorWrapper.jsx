@@ -48,7 +48,9 @@ const propTypes = {
   actions: PropTypes.object.isRequired,
   onBlur: PropTypes.func,
   sql: PropTypes.string.isRequired,
+  schemas: PropTypes.array,
   tables: PropTypes.array,
+  extendedTables: PropTypes.array,
   queryEditor: PropTypes.object.isRequired,
   height: PropTypes.string,
   hotkeys: PropTypes.arrayOf(PropTypes.shape({
@@ -62,7 +64,9 @@ const propTypes = {
 const defaultProps = {
   onBlur: () => {},
   onChange: () => {},
+  schemas: [],
   tables: [],
+  extendedTables: [],
 };
 
 class AceEditorWrapper extends React.PureComponent {
@@ -80,7 +84,9 @@ class AceEditorWrapper extends React.PureComponent {
     this.setAutoCompleter(this.props);
   }
   componentWillReceiveProps(nextProps) {
-    if (!areArraysShallowEqual(this.props.tables, nextProps.tables)) {
+    if (!areArraysShallowEqual(this.props.tables, nextProps.tables) ||
+      !areArraysShallowEqual(this.props.schemas, nextProps.schemas) ||
+      !areArraysShallowEqual(this.props.extendedTables, nextProps.extendedTables)) {
       this.setAutoCompleter(nextProps);
     }
     if (nextProps.sql !== this.props.sql) {
@@ -126,6 +132,13 @@ class AceEditorWrapper extends React.PureComponent {
   getCompletions(aceEditor, session, pos, prefix, callback) {
     const completer = {
       insertMatch: (editor, data) => {
+        if (data.meta === 'table') {
+          this.props.actions.addTable(
+            this.props.queryEditor,
+            data.value,
+            this.props.queryEditor.schema,
+          );
+        }
         editor.completer.insertMatch({ value: data.caption + ' ' });
       },
     };
@@ -133,13 +146,20 @@ class AceEditorWrapper extends React.PureComponent {
     callback(null, words);
   }
   setAutoCompleter(props) {
-    // Loading table and column names as auto-completable words
+    // Loading schema, table and column names as auto-completable words
     let words = [];
+    const schemas = props.schemas || [];
+    schemas.forEach((s) => {
+      words.push({ name: s.label, value: s.value, score: 60, meta: 'schema' });
+    });
     const columns = {};
     const tables = props.tables || [];
+    const extendedTables = props.extendedTables || [];
     tables.forEach((t) => {
-      words.push({ name: t.name, value: t.name, score: 55, meta: 'table' });
-      const cols = t.columns || [];
+      const tableName = t.value.table;
+      words.push({ name: t.label, value: tableName, score: 55, meta: 'table' });
+      const extendedTable = extendedTables.find(et => et.name === tableName);
+      const cols = extendedTable && extendedTable.columns || [];
       cols.forEach((col) => {
         columns[col.name] = null;  // using an object as a unique set
       });

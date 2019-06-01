@@ -50,12 +50,20 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     };
     this.resetState = this.resetState.bind(this);
     this.onSchemaChange = this.onSchemaChange.bind(this);
+    this.onSchemasLoad = this.onSchemasLoad.bind(this);
+    this.onTablesLoad = this.onTablesLoad.bind(this);
     this.onDbChange = this.onDbChange.bind(this);
     this.getDbList = this.getDbList.bind(this);
     this.onTableChange = this.onTableChange.bind(this);
   }
   onSchemaChange(schema) {
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, schema);
+  }
+  onSchemasLoad(schemas) {
+    this.props.actions.queryEditorSetSchemaOptions(this.props.queryEditor, schemas);
+  }
+  onTablesLoad(tables) {
+    this.props.actions.queryEditorSetTableOptions(this.props.queryEditor, tables);
   }
   onDbChange(db) {
     this.props.actions.queryEditorSetDb(this.props.queryEditor, db.id);
@@ -105,6 +113,8 @@ export default class SqlEditorLeftBar extends React.PureComponent {
           schema={qe.schema}
           onDbChange={this.onDbChange}
           onSchemaChange={this.onSchemaChange}
+          onSchemasLoad={this.onSchemasLoad}
+          onTablesLoad={this.onTablesLoad}
           getDbList={this.getDbList}
           onTableChange={this.onTableChange}
           tableNameSticky={false}
