@@ -220,7 +220,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         def handle_single_value(v):
             # backward compatibility with previous <select> components
             if isinstance(v, str):
-                v = v.strip('\t\n \'"')
+                v = v.strip('\t\n\'"')
                 if target_column_is_numeric:
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
