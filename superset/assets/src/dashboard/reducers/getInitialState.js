@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+import { isString } from 'lodash';
 import shortid from 'shortid';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 
@@ -28,6 +29,7 @@ import findFirstParentContainerId from '../util/findFirstParentContainer';
 import getEmptyLayout from '../util/getEmptyLayout';
 import newComponentFactory from '../util/newComponentFactory';
 import {
+  BUILDER_PANE_TYPE,
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
@@ -55,15 +57,26 @@ export default function(bootstrapData) {
   // Priming the color palette with user's label-color mapping provided in
   // the dashboard's JSON metadata
   if (dashboard.metadata && dashboard.metadata.label_colors) {
-    const colorMap = dashboard.metadata.label_colors;
+    const scheme = dashboard.metadata.color_scheme;
+    const namespace = dashboard.metadata.color_namespace;
+    const colorMap = isString(dashboard.metadata.label_colors)
+      ? JSON.parse(dashboard.metadata.label_colors)
+      : dashboard.metadata.label_colors;
     Object.keys(colorMap).forEach(label => {
-      CategoricalColorNamespace.getScale().setColor(label, colorMap[label]);
+      CategoricalColorNamespace.getScale(scheme, namespace).setColor(
+        label,
+        colorMap[label],
+      );
     });
   }
 
   // dashboard layout
   const { position_json: positionJson } = dashboard;
-  const layout = positionJson || getEmptyLayout();
+  // new dash: positionJson could be {} or null
+  const layout =
+    positionJson && Object.keys(positionJson).length > 0
+      ? positionJson
+      : getEmptyLayout();
 
   // create a lookup to sync layout names with slice names
   const chartIdToLayoutId = {};
@@ -155,6 +168,14 @@ export default function(bootstrapData) {
     future: [],
   };
 
+  // find direct link component and path from root
+  const directLinkComponentId = (window.location.hash || '#').substring(1);
+  let directPathToChild = [];
+  if (layout[directLinkComponentId]) {
+    directPathToChild = (layout[directLinkComponentId].parents || []).slice();
+    directPathToChild.push(directLinkComponentId);
+  }
+
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
@@ -185,11 +206,17 @@ export default function(bootstrapData) {
       sliceIds: Array.from(sliceIds),
       refresh: false,
       filters,
+      directPathToChild,
       expandedSlices: dashboard.metadata.expanded_slices || {},
       refreshFrequency: dashboard.metadata.refresh_frequency || 0,
       css: dashboard.css || '',
+      colorNamespace: dashboard.metadata.color_namespace,
+      colorScheme: dashboard.metadata.color_scheme,
       editMode: dashboard.dash_edit_perm && editMode,
-      showBuilderPane: dashboard.dash_edit_perm && editMode,
+      builderPaneType:
+        dashboard.dash_edit_perm && editMode
+          ? BUILDER_PANE_TYPE.ADD_COMPONENTS
+          : BUILDER_PANE_TYPE.NONE,
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
     },

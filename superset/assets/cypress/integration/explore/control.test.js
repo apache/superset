@@ -26,9 +26,10 @@ describe('Groupby', () => {
     cy.server();
     cy.login();
 
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.route('GET', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/superset/explore_json/**').as('postJson');
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=groupby]').within(() => {
       cy.get('.Select-control').click();
@@ -36,7 +37,7 @@ describe('Groupby', () => {
       cy.get('.VirtualizedSelectFocusedOption').click();
     });
     cy.get('button.query').click();
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson', chartSelector: 'svg' });
   });
 });
 
@@ -44,14 +45,15 @@ describe('AdhocMetrics', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.route('GET', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Clear metric and set simple adhoc metric', () => {
     const metricName = 'Girl Births';
 
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=metrics]').within(() => {
       cy.get('.select-clear').click();
@@ -74,7 +76,7 @@ describe('AdhocMetrics', () => {
 
     cy.get('button.query').click();
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@postJson',
       querySubstring: metricName,
       chartSelector: 'svg',
     });
@@ -84,7 +86,7 @@ describe('AdhocMetrics', () => {
     const metric = 'SUM(num)/COUNT(DISTINCT name)';
 
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=metrics]').within(() => {
       cy.get('.select-clear').click();
@@ -105,7 +107,7 @@ describe('AdhocMetrics', () => {
 
     cy.get('button.query').click();
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@postJson',
       querySubstring: metric,
       chartSelector: 'svg',
     });
@@ -113,7 +115,7 @@ describe('AdhocMetrics', () => {
 
   it('Switch between simple and custom sql tabs', () => {
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=metrics]').within(() => {
       cy.get('.select-clear').click();
@@ -137,7 +139,7 @@ describe('AdhocMetrics', () => {
 
     cy.get('button.query').click();
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@postJson',
       chartSelector: 'svg',
     });
   });
@@ -147,12 +149,13 @@ describe('AdhocFilters', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.route('GET', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Set simple adhoc filter', () => {
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=adhoc_filters]').within(() => {
       cy.get('.Select-control').click({ force: true });
@@ -177,14 +180,14 @@ describe('AdhocFilters', () => {
 
     cy.get('button.query').click();
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@postJson',
       chartSelector: 'svg',
     });
   });
 
   it('Set custom adhoc filter', () => {
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=adhoc_filters]').within(() => {
       cy.get('.Select-control').click({ force: true });
@@ -206,7 +209,7 @@ describe('AdhocFilters', () => {
 
     cy.get('button.query').click();
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@postJson',
       chartSelector: 'svg',
     });
   });
@@ -217,12 +220,13 @@ describe('Advanced analytics', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.route('GET', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Create custom time compare', () => {
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('span')
       .contains('Advanced Analytics')
@@ -240,10 +244,10 @@ describe('Advanced analytics', () => {
     });
 
     cy.get('button.query').click();
-    cy.wait('@getJson');
+    cy.wait('@postJson');
     cy.reload();
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@postJson',
       chartSelector: 'svg',
     });
 
@@ -257,12 +261,13 @@ describe('Annotations', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.route('GET', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Create formula annotation y-axis goal line', () => {
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=annotation_layers]').within(() => {
       cy.get('button').click();
@@ -280,7 +285,7 @@ describe('Annotations', () => {
 
     cy.get('button.query').click();
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@postJson',
       chartSelector: 'svg',
     });
 
@@ -292,7 +297,8 @@ describe('Time range filter', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.route('GET', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Defaults to the correct tab for time_range params', () => {
@@ -304,7 +310,7 @@ describe('Time range filter', () => {
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=time_range]').within(() => {
       cy.get('span.label').click();

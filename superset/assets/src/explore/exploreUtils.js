@@ -95,6 +95,7 @@ export function getExploreUrlAndPayload({
   curUrl = null,
   requestParams = {},
   allowDomainSharding = false,
+  method = 'POST',
 }) {
   if (!formData.datasource) {
     return null;
@@ -118,8 +119,19 @@ export function getExploreUrlAndPayload({
 
   // Building the querystring (search) part of the URI
   const search = uri.search(true);
-  if (formData.slice_id) {
-    search.form_data = safeStringify({ slice_id: formData.slice_id });
+  const { slice_id, extra_filters, adhoc_filters, viz_type } = formData;
+  if (slice_id) {
+    const form_data = { slice_id };
+    if (method === 'GET') {
+      form_data.viz_type = viz_type;
+      if (extra_filters && extra_filters.length) {
+        form_data.extra_filters = extra_filters;
+      }
+      if (adhoc_filters && adhoc_filters.length) {
+        form_data.adhoc_filters = adhoc_filters;
+      }
+    }
+    search.form_data = safeStringify(form_data);
   }
   if (force) {
     search.force = 'true';

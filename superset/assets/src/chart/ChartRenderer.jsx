@@ -23,7 +23,6 @@ import React from 'react';
 import { ChartProps, SuperChart } from '@superset-ui/chart';
 import { Tooltip } from 'react-bootstrap';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
-import transformBigNumber from './transformBigNumber';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -62,13 +61,12 @@ class ChartRenderer extends React.Component {
     this.state = {};
 
     this.createChartProps = ChartProps.createSelector();
-    this.hasQueryResponseChnage = false;
+    this.hasQueryResponseChange = false;
 
     this.setTooltip = this.setTooltip.bind(this);
     this.handleAddFilter = this.handleAddFilter.bind(this);
     this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
     this.handleRenderFailure = this.handleRenderFailure.bind(this);
-    this.preTransformProps = this.preTransformProps.bind(this);
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -79,15 +77,16 @@ class ChartRenderer extends React.Component {
       !nextProps.refreshOverlayVisible;
 
     if (resultsReady) {
-      this.hasQueryResponseChnage =
+      this.hasQueryResponseChange =
         nextProps.queryResponse !== this.props.queryResponse;
 
-      if (this.hasQueryResponseChnage ||
+      if (this.hasQueryResponseChange ||
         nextProps.annotationData !== this.props.annotationData ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextState.tooltip !== this.state.tooltip ||
-        nextProps.triggerRender) {
+        nextProps.triggerRender ||
+        nextProps.formData.color_scheme !== this.props.formData.color_scheme) {
         return true;
       }
     }
@@ -137,7 +136,7 @@ class ChartRenderer extends React.Component {
 
     // only log chart render time which is triggered by query results change
     // currently we don't log chart re-render time, like window resize etc
-    if (this.hasQueryResponseChnage) {
+    if (this.hasQueryResponseChange) {
       actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
         slice_id: chartId,
         viz_type: vizType,
@@ -154,7 +153,7 @@ class ChartRenderer extends React.Component {
     actions.chartRenderingFailed(error.toString(), chartId, info ? info.componentStack : null);
 
     // only trigger render log when query is changed
-    if (this.hasQueryResponseChnage) {
+    if (this.hasQueryResponseChange) {
       actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
         slice_id: chartId,
         has_err: true,
@@ -164,18 +163,6 @@ class ChartRenderer extends React.Component {
         duration: Logger.getTimestamp() - this.renderStartTime,
       });
     }
-  }
-
-  preTransformProps(chartProps) {
-    const payload = chartProps.payload;
-    const data = transformBigNumber(payload.data);
-    return new ChartProps({
-      ...chartProps,
-      payload: {
-        ...payload,
-        data,
-      },
-    });
   }
 
   renderTooltip() {
@@ -212,9 +199,8 @@ class ChartRenderer extends React.Component {
 
     const isLoading = chartStatus === 'loading';
 
-    const skipChartRendering = isLoading || !!chartAlert;
+    const skipChartRendering = isLoading || !!chartAlert || chartStatus === null;
     this.renderStartTime = Logger.getTimestamp();
-
     return (
       <React.Fragment>
         {this.renderTooltip()}
@@ -223,7 +209,6 @@ class ChartRenderer extends React.Component {
           className={`${snakeCase(vizType)}`}
           chartType={vizType}
           chartProps={skipChartRendering ? null : this.prepareChartProps()}
-          preTransformProps={this.preTransformProps}
           onRenderSuccess={this.handleRenderSuccess}
           onRenderFailure={this.handleRenderFailure}
         />

@@ -138,6 +138,14 @@ class Query(Model, ExtraJSONMixin):
         tab = re.sub(r'\W+', '', tab)
         return f'sqllab_{tab}_{ts}'
 
+    @property
+    def database_name(self):
+        return self.database.name
+
+    @property
+    def username(self):
+        return self.user.username
+
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
     """ORM model for SQL query"""

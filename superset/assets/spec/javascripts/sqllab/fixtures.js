@@ -223,6 +223,20 @@ export const queries = [
           type: 'STRING',
         },
       ],
+      selected_columns: [
+        {
+          is_date: true,
+          is_dim: false,
+          name: 'ds',
+          type: 'STRING',
+        },
+        {
+          is_date: false,
+          is_dim: true,
+          name: 'gender',
+          type: 'STRING',
+        },
+      ],
       data: [{ col1: 0, col2: 1 }, { col1: 2, col2: 3 }],
     },
   },
@@ -264,7 +278,7 @@ export const queryWithBadColumns = {
   ...queries[0],
   results: {
     data: queries[0].results.data,
-    columns: [
+    selected_columns: [
       {
         is_date: true,
         is_dim: false,
@@ -329,15 +343,15 @@ export const databases = {
 export const tables = {
   options: [
     {
-      value: 'birth_names',
+      value: { schema: 'main', table: 'birth_names' },
       label: 'birth_names',
     },
     {
-      value: 'energy_usage',
+      value: { schema: 'main', table: 'energy_usage' },
       label: 'energy_usage',
     },
     {
-      value: 'wb_health_population',
+      value: { schema: 'main', table: 'wb_health_population' },
       label: 'wb_health_population',
     },
   ],
@@ -366,11 +380,13 @@ export const runningQuery = {
   id: 'ryhMUZCGb',
   progress: 90,
   state: 'running',
+  startDttm: Date.now() - 500,
 };
 export const cachedQuery = Object.assign({}, queries[0], { cached: true });
 
 export const initialState = {
   sqlLab: {
+    offline: false,
     alerts: [],
     queries: {},
     databases: {},

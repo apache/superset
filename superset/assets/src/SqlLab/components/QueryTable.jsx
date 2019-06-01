@@ -41,8 +41,8 @@ const propTypes = {
 const defaultProps = {
   columns: ['started', 'duration', 'rows'],
   queries: [],
-  onUserClicked: () => {},
-  onDbClicked: () => {},
+  onUserClicked: () => { },
+  onDbClicked: () => { },
 };
 
 class QueryTable extends React.PureComponent {
@@ -169,7 +169,7 @@ class QueryTable extends React.PureComponent {
             style={{ width: '75px' }}
             striped
             now={q.progress}
-            label={`${q.progress}%`}
+            label={`${q.progress.toFixed(0)}%`}
           />
         );
         let errorTooltip;

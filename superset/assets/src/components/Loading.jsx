@@ -19,13 +19,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import './Loading.css';
+
 const propTypes = {
   size: PropTypes.number,
   position: PropTypes.oneOf(['floating', 'normal']),
+  className: PropTypes.string,
 };
 const defaultProps = {
   size: 50,
   position: 'floating',
+  className: '',
 };
 
 const FLOATING_STYLE = {
@@ -37,7 +41,7 @@ const FLOATING_STYLE = {
   transform: 'translate(-50%, -50%)',
 };
 
-export default function Loading({ size, position }) {
+export default function Loading({ size, position, className }) {
   const style = position === 'floating' ? FLOATING_STYLE : {};
   const styleWithWidth = {
     ...style,
@@ -45,7 +49,7 @@ export default function Loading({ size, position }) {
   };
   return (
     <img
-      className="loading"
+      className={`loading ${className}`}
       alt="Loading..."
       src="/static/assets/images/loading.gif"
       style={styleWithWidth}

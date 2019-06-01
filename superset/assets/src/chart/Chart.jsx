@@ -18,7 +18,11 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
+import { Alert } from 'react-bootstrap';
+
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
+import { safeStringify } from '../utils/safeStringify';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import StackTraceMessage from '../components/StackTraceMessage';
@@ -66,9 +70,33 @@ class Chart extends React.PureComponent {
     super(props);
     this.handleRenderContainerFailure = this.handleRenderContainerFailure.bind(this);
   }
+
   componentDidMount() {
     if (this.props.triggerQuery) {
-      this.props.actions.runQuery(
+      this.runQuery();
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.triggerQuery &&
+      safeStringify(prevProps.formData) !== safeStringify(this.props.formData)
+    ) {
+      this.runQuery();
+    }
+  }
+
+  runQuery() {
+    if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
+      // Load saved chart with a GET request
+      this.props.actions.getSavedChart(
+        this.props.formData,
+        false,
+        this.props.timeout,
+        this.props.chartId,
+      );
+    } else {
+      // Create chart with POST request
+      this.props.actions.postChartFormData(
         this.props.formData,
         false,
         this.props.timeout,
@@ -122,7 +150,9 @@ class Chart extends React.PureComponent {
     if (chartStatus === 'failed') {
       return this.renderStackTraceMessage();
     }
-
+    if (errorMessage) {
+      return <Alert bsStyle="warning">{errorMessage}</Alert>;
+    }
     return (
       <ErrorBoundary onError={this.handleRenderContainerFailure} showMessage={false}>
         <div

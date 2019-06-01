@@ -29,7 +29,7 @@ const langTools = ace.acequire('ace/ext/language_tools');
 
 const keywords = (
   'SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|AND|OR|GROUP|BY|ORDER|LIMIT|OFFSET|HAVING|AS|CASE|' +
-  'WHEN|ELSE|END|TYPE|LEFT|RIGHT|JOIN|ON|OUTER|DESC|ASC|UNION|CREATE|TABLE|PRIMARY|KEY|IF|' +
+  'WHEN|THEN|ELSE|END|TYPE|LEFT|RIGHT|JOIN|ON|OUTER|DESC|ASC|UNION|CREATE|TABLE|PRIMARY|KEY|IF|' +
   'FOREIGN|NOT|REFERENCES|DEFAULT|NULL|INNER|CROSS|NATURAL|DATABASE|DROP|GRANT|SUM|MAX|MIN|COUNT|' +
   'AVG|DISTINCT'
 );
@@ -176,6 +176,20 @@ class AceEditorWrapper extends React.PureComponent {
       }
     });
   }
+  getAceAnnotations() {
+    const validationResult = this.props.queryEditor.validationResult;
+    const resultIsReady = (validationResult && validationResult.completed);
+    if (resultIsReady && validationResult.errors.length > 0) {
+      const errors = validationResult.errors.map(err => ({
+        type: 'error',
+        row: err.line_number - 1,
+        column: err.start_column - 1,
+        text: err.message,
+      }));
+      return errors;
+    }
+    return [];
+  }
   render() {
     return (
       <AceEditor
@@ -189,6 +203,7 @@ class AceEditorWrapper extends React.PureComponent {
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion
         value={this.state.sql}
+        annotations={this.getAceAnnotations()}
       />
     );
   }

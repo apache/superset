@@ -16,12 +16,18 @@
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
 # pylint: disable=C,R,W
+from io import BytesIO
 import json
 import os
+import zlib
+
+import requests
 
 from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models import core as models
+
+BASE_URL = 'https://github.com/apache-superset/examples-data/blob/master/'
 
 # Shortcuts
 DB = models.Database
@@ -60,3 +66,12 @@ def get_slice_json(defaults, **kwargs):
     d = defaults.copy()
     d.update(kwargs)
     return json.dumps(d, indent=4, sort_keys=True)
+
+
+def get_example_data(filepath, is_gzip=True, make_bytes=False):
+    content = requests.get(f'{BASE_URL}{filepath}?raw=true').content
+    if is_gzip:
+        content = zlib.decompress(content, zlib.MAX_WBITS|16)
+    if make_bytes:
+        content = BytesIO(content)
+    return content

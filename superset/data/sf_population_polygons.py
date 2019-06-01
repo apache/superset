@@ -14,24 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import gzip
 import json
-import os
 
 import pandas as pd
 from sqlalchemy import BigInteger, Text
 
 from superset import db
 from superset.utils import core as utils
-from .helpers import DATA_FOLDER, TBL
+from .helpers import TBL, get_example_data
 
 
 def load_sf_population_polygons():
     tbl_name = 'sf_population_polygons'
 
-    with gzip.open(os.path.join(DATA_FOLDER, 'sf_population.json.gz')) as f:
-        df = pd.read_json(f)
-        df['contour'] = df.contour.map(json.dumps)
+    data = get_example_data('sf_population.json.gz')
+    df = pd.read_json(data)
+    df['contour'] = df.contour.map(json.dumps)
 
     df.to_sql(
         tbl_name,

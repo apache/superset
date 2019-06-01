@@ -234,11 +234,18 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertIsNone(res)
 
     def test_get_filters_extracts_values_in_quotes(self):
-        filtr = {'col': 'A', 'op': 'in', 'val': ['  "a" ']}
+        filtr = {'col': 'A', 'op': 'in', 'val': ['"a"']}
         col = DruidColumn(column_name='A')
         column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertEqual('a', res.filter['filter']['value'])
+
+    def test_get_filters_keeps_trailing_spaces(self):
+        filtr = {'col': 'A', 'op': 'in', 'val': ['a ']}
+        col = DruidColumn(column_name='A')
+        column_dict = {'A': col}
+        res = DruidDatasource.get_filters([filtr], [], column_dict)
+        self.assertEqual('a ', res.filter['filter']['value'])
 
     def test_get_filters_converts_strings_to_num(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['6']}
@@ -770,6 +777,13 @@ class DruidFuncTestCase(unittest.TestCase):
             'label': 'My Adhoc Metric',
         })
         assert(druid_type == 'cardinality')
+
+        druid_type = DruidDatasource.druid_type_from_adhoc_metric({
+            'column': {'type': 'hyperUnique', 'column_name': 'value'},
+            'aggregate': 'COUNT_DISTINCT',
+            'label': 'My Adhoc Metric',
+        })
+        assert(druid_type == 'hyperUnique')
 
     def test_run_query_order_by_metrics(self):
         client = Mock()

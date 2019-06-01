@@ -189,7 +189,6 @@ class CoreTests(SupersetTestCase):
             assert_func('ResetPasswordView', view_menus)
             assert_func('RoleModelView', view_menus)
             assert_func('Security', view_menus)
-            assert_func('UserDBModelView', view_menus)
             assert_func('SQL Lab',
                         view_menus)
 

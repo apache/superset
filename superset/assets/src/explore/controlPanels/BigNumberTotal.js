@@ -29,17 +29,28 @@ export default {
       ],
     },
     {
-      label: t('Chart Options'),
+      label: t('Options'),
       expanded: true,
       controlSetRows: [
         ['subheader'],
         ['y_axis_format'],
       ],
     },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [
+        ['header_font_size'],
+        ['subheader_font_size'],
+      ],
+    },
   ],
   controlOverrides: {
     y_axis_format: {
       label: t('Number format'),
+    },
+    header_font_size: {
+      label: t('Big Number Font Size'),
     },
   },
 };

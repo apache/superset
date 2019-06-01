@@ -207,6 +207,9 @@ export default class ResultSet extends React.PureComponent {
         data = results.data;
       }
       if (data && data.length > 0) {
+        const expandedColumns = results.expanded_columns
+          ? results.expanded_columns.map(col => col.name)
+          : [];
         return (
           <React.Fragment>
             {this.renderControls.bind(this)()}
@@ -216,11 +219,12 @@ export default class ResultSet extends React.PureComponent {
               orderedColumnKeys={results.columns.map(col => col.name)}
               height={height}
               filterText={this.state.searchText}
+              expandedColumns={expandedColumns}
             />
           </React.Fragment>
         );
       } else if (data && data.length === 0) {
-        return <Alert bsStyle="warning">The query returned no data</Alert>;
+        return <Alert bsStyle="warning">{t('The query returned no data')}</Alert>;
       }
     }
     if (query.cached) {
@@ -241,7 +245,7 @@ export default class ResultSet extends React.PureComponent {
         <ProgressBar
           striped
           now={query.progress}
-          label={`${query.progress}%`}
+          label={`${query.progress.toFixed(0)}%`}
         />);
     }
     if (query.trackingUrl) {

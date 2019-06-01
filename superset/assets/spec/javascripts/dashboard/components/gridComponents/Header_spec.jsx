@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { Provider } from 'react-redux';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
 
@@ -33,6 +34,7 @@ import {
 } from '../../../../../src/dashboard/util/componentTypes';
 
 import WithDragDropContext from '../../helpers/WithDragDropContext';
+import { mockStoreWithTabs } from '../../fixtures/mockStore';
 
 describe('Header', () => {
   const props = {
@@ -43,6 +45,7 @@ describe('Header', () => {
     parentComponent: newComponentFactory(DASHBOARD_GRID_TYPE),
     index: 0,
     editMode: false,
+    filters: {},
     handleComponentDrop() {},
     deleteComponent() {},
     updateComponents() {},
@@ -52,9 +55,11 @@ describe('Header', () => {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
-      <WithDragDropContext>
-        <Header {...props} {...overrideProps} />
-      </WithDragDropContext>,
+      <Provider store={mockStoreWithTabs}>
+        <WithDragDropContext>
+          <Header {...props} {...overrideProps} />
+        </WithDragDropContext>
+      </Provider>,
     );
     return wrapper;
   }

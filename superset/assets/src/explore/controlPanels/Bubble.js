@@ -38,7 +38,7 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme'],
+        ['color_scheme', 'label_colors'],
         ['show_legend', null],
       ],
     },
@@ -62,9 +62,6 @@ export default {
     },
   ],
   controlOverrides: {
-    x_axis_format: {
-      default: '.3s',
-    },
     color_scheme: {
       renderTrigger: false,
     },

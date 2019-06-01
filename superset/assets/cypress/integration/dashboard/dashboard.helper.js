@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const WORLD_HEALTH_DASHBOARD = '/superset/dashboard/world_health';
+export const WORLD_HEALTH_DASHBOARD = '/superset/dashboard/world_health/';
+export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
 
 export const CHECK_DASHBOARD_FAVORITE_ENDPOINT = '/superset/favstar/Dashboard/*/count';
 

@@ -190,7 +190,11 @@ class TableElement extends React.PureComponent {
         </div>
         <div className="pull-right">
           {table.isMetadataLoading || table.isExtraMetadataLoading ?
-            <Loading size={50} />
+            <Loading
+              size={50}
+              position="normal"
+              className="margin-zero"
+            />
             :
             this.renderControls()
           }
@@ -239,7 +243,6 @@ class TableElement extends React.PureComponent {
       <Collapse
         in={this.state.expanded}
         timeout={this.props.timeout}
-        transitionAppear
         onExited={this.removeFromStore.bind(this)}
       >
         <div className="TableElement table-schema m-b-10">

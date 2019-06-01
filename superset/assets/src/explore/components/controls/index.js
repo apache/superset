@@ -20,6 +20,7 @@ import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
 import CollectionControl from './CollectionControl';
+import ColorMapControl from './ColorMapControl';
 import ColorPickerControl from './ColorPickerControl';
 import ColorSchemeControl from './ColorSchemeControl';
 import DatasourceControl from './DatasourceControl';
@@ -39,12 +40,14 @@ import MetricsControl from './MetricsControl';
 import AdhocFilterControl from './AdhocFilterControl';
 import FilterPanel from './FilterPanel';
 import FilterBoxItemControl from './FilterBoxItemControl';
+import withVerification from './withVerification';
 
 const controlMap = {
   AnnotationLayerControl,
   BoundsControl,
   CheckboxControl,
   CollectionControl,
+  ColorMapControl,
   ColorPickerControl,
   ColorSchemeControl,
   DatasourceControl,
@@ -64,5 +67,8 @@ const controlMap = {
   AdhocFilterControl,
   FilterPanel,
   FilterBoxItemControl,
+  MetricsControlVerifiedOptions: withVerification(MetricsControl, 'metric_name', 'savedMetrics'),
+  SelectControlVerifiedOptions: withVerification(SelectControl, 'column_name', 'options'),
+  AdhocFilterControlVerifiedOptions: withVerification(AdhocFilterControl, 'column_name', 'columns'),
 };
 export default controlMap;

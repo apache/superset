@@ -289,7 +289,7 @@
             "Consulta sem título"
          ],
          "Copy of %s": [
-            "Cópia de% s"
+            "Cópia de %s"
          ],
          "share query": [
             "compartilhar consulta"
@@ -592,7 +592,7 @@
             "Erro"
          ],
          "Sorry, there was an error adding slices to this dashboard: %s": [
-            "Desculpe, houve um erro ao adicionar fatias a este painel:% s"
+            "Desculpe, houve um erro ao adicionar fatias a este painel: %s"
          ],
          "Active Dashboard Filters": [
             "Filtros Active Dashboard"
@@ -709,7 +709,7 @@
             "não pode estar vazio"
          ],
          "%s - untitled": [
-            "% s - sem título"
+            "%s - sem título"
          ],
          "Edit slice properties": [
             "Editar propriedades da fatia"
@@ -823,7 +823,7 @@
             "Erro ao buscar dados"
          ],
          "Select %s": [
-            "Selecione% s"
+            "Selecione %s"
          ],
          "textarea": [
             "textarea"
@@ -841,7 +841,7 @@
             "O mapa de atualização foi interrompido"
          ],
          "An error occurred while rendering the visualization: %s": [
-            "Ocorreu um erro ao renderizar a visualização:% s"
+            "Ocorreu um erro ao renderizar a visualização: %s"
          ],
          "Perhaps your data has grown, your database is under unusual load, or you are simply querying a data source that is to large to be processed within the timeout range. If that is the case, we recommend that you summarize your data further.": [
             "Talvez seus dados tenham crescido, seu banco de dados está sob carga incomum, ou você está simplesmente consultando uma fonte de dados que seja grande para ser processada dentro do intervalo de tempo limite. Se for esse o caso, recomendamos que você sintetize seus dados ainda mais."
@@ -1966,7 +1966,7 @@
             "O servidor não pôde ser alcançado. Você pode querer verificar sua conexão e tentar novamente."
          ],
          "An unknown error occurred. (Status: %s )": [
-            "Ocorreu um erro desconhecido. (Status:% s)"
+            "Ocorreu um erro desconhecido. (Status: %s)"
          ],
          "Favorites": [
             ""
@@ -2020,7 +2020,7 @@
             ""
          ],
          "Select [%s]": [
-            "Selecione [% s]"
+            "Selecione [%s]"
          ],
          "No data was returned.": [
             "Nenhum dado foi retornado."

@@ -38,3 +38,5 @@ searchindex.js
 requirements.txt
 # vendorized
 vendor/*
+# github configuration
+.github/*

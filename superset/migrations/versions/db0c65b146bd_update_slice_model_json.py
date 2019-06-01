@@ -32,7 +32,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
 
 from superset import db
-from superset.legacy import cast_form_data
 
 Base = declarative_base()
 
@@ -55,7 +54,6 @@ def upgrade():
     for i, slc in enumerate(slices):
         try:
             d = json.loads(slc.params or '{}')
-            d = cast_form_data(d)
             slc.params = json.dumps(d, indent=2, sort_keys=True)
             session.merge(slc)
             session.commit()

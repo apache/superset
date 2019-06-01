@@ -122,32 +122,32 @@ export const controlPanelConfigs = extraOverrides({
   deck_polygon: DeckPolygon,
   deck_scatter: DeckScatter,
   deck_screengrid: DeckScreengrid,
-
 });
 
 export default controlPanelConfigs;
 
 export function sectionsToRender(vizType, datasourceType) {
-  const config = controlPanelConfigs[vizType];
+  const { sectionOverrides = {}, controlPanelSections = [] } = controlPanelConfigs[vizType] || {};
 
   const sectionsCopy = { ...sections };
-  if (config.sectionOverrides) {
-    Object.entries(config.sectionOverrides).forEach(([section, overrides]) => {
-      if (typeof overrides === 'object' && overrides.constructor === Object) {
-        sectionsCopy[section] = {
-          ...sectionsCopy[section],
-          ...overrides,
-        };
-      } else {
-        sectionsCopy[section] = overrides;
-      }
-    });
-  }
+
+  Object.entries(sectionOverrides).forEach(([section, overrides]) => {
+    if (typeof overrides === 'object' && overrides.constructor === Object) {
+      sectionsCopy[section] = {
+        ...sectionsCopy[section],
+        ...overrides,
+      };
+    } else {
+      sectionsCopy[section] = overrides;
+    }
+  });
+
+  const { datasourceAndVizType, sqlaTimeSeries, druidTimeSeries, filters } = sectionsCopy;
 
   return [].concat(
-    sectionsCopy.datasourceAndVizType,
-    datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
-    isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? sectionsCopy.filters : undefined,
-    config.controlPanelSections,
+    datasourceAndVizType,
+    datasourceType === 'table' ? sqlaTimeSeries : druidTimeSeries,
+    isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? filters : undefined,
+    controlPanelSections,
   ).filter(section => section);
 }

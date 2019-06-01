@@ -62,7 +62,7 @@ export default {
       label: t('Point Color'),
       controlSetRows: [
         ['color_picker', 'legend_position'],
-        ['dimension', 'color_scheme'],
+        ['dimension', 'color_scheme', 'label_colors'],
       ],
     },
     {

@@ -30,6 +30,11 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     autorun: false,
     dbId: defaultDbId,
     queryLimit: restBootstrapData.common.conf.DEFAULT_SQLLAB_LIMIT,
+    validationResult: {
+      id: null,
+      errors: [],
+      completed: false,
+    },
   };
 
   return {

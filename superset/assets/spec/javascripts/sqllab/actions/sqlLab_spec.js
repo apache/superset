@@ -85,7 +85,7 @@ describe('async actions', () => {
       });
     });
 
-    it('parses large number result without losing precision', () =>
+    xit('parses large number result without losing precision', () =>
       makeRequest().then(() => {
         expect(fetchMock.calls(fetchQueryEndpoint)).toHaveLength(1);
         expect(dispatch.callCount).toBe(2);
@@ -138,7 +138,7 @@ describe('async actions', () => {
       });
     });
 
-    it('parses large number result without losing precision', () =>
+    xit('parses large number result without losing precision', () =>
       makeRequest().then(() => {
         expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
         expect(dispatch.callCount).toBe(2);
