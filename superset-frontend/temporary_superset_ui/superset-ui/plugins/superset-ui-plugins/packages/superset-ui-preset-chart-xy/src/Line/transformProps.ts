@@ -24,6 +24,7 @@ export default function transformProps(chartProps: ChartProps) {
 
   const fieldsFromHooks: (keyof HookProps)[] = [
     'TooltipRenderer',
+    'LegendRenderer',
     'LegendGroupRenderer',
     'LegendItemRenderer',
     'LegendItemMarkRenderer',
