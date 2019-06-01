@@ -33,6 +33,8 @@ const propTypes = {
   schema: PropTypes.string,
   onSchemaChange: PropTypes.func,
   onDbChange: PropTypes.func,
+  onSchemasLoad: PropTypes.func,
+  onTablesLoad: PropTypes.func,
   getDbList: PropTypes.func,
   onTableChange: PropTypes.func,
   tableNameSticky: PropTypes.bool,
@@ -47,6 +49,8 @@ const propTypes = {
 const defaultProps = {
   onDbChange: () => {},
   onSchemaChange: () => {},
+  onSchemasLoad: () => {},
+  onTablesLoad: () => {},
   getDbList: () => {},
   onTableChange: () => {},
   onChange: () => {},
@@ -136,6 +140,7 @@ export default class TableSelector extends React.PureComponent {
               title: o.label,
             })),
           }));
+          this.props.onTablesLoad(json.options);
         })
         .catch(() => {
           this.setState(() => ({ tableLoading: false, tableOptions: [] }));
@@ -156,6 +161,7 @@ export default class TableSelector extends React.PureComponent {
         .then(({ json }) => {
           const schemaOptions = json.schemas.map(s => ({ value: s, label: s, title: s }));
           this.setState({ schemaOptions, schemaLoading: false });
+          this.props.onSchemasLoad(schemaOptions);
         })
         .catch(() => {
           this.setState({ schemaLoading: false, schemaOptions: [] });

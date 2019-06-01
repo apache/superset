@@ -283,6 +283,12 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_SCHEMA]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { schema: action.schema });
     },
+    [actions.QUERY_EDITOR_SET_SCHEMA_OPTIONS]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { schemaOptions: action.options });
+    },
+    [actions.QUERY_EDITOR_SET_TABLE_OPTIONS]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { tableOptions: action.options });
+    },
     [actions.QUERY_EDITOR_SET_TITLE]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { title: action.title });
     },
