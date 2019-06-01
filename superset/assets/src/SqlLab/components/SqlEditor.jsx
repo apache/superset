@@ -298,7 +298,9 @@ class SqlEditor extends React.PureComponent {
             onChange={this.onSqlChanged}
             queryEditor={this.props.queryEditor}
             sql={this.props.queryEditor.sql}
-            tables={this.props.tables}
+            schemas={this.props.queryEditor.schemaOptions}
+            tables={this.props.queryEditor.tableOptions}
+            extendedTables={this.props.tables}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
           />
