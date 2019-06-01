@@ -24,7 +24,7 @@ from sqlalchemy.types import String, UnicodeText
 
 from superset import db_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.bigquery import BQEngineSpec
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.db_engine_specs.mysql import MySQLEngineSpec
@@ -695,19 +695,19 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))
 
     def test_bigquery_sqla_column_label(self):
-        label = BQEngineSpec.make_label_compatible(column('Col').name)
+        label = BigQueryEngineSpec.make_label_compatible(column('Col').name)
         label_expected = 'Col'
         self.assertEqual(label, label_expected)
 
-        label = BQEngineSpec.make_label_compatible(column('SUM(x)').name)
+        label = BigQueryEngineSpec.make_label_compatible(column('SUM(x)').name)
         label_expected = 'SUM_x__5f110b965a993675bc4953bb3e03c4a5'
         self.assertEqual(label, label_expected)
 
-        label = BQEngineSpec.make_label_compatible(column('SUM[x]').name)
+        label = BigQueryEngineSpec.make_label_compatible(column('SUM[x]').name)
         label_expected = 'SUM_x__7ebe14a3f9534aeee125449b0bc083a8'
         self.assertEqual(label, label_expected)
 
-        label = BQEngineSpec.make_label_compatible(column('12345_col').name)
+        label = BigQueryEngineSpec.make_label_compatible(column('12345_col').name)
         label_expected = '_12345_col_8d3906e2ea99332eb185f7f8ecb2ffd6'
         self.assertEqual(label, label_expected)
 

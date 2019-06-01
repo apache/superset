@@ -6,7 +6,7 @@ from sqlalchemy import literal_column
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
-class BQEngineSpec(BaseEngineSpec):
+class BigQueryEngineSpec(BaseEngineSpec):
     """Engine spec for Google's BigQuery
 
     As contributed by @mxmzdlv on issue #945"""
@@ -46,7 +46,7 @@ class BQEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_data(cls, cursor, limit):
-        data = super(BQEngineSpec, cls).fetch_data(cursor, limit)
+        data = super(BigQueryEngineSpec, cls).fetch_data(cursor, limit)
         if len(data) != 0 and type(data[0]).__name__ == 'Row':
             data = [r.values() for r in data]
         return data
