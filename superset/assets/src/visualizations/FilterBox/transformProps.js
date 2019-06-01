@@ -27,7 +27,6 @@ export default function transformProps(chartProps) {
   } = chartProps;
   const {
     dateFilter,
-    filterConfigs,
     instantFiltering,
     showDruidTimeGranularity,
     showDruidTimeOrigin,
@@ -35,6 +34,7 @@ export default function transformProps(chartProps) {
     showSqlaTimeGranularity,
   } = formData;
   const { verboseMap } = datasource;
+  const filterConfigs = formData.filterConfigs || [];
 
   const filtersFields = filterConfigs.map(flt => ({
     ...flt,
