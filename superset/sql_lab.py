@@ -269,7 +269,6 @@ def execute_sql_statements(
     query.rows = cdf.size
     query.progress = 100
     query.set_extra_json_key('progress', None)
-    query.status = QueryStatus.SUCCESS
     if query.select_as_cta:
         query.select_sql = database.select_star(
             query.tmp_table_name,
@@ -285,13 +284,14 @@ def execute_sql_statements(
         selected_columns, data)
 
     payload.update({
-        'status': query.status,
+        'status': QueryStatus.SUCCESS,
         'data': data,
         'columns': all_columns,
         'selected_columns': selected_columns,
         'expanded_columns': expanded_columns,
         'query': query.to_dict(),
     })
+    payload['query']['state'] = QueryStatus.SUCCESS
 
     if store_results:
         key = str(uuid.uuid4())
@@ -304,6 +304,8 @@ def execute_sql_statements(
                 cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)
             results_backend.set(key, zlib_compress(json_payload), cache_timeout)
         query.results_key = key
+
+    query.status = QueryStatus.SUCCESS
     session.commit()
 
     if return_results:
