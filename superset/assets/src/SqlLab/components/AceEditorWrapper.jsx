@@ -156,8 +156,9 @@ class AceEditorWrapper extends React.PureComponent {
     const tables = props.tables || [];
     const extendedTables = props.extendedTables || [];
     tables.forEach((t) => {
-      words.push({ name: t.label, value: t.value, score: 55, meta: 'table' });
-      const extendedTable = extendedTables.find(et => et.name === t.value);
+      const tableName = t.value.table;
+      words.push({ name: t.label, value: tableName, score: 55, meta: 'table' });
+      const extendedTable = extendedTables.find(et => et.name === tableName);
       const cols = extendedTable && extendedTable.columns || [];
       cols.forEach((col) => {
         columns[col.name] = null;  // using an object as a unique set
