@@ -758,7 +758,7 @@ class DrillEngineSpec(BaseEngineSpec):
         'PT15M': "nearestDate({col}, 'QUARTER_HOUR')",
         'PT0.5H': "nearestDate({col}, 'HALF_HOUR')",
         'PT1H': "nearestDate({col}, 'HOUR')",
-        'P1D': 'TO_DATE({col})',
+        'P1D': "nearestDate({col}, 'DAY')",
         'P1W': "nearestDate({col}, 'WEEK_SUNDAY')",
         'P1M': "nearestDate({col}, 'MONTH')",
         'P0.25Y': "nearestDate({col}, 'QUARTER')",
