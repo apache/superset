@@ -112,6 +112,7 @@ Superset can be used to visualize data out of most databases:
 * Redshift
 * Clickhouse
 * Apache Kylin
+* Apache Drill
 * Google BigQuery
 * **more!** look for the availability of a SQLAlchemy dialect for your database
   to find out whether it will work with Superset
