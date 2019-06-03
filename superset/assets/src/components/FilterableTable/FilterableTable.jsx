@@ -60,7 +60,7 @@ export default class FilterableTable extends PureComponent {
   constructor(props) {
     super(props);
     this.list = List(this.formatTableData(props.data));
-    this.headerRenderer = this.headerRenderer.bind(this);
+    this.renderHeader = this.renderHeader.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
 
@@ -139,7 +139,7 @@ export default class FilterableTable extends PureComponent {
     return values.some(v => v.includes(lowerCaseText));
   }
 
-  headerRenderer({ dataKey, label, sortBy, sortDirection }) {
+  renderHeader({ dataKey, label, sortBy, sortDirection }) {
     const className = this.props.expandedColumns.indexOf(label) > -1
       ? 'header-style-disabled'
       : 'header-style';
@@ -224,7 +224,7 @@ export default class FilterableTable extends PureComponent {
               <Column
                 dataKey={columnKey}
                 disableSort={false}
-                headerRenderer={this.headerRenderer}
+                headerRenderer={this.renderHeader}
                 width={this.widthsForColumnsByKey[columnKey]}
                 label={columnKey}
                 key={columnKey}
