@@ -900,7 +900,7 @@ class SqlaTable(Model, BaseDatasource):
 
         for col in table.columns:
             try:
-                datatype = col.type.compile(dialect=db_dialect).upper()
+                datatype = db_engine_spec.column_datatype_to_string(col.type, db_dialect)
             except Exception as e:
                 datatype = 'UNKNOWN'
                 logging.error(
