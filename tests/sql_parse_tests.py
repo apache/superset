@@ -29,6 +29,12 @@ class SupersetTestCase(unittest.TestCase):
         query = 'SELECT * FROM tbname'
         self.assertEquals({'tbname'}, self.extract_tables(query))
 
+        query = 'SELECT * FROM tbname foo'
+        self.assertEquals({'tbname'}, self.extract_tables(query))
+
+        query = 'SELECT * FROM tbname AS foo'
+        self.assertEquals({'tbname'}, self.extract_tables(query))
+
         # underscores
         query = 'SELECT * FROM tb_name'
         self.assertEquals({'tb_name'},
@@ -47,10 +53,39 @@ class SupersetTestCase(unittest.TestCase):
             {'schemaname.tbname'},
             self.extract_tables('SELECT * FROM schemaname.tbname'))
 
-        # Ill-defined schema/table.
+        self.assertEquals(
+            {'schemaname.tbname'},
+            self.extract_tables('SELECT * FROM "schemaname"."tbname"'))
+
+        self.assertEquals(
+            {'schemaname.tbname'},
+            self.extract_tables('SELECT * FROM schemaname.tbname foo'))
+
+        self.assertEquals(
+            {'schemaname.tbname'},
+            self.extract_tables('SELECT * FROM schemaname.tbname AS foo'))
+
+        # cluster
+        self.assertEquals(
+            {'clustername.schemaname.tbname'},
+            self.extract_tables('SELECT * FROM clustername.schemaname.tbname'))
+
+        # Ill-defined cluster/schema/table.
         self.assertEquals(
             set(),
             self.extract_tables('SELECT * FROM schemaname.'))
+
+        self.assertEquals(
+            set(),
+            self.extract_tables('SELECT * FROM clustername.schemaname.'))
+
+        self.assertEquals(
+            set(),
+            self.extract_tables('SELECT * FROM clustername..'))
+
+        self.assertEquals(
+            set(),
+            self.extract_tables('SELECT * FROM clustername..tbname'))
 
         # quotes
         query = 'SELECT field1, field2 FROM tb_name'
