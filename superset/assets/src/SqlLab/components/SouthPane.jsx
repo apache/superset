@@ -37,6 +37,7 @@ const TAB_HEIGHT = 44;
 */
 const propTypes = {
   editorQueries: PropTypes.array.isRequired,
+  latestQueryId: PropTypes.string.isRequired,
   dataPreviewQueries: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired,
   activeSouthPaneTab: PropTypes.string,
@@ -82,7 +83,8 @@ export class SouthPane extends React.PureComponent {
     let latestQuery;
     const props = this.props;
     if (props.editorQueries.length > 0) {
-      latestQuery = props.editorQueries[props.editorQueries.length - 1];
+      // get the latest query
+      latestQuery = props.editorQueries.find(q => q.id === this.props.latestQueryId);
     }
     let results;
     if (latestQuery) {

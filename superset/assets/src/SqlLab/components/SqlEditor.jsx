@@ -298,7 +298,9 @@ class SqlEditor extends React.PureComponent {
             onChange={this.onSqlChanged}
             queryEditor={this.props.queryEditor}
             sql={this.props.queryEditor.sql}
-            tables={this.props.tables}
+            schemas={this.props.queryEditor.schemaOptions}
+            tables={this.props.queryEditor.tableOptions}
+            extendedTables={this.props.tables}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
           />
@@ -306,6 +308,7 @@ class SqlEditor extends React.PureComponent {
         </div>
         <SouthPane
           editorQueries={this.props.editorQueries}
+          latestQueryId={this.props.latestQuery ? this.props.latestQuery.id : 0}
           dataPreviewQueries={this.props.dataPreviewQueries}
           actions={this.props.actions}
           height={southPaneHeight}
