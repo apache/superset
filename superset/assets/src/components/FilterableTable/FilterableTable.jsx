@@ -139,6 +139,18 @@ export default class FilterableTable extends PureComponent {
     return values.some(v => v.includes(lowerCaseText));
   }
 
+  rowClassName({ index }) {
+    let className = '';
+    if (this.props.striped) {
+      className = index % 2 === 0 ? 'even-row' : 'odd-row';
+    }
+    return className;
+  }
+
+  sort({ sortBy, sortDirection }) {
+    this.setState({ sortBy, sortDirection });
+  }
+
   renderHeader({ dataKey, label, sortBy, sortDirection }) {
     const className = this.props.expandedColumns.indexOf(label) > -1
       ? 'header-style-disabled'
@@ -153,18 +165,6 @@ export default class FilterableTable extends PureComponent {
         </div>
       </TooltipWrapper>
     );
-  }
-
-  rowClassName({ index }) {
-    let className = '';
-    if (this.props.striped) {
-      className = index % 2 === 0 ? 'even-row' : 'odd-row';
-    }
-    return className;
-  }
-
-  sort({ sortBy, sortDirection }) {
-    this.setState({ sortBy, sortDirection });
   }
 
   render() {
