@@ -710,7 +710,7 @@ class PivotTableViz(BaseViz):
 
         if self.form_data.get('unstacked_column'):
             df = df.unstack(self.form_data.get('unstacked_column'),
-                            self.form_data.get('unstacked_na_value')).drop(('All', ''), axis=0)
+                            self.form_data.get('unstacked_na_value'))
 
         return dict(
             columns=list(df.columns),
