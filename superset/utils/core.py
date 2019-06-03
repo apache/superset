@@ -237,14 +237,14 @@ def parse_human_datetime(s):
             # when time is not extracted, we 'reset to midnight'
             if parsed_flags & 2 == 0:
                 parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
-            dttm = dttm_from_timtuple(parsed_dttm.utctimetuple())
+            dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
         except Exception as e:
             logging.exception(e)
             raise ValueError("Couldn't parse date string [{}]".format(s))
     return dttm
 
 
-def dttm_from_timtuple(d: struct_time) -> datetime:
+def dttm_from_timetuple(d: struct_time) -> datetime:
     return datetime(
         d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
 
@@ -306,7 +306,7 @@ def parse_human_timedelta(s: str):
     True
     """
     cal = parsedatetime.Calendar()
-    dttm = dttm_from_timtuple(datetime.now().timetuple())
+    dttm = dttm_from_timetuple(datetime.now().timetuple())
     d = cal.parse(s or '', dttm)[0]
     d = datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
     return d - dttm
@@ -939,6 +939,7 @@ def get_since_until(time_range: Optional[str] = None,
                     since: Optional[str] = None,
                     until: Optional[str] = None,
                     time_shift: Optional[str] = None,
+                    relative_start: Optional[str] = None,
                     relative_end: Optional[str] = None) -> Tuple[datetime, datetime]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
@@ -965,13 +966,14 @@ def get_since_until(time_range: Optional[str] = None,
 
     """
     separator = ' : '
+    relative_start = parse_human_datetime(relative_start if relative_start else 'today')
     relative_end = parse_human_datetime(relative_end if relative_end else 'today')
     common_time_frames = {
-        'Last day': (relative_end - relativedelta(days=1), relative_end),  # noqa: T400
-        'Last week': (relative_end - relativedelta(weeks=1), relative_end),  # noqa: T400
-        'Last month': (relative_end - relativedelta(months=1), relative_end),  # noqa: E501, T400
-        'Last quarter': (relative_end - relativedelta(months=3), relative_end),  # noqa: E501, T400
-        'Last year': (relative_end - relativedelta(years=1), relative_end),  # noqa: T400
+        'Last day': (relative_start - relativedelta(days=1), relative_end),  # noqa: T400
+        'Last week': (relative_start - relativedelta(weeks=1), relative_end),  # noqa: E501, T400
+        'Last month': (relative_start - relativedelta(months=1), relative_end),  # noqa: E501, T400
+        'Last quarter': (relative_start - relativedelta(months=3), relative_end),  # noqa: E501, T400
+        'Last year': (relative_start - relativedelta(years=1), relative_end),  # noqa: E501, T400
     }
 
     if time_range:
@@ -988,10 +990,10 @@ def get_since_until(time_range: Optional[str] = None,
         else:
             rel, num, grain = time_range.split()
             if rel == 'Last':
-                since = relative_end - relativedelta(**{grain: int(num)})  # noqa: T400
+                since = relative_start - relativedelta(**{grain: int(num)})  # noqa: T400
                 until = relative_end
             else:  # rel == 'Next'
-                since = relative_end
+                since = relative_start
                 until = relative_end + relativedelta(**{grain: int(num)})  # noqa: T400
     else:
         since = since or ''

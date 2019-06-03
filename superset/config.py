@@ -599,8 +599,13 @@ BUG_REPORT_URL = None
 DOCUMENTATION_URL = None
 
 # What is the Last N days relative in the time selector to:
-# 'today' means it is midnight (00:00:00) of today in the local timezone
+# 'today' means it is midnight (00:00:00) in the local timezone
 # 'now' means it is relative to the query issue time
+# If both start and end time is set to now, this will make the time
+# filter a moving window. By only setting the end time to now,
+# start time will be set to midnight, while end will be relative to
+# the query issue time.
+DEFAULT_RELATIVE_START_TIME = 'today'
 DEFAULT_RELATIVE_END_TIME = 'today'
 
 # Is epoch_s/epoch_ms datetime format supposed to be considered since UTC ?

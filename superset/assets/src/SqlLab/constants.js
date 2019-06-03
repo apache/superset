@@ -43,3 +43,8 @@ export const TIME_OPTIONS = [
   '90 days ago',
   '1 year ago',
 ];
+
+// SqlEditor layout constants
+export const SQL_EDITOR_GUTTER_HEIGHT = 5;
+export const SQL_EDITOR_GUTTER_MARGIN = 3;
+export const SQL_TOOLBAR_HEIGHT = 51;
