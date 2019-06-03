@@ -701,7 +701,10 @@ class PivotTableViz(BaseViz):
 
         # Display metrics side by side with each column
         if self.form_data.get('combine_metric'):
-            df = df.stack(0).unstack()
+            if 'All' in df.index.values[-1]:
+                df = df.stack(0).unstack().drop(df.index.values[-1], axis=0, errors='ignore')
+            else:
+                df.stack(0).unstack()
 
         if self.form_data.get('unstacked_column'):
             df = df.unstack(self.form_data.get('unstacked_column'),
