@@ -346,7 +346,11 @@ class SqlEditor extends React.PureComponent {
     }
     const qe = this.props.queryEditor;
     let limitWarning = null;
-    if (this.props.latestQuery && this.props.latestQuery.limit_reached) {
+    if (
+      this.props.latestQuery
+      && this.props.latestQuery.results
+      && this.props.latestQuery.results.displayLimitReached
+    ) {
       const tooltip = (
         <Tooltip id="tooltip">
           {t(`It appears that the number of rows in the query results displayed

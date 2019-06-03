@@ -351,7 +351,13 @@ MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 # in the results backend. This also becomes the limit when exporting CSVs
 SQL_MAX_ROW = 100000
 
-# Default row limit for SQL Lab queries
+# Maximum number of rows displayed in SQL Lab UI
+# Is set to avoid out of memory/localstorage issues in browsers. Does not affect
+# exported CSVs
+DISPLAY_MAX_ROW = 10000
+
+# Default row limit for SQL Lab queries. Is overridden by setting a new limit in
+# the SQL Lab UI
 DEFAULT_SQLLAB_LIMIT = 1000
 
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
