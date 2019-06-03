@@ -127,7 +127,7 @@ class CeleryTestCase(SupersetTestCase):
             ),
         )
         self.logout()
-        return json.loads(resp.data.decode('utf-8'))
+        return json.loads(resp.data)
 
     def test_run_sync_query_dont_exist(self):
         main_db = get_main_database(db.session)
@@ -145,12 +145,12 @@ class CeleryTestCase(SupersetTestCase):
         perm_name = 'can_sql_json'
         sql_where = (
             "SELECT name FROM ab_permission WHERE name='{}'".format(perm_name))
-        result2 = self.run_sql(
+        result = self.run_sql(
             db_id, sql_where, '2', tmp_table=tmp_table_name, cta='true')
-        self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
-        self.assertEqual([], result2['data'])
-        self.assertEqual([], result2['columns'])
-        query2 = self.get_query_by_id(result2['query']['serverId'])
+        self.assertEqual(QueryStatus.SUCCESS, result['query']['state'])
+        self.assertEqual([], result['data'])
+        self.assertEqual([], result['columns'])
+        query2 = self.get_query_by_id(result['query']['serverId'])
 
         # Check the data in the tmp table.
         if backend != 'postgresql':
