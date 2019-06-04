@@ -70,7 +70,6 @@ python-geohash==0.8.5
 python3-openid==3.1.0     # via flask-openid
 pytz==2019.2              # via babel, celery, pandas
 pyyaml==5.1.2
-requests==2.22.0
 retry==0.9.2
 selenium==3.141.0
 simplejson==3.16.0
