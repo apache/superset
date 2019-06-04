@@ -20,6 +20,7 @@ from datetime import datetime
 from io import BytesIO
 import json
 import os
+import re
 import zlib
 
 from prettytable import PrettyTable
@@ -27,6 +28,7 @@ import requests
 
 from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.exceptions import BadGithubUrlConvertException
 from superset.models import core as models
 
 # Shortcuts
@@ -75,6 +77,24 @@ def get_examples_uris(repo_name, tag):
     return contents_uri, blob_uri
 
 
+def download_url_to_blob_url(download_url):
+    """Get a download link for a large file in the examples-data repo
+
+    Example input:
+    'https://raw.githubusercontent.com/rjurney/examples-data/v0.0.4/world_health/wb_health_population.csv.gz'
+    Example output:
+    'https://github.com/rjurney/examples-data/raw/v0.0.4/world_health/wb_health_population.csv.gz'
+    """
+
+    hits = re.search(
+        'https://raw.githubusercontent.com/(.+?/.+?)/(.+?)/(.*)', download_url)
+    if len(hits.groups()) < 3:
+        raise BadGithubUrlConvertException(f'Bad input url: {download_url}')
+
+    blob_url = f'https://github.com/{hits.group(1)}/raw/{hits.group(2)}/{hits.group(3)}'
+    return blob_url
+
+
 def get_example_data(filepath, is_gzip=True, make_bytes=False):
     """Get the examples data for the legacy examples"""
     examples_repos_uris = \
@@ -91,7 +111,6 @@ def get_example_data(filepath, is_gzip=True, make_bytes=False):
 def get_examples_file_list(examples_repos_uris, examples_tag='master'):
     """Use the Github get contents API to list available examples"""
     examples = []
-
     for (repo_name, repo_tag, contents_uri, blob_uri) in examples_repos_uris:
 
         # Github authentication via a Personal Access Token for rate limit problems

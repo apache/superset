@@ -17,7 +17,6 @@
 # under the License.
 # pylint: disable=C,R,W
 from datetime import datetime
-from io import StringIO
 import json
 import logging
 from subprocess import Popen
@@ -35,7 +34,7 @@ from superset import (
     app, appbuilder, data, db, security_manager,
 )
 from superset.data.helpers import get_examples_file_list, get_examples_uris, \
-    list_examples_table
+    list_examples_table, download_url_to_blob_url
 from superset.exceptions import DashboardNotFoundException, ExampleNotFoundException
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
@@ -59,6 +58,7 @@ def make_shell_context():
 def init():
     """Inits the Superset application"""
     utils.get_or_create_main_db()
+    utils.get_or_create_example_db()
     appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
 
@@ -205,7 +205,7 @@ def export_example(dashboard_id, dashboard_title, description, example_title,
             with tarfile.open(file_name, 'w:gz') as tar:
                 tar.add(tmp_dir_name, arcname=f'{dashboard_slug}')
 
-            click.echo(f'Exported example to {file_name}')
+            click.echo(click.style(str(f'Exported example to {file_name}'), fg='blue'))
 
         except DashboardNotFoundException as e:
             click.echo(click.style(str(e), fg='red'))
@@ -258,25 +258,44 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
     if token:
         headers = {'Authorization': 'token %s' % token}
 
-    download_urls = [x['metadata_file']['download_url'] for x in examples_files]
-
     import_example_json = None
-    for download_url in download_urls:
-        example_json = requests.get(download_url, headers=headers).content
-        example_metadata = json.loads(example_json)
+    import_data_info = None
+    for example_file in examples_files:
+
+        metadata_download_url = example_file['metadata_file']['download_url']
+        example_metadata_json = requests.get(metadata_download_url, 
+                                             headers=headers).content
+        # Cheaply load json without generating objects
+        example_metadata = json.loads(example_metadata_json)
         if example_metadata['description']['title'] == example_title:
-            import_example_json = example_json
-            logging.info(f'Importing example \'{example_title}\' from {download_url} ...')
+            import_example_json = example_metadata_json
+            import_data_info = example_file['data_files']
+            logging.info(
+                f'Will import example \'{example_title}\' from {metadata_download_url}')
+            break
 
     if not import_example_json:
         e = ExampleNotFoundException(f'Example {example_title} not found!')
         click.echo(click.style(str(e), fg='red'))
         exit(1)
 
+    # Parse data to get file download_urls -> blob_urls
+    example_metadata = json.loads(import_example_json, 
+                                  object_hook=utils.decode_dashboards)
+
+    # The given download url won't work for data files, need a blob url
+    data_blob_urls = {}
+    for ex_file in example_metadata['files']:
+        github_info = [t for t in import_data_info
+                       if t['name'] == ex_file['file_name']][0]
+        blob_url = download_url_to_blob_url(github_info['download_url'])
+        data_blob_urls[github_info['name']] = blob_url
+
     try:
         dashboard_import_export.import_example_dashboard(
             db.session,
             import_example_json,
+            data_blob_urls,
             database_uri)
     except Exception as e:
         logging.error(f'Error importing example dashboard \'{example_title}\'!')

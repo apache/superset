@@ -613,6 +613,14 @@ TALISMAN_CONFIG = {
     'force_https_permanent': False,
 }
 
+# Tuple format: Gitub repo full name, tag/branch
+EXAMPLE_REPOS_TAGS = [
+    ('rjurney/examples-data', 'v0.0.4'),
+]
+
+# Github Authorization Token - in case the examples commands exceed rate limits
+GITHUB_AUTH_TOKEN = None
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
@@ -634,11 +642,3 @@ try:
             superset_config.__file__))
 except ImportError:
     pass
-
-# Tuple format: Gitub repo full name, tag/branch
-EXAMPLE_REPOS_TAGS = [
-    ('rjurney/examples-data', 'v0.0.4'),
-]
-
-# Github Authorization Token - in case the examples commands exceed rate limits
-GITHUB_AUTH_TOKEN = None

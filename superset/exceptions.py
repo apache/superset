@@ -62,3 +62,7 @@ class DashboardNotFoundException(SupersetException):
 
 class ExampleNotFoundException(SupersetException):
     pass
+
+
+class BadGithubUrlConvertException(SupersetException):
+    pass

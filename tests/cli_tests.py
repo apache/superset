@@ -85,6 +85,7 @@ class SupersetCliTestCase(SupersetTestCase):
         result = self.runner.invoke(
             app.cli, ['examples', 'list'])
 
+        print("results.output", result.output)
         found = False
         for i, line in enumerate(result.output.split('\n')):
             # skip header
@@ -102,7 +103,12 @@ class SupersetCliTestCase(SupersetTestCase):
 
     def test_examples_import(self):
         """Test `superset examples import`"""
-        pass
+        result = self.runner.invoke(
+            app.cli,
+            [
+                'examples', 'import', 
+            ]
+        )
 
     def test_examples_remove(self):
         """Test `superset examples remove`"""

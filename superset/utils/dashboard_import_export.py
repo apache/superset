@@ -17,22 +17,29 @@
 # pylint: disable=C,R,W
 import json
 import logging
+import os
+import shutil
+import tempfile
 import time
 
 import pandas as pd
+import requests
 
 from superset import db
-from superset.exceptions import DashboardNotFoundException
+from superset.exceptions import SupersetException
 from superset.models.core import Dashboard
-from superset.utils.core import DashboardEncoder, decode_dashboards, \
-    get_or_create_example_db_engine, get_or_create_main_db
+from superset.utils import core as utils
 
 
 def import_dashboards(session, data_stream, import_time=None):
     """Imports dashboards from a stream to databases"""
     current_tt = int(time.time())
     import_time = current_tt if import_time is None else import_time
-    data = json.loads(data_stream.read(), object_hook=decode_dashboards)
+
+    data = json.loads(data_stream.read(), object_hook=utils.decode_dashboards)
+
+    for table in data['datasources']:
+        type(table).import_obj(table, import_time=import_time)
 
     # TODO: import DRUID datasources
     session.commit()
@@ -40,17 +47,58 @@ def import_dashboards(session, data_stream, import_time=None):
         Dashboard.import_obj(
             dashboard, import_time=import_time)
 
-    if data['data']['includes_data']:
-        engine = get_or_create_main_db()
-        for table in data['data']['tables']:
-            df = pd.read_csv(table['file_path'], parse_dates=True,
-                             infer_datetime_format=True, compression='infer')
-            df.to_sql(
-                table['name'],
-                engine,
-                if_exists='replace',
-                chunksize=500,
-                index=False)
+    # Import any files in this exported Dashboard
+    if 'files' in data:
+        if len(data['files']) > 0:
+            examples_engine = utils.get_or_create_main_db()
+            for table in data['files']:
+                logging.info(f'Import data from file {table["file_name"]} into table ' +
+                             f'{table["table_name"]}')
+                df = pd.read_csv(table['file_name'], parse_dates=True,
+                                 infer_datetime_format=True, compression='infer')
+                df.to_sql(
+                    table['table_name'],
+                    examples_engine.get_sqla_engine(),
+                    if_exists='replace',
+                    chunksize=500,
+                    index=False)
+
+    session.commit()
+
+
+def import_example_dashboard(session, import_example_json, data_blob_urls,
+                             database_uri, import_time=None):
+    """Imports dashboards from a JSON string and data files to databases"""
+    data = json.loads(import_example_json, object_hook=utils.decode_dashboards)
+
+    # TODO: import DRUID datasources
+    session.commit()
+    for dashboard in data['dashboards']:
+        Dashboard.import_obj(
+            dashboard, import_time=import_time)
+
+    if len(data['files']) > 0:
+        examples_engine = utils.get_or_create_example_db(database_uri)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for file_info in data['files']:
+                # Get the github info for the file
+                blob_file_path = f'{tmpdir.name}{os.path.sep}{file_info["file_name"]}'
+                blob_url = data_blob_urls[file_info['file_name']]
+
+                response = requests.get(blob_url, stream=True)
+                with open(blob_file_path, 'wb') as out_file:
+                    shutil.copyfileobj(response.raw, out_file)
+                del response
+
+                df = pd.read_csv(blob_file_path, parse_dates=True,
+                                 infer_datetime_format=True, compression='infer')
+                df.to_sql(
+                    file_info['table_name'],
+                    examples_engine.get_sqla_engine(),
+                    if_exists='replace',
+                    chunksize=500,
+                    index=False)
 
     session.commit()
 
@@ -73,7 +121,7 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
     data = {}
     if not export_dashboard_ids:
         logging.error('No dashboards found!')
-        raise DashboardNotFoundException('No dashboards found!')
+        raise SupersetException('No dashboards found!')
     else:
         data = Dashboard.export_dashboards(export_dashboard_ids,
                                            export_data, export_data_dir)
@@ -84,14 +132,14 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
         data['description']['description'] = description
     data['description']['license'] = _license
 
-    export_json = json.dumps(data, cls=DashboardEncoder, indent=4, sort_keys=True)
+    export_json = json.dumps(data, cls=utils.DashboardEncoder, indent=4, sort_keys=True)
 
     # Remove datasources[].__SqlaTable__.database for example export
-    if strip_database:
-        parsed_json = json.loads(export_json)
-        for datasource in parsed_json['datasources']:
-            datasource['__SqlaTable__']['database'] = None
-        export_json = json.dumps(parsed_json, indent=4, sort_keys=True)
+    # if strip_database:
+    #     parsed_json = json.loads(export_json)
+    #     for datasource in parsed_json['datasources']:
+    #         datasource['__SqlaTable__']['database'] = None
+    #     export_json = '{}'  # json.dumps(parsed_json, indent=4, sort_keys=True)
 
     return export_json
 

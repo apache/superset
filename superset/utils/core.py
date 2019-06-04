@@ -56,7 +56,6 @@ from sqlalchemy import create_engine, event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator
-from sqlalchemy_utils import database_exists, create_database
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
 from superset.utils.dates import datetime_to_epoch, EPOCH
@@ -287,7 +286,7 @@ def decode_dashboards(o):
 
 
 class DashboardEncoder(json.JSONEncoder):
-    """JSONEncoder for Dashboard and their Slice objects"""
+
     # pylint: disable=E0202
     def default(self, o):
         try:
@@ -910,6 +909,9 @@ def get_or_create_example_db(database_uri=None):
     from superset import conf, db
     from superset.models import core as models
 
+    if not database_uri:
+        database_uri = conf.get('SQLALCHEMY_EXAMPLES_URI')
+
     logging.info('Creating database reference')
     dbobj = get_examples_database(db.session)
     if not dbobj:
@@ -918,8 +920,7 @@ def get_or_create_example_db(database_uri=None):
             allow_csv_upload=True,
             expose_in_sqllab=True,
         )
-    dbobj.set_sqlalchemy_uri(
-        database_uri or conf.get('SQLALCHEMY_EXAMPLE_URI'))
+    dbobj.set_sqlalchemy_uri(database_uri)
     db.session.add(dbobj)
     db.session.commit()
     return dbobj
