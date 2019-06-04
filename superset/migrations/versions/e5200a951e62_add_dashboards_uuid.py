@@ -23,7 +23,7 @@ Create Date: 2019-05-08 13:42:48.479145
 """
 import uuid
 from alembic import op
-from sqlalchemy import Column, Integer
+from sqlalchemy import Column, Integer, CHAR
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils.types.uuid import UUIDType
 
@@ -106,8 +106,9 @@ def upgrade():
             s.uuid = get_uuid()
             session.merge(s)
         with op.batch_alter_table(col_name) as batch_op:
-            batch_op.alter_column('uuid', nullable=False)
-            batch_op.create_unique_constraint('uq_uuid', 'uuid')
+            batch_op.alter_column('uuid', existing_type=CHAR(32),
+                                  new_column_name='uuid', nullable=False)
+            batch_op.create_unique_constraint('uq_uuid', ['uuid'])
         session.commit()
 
     add_uuid_column('dashboards', Dashboard)
