@@ -30,7 +30,7 @@ from dateutil.tz import tzlocal
 from flask import render_template, Response, session, url_for
 from flask_babel import gettext as __
 from flask_login import login_user
-import requests
+from urllib import request
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
@@ -258,7 +258,7 @@ def _get_slice_data(schedule):
     for cookie in _get_auth_cookies():
         cookies["session"] = cookie
 
-    response = requests.get(slice_url, cookies=cookies)
+    response = request.urlopen(slice_url, cookies=cookies)
     response.raise_for_status()
 
     # TODO: Move to the csv module

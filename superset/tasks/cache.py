@@ -22,8 +22,8 @@ import urllib.parse
 
 from celery.utils.log import get_task_logger
 from flask import url_for
-import requests
-from requests.exceptions import RequestException
+from urllib import request
+from urllib.error import URLError
 from sqlalchemy import and_, func
 
 from superset import app, db
@@ -283,11 +283,11 @@ def cache_warmup(strategy_name, *args, **kwargs):
     results = {"success": [], "errors": []}
     for url in strategy.get_urls():
         try:
-            logger.info(f"Fetching {url}")
-            requests.get(url)
-            results["success"].append(url)
-        except RequestException:
-            logger.exception("Error warming up cache!")
-            results["errors"].append(url)
+            logger.info(f'Fetching {url}')
+            request.urlopen(url)
+            results['success'].append(url)
+        except URLError:
+            logger.exception('Error warming up cache!')
+            results['errors'].append(url)
 
     return results

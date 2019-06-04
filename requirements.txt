@@ -15,7 +15,6 @@ bleach==3.0.2
 celery==4.3.0
 certifi==2018.8.24        # via requests
 cffi==1.11.5              # via cryptography
-chardet==3.0.4            # via requests
 click==6.7
 colorama==0.3.9
 contextlib2==0.5.5
@@ -68,7 +67,6 @@ python-geohash==0.8.5
 python3-openid==3.1.0     # via flask-openid
 pytz==2018.5              # via babel, celery, pandas
 pyyaml==5.1
-requests==2.22.0
 retry==0.9.2
 selenium==3.141.0
 simplejson==3.15.0
