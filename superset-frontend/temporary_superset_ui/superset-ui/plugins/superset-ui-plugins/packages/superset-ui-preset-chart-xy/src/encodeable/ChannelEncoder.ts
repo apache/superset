@@ -1,9 +1,10 @@
+import { extent as d3Extent } from 'd3-array';
 import { Value } from 'vega-lite/build/src/channeldef';
 import { extractFormatFromChannelDef } from './parsers/extractFormat';
 import extractScale, { ScaleAgent } from './parsers/extractScale';
 import extractGetter from './parsers/extractGetter';
 import { ChannelOptions, ChannelType, ChannelInput } from './types/Channel';
-import { PlainObject } from './types/Data';
+import { PlainObject, Dataset } from './types/Data';
 import {
   ChannelDef,
   isScaleFieldDef,
@@ -93,6 +94,31 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
     return otherwise !== undefined && (value === null || value === undefined)
       ? otherwise
       : (value as T);
+  }
+
+  getDomain(data: Dataset) {
+    if (isTypedFieldDef(this.definition)) {
+      const { type } = this.definition;
+      if (type === 'nominal' || type === 'ordinal') {
+        return Array.from(new Set(data.map(d => this.get(d)))) as string[];
+      } else if (type === 'quantitative') {
+        const extent = d3Extent(data, d => this.get<number>(d));
+        if (typeof extent[0] === 'undefined') {
+          return [0, 1];
+        }
+
+        return extent as [number, number];
+      } else if (type === 'temporal') {
+        const extent = d3Extent(data, d => this.get<number | Date>(d));
+        if (typeof extent[0] === 'undefined') {
+          return [0, 1];
+        }
+
+        return extent as [number, number] | [Date, Date];
+      }
+    }
+
+    return [];
   }
 
   getTitle() {

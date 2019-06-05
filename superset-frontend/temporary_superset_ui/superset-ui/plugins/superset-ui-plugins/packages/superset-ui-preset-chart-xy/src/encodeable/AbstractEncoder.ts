@@ -161,7 +161,7 @@ export default abstract class AbstractEncoder<
           // Only work for nominal channels now
           // TODO: Add support for numerical scale
           if (channelEncoder.definition.type === 'nominal') {
-            const domain = Array.from(new Set(data.map(channelEncoder.get)));
+            const domain = channelEncoder.getDomain(data) as string[];
 
             return domain.map((value: ChannelInput) => ({
               field,
