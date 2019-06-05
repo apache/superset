@@ -14,6 +14,7 @@ import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createM
 import createXYChartLayoutSelector from '../utils/selectors/createXYChartLayoutSelector';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
+import { isScaleFieldDef } from '../encodeable/types/ChannelDef';
 
 export interface TooltipProps {
   datum: EncodedPoint;
@@ -84,11 +85,22 @@ export default class ScatterPlot extends PureComponent<Props> {
     const { data, margin, theme, TooltipRenderer } = this.props;
     const { channels } = this.encoder;
 
-    if (typeof channels.size.scale !== 'undefined') {
-      const domain = d3Extent(data, d => channels.size.get<number>(d));
+    if (typeof channels.x.scale !== 'undefined') {
+      const xDomain = channels.x.getDomain(data);
+      channels.x.scale.setDomain(xDomain);
+    }
+    if (typeof channels.y.scale !== 'undefined') {
+      const yDomain = channels.y.getDomain(data);
+      channels.y.scale.setDomain(yDomain);
+    }
+    if (
+      isScaleFieldDef(channels.size.definition) &&
+      channels.size.definition.type === 'quantitative'
+    ) {
+      const domain = channels.size.getDomain(data) as number[];
       const [min, max] = domain;
       const adjustedDomain = [Math.min(min || 0, 0), Math.max(max || 1, 1)];
-      channels.size.scale.setDomain(adjustedDomain);
+      channels.size.scale!.setDomain(adjustedDomain);
     }
 
     const encodedData = data.map(d => ({
@@ -100,17 +112,6 @@ export default class ScatterPlot extends PureComponent<Props> {
       data: d,
     }));
 
-    const children = [
-      <PointSeries
-        key={channels.x.definition.field}
-        data={encodedData}
-        fill={(d: EncodedPoint) => d.fill}
-        fillOpacity={0.5}
-        stroke={(d: EncodedPoint) => d.stroke}
-        size={(d: EncodedPoint) => d.size}
-      />,
-    ];
-
     const layout = this.createXYChartLayout({
       width,
       height,
@@ -118,7 +119,6 @@ export default class ScatterPlot extends PureComponent<Props> {
       theme,
       xEncoder: channels.x,
       yEncoder: channels.y,
-      children,
     });
 
     return layout.renderChartWithFrame((chartDim: Dimension) => (
@@ -137,7 +137,14 @@ export default class ScatterPlot extends PureComponent<Props> {
       >
         {layout.renderXAxis()}
         {layout.renderYAxis()}
-        {children}
+        <PointSeries
+          key={channels.x.definition.field}
+          data={encodedData}
+          fill={(d: EncodedPoint) => d.fill}
+          fillOpacity={0.5}
+          stroke={(d: EncodedPoint) => d.stroke}
+          size={(d: EncodedPoint) => d.size}
+        />
       </XYChart>
     ));
   }
