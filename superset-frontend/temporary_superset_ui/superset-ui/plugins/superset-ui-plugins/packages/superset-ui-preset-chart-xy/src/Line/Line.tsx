@@ -2,6 +2,7 @@
 
 import React, { PureComponent } from 'react';
 import { kebabCase, groupBy, flatMap, uniqueId, values } from 'lodash';
+import { extent as d3Extent } from 'd3-array';
 import {
   AreaSeries,
   LinearGradient,
@@ -202,6 +203,16 @@ export default class LineChart extends PureComponent<Props> {
     const { channels } = encoder;
     const allSeries = this.createAllSeries({ encoder, data });
     const children = this.createChildren(allSeries);
+
+    if (typeof channels.x.scale !== 'undefined') {
+      const xDomain = channels.x.getDomain(data);
+      channels.x.scale.setDomain(xDomain);
+    }
+    if (typeof channels.y.scale !== 'undefined') {
+      const yDomain = channels.y.getDomain(data);
+      channels.y.scale.setDomain(yDomain);
+    }
+
     const layout = this.createXYChartLayout({
       width,
       height,
@@ -209,7 +220,6 @@ export default class LineChart extends PureComponent<Props> {
       theme,
       xEncoder: channels.x,
       yEncoder: channels.y,
-      children,
     });
 
     return layout.renderChartWithFrame((chartDim: Dimension) => (
