@@ -88,8 +88,6 @@ export default function transformProps(chartProps: ChartProps) {
         },
         legend: showLegend,
       },
-    },
-    commonEncoding: {
       group: [{ field: entity }],
     },
   };
