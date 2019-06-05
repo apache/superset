@@ -299,7 +299,7 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
             database_uri)
     except Exception as e:
         logging.error(f'Error importing example dashboard \'{example_title}\'!')
-        logging.error(e)
+        logging.exception(e)
 
 
 @examples.command('remove')

@@ -84,7 +84,7 @@ def import_example_dashboard(session, import_example_json, data_blob_urls,
         with tempfile.TemporaryDirectory() as tmpdir:
             for file_info in data['files']:
                 # Get the github info for the file
-                blob_file_path = f'{tmpdir.name}{os.path.sep}{file_info["file_name"]}'
+                blob_file_path = f'{tmpdir}{os.path.sep}{file_info["file_name"]}'
                 blob_url = data_blob_urls[file_info['file_name']]
 
                 response = requests.get(blob_url, stream=True)
