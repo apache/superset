@@ -14,7 +14,7 @@ import { chartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
 import { createSelector } from 'reselect';
-import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
+import Encoder, { ChannelTypes, Encoding, ChannelOutput } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import ChartLegend, {
   Props as LegendProps,
@@ -68,10 +68,10 @@ type Props = {
 
 export interface Series {
   key: string;
-  stroke: Outputs['stroke'];
-  fill: Outputs['fill'];
-  strokeDasharray: Outputs['strokeDasharray'];
-  strokeWidth: Outputs['strokeWidth'];
+  fill: ChannelOutput<'fill'>;
+  stroke: ChannelOutput<'stroke'>;
+  strokeDasharray: ChannelOutput<'strokeDasharray'>;
+  strokeWidth: ChannelOutput<'strokeWidth'>;
   values: SeriesValue[];
 }
 
