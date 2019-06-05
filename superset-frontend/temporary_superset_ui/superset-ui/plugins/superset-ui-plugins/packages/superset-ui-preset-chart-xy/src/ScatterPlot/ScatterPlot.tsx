@@ -4,17 +4,16 @@ import { XYChart, PointSeries } from '@data-ui/xy-chart';
 import { chartTheme, ChartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
-import { extent as d3Extent } from 'd3-array';
 import { createSelector } from 'reselect';
 import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import ChartLegend from '../components/legend/ChartLegend';
 import { PartialSpec } from '../encodeable/types/Specification';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
-import createXYChartLayoutSelector from '../utils/selectors/createXYChartLayoutSelector';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
 import { isScaleFieldDef } from '../encodeable/types/ChannelDef';
+import createXYChartLayoutWithTheme from '../utils/createXYChartLayoutWithTheme';
 
 export interface TooltipProps {
   datum: EncodedPoint;
@@ -59,8 +58,6 @@ export default class ScatterPlot extends PureComponent<Props> {
   private createEncoder: () => void;
 
   private createMargin = createMarginSelector();
-
-  private createXYChartLayout = createXYChartLayoutSelector();
 
   constructor(props: Props) {
     super(props);
@@ -112,7 +109,7 @@ export default class ScatterPlot extends PureComponent<Props> {
       data: d,
     }));
 
-    const layout = this.createXYChartLayout({
+    const layout = createXYChartLayoutWithTheme({
       width,
       height,
       margin: this.createMargin(margin),

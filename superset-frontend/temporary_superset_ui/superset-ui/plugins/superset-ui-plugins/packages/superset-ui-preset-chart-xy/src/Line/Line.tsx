@@ -2,7 +2,6 @@
 
 import React, { PureComponent } from 'react';
 import { kebabCase, groupBy, flatMap, uniqueId, values } from 'lodash';
-import { extent as d3Extent } from 'd3-array';
 import {
   AreaSeries,
   LinearGradient,
@@ -24,8 +23,8 @@ import ChartLegend, {
 import { PartialSpec } from '../encodeable/types/Specification';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
-import createXYChartLayoutSelector from '../utils/selectors/createXYChartLayoutSelector';
 import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
+import createXYChartLayoutWithTheme from '../utils/createXYChartLayoutWithTheme';
 
 export interface TooltipProps {
   encoder: Encoder;
@@ -89,7 +88,7 @@ export default class LineChart extends PureComponent<Props> {
   static defaultProps = defaultProps;
 
   private createEncoder = createSelector(
-    (p: PartialSpec<Encoding>) => p.encoding,
+    (p: Props) => p.encoding,
     p => p.commonEncoding,
     p => p.options,
     (encoding, commonEncoding, options) => new Encoder({ encoding, commonEncoding, options }),
@@ -137,56 +136,7 @@ export default class LineChart extends PureComponent<Props> {
     },
   );
 
-  private createChildren = createSelector(
-    (allSeries: Series[]) => allSeries,
-    allSeries => {
-      const filledSeries = flatMap(
-        allSeries
-          .filter(({ fill }) => fill)
-          .map(series => {
-            const gradientId = uniqueId(kebabCase(`gradient-${series.key}`));
-
-            return [
-              <LinearGradient
-                key={`${series.key}-gradient`}
-                id={gradientId}
-                from={series.stroke}
-                to="#fff"
-              />,
-              <AreaSeries
-                key={`${series.key}-fill`}
-                seriesKey={series.key}
-                data={series.values}
-                interpolation="linear"
-                fill={`url(#${gradientId})`}
-                stroke={series.stroke}
-                strokeWidth={series.strokeWidth}
-              />,
-            ];
-          }),
-      );
-
-      const unfilledSeries = allSeries
-        .filter(({ fill }) => !fill)
-        .map(series => (
-          <LineSeries
-            key={series.key}
-            seriesKey={series.key}
-            interpolation="linear"
-            data={series.values}
-            stroke={series.stroke}
-            strokeDasharray={series.strokeDasharray}
-            strokeWidth={series.strokeWidth}
-          />
-        ));
-
-      return filledSeries.concat(unfilledSeries);
-    },
-  );
-
   private createMargin = createMarginSelector();
-
-  private createXYChartLayout = createXYChartLayoutSelector();
 
   constructor(props: Props) {
     super(props);
@@ -195,14 +145,56 @@ export default class LineChart extends PureComponent<Props> {
     this.renderChart = this.renderChart.bind(this);
   }
 
+  renderSeries(allSeries: Series[]) {
+    const filledSeries = flatMap(
+      allSeries
+        .filter(({ fill }) => fill)
+        .map(series => {
+          const gradientId = uniqueId(kebabCase(`gradient-${series.key}`));
+
+          return [
+            <LinearGradient
+              key={`${series.key}-gradient`}
+              id={gradientId}
+              from={series.stroke}
+              to="#fff"
+            />,
+            <AreaSeries
+              key={`${series.key}-fill`}
+              seriesKey={series.key}
+              data={series.values}
+              interpolation="linear"
+              fill={`url(#${gradientId})`}
+              stroke={series.stroke}
+              strokeWidth={series.strokeWidth}
+            />,
+          ];
+        }),
+    );
+
+    const unfilledSeries = allSeries
+      .filter(({ fill }) => !fill)
+      .map(series => (
+        <LineSeries
+          key={series.key}
+          seriesKey={series.key}
+          interpolation="linear"
+          data={series.values}
+          stroke={series.stroke}
+          strokeDasharray={series.strokeDasharray}
+          strokeWidth={series.strokeWidth}
+        />
+      ));
+
+    return filledSeries.concat(unfilledSeries);
+  }
+
   renderChart(dim: Dimension) {
     const { width, height } = dim;
     const { data, margin, theme, TooltipRenderer } = this.props;
 
     const encoder = this.createEncoder(this.props);
     const { channels } = encoder;
-    const allSeries = this.createAllSeries({ encoder, data });
-    const children = this.createChildren(allSeries);
 
     if (typeof channels.x.scale !== 'undefined') {
       const xDomain = channels.x.getDomain(data);
@@ -213,7 +205,9 @@ export default class LineChart extends PureComponent<Props> {
       channels.y.scale.setDomain(yDomain);
     }
 
-    const layout = this.createXYChartLayout({
+    const allSeries = this.createAllSeries({ encoder, data });
+
+    const layout = createXYChartLayoutWithTheme({
       width,
       height,
       margin: this.createMargin(margin),
@@ -271,7 +265,7 @@ export default class LineChart extends PureComponent<Props> {
           >
             {layout.renderXAxis()}
             {layout.renderYAxis()}
-            {children}
+            {this.renderSeries(allSeries)}
             <CrossHair
               fullHeight
               strokeDasharray=""
