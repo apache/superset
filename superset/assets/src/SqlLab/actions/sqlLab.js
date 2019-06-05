@@ -42,6 +42,8 @@ export const EXPAND_TABLE = 'EXPAND_TABLE';
 export const COLLAPSE_TABLE = 'COLLAPSE_TABLE';
 export const QUERY_EDITOR_SETDB = 'QUERY_EDITOR_SETDB';
 export const QUERY_EDITOR_SET_SCHEMA = 'QUERY_EDITOR_SET_SCHEMA';
+export const QUERY_EDITOR_SET_SCHEMA_OPTIONS = 'QUERY_EDITOR_SET_SCHEMA_OPTIONS';
+export const QUERY_EDITOR_SET_TABLE_OPTIONS = 'QUERY_EDITOR_SET_TABLE_OPTIONS';
 export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
@@ -303,6 +305,14 @@ export function queryEditorSetDb(queryEditor, dbId) {
 
 export function queryEditorSetSchema(queryEditor, schema) {
   return { type: QUERY_EDITOR_SET_SCHEMA, queryEditor, schema };
+}
+
+export function queryEditorSetSchemaOptions(queryEditor, options) {
+  return { type: QUERY_EDITOR_SET_SCHEMA_OPTIONS, queryEditor, options };
+}
+
+export function queryEditorSetTableOptions(queryEditor, options) {
+  return { type: QUERY_EDITOR_SET_TABLE_OPTIONS, queryEditor, options };
 }
 
 export function queryEditorSetAutorun(queryEditor, autorun) {

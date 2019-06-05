@@ -529,6 +529,10 @@ class BaseEngineSpec(object):
             label = label[:cls.max_column_name_length]
         return label
 
+    @classmethod
+    def column_datatype_to_string(cls, sqla_column_type, dialect):
+        return sqla_column_type.compile(dialect=dialect).upper()
+
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
@@ -753,16 +757,16 @@ class DrillEngineSpec(BaseEngineSpec):
 
     time_grain_functions = {
         None: '{col}',
-        'PT1S': "nearestDate({col}, 'SECOND')",
-        'PT1M': "nearestDate({col}, 'MINUTE')",
-        'PT15M': "nearestDate({col}, 'QUARTER_HOUR')",
-        'PT0.5H': "nearestDate({col}, 'HALF_HOUR')",
-        'PT1H': "nearestDate({col}, 'HOUR')",
-        'P1D': 'TO_DATE({col})',
-        'P1W': "nearestDate({col}, 'WEEK_SUNDAY')",
-        'P1M': "nearestDate({col}, 'MONTH')",
-        'P0.25Y': "nearestDate({col}, 'QUARTER')",
-        'P1Y': "nearestDate({col}, 'YEAR')",
+        'PT1S': "NEARESTDATE({col}, 'SECOND')",
+        'PT1M': "NEARESTDATE({col}, 'MINUTE')",
+        'PT15M': "NEARESTDATE({col}, 'QUARTER_HOUR')",
+        'PT0.5H': "NEARESTDATE({col}, 'HALF_HOUR')",
+        'PT1H': "NEARESTDATE({col}, 'HOUR')",
+        'P1D': "NEARESTDATE({col}, 'DAY')",
+        'P1W': "NEARESTDATE({col}, 'WEEK_SUNDAY')",
+        'P1M': "NEARESTDATE({col}, 'MONTH')",
+        'P0.25Y': "NEARESTDATE({col}, 'QUARTER')",
+        'P1Y': "NEARESTDATE({col}, 'YEAR')",
     }
 
     # Returns a function to convert a Unix timestamp in milliseconds to a date
@@ -863,6 +867,17 @@ class MySQLEngineSpec(BaseEngineSpec):
         except Exception:
             pass
         return message
+
+    @classmethod
+    def column_datatype_to_string(cls, sqla_column_type, dialect):
+        datatype = super().column_datatype_to_string(sqla_column_type, dialect)
+        # MySQL dialect started returning long overflowing datatype
+        # as in 'VARCHAR(255) COLLATE UTF8MB4_GENERAL_CI'
+        # and we don't need the verbose collation type
+        str_cutoff = ' COLLATE '
+        if str_cutoff in datatype:
+            datatype = datatype.split(str_cutoff)[0]
+        return datatype
 
 
 class PrestoEngineSpec(BaseEngineSpec):

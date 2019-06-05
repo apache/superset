@@ -66,8 +66,7 @@ class AnchorLink extends React.PureComponent {
   }
 
   handleClickAnchorLink(ev) {
-    ev.preventDefault();
-    history.pushState(null, null, `#${this.props.anchorLinkId}`);
+    ev.stopPropagation();
   }
 
   render() {
@@ -76,6 +75,7 @@ class AnchorLink extends React.PureComponent {
       <span
         className="anchor-link-container"
         id={anchorLinkId}
+        onClick={this.handleClickAnchorLink}
       >
         {showShortLinkButton &&
         <URLShortLinkButton
