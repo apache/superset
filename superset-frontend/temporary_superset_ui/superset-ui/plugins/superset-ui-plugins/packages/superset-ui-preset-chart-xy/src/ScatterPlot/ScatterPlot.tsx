@@ -135,9 +135,9 @@ export default class ScatterPlot extends PureComponent<Props> {
         xScale={convertScaleToDataUIScale(channels.x.scale!.config)}
         yScale={convertScaleToDataUIScale(channels.y.scale!.config)}
       >
-        {children}
         {layout.renderXAxis()}
         {layout.renderYAxis()}
+        {children}
       </XYChart>
     ));
   }
