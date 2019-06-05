@@ -290,14 +290,18 @@ class DashboardEncoder(json.JSONEncoder):
     # pylint: disable=E0202
     def default(self, o):
         try:
+            if type(o) == uuid.UUID:
+                print(type(o), o, o.__dict__)
+                return str(o)
             vals = {
                 k: v for k, v in o.__dict__.items() if k != '_sa_instance_state'}
-            if type(o) == uuid.UUID:
-                return str(o)
+            print(type(o), o, o.__dict__)
             return {'__{}__'.format(o.__class__.__name__): vals}
         except Exception:
             if type(o) == datetime:
+                print(type(o), o)
                 return {'__datetime__': o.replace(microsecond=0).isoformat()}
+            print(type(o), o, o.__dict__)
             return json.JSONEncoder.default(self, o)
 
 
