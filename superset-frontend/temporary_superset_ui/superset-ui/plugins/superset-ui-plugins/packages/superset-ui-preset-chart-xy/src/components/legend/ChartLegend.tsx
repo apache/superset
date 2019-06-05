@@ -1,7 +1,6 @@
 import React, { CSSProperties, PureComponent } from 'react';
 import AbstractEncoder from '../../encodeable/AbstractEncoder';
 import { Dataset } from '../../encodeable/types/Data';
-import { ChannelType } from '../../encodeable/types/Channel';
 import {
   LegendItemRendererType,
   LegendGroupRendererType,
@@ -9,7 +8,6 @@ import {
   LegendItemMarkRendererType,
 } from './types';
 import DefaultLegendGroup from './DefaultLegendGroup';
-import { ChannelDef } from '../../encodeable/types/ChannelDef';
 
 const LEGEND_CONTAINER_STYLE: CSSProperties = {
   display: 'flex',
@@ -21,24 +19,22 @@ const LEGEND_CONTAINER_STYLE: CSSProperties = {
   position: 'relative',
 };
 
-export type Hooks<ChannelTypes> = {
-  LegendGroupRenderer?: LegendGroupRendererType<ChannelTypes>;
-  LegendItemRenderer?: LegendItemRendererType<ChannelTypes>;
-  LegendItemMarkRenderer?: LegendItemMarkRendererType<ChannelTypes>;
-  LegendItemLabelRenderer?: LegendItemLabelRendererType<ChannelTypes>;
+export type Hooks<Encoding> = {
+  LegendGroupRenderer?: LegendGroupRendererType<Encoding>;
+  LegendItemRenderer?: LegendItemRendererType<Encoding>;
+  LegendItemMarkRenderer?: LegendItemMarkRendererType<Encoding>;
+  LegendItemLabelRenderer?: LegendItemLabelRendererType<Encoding>;
 };
 
-export type Props<ChannelTypes, Encoder> = {
+export type Props<Encoder> = {
   data: Dataset;
   encoder: Encoder;
   style?: CSSProperties;
-} & Hooks<ChannelTypes>;
+} & Hooks<Encoder extends AbstractEncoder<any, infer Encoding> ? Encoding : never>;
 
-export default class ChartLegend<
-  Encoder extends AbstractEncoder<ChannelTypes, Encoding>,
-  ChannelTypes extends Record<string, ChannelType> = any,
-  Encoding extends Record<keyof ChannelTypes, ChannelDef> = any
-> extends PureComponent<Props<ChannelTypes, Encoder>, {}> {
+export default class ChartLegend<Encoder extends AbstractEncoder<any, any>> extends PureComponent<
+  Props<Encoder>
+> {
   render() {
     const {
       data,

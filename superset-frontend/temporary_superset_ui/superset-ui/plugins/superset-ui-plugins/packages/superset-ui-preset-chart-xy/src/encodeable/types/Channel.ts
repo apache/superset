@@ -1,6 +1,5 @@
 import { Value } from 'vega-lite/build/src/channeldef';
-import { XFieldDef, YFieldDef, ChannelDef, MarkPropChannelDef, TextChannelDef } from './ChannelDef';
-import { ObjectWithKeysFromAndValueType } from './Base';
+import { XFieldDef, YFieldDef, MarkPropChannelDef, TextChannelDef } from './ChannelDef';
 
 export type ChannelInput = number | string | boolean | null | Date | undefined;
 
@@ -13,8 +12,7 @@ export interface ChannelOptions {
 /**
  * Define all channel types and mapping to available definition grammar
  */
-export interface ChannelTypeToDefMap<Output extends Value = Value>
-  extends ObjectWithKeysFromAndValueType<ChannelTypeToDefMap<Output>, ChannelDef> {
+export interface ChannelTypeToDefMap<Output extends Value = Value> {
   // position on x-axis
   X: XFieldDef<Output>;
   // position on y-axis
