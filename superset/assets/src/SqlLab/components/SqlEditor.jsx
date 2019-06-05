@@ -242,10 +242,10 @@ class SqlEditor extends React.PureComponent {
   }
   runQuery() {
     if (this.props.database) {
-      this.startQuery(this.props.database.allow_run_async);
+      this.startQuery();
     }
   }
-  startQuery(runAsync = false, ctas = false) {
+  startQuery(ctas = false) {
     const qe = this.props.queryEditor;
     const query = {
       dbId: qe.dbId,
@@ -256,7 +256,7 @@ class SqlEditor extends React.PureComponent {
       tempTableName: ctas ? this.state.ctas : '',
       templateParams: qe.templateParams,
       queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
-      runAsync,
+      runAsync: this.props.database ? this.props.database.allow_run_async : false,
       ctas,
     };
     this.props.actions.runQuery(query);
@@ -268,7 +268,7 @@ class SqlEditor extends React.PureComponent {
     }
   }
   createTableAs() {
-    this.startQuery(true, true);
+    this.startQuery(true);
   }
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
@@ -298,7 +298,9 @@ class SqlEditor extends React.PureComponent {
             onChange={this.onSqlChanged}
             queryEditor={this.props.queryEditor}
             sql={this.props.queryEditor.sql}
-            tables={this.props.tables}
+            schemas={this.props.queryEditor.schemaOptions}
+            tables={this.props.queryEditor.tableOptions}
+            extendedTables={this.props.tables}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
           />
@@ -306,6 +308,7 @@ class SqlEditor extends React.PureComponent {
         </div>
         <SouthPane
           editorQueries={this.props.editorQueries}
+          latestQueryId={this.props.latestQuery ? this.props.latestQuery.id : 0}
           dataPreviewQueries={this.props.dataPreviewQueries}
           actions={this.props.actions}
           height={southPaneHeight}

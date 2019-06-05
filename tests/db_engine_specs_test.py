@@ -814,3 +814,17 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         expr = PinotEngineSpec.get_timestamp_expr(col, 'epoch_s', 'P1M')
         result = str(expr.compile())
         self.assertEqual(result, 'DATETIMECONVERT(tstamp, "1:SECONDS:EPOCH", "1:SECONDS:EPOCH", "1:MONTHS")')  # noqa
+
+    def test_column_datatype_to_string(self):
+        main_db = self.get_main_database()
+        sqla_table = main_db.get_table('energy_usage')
+        dialect = main_db.get_dialect()
+        col_names = [
+            main_db.db_engine_spec.column_datatype_to_string(c.type, dialect)
+            for c in sqla_table.columns
+        ]
+        if main_db.backend == 'postgresql':
+            expected = ['VARCHAR(255)', 'VARCHAR(255)', 'DOUBLE PRECISION']
+        else:
+            expected = ['VARCHAR(255)', 'VARCHAR(255)', 'FLOAT']
+        self.assertEquals(col_names, expected)

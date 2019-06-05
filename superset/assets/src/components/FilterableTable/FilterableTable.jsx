@@ -60,7 +60,7 @@ export default class FilterableTable extends PureComponent {
   constructor(props) {
     super(props);
     this.list = List(this.formatTableData(props.data));
-    this.headerRenderer = this.headerRenderer.bind(this);
+    this.renderHeader = this.renderHeader.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
 
@@ -139,27 +139,6 @@ export default class FilterableTable extends PureComponent {
     return values.some(v => v.includes(lowerCaseText));
   }
 
-  headerRenderer({ dataKey, label, sortBy, sortDirection }) {
-    return (
-      <TooltipWrapper label="header" tooltip={label}>
-        <div className="header-style">
-          <span
-            className={
-              this.props.expandedColumns.indexOf(label) > -1
-                ? 'header-style-disabled'
-                : ''
-            }
-          >
-            {label}
-          </span>
-          {sortBy === dataKey &&
-            <SortIndicator sortDirection={sortDirection} />
-          }
-        </div>
-      </TooltipWrapper>
-    );
-  }
-
   rowClassName({ index }) {
     let className = '';
     if (this.props.striped) {
@@ -170,6 +149,22 @@ export default class FilterableTable extends PureComponent {
 
   sort({ sortBy, sortDirection }) {
     this.setState({ sortBy, sortDirection });
+  }
+
+  renderHeader({ dataKey, label, sortBy, sortDirection }) {
+    const className = this.props.expandedColumns.indexOf(label) > -1
+      ? 'header-style-disabled'
+      : 'header-style';
+    return (
+      <TooltipWrapper label="header" tooltip={label}>
+        <div className={className}>
+          {label}
+          {sortBy === dataKey &&
+            <SortIndicator sortDirection={sortDirection} />
+          }
+        </div>
+      </TooltipWrapper>
+    );
   }
 
   render() {
@@ -229,7 +224,7 @@ export default class FilterableTable extends PureComponent {
               <Column
                 dataKey={columnKey}
                 disableSort={false}
-                headerRenderer={this.headerRenderer}
+                headerRenderer={this.renderHeader}
                 width={this.widthsForColumnsByKey[columnKey]}
                 label={columnKey}
                 key={columnKey}
