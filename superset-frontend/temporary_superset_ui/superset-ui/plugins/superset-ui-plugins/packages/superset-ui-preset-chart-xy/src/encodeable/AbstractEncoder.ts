@@ -1,36 +1,23 @@
 import { Value } from 'vega-lite/build/src/channeldef';
 import { ObjectWithKeysFromAndValueType } from './types/Base';
-import {
-  ChannelOptions,
-  EncodingFromChannelsAndOutputs,
-  ChannelType,
-  ChannelInput,
-} from './types/Channel';
+import { ChannelOptions, ChannelType, ChannelInput } from './types/Channel';
 import { FullSpec, BaseOptions, PartialSpec } from './types/Specification';
-import { isFieldDef, isTypedFieldDef, FieldDef } from './types/ChannelDef';
+import { isFieldDef, isTypedFieldDef, FieldDef, ChannelDef } from './types/ChannelDef';
 import ChannelEncoder from './ChannelEncoder';
 import { Dataset } from './types/Data';
 
 export default abstract class AbstractEncoder<
-  // The first 3 generics depends on each other
-  // to ensure all of them will have the exact same keys
-  ChannelTypes extends ObjectWithKeysFromAndValueType<Outputs, ChannelType>,
-  Outputs extends ObjectWithKeysFromAndValueType<Encoding, Value>,
-  Encoding extends EncodingFromChannelsAndOutputs<
-    ChannelTypes,
-    Outputs
-  > = EncodingFromChannelsAndOutputs<ChannelTypes, Outputs>,
+  ChannelTypes extends Record<string, ChannelType>,
+  Encoding extends Record<keyof ChannelTypes, ChannelDef | ChannelDef>,
   Options extends BaseOptions = BaseOptions
 > {
   readonly channelTypes: ChannelTypes;
   readonly spec: FullSpec<Encoding, Options>;
-  readonly channels: {
-    readonly [k in keyof ChannelTypes]: ChannelEncoder<Encoding[k], Outputs[k]>
-  };
+  readonly channels: { readonly [k in keyof ChannelTypes]: ChannelEncoder<Encoding[k]> };
 
   readonly commonChannels: {
-    group: ChannelEncoder<FieldDef, Value>[];
-    tooltip: ChannelEncoder<FieldDef, Value>[];
+    group: ChannelEncoder<FieldDef>[];
+    tooltip: ChannelEncoder<FieldDef>[];
   };
 
   readonly legends: {
@@ -47,7 +34,7 @@ export default abstract class AbstractEncoder<
     this.spec = this.createFullSpec(spec, defaultEncoding);
 
     type ChannelName = keyof ChannelTypes;
-    type Channels = { readonly [k in ChannelName]: ChannelEncoder<Encoding[k], Outputs[k]> };
+    type Channels = { readonly [k in ChannelName]: ChannelEncoder<Encoding[k]> };
 
     const channelNames = Object.keys(this.channelTypes) as ChannelName[];
 
@@ -55,7 +42,7 @@ export default abstract class AbstractEncoder<
     this.channels = channelNames
       .map(
         (name: ChannelName) =>
-          new ChannelEncoder<Encoding[typeof name], Outputs[typeof name]>({
+          new ChannelEncoder<Encoding[typeof name]>({
             definition: encoding[name],
             name,
             options: {

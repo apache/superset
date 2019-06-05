@@ -1,5 +1,4 @@
 import { extent as d3Extent } from 'd3-array';
-import { Value } from 'vega-lite/build/src/channeldef';
 import { extractFormatFromChannelDef } from './parsers/extractFormat';
 import extractScale, { ScaleAgent } from './parsers/extractScale';
 import extractGetter from './parsers/extractGetter';
@@ -13,23 +12,24 @@ import {
   isFieldDef,
   isNonValueDef,
   isTypedFieldDef,
+  ExtractChannelOutput,
 } from './types/ChannelDef';
 import isEnabled from './utils/isEnabled';
 import isDisabled from './utils/isDisabled';
 import identity from './utils/identity';
 import AxisAgent from './AxisAgent';
 
-export default class ChannelEncoder<Def extends ChannelDef<Output>, Output extends Value = Value> {
+export default class ChannelEncoder<Def extends ChannelDef> {
   readonly name: string | Symbol | number;
   readonly type: ChannelType;
   readonly definition: Def;
   readonly options: ChannelOptions;
 
   protected readonly getValue: (datum: PlainObject) => ChannelInput;
-  readonly encodeValue: (value: ChannelInput) => Output | null | undefined;
+  readonly encodeValue: (value: ChannelInput) => ExtractChannelOutput<Def> | null | undefined;
   readonly formatValue: (value: ChannelInput | { toString(): string }) => string;
-  readonly scale?: ScaleAgent<Output>;
-  readonly axis?: AxisAgent<Def, Output>;
+  readonly scale?: ScaleAgent<ExtractChannelOutput<Def>>;
+  readonly axis?: AxisAgent<Def>;
 
   constructor({
     name,
@@ -49,7 +49,6 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
 
     this.getValue = extractGetter(definition);
     this.formatValue = extractFormatFromChannelDef(definition);
-
     this.scale = extractScale(this.type, definition, options.namespace);
     // Has to extract axis after format and scale
     if (
@@ -58,7 +57,7 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
       (('axis' in this.definition && isEnabled(this.definition.axis)) ||
         !('axis' in this.definition))
     ) {
-      this.axis = new AxisAgent<Def, Output>(this);
+      this.axis = new AxisAgent<Def>(this);
     }
 
     this.encodeValue = this.scale ? this.scale.encodeValue : identity;
@@ -67,11 +66,11 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
     this.get = this.get.bind(this);
   }
 
-  encode(datum: PlainObject): Output | null | undefined;
+  encode(datum: PlainObject): ExtractChannelOutput<Def> | null | undefined;
   // eslint-disable-next-line no-dupe-class-members
-  encode(datum: PlainObject, otherwise: Output): Output;
+  encode(datum: PlainObject, otherwise: ExtractChannelOutput<Def>): ExtractChannelOutput<Def>;
   // eslint-disable-next-line no-dupe-class-members
-  encode(datum: PlainObject, otherwise?: Output) {
+  encode(datum: PlainObject, otherwise?: ExtractChannelOutput<Def>) {
     const value = this.get(datum);
     if (value === null || value === undefined) {
       return otherwise;

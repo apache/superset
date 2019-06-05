@@ -51,6 +51,8 @@ export type NonValueDef<Output extends Value = Value> =
 
 export type ChannelDef<Output extends Value = Value> = NonValueDef<Output> | ValueDef<Output>;
 
+export type ExtractChannelOutput<C> = C extends ChannelDef<infer Output> ? Output : never;
+
 export function isValueDef<Output extends Value>(
   channelDef: ChannelDef<Output>,
 ): channelDef is ValueDef<Output> {
@@ -77,13 +79,13 @@ export function isTypedFieldDef<Output extends Value>(
 
 export function isScaleFieldDef<Output extends Value>(
   channelDef: ChannelDef<Output>,
-): channelDef is ScaleFieldDef {
+): channelDef is ScaleFieldDef<Output> {
   return channelDef && ('scale' in channelDef || 'sort' in channelDef);
 }
 
 export function isMarkPropFieldDef<Output extends Value>(
   channelDef: ChannelDef<Output>,
-): channelDef is MarkPropFieldDef {
+): channelDef is MarkPropFieldDef<Output> {
   return channelDef && 'legend' in channelDef;
 }
 

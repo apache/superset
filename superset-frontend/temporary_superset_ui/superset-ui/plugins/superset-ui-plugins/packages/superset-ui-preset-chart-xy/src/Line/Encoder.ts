@@ -1,6 +1,10 @@
 import AbstractEncoder from '../encodeable/AbstractEncoder';
 import { PartialSpec } from '../encodeable/types/Specification';
-import { EncodingFromChannelsAndOutputs } from '../encodeable/types/Channel';
+import {
+  EncodingFromChannelsAndOutputs,
+  ChannelTypeToDefMap,
+  ChannelType,
+} from '../encodeable/types/Channel';
 
 /**
  * Define channel types
@@ -16,24 +20,33 @@ const channelTypes = {
 
 export type ChannelTypes = typeof channelTypes;
 
+export type Encoding = {
+  fill: ChannelTypeToDefMap<boolean>[ChannelTypes['fill']];
+  stroke: ChannelTypeToDefMap<string>[ChannelTypes['stroke']];
+  strokeDasharray: ChannelTypeToDefMap<string>[ChannelTypes['strokeDasharray']];
+  strokeWidth: ChannelTypeToDefMap<number>[ChannelTypes['strokeWidth']];
+  x: ChannelTypeToDefMap<string>[ChannelTypes['x']];
+  y: ChannelTypeToDefMap<string>[ChannelTypes['y']];
+};
+
 /**
  * Define output type for each channel
  */
-export interface Outputs {
-  x: number | null;
-  y: number | null;
-  fill: boolean;
-  stroke: string;
-  strokeDasharray: string;
-  strokeWidth: number;
-}
+// export interface Outputs {
+//   x: number | null;
+//   y: number | null;
+//   fill: boolean;
+//   stroke: string;
+//   strokeDasharray: string;
+//   strokeWidth: number;
+// }
 
 /**
  * Derive encoding config
  */
-export type Encoding = EncodingFromChannelsAndOutputs<ChannelTypes, Outputs>;
+// export type Encoding = EncodingFromChannelsAndOutputs<ChannelTypes, Outputs>;
 
-export default class Encoder extends AbstractEncoder<ChannelTypes, Outputs> {
+export default class Encoder extends AbstractEncoder<ChannelTypes, Encoding> {
   static readonly DEFAULT_ENCODINGS: Encoding = {
     fill: { value: false },
     stroke: { value: '#222' },
