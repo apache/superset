@@ -77,3 +77,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.header-style-disabled {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #aaa;
+}

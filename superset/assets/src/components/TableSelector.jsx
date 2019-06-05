@@ -33,6 +33,8 @@ const propTypes = {
   schema: PropTypes.string,
   onSchemaChange: PropTypes.func,
   onDbChange: PropTypes.func,
+  onSchemasLoad: PropTypes.func,
+  onTablesLoad: PropTypes.func,
   getDbList: PropTypes.func,
   onTableChange: PropTypes.func,
   tableNameSticky: PropTypes.bool,
@@ -47,6 +49,8 @@ const propTypes = {
 const defaultProps = {
   onDbChange: () => {},
   onSchemaChange: () => {},
+  onSchemasLoad: () => {},
+  onTablesLoad: () => {},
   getDbList: () => {},
   onTableChange: () => {},
   onChange: () => {},
@@ -136,6 +140,7 @@ export default class TableSelector extends React.PureComponent {
               title: o.label,
             })),
           }));
+          this.props.onTablesLoad(json.options);
         })
         .catch(() => {
           this.setState(() => ({ tableLoading: false, tableOptions: [] }));
@@ -156,6 +161,7 @@ export default class TableSelector extends React.PureComponent {
         .then(({ json }) => {
           const schemaOptions = json.schemas.map(s => ({ value: s, label: s, title: s }));
           this.setState({ schemaOptions, schemaLoading: false });
+          this.props.onSchemasLoad(schemaOptions);
         })
         .catch(() => {
           this.setState({ schemaLoading: false, schemaOptions: [] });
@@ -170,13 +176,8 @@ export default class TableSelector extends React.PureComponent {
       this.setState({ tableName: '' });
       return;
     }
-    const namePieces = tableOpt.value.split('.');
-    let tableName = namePieces[0];
-    let schemaName = this.props.schema;
-    if (namePieces.length > 1) {
-      schemaName = namePieces[0];
-      tableName = namePieces[1];
-    }
+    const schemaName = tableOpt.value.schema;
+    const tableName = tableOpt.value.table;
     if (this.props.tableNameSticky) {
       this.setState({ tableName }, this.onChange);
     }

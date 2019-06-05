@@ -59,6 +59,7 @@ from superset.utils.core import (
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
+relative_start = config.get('DEFAULT_RELATIVE_START_TIME', 'today')
 relative_end = config.get('DEFAULT_RELATIVE_END_TIME', 'today')
 
 METRIC_KEYS = [
@@ -274,7 +275,8 @@ class BaseViz(object):
         # default order direction
         order_desc = form_data.get('order_desc', True)
 
-        since, until = utils.get_since_until(relative_end=relative_end,
+        since, until = utils.get_since_until(relative_start=relative_start,
+                                             relative_end=relative_end,
                                              time_range=form_data.get('time_range'),
                                              since=form_data.get('since'),
                                              until=form_data.get('until'))
@@ -800,7 +802,8 @@ class CalHeatmapViz(BaseViz):
                 values[str(v / 10**9)] = obj.get(metric)
             data[metric] = values
 
-        start, end = utils.get_since_until(relative_end=relative_end,
+        start, end = utils.get_since_until(relative_start=relative_start,
+                                           relative_end=relative_end,
                                            time_range=form_data.get('time_range'),
                                            since=form_data.get('since'),
                                            until=form_data.get('until'))
@@ -1765,9 +1768,7 @@ class WorldMapViz(BaseViz):
         columns = ['country', 'm1', 'm2']
         if metric == secondary_metric:
             ndf = df[cols]
-            # df[metric] will be a DataFrame
-            # because there are duplicate column names
-            ndf['m1'] = df[metric].iloc[:, 0]
+            ndf['m1'] = df[metric]
             ndf['m2'] = ndf['m1']
         else:
             if secondary_metric:

@@ -18,6 +18,7 @@
 from collections import namedtuple, OrderedDict
 from datetime import datetime
 import logging
+from typing import Optional, Union
 
 from flask import escape, Markup
 from flask_appbuilder import Model
@@ -32,11 +33,12 @@ from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
-from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy.sql.expression import Label, TextAsFrom
 import sqlparse
 
 from superset import app, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.db_engine_specs import TimestampExpression
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
@@ -140,8 +142,14 @@ class TableColumn(Model, BaseColumn):
             l.append(col <= text(self.dttm_sql_literal(end_dttm, is_epoch_in_utc)))
         return and_(*l)
 
-    def get_timestamp_expression(self, time_grain):
-        """Getting the time component of the query"""
+    def get_timestamp_expression(self, time_grain: Optional[str]) \
+            -> Union[TimestampExpression, Label]:
+        """
+        Return a SQLAlchemy Core element representation of self to be used in a query.
+
+        :param time_grain: Optional time grain, e.g. P1Y
+        :return: A TimeExpression object wrapped in a Label if supported by db
+        """
         label = utils.DTTM_ALIAS
 
         db = self.table.database
@@ -150,16 +158,12 @@ class TableColumn(Model, BaseColumn):
         if not self.expression and not time_grain and not is_epoch:
             sqla_col = column(self.column_name, type_=DateTime)
             return self.table.make_sqla_column_compatible(sqla_col, label)
-        grain = None
-        if time_grain:
-            grain = db.grains_dict().get(time_grain)
-            if not grain:
-                raise NotImplementedError(
-                    f'No grain spec for {time_grain} for database {db.database_name}')
-        col = db.db_engine_spec.get_timestamp_column(self.expression, self.column_name)
-        expr = db.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
-        sqla_col = literal_column(expr, type_=DateTime)
-        return self.table.make_sqla_column_compatible(sqla_col, label)
+        if self.expression:
+            col = literal_column(self.expression)
+        else:
+            col = column(self.column_name)
+        time_expr = db.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
+        return self.table.make_sqla_column_compatible(time_expr, label)
 
     @classmethod
     def import_obj(cls, i_column):
@@ -896,7 +900,7 @@ class SqlaTable(Model, BaseDatasource):
 
         for col in table.columns:
             try:
-                datatype = col.type.compile(dialect=db_dialect).upper()
+                datatype = db_engine_spec.column_datatype_to_string(col.type, db_dialect)
             except Exception as e:
                 datatype = 'UNKNOWN'
                 logging.error(

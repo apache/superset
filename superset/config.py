@@ -601,8 +601,28 @@ WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
 
-# Default dashboard export directory
-DASHBOARD_EXPORT_DIR = '/tmp'
+# Send user to a link where they can read more about Superset
+DOCUMENTATION_URL = None
+
+# What is the Last N days relative in the time selector to:
+# 'today' means it is midnight (00:00:00) in the local timezone
+# 'now' means it is relative to the query issue time
+# If both start and end time is set to now, this will make the time
+# filter a moving window. By only setting the end time to now,
+# start time will be set to midnight, while end will be relative to
+# the query issue time.
+DEFAULT_RELATIVE_START_TIME = 'today'
+DEFAULT_RELATIVE_END_TIME = 'today'
+
+# Is epoch_s/epoch_ms datetime format supposed to be considered since UTC ?
+# If not, it is sassumed then the epoch_s/epoch_ms is seconds since 1/1/1970
+# localtime (in the tz where the superset webserver is running)
+IS_EPOCH_S_TRULY_UTC = False
+
+# Configure which SQL validator to use for each engine
+SQL_VALIDATORS_BY_ENGINE = {
+    'presto': 'PrestoDBSQLValidator',
+}
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False
@@ -612,6 +632,9 @@ TALISMAN_CONFIG = {
     'force_https': True,
     'force_https_permanent': False,
 }
+
+# Default dashboard export directory
+DASHBOARD_EXPORT_DIR = '/tmp'
 
 # Tuple format: Gitub repo full name, tag/branch
 EXAMPLE_REPOS_TAGS = [

@@ -258,7 +258,7 @@ class TableVizTestCase(SupersetTestCase):
                 {
                     'expressionType': 'SQL',
                     'clause': 'WHERE',
-                    'sqlExpression': 'value3 in (\'North America\')',
+                    'sqlExpression': "value3 in ('North America')",
                 },
             ],
         }
@@ -273,7 +273,7 @@ class TableVizTestCase(SupersetTestCase):
             [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
             query_obj['extras']['having_druid'],
         )
-        self.assertEqual('(value3 in (\'North America\'))', query_obj['extras']['where'])
+        self.assertEqual("(value3 in ('North America'))", query_obj['extras']['where'])
         self.assertEqual('(SUM(value1) > 5)', query_obj['extras']['having'])
 
     def test_adhoc_filters_overwrite_legacy_filters(self):
@@ -295,7 +295,7 @@ class TableVizTestCase(SupersetTestCase):
                 {
                     'expressionType': 'SQL',
                     'clause': 'WHERE',
-                    'sqlExpression': 'value3 in (\'North America\')',
+                    'sqlExpression': "value3 in ('North America')",
                 },
             ],
             'having': 'SUM(value1) > 5',
@@ -311,7 +311,7 @@ class TableVizTestCase(SupersetTestCase):
             [],
             query_obj['extras']['having_druid'],
         )
-        self.assertEqual('(value3 in (\'North America\'))', query_obj['extras']['where'])
+        self.assertEqual("(value3 in ('North America'))", query_obj['extras']['where'])
         self.assertEqual('', query_obj['extras']['having'])
 
     @patch('superset.viz.BaseViz.query_obj')

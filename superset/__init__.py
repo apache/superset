@@ -203,6 +203,7 @@ with app.app_context():
         base_template='superset/base.html',
         indexview=MyIndexView,
         security_manager_class=custom_sm,
+        update_perms=False,  # Run `superset init` to update FAB's perms
     )
 
 security_manager = appbuilder.sm
