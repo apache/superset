@@ -1,40 +1,39 @@
 import { Value } from 'vega-lite/build/src/channeldef';
 import { CSSProperties } from 'react';
-import { ObjectWithKeysFromAndValueType } from '../../encodeable/types/Base';
 import { ChannelInput } from '../../encodeable/types/Channel';
 
-export type LegendItemInfo<ChannelTypes> = {
+export type LegendItemInfo<Encoding> = {
   field: string;
   value: ChannelInput;
-  encodedValues: Partial<ObjectWithKeysFromAndValueType<ChannelTypes, Value | undefined>>;
+  encodedValues: Partial<Record<keyof Encoding, Value | undefined>>;
 };
 
-export type LegendItemMarkRendererType<ChannelTypes> = React.ComponentType<{
-  item: LegendItemInfo<ChannelTypes>;
+export type LegendItemMarkRendererType<Encoding> = React.ComponentType<{
+  item: LegendItemInfo<Encoding>;
 }>;
 
-export type LegendItemLabelRendererType<ChannelTypes> = React.ComponentType<{
-  item: LegendItemInfo<ChannelTypes>;
+export type LegendItemLabelRendererType<Encoding> = React.ComponentType<{
+  item: LegendItemInfo<Encoding>;
 }>;
 
-export type LegendItemRendererProps<ChannelTypes> = {
-  item: LegendItemInfo<ChannelTypes>;
-  MarkRenderer?: LegendItemMarkRendererType<ChannelTypes>;
-  LabelRenderer?: LegendItemLabelRendererType<ChannelTypes>;
+export type LegendItemRendererProps<Encoding> = {
+  item: LegendItemInfo<Encoding>;
+  MarkRenderer?: LegendItemMarkRendererType<Encoding>;
+  LabelRenderer?: LegendItemLabelRendererType<Encoding>;
 };
 
-export type LegendItemRendererType<ChannelTypes> = React.ComponentType<
-  LegendItemRendererProps<ChannelTypes>
+export type LegendItemRendererType<Encoding> = React.ComponentType<
+  LegendItemRendererProps<Encoding>
 >;
 
-export type LegendGroupRendererProps<ChannelTypes> = {
-  items: LegendItemInfo<ChannelTypes>[];
-  ItemRenderer?: LegendItemRendererType<ChannelTypes>;
-  ItemMarkRenderer?: LegendItemMarkRendererType<ChannelTypes>;
-  ItemLabelRenderer?: LegendItemLabelRendererType<ChannelTypes>;
+export type LegendGroupRendererProps<Encoding> = {
+  items: LegendItemInfo<Encoding>[];
+  ItemRenderer?: LegendItemRendererType<Encoding>;
+  ItemMarkRenderer?: LegendItemMarkRendererType<Encoding>;
+  ItemLabelRenderer?: LegendItemLabelRendererType<Encoding>;
   style?: CSSProperties;
 };
 
-export type LegendGroupRendererType<ChannelTypes> = React.ComponentType<
-  LegendGroupRendererProps<ChannelTypes>
+export type LegendGroupRendererType<Encoding> = React.ComponentType<
+  LegendGroupRendererProps<Encoding>
 >;

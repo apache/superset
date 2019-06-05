@@ -1,6 +1,5 @@
 /* eslint-disable no-magic-numbers */
 import { CSSProperties } from 'react';
-import { Value } from 'vega-lite/build/src/channeldef';
 import { getTextDimension, Margin, Dimension } from '@superset-ui/dimension';
 import { CategoricalColorScale } from '@superset-ui/color';
 import { extractFormatFromTypeAndFormat } from './parsers/extractFormat';

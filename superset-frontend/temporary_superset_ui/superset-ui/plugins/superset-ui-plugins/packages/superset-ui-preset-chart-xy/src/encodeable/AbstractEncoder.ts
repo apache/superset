@@ -1,19 +1,24 @@
+import { flatMap } from 'lodash';
 import { Value } from 'vega-lite/build/src/channeldef';
-import { ObjectWithKeysFromAndValueType } from './types/Base';
 import { ChannelOptions, ChannelType, ChannelInput } from './types/Channel';
 import { FullSpec, BaseOptions, PartialSpec } from './types/Specification';
 import { isFieldDef, isTypedFieldDef, FieldDef, ChannelDef } from './types/ChannelDef';
 import ChannelEncoder from './ChannelEncoder';
 import { Dataset } from './types/Data';
+import { Unarray, MayBeArray, isArray, isNotArray } from './types/Base';
 
 export default abstract class AbstractEncoder<
   ChannelTypes extends Record<string, ChannelType>,
-  Encoding extends Record<keyof ChannelTypes, ChannelDef>,
+  Encoding extends Record<keyof ChannelTypes, MayBeArray<ChannelDef>>,
   Options extends BaseOptions = BaseOptions
 > {
   readonly channelTypes: ChannelTypes;
   readonly spec: FullSpec<Encoding, Options>;
-  readonly channels: { readonly [k in keyof ChannelTypes]: ChannelEncoder<Encoding[k]> };
+  readonly channels: {
+    readonly [k in keyof Encoding]: Encoding[k] extends any[]
+      ? ChannelEncoder<Unarray<Encoding[k]>>[]
+      : ChannelEncoder<Unarray<Encoding[k]>>
+  };
 
   readonly commonChannels: {
     group: ChannelEncoder<FieldDef>[];
@@ -21,50 +26,64 @@ export default abstract class AbstractEncoder<
   };
 
   readonly legends: {
-    [key: string]: (keyof ChannelTypes)[];
+    [key: string]: (keyof Encoding)[];
   };
 
   constructor(
     channelTypes: ChannelTypes,
     spec: PartialSpec<Encoding, Options>,
     defaultEncoding?: Encoding,
-    channelOptions: Partial<{ [k in keyof ChannelTypes]: ChannelOptions }> = {},
+    channelOptions: Partial<{ [k in keyof Encoding]: ChannelOptions }> = {},
   ) {
     this.channelTypes = channelTypes;
     this.spec = this.createFullSpec(spec, defaultEncoding);
-
-    type ChannelName = keyof ChannelTypes;
-    type Channels = { readonly [k in ChannelName]: ChannelEncoder<Encoding[k]> };
-
-    const channelNames = Object.keys(this.channelTypes) as ChannelName[];
-
     const { encoding } = this.spec;
-    this.channels = channelNames
-      .map(
-        (name: ChannelName) =>
-          new ChannelEncoder<Encoding[typeof name]>({
-            definition: encoding[name],
-            name,
-            options: {
-              ...this.spec.options,
-              ...channelOptions[name],
-            },
-            type: channelTypes[name],
-          }),
-      )
-      .reduce((prev: Partial<Channels>, curr) => {
-        const all = prev;
-        all[curr.name as ChannelName] = curr;
 
-        return all;
-      }, {}) as Channels;
+    type ChannelName = keyof Encoding;
+    type Channels = {
+      readonly [k in keyof Encoding]: Encoding[k] extends any[]
+        ? ChannelEncoder<Unarray<Encoding[k]>>[]
+        : ChannelEncoder<Unarray<Encoding[k]>>
+    };
+
+    const channelNames = this.getChannelNames();
+
+    const tmp: { [k in keyof Encoding]?: MayBeArray<ChannelEncoder<ChannelDef>> } = {};
+
+    channelNames.forEach(name => {
+      const channelEncoding = encoding[name];
+      if (isArray(channelEncoding)) {
+        const definitions = channelEncoding;
+        tmp[name] = definitions.map(
+          (definition, i) =>
+            new ChannelEncoder({
+              definition,
+              name: `${name}[${i}]`,
+              type: 'Text',
+            }),
+        );
+      } else if (isNotArray(channelEncoding)) {
+        const definition = channelEncoding;
+        tmp[name] = new ChannelEncoder({
+          definition,
+          name,
+          options: {
+            ...this.spec.options,
+            ...channelOptions[name],
+          },
+          type: channelTypes[name],
+        });
+      }
+    });
+
+    this.channels = tmp as Channels;
 
     this.commonChannels = {
       group: this.spec.commonEncoding.group.map(
         (def, i) =>
           new ChannelEncoder({
             definition: def,
-            name: `group${i}`,
+            name: `group[${i}]`,
             type: 'Text',
           }),
       ),
@@ -72,7 +91,7 @@ export default abstract class AbstractEncoder<
         (def, i) =>
           new ChannelEncoder({
             definition: def,
-            name: `tooltip${i}`,
+            name: `tooltip[${i}]`,
             type: 'Text',
           }),
       ),
@@ -83,9 +102,8 @@ export default abstract class AbstractEncoder<
     this.legends = {};
     channelNames
       .map((name: ChannelName) => this.channels[name])
-      .filter(c => c.hasLegend())
       .forEach(c => {
-        if (isFieldDef(c.definition)) {
+        if (isNotArray(c) && c.hasLegend() && isFieldDef(c.definition)) {
           const name = c.name as ChannelName;
           const { field } = c.definition;
           if (this.legends[field]) {
@@ -130,7 +148,7 @@ export default abstract class AbstractEncoder<
   }
 
   getGroupBys() {
-    const fields = this.getChannelsAsArray()
+    const fields = flatMap(this.getChannelsAsArray())
       .filter(c => c.isGroupBy())
       .map(c => (isFieldDef(c.definition) ? c.definition.field : ''))
       .filter(field => field !== '');
@@ -144,7 +162,7 @@ export default abstract class AbstractEncoder<
         const channelNames = this.legends[field];
         const channelEncoder = this.channels[channelNames[0]];
 
-        if (isTypedFieldDef(channelEncoder.definition)) {
+        if (isNotArray(channelEncoder) && isTypedFieldDef(channelEncoder.definition)) {
           // Only work for nominal channels now
           // TODO: Add support for numerical scale
           if (channelEncoder.definition.type === 'nominal') {
@@ -155,12 +173,12 @@ export default abstract class AbstractEncoder<
               value,
               // eslint-disable-next-line sort-keys
               encodedValues: channelNames.reduce(
-                (
-                  prev: Partial<ObjectWithKeysFromAndValueType<ChannelTypes, Value | undefined>>,
-                  curr,
-                ) => {
+                (prev: Partial<Record<keyof Encoding, Value | undefined>>, curr) => {
                   const map = prev;
-                  map[curr] = this.channels[curr].encodeValue(value);
+                  const channel = this.channels[curr];
+                  if (isNotArray(channel)) {
+                    map[curr] = channel.encodeValue(value);
+                  }
 
                   return map;
                 },

@@ -1,7 +1,7 @@
 import { Value } from 'vega-lite/build/src/channeldef';
 import AbstractEncoder from '../encodeable/AbstractEncoder';
 import { PartialSpec } from '../encodeable/types/Specification';
-import { ChannelTypeToDefMap, ChannelType } from '../encodeable/types/Channel';
+import { ChannelTypeToDefMap } from '../encodeable/types/Channel';
 import { ExtractChannelOutput } from '../encodeable/types/ChannelDef';
 
 /**
