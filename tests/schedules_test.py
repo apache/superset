@@ -361,8 +361,8 @@ class SchedulesTestCase(unittest.TestCase):
             element.screenshot_as_png,
         )
 
-    @patch("superset.tasks.schedules.requests.get")
-    @patch("superset.tasks.schedules.send_email_smtp")
+    @patch('superset.tasks.schedules.urllib.request.urlopen')
+    @patch('superset.tasks.schedules.send_email_smtp')
     def test_deliver_slice_csv_attachment(self, send_email_smtp, get):
         response = Mock()
         get.return_value = response
@@ -385,8 +385,8 @@ class SchedulesTestCase(unittest.TestCase):
 
         self.assertEquals(send_email_smtp.call_args[1]["data"][file_name], self.CSV)
 
-    @patch("superset.tasks.schedules.requests.get")
-    @patch("superset.tasks.schedules.send_email_smtp")
+    @patch('superset.tasks.schedules.urllib.request.urlopen')
+    @patch('superset.tasks.schedules.send_email_smtp')
     def test_deliver_slice_csv_inline(self, send_email_smtp, get):
         response = Mock()
         get.return_value = response
