@@ -7,7 +7,7 @@ import { WithLegend } from '@superset-ui/chart-composition';
 import { createSelector } from 'reselect';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import ChartLegend from '../components/legend/ChartLegend';
-import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
+import Encoder, { Encoding } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import { PartialSpec } from '../encodeable/types/Specification';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
@@ -135,7 +135,7 @@ export default class BoxPlot extends React.PureComponent<Props> {
     this.createEncoder();
     const renderLegend = this.encoder.hasLegend()
       ? // eslint-disable-next-line react/jsx-props-no-multi-spaces
-        () => <ChartLegend<ChannelTypes, Outputs, Encoding> data={data} encoder={this.encoder} />
+        () => <ChartLegend<Encoder> data={data} encoder={this.encoder} />
       : undefined;
 
     return (
