@@ -148,7 +148,7 @@ describe('OnPasteSelect', () => {
 
     it('calls onChange without duplicate values and parses tab separated values', () => {
         evt.clipboardData.getData = sinon.spy(() =>
-          'China\nIndia\nChina\nRussian Federation\nJapan\nJapan',
+          'China\tIndia\tChina\tRussian Federation\tJapan\tJapan',
         );
         expected = [
           props.options[1],
