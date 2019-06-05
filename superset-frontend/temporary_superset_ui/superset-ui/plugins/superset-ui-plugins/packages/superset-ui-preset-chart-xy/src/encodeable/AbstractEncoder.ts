@@ -1,24 +1,26 @@
 import { flatMap } from 'lodash';
 import { Value } from 'vega-lite/build/src/channeldef';
-import { ChannelOptions, ChannelType, ChannelInput } from './types/Channel';
+import { ChannelType, ChannelInput, AllChannelOptions } from './types/Channel';
 import { FullSpec, BaseOptions, PartialSpec } from './types/Specification';
-import { isFieldDef, isTypedFieldDef, FieldDef, ChannelDef } from './types/ChannelDef';
+import { isFieldDef, isTypedFieldDef, ChannelDef } from './types/ChannelDef';
 import ChannelEncoder from './ChannelEncoder';
 import { Dataset } from './types/Data';
 import { Unarray, MayBeArray, isArray, isNotArray } from './types/Base';
+
+type AllChannelEncoders<Encoding extends Record<string, MayBeArray<ChannelDef>>> = {
+  readonly [k in keyof Encoding]: Encoding[k] extends any[]
+    ? ChannelEncoder<Unarray<Encoding[k]>>[]
+    : ChannelEncoder<Unarray<Encoding[k]>>
+};
 
 export default abstract class AbstractEncoder<
   ChannelTypes extends Record<string, ChannelType>,
   Encoding extends Record<keyof ChannelTypes, MayBeArray<ChannelDef>>,
   Options extends BaseOptions = BaseOptions
 > {
-  readonly channelTypes: ChannelTypes;
   readonly spec: FullSpec<Encoding, Options>;
-  readonly channels: {
-    readonly [k in keyof Encoding]: Encoding[k] extends any[]
-      ? ChannelEncoder<Unarray<Encoding[k]>>[]
-      : ChannelEncoder<Unarray<Encoding[k]>>
-  };
+  readonly channelTypes: ChannelTypes;
+  readonly channels: AllChannelEncoders<Encoding>;
 
   readonly legends: {
     [key: string]: (keyof Encoding)[];
@@ -28,28 +30,21 @@ export default abstract class AbstractEncoder<
     channelTypes: ChannelTypes,
     spec: PartialSpec<Encoding, Options>,
     defaultEncoding?: Encoding,
-    channelOptions: Partial<{ [k in keyof Encoding]: ChannelOptions }> = {},
+    allChannelOptions: AllChannelOptions<Encoding> = {},
   ) {
     this.channelTypes = channelTypes;
     this.spec = this.createFullSpec(spec, defaultEncoding);
     const { encoding } = this.spec;
 
-    type ChannelName = keyof Encoding;
-    type Channels = {
-      readonly [k in keyof Encoding]: Encoding[k] extends any[]
-        ? ChannelEncoder<Unarray<Encoding[k]>>[]
-        : ChannelEncoder<Unarray<Encoding[k]>>
-    };
-
     const channelNames = this.getChannelNames();
 
-    const tmp: { [k in keyof Encoding]?: MayBeArray<ChannelEncoder<ChannelDef>> } = {};
+    const channels: { [k in keyof Encoding]?: MayBeArray<ChannelEncoder<ChannelDef>> } = {};
 
     channelNames.forEach(name => {
       const channelEncoding = encoding[name];
       if (isArray(channelEncoding)) {
         const definitions = channelEncoding;
-        tmp[name] = definitions.map(
+        channels[name] = definitions.map(
           (definition, i) =>
             new ChannelEncoder({
               definition,
@@ -59,25 +54,27 @@ export default abstract class AbstractEncoder<
         );
       } else if (isNotArray(channelEncoding)) {
         const definition = channelEncoding;
-        tmp[name] = new ChannelEncoder({
+        channels[name] = new ChannelEncoder({
           definition,
           name,
           options: {
             ...this.spec.options,
-            ...channelOptions[name],
+            ...allChannelOptions[name],
           },
           type: channelTypes[name],
         });
       }
     });
 
-    this.channels = tmp as Channels;
+    this.channels = channels as AllChannelEncoders<Encoding>;
+
+    type ChannelName = keyof Encoding;
 
     // Group the channels that use the same field together
     // so they can share the same legend.
     this.legends = {};
     channelNames
-      .map((name: ChannelName) => this.channels[name])
+      .map(name => this.channels[name])
       .forEach(c => {
         if (isNotArray(c) && c.hasLegend() && isFieldDef(c.definition)) {
           const name = c.name as ChannelName;
@@ -94,7 +91,7 @@ export default abstract class AbstractEncoder<
   /**
    * subclass can override this
    */
-  protected createFullSpec(spec: PartialSpec<Encoding, Options>, defaultEncoding?: Encoding) {
+  createFullSpec(spec: PartialSpec<Encoding, Options>, defaultEncoding?: Encoding) {
     if (typeof defaultEncoding === 'undefined') {
       return spec as FullSpec<Encoding, Options>;
     }
