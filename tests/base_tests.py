@@ -174,12 +174,15 @@ class SupersetTestCase(unittest.TestCase):
                     perm.view_menu and table.perm in perm.view_menu.name):
                 security_manager.del_permission_role(public_role, perm)
 
+    def get_main_database(self):
+        return get_main_database(db.session)
+
     def run_sql(self, sql, client_id=None, user_name=None, raise_on_error=False,
                 query_limit=None):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else 'admin'))
-        dbid = get_main_database(db.session).id
+        dbid = self.get_main_database().id
         resp = self.get_json_resp(
             '/superset/sql_json/',
             raise_on_error=False,
@@ -195,7 +198,7 @@ class SupersetTestCase(unittest.TestCase):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else 'admin'))
-        dbid = get_main_database(db.session).id
+        dbid = self.get_main_database().id
         resp = self.get_json_resp(
             '/superset/validate_sql_json/',
             raise_on_error=False,
