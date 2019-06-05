@@ -1,10 +1,7 @@
 import React, { CSSProperties, PureComponent } from 'react';
-import { Value } from 'vega-lite/build/src/channeldef';
 import AbstractEncoder from '../../encodeable/AbstractEncoder';
 import { Dataset } from '../../encodeable/types/Data';
-import { ObjectWithKeysFromAndValueType } from '../../encodeable/types/Base';
-import { ChannelType, EncodingFromChannelsAndOutputs } from '../../encodeable/types/Channel';
-import { BaseOptions } from '../../encodeable/types/Specification';
+import { ChannelType } from '../../encodeable/types/Channel';
 import {
   LegendItemRendererType,
   LegendGroupRendererType,
@@ -12,6 +9,7 @@ import {
   LegendItemMarkRendererType,
 } from './types';
 import DefaultLegendGroup from './DefaultLegendGroup';
+import { ChannelDef } from '../../encodeable/types/ChannelDef';
 
 const LEGEND_CONTAINER_STYLE: CSSProperties = {
   display: 'flex',
@@ -30,24 +28,17 @@ export type Hooks<ChannelTypes> = {
   LegendItemLabelRenderer?: LegendItemLabelRendererType<ChannelTypes>;
 };
 
-export type Props<Encoder, ChannelTypes> = {
+export type Props<ChannelTypes, Encoder> = {
   data: Dataset;
   encoder: Encoder;
   style?: CSSProperties;
 } & Hooks<ChannelTypes>;
 
 export default class ChartLegend<
-  ChannelTypes extends ObjectWithKeysFromAndValueType<Outputs, ChannelType>,
-  Outputs extends ObjectWithKeysFromAndValueType<Encoding, Value>,
-  Encoding extends EncodingFromChannelsAndOutputs<
-    ChannelTypes,
-    Outputs
-  > = EncodingFromChannelsAndOutputs<ChannelTypes, Outputs>,
-  Options extends BaseOptions = BaseOptions
-> extends PureComponent<
-  Props<AbstractEncoder<ChannelTypes, Outputs, Encoding, Options>, ChannelTypes>,
-  {}
-> {
+  Encoder extends AbstractEncoder<ChannelTypes, Encoding>,
+  ChannelTypes extends Record<string, ChannelType> = any,
+  Encoding extends Record<keyof ChannelTypes, ChannelDef> = any
+> extends PureComponent<Props<ChannelTypes, Encoder>, {}> {
   render() {
     const {
       data,
