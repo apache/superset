@@ -20,11 +20,6 @@ export default abstract class AbstractEncoder<
       : ChannelEncoder<Unarray<Encoding[k]>>
   };
 
-  readonly commonChannels: {
-    group: ChannelEncoder<FieldDef>[];
-    tooltip: ChannelEncoder<FieldDef>[];
-  };
-
   readonly legends: {
     [key: string]: (keyof Encoding)[];
   };
@@ -78,25 +73,6 @@ export default abstract class AbstractEncoder<
 
     this.channels = tmp as Channels;
 
-    this.commonChannels = {
-      group: this.spec.commonEncoding.group.map(
-        (def, i) =>
-          new ChannelEncoder({
-            definition: def,
-            name: `group[${i}]`,
-            type: 'Text',
-          }),
-      ),
-      tooltip: this.spec.commonEncoding.tooltip.map(
-        (def, i) =>
-          new ChannelEncoder({
-            definition: def,
-            name: `tooltip[${i}]`,
-            type: 'Text',
-          }),
-      ),
-    };
-
     // Group the channels that use the same field together
     // so they can share the same legend.
     this.legends = {};
@@ -123,14 +99,9 @@ export default abstract class AbstractEncoder<
       return spec as FullSpec<Encoding, Options>;
     }
 
-    const { encoding, commonEncoding = {}, ...rest } = spec;
-    const { group = [], tooltip = [] } = commonEncoding;
+    const { encoding, ...rest } = spec;
 
     return {
-      commonEncoding: {
-        group,
-        tooltip,
-      },
       ...rest,
       encoding: {
         ...defaultEncoding,

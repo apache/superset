@@ -11,3 +11,7 @@ export function isArray<T>(maybeArray: T | T[]): maybeArray is T[] {
 export function isNotArray<T>(maybeArray: T | T[]): maybeArray is T {
   return !Array.isArray(maybeArray);
 }
+
+export function isDefined<T>(x: any): x is T {
+  return typeof x !== 'undefined';
+}

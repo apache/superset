@@ -9,8 +9,10 @@ import { ExtractChannelOutput } from '../encodeable/types/ChannelDef';
  */
 const channelTypes = {
   fill: 'Color',
+  group: 'Text',
   size: 'Numeric',
   stroke: 'Color',
+  tooltip: 'Text',
   x: 'X',
   y: 'Y',
 } as const;
@@ -30,8 +32,10 @@ type CreateChannelDef<
  */
 export type Encoding = {
   fill: CreateChannelDef<'fill', string>;
+  group: CreateChannelDef<'group', string>[];
   size: CreateChannelDef<'size', number>;
   stroke: CreateChannelDef<'stroke', string>;
+  tooltip: CreateChannelDef<'tooltip', string>[];
   x: CreateChannelDef<'x', number>;
   y: CreateChannelDef<'y', number>;
 };
@@ -47,8 +51,10 @@ export type ChannelOutput<ChannelName extends keyof Encoding> = ExtractChannelOu
 export default class Encoder extends AbstractEncoder<ChannelTypes, Encoding> {
   static readonly DEFAULT_ENCODINGS: Encoding = {
     fill: { value: '#222' },
+    group: [],
     size: { value: 5 },
     stroke: { value: 'none' },
+    tooltip: [],
     x: { field: 'x', type: 'quantitative' },
     y: { field: 'y', type: 'quantitative' },
   };
