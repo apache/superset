@@ -84,7 +84,7 @@ describe('OnPasteSelect', () => {
 
     it('calls onChange with pasted new line separated values', () => {
       evt.clipboardData.getData = sinon.spy(() =>
-      'United States\nChina\nRussian Federation\nIndia',
+        'United States\nChina\nRussian Federation\nIndia',
       );
       wrapper.instance().onPaste(evt);
       expected = [
@@ -100,7 +100,7 @@ describe('OnPasteSelect', () => {
 
     it('calls onChange with pasted tab separated values', () => {
       evt.clipboardData.getData = sinon.spy(() =>
-      'Russian Federation\tMexico\tIndia\tCanada',
+        'Russian Federation\tMexico\tIndia\tCanada',
       );
       wrapper.instance().onPaste(evt);
       expected = [
