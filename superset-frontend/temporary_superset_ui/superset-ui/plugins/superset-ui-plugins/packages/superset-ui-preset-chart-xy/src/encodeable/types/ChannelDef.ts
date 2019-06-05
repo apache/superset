@@ -51,7 +51,7 @@ export type NonValueDef<Output extends Value = Value> =
 
 export type ChannelDef<Output extends Value = Value> = NonValueDef<Output> | ValueDef<Output>;
 
-export type ExtractChannelOutput<C> = C extends ChannelDef<infer Output> ? Output : never;
+export type ExtractChannelOutput<Def> = Def extends ChannelDef<infer Output> ? Output : never;
 
 export function isValueDef<Output extends Value>(
   channelDef: ChannelDef<Output>,

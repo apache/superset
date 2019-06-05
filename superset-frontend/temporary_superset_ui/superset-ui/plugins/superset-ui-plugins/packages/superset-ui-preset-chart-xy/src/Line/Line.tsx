@@ -53,7 +53,7 @@ export type FormDataProps = {
 } & PartialSpec<Encoding>;
 
 export type HookProps = {
-  LegendRenderer?: React.ComponentType<LegendProps<Encoder, ChannelTypes>>;
+  LegendRenderer?: React.ComponentType<LegendProps<Encoder>>;
   TooltipRenderer?: React.ComponentType<TooltipProps>;
 } & LegendHooks<ChannelTypes>;
 
