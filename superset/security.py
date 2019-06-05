@@ -131,7 +131,9 @@ class SupersetSecurityManager(SecurityManager):
         return self.can_access('all_database_access', 'all_database_access')
 
     def database_access(self, database):
-        return self.can_access('database_access', database.perm)
+        return (self.all_database_access() or
+                self.can_access('database_access', database.perm) or
+                self.all_datasource_access)
 
     def schema_access(self, datasource):
         return (
