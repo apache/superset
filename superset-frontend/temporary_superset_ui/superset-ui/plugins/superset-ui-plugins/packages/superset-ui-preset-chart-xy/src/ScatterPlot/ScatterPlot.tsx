@@ -5,7 +5,7 @@ import { chartTheme, ChartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
 import { createSelector } from 'reselect';
-import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
+import Encoder, { Encoding, ChannelOutput } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import ChartLegend from '../components/legend/ChartLegend';
 import { PartialSpec } from '../encodeable/types/Specification';
@@ -43,11 +43,11 @@ type Props = {
   Readonly<typeof defaultProps>;
 
 export interface EncodedPoint {
-  x: Outputs['x'];
-  y: Outputs['y'];
-  size: Outputs['size'];
-  fill: Outputs['fill'];
-  stroke: Outputs['stroke'];
+  x: ChannelOutput<'x'>;
+  y: ChannelOutput<'y'>;
+  size: ChannelOutput<'size'>;
+  fill: ChannelOutput<'fill'>;
+  stroke: ChannelOutput<'stroke'>;
   data: PlainObject;
 }
 
@@ -152,7 +152,7 @@ export default class ScatterPlot extends PureComponent<Props> {
     this.createEncoder();
     const renderLegend = this.encoder.hasLegend()
       ? // eslint-disable-next-line react/jsx-props-no-multi-spaces
-        () => <ChartLegend<ChannelTypes, Outputs, Encoding> data={data} encoder={this.encoder} />
+        () => <ChartLegend<Encoder> data={data} encoder={this.encoder} />
       : undefined;
 
     return (

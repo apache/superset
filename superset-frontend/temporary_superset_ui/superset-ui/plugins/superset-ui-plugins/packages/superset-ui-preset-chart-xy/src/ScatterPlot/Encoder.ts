@@ -1,6 +1,8 @@
+import { Value } from 'vega-lite/build/src/channeldef';
 import AbstractEncoder from '../encodeable/AbstractEncoder';
 import { PartialSpec } from '../encodeable/types/Specification';
-import { EncodingFromChannelsAndOutputs } from '../encodeable/types/Channel';
+import { ChannelTypeToDefMap } from '../encodeable/types/Channel';
+import { ExtractChannelOutput } from '../encodeable/types/ChannelDef';
 
 /**
  * Define channel types
@@ -16,22 +18,33 @@ const channelTypes = {
 export type ChannelTypes = typeof channelTypes;
 
 /**
- * Define output type for each channel
+ * Helper for defining encoding
  */
-export interface Outputs {
-  fill: string;
-  size: number;
-  stroke: string;
-  x: number | null;
-  y: number | null;
-}
+type CreateChannelDef<
+  ChannelName extends keyof ChannelTypes,
+  Output extends Value
+> = ChannelTypeToDefMap<Output>[ChannelTypes[ChannelName]];
 
 /**
- * Derive encoding config
+ * Encoding definition
  */
-export type Encoding = EncodingFromChannelsAndOutputs<ChannelTypes, Outputs>;
+export type Encoding = {
+  fill: CreateChannelDef<'fill', string>;
+  size: CreateChannelDef<'size', number>;
+  stroke: CreateChannelDef<'stroke', string>;
+  x: CreateChannelDef<'x', number>;
+  y: CreateChannelDef<'y', number>;
+};
 
-export default class Encoder extends AbstractEncoder<ChannelTypes, Outputs> {
+/**
+ * Can use this to get returned type of a Channel
+ * example usage: ChannelOutput<'x'>
+ */
+export type ChannelOutput<ChannelName extends keyof Encoding> = ExtractChannelOutput<
+  Encoding[ChannelName]
+>;
+
+export default class Encoder extends AbstractEncoder<ChannelTypes, Encoding> {
   static readonly DEFAULT_ENCODINGS: Encoding = {
     fill: { value: '#222' },
     size: { value: 5 },

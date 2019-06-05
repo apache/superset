@@ -35,12 +35,12 @@ export interface ChannelTypeToDefMap<Output extends Value = Value>
 
 export type ChannelType = keyof ChannelTypeToDefMap;
 
-export type ChannelDefFromType<
-  T extends keyof ChannelTypeToDefMap,
-  Output extends Value
-> = ChannelTypeToDefMap<Output>[T];
+// export type ChannelDefFromType<
+//   T extends keyof ChannelTypeToDefMap,
+//   Output extends Value
+// > = ChannelTypeToDefMap<Output>[T];
 
-export type EncodingFromChannelsAndOutputs<
-  Channels extends ObjectWithKeysFromAndValueType<Outputs, ChannelType>,
-  Outputs extends ObjectWithKeysFromAndValueType<Channels, Value>
-> = { [key in keyof Channels]: ChannelDefFromType<Channels[key], Outputs[key]> };
+// export type EncodingFromChannelsAndOutputs<
+//   Channels extends ObjectWithKeysFromAndValueType<Outputs, ChannelType>,
+//   Outputs extends ObjectWithKeysFromAndValueType<Channels, Value>
+// > = { [key in keyof Channels]: ChannelDefFromType<Channels[key], Outputs[key]> };

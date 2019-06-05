@@ -8,7 +8,7 @@ import { Dataset } from './types/Data';
 
 export default abstract class AbstractEncoder<
   ChannelTypes extends Record<string, ChannelType>,
-  Encoding extends Record<keyof ChannelTypes, ChannelDef | ChannelDef>,
+  Encoding extends Record<keyof ChannelTypes, ChannelDef>,
   Options extends BaseOptions = BaseOptions
 > {
   readonly channelTypes: ChannelTypes;

@@ -1,13 +1,11 @@
+import { Value } from 'vega-lite/build/src/channeldef';
 import AbstractEncoder from '../encodeable/AbstractEncoder';
 import { PartialSpec } from '../encodeable/types/Specification';
-import {
-  EncodingFromChannelsAndOutputs,
-  ChannelTypeToDefMap,
-  ChannelType,
-} from '../encodeable/types/Channel';
+import { ChannelTypeToDefMap, ChannelType } from '../encodeable/types/Channel';
+import { ExtractChannelOutput } from '../encodeable/types/ChannelDef';
 
 /**
- * Define channel types
+ * Define channel names and their types
  */
 const channelTypes = {
   fill: 'Category',
@@ -20,31 +18,33 @@ const channelTypes = {
 
 export type ChannelTypes = typeof channelTypes;
 
+/**
+ * Helper for defining encoding
+ */
+type CreateChannelDef<
+  ChannelName extends keyof ChannelTypes,
+  Output extends Value
+> = ChannelTypeToDefMap<Output>[ChannelTypes[ChannelName]];
+
+/**
+ * Encoding definition
+ */
 export type Encoding = {
-  fill: ChannelTypeToDefMap<boolean>[ChannelTypes['fill']];
-  stroke: ChannelTypeToDefMap<string>[ChannelTypes['stroke']];
-  strokeDasharray: ChannelTypeToDefMap<string>[ChannelTypes['strokeDasharray']];
-  strokeWidth: ChannelTypeToDefMap<number>[ChannelTypes['strokeWidth']];
-  x: ChannelTypeToDefMap<string>[ChannelTypes['x']];
-  y: ChannelTypeToDefMap<string>[ChannelTypes['y']];
+  fill: CreateChannelDef<'fill', boolean>;
+  stroke: CreateChannelDef<'stroke', string>;
+  strokeDasharray: CreateChannelDef<'strokeDasharray', string>;
+  strokeWidth: CreateChannelDef<'strokeWidth', number>;
+  x: CreateChannelDef<'x', number>;
+  y: CreateChannelDef<'y', number>;
 };
 
 /**
- * Define output type for each channel
+ * Can use this to get returned type of a Channel
+ * example usage: ChannelOutput<'x'>
  */
-// export interface Outputs {
-//   x: number | null;
-//   y: number | null;
-//   fill: boolean;
-//   stroke: string;
-//   strokeDasharray: string;
-//   strokeWidth: number;
-// }
-
-/**
- * Derive encoding config
- */
-// export type Encoding = EncodingFromChannelsAndOutputs<ChannelTypes, Outputs>;
+export type ChannelOutput<ChannelName extends keyof Encoding> = ExtractChannelOutput<
+  Encoding[ChannelName]
+>;
 
 export default class Encoder extends AbstractEncoder<ChannelTypes, Encoding> {
   static readonly DEFAULT_ENCODINGS: Encoding = {
