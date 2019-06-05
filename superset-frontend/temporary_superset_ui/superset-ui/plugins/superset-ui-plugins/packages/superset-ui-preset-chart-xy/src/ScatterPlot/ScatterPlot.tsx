@@ -4,7 +4,6 @@ import { XYChart, PointSeries } from '@data-ui/xy-chart';
 import { chartTheme, ChartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
-import { createSelector } from 'reselect';
 import Encoder, { Encoding, ChannelOutput } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import ChartLegend from '../components/legend/ChartLegend';
@@ -14,6 +13,7 @@ import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
 import { isScaleFieldDef } from '../encodeable/types/ChannelDef';
 import createXYChartLayoutWithTheme from '../utils/createXYChartLayoutWithTheme';
+import createEncoderSelector from '../encodeable/createEncoderSelector';
 
 export interface TooltipProps {
   datum: EncodedPoint;
@@ -56,32 +56,21 @@ export interface EncodedPoint {
 export default class ScatterPlot extends PureComponent<Props> {
   static defaultProps = defaultProps;
 
-  encoder: Encoder;
-  private createEncoder: () => void;
+  private createEncoder = createEncoderSelector(Encoder);
 
   private createMargin = createMarginSelector();
 
   constructor(props: Props) {
     super(props);
 
-    const createEncoder = createSelector(
-      (p: PartialSpec<Encoding>) => p.encoding,
-      p => p.options,
-      (encoding, options) => new Encoder({ encoding, options }),
-    );
-
-    this.createEncoder = () => {
-      this.encoder = createEncoder(this.props);
-    };
-
-    this.encoder = createEncoder(this.props);
     this.renderChart = this.renderChart.bind(this);
   }
 
   renderChart(dim: Dimension) {
     const { width, height } = dim;
     const { data, margin, theme, TooltipRenderer } = this.props;
-    const { channels } = this.encoder;
+    const encoder = this.createEncoder(this.props);
+    const { channels } = encoder;
 
     if (typeof channels.x.scale !== 'undefined') {
       const xDomain = channels.x.getDomain(data);
@@ -126,7 +115,7 @@ export default class ScatterPlot extends PureComponent<Props> {
         ariaLabel="BoxPlot"
         margin={layout.margin}
         renderTooltip={({ datum }: { datum: EncodedPoint }) => (
-          <TooltipRenderer datum={datum} encoder={this.encoder} />
+          <TooltipRenderer datum={datum} encoder={encoder} />
         )}
         showYGrid
         theme={theme}
@@ -150,10 +139,10 @@ export default class ScatterPlot extends PureComponent<Props> {
   render() {
     const { className, data, width, height } = this.props;
 
-    this.createEncoder();
-    const renderLegend = this.encoder.hasLegend()
+    const encoder = this.createEncoder(this.props);
+    const renderLegend = encoder.hasLegend()
       ? // eslint-disable-next-line react/jsx-props-no-multi-spaces
-        () => <ChartLegend<Encoder> data={data} encoder={this.encoder} />
+        () => <ChartLegend<Encoder> data={data} encoder={encoder} />
       : undefined;
 
     return (
