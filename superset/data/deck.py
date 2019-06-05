@@ -416,10 +416,12 @@ def load_deck_dash():
             'population',
             'area',
         ],
-        'js_datapoint_mutator':
-            '(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
-         d.fillColor = [d.extraProps.population/d.extraProps.area/60,140,0]\n \
-         return d;\n}',
+        'js_data_mutator':
+            'data => data.map(d => ({'
+            '    ...d,'
+            '    elevation: d.extraProps.population/'
+            'd.extraProps.area/10,'
+            '}));',
         'js_tooltip': '',
         'js_onclick_href': '',
         'where': '',
@@ -533,8 +535,10 @@ def load_deck_dash():
         'js_columns': [
             'color',
         ],
-        'js_datapoint_mutator': 'd => {\n    return {\n        ...d,\n        color: \
-            colors.hexToRGB(d.extraProps.color),\n    }\n}',
+        'js_data_mutator': 'data => data.map(d => ({\n'
+                           '    ...d,\n'
+                           '    color: colors.hexToRGB(d.extraProps.color)\n'
+                           '}));',
         'js_tooltip': '',
         'js_onclick_href': '',
         'where': '',
