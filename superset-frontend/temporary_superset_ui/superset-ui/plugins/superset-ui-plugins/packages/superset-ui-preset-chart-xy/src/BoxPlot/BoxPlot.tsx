@@ -4,7 +4,6 @@ import { BoxPlotSeries, XYChart } from '@data-ui/xy-chart';
 import { chartTheme, ChartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
-import { createSelector } from 'reselect';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import ChartLegend from '../components/legend/ChartLegend';
 import Encoder, { Encoding } from './Encoder';
@@ -14,6 +13,7 @@ import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createM
 import { BoxPlotDataRow } from './types';
 import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
 import createXYChartLayoutWithTheme from '../utils/createXYChartLayoutWithTheme';
+import createEncoderSelector from '../encodeable/createEncoderSelector';
 
 export interface TooltipProps {
   datum: BoxPlotDataRow;
@@ -46,32 +46,21 @@ type Props = {
 export default class BoxPlot extends React.PureComponent<Props> {
   static defaultProps = defaultProps;
 
-  encoder: Encoder;
-  private createEncoder: () => void;
+  private createEncoder = createEncoderSelector(Encoder);
 
   private createMargin = createMarginSelector();
 
   constructor(props: Props) {
     super(props);
 
-    const createEncoder = createSelector(
-      (p: PartialSpec<Encoding>) => p.encoding,
-      p => p.options,
-      (encoding, options) => new Encoder({ encoding, options }),
-    );
-
-    this.createEncoder = () => {
-      this.encoder = createEncoder(this.props);
-    };
-
-    this.encoder = createEncoder(this.props);
     this.renderChart = this.renderChart.bind(this);
   }
 
   renderChart(dim: Dimension) {
     const { width, height } = dim;
     const { data, margin, theme, TooltipRenderer } = this.props;
-    const { channels } = this.encoder;
+    const encoder = this.createEncoder(this.props);
+    const { channels } = encoder;
 
     const isHorizontal = channels.y.definition.type === 'nominal';
 
@@ -100,7 +89,7 @@ export default class BoxPlot extends React.PureComponent<Props> {
         ariaLabel="BoxPlot"
         margin={layout.margin}
         renderTooltip={({ datum, color }: { datum: BoxPlotDataRow; color: string }) => (
-          <TooltipRenderer datum={datum} color={color} encoder={this.encoder} />
+          <TooltipRenderer datum={datum} color={color} encoder={encoder} />
         )}
         showYGrid
         theme={theme}
@@ -131,10 +120,10 @@ export default class BoxPlot extends React.PureComponent<Props> {
   render() {
     const { className, data, width, height } = this.props;
 
-    this.createEncoder();
-    const renderLegend = this.encoder.hasLegend()
+    const encoder = this.createEncoder(this.props);
+    const renderLegend = encoder.hasLegend()
       ? // eslint-disable-next-line react/jsx-props-no-multi-spaces
-        () => <ChartLegend<Encoder> data={data} encoder={this.encoder} />
+        () => <ChartLegend<Encoder> data={data} encoder={encoder} />
       : undefined;
 
     return (
