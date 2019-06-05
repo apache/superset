@@ -1,7 +1,6 @@
 /* eslint-disable sort-keys, no-magic-numbers */
 
 import React, { ReactNode } from 'react';
-import collectScalesFromProps from '@data-ui/xy-chart/esm/utils/collectScalesFromProps';
 import { XAxis, YAxis } from '@data-ui/xy-chart';
 import { ChartTheme } from '@data-ui/theme';
 import { Margin, mergeMargin, Dimension } from '@superset-ui/dimension';
@@ -11,7 +10,6 @@ import ChannelEncoder from '../encodeable/ChannelEncoder';
 import { XFieldDef, YFieldDef } from '../encodeable/types/ChannelDef';
 import { PlainObject } from '../encodeable/types/Data';
 import { DEFAULT_LABEL_ANGLE } from './constants';
-import convertScaleToDataUIScale from './convertScaleToDataUIScaleShape';
 import { AxisLayout } from '../encodeable/AxisAgent';
 
 // Additional margin to avoid content hidden behind scroll bar
@@ -25,7 +23,6 @@ export interface XYChartLayoutConfig {
   margin: Margin;
   xEncoder: ChannelEncoder<XFieldDef>;
   yEncoder: ChannelEncoder<YFieldDef>;
-  children: ReactNode[];
   theme: ChartTheme;
 }
 
@@ -53,23 +50,9 @@ export default class XYChartLayout {
       margin,
       xEncoder,
       yEncoder,
-      children,
       theme,
     } = config;
 
-    const { xScale, yScale } = collectScalesFromProps({
-      width,
-      height,
-      margin,
-      xScale: convertScaleToDataUIScale(xEncoder.scale!.config || {}),
-      yScale: convertScaleToDataUIScale(yEncoder.scale!.config || {}),
-      theme,
-      children,
-    });
-
-    if (typeof yEncoder.scale !== 'undefined') {
-      yEncoder.scale.setDomain(yScale.domain());
-    }
     if (typeof yEncoder.axis !== 'undefined') {
       this.yLayout = yEncoder.axis.computeLayout({
         axisWidth: Math.max(height - margin.top - margin.bottom),
@@ -82,9 +65,6 @@ export default class XYChartLayout {
     const secondMargin = this.yLayout ? mergeMargin(margin, this.yLayout.minMargin) : margin;
     const innerWidth = Math.max(width - secondMargin.left - secondMargin.right, minContentWidth);
 
-    if (typeof xEncoder.scale !== 'undefined') {
-      xEncoder.scale.setDomain(xScale.domain());
-    }
     if (typeof xEncoder.axis !== 'undefined') {
       this.xLayout = xEncoder.axis.computeLayout({
         axisWidth: innerWidth,

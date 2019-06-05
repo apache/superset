@@ -78,23 +78,14 @@ export default class BoxPlot extends React.PureComponent<Props> {
 
     const isHorizontal = channels.y.definition.type === 'nominal';
 
-    const children = [
-      <BoxPlotSeries
-        key={channels.x.definition.field}
-        animated
-        data={
-          isHorizontal
-            ? data.map(row => ({ ...row, y: channels.y.get(row) }))
-            : data.map(row => ({ ...row, x: channels.x.get(row) }))
-        }
-        fill={(datum: PlainObject) => channels.color.encode(datum, '#55acee')}
-        fillOpacity={0.4}
-        stroke={(datum: PlainObject) => channels.color.encode(datum)}
-        strokeWidth={1}
-        widthRatio={0.6}
-        horizontal={channels.y.definition.type === 'nominal'}
-      />,
-    ];
+    if (typeof channels.x.scale !== 'undefined') {
+      const xDomain = channels.x.getDomain(data);
+      channels.x.scale.setDomain(xDomain);
+    }
+    if (typeof channels.y.scale !== 'undefined') {
+      const yDomain = channels.y.getDomain(data);
+      channels.y.scale.setDomain(yDomain);
+    }
 
     const layout = this.createXYChartLayout({
       width,
@@ -103,7 +94,6 @@ export default class BoxPlot extends React.PureComponent<Props> {
       theme,
       xEncoder: channels.x,
       yEncoder: channels.y,
-      children,
     });
 
     return layout.renderChartWithFrame((chartDim: Dimension) => (
@@ -122,7 +112,21 @@ export default class BoxPlot extends React.PureComponent<Props> {
       >
         {layout.renderXAxis()}
         {layout.renderYAxis()}
-        {children}
+        <BoxPlotSeries
+          key={channels.x.definition.field}
+          animated
+          data={
+            isHorizontal
+              ? data.map(row => ({ ...row, y: channels.y.get(row) }))
+              : data.map(row => ({ ...row, x: channels.x.get(row) }))
+          }
+          fill={(datum: PlainObject) => channels.color.encode(datum, '#55acee')}
+          fillOpacity={0.4}
+          stroke={(datum: PlainObject) => channels.color.encode(datum)}
+          strokeWidth={1}
+          widthRatio={0.6}
+          horizontal={channels.y.definition.type === 'nominal'}
+        />
       </XYChart>
     ));
   }
