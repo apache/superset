@@ -19,9 +19,9 @@
 import json
 import logging
 
-from celery.utils.log import get_task_logger
 from urllib import request
 from urllib.error import URLError
+from celery.utils.log import get_task_logger
 from sqlalchemy import and_, func
 
 from superset import app, db

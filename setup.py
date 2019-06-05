@@ -111,7 +111,7 @@ setup(
         "presto": ["pyhive[presto]>=0.4.0"],
         'druid': [
             'pydruid==0.5.2',
-            'requests==2.22.0'
+            'requests==2.22.0',
         ],
     },
     author="Apache Software Foundation",
