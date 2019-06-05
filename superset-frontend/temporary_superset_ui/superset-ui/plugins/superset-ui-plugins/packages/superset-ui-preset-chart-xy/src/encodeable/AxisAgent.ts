@@ -44,12 +44,12 @@ export interface AxisLayout {
   tickTextAnchor?: string;
 }
 
-export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Value = Value> {
-  private readonly channelEncoder: ChannelEncoder<Def, Output>;
+export default class AxisAgent<Def extends ChannelDef> {
+  private readonly channelEncoder: ChannelEncoder<Def>;
   private readonly format?: (value: any) => string;
   readonly config: CoreAxis;
 
-  constructor(channelEncoder: ChannelEncoder<Def, Output>) {
+  constructor(channelEncoder: ChannelEncoder<Def>) {
     this.channelEncoder = channelEncoder;
     const definition = channelEncoder.definition as PositionFieldDef;
     const { type, axis = {} } = definition;

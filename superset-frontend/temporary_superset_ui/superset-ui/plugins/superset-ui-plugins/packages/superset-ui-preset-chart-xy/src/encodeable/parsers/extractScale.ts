@@ -26,7 +26,12 @@ import {
 import { Value } from 'vega-lite/build/src/channeldef';
 import { Type } from 'vega-lite/build/src/type';
 import { ScaleType } from 'vega-lite/build/src/scale';
-import { isNonValueDef, ChannelDef } from '../types/ChannelDef';
+import {
+  isNonValueDef,
+  ChannelDef,
+  ExtractChannelOutput,
+  isTypedFieldDef,
+} from '../types/ChannelDef';
 import isDisabled from '../utils/isDisabled';
 import { ChannelType } from '../types/Channel';
 import { Scale } from '../types/Scale';
@@ -220,14 +225,17 @@ function getScaleTypeCategory(scaleType: ScaleType) {
   return undefined;
 }
 
-export default function extractScale<Output extends Value>(
+export default function extractScale<Def extends ChannelDef>(
   channelType: ChannelType,
-  definition: ChannelDef<Output>,
+  definition: Def,
   namespace?: string,
-): ScaleAgent<Output> | undefined {
+): ScaleAgent<ExtractChannelOutput<Def>> | undefined {
   if (isNonValueDef(definition)) {
-    const scaleConfig =
-      'scale' in definition && typeof definition.scale !== 'undefined' ? definition.scale : {};
+    type Output = ExtractChannelOutput<Def>;
+    const scaleConfig: Scale<Output> = ('scale' in definition &&
+    typeof definition.scale !== 'undefined'
+      ? definition.scale
+      : {}) as Scale<Output>;
 
     // return if scale is disabled
     if (isDisabled(scaleConfig)) {
@@ -238,7 +246,7 @@ export default function extractScale<Output extends Value>(
 
     if (typeof scaleType === 'undefined') {
       // If scale type is not defined, try to derive scale type from field type
-      const dataType = 'type' in definition ? definition.type : undefined;
+      const dataType = isTypedFieldDef(definition) ? definition.type : undefined;
       scaleType = deriveScaleTypeFromDataTypeAndChannelType(dataType, channelType);
 
       // If still do not have scale type, cannot create scale
@@ -247,7 +255,10 @@ export default function extractScale<Output extends Value>(
       }
     }
 
-    const scale = createScale(channelType, scaleType, { namespace, ...scaleConfig });
+    const scale = createScale<Output>(channelType, scaleType, {
+      namespace,
+      ...scaleConfig,
+    });
 
     if (scale) {
       const setDomain =
