@@ -111,7 +111,7 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
     gapBetweenAxisLabelAndBorder = 4,
     gapBetweenTickAndTickLabel = 4,
     labelAngle = this.config.labelAngle,
-    tickLength = 8,
+    tickSize = 8,
     tickTextStyle = {},
   }: {
     axisTitleHeight?: number;
@@ -119,7 +119,7 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
     gapBetweenAxisLabelAndBorder?: number;
     gapBetweenTickAndTickLabel?: number;
     labelAngle?: number;
-    tickLength?: number;
+    tickSize?: number;
     tickTextStyle?: CSSProperties;
   }): AxisLayout {
     const tickLabels = this.getTickLabels();
@@ -151,7 +151,7 @@ export default class AxisAgent<Def extends ChannelDef<Output>, Output extends Va
     let tickTextAnchor;
     let labelOffset: number = 0;
     let requiredMargin =
-      tickLength + gapBetweenTickAndTickLabel + spaceForAxisTitle + gapBetweenAxisLabelAndBorder;
+      tickSize + gapBetweenTickAndTickLabel + spaceForAxisTitle + gapBetweenAxisLabelAndBorder;
 
     if (this.channelEncoder.isX()) {
       if (strategyForLabelOverlap === 'flat') {

@@ -23,6 +23,7 @@ export interface CoreAxis {
   labelPadding: number;
   orient: AxisOrient;
   tickCount: number;
+  tickSize?: number;
   title?: string | boolean;
   /** Explicitly set the visible axis tick values. */
   values?: string[] | number[] | boolean[] | DateTime[];
