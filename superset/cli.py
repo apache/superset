@@ -160,7 +160,7 @@ def examples():
 @click.option(
     '--description', '-d', help='Description of new example', required=True)
 @click.option(
-    '--example-title', '-e', help='Title for new example', required=True)
+    '--example-title', '-e', help='Title for new example', required=False)
 @click.option(
     '--file-name', '-f', default='dashboard.tar.gz',
     help='Specify export file name. Defaults to dashboard.tar.gz')
@@ -188,7 +188,7 @@ def export_example(dashboard_id, dashboard_title, description, example_title,
                 export_data=True,
                 export_data_dir=tmp_dir_name,
                 description=description,
-                export_title=example_title,
+                export_title=example_title or dashboard_title,
                 _license=_license,
                 strip_database=True)
 
