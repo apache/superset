@@ -28,7 +28,8 @@ import requests
 from superset import db
 from superset.exceptions import SupersetException
 from superset.models.core import Dashboard
-from superset.utils import core as utils
+from superset.utils.core import DashboardEncoder, decode_dashboards, \
+    get_or_create_example_db, get_or_create_main_db                           
 
 
 def import_dashboards(session, data_stream, import_time=None):
@@ -36,7 +37,7 @@ def import_dashboards(session, data_stream, import_time=None):
     current_tt = int(time.time())
     import_time = current_tt if import_time is None else import_time
 
-    data = json.loads(data_stream.read(), object_hook=utils.decode_dashboards)
+    data = json.loads(data_stream.read(), object_hook=decode_dashboards)
 
     for table in data['datasources']:
         type(table).import_obj(table, import_time=import_time)
@@ -50,7 +51,7 @@ def import_dashboards(session, data_stream, import_time=None):
     # Import any files in this exported Dashboard
     if 'files' in data:
         if len(data['files']) > 0:
-            examples_engine = utils.get_or_create_main_db()
+            examples_engine = get_or_create_main_db()
             for table in data['files']:
                 logging.info(f'Import data from file {table["file_name"]} into table ' +
                              f'{table["table_name"]}')
@@ -69,7 +70,7 @@ def import_dashboards(session, data_stream, import_time=None):
 def import_example_dashboard(session, import_example_json, data_blob_urls,
                              database_uri, import_time=None):
     """Imports dashboards from a JSON string and data files to databases"""
-    data = json.loads(import_example_json, object_hook=utils.decode_dashboards)
+    data = json.loads(import_example_json, object_hook=decode_dashboards)
 
     # TODO: import DRUID datasources
     session.commit()
@@ -78,7 +79,7 @@ def import_example_dashboard(session, import_example_json, data_blob_urls,
             dashboard, import_time=import_time)
 
     if len(data['files']) > 0:
-        examples_engine = utils.get_or_create_example_db(database_uri)
+        examples_engine = get_or_create_example_db(database_uri)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             for file_info in data['files']:
@@ -132,7 +133,7 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
         data['description']['description'] = description
     data['description']['license'] = _license
 
-    export_json = json.dumps(data, cls=utils.DashboardEncoder, indent=4, sort_keys=True)
+    export_json = json.dumps(data, cls=DashboardEncoder, indent=4, sort_keys=True)
 
     # Remove datasources[].__SqlaTable__.database for example export
     # if strip_database:
