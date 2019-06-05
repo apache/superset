@@ -25,6 +25,7 @@ import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
 import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
 import createXYChartLayoutWithTheme from '../utils/createXYChartLayoutWithTheme';
+import createEncoderSelector from '../encodeable/createEncoderSelector';
 
 export interface TooltipProps {
   encoder: Encoder;
@@ -87,11 +88,7 @@ const CIRCLE_STYLE = { strokeWidth: 1.5 };
 export default class LineChart extends PureComponent<Props> {
   static defaultProps = defaultProps;
 
-  private createEncoder = createSelector(
-    (p: Props) => p.encoding,
-    p => p.options,
-    (encoding, options) => new Encoder({ encoding, options }),
-  );
+  private createEncoder = createEncoderSelector(Encoder);
 
   private createAllSeries = createSelector(
     (input: { encoder: Encoder; data: Dataset }) => input.encoder,

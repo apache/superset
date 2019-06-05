@@ -3,9 +3,9 @@ import { Value } from 'vega-lite/build/src/channeldef';
 import { ChannelType, ChannelInput, AllChannelOptions } from './types/Channel';
 import { FullSpec, BaseOptions, PartialSpec } from './types/Specification';
 import { isFieldDef, isTypedFieldDef, ChannelDef } from './types/ChannelDef';
-import ChannelEncoder from './ChannelEncoder';
 import { Dataset } from './types/Data';
 import { Unarray, MayBeArray, isArray, isNotArray } from './types/Base';
+import ChannelEncoder from './ChannelEncoder';
 
 type AllChannelEncoders<Encoding extends Record<string, MayBeArray<ChannelDef>>> = {
   readonly [k in keyof Encoding]: Encoding[k] extends any[]
