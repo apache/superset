@@ -11,9 +11,9 @@ import Encoder, { ChannelTypes, Encoding, Outputs } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import { PartialSpec } from '../encodeable/types/Specification';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
-import createXYChartLayoutSelector from '../utils/selectors/createXYChartLayoutSelector';
 import { BoxPlotDataRow } from './types';
 import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
+import createXYChartLayoutWithTheme from '../utils/createXYChartLayoutWithTheme';
 
 export interface TooltipProps {
   datum: BoxPlotDataRow;
@@ -51,8 +51,6 @@ export default class BoxPlot extends React.PureComponent<Props> {
 
   private createMargin = createMarginSelector();
 
-  private createXYChartLayout = createXYChartLayoutSelector();
-
   constructor(props: Props) {
     super(props);
 
@@ -87,7 +85,7 @@ export default class BoxPlot extends React.PureComponent<Props> {
       channels.y.scale.setDomain(yDomain);
     }
 
-    const layout = this.createXYChartLayout({
+    const layout = createXYChartLayoutWithTheme({
       width,
       height,
       margin: this.createMargin(margin),
