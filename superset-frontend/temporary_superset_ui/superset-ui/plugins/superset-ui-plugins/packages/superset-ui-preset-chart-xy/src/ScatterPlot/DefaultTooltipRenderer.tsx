@@ -6,7 +6,7 @@ import { isFieldDef } from '../encodeable/types/ChannelDef';
 import { TooltipProps } from './ScatterPlot';
 
 export default function DefaultTooltipRenderer({ datum, encoder }: TooltipProps) {
-  const { channels, commonChannels } = encoder;
+  const { channels } = encoder;
   const { x, y, size, fill, stroke } = channels;
 
   const tooltipRows = [
@@ -35,7 +35,14 @@ export default function DefaultTooltipRenderer({ datum, encoder }: TooltipProps)
       valueColumn: size.format(datum.data),
     });
   }
-  commonChannels.group.forEach(g => {
+  channels.group.forEach(g => {
+    tooltipRows.push({
+      key: `${g.name}`,
+      keyColumn: g.getTitle(),
+      valueColumn: g.format(datum.data),
+    });
+  });
+  channels.tooltip.forEach(g => {
     tooltipRows.push({
       key: `${g.name}`,
       keyColumn: g.getTitle(),

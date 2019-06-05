@@ -41,8 +41,6 @@ export default [
                   type: 'nominal',
                   legend: true,
                 },
-              },
-              commonEncoding: {
                 group: [{ field: 'country_name', title: 'Country' }],
               },
             },

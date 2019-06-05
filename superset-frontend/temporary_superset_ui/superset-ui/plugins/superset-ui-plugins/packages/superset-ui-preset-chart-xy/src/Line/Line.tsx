@@ -89,9 +89,8 @@ export default class LineChart extends PureComponent<Props> {
 
   private createEncoder = createSelector(
     (p: Props) => p.encoding,
-    p => p.commonEncoding,
     p => p.options,
-    (encoding, commonEncoding, options) => new Encoder({ encoding, commonEncoding, options }),
+    (encoding, options) => new Encoder({ encoding, options }),
   );
 
   private createAllSeries = createSelector(

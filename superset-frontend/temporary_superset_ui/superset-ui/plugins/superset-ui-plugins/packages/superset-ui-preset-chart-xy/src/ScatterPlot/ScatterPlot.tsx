@@ -48,6 +48,8 @@ export interface EncodedPoint {
   size: ChannelOutput<'size'>;
   fill: ChannelOutput<'fill'>;
   stroke: ChannelOutput<'stroke'>;
+  group: ChannelOutput<'group'>[];
+  tooltip: ChannelOutput<'tooltip'>[];
   data: PlainObject;
 }
 
@@ -64,9 +66,8 @@ export default class ScatterPlot extends PureComponent<Props> {
 
     const createEncoder = createSelector(
       (p: PartialSpec<Encoding>) => p.encoding,
-      p => p.commonEncoding,
       p => p.options,
-      (encoding, commonEncoding, options) => new Encoder({ encoding, commonEncoding, options }),
+      (encoding, options) => new Encoder({ encoding, options }),
     );
 
     this.createEncoder = () => {
