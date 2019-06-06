@@ -27,6 +27,7 @@ import errno
 import functools
 import json
 import logging
+import marshmallow as m
 import os
 import signal
 import smtplib
@@ -52,7 +53,7 @@ import pandas as pd
 import parsedatetime
 from pydruid.utils.having import Having
 import sqlalchemy as sa
-from sqlalchemy import create_engine, event, exc, select, Text
+from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator
@@ -287,21 +288,62 @@ def decode_dashboards(o):
 
 class DashboardEncoder(json.JSONEncoder):
 
+    def date_handler(self, o):
+        print('date_handler', self, o)
+        sys.stdout.flush()
+        if hasattr(o, 'replace') and hasattr(o, 'isoformat'):
+            print('hasattr(o, \'replace\') and hasattr(o, \'isoformat\')')
+            sys.stdout.flush()
+            try:
+                short_d = o.replace(microsecond=0)
+                print('short_d', short_d)
+                sys.stdout.flush()
+                if hasattr(short_d, 'isoformat'):
+                    iso_d = short_d.isoformat()
+                    print('iso_d', iso_d)
+                    sys.stdout.flush()
+                    a = {'__datetime__': str(iso_d)}
+                    print('a', a)
+                    sys.stdout.flush()
+                    return a
+            except Exception as e:
+                print('Exception!')
+                logging.exception(e)
+                sys.stdout.flush()
+                sys.exit(1)
+        else:
+            print("Error! Error serializing datetime!")
+            sys.stdout.flush()
+            sys.exit(1)
+            try:
+                json.JSONEncoder.default(self, o)
+            except Exception as e:
+                print('Exception!')
+                logging.exception(e)
+                sys.stdout.flush()
+
     # pylint: disable=E0202
     def default(self, o):
         try:
             if type(o) == uuid.UUID:
-                print(type(o), o, o.__dict__)
+                print(type(o), o, str(o))
+                sys.stdout.flush()
                 return str(o)
             vals = {
                 k: v for k, v in o.__dict__.items() if k != '_sa_instance_state'}
             print(type(o), o, o.__dict__)
+            sys.stdout.flush()
             return {'__{}__'.format(o.__class__.__name__): vals}
-        except Exception:
+        except Exception as e:
+            print('Caught Exception!')
+            logging.exception(e)
+            sys.stdout.flush()
             if type(o) == datetime:
                 print(type(o), o)
-                return {'__datetime__': o.replace(microsecond=0).isoformat()}
-            print(type(o), o, o.__dict__)
+                sys.stdout.flush()
+                return self.date_handler(o)
+            print(type(o), o)
+            sys.stdout.flush()
             return json.JSONEncoder.default(self, o)
 
 
