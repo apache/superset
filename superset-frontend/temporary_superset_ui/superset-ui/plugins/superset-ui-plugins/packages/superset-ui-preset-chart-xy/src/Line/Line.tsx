@@ -14,18 +14,16 @@ import { chartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
 import { createSelector } from 'reselect';
-import Encoder, { ChannelTypes, Encoding, ChannelOutput } from './Encoder';
+import Encoder, { Encoding, ChannelOutput } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
-import ChartLegend, {
-  Props as LegendProps,
-  Hooks as LegendHooks,
-} from '../components/legend/ChartLegend';
 import { PartialSpec } from '../encodeable/types/Specification';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
 import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
 import createXYChartLayoutWithTheme from '../utils/createXYChartLayoutWithTheme';
 import createEncoderSelector from '../encodeable/createEncoderSelector';
+import createRenderLegend from '../components/legend/createRenderLegend';
+import { LegendHooks } from '../components/legend/types';
 
 export interface TooltipProps {
   encoder: Encoder;
@@ -43,7 +41,6 @@ const defaultProps = {
   className: '',
   margin: DEFAULT_MARGIN,
   theme: chartTheme,
-  LegendRenderer: ChartLegend,
   TooltipRenderer: DefaultTooltipRenderer,
 };
 
@@ -54,9 +51,8 @@ export type FormDataProps = {
 } & PartialSpec<Encoding>;
 
 export type HookProps = {
-  LegendRenderer?: React.ComponentType<LegendProps<Encoder>>;
   TooltipRenderer?: React.ComponentType<TooltipProps>;
-} & LegendHooks<ChannelTypes>;
+} & LegendHooks<Encoder>;
 
 type Props = {
   className?: string;
@@ -137,7 +133,6 @@ export default class LineChart extends PureComponent<Props> {
   constructor(props: Props) {
     super(props);
 
-    this.renderLegend = this.renderLegend.bind(this);
     this.renderChart = this.renderChart.bind(this);
   }
 
@@ -284,32 +279,8 @@ export default class LineChart extends PureComponent<Props> {
     ));
   }
 
-  renderLegend() {
-    const {
-      data,
-      LegendRenderer,
-      LegendGroupRenderer,
-      LegendItemRenderer,
-      LegendItemLabelRenderer,
-      LegendItemMarkRenderer,
-    } = this.props;
-
-    const encoder = this.createEncoder(this.props);
-
-    return (
-      <LegendRenderer
-        data={data}
-        encoder={encoder}
-        LegendGroupRenderer={LegendGroupRenderer}
-        LegendItemRenderer={LegendItemRenderer}
-        LegendItemMarkRenderer={LegendItemMarkRenderer}
-        LegendItemLabelRenderer={LegendItemLabelRenderer}
-      />
-    );
-  }
-
   render() {
-    const { className, width, height } = this.props;
+    const { className, data, width, height } = this.props;
 
     const encoder = this.createEncoder(this.props);
 
@@ -319,7 +290,7 @@ export default class LineChart extends PureComponent<Props> {
         width={width}
         height={height}
         position="top"
-        renderLegend={encoder.hasLegend() ? this.renderLegend : undefined}
+        renderLegend={createRenderLegend(encoder, data, this.props)}
         renderChart={this.renderChart}
       />
     );

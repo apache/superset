@@ -6,7 +6,6 @@ import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
 import Encoder, { Encoding, ChannelOutput } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
-import ChartLegend from '../components/legend/ChartLegend';
 import { PartialSpec } from '../encodeable/types/Specification';
 import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
@@ -14,6 +13,8 @@ import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
 import { isScaleFieldDef } from '../encodeable/types/ChannelDef';
 import createXYChartLayoutWithTheme from '../utils/createXYChartLayoutWithTheme';
 import createEncoderSelector from '../encodeable/createEncoderSelector';
+import createRenderLegend from '../components/legend/createRenderLegend';
+import { LegendHooks } from '../components/legend/types';
 
 export interface TooltipProps {
   datum: EncodedPoint;
@@ -29,7 +30,7 @@ const defaultProps = {
 
 export type HookProps = {
   TooltipRenderer?: React.ComponentType<TooltipProps>;
-};
+} & LegendHooks<Encoder>;
 
 type Props = {
   className?: string;
@@ -140,10 +141,6 @@ export default class ScatterPlot extends PureComponent<Props> {
     const { className, data, width, height } = this.props;
 
     const encoder = this.createEncoder(this.props);
-    const renderLegend = encoder.hasLegend()
-      ? // eslint-disable-next-line react/jsx-props-no-multi-spaces
-        () => <ChartLegend<Encoder> data={data} encoder={encoder} />
-      : undefined;
 
     return (
       <WithLegend
@@ -151,7 +148,7 @@ export default class ScatterPlot extends PureComponent<Props> {
         width={width}
         height={height}
         position="top"
-        renderLegend={renderLegend}
+        renderLegend={createRenderLegend(encoder, data, this.props)}
         renderChart={this.renderChart}
       />
     );
