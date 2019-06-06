@@ -1,3 +1,99 @@
+## [0.10.31](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.30...v0.10.31) (2019-06-06)
+
+
+### Bug Fixes
+
+* legend types ([b704671](https://github.com/apache-superset/superset-ui-plugins/commit/b704671))
+* move series in front of xy gridlines ([#119](https://github.com/apache-superset/superset-ui-plugins/issues/119)) ([0042f46](https://github.com/apache-superset/superset-ui-plugins/commit/0042f46))
+
+
+### Features
+
+* add getDomain to ChannelEncoder ([e2ea8c8](https://github.com/apache-superset/superset-ui-plugins/commit/e2ea8c8))
+* channels can take array of definitions ([e105629](https://github.com/apache-superset/superset-ui-plugins/commit/e105629))
+* create reusable selector factory for Encoder ([c208272](https://github.com/apache-superset/superset-ui-plugins/commit/c208272))
+* remove children from XYChartLayout parameter ([cd74445](https://github.com/apache-superset/superset-ui-plugins/commit/cd74445))
+* simplify Encoder creation ([5d20d82](https://github.com/apache-superset/superset-ui-plugins/commit/5d20d82))
+
+
+## [0.10.30](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.29...v0.10.30) (2019-06-02)
+
+
+### Bug Fixes
+
+* **preset-chart-xy:** Pick LegendRenderer ([#118](https://github.com/apache-superset/superset-ui-plugins/issues/118)) ([92373c2](https://github.com/apache-superset/superset-ui-plugins/commit/92373c2))
+
+
+
+## [0.10.29](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.28...v0.10.29) (2019-05-31)
+
+
+### Bug Fixes
+
+* scale type category missing ordinal ([1516ed4](https://github.com/apache-superset/superset-ui-plugins/commit/1516ed4))
+
+
+
+## [0.10.28](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.27...v0.10.28) (2019-05-31)
+
+
+### Bug Fixes
+
+* lint ([ad4a3c4](https://github.com/apache-superset/superset-ui-plugins/commit/ad4a3c4))
+
+
+### Features
+
+* implement labelFlush behavior for continuous axes ([#117](https://github.com/apache-superset/superset-ui-plugins/issues/117)) ([80b2227](https://github.com/apache-superset/superset-ui-plugins/commit/80b2227))
+
+
+
+## [0.10.27](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.26...v0.10.27) (2019-05-30)
+
+
+### Bug Fixes
+
+* convert scale config to data-ui's config correctly ([#115](https://github.com/apache-superset/superset-ui-plugins/issues/115)) ([f37f2dd](https://github.com/apache-superset/superset-ui-plugins/commit/f37f2dd))
+
+
+
+## [0.10.26](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.25...v0.10.26) (2019-05-30)
+
+
+### Bug Fixes
+
+* move padding ([f52e48a](https://github.com/apache-superset/superset-ui-plugins/commit/f52e48a))
+
+
+
+## [0.10.25](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.24...v0.10.25) (2019-05-25)
+
+
+
+## [0.10.24](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.23...v0.10.24) (2019-05-24)
+
+
+### Features
+
+* allow boolean as axis config ([e996d24](https://github.com/apache-superset/superset-ui-plugins/commit/e996d24))
+
+
+
+## [0.10.23](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.22...v0.10.23) (2019-05-21)
+
+
+### Bug Fixes
+
+* gridlines ([961a0c6](https://github.com/apache-superset/superset-ui-plugins/commit/961a0c6))
+
+
+### Features
+
+* support custom tooltip for scatterplot and box plot ([fbf6be3](https://github.com/apache-superset/superset-ui-plugins/commit/fbf6be3))
+* support line strokeWidth ([#105](https://github.com/apache-superset/superset-ui-plugins/issues/105)) ([45bdfbb](https://github.com/apache-superset/superset-ui-plugins/commit/45bdfbb))
+
+
+
 ## [0.10.22](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.21...v0.10.22) (2019-05-17)
 
 
