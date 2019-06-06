@@ -1,6 +1,7 @@
 import { Value } from 'vega-lite/build/src/channeldef';
 import { CSSProperties } from 'react';
 import { ChannelInput } from '../../encodeable/types/Channel';
+import AbstractEncoder from '../../encodeable/AbstractEncoder';
 
 export type LegendItemInfo<Encoding> = {
   field: string;
@@ -37,3 +38,25 @@ export type LegendGroupRendererProps<Encoding> = {
 export type LegendGroupRendererType<Encoding> = React.ComponentType<
   LegendGroupRendererProps<Encoding>
 >;
+
+export type LegendRendererProps<Encoding> = {
+  groups: LegendItemInfo<Encoding>[][];
+  LegendGroupRenderer?: LegendGroupRendererType<Encoding>;
+  LegendItemRenderer?: LegendItemRendererType<Encoding>;
+  LegendItemMarkRenderer?: LegendItemMarkRendererType<Encoding>;
+  LegendItemLabelRenderer?: LegendItemLabelRendererType<Encoding>;
+  style?: CSSProperties;
+};
+
+export type LegendRendererType<Encoder> = React.ComponentType<LegendRendererProps<Encoder>>;
+
+export type LegendHooks<
+  Encoder,
+  Encoding = Encoder extends AbstractEncoder<any, infer Encoding> ? Encoding : never
+> = {
+  LegendRenderer?: LegendRendererType<Encoding>;
+  LegendGroupRenderer?: LegendGroupRendererType<Encoding>;
+  LegendItemRenderer?: LegendItemRendererType<Encoding>;
+  LegendItemMarkRenderer?: LegendItemMarkRendererType<Encoding>;
+  LegendItemLabelRenderer?: LegendItemLabelRendererType<Encoding>;
+};
