@@ -1,11 +1,11 @@
 /* eslint-disable sort-keys, no-magic-numbers, complexity */
+
 import React from 'react';
 import { BoxPlotSeries, XYChart } from '@data-ui/xy-chart';
 import { chartTheme, ChartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
-import ChartLegend from '../components/legend/ChartLegend';
 import Encoder, { Encoding } from './Encoder';
 import { Dataset, PlainObject } from '../encodeable/types/Data';
 import { PartialSpec } from '../encodeable/types/Specification';
@@ -14,6 +14,8 @@ import { BoxPlotDataRow } from './types';
 import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
 import createXYChartLayoutWithTheme from '../utils/createXYChartLayoutWithTheme';
 import createEncoderSelector from '../encodeable/createEncoderSelector';
+import createRenderLegend from '../components/legend/createRenderLegend';
+import { LegendHooks } from '../components/legend/types';
 
 export interface TooltipProps {
   datum: BoxPlotDataRow;
@@ -30,7 +32,7 @@ const defaultProps = {
 
 export type HookProps = {
   TooltipRenderer?: React.ComponentType<TooltipProps>;
-};
+} & LegendHooks<Encoder>;
 
 type Props = {
   className?: string;
@@ -121,10 +123,6 @@ export default class BoxPlot extends React.PureComponent<Props> {
     const { className, data, width, height } = this.props;
 
     const encoder = this.createEncoder(this.props);
-    const renderLegend = encoder.hasLegend()
-      ? // eslint-disable-next-line react/jsx-props-no-multi-spaces
-        () => <ChartLegend<Encoder> data={data} encoder={encoder} />
-      : undefined;
 
     return (
       <WithLegend
@@ -132,7 +130,7 @@ export default class BoxPlot extends React.PureComponent<Props> {
         width={width}
         height={height}
         position="top"
-        renderLegend={renderLegend}
+        renderLegend={createRenderLegend(encoder, data, this.props)}
         renderChart={this.renderChart}
       />
     );

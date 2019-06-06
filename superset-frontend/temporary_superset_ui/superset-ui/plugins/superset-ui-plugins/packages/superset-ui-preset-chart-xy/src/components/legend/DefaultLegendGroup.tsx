@@ -16,20 +16,18 @@ const LEGEND_GROUP_STYLE: CSSProperties = {
 
 export default function DefaultLegendGroupRenderer<ChannelTypes>({
   items,
-  ItemRenderer,
+  ItemRenderer = DefaultLegendItem,
   ItemMarkRenderer,
   ItemLabelRenderer,
   style,
 }: LegendGroupRendererProps<ChannelTypes>) {
-  const LegendItem = typeof ItemRenderer === 'undefined' ? DefaultLegendItem : ItemRenderer;
-
   const combinedStyle =
     typeof style === 'undefined' ? LEGEND_GROUP_STYLE : { ...LEGEND_GROUP_STYLE, ...style };
 
   return (
     <div style={combinedStyle}>
       {items.map(item => (
-        <LegendItem
+        <ItemRenderer
           key={`legend-item-${item.field}-${item.value}`}
           item={item}
           MarkRenderer={ItemMarkRenderer}
