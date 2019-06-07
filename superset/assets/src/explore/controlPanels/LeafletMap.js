@@ -114,10 +114,12 @@ export default {
     viewport_longitude:{
       default: 72.83333,
       isFloat: false,
+      renderTrigger: false,
     },
     viewport_latitude:{
       default: 18.96667,
       isFloat: false,
+      renderTrigger: false,
     },
     viewport_zoom:{
       label: t('Default Zoom Level'),
