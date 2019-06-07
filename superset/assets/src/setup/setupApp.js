@@ -72,4 +72,16 @@ export default function setupApp() {
   window.$ = $;
   window.jQuery = $;
   require('bootstrap');
+
+  // Manage the data access policy modal if needed
+  if ($('#data-access-policy-modal')) {
+    $('#data-access-policy-modal').modal({ backdrop: 'static' });
+    $('#data-access-policy-modal').on('hide.bs.modal', () => {
+      // Fire and forget the acceptance. If it fails for some reason, then we'll
+      // just reprompt the user when they reload the page.
+      SupersetClient.post({
+        endpoint: '/superset/accept_data_access_policy',
+      });
+    });
+  }
 }

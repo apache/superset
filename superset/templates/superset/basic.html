@@ -92,6 +92,25 @@
         </div>
       </div>
     </div>
+
+    {% if show_data_access_policy_modal %}
+    <div id="data-access-policy-modal" class="misc-modal modal fade" tabindex="-1" role="dialog" aria-labelledby="dataAccessPolicyModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">Data Access Policy</h4>
+          </div>
+          <div class="modal-body">
+            {{ data_access_policy_modal_content }}
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-dismiss="modal">Ok</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     {% block tail_js %}
       {% if entry %}
         {% with filename=entry %}

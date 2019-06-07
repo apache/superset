@@ -627,6 +627,16 @@ TALISMAN_CONFIG = {
     'force_https_permanent': False,
 }
 
+# Turns on the data access policy modal. Users must agree to the policy to use superset.
+# Agreements are logged on the backend for audit purposes. The modal contents and time
+# between required re-agreements can be configured below.
+ENABLE_DATA_ACCESS_POLICY = False
+DATA_ACCESS_POLICY_MODAL_CONTENT = """
+    The data in this tool is confidental and for internal use only.
+"""
+# Set to None if you don't want to require re-agreements
+DATA_ACCESS_POLICY_VALID_DURATION_SECONDS = 60 * 60 * 24 * 30
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful

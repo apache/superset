@@ -3000,6 +3000,61 @@ class Superset(BaseSupersetView):
                 'Please contact Superset Admin!\n\n'
                 'The error message returned was:\n{}').format(traceback.format_exc()))
 
+    @api
+    @has_access_api
+    @log_this
+    @expose('/accept_data_access_policy', methods=['POST'])
+    def accept_data_access_policy(self):
+        """
+        This method exposes and API endpoint to accept the data access policy as a user.
+        POST-ing to this api will update the agreed date on the user's UserAttribute
+        row.
+        """
+        session = db.session()
+        user_attribute = (
+            session.query(UserAttribute)
+            .filter_by(user_id=g.user.get_id())
+            .one_or_none()
+        )
+        if user_attribute:
+            user_attribute.data_access_policy_agree_date = datetime.now()
+        else:
+            new_user_attribute = UserAttribute(
+                user_id=g.user.get_id(),
+                data_access_policy_agree_date=datetime.now(),
+            )
+            session.add(new_user_attribute)
+
+        session.commit()
+        session.close()
+        return json_success(json.dumps({'status': 'SUCCESS'}))
+
+    def render_template(self, *args, **kwargs):
+        if config.get('ENABLE_DATA_ACCESS_POLICY'):
+            data_access_policy_agree_date = (
+                db.session.query(UserAttribute.data_access_policy_agree_date)
+                .filter_by(user_id=g.user.get_id())
+                .scalar()
+            )
+            valid_duration = config.get('DATA_ACCESS_POLICY_VALID_DURATION_SECONDS')
+            # Show the data access policy modal if the user never agreed to it or the
+            # policy agreement has expired
+            if not data_access_policy_agree_date or (
+                valid_duration and
+                (data_access_policy_agree_date + timedelta(seconds=valid_duration)) <
+                datetime.now()
+            ):
+                modal_content = config.get('DATA_ACCESS_POLICY_MODAL_CONTENT')
+                return super().render_template(
+                    *args,
+                    show_data_access_policy_modal=True,
+                    data_access_policy_modal_content=modal_content,
+                    **kwargs,
+                )
+
+        # Default case, no need to show the data access policy modal
+        return super().render_template(*args, **kwargs)
+
 
 appbuilder.add_view_no_menu(Superset)
 
