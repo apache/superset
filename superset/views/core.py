@@ -546,6 +546,12 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'viz_type': _('Visualization Type'),
     }
 
+    add_form_query_rel_fields = {
+        'dashboards': [['name', DashboardFilter, None]],
+    }
+
+    edit_form_query_rel_fields = add_form_query_rel_fields
+
     def pre_add(self, obj):
         utils.validate_json(obj.params)
 
