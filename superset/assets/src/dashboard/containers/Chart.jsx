@@ -53,7 +53,7 @@ function mapStateToProps(
       {},
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    filters: filters[id] || EMPTY_FILTERS,
+    filters: filters || EMPTY_FILTERS,
     // note: this method caches filters if possible to prevent render cascades
     formData: getFormDataWithExtraFilters({
       chart,
