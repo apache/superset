@@ -22,9 +22,11 @@ import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
 import {
   Column,
-  Table,
+  Grid,
+  ScrollSync,
   SortDirection,
   SortIndicator,
+  Table,
 } from 'react-virtualized';
 import { getTextDimension } from '@superset-ui/dimension';
 import TooltipWrapper from '../TooltipWrapper';
@@ -34,6 +36,9 @@ function getTextWidth(text, font = '12px Roboto') {
 }
 
 const SCROLL_BAR_HEIGHT = 15;
+
+// when more than MAX_COLUMNS are returned, switch from table to grid view
+const MAX_COLUMNS = 3;
 
 const propTypes = {
   orderedColumnKeys: PropTypes.array.isRequired,
@@ -60,7 +65,11 @@ export default class FilterableTable extends PureComponent {
   constructor(props) {
     super(props);
     this.list = List(this.formatTableData(props.data));
+    this.renderCell = this.renderCell.bind(this);
+    this.renderCellHeader = this.renderCellHeader.bind(this);
+    this.renderGrid = this.renderGrid.bind(this);
     this.renderHeader = this.renderHeader.bind(this);
+    this.renderTable = this.renderTable.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
 
@@ -167,7 +176,90 @@ export default class FilterableTable extends PureComponent {
     );
   }
 
-  render() {
+  renderCellHeader({ columnIndex, key, style }) {
+    const label = this.props.orderedColumnKeys[columnIndex];
+    return (
+      <TooltipWrapper label="header" tooltip={label}>
+        <div
+          key={key}
+          style={{ ...style, top: style.top - 4 }}
+          className="grid-cell grid-header-cell"
+        >
+          {label}
+        </div>
+      </TooltipWrapper>
+    );
+  }
+
+  renderCell({ columnIndex, key, rowIndex, style }) {
+    const columnKey = this.props.orderedColumnKeys[columnIndex];
+    return (
+      <div
+        key={key}
+        style={{ ...style, top: style.top - 4 }}
+        className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
+      >
+        {this.list.get(rowIndex)[columnKey]}
+      </div>
+    );
+  }
+
+  renderGrid() {
+    const { orderedColumnKeys, rowHeight } = this.props;
+
+    let { height } = this.props;
+    let totalTableHeight = height;
+    if (this.container && this.totalTableWidth > this.container.clientWidth) {
+      // exclude the height of the horizontal scroll bar from the height of the table
+      // and the height of the table container if the content overflows
+      height -= SCROLL_BAR_HEIGHT;
+      totalTableHeight -= SCROLL_BAR_HEIGHT;
+    }
+
+    const getColumnWidth = ({ index }) => this.widthsForColumnsByKey[orderedColumnKeys[index]];
+
+    return (
+      <ScrollSync>
+        {({ onScroll, scrollTop }) => (
+          <div
+            style={{ height }}
+            className="filterable-table-container"
+            ref={(ref) => { this.container = ref; }}
+          >
+            <div className="LeftColumn">
+              <Grid
+                cellRenderer={this.renderCellHeader}
+                columnCount={orderedColumnKeys.length}
+                columnWidth={getColumnWidth}
+                height={rowHeight}
+                onScroll={onScroll}
+                ref={(ref) => { this.container = ref; }}
+                rowCount={1}
+                rowHeight={rowHeight}
+                scrollTop={scrollTop}
+                width={this.totalTableWidth}
+              />
+            </div>
+            <div className="RightColumn">
+              <Grid
+                cellRenderer={this.renderCell}
+                columnCount={orderedColumnKeys.length}
+                columnWidth={getColumnWidth}
+                height={totalTableHeight}
+                onScroll={onScroll}
+                ref={(ref) => { this.container = ref; }}
+                rowCount={this.list.size}
+                rowHeight={rowHeight}
+                width={this.totalTableWidth}
+              />
+            </div>
+          </div>
+        )}
+      </ScrollSync>
+    );
+  }
+
+  renderTable() {
     const { sortBy, sortDirection } = this.state;
     const {
       filterText,
@@ -234,6 +326,13 @@ export default class FilterableTable extends PureComponent {
         }
       </div>
     );
+  }
+
+  render() {
+    if (this.props.orderedColumnKeys.length > MAX_COLUMNS) {
+      return this.renderGrid();
+    }
+    return this.renderTable();
   }
 }
 
