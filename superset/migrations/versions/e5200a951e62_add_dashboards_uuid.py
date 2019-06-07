@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Adds uuid columns to all classes with ImportMixin: dashboards, datasources, dbs, slices, tables, dashboard_email_schedules, slice_email_schedules
+"""Adds uuid columns to all classes with ImportExportMixin: dashboards, datasources, dbs, slices, tables, dashboard_email_schedules, slice_email_schedules
 
 Revision ID: e5200a951e62
 Revises: e9df189e5c7e

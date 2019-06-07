@@ -50,7 +50,7 @@ import sqlparse
 from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
-from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import (
@@ -146,7 +146,7 @@ slice_user = Table('slice_user', metadata,
                    Column('slice_id', Integer, ForeignKey('slices.id')))
 
 
-class Slice(Model, AuditMixinNullable, ImportMixin):
+class Slice(Model, AuditMixinNullable, ImportExportMixin):
 
     """A slice is essentially a report or a view on data"""
 
@@ -396,7 +396,7 @@ dashboard_user = Table(
 )
 
 
-class Dashboard(Model, AuditMixinNullable, ImportMixin):
+class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     """The dashboard object!"""
 
@@ -714,7 +714,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         }
 
 
-class Database(Model, AuditMixinNullable, ImportMixin):
+class Database(Model, AuditMixinNullable, ImportExportMixin):
 
     """An ORM object that stores Database related information"""
 

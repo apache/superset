@@ -27,7 +27,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 
 from superset import security_manager
-from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 
 
 metadata = Model.metadata  # pylint: disable=no-member
@@ -77,7 +77,7 @@ class EmailSchedule():
 
 class DashboardEmailSchedule(Model,
                              AuditMixinNullable,
-                             ImportMixin,
+                             ImportExportMixin,
                              EmailSchedule):
     __tablename__ = 'dashboard_email_schedules'
     dashboard_id = Column(Integer, ForeignKey('dashboards.id'))
@@ -90,7 +90,7 @@ class DashboardEmailSchedule(Model,
 
 class SliceEmailSchedule(Model,
                          AuditMixinNullable,
-                         ImportMixin,
+                         ImportExportMixin,
                          EmailSchedule):
     __tablename__ = 'slice_email_schedules'
     slice_id = Column(Integer, ForeignKey('slices.id'))

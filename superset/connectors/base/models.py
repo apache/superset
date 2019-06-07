@@ -24,11 +24,11 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, relationship
 
 from superset.models.core import Slice
-from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.utils import core as utils
 
 
-class BaseDatasource(AuditMixinNullable, ImportMixin):
+class BaseDatasource(AuditMixinNullable, ImportExportMixin):
     """A common interface to objects that are queryable
     (tables and datasources)"""
 
@@ -341,7 +341,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             obj.get('columns'), self.columns, self.column_class, 'column_name')
 
 
-class BaseColumn(AuditMixinNullable, ImportMixin):
+class BaseColumn(AuditMixinNullable, ImportExportMixin):
     """Interface for column"""
 
     __tablename__ = None  # {connector_name}_column
@@ -404,7 +404,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
 
 
-class BaseMetric(AuditMixinNullable, ImportMixin):
+class BaseMetric(AuditMixinNullable, ImportExportMixin):
 
     """Interface for Metrics"""
 

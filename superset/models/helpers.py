@@ -49,7 +49,7 @@ def get_uuid():
     return str(uuid.uuid4())
 
 
-class ImportMixin(object):
+class ImportExportMixin(object):
     export_parent = None
     # The name of the attribute
     # with the SQL Alchemy back reference
