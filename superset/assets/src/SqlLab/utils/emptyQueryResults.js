@@ -16,16 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
+import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../constants';
 
-import sqlLab from './sqlLab';
-import localStorageUsageInKilobytes from './localStorageUsage';
-import messageToasts from '../../messageToasts/reducers/index';
-import common from './common';
+export default function emptyQueryResults(queries) {
+  return Object.keys(queries)
+    .reduce((accu, key) => {
+      const { startDttm, results } = queries[key];
+      const query = {
+        ...queries[key],
+        results: Date.now() - startDttm > LOCALSTORAGE_MAX_QUERY_AGE_MS ?
+          {} : results,
+      };
 
-export default combineReducers({
-  sqlLab,
-  localStorageUsageInKilobytes,
-  messageToasts,
-  common,
-});
+      const updatedQueries = {
+        ...accu,
+        [key]: query,
+      };
+      return updatedQueries;
+    }, {});
+}
