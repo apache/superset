@@ -30,7 +30,7 @@ const propTypes = {
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
   datasource: PropTypes.object.isRequired,
-  filters: PropTypes.object,
+  initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
   height: PropTypes.number,
   width: PropTypes.number,
@@ -51,7 +51,7 @@ const BLANK = {};
 
 const defaultProps = {
   addFilter: () => BLANK,
-  filters: BLANK,
+  initialValues: BLANK,
   setControlValue() {},
   triggerRender: false,
 };
@@ -104,7 +104,7 @@ class ChartRenderer extends React.Component {
       height,
       annotationData,
       datasource,
-      filters,
+      initialValues,
       formData,
       queryResponse,
       setControlValue,
@@ -115,7 +115,7 @@ class ChartRenderer extends React.Component {
       height,
       annotationData,
       datasource,
-      filters,
+      filters: initialValues,
       formData,
       onAddFilter: this.handleAddFilter,
       onError: this.handleRenderFailure,
