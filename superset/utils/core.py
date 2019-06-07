@@ -315,8 +315,11 @@ def parse_human_timedelta(s: str) -> timedelta:
 def parse_past_timedelta(delta_str: str) -> timedelta:
     """
     Takes a delta like '1 year' and finds the timedelta for that period in
-    the past. parse_human_timedelta('-1 year') returns datetime.timedelta(-365), so
-    we need to return -datetime.timedelta(-365) or datetime.timedelta(365).
+    the past, then represents that past timedelta in positive terms.
+
+    parse_human_timedelta('1 year') find the timedelta 1 year in the future.
+    parse_past_timedelta('1 year') returns -datetime.timedelta(-365)
+    or datetime.timedelta(365).
     """
     return -parse_human_timedelta(
         delta_str if delta_str.startswith('-') else f'-{delta_str}')
