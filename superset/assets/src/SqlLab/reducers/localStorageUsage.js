@@ -16,16 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
-
-import sqlLab from './sqlLab';
-import localStorageUsageInKilobytes from './localStorageUsage';
-import messageToasts from '../../messageToasts/reducers/index';
-import common from './common';
-
-export default combineReducers({
-  sqlLab,
-  localStorageUsageInKilobytes,
-  messageToasts,
-  common,
-});
+export default function localStorageUsageReducer(state = 0) {
+  return state;
+}
