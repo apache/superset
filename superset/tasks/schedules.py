@@ -21,10 +21,9 @@
 from collections import namedtuple
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
-from http import cookiejar, cookies as cookies_lib
 import logging
 import time
-import urllib
+import urllib.error, urllib.request
 
 import croniter
 from dateutil.tz import tzlocal
@@ -257,18 +256,11 @@ def _get_slice_data(schedule):
     for cookie in _get_auth_cookies():
         cookies["session"] = cookie
 
-    # print(f'Cookies: {cookies}')
-
-    # fixme We need to work on this
-    #  Was: requests.get(slice_url, cookies=cookies) (!)
-    #  See also https://stackoverflow.com/questions/42689008/how-to-use-cookies-in-python-3
-    base_cookie = cookies_lib.BaseCookie(cookies)
-    cj = cookiejar.CookieJar()
-    cj.set_cookie(base_cookie)
-    opener = urllib.request.build_opener(urllib.request.CookieProcessor(cj))
+    opener = urllib.request.build_opener()
+    opener.addheaders.append(('Cookie', f"session={cookies['session']}"))
     response = opener.open(slice_url)
-    ##########
-    response.raise_for_status()
+    if response.getcode() != 200:
+        raise urllib.error()
 
     # TODO: Move to the csv module
     rows = [r.split(b",") for r in response.content.splitlines()]
