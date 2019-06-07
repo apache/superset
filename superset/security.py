@@ -127,12 +127,13 @@ class SupersetSecurityManager(SecurityManager):
         return self.can_access(
             'all_datasource_access', 'all_datasource_access')
 
+    def all_database_access(self):
+        return self.can_access('all_database_access', 'all_database_access')
+
     def database_access(self, database):
-        return (
-            self.can_access(
-                'all_database_access', 'all_database_access') or
-            self.can_access('database_access', database.perm)
-        )
+        return (self.all_database_access() or
+                self.can_access('database_access', database.perm) or
+                self.all_datasource_access)
 
     def schema_access(self, datasource):
         return (
@@ -183,13 +184,11 @@ class SupersetSecurityManager(SecurityManager):
 
     def get_schema_and_table(self, table_in_query, schema):
         table_name_pieces = table_in_query.split('.')
-        if len(table_name_pieces) == 2:
-            table_schema = table_name_pieces[0]
-            table_name = table_name_pieces[1]
-        else:
-            table_schema = schema
-            table_name = table_name_pieces[0]
-        return (table_schema, table_name)
+        if len(table_name_pieces) == 3:
+            return tuple(table_name_pieces[1:])
+        elif len(table_name_pieces) == 2:
+            return tuple(table_name_pieces)
+        return (schema, table_name_pieces[0])
 
     def datasource_access_by_fullname(
             self, database, table_in_query, schema):

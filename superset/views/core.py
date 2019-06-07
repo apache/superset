@@ -153,6 +153,14 @@ class SliceFilter(SupersetFilter):
         return query.filter(self.model.perm.in_(perms))
 
 
+class DatabaseFilter(SupersetFilter):
+    def apply(self, query, func): # noqa
+        if security_manager.all_database_access():
+            return query
+        perms = self.get_view_menus('database_access')
+        return query.filter(self.model.perm.in_(perms))
+
+
 class DashboardFilter(SupersetFilter):
 
     """List dashboards for which users have access to at least one slice or are owners"""
@@ -288,6 +296,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'allow_csv_upload': _(
             'If selected, please set the schemas allowed for csv upload in Extra.'),
     }
+    base_filters = [['id', DatabaseFilter, lambda: []]]
     label_columns = {
         'expose_in_sqllab': _('Expose in SQL Lab'),
         'allow_ctas': _('Allow CREATE TABLE AS'),
@@ -537,6 +546,12 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'table': _('Table'),
         'viz_type': _('Visualization Type'),
     }
+
+    add_form_query_rel_fields = {
+        'dashboards': [['name', DashboardFilter, None]],
+    }
+
+    edit_form_query_rel_fields = add_form_query_rel_fields
 
     def pre_add(self, obj):
         utils.validate_json(obj.params)

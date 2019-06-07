@@ -214,6 +214,7 @@ the world know they are using Superset. Join our growing community!
  1. [Steamroot](https://streamroot.io/)
  1. [Showmax](https://tech.showmax.com)
  1. [Tails.com](https://tails.com)
+ 1. [Tenable](https://www.tenable.com)
  1. [THEICONIC](http://theiconic.com.au/)
  1. [Tobii](http://www.tobii.com/)
  1. [Tooploox](https://www.tooploox.com/)

@@ -319,7 +319,7 @@ pip install -r requirements-dev.txt
 pip install -e .
 
 # Create an admin user in your metadata database
-fabmanager create-admin --app superset
+flask fab create-admin --app superset
 
 # Initialize the database
 superset db upgrade
@@ -594,7 +594,7 @@ LANGUAGES = {
 ### Extracting new strings for translation
 
 ```bash
-fabmanager babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
+flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
 ```
 
 You can then translate the strings gathered in files located under
@@ -607,7 +607,7 @@ For the translations to take effect:
 ```bash
 # In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
 npm install -g po2json
-fabmanager babel-compile --target superset/translations
+flask fab babel-compile --target superset/translations
 # Convert the en PO file into a JSON file
 po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
 ```

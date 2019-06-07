@@ -529,6 +529,10 @@ class BaseEngineSpec(object):
             label = label[:cls.max_column_name_length]
         return label
 
+    @classmethod
+    def column_datatype_to_string(cls, sqla_column_type, dialect):
+        return sqla_column_type.compile(dialect=dialect).upper()
+
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
@@ -863,6 +867,17 @@ class MySQLEngineSpec(BaseEngineSpec):
         except Exception:
             pass
         return message
+
+    @classmethod
+    def column_datatype_to_string(cls, sqla_column_type, dialect):
+        datatype = super().column_datatype_to_string(sqla_column_type, dialect)
+        # MySQL dialect started returning long overflowing datatype
+        # as in 'VARCHAR(255) COLLATE UTF8MB4_GENERAL_CI'
+        # and we don't need the verbose collation type
+        str_cutoff = ' COLLATE '
+        if str_cutoff in datatype:
+            datatype = datatype.split(str_cutoff)[0]
+        return datatype
 
 
 class PrestoEngineSpec(BaseEngineSpec):
