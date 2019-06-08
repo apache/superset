@@ -22,8 +22,12 @@ from sqlalchemy.dialects import mssql, oracle, postgresql
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.types import String, UnicodeText
 
-from superset import db_engine_specs
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs import engines
+from superset.db_engine_specs.base import (
+    _create_time_grains_tuple,
+    BaseEngineSpec,
+    builtin_time_grains,
+)
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
@@ -306,24 +310,23 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             'PT1S': '{col}',
             'PT1M': '{col}',
         }
-        time_grains = db_engine_specs._create_time_grains_tuple(time_grains,
-                                                                time_grain_functions,
-                                                                blacklist)
+        time_grains = _create_time_grains_tuple(time_grains,
+                                                time_grain_functions,
+                                                blacklist)
         self.assertEqual(1, len(time_grains))
         self.assertEqual('PT1S', time_grains[0].duration)
 
     def test_engine_time_grain_validity(self):
-        time_grains = set(db_engine_specs.builtin_time_grains.keys())
+        time_grains = set(builtin_time_grains.keys())
         # loop over all subclasses of BaseEngineSpec
-        for cls_name, cls in inspect.getmembers(db_engine_specs):
-            if inspect.isclass(cls) and issubclass(cls, BaseEngineSpec) \
-                    and cls is not BaseEngineSpec:
+        for engine in engines.values():
+            if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
-                self.assertGreater(len(cls.time_grain_functions), 0)
+                self.assertGreater(len(engine.time_grain_functions), 0)
                 # make sure that all defined time grains are supported
-                defined_time_grains = {grain.duration for grain in cls.get_time_grains()}
-                intersection = time_grains.intersection(defined_time_grains)
-                self.assertSetEqual(defined_time_grains, intersection, cls_name)
+                defined_grains = {grain.duration for grain in engine.get_time_grains()}
+                intersection = time_grains.intersection(defined_grains)
+                self.assertSetEqual(defined_grains, intersection, engine)
 
     def test_presto_get_view_names_return_empty_list(self):
         self.assertEquals([], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY))
@@ -760,14 +763,14 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """ Make sure base engine spec removes schema name from table name
         ie. when try_remove_schema_from_table_name == True. """
         base_result_expected = ['table', 'table_2']
-        base_result = db_engine_specs.BaseEngineSpec.get_table_names(
+        base_result = BaseEngineSpec.get_table_names(
             schema='schema', inspector=inspector)
         self.assertListEqual(base_result_expected, base_result)
 
         """ Make sure postgres doesn't try to remove schema name from table name
         ie. when try_remove_schema_from_table_name == False. """
         pg_result_expected = ['schema.table', 'table_2', 'table_3']
-        pg_result = db_engine_specs.PostgresEngineSpec.get_table_names(
+        pg_result = PostgresEngineSpec.get_table_names(
             schema='schema', inspector=inspector)
         self.assertListEqual(pg_result_expected, pg_result)
 

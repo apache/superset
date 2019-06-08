@@ -11,23 +11,24 @@ class MySQLEngineSpec(BaseEngineSpec):
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'DATE_ADD(DATE({col}), '
-              'INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60'
-              ' + SECOND({col})) SECOND)',
+                'INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60'
+                ' + SECOND({col})) SECOND)',
         'PT1M': 'DATE_ADD(DATE({col}), '
-              'INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)',
+                'INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)',
         'PT1H': 'DATE_ADD(DATE({col}), '
-              'INTERVAL HOUR({col}) HOUR)',
+                'INTERVAL HOUR({col}) HOUR)',
         'P1D': 'DATE({col})',
         'P1W': 'DATE(DATE_SUB({col}, '
-              'INTERVAL DAYOFWEEK({col}) - 1 DAY))',
+               'INTERVAL DAYOFWEEK({col}) - 1 DAY))',
         'P1M': 'DATE(DATE_SUB({col}, '
-              'INTERVAL DAYOFMONTH({col}) - 1 DAY))',
+               'INTERVAL DAYOFMONTH({col}) - 1 DAY))',
         'P0.25Y': 'MAKEDATE(YEAR({col}), 1) '
-              '+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER',
+                  '+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER',
         'P1Y': 'DATE(DATE_SUB({col}, '
-              'INTERVAL DAYOFYEAR({col}) - 1 DAY))',
+               'INTERVAL DAYOFYEAR({col}) - 1 DAY))',
         '1969-12-29T00:00:00Z/P1W': 'DATE(DATE_SUB({col}, '
-              'INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))',
+                                    'INTERVAL DAYOFWEEK(DATE_SUB({col}, '
+                                    'INTERVAL 1 DAY)) - 1 DAY))',
     }
 
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed

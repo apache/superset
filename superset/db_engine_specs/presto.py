@@ -34,11 +34,11 @@ class PrestoEngineSpec(BaseEngineSpec):
         'P0.25Y': "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
         'P1Y': "date_trunc('year', CAST({col} AS TIMESTAMP))",
         'P1W/1970-01-03T00:00:00Z':
-            "date_add('day', 5, date_trunc('week', date_add('day', 1, \
-            CAST({col} AS TIMESTAMP))))",
+            "date_add('day', 5, date_trunc('week', date_add('day', 1, "
+            'CAST({col} AS TIMESTAMP))))',
         '1969-12-28T00:00:00Z/P1W':
-            "date_add('day', -1, date_trunc('week', \
-            date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+            "date_add('day', -1, date_trunc('week', "
+            "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
     }
 
     @classmethod
@@ -350,8 +350,8 @@ class PrestoEngineSpec(BaseEngineSpec):
     def get_all_datasource_names(cls, db, datasource_type: str) \
             -> List[utils.DatasourceName]:
         datasource_df = db.get_df(
-            """SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S
-               ORDER BY concat(table_schema, '.', table_name)""".format(
+            "SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S"
+            "ORDER BY concat(table_schema, '.', table_name)".format(
                 datasource_type.upper(),
             ),
             None)

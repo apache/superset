@@ -47,7 +47,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     @classmethod
     def fetch_data(cls, cursor, limit):
         data = super(BigQueryEngineSpec, cls).fetch_data(cursor, limit)
-        if len(data) != 0 and type(data[0]).__name__ == 'Row':
+        if data and type(data[0]).__name__ == 'Row':
             data = [r.values() for r in data]
         return data
 
