@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 from collections import defaultdict
+from typing import Any, Dict, List
 from urllib import parse
 
 from flask import g, request
@@ -26,9 +27,10 @@ from superset import app, db, viz
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 import superset.models.core as models
+from superset.utils.core import QueryStatus
 
 
-FORM_DATA_KEY_BLACKLIST = []
+FORM_DATA_KEY_BLACKLIST: List[str] = []
 if not app.config.get('ENABLE_JAVASCRIPT_CONTROLS'):
     FORM_DATA_KEY_BLACKLIST = [
         'js_tooltip',
@@ -184,3 +186,26 @@ def get_datasource_info(datasource_id, datasource_type, form_data):
             'The datasource associated with this chart no longer exists')
     datasource_id = int(datasource_id)
     return datasource_id, datasource_type
+
+
+def apply_display_max_row_limit(sql_results: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Given a `sql_results` nested structure, applies a limit to the number of rows
+
+    `sql_results` here is the nested structure coming out of sql_lab.get_sql_results, it
+    contains metadata about the query, as well as the data set returned by the query.
+    This method limits the number of rows adds a `displayLimitReached: True` flag to the
+    metadata.
+
+    :param sql_results: The results of a sql query from sql_lab.get_sql_results
+    :returns: The mutated sql_results structure
+    """
+    display_limit = app.config.get('DISPLAY_MAX_ROW')
+    if (
+        display_limit and
+        sql_results['status'] == QueryStatus.SUCCESS and
+        display_limit < sql_results['query']['rows']
+    ):
+        sql_results['data'] = sql_results['data'][:display_limit]
+        sql_results['displayLimitReached'] = True
+    return sql_results
