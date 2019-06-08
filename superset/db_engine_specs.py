@@ -2421,6 +2421,14 @@ class BQEngineSpec(BaseEngineSpec):
         return [sqla.literal_column(c.get('name')).label(c.get('name').replace('.', '__'))
                 for c in cols]
 
+    @classmethod
+    def epoch_to_dttm(cls):
+        return 'TIMESTAMP_SECONDS({col})'
+
+    @classmethod
+    def epoch_ms_to_dttm(cls):
+        return 'TIMESTAMP_MILLIS({col})'
+
 
 class ImpalaEngineSpec(BaseEngineSpec):
     """Engine spec for Cloudera's Impala"""
