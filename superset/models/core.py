@@ -708,8 +708,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
         return {
             'description': desc,
-            'dashboards': copied_dashboards,
-            'datasources': [o.export_to_dict() for o in eager_datasources],
+            'dashboards': [o.export_to_json() for o in copied_dashboards],
+            'datasources': [o.export_to_json() for o in eager_datasources],
             'files': files,
         }
 

@@ -28,8 +28,8 @@ import requests
 from superset import db
 from superset.exceptions import SupersetException
 from superset.models.core import Dashboard
-from superset.utils.core import DashboardEncoder, decode_dashboards, \
-    get_or_create_example_db, get_or_create_main_db                           
+from superset.utils.core import decode_dashboards, get_or_create_example_db, \
+    get_or_create_main_db
 
 
 def import_dashboards(session, data_stream, import_time=None):
@@ -133,7 +133,7 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
         data['description']['description'] = description
     data['description']['license'] = _license
 
-    export_json = json.dumps(data, cls=DashboardEncoder, indent=4, sort_keys=True)
+    export_json = json.dumps(data, indent=4, sort_keys=True)
 
     # Remove datasources[].__SqlaTable__.database for example export
     # if strip_database:

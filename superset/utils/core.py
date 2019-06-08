@@ -25,7 +25,8 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 import errno
 import functools
-import json
+# import json
+from json.encoder import JSONEncoder
 import logging
 import os
 import signal
@@ -285,20 +286,42 @@ def decode_dashboards(o):
         return o
 
 
-class DashboardEncoder(json.JSONEncoder):
+class DashboardEncoder():
 
     # pylint: disable=E0202
-    def default(self, o):
+    @classmethod
+    def encode(cls, o):
+        j = JSONEncoder()
         try:
-            if type(o) == uuid.UUID:
+            print(type(o))
+            if isinstance(o, uuid.UUID):
+                logging.debug('UUID')
                 return str(o)
-            vals = {
-                k: v for k, v in o.__dict__.items() if k != '_sa_instance_state'}
-            return {'__{}__'.format(o.__class__.__name__): vals}
-        except Exception:
-            if type(o) == datetime:
+            if isinstance(o, datetime):
+                logging.debug('datetime')
                 return {'__datetime__': o.replace(microsecond=0).isoformat()}
-            return json.JSONEncoder.default(self, o)
+            if isinstance(o, list):
+                logging.debug('list')
+                return [DashboardEncoder.encode(i) for i in o]
+            if hasattr(o, '__dict__'):
+                logging.debug('__dict__')
+                vals = {}
+                for k, v in o.__dict__.items():
+                    if k == '_sa_instance_state':
+                        logging.debug('skipping _sa_instance_state')
+                        continue
+                    elif k.startswith('json') or k.endswith('json'):
+                        logging.debug(f'found json... {k}')
+                        vals[k] = v
+                    else:
+                        vals[k] = DashboardEncoder.encode(v)
+                return {'__{}__'.format(o.__class__.__name__): vals}
+            else:
+                logging.debug('else JSONEncoder().encode(o)')
+                return j.encode(o)
+        except Exception as e:
+            logging.exception(e)
+            return j.encode(o)
 
 
 def parse_human_timedelta(s: str):

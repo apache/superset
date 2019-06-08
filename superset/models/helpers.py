@@ -33,7 +33,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy_utils.types.uuid import UUIDType
 import yaml
 
-from superset.utils.core import QueryStatus
+from superset.utils.core import DashboardEncoder, QueryStatus
 
 
 def json_to_dict(json_str):
@@ -191,6 +191,10 @@ class ImportExportMixin(object):
 
         return obj
 
+    def export_to_json(self, recursive=True):
+        """Export obj to json"""
+        return DashboardEncoder.encode(self)
+
     def export_to_dict(self, recursive=True, include_parent_ref=False,
                        include_defaults=False):
         """Export obj to dictionary"""
@@ -200,6 +204,7 @@ class ImportExportMixin(object):
             parent_ref = cls.__mapper__.relationships.get(cls.export_parent)
             if parent_ref:
                 parent_excludes = {c.name for c in parent_ref.local_columns}
+
         dict_rep = {c.name: getattr(self, c.name)
                     for c in cls.__table__.columns
                     if (c.name in self.export_fields and
