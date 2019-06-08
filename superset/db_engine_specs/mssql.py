@@ -34,7 +34,7 @@ class MssqlEngineSpec(BaseEngineSpec):
     @classmethod
     def fetch_data(cls, cursor, limit):
         data = super(MssqlEngineSpec, cls).fetch_data(cursor, limit)
-        if len(data) != 0 and type(data[0]).__name__ == 'Row':
+        if data and type(data[0]).__name__ == 'Row':
             data = [[elem for elem in r] for r in data]
         return data
 
