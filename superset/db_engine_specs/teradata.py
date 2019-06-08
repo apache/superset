@@ -39,4 +39,4 @@ class TeradataEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls):
         return "CAST(((CAST(DATE '1970-01-01' + ({col} / 86400) AS TIMESTAMP(0) " \
                "AT 0)) AT 0) + (({col} MOD 86400) * INTERVAL '00:00:01' " \
-               "HOUR TO SECOND) AS TIMESTAMP(0))"
+               'HOUR TO SECOND) AS TIMESTAMP(0))'
