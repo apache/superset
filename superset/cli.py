@@ -33,8 +33,8 @@ import yaml
 from superset import (
     app, appbuilder, data, db, security_manager,
 )
-from superset.data.helpers import get_examples_file_list, get_examples_uris, \
-    list_examples_table, download_url_to_blob_url
+from superset.data.helpers import download_url_to_blob_url, get_examples_file_list, \
+    get_examples_uris, list_examples_table
 from superset.exceptions import DashboardNotFoundException, ExampleNotFoundException
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
@@ -167,8 +167,10 @@ def examples():
 @click.option(
     '--license', '-l', '_license', default='Apache 2.0',
     help='License of the example dashboard')
+@click.option(
+    '--url', '-u', default=None, help='URL of dataset home page')
 def export_example(dashboard_id, dashboard_title, description, example_title,
-                   file_name, _license):
+                   file_name, _license, url):
     """Exmport example dashboard/datasets tarball"""
     if not (dashboard_id or dashboard_title):
         raise click.UsageError('must supply --dashboard-id/-i or --dashboard-title/-t')
@@ -190,6 +192,7 @@ def export_example(dashboard_id, dashboard_title, description, example_title,
                 description=description,
                 export_title=example_title or dashboard_title,
                 _license=_license,
+                url=url,
                 strip_database=True)
 
             dashboard_slug = dashboard_import_export.get_slug(
@@ -221,11 +224,13 @@ def export_example(dashboard_id, dashboard_title, description, example_title,
     '--examples-tag', '-r',
     help='Tag or branch of Github repository containing examples. Defaults to \'master\'',
     default='master')
-def _list_examples(examples_repo, examples_tag):
+@click.option(
+    '--full-fields', '-ff', is_flag=True, default=False, help='Print full length fields')
+def _list_examples(examples_repo, examples_tag, full_fields):
     """List example dashboards/datasets"""
     click.echo(
-        list_examples_table(examples_repo, examples_tag=examples_tag))
-    pass
+        list_examples_table(examples_repo, examples_tag=examples_tag,
+                            full_fields=full_fields))
 
 
 @examples.command('import')

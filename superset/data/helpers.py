@@ -139,11 +139,11 @@ def get_examples_file_list(examples_repos_uris, examples_tag='master'):
     return examples
 
 
-def list_examples_table(examples_repo, examples_tag='master'):
+def list_examples_table(examples_repo, examples_tag='master', full_fields=True):
     """Turn a list of available examples into a PrettyTable"""
     # Write a pretty table to stdout
     t = PrettyTable(field_names=['Title', 'Description', 'Size (MB)', 'Rows',
-                                 'Files', 'Created Date', 'Repository', 'Tag'])
+                                 'Files', 'URL', 'Created Date', 'Repository', 'Tag'])
 
     # Optionally replace the default examples repo with a specified one
     examples_repos_uris = [(r[0], r[1]) + get_examples_uris(r[0], r[1])
@@ -174,15 +174,23 @@ def list_examples_table(examples_repo, examples_tag='master'):
         d = json.loads(
             requests.get(
                 file_info['metadata_file']['download_url']).content)['description']
+
+        if not full_fields:
+            file_info['repo_name'] = shorten(file_info['repo_name'], 30)
+            file_info['repo_tag'] = shorten(file_info['repo_tag'], 20)
+            d['description'] = shorten(d['description'], 50)
+            d['url'] = shorten(d['url'], 30)
+
         row = [
             d['title'],
-            shorten(d['description'], 50),
+            d['description'],
             d['total_size_mb'],
             d['total_rows'],
             d['file_count'],
+            d['url'],
             date_format(d['created_at']),
-            shorten(file_info['repo_name'], 30),
-            shorten(file_info['repo_tag'], 20),
+            file_info['repo_name'],
+            file_info['repo_tag'],
         ]
         t.add_row(row)
 

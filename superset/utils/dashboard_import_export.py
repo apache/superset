@@ -106,7 +106,8 @@ def import_example_dashboard(session, import_example_json, data_blob_urls,
 
 def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
                       export_data=False, export_data_dir=None, description=None,
-                      export_title=None, _license='Apache 2.0', strip_database=False):
+                      export_title=None, _license='Apache 2.0', url=None,
+                      strip_database=False):
     """Returns all dashboards metadata as a json dump"""
     logging.info('Starting export')
     export_dashboard_ids = []
@@ -131,6 +132,8 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
         data['description']['title'] = export_title
     if description:
         data['description']['description'] = description
+    if url:
+        data['description']['url'] = url
     data['description']['license'] = _license
 
     export_json = json.dumps(data, indent=4, sort_keys=True)
