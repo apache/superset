@@ -91,7 +91,7 @@ class LimitMethod(object):
     FORCE_LIMIT = 'force_limit'
 
 
-def _create_time_grains_tuple(time_grains, time_grain_functions, blacklist):
+def create_time_grains_tuple(time_grains, time_grain_functions, blacklist):
     ret_list = []
     blacklist = blacklist if blacklist else []
     for duration, func in time_grain_functions.items():
@@ -152,7 +152,7 @@ class BaseEngineSpec(object):
         grain_functions = cls.time_grain_functions.copy()
         grain_addon_functions = config.get('TIME_GRAIN_ADDON_FUNCTIONS', {})
         grain_functions.update(grain_addon_functions.get(cls.engine, {}))
-        return _create_time_grains_tuple(grains, grain_functions, blacklist)
+        return create_time_grains_tuple(grains, grain_functions, blacklist)
 
     @classmethod
     def make_select_compatible(cls, groupby_exprs, select_exprs):
