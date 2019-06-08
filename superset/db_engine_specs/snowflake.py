@@ -37,3 +37,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             selected_schema = parse.quote(selected_schema, safe='')
             uri.database = database + '/' + selected_schema
         return uri
+
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "DATEADD(S, {col}, '1970-01-01')"
+
+    @classmethod
+    def epoch_ms_to_dttm(cls):
+        return "DATEADD(MS, {col}, '1970-01-01')"
