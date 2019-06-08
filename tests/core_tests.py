@@ -34,8 +34,8 @@ import sqlalchemy as sqla
 
 from superset import dataframe, db, jinja_context, security_manager, sql_lab
 from superset.connectors.sqla.models import SqlaTable
-from superset.db_engine_specs import BaseEngineSpec
-from superset.db_engine_specs import MssqlEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
