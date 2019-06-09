@@ -950,7 +950,8 @@ class SqlaTable(Model, BaseDatasource):
             ).first()
 
         def lookup_database(table):
-            db_name = substitute_db_name or table.params_dict['database_name']
+            # db_name = substitute_db_name or table.params_dict['database_name']
+            db_name = table.params_dict['database_name']
             return db.session.query(Database).filter_by(
                 database_name=db_name).one()
 

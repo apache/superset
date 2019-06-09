@@ -74,8 +74,6 @@ def get_db_name(uri):
     db_name = make_url(uri).database
     if uri.startswith('sqlite'):
         db_name = re.match('(?s:.*)/(.+?).db$', db_name).group(1)
-    if db_name == 'superset':
-        db_name = 'main'
     return db_name
 
 
