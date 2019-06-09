@@ -81,7 +81,7 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
 # The SQLAlchemy connection string for incoming examples
-SQLALCHEMY_EXAMPLES_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'examples.db')
+SQLALCHEMY_EXAMPLES_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
 # SQLALCHEMY_EXAMPLES_URI = 'mysql://myapp@localhost/examples'
 # SQLALCHEMY_EXAMPLES_URI = 'postgresql://root:password@localhost/examples'
 
