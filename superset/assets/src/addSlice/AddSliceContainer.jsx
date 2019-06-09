@@ -23,6 +23,7 @@ import Select from 'react-virtualized-select';
 import { t } from '@superset-ui/translation';
 
 import VizTypeControl from '../explore/components/controls/VizTypeControl';
+import GlossaryWord from '../glossary';
 
 const propTypes = {
   datasources: PropTypes.arrayOf(PropTypes.shape({
@@ -79,7 +80,9 @@ export default class AddSliceContainer extends React.PureComponent {
       <div className="container">
         <Panel header={<h3>{t('Create a new chart')}</h3>}>
           <div>
-            <p>{t('Choose a datasource')}</p>
+            <p>
+              {t('Choose a')}{' '}<GlossaryWord word="datasource" />
+            </p>
             <div style={styleSelectWidth}>
               <Select
                 clearable={false}
@@ -87,7 +90,6 @@ export default class AddSliceContainer extends React.PureComponent {
                 name="select-datasource"
                 onChange={this.changeDatasource}
                 options={this.props.datasources}
-                placeholder={t('Choose a datasource')}
                 style={styleSelectWidth}
                 value={this.state.datasourceValue}
                 width={600}
