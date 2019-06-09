@@ -74,6 +74,8 @@ def get_db_name(uri):
     db_name = make_url(uri).database
     if uri.startswith('sqlite'):
         db_name = re.match('(?s:.*)/(.+?).db$', db_name).group(1)
+    if db_name == 'superset':
+        db_name = 'main'
     return db_name
 
 
@@ -93,8 +95,10 @@ def import_example_dashboard(session, import_example_json, data_blob_urls,
 
     substitute_db_name = get_db_name(database_uri) or \
         get_default_example_db().database_name
-    
+
     for table in data['datasources']:
+        logging.debug(
+            f'Importing table: {table} in substitute_db_name: {substitute_db_name}')
         type(table).import_obj(table, import_time=import_time,
                                substitute_db_name=substitute_db_name)
 
