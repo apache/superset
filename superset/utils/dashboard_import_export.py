@@ -18,16 +18,18 @@
 import json
 import logging
 import os
+import re
 import shutil
 import tempfile
 import time
 
 import pandas as pd
 import requests
+from sqlalchemy.engine.url import make_url
 
-from superset import db
+from superset import app, db
 from superset.exceptions import SupersetException
-from superset.models.core import Dashboard
+from superset.models.core import Dashboard, Database
 from superset.utils.core import decode_dashboards, get_or_create_example_db, \
     get_or_create_main_db
 
@@ -67,12 +69,35 @@ def import_dashboards(session, data_stream, import_time=None):
     session.commit()
 
 
+def get_db_name(uri):
+    """Get the DB name from the URI string"""
+    db_name = make_url(uri).database
+    if uri.startswith('sqlite'):
+        db_name = re.match('(?s:.*)/(.+?).db$', db_name).group(1)
+    return db_name
+
+
+def get_default_example_db():
+    """Get the optional substitute database for example import"""
+    uri = app.config.get('SQLALCHEMY_EXAMPLES_URI')
+    db_name = get_db_name(uri)
+
+    return db.session.query(Database).filter_by(
+        database_name=db_name).one()
+
+
 def import_example_dashboard(session, import_example_json, data_blob_urls,
                              database_uri, import_time=None):
     """Imports dashboards from a JSON string and data files to databases"""
     data = json.loads(import_example_json, object_hook=decode_dashboards)
 
-    # TODO: import DRUID datasources
+    substitute_db_name = get_db_name(database_uri) or \
+        get_default_example_db().database_name
+    
+    for table in data['datasources']:
+        type(table).import_obj(table, import_time=import_time,
+                               substitute_db_name=substitute_db_name)
+
     session.commit()
     for dashboard in data['dashboards']:
         Dashboard.import_obj(
