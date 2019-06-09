@@ -934,13 +934,14 @@ class SqlaTable(Model, BaseDatasource):
         db.session.commit()
 
     @classmethod
-    def import_obj(cls, i_datasource, import_time=None):
+    def import_obj(cls, i_datasource, import_time=None, substitute_db_name=None):
         """Imports the datasource from the object to the database.
 
          Metrics and columns and datasource will be overrided if exists.
          This function can be used to import/export dashboards between multiple
          superset instances. Audit metadata isn't copies over.
         """
+
         def lookup_sqlatable(table):
             return db.session.query(SqlaTable).join(Database).filter(
                 SqlaTable.table_name == table.table_name,
@@ -949,11 +950,13 @@ class SqlaTable(Model, BaseDatasource):
             ).first()
 
         def lookup_database(table):
+            db_name = substitute_db_name or table.params_dict['database_name']
             return db.session.query(Database).filter_by(
-                database_name=table.params_dict['database_name']).one()
+                database_name=db_name).one()
+
         return import_datasource.import_datasource(
-            db.session, i_datasource, lookup_database, lookup_sqlatable,
-            import_time)
+            db.session, i_datasource, lookup_database,
+            lookup_sqlatable, import_time)
 
     @classmethod
     def query_datasources_by_name(
