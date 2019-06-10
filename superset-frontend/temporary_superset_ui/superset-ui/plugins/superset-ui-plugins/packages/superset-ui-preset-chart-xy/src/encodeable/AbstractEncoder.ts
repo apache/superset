@@ -10,7 +10,7 @@ import ChannelEncoder from './ChannelEncoder';
 type AllChannelEncoders<Encoding extends Record<string, MayBeArray<ChannelDef>>> = {
   readonly [k in keyof Encoding]: Encoding[k] extends any[]
     ? ChannelEncoder<Unarray<Encoding[k]>>[]
-    : ChannelEncoder<Unarray<Encoding[k]>>
+    : ChannelEncoder<Unarray<Encoding[k]>>;
 };
 
 export default abstract class AbstractEncoder<
