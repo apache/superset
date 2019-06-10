@@ -46,6 +46,7 @@ const propTypes = {
   height: PropTypes.number.isRequired,
   filterText: PropTypes.string,
   headerHeight: PropTypes.number,
+  overscanColumnCount: PropTypes.number,
   overscanRowCount: PropTypes.number,
   rowHeight: PropTypes.number,
   striped: PropTypes.bool,
@@ -55,6 +56,7 @@ const propTypes = {
 const defaultProps = {
   filterText: '',
   headerHeight: 32,
+  overscanColumnCount: 10,
   overscanRowCount: 10,
   rowHeight: 32,
   striped: true,
@@ -205,7 +207,7 @@ export default class FilterableTable extends PureComponent {
   }
 
   renderGrid() {
-    const { orderedColumnKeys, rowHeight } = this.props;
+    const { orderedColumnKeys, overscanColumnCount, overscanRowCount, rowHeight } = this.props;
 
     let { height } = this.props;
     let totalTableHeight = height;
@@ -232,7 +234,6 @@ export default class FilterableTable extends PureComponent {
                 columnCount={orderedColumnKeys.length}
                 columnWidth={getColumnWidth}
                 height={rowHeight}
-                onScroll={onScroll}
                 ref={(ref) => { this.container = ref; }}
                 rowCount={1}
                 rowHeight={rowHeight}
@@ -247,6 +248,8 @@ export default class FilterableTable extends PureComponent {
                 columnWidth={getColumnWidth}
                 height={totalTableHeight}
                 onScroll={onScroll}
+                overscanColumnCount={overscanColumnCount}
+                overscanRowCount={overscanRowCount}
                 ref={(ref) => { this.container = ref; }}
                 rowCount={this.list.size}
                 rowHeight={rowHeight}
