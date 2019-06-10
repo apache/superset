@@ -91,8 +91,10 @@ def import_example_dashboard(session, import_example_json, data_blob_urls,
     """Imports dashboards from a JSON string and data files to databases"""
     data = json.loads(import_example_json, object_hook=decode_dashboards)
 
+    # substitute_db_name = get_db_name(database_uri) or \
+    #     get_default_example_db().database_name
     substitute_db_name = get_db_name(database_uri) or \
-        get_default_example_db().database_name
+        get_or_create_main_db().database_name
 
     for table in data['datasources']:
         logging.debug(
@@ -106,7 +108,8 @@ def import_example_dashboard(session, import_example_json, data_blob_urls,
             dashboard, import_time=import_time)
 
     if len(data['files']) > 0:
-        examples_engine = get_or_create_example_db(database_uri)
+        # examples_engine = get_or_create_example_db(database_uri)
+        examples_engine = get_or_create_main_db()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             for file_info in data['files']:
