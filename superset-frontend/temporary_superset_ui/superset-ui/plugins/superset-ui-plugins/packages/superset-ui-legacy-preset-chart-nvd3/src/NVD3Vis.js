@@ -769,9 +769,7 @@ function nvd3Vis(element, props) {
                     key,
                     color: a.color,
                     strokeWidth: a.width,
-                    classed: `${a.opacity} ${a.style} nv-timeseries-annotation-layer showMarkers${
-                      a.showMarkers
-                    } hideLine${a.hideLine}`,
+                    classed: `${a.opacity} ${a.style} nv-timeseries-annotation-layer showMarkers${a.showMarkers} hideLine${a.hideLine}`,
                   };
                 }),
               ),
