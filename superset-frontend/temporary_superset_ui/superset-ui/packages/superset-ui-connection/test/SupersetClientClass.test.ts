@@ -251,12 +251,13 @@ describe('SupersetClientClass', () => {
     const mockPutUrl = `${protocol}//${host}${mockPutEndpoint}`;
     const mockDeleteUrl = `${protocol}//${host}${mockDeleteEndpoint}`;
     const mockTextJsonResponse = '{ "value": 9223372036854775807 }';
+    const mockPayload = { json: () => Promise.resolve('payload') };
 
-    fetchMock.get(mockGetUrl, { json: 'payload' });
-    fetchMock.post(mockPostUrl, { json: 'payload' });
-    fetchMock.put(mockPutUrl, { json: 'payload' });
-    fetchMock.delete(mockDeleteUrl, { json: 'payload' });
-    fetchMock.delete(mockRequestUrl, { json: 'payload' });
+    fetchMock.get(mockGetUrl, mockPayload);
+    fetchMock.post(mockPostUrl, mockPayload);
+    fetchMock.put(mockPutUrl, mockPayload);
+    fetchMock.delete(mockDeleteUrl, mockPayload);
+    fetchMock.delete(mockRequestUrl, mockPayload);
     fetchMock.get(mockTextUrl, mockTextJsonResponse);
     fetchMock.post(mockTextUrl, mockTextJsonResponse);
 
