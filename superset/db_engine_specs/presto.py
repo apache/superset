@@ -16,20 +16,26 @@
 # under the License.
 # pylint: disable=C,R,W
 from collections import OrderedDict
+from datetime import datetime
+from functools import reduce
 import logging
 import re
 import textwrap
 import time
-from typing import List, Set, Tuple
+from typing import Any, List, Optional, Set, Tuple
 from urllib import parse
 
-from sqlalchemy import Column, literal_column, types
+import networkx as nx
+from networkx.utils import pairwise
+from sqlalchemy import Column, DateTime, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql.expression import ColumnClause
+from sqlalchemy.types import BigInteger, DATE, String, TIMESTAMP
 
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset import app
+from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
 from superset.utils import core as utils
@@ -38,25 +44,37 @@ QueryStatus = utils.QueryStatus
 
 
 class PrestoEngineSpec(BaseEngineSpec):
+    import pyhive.sqlalchemy_presto
+
     engine = 'presto'
+    type_map = pyhive.sqlalchemy_presto._type_map
 
     time_grain_functions = {
-        None: '{col}',
-        'PT1S': "date_trunc('second', CAST({col} AS TIMESTAMP))",
-        'PT1M': "date_trunc('minute', CAST({col} AS TIMESTAMP))",
-        'PT1H': "date_trunc('hour', CAST({col} AS TIMESTAMP))",
-        'P1D': "date_trunc('day', CAST({col} AS TIMESTAMP))",
-        'P1W': "date_trunc('week', CAST({col} AS TIMESTAMP))",
-        'P1M': "date_trunc('month', CAST({col} AS TIMESTAMP))",
-        'P0.25Y': "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
-        'P1Y': "date_trunc('year', CAST({col} AS TIMESTAMP))",
+        'PT1S': "date_trunc('second', {col})",
+        'PT1M': "date_trunc('minute', {col})",
+        'PT1H': "date_trunc('hour', {col})",
+        'P1D': "date_trunc('day', {col})",
+        'P1W': "date_trunc('week', {col})",
+        'P1M': "date_trunc('month', {col})",
+        'P0.25Y': "date_trunc('quarter', {col})",
+        'P1Y': "date_trunc('year', {col})",
         'P1W/1970-01-03T00:00:00Z':
             "date_add('day', 5, date_trunc('week', date_add('day', 1, "
-            'CAST({col} AS TIMESTAMP))))',
+            '{col})))',
         '1969-12-28T00:00:00Z/P1W':
             "date_add('day', -1, date_trunc('week', "
-            "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+            "date_add('day', 1, {col})))",
     }
+
+    edges = [
+        (DATE, TIMESTAMP, {'sql': 'CAST({col} AS TIMESTAMP)'}),
+    ]
+
+    type_graph = nx.DiGraph()
+    type_graph.add_edges_from(edges)
+
+    for type_, sql in time_grain_functions.items():
+        type_graph.add_edge(TIMESTAMP, type_, sql=sql)
 
     @classmethod
     def get_view_names(cls, inspector, schema):
@@ -349,15 +367,127 @@ class PrestoEngineSpec(BaseEngineSpec):
         return uri
 
     @classmethod
-    def convert_dttm(cls, target_type, dttm):
-        tt = target_type.upper()
-        if tt == 'DATE':
-            return "from_iso8601_date('{}')".format(dttm.isoformat()[:10])
-        if tt == 'TIMESTAMP':
-            return "from_iso8601_timestamp('{}')".format(dttm.isoformat())
-        if tt == 'BIGINT':
-            return "to_unixtime(from_iso8601_timestamp('{}'))".format(dttm.isoformat())
-        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+    def get_timestamp_expr(
+            cls,
+            col: ColumnClause,
+            pdf: Optional[str],
+            time_grain: Optional[str],
+        ) -> TimestampExpression:
+        """
+        Construct a TimeExpression to be used in a SQLAlchemy query.
+
+        :param col: Target column for the TimeExpression
+        :param pdf: date format (seconds or milliseconds)
+        :param time_grain: time grain, e.g. P1Y for 1 year
+        :returns: TimestampExpression object
+        """
+
+        type_graph = cls.type_graph.copy()
+
+        if time_grain:
+            if not cls.time_grain_functions.get(time_grain):
+                raise NotImplementedError(
+                    f'No grain spec for {time_grain} for database {cls.engine}',
+                )
+
+            target = time_grain
+        else:
+            target = TIMESTAMP
+
+        if pdf in ('epoch_ms', 'epoch_s'):
+            source = BigInteger
+
+            if pdf == 'epoch_s':
+                type_graph.add_edge(
+                    BigInteger,
+                    TIMESTAMP,
+                    sql='unix_timestamp({col})',
+                )
+            elif pdf == 'epoch_ms':
+                type_graph.add_edge(
+                    BigInteger,
+                    TIMESTAMP,
+                    sql='unix_timestamp({col} / 1000.0)',
+                )
+        else:
+            # TODO(john-bodley): SIP-15 add column type information.
+            source = String
+
+        # TODO(john-bodley): The CAST(STRING TO TIMESTAMP) is not valid for all current
+        # string date/timestamp encodings. In SIP-15 all strings need to adhere to the
+        # ISO 8601 format. In the future we should use the `date_parse` function.
+        if not app.config['SIP_15_ENABLED']:
+            type_graph.add_edge(String, TIMESTAMP, sql='CAST({col} AS TIMESTAMP)')
+
+        return TimestampExpression(
+            cls.get_type_sql(type_graph, source, target),
+            col,
+            type_=DateTime,
+        )
+
+    @classmethod
+    def get_type_sql(cls, graph: nx.DiGraph, source: Any, target: Any) -> Optional[str]:
+        """
+        Return the SQL expression mapping from the source to target type/format.
+
+        :param graph: The type mapping
+        :param source: The source type/format
+        :param target: The target type/format
+        :returns: The SQL expression
+        :raises TypeError: If the mapping between types does not exist
+        """
+
+        try:
+            path = nx.shortest_path(graph, source, target)
+
+            return reduce(
+                lambda x, y: x.format(col=y),
+                reversed([graph.get_edge_data(*edge)['sql'] for edge in pairwise(path)]),
+            )
+        except nx.NodeNotFound:
+            if app.config['SIP_15_ENABLED']:
+                raise TypeError(
+                    f"No mapping exists between the '{source}' and '{target}' types.",
+                )
+            else:
+                return None
+
+    @classmethod
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        """
+        Converts the date-time to the target type.
+
+        Note this should be deprecated after a major refactor.
+
+        :param target_type: The target type
+        :param dttm: The date-time
+        :returns: The SQL expression
+        """
+
+        type_graph = cls.type_graph.copy()
+
+        tt = target_type.lower()
+
+        if app.config['SIP_15_ENABLED'] and tt not in cls.type_map:
+            raise TypeError(f"The '{target_type}' type is not supported.")
+
+        type_graph.add_edge(
+            datetime,
+            DATE,
+            sql=f"from_iso8601_date('{dttm.isoformat()[:10]}')",
+        )
+
+        type_graph.add_edge(
+            datetime,
+            TIMESTAMP,
+            sql=f"from_iso8601_timestamp('{dttm.isoformat()}')",
+        )
+
+        return cls.get_type_sql(
+            type_graph,
+            source=datetime,
+            target=cls.type_map.get(tt, String),
+        )
 
     @classmethod
     def epoch_to_dttm(cls):

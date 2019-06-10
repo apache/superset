@@ -195,11 +195,21 @@ class TableColumn(Model, BaseColumn):
                 return str(seconds_since_epoch)
             elif tf == 'epoch_ms':
                 return str(seconds_since_epoch * 1000)
-            return "'{}'".format(dttm.strftime(tf))
+
+            # TODO(john-bodley): SIP-15 will only support ISO 8601 formats as this adheres
+            # to the lexigraphical ordering.
+            return f"'{dttm.strftime(tf)}'"
         else:
             s = self.table.database.db_engine_spec.convert_dttm(
                 self.type or '', dttm)
-            return s or "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
+
+            if s:
+                return s
+
+            if app.config['SIP_15_ENABLED']:
+                raise TypeError(f"The '{type}' type is unsupported.")
+            else:
+                return f"'{dttm.strftime('%Y-%m-%d %H:%M:%S.%f')}'"
 
 
 class SqlMetric(Model, BaseMetric):

@@ -654,3 +654,7 @@ try:
             superset_config.__file__))
 except ImportError:
     pass
+
+# Whether to enable SIP-15 functionality. Note currently this should never be
+# set to True as these features are not ready for prime time.
+SIP_15_ENABLED = False
