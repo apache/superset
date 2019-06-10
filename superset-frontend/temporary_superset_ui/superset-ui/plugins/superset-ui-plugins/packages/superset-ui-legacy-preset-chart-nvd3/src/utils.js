@@ -55,7 +55,7 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
   const totalStackedValues =
     stacked && data.length !== 0
       ? data[0].values.map((bar, iBar) => {
-          const bars = data.map(series => series.values[iBar]);
+          const bars = data.filter(series => !series.disabled).map(series => series.values[iBar]);
 
           return d3.sum(bars, d => d.y);
         })
