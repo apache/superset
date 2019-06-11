@@ -173,7 +173,7 @@ def examples():
     '--url', '-u', default=None, help='URL of dataset home page')
 def export_example(dashboard_id, dashboard_title, description, example_title,
                    file_name, _license, url):
-    """Exmport example dashboard/datasets tarball"""
+    """Export example dashboard/datasets tarball"""
     if not (dashboard_id or dashboard_title):
         raise click.UsageError('must supply --dashboard-id/-i or --dashboard-title/-t')
     exclusive(
