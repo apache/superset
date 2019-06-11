@@ -26,13 +26,9 @@ import {
   SortDirection,
   SortIndicator,
 } from 'react-virtualized';
-import { getTextDimension } from '@superset-ui/dimension';
 import TooltipWrapper from '../TooltipWrapper';
 
-function getTextWidth(text, font = '12px Roboto') {
-  return getTextDimension({ text, style: { font } }).width;
-}
-
+const CHARACTER_WIDTH = 8;
 const SCROLL_BAR_HEIGHT = 15;
 
 const propTypes = {
@@ -55,6 +51,10 @@ const defaultProps = {
   striped: true,
   expandedColumns: [],
 };
+
+function getDataCharacterLength(data) {
+  return `${data}`.length;
+}
 
 export default class FilterableTable extends PureComponent {
   constructor(props) {
@@ -90,10 +90,10 @@ export default class FilterableTable extends PureComponent {
     const widthsByColumnKey = {};
     this.props.orderedColumnKeys.forEach((key) => {
       const colWidths = this.list
-        .map(d => getTextWidth(d[key]) + PADDING) // get width for each value for a key
-        .push(getTextWidth(key) + PADDING); // add width of column key to end of list
-      // set max width as value for key
-      widthsByColumnKey[key] = Math.max(...colWidths);
+        .map(d => getDataCharacterLength(d[key])) // get length for each value for a key
+        .push(getDataCharacterLength(key)); // add length of column key to end of list
+      // calculate max width and set the column width
+      widthsByColumnKey[key] = (Math.max(...colWidths) * CHARACTER_WIDTH) + PADDING;
     });
     return widthsByColumnKey;
   }

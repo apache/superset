@@ -43,6 +43,11 @@
   border-right: 1px solid #ccc;
   align-self: center;
   padding: 12px;
+  font-family: monospace;
+  /*
+   * If you change the font size here, be sure to update the
+   * character width in FilterableTable.jsx
+   */
   font-size: 12px;
 }
 .ReactVirtualized__Table__headerColumn:last-of-type,
