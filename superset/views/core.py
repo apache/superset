@@ -67,7 +67,9 @@ from .base import (
     get_error_msg, handle_api_exception, json_error_response, json_success,
     SupersetFilter, SupersetModelView, YamlExportMixin,
 )
-from .utils import bootstrap_user_data, get_datasource_info, get_form_data, get_viz
+from .utils import (
+    apply_display_max_row_limit, bootstrap_user_data, get_datasource_info, get_form_data,
+    get_viz)
 
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get('CACHE_DEFAULT_TIMEOUT', 0)
@@ -545,6 +547,12 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'table': _('Table'),
         'viz_type': _('Visualization Type'),
     }
+
+    add_form_query_rel_fields = {
+        'dashboards': [['name', DashboardFilter, None]],
+    }
+
+    edit_form_query_rel_fields = add_form_query_rel_fields
 
     def pre_add(self, obj):
         utils.validate_json(obj.params)
@@ -2507,13 +2515,11 @@ class Superset(BaseSupersetView):
                 '{}'.format(rejected_tables)), status=403)
 
         payload = utils.zlib_decompress_to_string(blob)
-        display_limit = app.config.get('DEFAULT_SQLLAB_LIMIT', None)
-        if display_limit:
-            payload_json = json.loads(payload)
-            payload_json['data'] = payload_json['data'][:display_limit]
+        payload_json = json.loads(payload)
+
         return json_success(
             json.dumps(
-                payload_json,
+                apply_display_max_row_limit(payload_json),
                 default=utils.json_iso_dttm_ser,
                 ignore_nan=True,
             ),
@@ -2719,8 +2725,9 @@ class Superset(BaseSupersetView):
                     rendered_query,
                     return_results=True,
                     user_name=g.user.username if g.user else None)
+
             payload = json.dumps(
-                data,
+                apply_display_max_row_limit(data),
                 default=utils.pessimistic_json_iso_dttm_ser,
                 ignore_nan=True,
                 encoding=None,

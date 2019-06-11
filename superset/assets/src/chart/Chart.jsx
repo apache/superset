@@ -35,7 +35,12 @@ const propTypes = {
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
   datasource: PropTypes.object.isRequired,
-  filters: PropTypes.object,
+  // original selected values for FilterBox viz
+  // so that FilterBox can pre-populate selected values
+  // only affect UI control
+  initialValues: PropTypes.object,
+  // formData contains chart's own filter parameter
+  // and merged with extra filter that current dashboard applying
   formData: PropTypes.object.isRequired,
   height: PropTypes.number,
   width: PropTypes.number,
@@ -60,7 +65,7 @@ const BLANK = {};
 
 const defaultProps = {
   addFilter: () => BLANK,
-  filters: BLANK,
+  initialValues: BLANK,
   setControlValue() {},
   triggerRender: false,
 };

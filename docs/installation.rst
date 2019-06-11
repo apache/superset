@@ -691,10 +691,6 @@ users are active on the platform.
 
 Celery Tasks
 ------------
-On large analytic databases, it's common to run background jobs, reports
-and/or queries that execute for minutes or hours. In certain cases, we need
-to support long running tasks that execute beyond the typical web request's
-timeout (30-60 seconds).
 
 On large analytic databases, it's common to run queries that
 execute for minutes or hours.
