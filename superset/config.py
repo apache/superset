@@ -644,7 +644,7 @@ DASHBOARD_EXPORT_DIR = '/tmp'
 
 # Tuple format: Gitub repo full name, tag/branch
 EXAMPLE_REPOS_TAGS = [
-    ('rjurney/examples-data', 'v0.0.6'),
+    ('apache-superset/examples-data', 'v0.0.6'),
 ]
 
 # Github Authorization Token - in case the examples commands exceed rate limits
