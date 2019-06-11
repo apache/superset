@@ -30,7 +30,8 @@
   display: flex;
   flex-direction: row;
 }
-.ReactVirtualized__Table__headerTruncatedText {
+.ReactVirtualized__Table__headerTruncatedText,
+.grid-header-cell {
   display: inline-block;
   max-width: 100%;
   white-space: nowrap;

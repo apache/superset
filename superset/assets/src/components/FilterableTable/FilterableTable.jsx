@@ -36,9 +36,10 @@ function getTextWidth(text, font = '12px Roboto') {
 }
 
 const SCROLL_BAR_HEIGHT = 15;
+const GRID_EXTRA_HEIGHT = 6;
 
 // when more than MAX_COLUMNS are returned, switch from table to grid view
-const MAX_COLUMNS = 3;
+const MAX_COLUMNS = 50;
 
 const propTypes = {
   orderedColumnKeys: PropTypes.array.isRequired,
@@ -67,10 +68,10 @@ export default class FilterableTable extends PureComponent {
   constructor(props) {
     super(props);
     this.list = List(this.formatTableData(props.data));
-    this.renderCell = this.renderCell.bind(this);
-    this.renderCellHeader = this.renderCellHeader.bind(this);
+    this.renderGridCell = this.renderGridCell.bind(this);
+    this.renderGridCellHeader = this.renderGridCellHeader.bind(this);
     this.renderGrid = this.renderGrid.bind(this);
-    this.renderHeader = this.renderHeader.bind(this);
+    this.renderTableHeader = this.renderTableHeader.bind(this);
     this.renderTable = this.renderTable.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
@@ -162,7 +163,7 @@ export default class FilterableTable extends PureComponent {
     this.setState({ sortBy, sortDirection });
   }
 
-  renderHeader({ dataKey, label, sortBy, sortDirection }) {
+  renderTableHeader({ dataKey, label, sortBy, sortDirection }) {
     const className = this.props.expandedColumns.indexOf(label) > -1
       ? 'header-style-disabled'
       : 'header-style';
@@ -178,14 +179,16 @@ export default class FilterableTable extends PureComponent {
     );
   }
 
-  renderCellHeader({ columnIndex, key, style }) {
+  renderGridCellHeader({ columnIndex, key, style }) {
     const label = this.props.orderedColumnKeys[columnIndex];
+    const className = this.props.expandedColumns.indexOf(label) > -1
+      ? 'header-style-disabled'
+      : 'header-style';
     return (
-      <TooltipWrapper label="header" tooltip={label}>
+      <TooltipWrapper key={key} label="header" tooltip={label}>
         <div
-          key={key}
           style={{ ...style, top: style.top - 4 }}
-          className="grid-cell grid-header-cell"
+          className={`${className} grid-cell grid-header-cell`}
         >
           {label}
         </div>
@@ -193,7 +196,7 @@ export default class FilterableTable extends PureComponent {
     );
   }
 
-  renderCell({ columnIndex, key, rowIndex, style }) {
+  renderGridCell({ columnIndex, key, rowIndex, style }) {
     const columnKey = this.props.orderedColumnKeys[columnIndex];
     return (
       <div
@@ -210,6 +213,7 @@ export default class FilterableTable extends PureComponent {
     const { orderedColumnKeys, overscanColumnCount, overscanRowCount, rowHeight } = this.props;
 
     let { height } = this.props;
+    height -= GRID_EXTRA_HEIGHT;
     let totalTableHeight = height;
     if (this.container && this.totalTableWidth > this.container.clientWidth) {
       // exclude the height of the horizontal scroll bar from the height of the table
@@ -220,17 +224,18 @@ export default class FilterableTable extends PureComponent {
 
     const getColumnWidth = ({ index }) => this.widthsForColumnsByKey[orderedColumnKeys[index]];
 
+    // fix height of filterable table
     return (
       <ScrollSync>
         {({ onScroll, scrollTop }) => (
           <div
             style={{ height }}
-            className="filterable-table-container"
+            className="filterable-table-container Table"
             ref={(ref) => { this.container = ref; }}
           >
             <div className="LeftColumn">
               <Grid
-                cellRenderer={this.renderCellHeader}
+                cellRenderer={this.renderGridCellHeader}
                 columnCount={orderedColumnKeys.length}
                 columnWidth={getColumnWidth}
                 height={rowHeight}
@@ -243,10 +248,10 @@ export default class FilterableTable extends PureComponent {
             </div>
             <div className="RightColumn">
               <Grid
-                cellRenderer={this.renderCell}
+                cellRenderer={this.renderGridCell}
                 columnCount={orderedColumnKeys.length}
                 columnWidth={getColumnWidth}
-                height={totalTableHeight}
+                height={totalTableHeight - rowHeight}
                 onScroll={onScroll}
                 overscanColumnCount={overscanColumnCount}
                 overscanRowCount={overscanRowCount}
@@ -319,7 +324,7 @@ export default class FilterableTable extends PureComponent {
               <Column
                 dataKey={columnKey}
                 disableSort={false}
-                headerRenderer={this.renderHeader}
+                headerRenderer={this.renderTableHeader}
                 width={this.widthsForColumnsByKey[columnKey]}
                 label={columnKey}
                 key={columnKey}
