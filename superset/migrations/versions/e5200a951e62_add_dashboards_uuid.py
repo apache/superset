@@ -31,7 +31,7 @@ from superset import db
 
 # revision identifiers, used by Alembic.
 revision = 'e5200a951e62'
-down_revision = 'afc69274c25a'
+down_revision = 'd7c1a0d6f2da'
 
 Base = declarative_base()
 
