@@ -23,10 +23,12 @@ import shutil
 import tempfile
 import time
 
+from flask_appbuilder import Model
 import pandas as pd
 import requests
+from sqlalchemy import Column, Integer, MetaData
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import ResourceClosedError
+from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm.exc import NoResultFound
 
 from superset import app, db
@@ -195,8 +197,8 @@ def get_slug(session, dashboard_id=None, dashboard_title=None):
     return slug
 
 
-def remove_dashboard(session, import_example_data, dashboard_title, 
-                     database_uri=None):
+def remove_dashboard(session, import_example_data, dashboard_title, database_uri=None, 
+                     primary_key=Column('id', Integer, primary_key=True)):
     """Remove a dashboard based on id or title"""
 
     session = db.session() if not session else session
@@ -224,11 +226,12 @@ def remove_dashboard(session, import_example_data, dashboard_title,
         # Now delete the physical data table
         # exampled_engine = get_or_create_example_db(database_uri)
         examples_engine = get_or_create_main_db()
+        sqla_engine = examples_engine.get_sqla_engine()
 
-        try:
-            pd.read_sql(
-                f"DROP TABLE {f['table_name']}",
-                examples_engine.get_sqla_engine(),
-            )
-        except (AttributeError, ResourceClosedError):
-            pass
+        # Create a model class on the fly to do a cross-platform table drop
+        class DropTable(Model):
+            __tablename__ = f['table_name']
+            id = primary_key
+
+        table = DropTable()
+        table.__table__.drop(sqla_engine)
