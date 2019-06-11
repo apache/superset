@@ -94,29 +94,8 @@ Superset speaks many SQL dialects through SQLAlchemy, a Python
 ORM that is compatible with
 [most common databases](https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html).
 
-Superset can be used to visualize data out of most databases:
-* MySQL
-* Postgres
-* Vertica
-* Oracle
-* Microsoft SQL Server
-* SQLite
-* Greenplum
-* Firebird
-* MariaDB
-* Sybase
-* IBM DB2
-* Exasol
-* MonetDB
-* Snowflake
-* Redshift
-* Clickhouse
-* Apache Kylin
-* Apache Drill
-* Google BigQuery
-* **more!** look for the availability of a SQLAlchemy dialect for your database
-  to find out whether it will work with Superset
-
+A list of currently supported SQL databases can be found
+[here](https://superset.incubator.apache.org/#databases).
 
 Apache Druid (Incubating)!
 ------
