@@ -211,10 +211,10 @@ def export_example(dashboard_id, dashboard_title, description, example_title,
             with tarfile.open(file_name, 'w:gz') as tar:
                 tar.add(tmp_dir_name, arcname=f'{dashboard_slug}')
 
-            click.echo(click.style(str(f'Exported example to {file_name}'), fg='blue'))
+            click.secho(str(f'Exported example to {file_name}'), fg='blue')
 
         except DashboardNotFoundException as e:
-            click.echo(click.style(str(e), fg='red'))
+            click.secho(str(e), fg='red')
             exit(1)
 
 
@@ -284,7 +284,7 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
 
     if not import_example_json:
         e = ExampleNotFoundException(f'Example {example_title} not found!')
-        click.echo(click.style(str(e), fg='red'))
+        click.secho(str(e), fg='red')
         exit(1)
 
     # Parse data to get file download_urls -> blob_urls
@@ -377,9 +377,9 @@ def remove_example(example_title, database_uri, examples_repo, examples_tag):
         )
     except DashboardNotFoundException as e:
         logging.exception(e)
-        click.echo(click.style(
+        click.secho(
             f'Example {example_title} associated dashboard {dashboard_title} not found!',
-            fg='red'))
+            fg='red')
 
 
 @app.cli.command()
@@ -467,7 +467,7 @@ def export_dashboards(print_stdout, dashboard_file, dashboard_ids,
             export_data=export_data,
             export_data_dir=export_data_dir)
     except DashboardNotFoundException as e:
-        click.echo(click.style(str(e), fg='red'))
+        click.secho(str(e), fg='red')
         exit(1)
     if print_stdout or not dashboard_file:
         print(data)
