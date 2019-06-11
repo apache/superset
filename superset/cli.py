@@ -33,9 +33,11 @@ import yaml
 from superset import (
     app, appbuilder, data, db, security_manager,
 )
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.data.helpers import download_url_to_blob_url, get_examples_file_list, \
     get_examples_uris, list_examples_table
 from superset.exceptions import DashboardNotFoundException, ExampleNotFoundException
+from superset.models.core import Dashboard
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
 
@@ -58,7 +60,7 @@ def make_shell_context():
 def init():
     """Inits the Superset application"""
     utils.get_or_create_main_db()
-    utils.get_or_create_example_db()
+    # utils.get_or_create_example_db()
     appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
 
@@ -313,9 +315,69 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
 @click.option(
     '--database-uri', '-d', help='Database URI to remove example from',
     default=config.get('SQLALCHEMY_EXAMPLES_URI'))
-def remove_example(example_title, database_uri):
+@click.option(
+    '--examples-repo', '-r',
+    help='Full name of Github repository containing examples, ex: \'apache-superset/examples-data\'',
+    default=None)
+@click.option(
+    '--examples-tag', '-r',
+    help='Tag or branch of Github repository containing examples. Defaults to \'master\'',
+    default='master')
+def remove_example(example_title, database_uri, examples_repo, examples_tag):
     """Remove an example dashboard/dataset"""
-    pass
+
+    # First fetch the example information from Github
+    examples_repos = [(examples_repo, examples_tag)] \
+        if examples_repo else config.get('EXAMPLE_REPOS_TAGS')
+    examples_repos_uris = [(r[0], r[1]) + get_examples_uris(r[0], r[1])
+                           for r in examples_repos]
+    examples_files = get_examples_file_list(examples_repos_uris)
+
+    # Github authentication via a Personal Access Token for rate limit problems
+    headers = None
+    token = config.get('GITHUB_AUTH_TOKEN')
+    if token:
+        headers = {'Authorization': 'token %s' % token}
+
+    # temporary - substitute url provided
+    db_name = 'superset'
+
+    import_example_data = None
+    for example_file in examples_files:
+
+        metadata_download_url = example_file['metadata_file']['download_url']
+        example_metadata_json = requests.get(metadata_download_url,
+                                             headers=headers).content
+        # Cheaply load json without generating objects
+        example_metadata = json.loads(example_metadata_json)
+        if example_metadata['description']['title'] == example_title:
+            import_example_data = json.loads(example_metadata_json)
+            logging.info(
+                f"Will remove example '{example_title}' from '{db_name}'")
+            break
+
+    logging.debug(import_example_data['files'])
+
+    # Get the dashboard and associated records
+    dashboard_title = \
+        import_example_data['dashboards'][0]['__Dashboard__']['dashboard_title']
+    logging.debug(f'Got dashboard title {dashboard_title} for removal...')
+
+    utils.get_or_create_main_db()
+    session = db.session()
+
+    try:
+        dashboard_import_export.remove_dashboard(
+            session,
+            import_example_data,
+            dashboard_title,
+            database_uri=database_uri
+        )
+    except DashboardNotFoundException as e:
+        logging.exception(e)
+        click.echo(click.style(
+            f'Example {example_title} associated dashboard {dashboard_title} not found!',
+            fg='red'))
 
 
 @app.cli.command()

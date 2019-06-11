@@ -6,7 +6,12 @@ import struct
 import tarfile
 import tempfile
 
-from superset import app, cli
+import pandas as pd
+
+from superset import app, cli, db
+from superset.connectors.connector_registry import ConnectorRegistry
+from superset.models.core import Dashboard, Database
+from superset.utils.dashboard_import_export import get_or_create_main_db
 from tests.base_tests import SupersetTestCase
 
 config = app.config
@@ -82,20 +87,18 @@ class SupersetCliTestCase(SupersetTestCase):
 
     def test_examples_list(self):
         """Test `superset examples list`"""
-        result = self.runner.invoke(
-            app.cli, ['examples', 'list'])
+        result = self.runner.invoke(app.cli, ['examples', 'list'])
 
-        print("results.output", result.output)
         found = False
         for i, line in enumerate(result.output.split('\n')):
             # skip header
             if i < 3:
                 continue
             # Odd lines have data
-            if (i % 2) != 1:
+            if (i % 2) != 0:
                 row = line[1:-1]
                 parts = [i.strip() for i in row.split('|')]
-                if parts[0] == 'World Bank Health Information':
+                if parts[0] == 'World Bank Health Nutrition and Population Stats':
                     found = True
 
         # Did we find the example in the list?
@@ -103,16 +106,81 @@ class SupersetCliTestCase(SupersetTestCase):
 
     def test_examples_import(self):
         """Test `superset examples import`"""
-        result = self.runner.invoke(
+        self.runner.invoke(
             app.cli,
             [
-                'examples', 'import', 
-            ]
+                'examples', 'import', '-e',
+                'World Bank Health Nutrition and Population Stats',
+            ],
         )
+
+        # Did the dashboard get imported to the main DB?
+        dashboard = db.session.query(Dashboard).filter(
+            Dashboard.dashboard_title.in_(["World's Bank Data"])).one()
+        self.assertEqual(dashboard.dashboard_title, "World's Bank Data")
+
+        # Temporary - substitute default
+        db_name = 'main'
+
+        # Did the data table get imported?
+        SqlaTable = ConnectorRegistry.sources['table']
+        table = (
+            db.session.query(SqlaTable)
+            .join(Database)
+            .filter(
+                Database.database_name == db_name and
+                SqlaTable.table_name == 'wb_health_population')
+        ).one()
+        print('table', table)
+        self.assertEqual(table.name, 'wb_health_population')
+
+        # Did all rows get imported?
+        df = pd.read_sql('SELECT * FROM wb_health_population',
+                         get_or_create_main_db().get_sqla_engine())
+        self.assertEqual(len(df.index), 11770)
 
     def test_examples_remove(self):
         """Test `superset examples remove`"""
-        pass
+        # First add the example...
+        self.runner.invoke(
+            app.cli,
+            [
+                'examples', 'import', '-e',
+                'World Bank Health Nutrition and Population Stats',
+            ],
+        )
+
+        # Then remove the example...
+        self.runner.invoke(
+            app.cli,
+            [
+                'examples', 'remove', '-e',
+                'World Bank Health Nutrition and Population Stats',
+            ],
+        )
+
+        # Is the dashboard still in the main db?
+        total = db.session.query(Dashboard).filter(
+            Dashboard.dashboard_title.in_(["World's Bank Data"])).count()
+        logging.debug('total 1')
+        logging.debug(total)
+        self.assertEqual(total, 0)
+
+        # Is the data table gone?
+        db_name = 'main'
+
+        # Did the data table get removed?
+        SqlaTable = ConnectorRegistry.sources['table']
+        total = (
+            db.session.query(SqlaTable)
+            .join(Database)
+            .filter(
+                Database.database_name == db_name and
+                SqlaTable.table_name == 'wb_health_population')
+        ).count()
+        logging.debug('total 2')
+        logging.debug(total)
+        self.assertEqual(total, 0)
 
     def test_examples_export(self):
         """Test `superset examples export`"""
@@ -120,10 +188,19 @@ class SupersetCliTestCase(SupersetTestCase):
         result = self.runner.invoke(
             app.cli,
             [
-                'examples', 'export', '--dashboard-title', 'World\'s Bank Data',
-                '--description',
-                'World Bank Data example about world health populations from 1960-2010.',
-                '--example-title', 'World Bank Health Information',
+                'examples', 'export', '-e',
+                'World Bank Health Nutrition and Population Stats', '-t',
+                "World's Bank Data", '-d',
+                'Health Nutrition and Population Statistics database provides key ' +
+                'health, nutrition and population statistics gathered from a ' +
+                'variety of international and national sources. Themes include ' +
+                'global surgery, health financing, HIV/AIDS, immunization, ' +
+                'infectious diseases, medical resources and usage, noncommunicable ' +
+                'diseases, nutrition, population dynamics, reproductive health, ' +
+                'universal health coverage, and water and sanitation.',
+                '-l', 'Apache 2.0', '-u',
+                'https://datacatalog.worldbank.org/dataset/' +
+                'health-nutrition-and-population-statistics',
             ])
         logging.info(result.output)
 
@@ -140,11 +217,10 @@ class SupersetCliTestCase(SupersetTestCase):
             json_f = open(f'{world_health_path}/dashboard.json', 'r')
             dashboard = json.loads(json_f.read())
             desc = dashboard['description']
-            self.assertEqual(desc['title'], 'World Bank Health Information')
             self.assertEqual(
-                desc['description'],
-                'World Bank Data example about world health populations from 1960-2010.',
-            )
+                desc['title'], 'World Bank Health Nutrition and Population Stats')
+            self.assertEqual(
+                desc['description'][0:30], 'Health Nutrition and Populatio')
 
             # Check the data export by writing out the tarball, getting the file size
             # and comparing to the metadata size

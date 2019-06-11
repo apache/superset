@@ -26,12 +26,16 @@ import time
 import pandas as pd
 import requests
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import ResourceClosedError
+from sqlalchemy.orm.exc import NoResultFound
 
 from superset import app, db
-from superset.exceptions import SupersetException
+from superset.connectors.connector_registry import ConnectorRegistry
+from superset.exceptions import DashboardNotFoundException
 from superset.models.core import Dashboard, Database
-from superset.utils.core import decode_dashboards, get_or_create_example_db, \
-    get_or_create_main_db
+from superset.utils.core import (
+    decode_dashboards, get_or_create_main_db,
+)
 
 
 def import_dashboards(session, data_stream, import_time=None):
@@ -153,7 +157,7 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
     data = {}
     if not export_dashboard_ids:
         logging.error('No dashboards found!')
-        raise SupersetException('No dashboards found!')
+        raise DashboardNotFoundException('No dashboards found!')
     else:
         data = Dashboard.export_dashboards(export_dashboard_ids,
                                            export_data, export_data_dir)
@@ -189,3 +193,42 @@ def get_slug(session, dashboard_id=None, dashboard_title=None):
         dashboard = query.first()
         slug = getattr(dashboard, 'slug', None)
     return slug
+
+
+def remove_dashboard(session, import_example_data, dashboard_title, 
+                     database_uri=None):
+    """Remove a dashboard based on id or title"""
+
+    session = db.session() if not session else session
+    logging.debug(session.query(Dashboard).all())
+
+    try:
+        dashboard = session.query(Dashboard).filter(
+            Dashboard.dashboard_title == dashboard_title,
+        ).one()
+
+        session.delete(dashboard)
+        session.commit()
+    except NoResultFound:
+        raise DashboardNotFoundException('Dashboard not found!')
+
+    # Remove the associated table metadata
+    SqlaTable = ConnectorRegistry.sources['table']
+    for f in import_example_data['files']:
+        t = session.query(SqlaTable).filter(
+            SqlaTable.table_name == f['table_name']
+        ).one()
+        session.delete(t)
+        session.commit()
+
+        # Now delete the physical data table
+        # exampled_engine = get_or_create_example_db(database_uri)
+        examples_engine = get_or_create_main_db()
+
+        try:
+            pd.read_sql(
+                f"DROP TABLE {f['table_name']}",
+                examples_engine.get_sqla_engine(),
+            )
+        except (AttributeError, ResourceClosedError):
+            pass
