@@ -26,9 +26,8 @@ import time
 from flask_appbuilder import Model
 import pandas as pd
 import requests
-from sqlalchemy import Column, Integer, MetaData
+from sqlalchemy import Column, Integer
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm.exc import NoResultFound
 
 from superset import app, db
