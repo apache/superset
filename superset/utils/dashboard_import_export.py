@@ -39,38 +39,76 @@ from superset.utils.core import (
 )
 
 
-def import_dashboards(session, data_stream, import_time=None):
-    """Imports dashboards from a stream to databases"""
-    current_tt = int(time.time())
-    import_time = current_tt if import_time is None else import_time
-
-    data = json.loads(data_stream.read(), object_hook=decode_dashboards)
-
-    for table in data['datasources']:
-        type(table).import_obj(table, import_time=import_time)
-
-    # TODO: import DRUID datasources
-    session.commit()
+def import_dashboard(session, data, import_time):
+    """Import a Dashboard from exported data"""
     for dashboard in data['dashboards']:
         Dashboard.import_obj(
             dashboard, import_time=import_time)
 
-    # Import any files in this exported Dashboard
-    if 'files' in data:
-        if len(data['files']) > 0:
-            examples_engine = get_or_create_main_db()
-            for table in data['files']:
-                logging.info(f'Import data from file {table["file_name"]} into table ' +
-                             f'{table["table_name"]}')
-                df = pd.read_csv(table['file_name'], parse_dates=True,
-                                 infer_datetime_format=True, compression='infer')
-                df.to_sql(
-                    table['table_name'],
-                    examples_engine.get_sqla_engine(),
-                    if_exists='replace',
-                    chunksize=500,
-                    index=False)
 
+def import_datasources(data, import_time, substitute_db_name=None):
+    """Import any data sources in Dashboard file"""
+    for table in data['datasources']:
+        type(table).import_obj(table, import_time=import_time,
+                               substitute_db_name=substitute_db_name)
+
+
+def table_to_sql(path, table_name, engine):
+    """Take a file and load it into a table"""
+    logging.info(f'Import data from file {path} into table {table_name}')
+
+    df = pd.read_csv(path, parse_dates=True, infer_datetime_format=True, 
+                     compression='infer')
+    df.to_sql(
+        table_name,
+        engine.get_sqla_engine(),
+        if_exists='replace',
+        chunksize=500,
+        index=False)
+
+
+def import_files_to_table(data, is_example=False, data_blob_urls=None):
+    """Import any files in this exported Dashboard"""
+    if isinstance(data, dict) and 'files' in data and len(data['files']) > 0:
+        engine = get_or_create_main_db()
+
+        if is_example:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                for file_info in data['files']:
+
+                    # Get the github info for the file
+                    blob_file_path = f'{tmpdir}{os.path.sep}{file_info["file_name"]}'
+                    blob_url = data_blob_urls[file_info['file_name']]
+
+                    response = requests.get(blob_url, stream=True)
+                    with open(blob_file_path, 'wb') as out_file:
+                        shutil.copyfileobj(response.raw, out_file)
+                    del response
+
+                    table_to_sql(blob_file_path, file_info['table_name'], engine)
+        else:
+            for table in data['files']:
+                table_to_sql(table['file_name'], table['table_name'], engine)
+
+
+def import_dashboards(session, data, is_example=False, data_blob_urls=None, 
+                      database_uri=None, import_time=None):
+    """Imports dashboards from a stream to databases"""
+    current_tt = int(time.time())
+    import_time = current_tt if import_time is None else import_time
+
+    data = json.loads(data, object_hook=decode_dashboards)
+
+    # substitute_db_name = get_db_name(database_uri) or \
+    #     get_default_example_db().database_name
+    substitute_db_name = get_db_name(database_uri) if database_uri else \
+        get_or_create_main_db().database_name
+
+    import_dashboard(session, data, import_time)
+    import_datasources(data, import_time, substitute_db_name=substitute_db_name)
+    session.commit()
+
+    import_files_to_table(data, is_example=True, data_blob_urls=data_blob_urls)
     session.commit()
 
 
@@ -89,54 +127,6 @@ def get_default_example_db():
 
     return db.session.query(Database).filter_by(
         database_name=db_name).one()
-
-
-def import_example_dashboard(session, import_example_json, data_blob_urls,
-                             database_uri, import_time=None):
-    """Imports dashboards from a JSON string and data files to databases"""
-    data = json.loads(import_example_json, object_hook=decode_dashboards)
-
-    # substitute_db_name = get_db_name(database_uri) or \
-    #     get_default_example_db().database_name
-    substitute_db_name = get_db_name(database_uri) or \
-        get_or_create_main_db().database_name
-
-    for table in data['datasources']:
-        logging.debug(
-            f'Importing table: {table} in substitute_db_name: {substitute_db_name}')
-        type(table).import_obj(table, import_time=import_time,
-                               substitute_db_name=substitute_db_name)
-
-    session.commit()
-    for dashboard in data['dashboards']:
-        Dashboard.import_obj(
-            dashboard, import_time=import_time)
-
-    if len(data['files']) > 0:
-        # examples_engine = get_or_create_example_db(database_uri)
-        examples_engine = get_or_create_main_db()
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            for file_info in data['files']:
-                # Get the github info for the file
-                blob_file_path = f'{tmpdir}{os.path.sep}{file_info["file_name"]}'
-                blob_url = data_blob_urls[file_info['file_name']]
-
-                response = requests.get(blob_url, stream=True)
-                with open(blob_file_path, 'wb') as out_file:
-                    shutil.copyfileobj(response.raw, out_file)
-                del response
-
-                df = pd.read_csv(blob_file_path, parse_dates=True,
-                                 infer_datetime_format=True, compression='infer')
-                df.to_sql(
-                    file_info['table_name'],
-                    examples_engine.get_sqla_engine(),
-                    if_exists='replace',
-                    chunksize=500,
-                    index=False)
-
-    session.commit()
 
 
 def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,

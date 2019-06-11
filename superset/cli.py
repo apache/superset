@@ -42,7 +42,7 @@ from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export,
 )
 
-logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 config = app.config
 celery_app = utils.get_celery_app(config)
@@ -300,13 +300,14 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
         data_blob_urls[github_info['name']] = blob_url
 
     try:
-        dashboard_import_export.import_example_dashboard(
+        dashboard_import_export.import_dashboards(
             db.session,
             import_example_json,
-            data_blob_urls,
-            database_uri)
+            is_example=True,
+            data_blob_urls=data_blob_urls,
+            database_uri=database_uri)
     except Exception as e:
-        logging.error(f'Error importing example dashboard \'{example_title}\'!')
+        logging.error(f"Error importing example dashboard '{example_title}'!")
         logging.exception(e)
 
 
@@ -430,7 +431,7 @@ def import_dashboards(path, recursive):
         try:
             with f.open() as data_stream:
                 dashboard_import_export.import_dashboards(
-                    db.session, data_stream)
+                    db.session, data_stream.read())
         except Exception as e:
             logging.error('Error when importing dashboard from file %s', f)
             logging.error(e)
