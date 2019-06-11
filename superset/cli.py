@@ -33,13 +33,14 @@ import yaml
 from superset import (
     app, appbuilder, data, db, security_manager,
 )
-from superset.connectors.connector_registry import ConnectorRegistry
-from superset.data.helpers import download_url_to_blob_url, get_examples_file_list, \
-    get_examples_uris, list_examples_table
+from superset.data.helpers import (
+    download_url_to_blob_url, get_examples_file_list, get_examples_uris, 
+    list_examples_table,
+)
 from superset.exceptions import DashboardNotFoundException, ExampleNotFoundException
-from superset.models.core import Dashboard
 from superset.utils import (
-    core as utils, dashboard_import_export, dict_import_export)
+    core as utils, dashboard_import_export, dict_import_export,
+)
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
