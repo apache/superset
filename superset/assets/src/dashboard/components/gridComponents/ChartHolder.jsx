@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import Chart from '../../containers/Chart';
+import AnchorLink from '../../../components/AnchorLink';
 import DeleteComponentButton from '../DeleteComponentButton';
 import DragDroppable from '../dnd/DragDroppable';
 import HoverMenu from '../menu/HoverMenu';
@@ -108,6 +109,7 @@ class ChartHolder extends React.Component {
       onResizeStop,
       handleComponentDrop,
       editMode,
+      isComponentVisible,
     } = this.props;
 
     // inherit the size of parent columns
@@ -148,7 +150,9 @@ class ChartHolder extends React.Component {
               ref={dragSourceRef}
               className="dashboard-component dashboard-component-chart-holder"
             >
+              {!editMode && <AnchorLink anchorLinkId={component.id} />}
               <Chart
+                componentId={component.id}
                 id={component.meta.chartId}
                 width={Math.floor(
                   widthMultiple * columnWidth +
@@ -160,6 +164,7 @@ class ChartHolder extends React.Component {
                 )}
                 sliceName={component.meta.sliceName || ''}
                 updateSliceName={this.handleUpdateSliceName}
+                isComponentVisible={isComponentVisible}
               />
               {editMode && (
                 <HoverMenu position="top">

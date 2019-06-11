@@ -34,6 +34,9 @@ const propTypes = {
   disabled: PropTypes.bool,
   viewport: PropTypes.object.isRequired,
   children: PropTypes.node,
+  mapStyle: PropTypes.string,
+  mapboxApiAccessToken: PropTypes.string.isRequired,
+  setControlValue: PropTypes.func,
   onViewportChange: PropTypes.func,
   onValuesChange: PropTypes.func,
 };
@@ -41,6 +44,8 @@ const propTypes = {
 const defaultProps = {
   aggregation: false,
   disabled: false,
+  mapStyle: 'light',
+  setControlValue: () => {},
   onViewportChange: () => {},
   onValuesChange: () => {},
 };
@@ -48,9 +53,6 @@ const defaultProps = {
 export default class AnimatableDeckGLContainer extends React.Component {
   constructor(props) {
     super(props);
-    const { getLayers, start, end, getStep, values, disabled, viewport, ...other } = props;
-    this.other = other;
-
     this.onViewportChange = this.onViewportChange.bind(this);
   }
   onViewportChange(viewport) {
@@ -71,6 +73,9 @@ export default class AnimatableDeckGLContainer extends React.Component {
       values,
       onValuesChange,
       viewport,
+      setControlValue,
+      mapStyle,
+      mapboxApiAccessToken,
     } = this.props;
     const layers = getLayers(values);
 
@@ -83,9 +88,11 @@ export default class AnimatableDeckGLContainer extends React.Component {
     return (
       <div>
         <DeckGLContainer
-          {...this.other}
           viewport={modifiedViewport}
           layers={layers}
+          setControlValue={setControlValue}
+          mapStyle={mapStyle}
+          mapboxApiAccessToken={mapboxApiAccessToken}
           onViewportChange={this.onViewportChange}
         />
         {!disabled &&

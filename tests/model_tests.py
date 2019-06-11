@@ -109,47 +109,6 @@ class DatabaseModelTestCase(SupersetTestCase):
         LIMIT 100""")
         assert sql.startswith(expected)
 
-    def test_grains_dict(self):
-        uri = 'mysql://root@localhost'
-        database = Database(sqlalchemy_uri=uri)
-        d = database.grains_dict()
-        self.assertEquals(d.get('day').function, 'DATE({col})')
-        self.assertEquals(d.get('P1D').function, 'DATE({col})')
-        self.assertEquals(d.get('Time Column').function, '{col}')
-
-    def test_postgres_expression_time_grain(self):
-        uri = 'postgresql+psycopg2://uid:pwd@localhost:5432/superset'
-        database = Database(sqlalchemy_uri=uri)
-        pdf, time_grain = '', 'P1D'
-        expression, column_name = 'COALESCE(lowercase_col, "MixedCaseCol")', ''
-        grain = database.grains_dict().get(time_grain)
-        col = database.db_engine_spec.get_timestamp_column(expression, column_name)
-        grain_expr = database.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
-        grain_expr_expected = grain.function.replace('{col}', expression)
-        self.assertEqual(grain_expr, grain_expr_expected)
-
-    def test_postgres_lowercase_col_time_grain(self):
-        uri = 'postgresql+psycopg2://uid:pwd@localhost:5432/superset'
-        database = Database(sqlalchemy_uri=uri)
-        pdf, time_grain = '', 'P1D'
-        expression, column_name = '', 'lowercase_col'
-        grain = database.grains_dict().get(time_grain)
-        col = database.db_engine_spec.get_timestamp_column(expression, column_name)
-        grain_expr = database.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
-        grain_expr_expected = grain.function.replace('{col}', column_name)
-        self.assertEqual(grain_expr, grain_expr_expected)
-
-    def test_postgres_mixedcase_col_time_grain(self):
-        uri = 'postgresql+psycopg2://uid:pwd@localhost:5432/superset'
-        database = Database(sqlalchemy_uri=uri)
-        pdf, time_grain = '', 'P1D'
-        expression, column_name = '', 'MixedCaseCol'
-        grain = database.grains_dict().get(time_grain)
-        col = database.db_engine_spec.get_timestamp_column(expression, column_name)
-        grain_expr = database.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
-        grain_expr_expected = grain.function.replace('{col}', f'"{column_name}"')
-        self.assertEqual(grain_expr, grain_expr_expected)
-
     def test_single_statement(self):
         main_db = get_main_database(db.session)
 
@@ -216,24 +175,6 @@ class SqlaTableModelTestCase(SupersetTestCase):
         if tbl.database.backend == 'mysql':
             self.assertEquals(compiled, 'DATE(from_unixtime(DATE_ADD(ds, 1)))')
         ds_col.expression = prev_ds_expr
-
-    def test_get_timestamp_expression_backward(self):
-        tbl = self.get_table_by_name('birth_names')
-        ds_col = tbl.get_column('ds')
-
-        ds_col.expression = None
-        ds_col.python_date_format = None
-        sqla_literal = ds_col.get_timestamp_expression('day')
-        compiled = '{}'.format(sqla_literal.compile())
-        if tbl.database.backend == 'mysql':
-            self.assertEquals(compiled, 'DATE(ds)')
-
-        ds_col.expression = None
-        ds_col.python_date_format = None
-        sqla_literal = ds_col.get_timestamp_expression('Time Column')
-        compiled = '{}'.format(sqla_literal.compile())
-        if tbl.database.backend == 'mysql':
-            self.assertEquals(compiled, 'ds')
 
     def query_with_expr_helper(self, is_timeseries, inner_join=True):
         tbl = self.get_table_by_name('birth_names')

@@ -141,9 +141,7 @@ def get_sql_results(
             return handle_query_error(str(e), query, session)
 
 
-def execute_sql_statement(
-        sql_statement, query, user_name, session,
-        cursor, return_results=False):
+def execute_sql_statement(sql_statement, query, user_name, session, cursor):
     """Executes a single SQL statement"""
     database = query.database
     db_engine_spec = database.db_engine_spec
@@ -256,11 +254,9 @@ def execute_sql_statements(
                 logging.info(msg)
                 query.set_extra_json_key('progress', msg)
                 session.commit()
-                is_last_statement = i == len(statements) - 1
                 try:
                     cdf = execute_sql_statement(
-                        statement, query, user_name, session, cursor,
-                        return_results=is_last_statement and return_results)
+                        statement, query, user_name, session, cursor)
                     msg = f'Running statement {i+1} out of {statement_count}'
                 except Exception as e:
                     msg = str(e)
@@ -273,7 +269,6 @@ def execute_sql_statements(
     query.rows = cdf.size
     query.progress = 100
     query.set_extra_json_key('progress', None)
-    query.status = QueryStatus.SUCCESS
     if query.select_as_cta:
         query.select_sql = database.select_star(
             query.tmp_table_name,
@@ -282,14 +277,21 @@ def execute_sql_statements(
             show_cols=False,
             latest_partition=False)
     query.end_time = now_as_float()
-    session.commit()
+
+    selected_columns = cdf.columns or []
+    data = cdf.data or []
+    all_columns, data, expanded_columns = db_engine_spec.expand_data(
+        selected_columns, data)
 
     payload.update({
-        'status': query.status,
-        'data': cdf.data if cdf.data else [],
-        'columns': cdf.columns if cdf.columns else [],
+        'status': QueryStatus.SUCCESS,
+        'data': data,
+        'columns': all_columns,
+        'selected_columns': selected_columns,
+        'expanded_columns': expanded_columns,
         'query': query.to_dict(),
     })
+    payload['query']['state'] = QueryStatus.SUCCESS
 
     if store_results:
         key = str(uuid.uuid4())
@@ -302,6 +304,8 @@ def execute_sql_statements(
                 cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)
             results_backend.set(key, zlib_compress(json_payload), cache_timeout)
         query.results_key = key
+
+    query.status = QueryStatus.SUCCESS
     session.commit()
 
     if return_results:

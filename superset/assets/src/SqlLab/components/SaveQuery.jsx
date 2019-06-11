@@ -146,6 +146,7 @@ class SaveQuery extends React.PureComponent {
           ref={(ref) => { this.saveModal = ref; }}
           modalTitle={t('Save Query')}
           modalBody={this.renderModalBody()}
+          backdrop="static"
           triggerNode={
             <Button bsSize="small" className="toggleSave" onClick={this.toggleSave}>
               <i className="fa fa-save" /> {t('Save Query')}

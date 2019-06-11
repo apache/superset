@@ -94,28 +94,8 @@ Superset speaks many SQL dialects through SQLAlchemy, a Python
 ORM that is compatible with
 [most common databases](https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html).
 
-Superset can be used to visualize data out of most databases:
-* MySQL
-* Postgres
-* Vertica
-* Oracle
-* Microsoft SQL Server
-* SQLite
-* Greenplum
-* Firebird
-* MariaDB
-* Sybase
-* IBM DB2
-* Exasol
-* MonetDB
-* Snowflake
-* Redshift
-* Clickhouse
-* Apache Kylin
-* Google BigQuery
-* **more!** look for the availability of a SQLAlchemy dialect for your database
-  to find out whether it will work with Superset
-
+A list of currently supported SQL databases can be found
+[here](https://superset.incubator.apache.org/#databases).
 
 Apache Druid (Incubating)!
 ------
@@ -171,6 +151,7 @@ the world know they are using Superset. Join our growing community!
  1. [Airbnb](https://github.com/airbnb)
  1. [Airboxlab](https://foobot.io)
  1. [Aktia Bank plc](https://www.aktia.com)
+ 1. [American Express](https://www.americanexpress.com)
  1. [Amino](https://amino.com)
  1. [Apollo GraphQL](https://www.apollographql.com/)
  1. [Ascendica Development](http://ascendicadevelopment.com)
@@ -178,6 +159,7 @@ the world know they are using Superset. Join our growing community!
  1. [Brilliant.org](https://brilliant.org/)
  1. [Capital Service S.A.](http://capitalservice.pl)
  1. [Clark.de](http://clark.de/)
+ 1. [Cloudsmith](https://cloudsmith.io)
  1. [CnOvit](http://www.cnovit.com/)
  1. [Dial Once](https://www.dial-once.com/en/)
  1. [Digit Game Studios](https://www.digitgaming.com/)
@@ -194,6 +176,7 @@ the world know they are using Superset. Join our growing community!
  1. [Konfío](http://konfio.mx)
  1. [Kuaishou](https://www.kuaishou.com/)
  1. [Lime](https://www.limebike.com/)
+ 1. [Living Goods](https://www.livinggoods.org)
  1. [Lyft](https://www.lyft.com/)
  1. [Maieutical Labs](https://maieuticallabs.it)
  1. [Myra Labs](http://www.myralabs.com/)
@@ -210,6 +193,7 @@ the world know they are using Superset. Join our growing community!
  1. [Steamroot](https://streamroot.io/)
  1. [Showmax](https://tech.showmax.com)
  1. [Tails.com](https://tails.com)
+ 1. [Tenable](https://www.tenable.com)
  1. [THEICONIC](http://theiconic.com.au/)
  1. [Tobii](http://www.tobii.com/)
  1. [Tooploox](https://www.tooploox.com/)

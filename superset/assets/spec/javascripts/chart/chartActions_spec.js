@@ -51,7 +51,7 @@ describe('chart actions', () => {
   });
 
   it('should dispatch CHART_UPDATE_STARTED action before the query', () => {
-    const actionThunk = actions.runQuery({});
+    const actionThunk = actions.postChartFormData({});
 
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, success
@@ -64,7 +64,7 @@ describe('chart actions', () => {
   });
 
   it('should dispatch TRIGGER_QUERY action with the query', () => {
-    const actionThunk = actions.runQuery({});
+    const actionThunk = actions.postChartFormData({});
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, success
       expect(dispatch.callCount).toBe(5);
@@ -76,7 +76,7 @@ describe('chart actions', () => {
   });
 
   it('should dispatch UPDATE_QUERY_FORM_DATA action with the query', () => {
-    const actionThunk = actions.runQuery({});
+    const actionThunk = actions.postChartFormData({});
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, success
       expect(dispatch.callCount).toBe(5);
@@ -88,7 +88,7 @@ describe('chart actions', () => {
   });
 
   it('should dispatch logEvent async action', () => {
-    const actionThunk = actions.runQuery({});
+    const actionThunk = actions.postChartFormData({});
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, success
       expect(dispatch.callCount).toBe(5);
@@ -104,7 +104,7 @@ describe('chart actions', () => {
   });
 
   it('should dispatch CHART_UPDATE_SUCCEEDED action upon success', () => {
-    const actionThunk = actions.runQuery({});
+    const actionThunk = actions.postChartFormData({});
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, success
       expect(dispatch.callCount).toBe(5);
@@ -120,7 +120,7 @@ describe('chart actions', () => {
     fetchMock.post(MOCK_URL, () => unresolvingPromise, { overwriteRoutes: true });
 
     const timeoutInSec = 1 / 1000;
-    const actionThunk = actions.runQuery({}, false, timeoutInSec);
+    const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
 
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, fail
@@ -136,7 +136,7 @@ describe('chart actions', () => {
     fetchMock.post(MOCK_URL, { throws: { statusText: 'misc error' } }, { overwriteRoutes: true });
 
     const timeoutInSec = 1 / 1000;
-    const actionThunk = actions.runQuery({}, false, timeoutInSec);
+    const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
 
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, fail

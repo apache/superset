@@ -36,8 +36,10 @@ import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
 import getDragDropManager from '../util/getDragDropManager';
+import findTabIndexByComponentId from '../util/findTabIndexByComponentId';
 
 import {
+  BUILDER_PANE_TYPE,
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
@@ -51,13 +53,19 @@ const propTypes = {
   dashboardLayout: PropTypes.object.isRequired,
   deleteTopLevelTabs: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
-  showBuilderPane: PropTypes.bool,
+  showBuilderPane: PropTypes.func.isRequired,
+  builderPaneType: PropTypes.string.isRequired,
+  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
+  colorScheme: PropTypes.string,
   handleComponentDrop: PropTypes.func.isRequired,
   toggleBuilderPane: PropTypes.func.isRequired,
+  directPathToChild: PropTypes.arrayOf(PropTypes.string),
 };
 
 const defaultProps = {
   showBuilderPane: false,
+  directPathToChild: [],
+  colorScheme: undefined,
 };
 
 class DashboardBuilder extends React.Component {
@@ -72,8 +80,20 @@ class DashboardBuilder extends React.Component {
 
   constructor(props) {
     super(props);
+
+    const { dashboardLayout, directPathToChild } = props;
+    const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
+    const rootChildId = dashboardRoot.children[0];
+    const tabIndex = findTabIndexByComponentId({
+      currentComponent:
+        rootChildId === DASHBOARD_GRID_ID
+          ? dashboardLayout[DASHBOARD_ROOT_ID]
+          : dashboardLayout[rootChildId],
+      directPathToChild,
+    });
+
     this.state = {
-      tabIndex: 0, // top-level tabs
+      tabIndex,
     };
     this.handleChangeTab = this.handleChangeTab.bind(this);
     this.handleDeleteTopLevelTabs = this.handleDeleteTopLevelTabs.bind(this);
@@ -102,7 +122,15 @@ class DashboardBuilder extends React.Component {
   }
 
   render() {
-    const { handleComponentDrop, dashboardLayout, editMode } = this.props;
+    const {
+      handleComponentDrop,
+      dashboardLayout,
+      editMode,
+      showBuilderPane,
+      builderPaneType,
+      setColorSchemeAndUnsavedChanges,
+      colorScheme,
+    } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
@@ -194,6 +222,7 @@ class DashboardBuilder extends React.Component {
                           // see isValidChild for why tabs do not increment the depth of their children
                           depth={DASHBOARD_ROOT_DEPTH + 1} // (topLevelTabs ? 0 : 1)}
                           width={width}
+                          isComponentVisible={index === tabIndex}
                         />
                       </TabPane>
                     ))}
@@ -202,10 +231,13 @@ class DashboardBuilder extends React.Component {
               )}
             </ParentSize>
           </div>
-          {this.props.editMode && this.props.showBuilderPane && (
+          {editMode && builderPaneType !== BUILDER_PANE_TYPE.NONE && (
             <BuilderComponentPane
               topOffset={HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0)}
-              toggleBuilderPane={this.props.toggleBuilderPane}
+              showBuilderPane={showBuilderPane}
+              builderPaneType={builderPaneType}
+              setColorSchemeAndUnsavedChanges={setColorSchemeAndUnsavedChanges}
+              colorScheme={colorScheme}
             />
           )}
         </div>

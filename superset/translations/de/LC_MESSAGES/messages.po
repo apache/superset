@@ -161,7 +161,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:386
 #: superset/viz.py:430
 msgid "Pivot Table"
-msgstr ""
+msgstr "Pivot-Tabelle"
 
 #: superset/viz.py:444
 msgid "Please choose at least one \"Group by\" field "
@@ -169,7 +169,7 @@ msgstr ""
 
 #: superset/viz.py:446
 msgid "Please choose at least one metric"
-msgstr ""
+msgstr "Bitte wählt zumindest eine Metrik"
 
 #: superset/viz.py:450
 msgid "'Group By' and 'Columns' can't overlap"
@@ -178,7 +178,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:373
 #: superset/viz.py:483
 msgid "Markup"
-msgstr ""
+msgstr "Auszeichnung"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:411
 #: superset/viz.py:502
@@ -188,7 +188,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:433
 #: superset/viz.py:514
 msgid "Word Cloud"
-msgstr ""
+msgstr "Wortwolke"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:454
 #: superset/viz.py:537
@@ -203,7 +203,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:502
 #: superset/viz.py:621
 msgid "Box Plot"
-msgstr ""
+msgstr "Box-Plot"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:523
 #: superset/viz.py:710
@@ -230,12 +230,12 @@ msgstr ""
 
 #: superset/viz.py:817 superset/viz.py:846
 msgid "Pick a metric!"
-msgstr ""
+msgstr "Wählt eine Metrik!"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:622
 #: superset/viz.py:838
 msgid "Big Number"
-msgstr ""
+msgstr "Große Nummer"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:157
 #: superset/viz.py:865

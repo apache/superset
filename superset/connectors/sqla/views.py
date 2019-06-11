@@ -21,10 +21,12 @@ import logging
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
+from flask_appbuilder.fieldwidgets import Select2Widget
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
+from wtforms.ext.sqlalchemy.fields import QuerySelectField
 
 from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
@@ -107,6 +109,17 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'type': _('Type'),
     }
 
+    add_form_extra_fields = {
+        'table': QuerySelectField(
+            'Table',
+            query_factory=lambda: db.session().query(models.SqlaTable),
+            allow_blank=True,
+            widget=Select2Widget(extra_classes='readonly'),
+        ),
+    }
+
+    edit_form_extra_fields = add_form_extra_fields
+
 
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
@@ -153,13 +166,24 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'warning_text': _('Warning Message'),
     }
 
+    add_form_extra_fields = {
+        'table': QuerySelectField(
+            'Table',
+            query_factory=lambda: db.session().query(models.SqlaTable),
+            allow_blank=True,
+            widget=Select2Widget(extra_classes='readonly'),
+        ),
+    }
+
+    edit_form_extra_fields = add_form_extra_fields
+
     def post_add(self, metric):
         if metric.is_restricted:
-            security_manager.merge_perm('metric_access', metric.get_perm())
+            security_manager.add_permission_view_menu('metric_access', metric.get_perm())
 
     def post_update(self, metric):
         if metric.is_restricted:
-            security_manager.merge_perm('metric_access', metric.get_perm())
+            security_manager.add_permission_view_menu('metric_access', metric.get_perm())
 
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
@@ -260,6 +284,14 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'modified': _('Modified'),
     }
 
+    edit_form_extra_fields = {
+        'database': QuerySelectField(
+            'Database',
+            query_factory=lambda: db.session().query(models.Database),
+            widget=Select2Widget(extra_classes='readonly'),
+        ),
+    }
+
     def pre_add(self, table):
         with db.session.no_autoflush:
             table_query = db.session.query(models.SqlaTable).filter(
@@ -283,9 +315,9 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     def post_add(self, table, flash_message=True):
         table.fetch_metadata()
-        security_manager.merge_perm('datasource_access', table.get_perm())
+        security_manager.add_permission_view_menu('datasource_access', table.get_perm())
         if table.schema:
-            security_manager.merge_perm('schema_access', table.schema_perm)
+            security_manager.add_permission_view_menu('schema_access', table.schema_perm)
 
         if flash_message:
             flash(_(

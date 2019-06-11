@@ -42,7 +42,7 @@ export const datasourceAndVizType = {
 export const colorScheme = {
   label: t('Color Scheme'),
   controlSetRows: [
-    ['color_scheme'],
+    ['color_scheme', 'label_colors'],
   ],
 };
 

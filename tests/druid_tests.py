@@ -18,8 +18,7 @@
 from datetime import datetime
 import json
 import unittest
-
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 from superset import db, security_manager
 from superset.connectors.druid.models import (
@@ -290,8 +289,8 @@ class DruidTests(SupersetTestCase):
         db.session.merge(no_gamma_ds)
         db.session.commit()
 
-        security_manager.merge_perm('datasource_access', gamma_ds.perm)
-        security_manager.merge_perm('datasource_access', no_gamma_ds.perm)
+        security_manager.add_permission_view_menu('datasource_access', gamma_ds.perm)
+        security_manager.add_permission_view_menu('datasource_access', no_gamma_ds.perm)
 
         perm = security_manager.find_permission_view_menu(
             'datasource_access', gamma_ds.get_perm())

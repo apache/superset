@@ -17,6 +17,7 @@
  * under the License.
  */
 import { id as sliceId } from './mockChartQueries';
+import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
 
 export default {
   sliceIds: [sliceId],
@@ -24,7 +25,7 @@ export default {
   filters: {},
   expandedSlices: {},
   editMode: false,
-  showBuilderPane: false,
+  builderPaneType: BUILDER_PANE_TYPE.NONE,
   hasUnsavedChanges: false,
   maxUndoHistoryExceeded: false,
   isStarred: true,

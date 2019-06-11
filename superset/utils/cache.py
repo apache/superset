@@ -20,7 +20,7 @@ from flask import request
 from superset import tables_cache
 
 
-def view_cache_key(*unused_args, **unused_kwargs):
+def view_cache_key(*unused_args, **unused_kwargs) -> str:
     args_hash = hash(frozenset(request.args.items()))
     return 'view/{}/{}'.format(request.path, args_hash)
 

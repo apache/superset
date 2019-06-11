@@ -113,7 +113,7 @@ class ImportExportTests(SupersetTestCase):
             table.columns.append(
                 TableColumn(column_name=col_name))
         for metric_name in metric_names:
-            table.metrics.append(SqlMetric(metric_name=metric_name))
+            table.metrics.append(SqlMetric(metric_name=metric_name, expression=''))
         return table
 
     def create_druid_datasource(
@@ -130,7 +130,7 @@ class ImportExportTests(SupersetTestCase):
                 DruidColumn(column_name=col_name))
         for metric_name in metric_names:
             datasource.metrics.append(DruidMetric(
-                metric_name=metric_name))
+                metric_name=metric_name, json='{}'))
         return datasource
 
     def get_slice(self, slc_id):

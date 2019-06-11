@@ -22,6 +22,7 @@ import MapGL from 'react-map-gl';
 import DeckGL from 'deck.gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { isEqual } from 'lodash';
+import '../stylesheets/deckgl.css';
 
 const TICK = 2000;  // milliseconds
 

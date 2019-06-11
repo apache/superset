@@ -27,24 +27,37 @@ import * as Actions from '../actions/sqlLab';
 const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
 const MAX_QUERY_AGE_TO_POLL = 21600000;
-const QUERY_TIMEOUT_LIMIT = 7000;
+const QUERY_TIMEOUT_LIMIT = 10000;
 
 class QueryAutoRefresh extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = {
+      offline: props.offline,
+    };
+  }
   componentWillMount() {
     this.startTimer();
+  }
+  componentDidUpdate(prevProps) {
+    if (prevProps.offline !== this.state.offline) {
+      this.props.actions.setUserOffline(this.state.offline);
+    }
   }
   componentWillUnmount() {
     this.stopTimer();
   }
   shouldCheckForQueries() {
     // if there are started or running queries, this method should return true
-    const { queries, queriesLastUpdate } = this.props;
+    const { queries } = this.props;
     const now = new Date().getTime();
+    const isQueryRunning = q => (
+      ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0
+    );
 
     return (
-      queriesLastUpdate > 0 &&
       Object.values(queries).some(
-        q => ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0 &&
+        q => isQueryRunning(q) &&
         now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
       )
     );
@@ -68,12 +81,12 @@ class QueryAutoRefresh extends React.PureComponent {
         if (Object.keys(json).length > 0) {
           this.props.actions.refreshQueries(json);
         }
-        this.props.actions.setUserOffline(false);
-        }).catch(() => {
-          this.props.actions.setUserOffline(true);
-        });
+        this.setState({ offline: false });
+      }).catch(() => {
+        this.setState({ offline: true });
+      });
     } else {
-      this.props.actions.setUserOffline(false);
+      this.setState({ offline: false });
     }
   }
   render() {
@@ -81,6 +94,7 @@ class QueryAutoRefresh extends React.PureComponent {
   }
 }
 QueryAutoRefresh.propTypes = {
+  offline: PropTypes.bool.isRequired,
   queries: PropTypes.object.isRequired,
   actions: PropTypes.object.isRequired,
   queriesLastUpdate: PropTypes.number.isRequired,
@@ -88,6 +102,7 @@ QueryAutoRefresh.propTypes = {
 
 function mapStateToProps({ sqlLab }) {
   return {
+    offline: sqlLab.offline,
     queries: sqlLab.queries,
     queriesLastUpdate: sqlLab.queriesLastUpdate,
   };

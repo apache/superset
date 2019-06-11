@@ -37,7 +37,7 @@ export default {
         ['pie_label_type', 'number_format'],
         ['donut', 'show_legend'],
         ['show_labels', 'labels_outside'],
-        ['color_scheme'],
+        ['color_scheme', 'label_colors'],
       ],
     },
   ],

@@ -17,9 +17,9 @@
 """Unit tests for Superset"""
 import json
 import unittest
+from unittest.mock import Mock, patch
 
 from flask_appbuilder.security.sqla import models as ab_models
-from mock import Mock, patch
 import pandas as pd
 
 from superset import app, db, is_feature_enabled, security_manager
@@ -174,12 +174,15 @@ class SupersetTestCase(unittest.TestCase):
                     perm.view_menu and table.perm in perm.view_menu.name):
                 security_manager.del_permission_role(public_role, perm)
 
+    def get_main_database(self):
+        return get_main_database(db.session)
+
     def run_sql(self, sql, client_id=None, user_name=None, raise_on_error=False,
                 query_limit=None):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else 'admin'))
-        dbid = get_main_database(db.session).id
+        dbid = self.get_main_database().id
         resp = self.get_json_resp(
             '/superset/sql_json/',
             raise_on_error=False,
@@ -188,6 +191,21 @@ class SupersetTestCase(unittest.TestCase):
         )
         if raise_on_error and 'error' in resp:
             raise Exception('run_sql failed')
+        return resp
+
+    def validate_sql(self, sql, client_id=None, user_name=None,
+                     raise_on_error=False):
+        if user_name:
+            self.logout()
+            self.login(username=(user_name if user_name else 'admin'))
+        dbid = self.get_main_database().id
+        resp = self.get_json_resp(
+            '/superset/validate_sql_json/',
+            raise_on_error=False,
+            data=dict(database_id=dbid, sql=sql, client_id=client_id),
+        )
+        if raise_on_error and 'error' in resp:
+            raise Exception('validate_sql failed')
         return resp
 
     @patch.dict('superset._feature_flags', {'FOO': True}, clear=True)

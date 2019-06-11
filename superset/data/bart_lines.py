@@ -14,9 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import gzip
 import json
-import os
 
 import pandas as pd
 import polyline
@@ -24,16 +22,17 @@ from sqlalchemy import String, Text
 
 from superset import db
 from superset.utils.core import get_or_create_main_db
-from .helpers import DATA_FOLDER, TBL
+from .helpers import TBL, get_example_data
 
 
 def load_bart_lines():
     tbl_name = 'bart_lines'
-    with gzip.open(os.path.join(DATA_FOLDER, 'bart-lines.json.gz')) as f:
-        df = pd.read_json(f, encoding='latin-1')
-        df['path_json'] = df.path.map(json.dumps)
-        df['polyline'] = df.path.map(polyline.encode)
-        del df['path']
+    content = get_example_data('bart-lines.json.gz')
+    df = pd.read_json(content, encoding='latin-1')
+    df['path_json'] = df.path.map(json.dumps)
+    df['polyline'] = df.path.map(polyline.encode)
+    del df['path']
+
     df.to_sql(
         tbl_name,
         db.engine,

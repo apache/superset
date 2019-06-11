@@ -30,7 +30,6 @@ from alembic import op
 import json
 import sqlalchemy as sa
 from superset import db
-from superset.legacy import cast_form_data
 from sqlalchemy.ext.declarative import declarative_base
 from urllib import parse
 
@@ -72,7 +71,6 @@ def upgrade():
             d = parse_querystring(url.url.split('?')[1])
             split = url.url.split('/')
             d['datasource'] = split[5] + '__' + split[4]
-            d = cast_form_data(d)
             newurl = '/'.join(split[:-1]) + '/?form_data=' + parse.quote_plus(json.dumps(d))
             url.url = newurl
             session.merge(url)

@@ -170,7 +170,6 @@ class SliceAdder extends React.Component {
       chartId: cellData.slice_id,
       sliceName: cellData.slice_name,
     };
-
     return (
       <DragDroppable
         key={key}
@@ -202,7 +201,7 @@ class SliceAdder extends React.Component {
               innerRef={dragSourceRef}
               style={style}
               sliceName={cellData.slice_name}
-              lastModified={cellData.modified}
+              lastModified={cellData.changed_on_humanized}
               visType={cellData.viz_type}
               datasourceLink={cellData.datasource_link}
               isSelected={isSelected}

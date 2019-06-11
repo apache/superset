@@ -23,10 +23,11 @@ import {
   changeFilter as addFilter,
   toggleExpandSlice,
 } from '../actions/dashboardState';
+import { updateComponents } from '../actions/dashboardLayout';
+import { addDangerToast } from '../../messageToasts/actions';
 import { refreshChart } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
-import { updateComponents } from '../actions/dashboardLayout';
 import Chart from '../components/gridComponents/Chart';
 
 const EMPTY_FILTERS = {};
@@ -43,7 +44,7 @@ function mapStateToProps(
 ) {
   const { id } = ownProps;
   const chart = chartQueries[id] || {};
-  const { filters } = dashboardState;
+  const { filters, colorScheme, colorNamespace } = dashboardState;
 
   return {
     chart,
@@ -52,12 +53,14 @@ function mapStateToProps(
       {},
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    filters: filters[id] || EMPTY_FILTERS,
+    filters: filters || EMPTY_FILTERS,
     // note: this method caches filters if possible to prevent render cascades
     formData: getFormDataWithExtraFilters({
       chart,
       dashboardMetadata: dashboardInfo.metadata,
       filters,
+      colorScheme,
+      colorNamespace,
       sliceId: id,
     }),
     editMode: dashboardState.editMode,
@@ -72,6 +75,7 @@ function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
       updateComponents,
+      addDangerToast,
       toggleExpandSlice,
       addFilter,
       refreshChart,

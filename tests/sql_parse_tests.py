@@ -29,6 +29,12 @@ class SupersetTestCase(unittest.TestCase):
         query = 'SELECT * FROM tbname'
         self.assertEquals({'tbname'}, self.extract_tables(query))
 
+        query = 'SELECT * FROM tbname foo'
+        self.assertEquals({'tbname'}, self.extract_tables(query))
+
+        query = 'SELECT * FROM tbname AS foo'
+        self.assertEquals({'tbname'}, self.extract_tables(query))
+
         # underscores
         query = 'SELECT * FROM tb_name'
         self.assertEquals({'tb_name'},
@@ -47,10 +53,39 @@ class SupersetTestCase(unittest.TestCase):
             {'schemaname.tbname'},
             self.extract_tables('SELECT * FROM schemaname.tbname'))
 
-        # Ill-defined schema/table.
+        self.assertEquals(
+            {'schemaname.tbname'},
+            self.extract_tables('SELECT * FROM "schemaname"."tbname"'))
+
+        self.assertEquals(
+            {'schemaname.tbname'},
+            self.extract_tables('SELECT * FROM schemaname.tbname foo'))
+
+        self.assertEquals(
+            {'schemaname.tbname'},
+            self.extract_tables('SELECT * FROM schemaname.tbname AS foo'))
+
+        # cluster
+        self.assertEquals(
+            {'clustername.schemaname.tbname'},
+            self.extract_tables('SELECT * FROM clustername.schemaname.tbname'))
+
+        # Ill-defined cluster/schema/table.
         self.assertEquals(
             set(),
             self.extract_tables('SELECT * FROM schemaname.'))
+
+        self.assertEquals(
+            set(),
+            self.extract_tables('SELECT * FROM clustername.schemaname.'))
+
+        self.assertEquals(
+            set(),
+            self.extract_tables('SELECT * FROM clustername..'))
+
+        self.assertEquals(
+            set(),
+            self.extract_tables('SELECT * FROM clustername..tbname'))
 
         # quotes
         query = 'SELECT field1, field2 FROM tb_name'
@@ -431,6 +466,25 @@ class SupersetTestCase(unittest.TestCase):
         """
         self.assertEquals({'SalesOrderHeader'}, self.extract_tables(query))
 
+    def test_get_query_with_new_limit_comment(self):
+        sql = 'SELECT * FROM ab_user --SOME COMMENT'
+        parsed = sql_parse.ParsedQuery(sql)
+        newsql = parsed.get_query_with_new_limit(1000)
+        self.assertEquals(newsql, sql + '\nLIMIT 1000')
+
+    def test_get_query_with_new_limit_comment_with_limit(self):
+        sql = 'SELECT * FROM ab_user --SOME COMMENT WITH LIMIT 555'
+        parsed = sql_parse.ParsedQuery(sql)
+        newsql = parsed.get_query_with_new_limit(1000)
+        self.assertEquals(newsql, sql + '\nLIMIT 1000')
+
+    def test_get_query_with_new_limit(self):
+        sql = 'SELECT * FROM ab_user LIMIT 555'
+        parsed = sql_parse.ParsedQuery(sql)
+        newsql = parsed.get_query_with_new_limit(1000)
+        expected = 'SELECT * FROM ab_user LIMIT 1000'
+        self.assertEquals(newsql, expected)
+
     def test_basic_breakdown_statements(self):
         multi_sql = """
         SELECT * FROM ab_user;
@@ -462,3 +516,12 @@ class SupersetTestCase(unittest.TestCase):
             'SELECT * FROM ab_user LIMIT 1',
         ]
         self.assertEquals(statements, expected)
+
+    def test_identifier_list_with_keyword_as_alias(self):
+        query = """
+        WITH
+            f AS (SELECT * FROM foo),
+            match AS (SELECT * FROM f)
+        SELECT * FROM match
+        """
+        self.assertEquals({'foo'}, self.extract_tables(query))

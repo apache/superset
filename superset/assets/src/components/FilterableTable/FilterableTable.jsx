@@ -27,6 +27,7 @@ import {
   SortIndicator,
 } from 'react-virtualized';
 import { getTextDimension } from '@superset-ui/dimension';
+import TooltipWrapper from '../TooltipWrapper';
 
 function getTextWidth(text, font = '12px Roboto') {
   return getTextDimension({ text, style: { font } }).width;
@@ -43,6 +44,7 @@ const propTypes = {
   overscanRowCount: PropTypes.number,
   rowHeight: PropTypes.number,
   striped: PropTypes.bool,
+  expandedColumns: PropTypes.array,
 };
 
 const defaultProps = {
@@ -51,13 +53,14 @@ const defaultProps = {
   overscanRowCount: 10,
   rowHeight: 32,
   striped: true,
+  expandedColumns: [],
 };
 
 export default class FilterableTable extends PureComponent {
   constructor(props) {
     super(props);
     this.list = List(this.formatTableData(props.data));
-    this.headerRenderer = this.headerRenderer.bind(this);
+    this.renderHeader = this.renderHeader.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
 
@@ -136,17 +139,6 @@ export default class FilterableTable extends PureComponent {
     return values.some(v => v.includes(lowerCaseText));
   }
 
-  headerRenderer({ dataKey, label, sortBy, sortDirection }) {
-    return (
-      <div>
-        {label}
-        {sortBy === dataKey &&
-          <SortIndicator sortDirection={sortDirection} />
-        }
-      </div>
-    );
-  }
-
   rowClassName({ index }) {
     let className = '';
     if (this.props.striped) {
@@ -159,12 +151,27 @@ export default class FilterableTable extends PureComponent {
     this.setState({ sortBy, sortDirection });
   }
 
+  renderHeader({ dataKey, label, sortBy, sortDirection }) {
+    const className = this.props.expandedColumns.indexOf(label) > -1
+      ? 'header-style-disabled'
+      : 'header-style';
+    return (
+      <TooltipWrapper label="header" tooltip={label}>
+        <div className={className}>
+          {label}
+          {sortBy === dataKey &&
+            <SortIndicator sortDirection={sortDirection} />
+          }
+        </div>
+      </TooltipWrapper>
+    );
+  }
+
   render() {
     const { sortBy, sortDirection } = this.state;
     const {
       filterText,
       headerHeight,
-      height,
       orderedColumnKeys,
       overscanRowCount,
       rowHeight,
@@ -182,10 +189,12 @@ export default class FilterableTable extends PureComponent {
       .update(list => sortDirection === SortDirection.DESC ? list.reverse() : list);
     }
 
+    let { height } = this.props;
     let totalTableHeight = height;
     if (this.container && this.totalTableWidth > this.container.clientWidth) {
       // exclude the height of the horizontal scroll bar from the height of the table
-      // if the content overflows
+      // and the height of the table container if the content overflows
+      height -= SCROLL_BAR_HEIGHT;
       totalTableHeight -= SCROLL_BAR_HEIGHT;
     }
 
@@ -215,7 +224,7 @@ export default class FilterableTable extends PureComponent {
               <Column
                 dataKey={columnKey}
                 disableSort={false}
-                headerRenderer={this.headerRenderer}
+                headerRenderer={this.renderHeader}
                 width={this.widthsForColumnsByKey[columnKey]}
                 label={columnKey}
                 key={columnKey}

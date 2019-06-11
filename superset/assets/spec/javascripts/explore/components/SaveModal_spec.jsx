@@ -19,6 +19,7 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+import { bindActionCreators } from 'redux';
 
 import { shallow, mount } from 'enzyme';
 import { Modal, Button, Radio } from 'react-bootstrap';
@@ -52,7 +53,12 @@ describe('SaveModal', () => {
 
   const defaultProps = {
     onHide: () => ({}),
-    actions: saveModalActions,
+    actions: bindActionCreators(saveModalActions, (arg) => {
+      if (typeof arg === 'function') {
+        return arg(jest.fn);
+      }
+      return arg;
+    }),
     form_data: { datasource: '107__table' },
   };
   const mockEvent = {
@@ -108,15 +114,15 @@ describe('SaveModal', () => {
 
   it('componentDidMount', () => {
     sinon.spy(SaveModal.prototype, 'componentDidMount');
-    sinon.spy(saveModalActions, 'fetchDashboards');
+    sinon.spy(defaultProps.actions, 'fetchDashboards');
     mount(<SaveModal {...defaultProps} />, {
       context: { store },
     });
     expect(SaveModal.prototype.componentDidMount.calledOnce).toBe(true);
-    expect(saveModalActions.fetchDashboards.calledOnce).toBe(true);
+    expect(defaultProps.actions.fetchDashboards.calledOnce).toBe(true);
 
     SaveModal.prototype.componentDidMount.restore();
-    saveModalActions.fetchDashboards.restore();
+    defaultProps.actions.fetchDashboards.restore();
   });
 
   it('onChange', () => {
@@ -139,7 +145,7 @@ describe('SaveModal', () => {
         .callsFake(() => ({ url: 'mockURL', payload: defaultProps.form_data }));
 
       sinon
-        .stub(saveModalActions, 'saveSlice')
+        .stub(defaultProps.actions, 'saveSlice')
         .callsFake(() =>
           Promise.resolve({ data: { dashboard: '/mock/', slice: { slice_url: '/mock/' } } }),
         );
@@ -147,13 +153,13 @@ describe('SaveModal', () => {
 
     afterEach(() => {
       exploreUtils.getExploreUrlAndPayload.restore();
-      saveModalActions.saveSlice.restore();
+      defaultProps.actions.saveSlice.restore();
     });
 
     it('should save slice', () => {
       const wrapper = getWrapper();
       wrapper.instance().saveOrOverwrite(true);
-      const args = saveModalActions.saveSlice.getCall(0).args;
+      const args = defaultProps.actions.saveSlice.getCall(0).args;
       expect(args[0]).toEqual(defaultProps.form_data);
     });
 
@@ -167,7 +173,7 @@ describe('SaveModal', () => {
 
       wrapper.setState({ saveToDashboardId });
       wrapper.instance().saveOrOverwrite(true);
-      const args = saveModalActions.saveSlice.getCall(0).args;
+      const args = defaultProps.actions.saveSlice.getCall(0).args;
       expect(args[1].save_to_dashboard_id).toBe(saveToDashboardId);
     });
 
@@ -181,7 +187,7 @@ describe('SaveModal', () => {
 
       wrapper.setState({ newDashboardName });
       wrapper.instance().saveOrOverwrite(true);
-      const args = saveModalActions.saveSlice.getCall(0).args;
+      const args = defaultProps.actions.saveSlice.getCall(0).args;
       expect(args[1].new_dashboard_name).toBe(newDashboardName);
     });
   });
@@ -251,13 +257,13 @@ describe('SaveModal', () => {
   });
 
   it('removeAlert', () => {
-    sinon.spy(saveModalActions, 'removeSaveModalAlert');
+    sinon.spy(defaultProps.actions, 'removeSaveModalAlert');
     const wrapper = getWrapper();
     wrapper.setProps({ alert: 'old alert' });
 
     wrapper.instance().removeAlert();
-    expect(saveModalActions.removeSaveModalAlert.callCount).toBe(1);
+    expect(defaultProps.actions.removeSaveModalAlert.callCount).toBe(1);
     expect(wrapper.state().alert).toBeNull();
-    saveModalActions.removeSaveModalAlert.restore();
+    defaultProps.actions.removeSaveModalAlert.restore();
   });
 });

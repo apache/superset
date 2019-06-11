@@ -25,7 +25,7 @@ import {
   addSliceToDashboard,
   removeSliceFromDashboard,
 } from '../actions/dashboardState';
-import { runQuery } from '../../chart/chartAction';
+import { triggerQuery } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
 import getLoadStatsPerTopLevelComponent from '../util/logging/getLoadStatsPerTopLevelComponent';
 
@@ -64,7 +64,7 @@ function mapDispatchToProps(dispatch) {
       {
         addSliceToDashboard,
         removeSliceFromDashboard,
-        runQuery,
+        triggerQuery,
         logEvent,
       },
       dispatch,

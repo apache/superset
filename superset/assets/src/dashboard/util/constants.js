@@ -62,3 +62,10 @@ export const SAVE_TYPE_NEWDASHBOARD = 'newDashboard';
 // default dashboard layout data size limit
 // could be overwritten by server-side config
 export const DASHBOARD_POSITION_DATA_LIMIT = 65535;
+
+// Dashboard pane types
+export const BUILDER_PANE_TYPE = {
+  NONE: 'NONE',
+  ADD_COMPONENTS: 'ADD_COMPONENTS',
+  COLORS: 'COLORS',
+};

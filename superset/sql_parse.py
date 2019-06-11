@@ -16,10 +16,12 @@
 # under the License.
 # pylint: disable=C,R,W
 import logging
+from typing import Optional
 
 import sqlparse
-from sqlparse.sql import Identifier, IdentifierList
-from sqlparse.tokens import Keyword, Name
+from sqlparse.sql import Identifier, IdentifierList, remove_quotes, Token, TokenList
+from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
+from sqlparse.utils import imt
 
 RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT', 'SELECT'}
 ON_KEYWORD = 'ON'
@@ -75,32 +77,55 @@ class ParsedQuery(object):
         return statements
 
     @staticmethod
-    def __get_full_name(identifier):
-        if len(identifier.tokens) > 2 and identifier.tokens[1].value == '.':
-            return '{}.{}'.format(identifier.tokens[0].value,
-                                  identifier.tokens[2].value)
-        return identifier.get_real_name()
+    def __get_full_name(tlist: TokenList) -> Optional[str]:
+        """
+        Return the full unquoted table name if valid, i.e., conforms to the following
+        [[cluster.]schema.]table construct.
+
+        :param tlist: The SQL tokens
+        :returns: The valid full table name
+        """
+
+        # Strip the alias if present.
+        idx = len(tlist.tokens)
+
+        if tlist.has_alias():
+            ws_idx, _ = tlist.token_next_by(t=Whitespace)
+
+            if ws_idx != -1:
+                idx = ws_idx
+
+        tokens = tlist.tokens[:idx]
+
+        if (
+            len(tokens) in (1, 3, 5) and
+            all(imt(token, t=[Name, String]) for token in tokens[0::2]) and
+            all(imt(token, m=(Punctuation, '.')) for token in tokens[1::2])
+        ):
+            return '.'.join([remove_quotes(token.value) for token in tokens[0::2]])
+
+        return None
 
     @staticmethod
-    def __is_identifier(token):
+    def __is_identifier(token: Token):
         return isinstance(token, (IdentifierList, Identifier))
 
-    def __process_identifier(self, identifier):
+    def __process_tokenlist(self, tlist: TokenList):
         # exclude subselects
-        if '(' not in str(identifier):
-            table_name = self.__get_full_name(identifier)
+        if '(' not in str(tlist):
+            table_name = self.__get_full_name(tlist)
             if table_name and not table_name.startswith(CTE_PREFIX):
                 self._table_names.add(table_name)
             return
 
         # store aliases
-        if hasattr(identifier, 'get_alias'):
-            self._alias_names.add(identifier.get_alias())
-        if hasattr(identifier, 'tokens'):
-            # some aliases are not parsed properly
-            if identifier.tokens[0].ttype == Name:
-                self._alias_names.add(identifier.tokens[0].value)
-        self.__extract_from_token(identifier)
+        if tlist.has_alias():
+            self._alias_names.add(tlist.get_alias())
+
+        # some aliases are not parsed properly
+        if tlist.tokens[0].ttype == Name:
+            self._alias_names.add(tlist.tokens[0].value)
+        self.__extract_from_token(tlist)
 
     def as_create_table(self, table_name, overwrite=False):
         """Reformats the query into the create table as query.
@@ -127,7 +152,6 @@ class ParsedQuery(object):
         table_name_preceding_token = False
 
         for item in token.tokens:
-            logging.debug(('  ' * depth) + str(item.ttype) + str(item.value))
             if item.is_group and not self.__is_identifier(item):
                 self.__extract_from_token(item, depth=depth + 1)
 
@@ -145,10 +169,11 @@ class ParsedQuery(object):
 
             if table_name_preceding_token:
                 if isinstance(item, Identifier):
-                    self.__process_identifier(item)
+                    self.__process_tokenlist(item)
                 elif isinstance(item, IdentifierList):
                     for token in item.get_identifiers():
-                        self.__process_identifier(token)
+                        if isinstance(token, TokenList):
+                            self.__process_tokenlist(token)
             elif isinstance(item, IdentifierList):
                 for token in item.tokens:
                     if not self.__is_identifier(token):
@@ -168,7 +193,7 @@ class ParsedQuery(object):
         """returns the query with the specified limit"""
         """does not change the underlying query"""
         if not self._limit:
-            return self.sql + ' LIMIT ' + str(new_limit)
+            return f'{self.sql}\nLIMIT {new_limit}'
         limit_pos = None
         tokens = self._parsed[0].tokens
         # Add all items to before_str until there is a limit
