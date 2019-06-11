@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 """Loads datasets, dashboards and slices in a new superset instance"""
 # pylint: disable=C,R,W
 from datetime import datetime
@@ -23,8 +24,8 @@ import os
 import re
 import zlib
 
-from prettytable import PrettyTable
 import requests
+from tabulate import tabulate
 
 from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -141,9 +142,10 @@ def get_examples_file_list(examples_repos_uris, examples_tag='master'):
 
 def list_examples_table(examples_repo, examples_tag='master', full_fields=True):
     """Turn a list of available examples into a PrettyTable"""
+
     # Write a pretty table to stdout
-    t = PrettyTable(field_names=['Title', 'Description', 'Size (MB)', 'Rows',
-                                 'Files', 'URL', 'Created Date', 'Repository', 'Tag'])
+    headers = ['Title', 'Description', 'Size (MB)', 'Rows',
+               'Files', 'URL', 'Created Date', 'Repository', 'Tag']
 
     # Optionally replace the default examples repo with a specified one
     examples_repos_uris = [(r[0], r[1]) + get_examples_uris(r[0], r[1])
@@ -169,6 +171,7 @@ def list_examples_table(examples_repo, examples_tag='master', full_fields=True):
         dt = datetime.strptime(iso_date, '%Y-%m-%dT%H:%M:%S.%f')
         return dt.isoformat()
 
+    rows = []
     for file_info in file_info_list:
 
         d = json.loads(
@@ -192,6 +195,6 @@ def list_examples_table(examples_repo, examples_tag='master', full_fields=True):
             file_info['repo_name'],
             file_info['repo_tag'],
         ]
-        t.add_row(row)
+        rows.append(row)
 
-    return t
+    return '\n' + tabulate(rows, headers=headers) + '\n'

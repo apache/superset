@@ -105,6 +105,7 @@ setup(
         'sqlalchemy>=1.3.1,<2.0',
         'sqlalchemy-utils>=0.33.2',
         'sqlparse',
+        'tabulate>=0.8.3',
         'wtforms-json',
     ],
     extras_require={
