@@ -191,8 +191,8 @@ class ImportExportMixin(object):
 
         return obj
 
-    def export_to_json(self, recursive=True):
-        """Export obj to json"""
+    def export_to_json_serializable(self, recursive=True):
+        """Export obj to be serializable in json"""
         return DashboardEncoder.encode(self)
 
     def export_to_dict(self, recursive=True, include_parent_ref=False,
