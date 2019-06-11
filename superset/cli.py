@@ -221,11 +221,12 @@ def export_example(dashboard_id, dashboard_title, description, example_title,
 @examples.command('list')
 @click.option(
     '--examples-repo', '-r',
-    help='Full name of Github repository containing examples, ex: \'apache-superset/examples-data\'',
+    help="Full name of Github repository containing examples, ex: " + 
+         "'apache-superset/examples-data'",
     default=None)
 @click.option(
     '--examples-tag', '-r',
-    help='Tag or branch of Github repository containing examples. Defaults to \'master\'',
+    help="Tag or branch of Github repository containing examples. Defaults to 'master'",
     default='master')
 @click.option(
     '--full-fields', '-ff', is_flag=True, default=False, help='Print full length fields')
@@ -242,11 +243,12 @@ def _list_examples(examples_repo, examples_tag, full_fields):
     default=config.get('SQLALCHEMY_EXAMPLES_URI'))
 @click.option(
     '--examples-repo', '-r',
-    help='Full name of Github repository containing examples, ex: \'apache-superset/examples-data\'',
+    help="Full name of Github repository containing examples, ex: " +
+         "'apache-superset/examples-data'",
     default=None)
 @click.option(
     '--examples-tag', '-r',
-    help='Tag or branch of Github repository containing examples. Defaults to \'master\'',
+    help="Tag or branch of Github repository containing examples. Defaults to 'master'",
     default='master')
 @click.option(
     '--example-title', '-e', help='Title of example to import', required=True)
@@ -279,7 +281,7 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
             import_example_json = example_metadata_json
             import_data_info = example_file['data_files']
             logging.info(
-                f'Will import example \'{example_title}\' from {metadata_download_url}')
+                f"Will import example '{example_title}' from {metadata_download_url}")
             break
 
     if not import_example_json:
@@ -319,11 +321,12 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
     default=config.get('SQLALCHEMY_EXAMPLES_URI'))
 @click.option(
     '--examples-repo', '-r',
-    help='Full name of Github repository containing examples, ex: \'apache-superset/examples-data\'',
+    help="Full name of Github repository containing examples, ex: " + 
+         "'apache-superset/examples-data'",
     default=None)
 @click.option(
     '--examples-tag', '-r',
-    help='Tag or branch of Github repository containing examples. Defaults to \'master\'',
+    help="Tag or branch of Github repository containing examples. Defaults to 'master'",
     default='master')
 def remove_example(example_title, database_uri, examples_repo, examples_tag):
     """Remove an example dashboard/dataset"""
@@ -452,10 +455,10 @@ def import_dashboards(path, recursive):
     help='Specify dashboard title to export')
 @click.option(
     '--export-data', '-x', default=None, is_flag=True,
-    help='Export the dashboard\'s data tables as CSV files.')
+    help="Export the dashboard's data tables as CSV files.")
 @click.option(
     '--export-data-dir', '-d', default=config.get('DASHBOARD_EXPORT_DIR'),
-    help='Specify export directory path. Defaults to \'/tmp\'.')
+    help="Specify export directory path. Defaults to '/tmp'")
 def export_dashboards(print_stdout, dashboard_file, dashboard_ids,
                       dashboard_titles, export_data, export_data_dir):
     """Export dashboards to JSON and optionally tables to CSV"""
