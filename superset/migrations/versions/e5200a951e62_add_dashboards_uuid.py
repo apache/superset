@@ -22,8 +22,9 @@ Create Date: 2019-05-08 13:42:48.479145
 
 """
 import uuid
+
 from alembic import op
-from sqlalchemy import Column, Integer, CHAR
+from sqlalchemy import CHAR, Column, Integer
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils.types.uuid import UUIDType
 
@@ -36,57 +37,69 @@ down_revision = 'd7c1a0d6f2da'
 Base = declarative_base()
 
 
-get_uuid = lambda: str(uuid.uuid4())
+def get_uuid():
+    return str(uuid.uuid4())
+
 
 class Dashboard(Base):
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
     uuid = Column(UUIDType(binary=False), default=get_uuid)
 
+
 class Datasource(Base):
     __tablename__ = 'datasources'
     id = Column(Integer, primary_key=True)
     uuid = Column(UUIDType(binary=False), default=get_uuid)
+
 
 class Database(Base):
     __tablename__ = 'dbs'
     id = Column(Integer, primary_key=True)
     uuid = Column(UUIDType(binary=False), default=get_uuid)
 
+
 class DruidCluster(Base):
     __tablename__ = 'clusters'
     id = Column(Integer, primary_key=True)
     uuid = Column(UUIDType(binary=False), default=get_uuid)
 
+
 class DruidMetric(Base):
     __tablename__ = 'metrics'
     id = Column(Integer, primary_key=True)
     uuid = Column(UUIDType(binary=False), default=get_uuid)
-    
+
+
 class Slice(Base):
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
     uuid = Column(UUIDType(binary=False), default=get_uuid)
+
 
 class SqlaTable(Base):
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
     uuid = Column(UUIDType(binary=False), default=get_uuid)
 
+
 class SqlMetric(Base):
     __tablename__ = 'sql_metrics'
     id = Column(Integer, primary_key=True)
     uuid = Column(UUIDType(binary=False), default=get_uuid)
+
 
 class TableColumn(Base):
     __tablename__ = 'table_columns'
     id = Column(Integer, primary_key=True)
     uuid = Column(UUIDType(binary=False), default=get_uuid)
 
+
 class DashboardEmailSchedule(Base):
     __tablename__ = 'dashboard_email_schedules'
     id = Column(Integer, primary_key=True)
     uuid = Column(UUIDType(binary=False), default=get_uuid)
+
 
 class SliceEmailSchedule(Base):
     __tablename__ = 'slice_email_schedules'
@@ -97,6 +110,7 @@ class SliceEmailSchedule(Base):
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
+    db_type = session.bind.dialect.name
 
     def add_uuid_column(col_name, _type):
         """Add a uuid column to a given table"""
@@ -105,10 +119,13 @@ def upgrade():
         for s in session.query(_type):
             s.uuid = get_uuid()
             session.merge(s)
-        with op.batch_alter_table(col_name) as batch_op:
-            batch_op.alter_column('uuid', existing_type=CHAR(32),
-                                  new_column_name='uuid', nullable=False)
-            batch_op.create_unique_constraint('uq_uuid', ['uuid'])
+
+        if db_type != 'postgresql':
+            with op.batch_alter_table(col_name) as batch_op:
+                batch_op.alter_column('uuid', existing_type=CHAR(32),
+                                      new_column_name='uuid', nullable=False)
+                batch_op.create_unique_constraint('uq_uuid', ['uuid'])
+
         session.commit()
 
     add_uuid_column('dashboards', Dashboard)
@@ -125,6 +142,7 @@ def upgrade():
 
     session.close()
 
+
 def downgrade():
     with op.batch_alter_table('dashboards') as batch_op:
         batch_op.drop_column('uuid')
@@ -134,19 +152,19 @@ def downgrade():
 
     with op.batch_alter_table('dbs') as batch_op:
         batch_op.drop_column('uuid')
-    
+
     with op.batch_alter_table('clusters') as batch_op:
         batch_op.drop_column('uuid')
-    
+
     with op.batch_alter_table('metrics') as batch_op:
         batch_op.drop_column('uuid')
 
     with op.batch_alter_table('slices') as batch_op:
         batch_op.drop_column('uuid')
-    
+
     with op.batch_alter_table('sql_metrics') as batch_op:
         batch_op.drop_column('uuid')
-    
+
     with op.batch_alter_table('tables') as batch_op:
         batch_op.drop_column('uuid')
 
