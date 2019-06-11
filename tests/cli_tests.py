@@ -131,7 +131,6 @@ class SupersetCliTestCase(SupersetTestCase):
                 Database.database_name == db_name and
                 SqlaTable.table_name == 'wb_health_population')
         ).one()
-        print('table', table)
         self.assertEqual(table.name, 'wb_health_population')
 
         # Did all rows get imported?
