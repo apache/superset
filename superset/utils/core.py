@@ -289,27 +289,23 @@ class DashboardEncoder():
     # pylint: disable=E0202
     @classmethod
     def encode(cls, o):
-        try:
-            if isinstance(o, uuid.UUID):
-                return str(o)
-            if isinstance(o, datetime):
-                return {'__datetime__': o.replace(microsecond=0).isoformat()}
-            if isinstance(o, list):
-                return [DashboardEncoder.encode(i) for i in o]
-            if hasattr(o, '__dict__'):
-                vals = {}
-                for k, v in o.__dict__.items():
-                    if k == '_sa_instance_state':
-                        continue
-                    elif k.startswith('json') or k.endswith('json'):
-                        vals[k] = v
-                    else:
-                        vals[k] = DashboardEncoder.encode(v)
-                return {'__{}__'.format(o.__class__.__name__): vals}
-            else:
-                return o
-        except Exception as e:
-            logging.exception(e)
+        if isinstance(o, uuid.UUID):
+            return str(o)
+        if isinstance(o, datetime):
+            return {'__datetime__': o.replace(microsecond=0).isoformat()}
+        if isinstance(o, list):
+            return [DashboardEncoder.encode(i) for i in o]
+        if hasattr(o, '__dict__'):
+            vals = {}
+            for k, v in o.__dict__.items():
+                if k == '_sa_instance_state':
+                    continue
+                elif k.startswith('json') or k.endswith('json'):
+                    vals[k] = v
+                else:
+                    vals[k] = DashboardEncoder.encode(v)
+            return {'__{}__'.format(o.__class__.__name__): vals}
+        else:
             return o
 
 
