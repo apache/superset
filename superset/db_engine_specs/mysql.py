@@ -108,3 +108,13 @@ class MySQLEngineSpec(BaseEngineSpec):
         if str_cutoff in datatype:
             datatype = datatype.split(str_cutoff)[0]
         return datatype
+
+    @classmethod
+    def get_cancel_query_payload(cls, cursor, query):
+        cursor.execute("SELECT CONNECTION_ID()")
+        row = cursor.fetchone()
+        return row[0]
+
+    @classmethod
+    def cancel_query(cls, cursor, query, payload):
+        cursor.execute("KILL CONNECTION %d" % payload)

@@ -54,6 +54,7 @@ stats_logger = config.get("STATS_LOGGER")
 SQLLAB_TIMEOUT = config.get("SQLLAB_ASYNC_TIME_LIMIT_SEC", 600)
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
 log_query = config.get("QUERY_LOGGER")
+cancel_payload_key = "cancel_payload"
 
 
 class SqlLabException(Exception):
@@ -65,6 +66,10 @@ class SqlLabSecurityException(SqlLabException):
 
 
 class SqlLabTimeoutException(SqlLabException):
+    pass
+
+
+class SqlLabQueryStoppedException(SqlLabException):
     pass
 
 
@@ -233,6 +238,12 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
             "after {} seconds.".format(SQLLAB_TIMEOUT)
         )
     except Exception as e:
+        # query is stopped in another thread/worker
+        # stopping rases expected exceptions which we should skip
+        session.refresh(query)
+        if query.status == QueryStatus.STOPPED:
+            raise SqlLabQueryStoppedException()
+
         logging.exception(f"Query {query_id}: {e}")
         raise SqlLabException(db_engine_spec.extract_error_message(e))
 
@@ -324,12 +335,20 @@ def execute_sql_statements(
     # execution of all statements (if many)
     with closing(engine.raw_connection()) as conn:
         with closing(conn.cursor()) as cursor:
+            cancel_query_payload = db_engine_spec.get_cancel_query_payload(
+                cursor, query
+            )
+            if cancel_query_payload is not None:
+                query.set_extra_json_key(cancel_payload_key, cancel_query_payload)
+                session.commit()
+
             statement_count = len(statements)
             for i, statement in enumerate(statements):
                 # Check if stopped
-                query = get_query(query_id, session)
+                session.refresh(query)
                 if query.status == QueryStatus.STOPPED:
-                    return
+                    payload.update({"status": query.status})
+                    return payload
 
                 # Run statement
                 msg = f"Running statement {i+1} out of {statement_count}"
@@ -340,6 +359,9 @@ def execute_sql_statements(
                     cdf = execute_sql_statement(
                         statement, query, user_name, session, cursor
                     )
+                except SqlLabQueryStoppedException:
+                    payload.update({"status": QueryStatus.STOPPED})
+                    return payload
                 except Exception as e:
                     msg = str(e)
                     if statement_count > 1:
@@ -406,3 +428,22 @@ def execute_sql_statements(
 
     if return_results:
         return payload
+
+
+def cancel_query(query, user_name):
+    cancel_payload = query.extra.get(cancel_payload_key, None)
+    if cancel_payload is None:
+        return
+
+    database = query.database
+    engine = database.get_sqla_engine(
+        schema=query.schema,
+        nullpool=True,
+        user_name=user_name,
+        source=sources.get("sql_lab", None),
+    )
+    db_engine_spec = database.db_engine_spec
+
+    with closing(engine.raw_connection()) as conn:
+        with closing(conn.cursor()) as cursor:
+            db_engine_spec.cancel_query(cursor, query, cancel_payload)
