@@ -6,7 +6,7 @@ import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySin
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
 import { ChartFormData } from '../types/ChartFormData';
-import { BuildQueryFunction, TransformProps } from '../types/Query';
+import { BuildQueryFunction, TransformProps } from '../types/TransformFunction';
 
 const IDENTITY = (x: any) => x;
 
