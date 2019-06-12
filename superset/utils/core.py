@@ -297,6 +297,8 @@ class SQLAJsonEncoder():
             return [SQLAJsonEncoder.encode(i) for i in o]
         if hasattr(o, '__dict__'):
             vals = {}
+            if 'uuid' in o.__dict__.keys():
+                vals['uuid'] = o.__dict__['uuid']
             for k, v in o.__dict__.items():
                 if k == '_sa_instance_state':
                     continue
