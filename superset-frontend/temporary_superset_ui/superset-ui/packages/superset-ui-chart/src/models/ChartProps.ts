@@ -1,9 +1,6 @@
 import { createSelector } from 'reselect';
 import { convertKeysToCamelCase } from '@superset-ui/core';
-
-interface PlainObject {
-  [key: string]: any;
-}
+import { HandlerFunction, PlainObject } from '../types/Base';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
@@ -13,7 +10,6 @@ type CamelCaseFormData = PlainObject;
 type SnakeCaseFormData = PlainObject;
 export type QueryData = PlainObject;
 type Filters = any[];
-type HandlerFunction = (...args: any[]) => void;
 type ChartPropsSelector = (c: ChartPropsConfig) => ChartProps;
 
 interface ChartPropsConfig {

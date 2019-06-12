@@ -26,3 +26,4 @@ export * from './types/ChartFormData';
 export * from './types/Datasource';
 export * from './types/Metric';
 export * from './types/Query';
+export * from './types/TransformFunction';
