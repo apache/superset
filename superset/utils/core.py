@@ -284,7 +284,7 @@ def decode_dashboards(o):
         return o
 
 
-class DashboardEncoder():
+class SQLAJsonEncoder():
 
     # pylint: disable=E0202
     @classmethod
@@ -294,7 +294,7 @@ class DashboardEncoder():
         if isinstance(o, datetime):
             return {'__datetime__': o.replace(microsecond=0).isoformat()}
         if isinstance(o, list):
-            return [DashboardEncoder.encode(i) for i in o]
+            return [SQLAJsonEncoder.encode(i) for i in o]
         if hasattr(o, '__dict__'):
             vals = {}
             for k, v in o.__dict__.items():
@@ -303,7 +303,7 @@ class DashboardEncoder():
                 elif k.startswith('json') or k.endswith('json'):
                     vals[k] = v
                 else:
-                    vals[k] = DashboardEncoder.encode(v)
+                    vals[k] = SQLAJsonEncoder.encode(v)
             return {'__{}__'.format(o.__class__.__name__): vals}
         else:
             return o

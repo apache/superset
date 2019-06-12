@@ -33,7 +33,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy_utils.types.uuid import UUIDType
 import yaml
 
-from superset.utils.core import DashboardEncoder, QueryStatus
+from superset.utils.core import SQLAJsonEncoder, QueryStatus
 
 
 def json_to_dict(json_str):
@@ -193,7 +193,7 @@ class ImportExportMixin(object):
 
     def export_to_json_serializable(self, recursive=True):
         """Export obj to be serializable in json"""
-        return DashboardEncoder.encode(self)
+        return SQLAJsonEncoder.encode(self)
 
     def export_to_dict(self, recursive=True, include_parent_ref=False,
                        include_defaults=False):
