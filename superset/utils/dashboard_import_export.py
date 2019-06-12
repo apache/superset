@@ -60,14 +60,19 @@ def table_to_sql(path, table_name, engine):
     """Take a file and load it into a table"""
     logging.info(f'Import data from file {path} into table {table_name}')
 
-    df = pd.read_csv(path, parse_dates=True, infer_datetime_format=True, 
-                     compression='infer')
-    df.to_sql(
-        table_name,
-        engine.get_sqla_engine(),
-        if_exists='replace',
-        chunksize=500,
-        index=False)
+    try:
+        df = pd.read_csv(path, parse_dates=True, infer_datetime_format=True, 
+                         compression='infer')
+        df.to_sql(
+            table_name,
+            engine.get_sqla_engine(),
+            if_exists='replace',
+            chunksize=500,
+            index=False)
+    except (pd.errors.ParserError, pd.errors.OutOfBoundsDatetime, 
+            pd.errors.EmptyDataError) as e:
+        logging.exception(e)
+        raise SupersetException('Error reading table into database!')
 
 
 def import_files_to_table(data, is_example=False, data_blob_urls=None):
