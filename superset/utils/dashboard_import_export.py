@@ -32,7 +32,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.exceptions import DashboardNotFoundException
+from superset.exceptions import DashboardNotFoundException, SupersetException
 from superset.models.core import Dashboard, Database
 from superset.utils.core import (
     decode_dashboards, get_or_create_main_db,
@@ -49,8 +49,11 @@ def import_dashboard(session, data, import_time):
 def import_datasources(data, import_time, substitute_db_name=None):
     """Import any data sources in Dashboard file"""
     for table in data['datasources']:
-        type(table).import_obj(table, import_time=import_time,
-                               substitute_db_name=substitute_db_name)
+        if table.type == 'table':
+            type(table).import_obj(table, import_time=import_time,
+                                   substitute_db_name=substitute_db_name)
+        else:
+            raise SupersetException('Druid datasources not supported!')
 
 
 def table_to_sql(path, table_name, engine):
