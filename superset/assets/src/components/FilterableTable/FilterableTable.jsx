@@ -39,7 +39,7 @@ const SCROLL_BAR_HEIGHT = 15;
 const GRID_POSITION_ADJUSTMENT = 4;
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
-export const MAX_COLUMNS_FOR_TABLE = 20;
+export const MAX_COLUMNS_FOR_TABLE = 50;
 
 const propTypes = {
   orderedColumnKeys: PropTypes.array.isRequired,
