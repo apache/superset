@@ -173,6 +173,7 @@ the world know they are using Superset. Join our growing community!
  1. [Grassroot](https://www.grassrootinstitute.org/)
  1. [Hostnfly](https://www.hostnfly.com/)
  1. [HuiShouBao](http://www.huishoubao.com/)
+ 1. [Intercom](https://www.intercom.com/)
  1. [jampp](https://jampp.com/)
  1. [Konfío](http://konfio.mx)
  1. [Kuaishou](https://www.kuaishou.com/)
