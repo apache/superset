@@ -36,11 +36,10 @@ function getTextWidth(text, font = '12px Roboto') {
 }
 
 const SCROLL_BAR_HEIGHT = 15;
-const GRID_EXTRA_HEIGHT = 6;
 const GRID_POSITION_ADJUSTMENT = 4;
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
-export const MAX_COLUMNS_FOR_TABLE = 50;
+export const MAX_COLUMNS_FOR_TABLE = 20;
 
 const propTypes = {
   orderedColumnKeys: PropTypes.array.isRequired,
@@ -216,7 +215,6 @@ export default class FilterableTable extends PureComponent {
     const { orderedColumnKeys, overscanColumnCount, overscanRowCount, rowHeight } = this.props;
 
     let { height } = this.props;
-    height -= GRID_EXTRA_HEIGHT;
     let totalTableHeight = height;
     if (this.container && this.totalTableWidth > this.container.clientWidth) {
       // exclude the height of the horizontal scroll bar from the height of the table
@@ -242,7 +240,6 @@ export default class FilterableTable extends PureComponent {
                 columnCount={orderedColumnKeys.length}
                 columnWidth={getColumnWidth}
                 height={rowHeight}
-                ref={this.container}
                 rowCount={1}
                 rowHeight={rowHeight}
                 scrollTop={scrollTop}
@@ -258,7 +255,6 @@ export default class FilterableTable extends PureComponent {
                 onScroll={onScroll}
                 overscanColumnCount={overscanColumnCount}
                 overscanRowCount={overscanRowCount}
-                ref={this.container}
                 rowCount={this.list.size}
                 rowHeight={rowHeight}
                 width={this.totalTableWidth}
