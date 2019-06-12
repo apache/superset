@@ -50,4 +50,11 @@ describe('Plugin', () => {
       expect(plugin.register()).toBe(plugin);
     });
   });
+
+  describe('.unregister()', () => {
+    it('returns the plugin itself', () => {
+      const plugin = new Plugin();
+      expect(plugin.unregister()).toBe(plugin);
+    });
+  });
 });

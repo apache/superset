@@ -8,6 +8,10 @@ import {
   ChartProps,
   BuildQueryFunction,
   TransformProps,
+  getChartMetadataRegistry,
+  getChartComponentRegistry,
+  getChartTransformPropsRegistry,
+  getChartBuildQueryRegistry,
 } from '../../src';
 
 describe('ChartPlugin', () => {
@@ -18,7 +22,7 @@ describe('ChartPlugin', () => {
     thumbnail: '',
   });
 
-  const buildQuery = (_: ChartFormData) => ({
+  const buildQuery = () => ({
     datasource: { id: 1, type: DatasourceType.Table },
     queries: [{ granularity: 'day' }],
   });
@@ -132,17 +136,70 @@ describe('ChartPlugin', () => {
   });
 
   describe('.register()', () => {
-    const plugin = new ChartPlugin({
-      metadata,
-      Chart: FakeChart,
-      buildQuery,
+    let plugin: ChartPlugin;
+
+    beforeEach(() => {
+      plugin = new ChartPlugin({
+        metadata,
+        Chart: FakeChart,
+        buildQuery,
+      });
     });
+
     it('throws an error if key is not provided', () => {
       expect(() => plugin.register()).toThrowError(Error);
-      expect(() => plugin.configure({ key: 'abc' }).register()).not.toThrowError(Error);
+      expect(() => plugin.configure({ key: 'ab' }).register()).not.toThrowError(Error);
+    });
+    it('add the plugin to the registries', () => {
+      plugin.configure({ key: 'cd' }).register();
+      expect(getChartMetadataRegistry().get('cd')).toBe(metadata);
+      expect(getChartComponentRegistry().get('cd')).toBe(FakeChart);
+      expect(getChartTransformPropsRegistry().has('cd')).toEqual(true);
+      expect(getChartBuildQueryRegistry().get('cd')).toBe(buildQuery);
+    });
+    it('does not register buildQuery when it is not specified in the ChartPlugin', () => {
+      new ChartPlugin({
+        metadata,
+        Chart: FakeChart,
+      })
+        .configure({ key: 'ef' })
+        .register();
+      expect(getChartBuildQueryRegistry().has('ef')).toEqual(false);
     });
     it('returns itself', () => {
-      expect(plugin.configure({ key: 'abc' }).register()).toBe(plugin);
+      expect(plugin.configure({ key: 'gh' }).register()).toBe(plugin);
+    });
+  });
+
+  describe('.unregister()', () => {
+    let plugin: ChartPlugin;
+
+    beforeEach(() => {
+      plugin = new ChartPlugin({
+        metadata,
+        Chart: FakeChart,
+        buildQuery,
+      });
+    });
+
+    it('throws an error if key is not provided', () => {
+      expect(() => plugin.unregister()).toThrowError(Error);
+      expect(() => plugin.configure({ key: 'abc' }).unregister()).not.toThrowError(Error);
+    });
+    it('removes the chart from the registries', () => {
+      plugin.configure({ key: 'def' }).register();
+      expect(getChartMetadataRegistry().get('def')).toBe(metadata);
+      expect(getChartComponentRegistry().get('def')).toBe(FakeChart);
+      expect(getChartTransformPropsRegistry().has('def')).toEqual(true);
+      expect(getChartBuildQueryRegistry().get('def')).toBe(buildQuery);
+      plugin.unregister();
+      expect(getChartMetadataRegistry().has('def')).toEqual(false);
+      expect(getChartComponentRegistry().has('def')).toEqual(false);
+      expect(getChartTransformPropsRegistry().has('def')).toEqual(false);
+      expect(getChartBuildQueryRegistry().has('def')).toEqual(false);
+    });
+    it('returns itself', () => {
+      expect(plugin.configure({ key: 'xyz' }).unregister()).toBe(plugin);
     });
   });
 });
