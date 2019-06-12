@@ -147,6 +147,7 @@ Who uses Apache Superset (incubating)?
 Here's a list of organizations who have taken the time to send a PR to let
 the world know they are using Superset. Join our growing community!
 
+ 1. [6play](https://www.6play.fr)
  1. [AiHello](https://www.aihello.com)
  1. [Airbnb](https://github.com/airbnb)
  1. [Airboxlab](https://foobot.io)
