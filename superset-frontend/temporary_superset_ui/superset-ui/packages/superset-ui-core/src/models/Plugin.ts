@@ -26,4 +26,8 @@ export default class Plugin {
   register() {
     return this;
   }
+
+  unregister() {
+    return this;
+  }
 }
