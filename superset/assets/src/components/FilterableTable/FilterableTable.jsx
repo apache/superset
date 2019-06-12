@@ -88,6 +88,8 @@ export default class FilterableTable extends PureComponent {
       sortDirection: SortDirection.ASC,
       fitted: false,
     };
+
+    this.container = React.createRef();
   }
 
   componentDidMount() {
@@ -232,7 +234,7 @@ export default class FilterableTable extends PureComponent {
           <div
             style={{ height }}
             className="filterable-table-container Table"
-            ref={(ref) => { this.container = ref; }}
+            ref={this.container}
           >
             <div className="LeftColumn">
               <Grid
@@ -240,7 +242,7 @@ export default class FilterableTable extends PureComponent {
                 columnCount={orderedColumnKeys.length}
                 columnWidth={getColumnWidth}
                 height={rowHeight}
-                ref={(ref) => { this.container = ref; }}
+                ref={this.container}
                 rowCount={1}
                 rowHeight={rowHeight}
                 scrollTop={scrollTop}
@@ -256,7 +258,7 @@ export default class FilterableTable extends PureComponent {
                 onScroll={onScroll}
                 overscanColumnCount={overscanColumnCount}
                 overscanRowCount={overscanRowCount}
-                ref={(ref) => { this.container = ref; }}
+                ref={this.container}
                 rowCount={this.list.size}
                 rowHeight={rowHeight}
                 width={this.totalTableWidth}
@@ -304,7 +306,7 @@ export default class FilterableTable extends PureComponent {
       <div
         style={{ height }}
         className="filterable-table-container"
-        ref={(ref) => { this.container = ref; }}
+        ref={this.container}
       >
         {this.state.fitted &&
           <Table
