@@ -23,6 +23,10 @@ assists people when migrating to a new version.
 
 ## Next Version
 
+* [7667](https://github.com/apache/incubator-superset/pull/7667): a change to
+make all Unix timestamp (which by definition are in UTC) comparisons refer
+to a timestamp in UTC as opposed to local time.
+
 * [5451](https://github.com/apache/incubator-superset/pull/5451): a change
 which adds missing non-nullable fields to the `datasources` table. Depending on
 the integrity of the data, manual intervention may be required.
@@ -33,7 +37,7 @@ which adds missing non-nullable fields and uniqueness constraints to the
 manual intervention may be required.
 * `fabmanager` command line is deprecated since Flask-AppBuilder 2.0.0, use
 the new `flask fab <command>` integrated with *Flask cli*.
-* `SUPERSET_UPDATE_PERMS` environment variable was replaced by 
+* `SUPERSET_UPDATE_PERMS` environment variable was replaced by
 `FAB_UPDATE_PERMS` config boolean key. To disable automatic
 creation of permissions set `FAB_UPDATE_PERMS = False` on config.
 * [5453](https://github.com/apache/incubator-superset/pull/5453): a change
