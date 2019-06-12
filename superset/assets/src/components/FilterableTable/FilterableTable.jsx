@@ -38,8 +38,8 @@ function getTextWidth(text, font = '12px Roboto') {
 const SCROLL_BAR_HEIGHT = 15;
 const GRID_EXTRA_HEIGHT = 6;
 
-// when more than MAX_COLUMNS are returned, switch from table to grid view
-const MAX_COLUMNS = 50;
+// when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
+export const MAX_COLUMNS_FOR_TABLE = 50;
 
 const propTypes = {
   orderedColumnKeys: PropTypes.array.isRequired,
@@ -337,7 +337,7 @@ export default class FilterableTable extends PureComponent {
   }
 
   render() {
-    if (this.props.orderedColumnKeys.length > MAX_COLUMNS) {
+    if (this.props.orderedColumnKeys.length > MAX_COLUMNS_FOR_TABLE) {
       return this.renderGrid();
     }
     return this.renderTable();
