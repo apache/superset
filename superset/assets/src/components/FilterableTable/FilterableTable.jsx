@@ -37,6 +37,7 @@ function getTextWidth(text, font = '12px Roboto') {
 
 const SCROLL_BAR_HEIGHT = 15;
 const GRID_EXTRA_HEIGHT = 6;
+const GRID_POSITION_ADJUSTMENT = 4;
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
 export const MAX_COLUMNS_FOR_TABLE = 50;
@@ -187,7 +188,7 @@ export default class FilterableTable extends PureComponent {
     return (
       <TooltipWrapper key={key} label="header" tooltip={label}>
         <div
-          style={{ ...style, top: style.top - 4 }}
+          style={{ ...style, top: style.top - GRID_POSITION_ADJUSTMENT }}
           className={`${className} grid-cell grid-header-cell`}
         >
           {label}
@@ -201,7 +202,7 @@ export default class FilterableTable extends PureComponent {
     return (
       <div
         key={key}
-        style={{ ...style, top: style.top - 4 }}
+        style={{ ...style, top: style.top - GRID_POSITION_ADJUSTMENT }}
         className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
       >
         {this.list.get(rowIndex)[columnKey]}
