@@ -171,19 +171,12 @@ def export_dashboards(session, dashboard_ids=None, dashboard_titles=None,
 
     export_json = json.dumps(data, indent=4, sort_keys=True)
 
-    # Remove datasources[].__SqlaTable__.database for example export
-    # if strip_database:
-    #     parsed_json = json.loads(export_json)
-    #     for datasource in parsed_json['datasources']:
-    #         datasource['__SqlaTable__']['database'] = None
-    #     export_json = '{}'  # json.dumps(parsed_json, indent=4, sort_keys=True)
-
     return export_json
 
 
 def get_slug(session, dashboard_id=None, dashboard_title=None):
     """Get the slug for the name of the directory inside the tarballed example"""
-    session = db.session() if not session else session
+    session = session or db.session()
     query = session.query(Dashboard)
     slug = None
     if dashboard_id or dashboard_title:
