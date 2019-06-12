@@ -97,14 +97,23 @@ function ColumnCollectionTable({
             <Field
               fieldKey="python_date_format"
               label={t('Datetime Format')}
-              descr={
+              descr={/* Note the fragmented translations may not work. */
                 <div>
-                  {t('The pattern of the timestamp format, use ')}
+                  {t('The pattern of timestamp format. For strings use ')}
                   <a href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
                     {t('python datetime string pattern')}
                   </a>
-                  {t(` expression. If time is stored in epoch format, put \`epoch_s\` or
-                      \`epoch_ms\`.`)}
+                  {t(' expression which needs to adhere to the ')}
+                  <a href="https://en.wikipedia.org/wiki/ISO_8601">
+                    {t('ISO 8601')}
+                  </a>
+                  {t(` standard to ensure that the lexicographical ordering
+                      coincides with the chronological ordering. If the
+                      timestamp format does not adhere to the ISO 8601 standard
+                      you will need to define an expression and type for
+                      transforming the string into a date or timestamp. Note
+                      currently time zones are not supported. If time is stored
+                      in epoch format, put \`epoch_s\` or \`epoch_ms\`.`)}
                 </div>
               }
               control={<TextControl />}
