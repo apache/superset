@@ -17,17 +17,17 @@ type ValueOrModuleWithValue<T> = T | { default: T };
 
 interface ChartPluginConfig<T extends ChartFormData> {
   metadata: ChartMetadata;
-  // use buildQuery for immediate value
+  /** Use buildQuery for immediate value. For lazy-loading, use loadBuildQuery. */
   buildQuery?: BuildQueryFunction<T>;
-  // use loadBuildQuery for dynamic import (lazy-loading)
+  /** Use loadBuildQuery for dynamic import (lazy-loading) */
   loadBuildQuery?: PromiseOrValueLoader<ValueOrModuleWithValue<BuildQueryFunction<T>>>;
-  // use transformProps for immediate value
+  /** Use transformProps for immediate value. For lazy-loading, use loadTransformProps.  */
   transformProps?: TransformProps;
-  // use loadTransformProps for dynamic import (lazy-loading)
+  /** Use loadTransformProps for dynamic import (lazy-loading) */
   loadTransformProps?: PromiseOrValueLoader<ValueOrModuleWithValue<TransformProps>>;
-  // use Chart for immediate value
+  /** Use Chart for immediate value. For lazy-loading, use loadChart. */
   Chart?: ChartType;
-  // use loadChart for dynamic import (lazy-loading)
+  /** Use loadChart for dynamic import (lazy-loading) */
   loadChart?: PromiseOrValueLoader<ValueOrModuleWithValue<ChartType>>;
 }
 
@@ -88,6 +88,16 @@ export default class ChartPlugin<T extends ChartFormData = ChartFormData> extend
     if (this.loadBuildQuery) {
       getChartBuildQueryRegistry().registerLoader(key, this.loadBuildQuery);
     }
+
+    return this;
+  }
+
+  unregister() {
+    const { key = isRequired('config.key') } = this.config;
+    getChartMetadataRegistry().remove(key);
+    getChartComponentRegistry().remove(key);
+    getChartTransformPropsRegistry().remove(key);
+    getChartBuildQueryRegistry().remove(key);
 
     return this;
   }
