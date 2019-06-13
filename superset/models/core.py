@@ -25,7 +25,7 @@ import logging
 import textwrap
 from typing import List
 
-from flask import escape, g, Markup, request
+from flask import current_app, escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -54,6 +54,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.utils import (
     cache as cache_util,
     core as utils,
+    log,
 )
 from superset.viz import viz_types
 from urllib import parse  # noqa
@@ -1165,25 +1166,17 @@ class Log(Model):
                 records = [d]
 
             referrer = request.referrer[:1000] if request.referrer else None
-            logs = []
-            for record in records:
-                try:
-                    json_string = json.dumps(record)
-                except Exception:
-                    json_string = None
-                log = cls(
-                    action=f.__name__,
-                    json=json_string,
-                    dashboard_id=dashboard_id,
-                    slice_id=slice_id,
-                    duration_ms=duration_ms,
-                    referrer=referrer,
-                    user_id=user_id)
-                logs.append(log)
 
-            sesh = db.session()
-            sesh.bulk_save_objects(logs)
-            sesh.commit()
+            action_logger = current_app.config.get('EVENT_LOGGER', log.DBActionLogger)()
+            action_logger.log(
+                f.__name__,
+                user_id=user_id,
+                records=records,
+                dashboard_id=dashboard_id,
+                slice_id=slice_id,
+                duration_ms=duration_ms,
+                referrer=referrer,
+            )
             return value
 
         return wrapper
