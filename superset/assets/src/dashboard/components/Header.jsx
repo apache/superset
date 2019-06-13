@@ -33,6 +33,7 @@ import {
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
 } from '../util/constants';
+import getPublishSubscriberMap from '../util/getPublishSubscriberMap';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -152,6 +153,11 @@ class Header extends React.PureComponent {
     this.props.setEditMode(!this.props.editMode);
   }
 
+  // return charts in array
+  getAllCharts() {
+    return Object.values(this.props.charts);
+  }
+
   overwriteDashboard() {
     const {
       dashboardTitle,
@@ -168,6 +174,7 @@ class Header extends React.PureComponent {
       css,
       dashboard_title: dashboardTitle,
       default_filters: JSON.stringify(filters),
+      pub_sub_info: getPublishSubscriberMap(this.getAllCharts()),
     };
 
     // make sure positions data less than DB storage limitation:
@@ -185,7 +192,6 @@ class Header extends React.PureComponent {
       if (positionJSONLength >= limit * 0.9) {
         this.props.addWarningToast('Your dashboard is near the size limit.');
       }
-
       this.props.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
     }
   }

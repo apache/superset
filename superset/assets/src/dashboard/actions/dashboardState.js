@@ -162,8 +162,7 @@ export function saveDashboardRequestSuccess() {
 
 export function saveDashboardRequest(data, id, saveType, sucessMessage = 'This dashboard was saved successfully.') {
   const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
-
-  return dispatch =>
+  return dispatch => {
     SupersetClient.post({
       endpoint: `/superset/${path}/${id}/`,
       postPayload: { data },
@@ -174,7 +173,13 @@ export function saveDashboardRequest(data, id, saveType, sucessMessage = 'This d
           dispatch(
             addSuccessToast(t(sucessMessage)),
           ),
-        ]).then(() => Promise.resolve(response)),
+        ]).then(() => {
+            if(saveType == SAVE_TYPE_OVERWRITE) {
+              dispatch(onSuccessReconcile(data.pub_sub_info))
+            }
+            Promise.resolve(response)
+          }
+        ),
       )
       .catch(response =>
         getClientErrorObject(response).then(({ error }) =>
@@ -187,6 +192,8 @@ export function saveDashboardRequest(data, id, saveType, sucessMessage = 'This d
           ),
         ),
       );
+  }
+    
 }
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {

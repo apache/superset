@@ -40,6 +40,7 @@ import {
 } from '../util/componentTypes';
 
 import { isModalSlice } from '../util/publishSubscriberUtil'
+import getPublishSubscriberMap from '../util/getPublishSubscriberMap';
 
 export default function (bootstrapData) {
   const { user_id, datasources, common, editMode } = bootstrapData;
@@ -63,14 +64,7 @@ export default function (bootstrapData) {
   const isPublishColumnExistsInFilters = (filterConfigFilters, col) => {
     return (Object.keys(filterConfigFilters).length > 0 && filterConfigFilters[col] != undefined && Object.keys(filterConfigFilters[col]).length > 0);
   }
-
-  // read pubsub info from dashboard metadata and store in state
-  try {
-    publishSubscriberMap = JSON.parse(dashboard.metadata.pub_sub_info);
-  } catch (e) {
-    console.log('NO publishSubscriberMap exit in dashboard metadata')
-  }
-
+  
   const getSliceData = (sliceId, slices) => {
     let slice_data = _.find(slices, function (slice) {
       return (slice.slice_id == sliceId);
@@ -103,19 +97,6 @@ export default function (bootstrapData) {
     }
 
     return defaultFilters;
-  }
-
-  try {
-    let publishers = publishSubscriberMap.hasOwnProperty("publishers") ? publishSubscriberMap["publishers"] : {};
-    for (var publish_id in publishers) {
-      let defaultFilters = getDefaultFilters(publishers[publish_id], publish_id);
-      // Update final filter box filters for dashboard state
-      if (Object.keys(defaultFilters).length) {
-        filters[publish_id] = defaultFilters;
-      }
-    }
-  } catch (e) {
-    console.log('No publishers exit in dashboard metadata')
   }
 
   // try {
@@ -221,6 +202,22 @@ export default function (bootstrapData) {
       layout[layoutId].meta.sliceName = slice.slice_name;
     }
   });
+
+  // Create pubsub info and store in state
+  publishSubscriberMap = getPublishSubscriberMap(Object.values(chartQueries));
+
+  try {
+    let publishers = publishSubscriberMap.hasOwnProperty("publishers") ? publishSubscriberMap["publishers"] : {};
+    for (var publish_id in publishers) {
+      let defaultFilters = getDefaultFilters(publishers[publish_id], publish_id);
+      // Update final filter box filters for dashboard state
+      if (Object.keys(defaultFilters).length) {
+        filters[publish_id] = defaultFilters;
+      }
+    }
+  } catch (e) {
+    console.log('No publishers exit in dashboard metadata')
+  }
 
   // store the header as a layout component so we can undo/redo changes
   layout[DASHBOARD_HEADER_ID] = {
