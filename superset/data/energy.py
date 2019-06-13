@@ -51,7 +51,7 @@ def load_energy():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = 'Energy consumption'
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = utils.get_or_create_db_by_name(db_name='main')
 
     if not any(col.metric_name == 'sum__value' for col in tbl.metrics):
         tbl.metrics.append(SqlMetric(

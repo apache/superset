@@ -35,7 +35,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import DashboardNotFoundException, SupersetException
 from superset.models.core import Dashboard, Database
 from superset.utils.core import (
-    decode_dashboards, get_or_create_main_db,
+    decode_dashboards, get_or_create_db_by_name,
 )
 
 
@@ -78,7 +78,7 @@ def table_to_sql(path, table_name, engine):
 def import_files_to_table(data, is_example=False, data_blob_urls=None):
     """Import any files in this exported Dashboard"""
     if isinstance(data, dict) and data.get('files'):
-        engine = get_or_create_main_db()
+        engine = get_or_create_db_by_name(db_name='main')
 
         if is_example:
             with tempfile.TemporaryDirectory() as tmpdir:
@@ -107,10 +107,10 @@ def import_dashboards(session, data, is_example=False, data_blob_urls=None,
 
     data = json.loads(data, object_hook=decode_dashboards)
 
-    # substitute_db_name = get_db_name(database_uri) or \
-    #     get_default_example_db().database_name
+    # substitute_db_name = get_db_name(database_uri) if database_uri else \
+    #     get_or_create_db_by_name(db_name='examples').database_name
     substitute_db_name = get_db_name(database_uri) if database_uri else \
-        get_or_create_main_db().database_name
+        get_or_create_db_by_name(db_name='main').database_name
 
     import_dashboard(session, data, import_time)
     import_datasources(data, import_time, substitute_db_name=substitute_db_name)
@@ -214,8 +214,8 @@ def remove_dashboard(session, import_example_data, dashboard_title, database_uri
         session.commit()
 
         # Now delete the physical data table
-        # exampled_engine = get_or_create_example_db(database_uri)
-        examples_engine = get_or_create_main_db()
+        # examples_engine = get_or_create_db_by_name(db_name='examples')
+        examples_engine = get_or_create_db_by_name(db_name='main')
         sqla_engine = examples_engine.get_sqla_engine()
 
         # Create a model class on the fly to do a cross-platform table drop

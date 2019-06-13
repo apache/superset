@@ -61,7 +61,7 @@ def load_multiformat_time_series():
     if not obj:
         obj = TBL(table_name='multiformat_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = utils.get_or_create_db_by_name(db_name='main')
     dttm_and_expr_dict = {
         'ds': [None, None],
         'ds2': [None, None],

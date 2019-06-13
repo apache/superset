@@ -887,19 +887,23 @@ def user_label(user: User) -> Optional[str]:
     return None
 
 
-def get_or_create_main_db():
+def get_or_create_db_by_name(db_name='main', database_uri=None):
     from superset import conf, db
     from superset.models import core as models
 
-    logging.info('Creating database reference')
+    logging.info(f'Creating database reference {db_name}')
     dbobj = get_main_database(db.session)
     if not dbobj:
         dbobj = models.Database(
-            database_name='main',
+            database_name=db_name,
             allow_csv_upload=True,
             expose_in_sqllab=True,
         )
-    dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
+    if db_name == 'examples':
+        database_uri = database_uri or conf.get('SQLALCHEMY_EXAMPLES_URI')
+    else:
+        database_uri = conf.get('SQLALCHEMY_DATABASE_URI')
+    dbobj.set_sqlalchemy_uri(database_uri)
     db.session.add(dbobj)
     db.session.commit()
     return dbobj
@@ -912,28 +916,6 @@ def get_main_database(session):
         .filter_by(database_name='main')
         .first()
     )
-
-
-def get_or_create_example_db(database_uri=None):
-    """Get or create the examples Database connection"""
-    from superset import conf, db
-    from superset.models import core as models
-
-    if not database_uri:
-        database_uri = conf.get('SQLALCHEMY_EXAMPLES_URI')
-
-    logging.info('Creating database reference')
-    dbobj = get_examples_database(db.session)
-    if not dbobj:
-        dbobj = models.Database(
-            database_name='examples',
-            allow_csv_upload=True,
-            expose_in_sqllab=True,
-        )
-    dbobj.set_sqlalchemy_uri(database_uri)
-    db.session.add(dbobj)
-    db.session.commit()
-    return dbobj
 
 
 def get_examples_database(session):
