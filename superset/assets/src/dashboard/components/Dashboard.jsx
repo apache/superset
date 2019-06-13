@@ -247,15 +247,17 @@ class Dashboard extends React.PureComponent {
     const slice_id = getModalSliceIDFor(this.props.dashboardState.publishSubscriberMap, filterKey);
     if (slice_id) {
       // open modal with chart in loading state
-      this.updateModalProps(slice_id, true,'loading')
+      this.updateModalProps(slice_id, true, 'loading')
     }
   }
 
-  updateModalProps(slice_id, showModal,status = undefined) {
-    this.showModal = showModal
+  updateModalProps(slice_id, showModal, status = undefined) {
+    this.showModal = showModal;
     this.modalChart = this.props.charts[slice_id];
     if (this.modalChart) {
-      this.modalChartStatus = status ? status : this.modalChart.chartStatus;
+      if (status) {
+        this.modalChart.chartStatus = status;
+      }
       this.modalTitle = this.props.slices[slice_id].slice_name;
       this.modalDatasource = this.props.datasources[this.modalChart.formData.datasource];
     }
@@ -338,7 +340,6 @@ class Dashboard extends React.PureComponent {
           modalTitle={this.modalTitle}
           datasource={this.modalDatasource}
           close={this.closeModal}
-          chartStatus={this.modalChartStatus}
         />
       </React.Fragment>
     );

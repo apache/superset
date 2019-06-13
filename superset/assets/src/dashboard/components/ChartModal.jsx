@@ -36,7 +36,6 @@ const propTypes = {
   timeout: PropTypes.number,
   addFilter: PropTypes.func.isRequired,
   datasource: PropTypes.object.isRequired,
-  chartStatus: PropTypes.string,
 
 };
 const BLANK = {};
@@ -53,7 +52,6 @@ const defaultProps = {
   },
   datasource: {},
   timeout: 60,
-  chartStatus: 'loading',
 };
 
 export default class ChartModal extends React.Component {
@@ -68,7 +66,7 @@ export default class ChartModal extends React.Component {
     if (nextState.showModal != this.state.showModal) {
       return true;
     }
-    if (nextProps.chartStatus != this.props.chartStatus) {
+    if (nextProps.chart.chartStatus != this.props.chart.chartStatus) {
       return true;
     }
     return false
