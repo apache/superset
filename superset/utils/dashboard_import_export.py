@@ -77,7 +77,7 @@ def table_to_sql(path, table_name, engine):
 
 def import_files_to_table(data, is_example=False, data_blob_urls=None):
     """Import any files in this exported Dashboard"""
-    if isinstance(data, dict) and data.get('files'):
+    if isinstance(data, dict) and data.get('files', []):
         engine = get_or_create_db_by_name(db_name='main')
 
         if is_example:
