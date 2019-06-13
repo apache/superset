@@ -361,12 +361,12 @@ def remove_example(example_title, database_uri, examples_repo, examples_tag):
                 f"Will remove example '{example_title}' from '{db_name}'")
             break
 
-    logging.debug(import_example_data['files'])
+    logging.info(import_example_data['files'])
 
     # Get the dashboard and associated records
     dashboard_title = \
         import_example_data['dashboards'][0]['__Dashboard__']['dashboard_title']
-    logging.debug(f'Got dashboard title {dashboard_title} for removal...')
+    logging.info(f'Got dashboard title {dashboard_title} for removal...')
 
     utils.get_or_create_db_by_name(db_name='main')
     session = db.session()

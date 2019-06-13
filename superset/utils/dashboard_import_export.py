@@ -192,7 +192,7 @@ def remove_dashboard(session, import_example_data, dashboard_title, database_uri
     """Remove a dashboard based on id or title"""
 
     session = db.session() if not session else session
-    logging.debug(session.query(Dashboard).all())
+    logging.info(session.query(Dashboard).all())
 
     try:
         dashboard = session.query(Dashboard).filter(
