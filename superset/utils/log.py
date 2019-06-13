@@ -24,11 +24,7 @@ from flask import current_app
 class AbstractActionLogger(ABC):
 
     @abstractmethod
-    def log(self, action, *args, **kwargs):
-        pass
-
-    @abstractmethod
-    def log_wrapper(self, f, *args, **kwargs):
+    def log(self, user_id, action, *args, **kwargs):
         pass
 
     @property
@@ -38,7 +34,7 @@ class AbstractActionLogger(ABC):
 
 class DBActionLogger(AbstractActionLogger):
 
-    def log(self, action, *args, **kwargs):
+    def log(self, user_id, action, *args, **kwargs):
         from superset.models.core import Log
 
         records = kwargs.get('records', list())
@@ -46,7 +42,6 @@ class DBActionLogger(AbstractActionLogger):
         slice_id = kwargs.get('slice_id')
         duration_ms = kwargs.get('duration_ms')
         referrer = kwargs.get('referrer')
-        user_id = kwargs.get('user_id')
 
         logs = list()
         for record in records:
@@ -67,6 +62,3 @@ class DBActionLogger(AbstractActionLogger):
         sesh = current_app.appbuilder.get_session
         sesh.bulk_save_objects(logs)
         sesh.commit()
-
-    def log_wrapper(self, f, *args, **kwargs):
-        pass

@@ -1169,8 +1169,8 @@ class Log(Model):
 
             action_logger = current_app.config.get('EVENT_LOGGER', log.DBActionLogger)()
             action_logger.log(
+                user_id,
                 f.__name__,
-                user_id=user_id,
                 records=records,
                 dashboard_id=dashboard_id,
                 slice_id=slice_id,
