@@ -1167,7 +1167,7 @@ class Log(Model):
 
             referrer = request.referrer[:1000] if request.referrer else None
 
-            action_logger = current_app.config.get('EVENT_LOGGER', log.DBActionLogger)()
+            action_logger = current_app.config.get('EVENT_LOGGER', log.DBEventLogger)()
             action_logger.log(
                 user_id,
                 f.__name__,

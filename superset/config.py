@@ -643,3 +643,6 @@ try:
             superset_config.__file__))
 except ImportError:
     pass
+
+SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:postgres@localhost/superset'
+

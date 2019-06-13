@@ -21,7 +21,7 @@ import json
 from flask import current_app
 
 
-class AbstractActionLogger(ABC):
+class AbstractEventLogger(ABC):
 
     @abstractmethod
     def log(self, user_id, action, *args, **kwargs):
@@ -32,7 +32,7 @@ class AbstractActionLogger(ABC):
         return current_app.config.get('STATS_LOGGER')
 
 
-class DBActionLogger(AbstractActionLogger):
+class DBEventLogger(AbstractEventLogger):
 
     def log(self, user_id, action, *args, **kwargs):
         from superset.models.core import Log
