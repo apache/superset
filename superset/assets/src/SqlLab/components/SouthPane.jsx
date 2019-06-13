@@ -37,7 +37,7 @@ const TAB_HEIGHT = 44;
 */
 const propTypes = {
   editorQueries: PropTypes.array.isRequired,
-  latestQueryId: PropTypes.string.isRequired,
+  latestQueryId: PropTypes.string,
   dataPreviewQueries: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired,
   activeSouthPaneTab: PropTypes.string,
