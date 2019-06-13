@@ -1,3 +1,12 @@
+## [0.10.32](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.31...v0.10.32) (2019-06-12)
+
+
+### Bug Fixes
+
+* ignore disabled series in stacked bar values ([#116](https://github.com/apache-superset/superset-ui-plugins/issues/116)) ([da8390e](https://github.com/apache-superset/superset-ui-plugins/commit/da8390e))
+
+
+
 ## [0.10.31](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.30...v0.10.31) (2019-06-06)
 
 
@@ -14,6 +23,7 @@
 * create reusable selector factory for Encoder ([c208272](https://github.com/apache-superset/superset-ui-plugins/commit/c208272))
 * remove children from XYChartLayout parameter ([cd74445](https://github.com/apache-superset/superset-ui-plugins/commit/cd74445))
 * simplify Encoder creation ([5d20d82](https://github.com/apache-superset/superset-ui-plugins/commit/5d20d82))
+
 
 
 ## [0.10.30](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.29...v0.10.30) (2019-06-02)
