@@ -614,11 +614,6 @@ DOCUMENTATION_URL = None
 DEFAULT_RELATIVE_START_TIME = 'today'
 DEFAULT_RELATIVE_END_TIME = 'today'
 
-# Is epoch_s/epoch_ms datetime format supposed to be considered since UTC ?
-# If not, it is sassumed then the epoch_s/epoch_ms is seconds since 1/1/1970
-# localtime (in the tz where the superset webserver is running)
-IS_EPOCH_S_TRULY_UTC = False
-
 # Configure which SQL validator to use for each engine
 SQL_VALIDATORS_BY_ENGINE = {
     'presto': 'PrestoDBSQLValidator',

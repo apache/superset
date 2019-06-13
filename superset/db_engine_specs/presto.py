@@ -65,16 +65,12 @@ class PrestoEngineSpec(BaseEngineSpec):
             "date_add('day', -1, date_trunc('week', "
             "date_add('day', 1, {col})))",
     }
-
-    edges = [
-        (DATE, TIMESTAMP, {'sql': 'CAST({col} AS TIMESTAMP)'}),
-    ]
-
+    
     type_graph = nx.DiGraph()
-    type_graph.add_edges_from(edges)
+    type_graph.add_edge(DATE, TIMESTAMP, sql='CAST({col} AS TIMESTAMP)')
 
-    for type_, sql in time_grain_functions.items():
-        type_graph.add_edge(TIMESTAMP, type_, sql=sql)
+    for grain, sql in time_grain_functions.items():
+        type_graph.add_edge(TIMESTAMP, grain, sql=sql)
 
     @classmethod
     def get_view_names(cls, inspector, schema):
