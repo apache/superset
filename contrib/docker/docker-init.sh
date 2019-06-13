@@ -18,7 +18,7 @@
 set -ex
 
 # Create an admin user (you will be prompted to set username, first and last name before setting a password)
-flask fab create-admin --app superset
+flask fab create-admin
 
 # Initialize the database
 superset db upgrade
