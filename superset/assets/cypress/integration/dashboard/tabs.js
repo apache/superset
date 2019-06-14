@@ -107,9 +107,6 @@ export default () => describe('tabs', () => {
     cy.wait('@filterRequest');
     cy.wait('@treemapRequest');
 
-    // creating route and stubbing filtered route
-    cy.route('POST', '/superset/explore_json/*').as('updatedChartRequest');
-
     // apply filter
     cy.get('.Select-control')
       .first()
@@ -118,7 +115,7 @@ export default () => describe('tabs', () => {
       .type('South Asia{enter}', { force: true });
 
     // send new query from same tab
-    cy.wait('@updatedChartRequest')
+    cy.wait('@treemapRequest')
       .then((xhr) => {
         const requestFormData = xhr.request.body;
         const requestParams = JSON.parse(requestFormData.get('form_data'));
@@ -130,7 +127,7 @@ export default () => describe('tabs', () => {
     cy.get('.tab-content ul.nav.nav-tabs li')
       .last()
       .click();
-    cy.wait('@updatedChartRequest')
+    cy.wait('@linechartRequest')
       .then((xhr) => {
         const requestFormData = xhr.request.body;
         const requestParams = JSON.parse(requestFormData.get('form_data'));
@@ -146,12 +143,36 @@ export default () => describe('tabs', () => {
       .last()
       .find('.editable-title input')
       .click();
-    cy.wait('@updatedChartRequest')
+    cy.wait('@boxplotRequest')
       .then((xhr) => {
         const requestFormData = xhr.request.body;
         const requestParams = JSON.parse(requestFormData.get('form_data'));
         expect(requestParams.extra_filters[0])
           .deep.eq({ col: 'region', op: 'in', val: ['South Asia'] });
       });
+
+    // navigate to filter and clear filter
+    cy.get('.dashboard-component-tabs')
+      .first()
+      .find('ul.nav.nav-tabs li')
+      .first()
+      .click();
+    cy.get('.tab-content ul.nav.nav-tabs li')
+      .first()
+      .click();
+    cy.get('span.Select-clear')
+      .click();
+
+    // trigger 1 new query
+    cy.wait('@treemapRequest');
+
+    // no other requests occurred
+    cy.on('fail', (err) => {
+      expect(err.message).to.include('Timed out retrying');
+      return false;
+    });
+    cy.wait('@boxplotRequest', { timeout: 1000 }).then(() => {
+      throw new Error('Unexpected API call.');
+    });
   });
 });

@@ -168,6 +168,7 @@ class Tabs extends React.PureComponent {
       handleComponentDrop,
       renderTabContent,
       renderHoverMenu,
+      isComponentVisible: isCurrentTabVisible,
       editMode,
     } = this.props;
 
@@ -238,7 +239,9 @@ class Tabs extends React.PureComponent {
                       onResize={onResize}
                       onResizeStop={onResizeStop}
                       onDropOnTab={this.handleDropOnTab}
-                      isComponentVisible={selectedTabIndex === tabIndex}
+                      isComponentVisible={
+                        selectedTabIndex === tabIndex && isCurrentTabVisible
+                      }
                     />
                   )}
                 </BootstrapTab>

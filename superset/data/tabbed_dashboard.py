@@ -90,7 +90,9 @@ def load_tabbed_dashboard():
           "ROOT_ID",
           "TABS-lV0r00f4H1",
           "TAB-gcQJxApOZS",
-          "ROW-3PphCz4GD"
+          "TABS-afnrUvdxYF",
+          "TAB-jNNd4WWar1",
+          "ROW-7ygtDczaQ"
         ],
         "type": "CHART"
       },
@@ -152,21 +154,6 @@ def load_tabbed_dashboard():
         "id": "ROOT_ID",
         "type": "ROOT"
       },
-      "ROW-3PphCz4GD": {
-        "children": [
-          "CHART-dxV7Il74hH"
-        ],
-        "id": "ROW-3PphCz4GD",
-        "meta": {
-          "background": "BACKGROUND_TRANSPARENT"
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-gcQJxApOZS"
-        ],
-        "type": "ROW"
-      },
       "ROW-7G2o5uDvfo": {
         "children": [
           "CHART-c0EjR-OZ0n"
@@ -179,6 +166,23 @@ def load_tabbed_dashboard():
           "ROOT_ID",
           "TABS-lV0r00f4H1",
           "TAB-NF3dlrWGS"
+        ],
+        "type": "ROW"
+      },
+      "ROW-7ygtDczaQ": {
+        "children": [
+          "CHART-dxV7Il74hH"
+        ],
+        "id": "ROW-7ygtDczaQ",
+        "meta": {
+          "background": "BACKGROUND_TRANSPARENT"
+        },
+        "parents": [
+          "ROOT_ID",
+          "TABS-lV0r00f4H1",
+          "TAB-gcQJxApOZS",
+          "TABS-afnrUvdxYF",
+          "TAB-jNNd4WWar1"
         ],
         "type": "ROW"
       },
@@ -249,7 +253,7 @@ def load_tabbed_dashboard():
       },
       "TAB-gcQJxApOZS": {
         "children": [
-          "ROW-3PphCz4GD"
+          "TABS-afnrUvdxYF"
         ],
         "id": "TAB-gcQJxApOZS",
         "meta": {
@@ -258,6 +262,22 @@ def load_tabbed_dashboard():
         "parents": [
           "ROOT_ID",
           "TABS-lV0r00f4H1"
+        ],
+        "type": "TAB"
+      },
+      "TAB-jNNd4WWar1": {
+        "children": [
+          "ROW-7ygtDczaQ"
+        ],
+        "id": "TAB-jNNd4WWar1",
+        "meta": {
+          "text": "New Tab"
+        },
+        "parents": [
+          "ROOT_ID",
+          "TABS-lV0r00f4H1",
+          "TAB-gcQJxApOZS",
+          "TABS-afnrUvdxYF"
         ],
         "type": "TAB"
       },
@@ -288,6 +308,19 @@ def load_tabbed_dashboard():
           "ROOT_ID",
           "TABS-lV0r00f4H1",
           "TAB-NF3dlrWGS"
+        ],
+        "type": "TABS"
+      },
+      "TABS-afnrUvdxYF": {
+        "children": [
+          "TAB-jNNd4WWar1"
+        ],
+        "id": "TABS-afnrUvdxYF",
+        "meta": {},
+        "parents": [
+          "ROOT_ID",
+          "TABS-lV0r00f4H1",
+          "TAB-gcQJxApOZS"
         ],
         "type": "TABS"
       },
