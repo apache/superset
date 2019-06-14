@@ -72,11 +72,6 @@ def import_from_dict(session, data, sync=[]):
         for database in data.get(DATABASES_KEY, []):
             Database.import_from_dict(session, database, sync=sync)
 
-        logging.info('Importing %d %s',
-                     len(data.get(DRUID_CLUSTERS_KEY, [])),
-                     DRUID_CLUSTERS_KEY)
-        for datasource in data.get(DRUID_CLUSTERS_KEY, []):
-            DruidCluster.import_from_dict(session, datasource, sync=sync)
         session.commit()
     else:
         logging.info('Supplied object is not a dictionary.')
