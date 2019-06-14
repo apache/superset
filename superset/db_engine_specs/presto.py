@@ -65,7 +65,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             "date_add('day', -1, date_trunc('week', "
             "date_add('day', 1, {col})))",
     }
-    
+
     type_graph = nx.DiGraph()
     type_graph.add_edge(DATE, TIMESTAMP, sql='CAST({col} AS TIMESTAMP)')
 
