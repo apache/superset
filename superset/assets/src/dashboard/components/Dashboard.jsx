@@ -252,7 +252,7 @@ class Dashboard extends React.PureComponent {
   }
 
   updateModalProps(slice_id, showModal, status = undefined) {
-    this.showModal = showModal;
+    this.showModal = showModal
     this.modalChart = this.props.charts[slice_id];
     if (this.modalChart) {
       if (status) {
@@ -281,11 +281,11 @@ class Dashboard extends React.PureComponent {
 
   refreshExcept(filterKey) {
     const immune = this.props.dashboardInfo.metadata.filter_immune_slices || [];
-    const publishers = this.props.dashboardState.publishSubscriberMap && this.props.dashboardState.publishSubscriberMap.publishers;
+    const subscribers = this.props.dashboardState.publishSubscriberMap && this.props.dashboardState.publishSubscriberMap.subscribers;
 
     this.getAllCharts().forEach(chart => {
       // filterKey is a string, immune array contains numbers
-      if (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1 && this.isFilterkeyExistInLinkedSlices(publishers, chart.id, filterKey)) {
+      if (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1 && this.isFilterkeyExistInLinkedSlices(subscribers, chart.id, filterKey)) {
         const updatedFormData = getFormDataWithExtraFilters({
           chart,
           dashboardMetadata: this.props.dashboardInfo.metadata,
@@ -312,14 +312,11 @@ class Dashboard extends React.PureComponent {
     });
   }
 
-  isFilterkeyExistInLinkedSlices(publishers, sliceId, filterKey) {
+  isFilterkeyExistInLinkedSlices(subscribers, sliceId, publisherId) {
     let keyExists = false;
-    if (publishers && publishers[filterKey]) {
-      const linked_slices = publishers[filterKey].subcribers;
-      const key = parseInt(sliceId);
-      if (linked_slices instanceof Array) {
-        keyExists = linked_slices.indexOf(sliceId) != -1
-      }
+    if (subscribers && subscribers[sliceId]) {
+      let applyFilterPublisherIds = subscribers[parseInt(sliceId)].actions['APPLY_FILTER'] || [];
+      keyExists = (applyFilterPublisherIds.some((id) => id == parseInt(publisherId)));
     }
     return keyExists
   }

@@ -48,9 +48,9 @@ describe('getFormDataWithExtraFilters', () => {
       publishers: undefined,
       subscribers: {
         chartId: {
-          actions: [
-            "APPLY_FILTER"
-          ],
+          actions: {
+            "APPLY_FILTER" :["filterId"]
+          },
           linked_slices: {
             filterId: [
               { col: 'region',op: 'in'},
@@ -105,9 +105,9 @@ describe('getFormDataWithExtraFilters', () => {
         publishers: undefined,
         subscribers: {
           chartId: {
-            actions: [
-              "APPLY_FILTER"
-            ],
+            actions: {
+              "APPLY_FILTER" : [chartId]
+            },
             linked_slices: {
               chartId: [
                 { col: 'region',op: 'in'},
@@ -146,9 +146,9 @@ describe('getFormDataWithExtraFilters', () => {
           publishers: undefined,
           subscribers: {
             chartId: {
-              actions: [
-                "APPLY_FILTER"
-              ],
+              actions: {
+                "APPLY_FILTER" : ["filterId"]
+              },
               linked_slices: {
                 filterId: [
                   { col: 'region',op: 'in'},
@@ -170,9 +170,9 @@ describe('getFormDataWithExtraFilters', () => {
             publishers: undefined,
             subscribers: {
               chartId: {
-                actions: [
-                  "APPLY_FILTER"
-                ],
+                actions: {
+                  "APPLY_FILTER" : ["filterId"]
+                },
                 linked_slices: {
                   filterId: [
                     { col: 'region',op: '=='},
@@ -197,9 +197,9 @@ describe('getFormDataWithExtraFilters', () => {
         publishers: undefined,
         subscribers: {
           chartId: {
-            actions: [
-              "APPLY_FILTER"
-            ],
+            actions: {
+              "APPLY_FILTER" : ["filterId"]
+            },
             linked_slices: {
               filterId: [
                 { col: 'region',op: '=='},
@@ -210,6 +210,7 @@ describe('getFormDataWithExtraFilters', () => {
         }
       },
     });
+    console.log(result);
     expect(result.extra_filters).toHaveLength(3);
   });
 
@@ -220,9 +221,9 @@ describe('getFormDataWithExtraFilters', () => {
         publishers: undefined,
         subscribers: {
           chartId: {
-            actions: [
-              "APPLY_SCHEMA"
-            ],
+            actions: {
+              "APPLY_SCHEMA" : ["filterId"]
+            },
             linked_slices: {
               filterId: [
                 { col: 'region',op: '=='},

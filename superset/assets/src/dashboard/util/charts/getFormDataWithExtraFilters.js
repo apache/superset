@@ -24,19 +24,16 @@ const cachedDashboardMetadataByChart = {};
 const cachedFiltersByChart = {};
 const cachedFormdataByChart = {};
 
-const getExtraFilters = (subscriberMap, globalFilters, slicesInState) => {
-  if (subscriberMap && subscriberMap.actions.indexOf("APPLY_FILTER") > -1) {
-    const filters = getFiltersFromSlices(slicesInState, globalFilters)
-    return filters;
-  }
-  return {};
+const getExtraFilters = (globalFilters, slicesInState) => {
+  const filters = getFiltersFromSlices(slicesInState, globalFilters)
+  return filters;
 }
 
 const getFiltersFromSlices = (slices, globalFilters) => {
   const filters = {};
   slices.forEach(slice => {
     const sliceId = Object.keys(slice) && Object.keys(slice)[0];
-    const subscribe_columns = slice[sliceId]
+    const subscribe_columns = slice[sliceId];
     filters[sliceId] = {}
     subscribe_columns.forEach(item => {
       if (globalFilters[sliceId].hasOwnProperty(item.col)) {
@@ -56,24 +53,21 @@ const getFiltersFromSlices = (slices, globalFilters) => {
 
 const getLinkedSlicesExistInFilters = (subscriberMap, globalFilters) => {
   let linkedSlicesExistInFilters = [];
-  if (subscriberMap && subscriberMap.actions.indexOf("APPLY_FILTER") > -1) {
-    const propExist = subscriberMap.hasOwnProperty("linked_slices");
-    if (propExist) {
-      const linked_slices = subscriberMap.linked_slices;
-      for (var sliceId in linked_slices) {
-        if (globalFilters.hasOwnProperty(sliceId)) {
-          let slice = {};
-          slice[sliceId] = linked_slices[sliceId];
-          linkedSlicesExistInFilters.push(slice);
-        }
+  if (subscriberMap && subscriberMap.actions['APPLY_FILTER']) { 
+    const linked_slices = subscriberMap.linked_slices;
+    subscriberMap.actions['APPLY_FILTER'].forEach(sliceId => {
+      if (globalFilters.hasOwnProperty(sliceId)) {
+        let slice = {};
+        slice[sliceId] = linked_slices[sliceId];
+        linkedSlicesExistInFilters.push(slice);
       }
-    }
+    });  
   }
   return linkedSlicesExistInFilters;
 }
 
 const getSubscriberSliceMap = (publishSubscriberMap, sliceId) => {
-  return publishSubscriberMap && publishSubscriberMap.hasOwnProperty("subscribers") && publishSubscriberMap.subscribers && publishSubscriberMap.subscribers[sliceId] ? publishSubscriberMap.subscribers[sliceId] : undefined;
+  return publishSubscriberMap && publishSubscriberMap.hasOwnProperty('subscribers') && publishSubscriberMap.subscribers && publishSubscriberMap.subscribers[sliceId] ? publishSubscriberMap.subscribers[sliceId] : undefined;
 }
 
 export default function getFormDataWithExtraFilters({
@@ -88,7 +82,8 @@ export default function getFormDataWithExtraFilters({
 
   // update filter based on subscriber map
   const linkedSlicesExistInFilters = getLinkedSlicesExistInFilters(subscriberSliceMap, filters)
-  filters = getExtraFilters(subscriberSliceMap, filters, linkedSlicesExistInFilters);
+  //get filter based on linked slices
+  filters = linkedSlicesExistInFilters.length > 0 ? getExtraFilters(filters, linkedSlicesExistInFilters) : {};
 
   // if dashboard metadata + filters have not changed, use cache if possible
   if (

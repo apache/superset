@@ -73,7 +73,7 @@ describe('getPublishSubscriberMap', () => {
     ];
     const result = {
       publishers: { "1": { "id": 1, "publish_columns": ["A", "B"], "subcribers": [2], "viz_type": "table" } },
-      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": ["APPLY_FILTER"], "linked_slices": { "1": [{ "col": "A", "op": "in", "actions": ["APPLY_FILTER"] }, { "col": "B", "op": "in", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
+      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": {"APPLY_FILTER": [1]}, "linked_slices": { "1": [{ "col": "A", "op": "in", "actions": ["APPLY_FILTER"] }, { "col": "B", "op": "in", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
     };
     expect(getPublishSubscriberMap(charts)).toEqual(result);
   });
@@ -143,7 +143,6 @@ describe('getPublishSubscriberMap', () => {
         "id": 1,
         "formData": {
           "publish_columns": ["A", "B"],
-          "actions": [],
           "linked_slice": [],
           "viz_type": "table",
         },
@@ -152,7 +151,6 @@ describe('getPublishSubscriberMap', () => {
         "id": 2,
         "formData": {
           "publish_columns": [],
-          "actions": ["APPLY_FILTER"],
           "linked_slice": [1],
           "useAsModal": false,
           "viz_type": "leaflet_map",
@@ -161,7 +159,7 @@ describe('getPublishSubscriberMap', () => {
     ];
     const result = {
       publishers: { "1": { "id": 1, "publish_columns": ["A", "B"], "subcribers": [2], "viz_type": "table" } },
-      subscribers: { "2": { "id": 2, "useAsModal": false, "viz_type": "leaflet_map", "actions": ["APPLY_FILTER"], "linked_slices": { "1": [{ "col": "A", "op": "in", "actions": ["APPLY_FILTER"] }, { "col": "B", "op": "in", "actions": ["APPLY_FILTER"] }] } } }
+      subscribers: { "2": { "id": 2, "useAsModal": false, "viz_type": "leaflet_map", "actions": {"APPLY_FILTER": [1]}, "linked_slices": { "1": [{ "col": "A", "op": "in", "actions": ["APPLY_FILTER"] }, { "col": "B", "op": "in", "actions": ["APPLY_FILTER"] }] } } }
     };
     expect(getPublishSubscriberMap(charts)).toEqual(result);
   });
@@ -187,7 +185,7 @@ describe('getPublishSubscriberMap', () => {
     ];
     const result = {
       publishers: { "1": { "id": 1, "publish_columns": ["A", "B"], "subcribers": [2], "viz_type": "table" } },
-      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "actions": ["APPLY_FILTER"], "useAsModal": false, "linked_slices": { "1": [{ "col": "A", "op": "in", "actions": ["APPLY_FILTER"] }, { "col": "B", "op": "in", "actions": ["APPLY_FILTER"] }] } } }
+      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "actions": {"APPLY_FILTER": [1]}, "useAsModal": false, "linked_slices": { "1": [{ "col": "A", "op": "in", "actions": ["APPLY_FILTER"] }, { "col": "B", "op": "in", "actions": ["APPLY_FILTER"] }] } } }
     };
     expect(getPublishSubscriberMap(charts)).toEqual(result);
   });
@@ -222,8 +220,7 @@ describe('getPublishSubscriberMap', () => {
         "id": 1,
         "formData": {
           "publish_columns": ["A", "B"],
-          "actions": [],
-          "linked_slice": [],
+          "subscriber_layers": [],
           "extras": {},
           "viz_type": "table",
         },
@@ -232,22 +229,26 @@ describe('getPublishSubscriberMap', () => {
         "id": 2,
         "formData": {
           "publish_columns": [],
-          "actions": ["APPLY_FILTER"],
-          "linked_slice": [{
-            publisher_id: 1,
-            subscribe_columns: [
-              {
-                col: 'A',
-                op: '==',
-                "actions": ["APPLY_FILTER"],
-              },
-              {
-                col: 'B',
-                op: '!=',
-                "actions": ["APPLY_FILTER"],
-              }
-            ]
-          }],
+          "subscriber_layers":[
+            {
+              "actions": ["APPLY_FILTER"],
+              "linked_slice": [{
+                publisher_id: 1,
+                subscribe_columns: [
+                  {
+                    col: 'A',
+                    op: '==',
+                    "actions": ["APPLY_FILTER"],
+                  },
+                  {
+                    col: 'B',
+                    op: '!=',
+                    "actions": ["APPLY_FILTER"],
+                  }
+                ]
+              }]
+            }
+          ],
           "extras": {},
           "useAsModal": false,
           "viz_type": "leaflet_map",
@@ -256,7 +257,7 @@ describe('getPublishSubscriberMap', () => {
     ];
     const result = {
       publishers: { "1": { "id": 1, "publish_columns": ["A", "B"], "subcribers": [2], "viz_type": "table" } },
-      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": ["APPLY_FILTER"], "linked_slices": { "1": [{ "col": "A", "op": "==", "actions": ["APPLY_FILTER"] }, { "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
+      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": {"APPLY_FILTER": [1]}, "linked_slices": { "1": [{ "col": "A", "op": "==", "actions": ["APPLY_FILTER"] }, { "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
     };
     expect(getPublishSubscriberMap(charts)).toEqual(result);
   });
@@ -267,7 +268,7 @@ describe('getPublishSubscriberMap', () => {
         "formData": {
           "publish_columns": ["A", "B"],
           "actions": [],
-          "linked_slice": [],
+          "subscriber_layers": [],
           "extras": {},
           "viz_type": "table",
         },
@@ -276,17 +277,21 @@ describe('getPublishSubscriberMap', () => {
         "id": 2,
         "formData": {
           "publish_columns": [],
-          "actions": ["APPLY_FILTER"],
-          "linked_slice": [{
-            publisher_id: 1,
-            subscribe_columns: [
-              {
-                col: 'B',
-                op: '!=',
-                "actions": ["APPLY_FILTER"]
-              }
-            ]
-          }],
+          "subscriber_layers":[
+            {
+              "actions": ["APPLY_FILTER"],
+              "linked_slice": [{
+                publisher_id: 1,
+                subscribe_columns: [
+                  {
+                    col: 'B',
+                    op: '!=',
+                    "actions": ["APPLY_FILTER"]
+                  }
+                ]
+              }]
+            } 
+          ],
           "extras": {},
           "useAsModal": false,
           "viz_type": "leaflet_map",
@@ -295,7 +300,7 @@ describe('getPublishSubscriberMap', () => {
     ];
     const result = {
       publishers: { "1": { "id": 1, "publish_columns": ["A", "B"], "subcribers": [2], "viz_type": "table" } },
-      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": ["APPLY_FILTER"], "linked_slices": { "1": [{ "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
+      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": {"APPLY_FILTER": [1]}, "linked_slices": { "1": [{ "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
     };
     expect(getPublishSubscriberMap(charts)).toEqual(result);
   });
@@ -305,8 +310,7 @@ describe('getPublishSubscriberMap', () => {
         "id": 1,
         "formData": {
           "publish_columns": ["A", "B"],
-          "actions": [],
-          "linked_slice": [],
+          "subscriber_layers": [],
           "extras": {},
           "viz_type": "table",
         },
@@ -315,8 +319,7 @@ describe('getPublishSubscriberMap', () => {
         "id": 3,
         "formData": {
           "publish_columns": ["C"],
-          "actions": [],
-          "linked_slice": [],
+          "subscriber_layers": [],
           "extras": {},
           "viz_type": "filter_box",
         },
@@ -325,27 +328,37 @@ describe('getPublishSubscriberMap', () => {
         "id": 2,
         "formData": {
           "publish_columns": [],
-          "actions": ["APPLY_FILTER"],
-          "linked_slice": [{
-            publisher_id: 1,
-            subscribe_columns: [
-              {
-                col: "B",
-                op: "!=",
-                "actions": ["APPLY_FILTER"]
-              }
-            ]
-          },
-          {
-            publisher_id: 3,
-            subscribe_columns: [
-              {
-                col: "C",
-                op: "in",
-                "actions": ["APPLY_FILTER"]
-              }
-            ]
-          }
+          "subscriber_layers":[
+            {
+              "actions": ["APPLY_FILTER"],
+              "linked_slice": [
+                {
+                  publisher_id: 1,
+                  subscribe_columns: [
+                    {
+                      col: "B",
+                      op: "!=",
+                      "actions": ["APPLY_FILTER"]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "actions": ["APPLY_FILTER"],
+              "linked_slice": [
+                {
+                  publisher_id: 3,
+                  subscribe_columns: [
+                    {
+                      col: "C",
+                      op: "in",
+                      "actions": ["APPLY_FILTER"]
+                    }
+                  ]
+                }
+              ]
+            }
           ],
           "extras": {},
           "useAsModal": false,
@@ -355,7 +368,7 @@ describe('getPublishSubscriberMap', () => {
     ];
     const result = {
       publishers: { "1": { "id": 1, "publish_columns": ["A", "B"], "subcribers": [2], "viz_type": "table" }, "3": { "id": 3, "publish_columns": ["C"], "subcribers": [2], "viz_type": "filter_box" } },
-      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": ["APPLY_FILTER"], "linked_slices": { "1": [{ "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }], "3": [{ "col": "C", "op": "in", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
+      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": {"APPLY_FILTER": [1,3]}, "linked_slices": { "1": [{ "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }], "3": [{ "col": "C", "op": "in", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
     };
     expect(getPublishSubscriberMap(charts)).toEqual(result);
   });
@@ -365,8 +378,7 @@ describe('getPublishSubscriberMap', () => {
         "id": 1,
         "formData": {
           "publish_columns": ["A", "B"],
-          "actions": [],
-          "linked_slice": [],
+          "subscriber_layers": [],
           "extras": {},
           "viz_type": "table",
         },
@@ -375,8 +387,7 @@ describe('getPublishSubscriberMap', () => {
         "id": 3,
         "formData": {
           "publish_columns": ["C"],
-          "actions": [],
-          "linked_slice": [],
+          "subscriber_layers": [],
           "extras": {},
           "viz_type": "filter_box",
         },
@@ -385,17 +396,21 @@ describe('getPublishSubscriberMap', () => {
         "id": 2,
         "formData": {
           "publish_columns": [],
-          "actions": ["APPLY_FILTER"],
-          "linked_slice": [{
-            publisher_id: 1,
-            subscribe_columns: [
-              {
-                col: "B",
-                op: "!=",
-                "actions": ["APPLY_FILTER"]
+          "subscriber_layers":[
+            {
+              "actions": ["APPLY_FILTER"],
+              "linked_slice": [{
+                publisher_id: 1,
+                subscribe_columns: [
+                  {
+                    col: "B",
+                    op: "!=",
+                    "actions": ["APPLY_FILTER"]
+                  }
+                ]
               }
-            ]
-          }
+              ]
+            }
           ],
           "extras": {},
           "useAsModal": false,
@@ -406,25 +421,34 @@ describe('getPublishSubscriberMap', () => {
         "id": 4,
         "formData": {
           "publish_columns": [],
-          "actions": ["APPLY_FILTER"],
-          "linked_slice": [
+          "subscriber_layers":[
             {
-              publisher_id: 1,
-              subscribe_columns: [
+              "actions": ["APPLY_FILTER"],
+              "linked_slice": [
                 {
-                  col: "A",
-                  op: ">=",
-                  "actions": ["APPLY_FILTER"]
+                  publisher_id: 1,
+                  subscribe_columns: [
+                    {
+                      col: "A",
+                      op: ">=",
+                      "actions": ["APPLY_FILTER"]
+                    }
+                  ]
                 }
               ]
             },
             {
-              publisher_id: 3,
-              subscribe_columns: [
+              "actions": ["APPLY_FILTER"],
+              "linked_slice": [
                 {
-                  col: "C",
-                  op: "in",
-                  "actions": ["APPLY_FILTER"]
+                  publisher_id: 3,
+                  subscribe_columns: [
+                    {
+                      col: "C",
+                      op: "in",
+                      "actions": ["APPLY_FILTER"]
+                    }
+                  ]
                 }
               ]
             }
@@ -437,7 +461,7 @@ describe('getPublishSubscriberMap', () => {
     ];
     const result = {
       publishers: { "1": { "id": 1, "publish_columns": ["A", "B"], "subcribers": [2, 4], "viz_type": "table" }, "3": { "id": 3, "publish_columns": ["C"], "subcribers": [4], "viz_type": "filter_box" } },
-      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": ["APPLY_FILTER"], "linked_slices": { "1": [{ "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }] }, "extras": {} }, "4": { "id": 4, "useAsModal": false, "viz_type": "table", "actions": ["APPLY_FILTER"], "linked_slices": { "3": [{ "col": "C", "op": "in", "actions": ["APPLY_FILTER"] }], "1": [{ "col": "A", "op": ">=", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
+      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": {"APPLY_FILTER": [1]}, "linked_slices": { "1": [{ "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }] }, "extras": {} }, "4": { "id": 4, "useAsModal": false, "viz_type": "table", "actions": {"APPLY_FILTER": [1,3]}, "linked_slices": { "3": [{ "col": "C", "op": "in", "actions": ["APPLY_FILTER"] }], "1": [{ "col": "A", "op": ">=", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
     };
     expect(getPublishSubscriberMap(charts)).toEqual(result);
   });
@@ -447,8 +471,7 @@ describe('getPublishSubscriberMap', () => {
         "id": 1,
         "formData": {
           "publish_columns": ["A", "B"],
-          "actions": [],
-          "linked_slice": [],
+          "subscriber_layers": [],
           "extras": {},
           "viz_type": "table",
         },
@@ -457,8 +480,7 @@ describe('getPublishSubscriberMap', () => {
         "id": 3,
         "formData": {
           "publish_columns": ["C"],
-          "actions": [],
-          "linked_slice": [],
+          "subscriber_layers": [],
           "extras": {},
           "viz_type": "filter_box",
         },
@@ -467,17 +489,21 @@ describe('getPublishSubscriberMap', () => {
         "id": 2,
         "formData": {
           "publish_columns": [],
-          "actions": ["APPLY_FILTER"],
-          "linked_slice": [{
-            publisher_id: 1,
-            subscribe_columns: [
-              {
-                col: "B",
-                op: "!=",
-                "actions": ["APPLY_FILTER"]
+          "subscriber_layers":[
+            {
+              "actions": ["APPLY_FILTER"],
+              "linked_slice": [{
+                publisher_id: 1,
+                subscribe_columns: [
+                  {
+                    col: "B",
+                    op: "!=",
+                    "actions": ["APPLY_FILTER"]
+                  }
+                ]
               }
-            ]
-          }
+              ]
+            }
           ],
           "extras": {},
           "useAsModal": false,
@@ -488,15 +514,19 @@ describe('getPublishSubscriberMap', () => {
         "id": 4,
         "formData": {
           "publish_columns": [],
-          "actions": ["APPLY_FILTER"],
-          "linked_slice": [
+          "subscriber_layers":[
             {
-              publisher_id: 3,
-              subscribe_columns: [
+              "actions": ["APPLY_FILTER"],
+              "linked_slice": [
                 {
-                  col: "C",
-                  op: "in",
-                  "actions": ["APPLY_FILTER"]
+                  publisher_id: 3,
+                  subscribe_columns: [
+                    {
+                      col: "C",
+                      op: "in",
+                      "actions": ["APPLY_FILTER"]
+                    }
+                  ]
                 }
               ]
             }
@@ -509,7 +539,7 @@ describe('getPublishSubscriberMap', () => {
     ];
     const result = {
       publishers: { "1": { "id": 1, "publish_columns": ["A", "B"], "subcribers": [2], "viz_type": "table" }, "3": { "id": 3, "publish_columns": ["C"], "subcribers": [4], "viz_type": "filter_box" } },
-      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": ["APPLY_FILTER"], "linked_slices": { "1": [{ "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }] }, "extras": {} }, "4": { "id": 4, "useAsModal": false, "viz_type": "table", "actions": ["APPLY_FILTER"], "linked_slices": { "3": [{ "col": "C", "op": "in", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
+      subscribers: { "2": { "id": 2, "viz_type": "leaflet_map", "useAsModal": false, "actions": {"APPLY_FILTER": [1]}, "linked_slices": { "1": [{ "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }] }, "extras": {} }, "4": { "id": 4, "useAsModal": false, "viz_type": "table", "actions": {"APPLY_FILTER": [3]}, "linked_slices": { "3": [{ "col": "C", "op": "in", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
     };
     expect(getPublishSubscriberMap(charts)).toEqual(result);
   });
@@ -519,8 +549,7 @@ describe('getPublishSubscriberMap', () => {
         "id": 5,
         "formData": {
           "publish_columns": [],
-          "actions": [],
-          "linked_slice": [],
+          "subscriber_layers": [],
           "extras": {},
           "viz_type": "table",
         },
@@ -529,8 +558,7 @@ describe('getPublishSubscriberMap', () => {
         "id": 1,
         "formData": {
           "publish_columns": ["A", "B"],
-          "actions": [],
-          "linked_slice": [],
+          "subscriber_layers": [],
           "extras": {},
           "viz_type": "table",
         },
@@ -539,8 +567,7 @@ describe('getPublishSubscriberMap', () => {
         "id": 3,
         "formData": {
           "publish_columns": ["C"],
-          "actions": [],
-          "linked_slice": [],
+          "subscriber_layers": [],
           "extras": {},
           "viz_type": "filter_box",
         },
@@ -549,17 +576,21 @@ describe('getPublishSubscriberMap', () => {
         "id": 2,
         "formData": {
           "publish_columns": [],
-          "actions": ["APPLY_FILTER"],
-          "linked_slice": [{
-            publisher_id: 1,
-            subscribe_columns: [
-              {
-                col: "B",
-                op: "!=",
-                "actions": ["APPLY_FILTER"]
+          "subscriber_layers":[
+            {
+              "actions": ["APPLY_FILTER"],
+              "linked_slice": [{
+                publisher_id: 1,
+                subscribe_columns: [
+                  {
+                    col: "B",
+                    op: "!=",
+                    "actions": ["APPLY_FILTER"]
+                  }
+                ]
               }
-            ]
-          }
+              ]
+            }
           ],
           "extras": {},
           "useAsModal": false,
@@ -570,15 +601,19 @@ describe('getPublishSubscriberMap', () => {
         "id": 4,
         "formData": {
           "publish_columns": [],
-          "actions": ["APPLY_FILTER"],
-          "linked_slice": [
+          "subscriber_layers":[
             {
-              publisher_id: 3,
-              subscribe_columns: [
+              "actions": ["APPLY_FILTER"],
+              "linked_slice": [
                 {
-                  col: "C",
-                  op: "in",
-                  "actions": ["APPLY_FILTER"]
+                  publisher_id: 3,
+                  subscribe_columns: [
+                    {
+                      col: "C",
+                      op: "in",
+                      "actions": ["APPLY_FILTER"]
+                    }
+                  ]
                 }
               ]
             }
@@ -591,7 +626,7 @@ describe('getPublishSubscriberMap', () => {
     ];
     const result = {
       publishers: { "1": { "id": 1, "publish_columns": ["A", "B"], "subcribers": [2], "viz_type": "table" }, "3": { "id": 3, "publish_columns": ["C"], "subcribers": [4], "viz_type": "filter_box" } },
-      subscribers: { "2": { "id": 2, "useAsModal": false, "viz_type": "leaflet_map", "actions": ["APPLY_FILTER"], "linked_slices": { "1": [{ "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }] }, "extras": {} }, "4": { "id": 4, "useAsModal": false, "viz_type": "table", "actions": ["APPLY_FILTER"], "linked_slices": { "3": [{ "col": "C", "op": "in", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
+      subscribers: { "2": { "id": 2, "useAsModal": false, "viz_type": "leaflet_map", "actions": {"APPLY_FILTER": [1]}, "linked_slices": { "1": [{ "col": "B", "op": "!=", "actions": ["APPLY_FILTER"] }] }, "extras": {} }, "4": { "id": 4, "useAsModal": false, "viz_type": "table", "actions": {"APPLY_FILTER": [3]}, "linked_slices": { "3": [{ "col": "C", "op": "in", "actions": ["APPLY_FILTER"] }] }, "extras": {} } }
     };
     expect(getPublishSubscriberMap(charts)).toEqual(result);
   });
