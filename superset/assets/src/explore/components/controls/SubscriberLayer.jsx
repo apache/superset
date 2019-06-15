@@ -25,6 +25,7 @@ import PopoverSection from '../../../components/PopoverSection';
 import TextControl from './TextControl';
 import CheckboxControl from './CheckboxControl';
 import { nonEmpty } from '../../validators';
+import { uniq } from 'lodash';
 
 const propTypes = {
   name: PropTypes.string,
@@ -47,6 +48,7 @@ const propTypes = {
   allowMoreColumns: PropTypes.bool,
   allowColumnSelection: PropTypes.bool,
   useAsModal: PropTypes.bool,
+  actionType: PropTypes.string,
 };
 
 const defaultProps = {
@@ -62,6 +64,7 @@ const defaultProps = {
   allowMoreColumns: false,
   allowColumnSelection: false,
   useAsModal: false,
+  actionType: '',
 
   addSubscriberLayer: () => { },
   removeSubscriberLayer: () => { },
@@ -86,6 +89,7 @@ export default class SubscriberLayer extends React.PureComponent {
       allowMoreColumns,
       allowColumnSelection,
       useAsModal,
+      actionType,
     } = props;
 
     this.state = {
@@ -107,9 +111,10 @@ export default class SubscriberLayer extends React.PureComponent {
       isNew: !this.props.name,
       validationErrors: {},
       useAsModal,
+      actionType,
     };
 
-    this.state.subscriptionList = this.state.isNew ? [{ columnType: '', operatorType: '', index: 0 }] : this.state.subscriptionList;
+    this.state.subscriptionList = this.state.isNew ? [{ columnType: '', operatorType: '', actionType: '', index: 0 }] : this.state.subscriptionList;
 
     this.handleSliceType = this.handleSliceType.bind(this);
     this.submitSubscription = this.submitSubscription.bind(this);
@@ -120,6 +125,7 @@ export default class SubscriberLayer extends React.PureComponent {
     this.isValidForm = this.isValidForm.bind(this);
     this.addMoreColumns = this.addMoreColumns.bind(this);
     this.getSupportedOperators = this.getSupportedOperators.bind(this);
+    this.getActions = this.getActions.bind(this);
     this.getPublisedColumns = this.getPublisedColumns.bind(this);
     this.getPublishedSlices = this.getPublishedSlices.bind(this);
     this.getRefactoredPublisedColumns = this.getRefactoredPublisedColumns.bind(this);
@@ -138,6 +144,12 @@ export default class SubscriberLayer extends React.PureComponent {
       { label: 'like', value: 'like' },
       { label: 'IS NOT NULL', value: 'IS NOT NULL' },
       { label: 'IS NULL', value: 'IS NULL' }];
+  }
+
+  getActions() {
+    return [
+      { label: 'APPLY FILTER', value: 'APPLY_FILTER' },
+      { label: 'INCLUDE IN TITLE', value: 'INCLUDE_IN_TITLE' }];
   }
 
   getPublishedSlices() {
@@ -221,10 +233,28 @@ export default class SubscriberLayer extends React.PureComponent {
     this.forceUpdate();
   }
 
+  handleTitleInclusion(actionType, index) {
+    let subscriptionList = this.state.subscriptionList;
+    subscriptionList[index]['actionType'] = actionType;
+
+    let subscribe_columns = this.state.subscribe_columns;
+    subscribe_columns.length <= index ? subscribe_columns.push({}) : subscribe_columns;
+    subscribe_columns[index]['actions'] = actionType;
+
+    this.setState({
+      actionType,
+      subscriptionList,
+      subscribe_columns,
+      allowMoreColumns: subscribe_columns[index]['col'] && subscribe_columns[index]['op'] ? true : false,
+    });
+
+    this.forceUpdate();
+  }
+
   addMoreColumns() {
     const subscriptionList = this.state.subscriptionList;
     const data = subscriptionList[subscriptionList.length - 1];
-    const newData = { columnType: '', operatorType: '', index: data.index + 1 }
+    const newData = { columnType: '', operatorType: '', actionType: '', index: data.index + 1 }
     this.setState(prevState => ({ subscriptionList: [...prevState.subscriptionList, newData] }))
     this.setState({
       allowMoreColumns: false,
@@ -258,13 +288,7 @@ export default class SubscriberLayer extends React.PureComponent {
         }
       });
 
-      this.state.subscribe_columns.map(column =>
-        column['actions'] = ['APPLY_FILTER']
-      );
-
-      subscription['actions'] = [
-        "APPLY_FILTER"
-      ];
+      subscription['actions'] = this.getUniqueActions(this.state.subscribe_columns);
 
       if (subscription['useAsModal']) {
         subscription['actions'].push('USE_AS_MODAL')
@@ -284,19 +308,34 @@ export default class SubscriberLayer extends React.PureComponent {
     }
   }
 
+  getUniqueActions(subscribe_columns) {
+    let uniqActions = [];
+    let allActions = [];
+
+    subscribe_columns.map(function (column) {
+      allActions.push(column['actions']);
+    })
+
+    let flattenedActions = allActions.flat(Infinity);
+    uniqActions = uniq(flattenedActions);
+
+    return uniqActions;
+  }
+
   submitSubscription() {
     this.applySubscription();
     this.props.close();
   }
 
   renderSingleSubscription(subscriptionData) {
-    const { columnType, operatorType, index } = subscriptionData;
-    const { allowColumnSelection, } = this.state;
+    const { columnType, operatorType, actionType, index } = subscriptionData;
+    const { allowColumnSelection } = this.state;
 
     const operators = this.getSupportedOperators();
+    const actions = this.getActions();
 
     return (
-      <div key={index} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '400px', marginTop: '10px' }}>
+      <div key={index} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '500px', marginTop: '10px' }}>
 
         <SelectControl
           hovered
@@ -318,6 +357,18 @@ export default class SubscriberLayer extends React.PureComponent {
           options={operators}
           value={operatorType}
           onChange={(e) => this.handleOperatorType(e, index)}
+        />
+
+        <SelectControl
+          multi='true'
+          hovered
+          description="Select Actions"
+          disabled={!allowColumnSelection}
+          label="Select actions"
+          name="action-source-type"
+          options={actions}
+          value={actionType}
+          onChange={(e) => this.handleTitleInclusion(e, index)}
         />
 
         <Button title="Remove subscription columns and operators" bsSize="sm" disabled={index === 0} style={{ height: '30px', marginTop: '25px', marginLeft: '10px' }} onClick={(e) => this.removeColumn(e, subscriptionData)}>
@@ -355,7 +406,7 @@ export default class SubscriberLayer extends React.PureComponent {
               />
 
               <CheckboxControl
-              hovered
+                hovered
                 name="subscriber-use-modal"
                 label="Use as modal"
                 description={'This option enables to add this slice in dashboard only as a Modal.'}
@@ -365,7 +416,7 @@ export default class SubscriberLayer extends React.PureComponent {
 
 
               <SelectControl
-              hovered
+                hovered
                 description={t('Choose the chart to subscribe')}
                 label={t('Select chart')}
                 name="publised-layer-name"

@@ -25,6 +25,7 @@ import ComponentLookup from '../components/gridComponents';
 import getDetailedComponentWidth from '../util/getDetailedComponentWidth';
 import { componentShape } from '../util/propShapes';
 import { COLUMN_TYPE, ROW_TYPE } from '../util/componentTypes';
+import { getSubHeaderForSlice } from '../util/publishSubscriberUtil';
 
 import {
   createComponent,
@@ -54,11 +55,13 @@ function mapStateToProps(
     let isModalSlice = (dashboardState.modalSliceIds && dashboardState.modalSliceIds.indexOf(slice_id) != -1)
     return (!isModalSlice || dashboardState.editMode)
   }
+
   const props = {
     component,
     parentComponent: dashboardLayout[parentId],
     editMode: dashboardState.editMode,
     renderComponent: shouldRenderComponent(),
+    sliceSubHeader: getSubHeaderForSlice(dashboardState.publishSubscriberMap && dashboardState.publishSubscriberMap.subscribers, slice_id, dashboardState.filters)
   };
 
   // rows and columns need more data about their child dimensions

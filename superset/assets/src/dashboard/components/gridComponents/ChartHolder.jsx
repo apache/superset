@@ -43,6 +43,7 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+  sliceSubHeader: PropTypes.string.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -108,6 +109,7 @@ class ChartHolder extends React.Component {
       onResizeStop,
       handleComponentDrop,
       editMode,
+      sliceSubHeader,
     } = this.props;
 
     // inherit the size of parent columns
@@ -159,6 +161,7 @@ class ChartHolder extends React.Component {
                   component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
                 )}
                 sliceName={component.meta.sliceName || ''}
+                sliceSubHeader={sliceSubHeader || ''}
                 updateSliceName={this.handleUpdateSliceName}
               />
               {editMode && (

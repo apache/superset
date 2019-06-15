@@ -37,6 +37,7 @@ const propTypes = {
   datasource: PropTypes.object.isRequired,
   slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
+  sliceSubHeader: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
@@ -203,6 +204,7 @@ class Chart extends React.Component {
       formData,
       updateSliceName,
       sliceName,
+      sliceSubHeader,
       toggleExpandSlice,
       timeout,
       supersetCanExplore,
@@ -241,6 +243,7 @@ class Chart extends React.Component {
           canExportCSV={canExportCSV}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
+          sliceSubHeader={sliceSubHeader}
           supersetCanExplore={supersetCanExplore}
           sliceCanEdit={sliceCanEdit}
         />

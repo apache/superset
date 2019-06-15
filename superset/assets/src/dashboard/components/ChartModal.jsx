@@ -22,6 +22,7 @@ import PropTypes from 'prop-types';
 import ChartContainer from '../../chart/ChartContainer';
 import { chartPropShape } from '../util/propShapes';
 import { chart as initChart } from '../../chart/chartReducer';
+
 const propTypes = {
   showModal: PropTypes.bool,
   animation: PropTypes.bool,
@@ -36,9 +37,9 @@ const propTypes = {
   timeout: PropTypes.number,
   addFilter: PropTypes.func.isRequired,
   datasource: PropTypes.object.isRequired,
-
 };
 const BLANK = {};
+var subHeaderForModalCharts = '';
 const defaultProps = {
   width: 760,
   height: 460,
@@ -46,8 +47,8 @@ const defaultProps = {
   modalTitle: 'Details',
   showModal: false,
   addFilter: () => BLANK,
-  close:() => BLANK,
-  chart:  {
+  close: () => BLANK,
+  chart: {
     ...initChart,
   },
   datasource: {},
@@ -69,7 +70,8 @@ export default class ChartModal extends React.Component {
     if (nextProps.chart.chartStatus != this.props.chart.chartStatus) {
       return true;
     }
-    return false
+
+    return false;
   }
 
   componentWillReceiveProps(nextProps) {
@@ -84,6 +86,7 @@ export default class ChartModal extends React.Component {
       addFilter,
       datasource,
       chart,
+      modalTitle,
       timeout,
       close
     } = this.props;
@@ -97,9 +100,9 @@ export default class ChartModal extends React.Component {
         backdrop="static"
         dialogClassName="chart-modal-style"
       >
-        {this.props.modalTitle &&
+        {modalTitle &&
           <Modal.Header closeButton>
-            <Modal.Title>{this.props.modalTitle}</Modal.Title>
+            <Modal.Title>{modalTitle}</Modal.Title>
           </Modal.Header>
         }
         <Modal.Body>

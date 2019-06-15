@@ -41,6 +41,7 @@ const propTypes = {
   annotationQuery: PropTypes.object,
   annotationError: PropTypes.object,
   sliceName: PropTypes.string,
+  sliceSubHeader: PropTypes.string,
   supersetCanExplore: PropTypes.bool,
   sliceCanEdit: PropTypes.bool,
 };
@@ -61,6 +62,7 @@ const defaultProps = {
   isCached: false,
   isExpanded: false,
   sliceName: '',
+  sliceSubHeader: '',
   supersetCanExplore: false,
   canExportCSV: true,
   sliceCanEdit: false,
@@ -84,6 +86,7 @@ class SliceHeader extends React.PureComponent {
       canExportCSV,
       innerRef,
       sliceName,
+      sliceSubHeader,
       supersetCanExplore,
       sliceCanEdit,
       editMode,
@@ -106,6 +109,9 @@ class SliceHeader extends React.PureComponent {
             onSaveTitle={updateSliceName}
             showTooltip={false}
           />
+          { sliceSubHeader != '' && (
+            <span className="chart-sub-header"> { sliceSubHeader } </span>
+          )}
           {!!Object.values(annotationQuery).length && (
             <TooltipWrapper
               label="annotations-loading"

@@ -47,7 +47,7 @@ import getPublishSubscriberMap from '../util/getPublishSubscriberMap';
 import { DASHBOARD_HEADER_ID } from '../util/constants';
 
 import ChartModal from './ChartModal';
-import { getModalSliceIDFor } from '../util/publishSubscriberUtil';
+import { getModalSliceIDFor, getSubHeaderForSlice } from '../util/publishSubscriberUtil';
 import { chart as initChart } from '../../chart/chartReducer';
 
 const propTypes = {
@@ -57,7 +57,6 @@ const propTypes = {
     runQuery: PropTypes.func.isRequired,
   }).isRequired,
   dashboardInfo: dashboardInfoPropShape.isRequired,
-  dashboardState: dashboardStatePropShape.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   datasources: PropTypes.object.isRequired,
@@ -258,7 +257,9 @@ class Dashboard extends React.PureComponent {
       if (status) {
         this.modalChart.chartStatus = status;
       }
-      this.modalTitle = this.props.slices[slice_id].slice_name;
+      const modalTitle = this.props.slices[slice_id].slice_name;
+      const modalSubTitle = getSubHeaderForSlice(this.props.dashboardState.publishSubscriberMap.subscribers, slice_id, this.props.dashboardState.filters)
+      this.modalTitle = (modalSubTitle != '') ? modalTitle + ' ' + modalSubTitle : modalTitle;
       this.modalDatasource = this.props.datasources[this.modalChart.formData.datasource];
     }
   }
