@@ -210,7 +210,6 @@ describe('getFormDataWithExtraFilters', () => {
         }
       },
     });
-    console.log(result);
     expect(result.extra_filters).toHaveLength(3);
   });
 
@@ -221,9 +220,9 @@ describe('getFormDataWithExtraFilters', () => {
         publishers: undefined,
         subscribers: {
           chartId: {
-            actions: [
-              "INCLUDE_IN_TITLE"
-            ],
+            actions: {
+              "INCLUDE_IN_TITLE" : ["filterId"]
+            },
             linked_slices: {
               filterId: [
                 { col: 'region',op: '==', actions: ['INCLUDE_IN_TITLE']},
@@ -244,10 +243,10 @@ describe('getFormDataWithExtraFilters', () => {
         publishers: undefined,
         subscribers: {
           chartId: {
-            actions: [
-              "APPLY_FILTER",
-              "INCLUDE_IN_TITLE"
-            ],
+            actions: {
+              "INCLUDE_IN_TITLE" : ["filterId"],
+              "APPLY_FILTER" : ["filterId"]
+            },
             linked_slices: {
               filterId: [
                 { col: 'region',op: '==', actions: ['APPLY_FILTER']},

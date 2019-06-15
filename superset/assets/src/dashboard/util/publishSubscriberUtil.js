@@ -32,7 +32,7 @@ export function getActionsMapForSlice(slice) {
                     column_actions.forEach(action => {
                         if (!actions[action])
                             actions[action] = [];
-                        actions[action] = _.union(actions[action], [susbcriberLayer.linked_slice[0]['publisher_id']]);
+                        actions[action] = union(actions[action], [susbcriberLayer.linked_slice[0]['publisher_id']]);
                     })
                 })
             });
@@ -85,7 +85,7 @@ export function getSubHeaderForSlice(subscribers, chartId, filters) {
     let subHeader = '';
     if (chartId != -1 && subscribers && subscribers[chartId]) {
         const subscriber = subscribers[chartId];
-        if (subscriber.actions.indexOf(INCLUDE_IN_TITLE) > -1) {
+        if (subscriber.actions[INCLUDE_IN_TITLE]) {
             for (let lsKey in subscriber.linked_slices) {
                 if (keyExists(lsKey, filters)) {
                     subscriber.linked_slices[lsKey].forEach(linkedSlice => {

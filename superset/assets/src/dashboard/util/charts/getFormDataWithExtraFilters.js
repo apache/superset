@@ -54,23 +54,22 @@ const getFiltersFromSlices = (slices, globalFilters) => {
 
 const getLinkedSlicesExistInFilters = (subscriberMap, globalFilters) => {
   let linkedSlicesExistInFilters = [];
-  
-  if (subscriberMap && subscriberMap.actions.indexOf(APPLY_FILTER) > -1) {
-    if (keyExists('linked_slices', subscriberMap)) {
-      const linked_slices = subscriberMap.linked_slices;
-      for (var sliceId in linked_slices) {
-        if (keyExists(sliceId, globalFilters)) {
-          let linkedSlice = linked_slices[sliceId];
-          const filteredSlice = linkedSlice.filter(slice => slice.actions.indexOf(APPLY_FILTER) > -1);
-          if (filteredSlice) {
-            let slice = {};
-            slice[sliceId] = filteredSlice;
-            linkedSlicesExistInFilters.push(slice);
-          }
+
+  if (subscriberMap && subscriberMap.actions['APPLY_FILTER']) {
+    const linked_slices = subscriberMap.linked_slices;
+    subscriberMap.actions['APPLY_FILTER'].forEach(sliceId => {
+      if (keyExists(sliceId, globalFilters)) {
+        let linkedSlice = linked_slices[sliceId];
+        const filteredSlice = linkedSlice.filter(slice => slice.actions.indexOf(APPLY_FILTER) > -1);
+        if (filteredSlice) {
+          let slice = {};
+          slice[sliceId] = filteredSlice;
+          linkedSlicesExistInFilters.push(slice);
         }
       }
-    });  
+    })
   }
+
   return linkedSlicesExistInFilters;
 }
 
