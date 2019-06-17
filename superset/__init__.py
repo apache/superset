@@ -206,6 +206,14 @@ with app.app_context():
         update_perms=False,  # Run `superset init` to update FAB's perms
     )
 
+@app.context_processor
+def non_cached_methods():
+    from flask_appbuilder.filters import TemplateFilters
+    is_item_visible = TemplateFilters(app, appbuilder.sm).is_item_visible
+    return dict(
+        non_cached_is_item_visible=is_item_visible
+    )
+
 security_manager = appbuilder.sm
 
 results_backend = app.config.get('RESULTS_BACKEND')

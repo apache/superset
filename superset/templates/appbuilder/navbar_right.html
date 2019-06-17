@@ -24,9 +24,9 @@
     {% set locale = 'en' %}
 {% endif %}
 
-{% set can_sqlquery = appbuilder.sm.can_access('can_sqllab', 'Superset') %}
-{% set can_chart = appbuilder.sm.can_access('can_add', 'SliceModelView') %}
-{% set can_dashboard = appbuilder.sm.can_access('can_add', 'DashboardModelView') %}
+{% set can_sqlquery = non_cached_is_item_visible('can_sqllab', 'Superset') %}
+{% set can_chart = non_cached_is_item_visible("can_add", "SliceModelView") %}
+{% set can_dashboard = non_cached_is_item_visible("can_add", "DashboardModelView") %}
 {% set show_add_button = can_sqlquery or can_chart or can_dashboard %}
 
 {% if not current_user.is_anonymous and show_add_button %}

@@ -18,10 +18,10 @@
 #}
 {% import 'appbuilder/general/lib.html' as lib %}
 
-{% set can_add = "can_add" | is_item_visible(modelview_name) %}
-{% set can_show = "can_show" | is_item_visible(modelview_name) %}
-{% set can_edit = "can_edit" | is_item_visible(modelview_name) %}
-{% set can_delete = "can_delete" | is_item_visible(modelview_name) %}
+{% set can_add = non_cached_is_item_visible("can_add", modelview_name) %}
+{% set can_show = non_cached_is_item_visible("can_show", modelview_name) %}
+{% set can_edit = non_cached_is_item_visible("can_edit", modelview_name) %}
+{% set can_delete = non_cached_is_item_visible("can_delete", modelview_name) %}
 {% set actions = actions | get_actions_on_list(modelview_name) %}
 
 {% if can_add %}
