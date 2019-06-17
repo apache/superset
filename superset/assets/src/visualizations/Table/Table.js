@@ -150,16 +150,16 @@ function TableVis(element, props) {
       if (!enableCellClick) {
         const rowNodeClicked = d3.select(this);
         if(!d3.event.shiftKey){
-          resetPublishSelection();    
+          resetPublishSelection();
           table.selectAll('.selected-row').classed('selected-row', function () {
-            const currentNode = d3.select(this); 
+            const currentNode = d3.select(this);
             return rowNodeClicked.node() != currentNode.node() ? false : rowNodeClicked.classed('selected-row');
-          }); 
-        } 
+          });
+        }
         //publish the row selection
         rowNodeClicked.classed('selected-row') ? publishSelections(REMOVE,d) : publishSelections(ADD,d) ;
         //update the row seletion
-        rowNodeClicked.classed('selected-row', !rowNodeClicked.classed('selected-row'));  
+        rowNodeClicked.classed('selected-row', !rowNodeClicked.classed('selected-row'));
       }
     })
     .selectAll('td')
@@ -247,15 +247,15 @@ function TableVis(element, props) {
     })
     .style('cursor', d => (!d.isMetric) ? 'pointer' : '')
     .html(d => d.html ? d.html : d.val);
-  
-  let publishColumnsKeyValueMap = {} 
-  
+
+  let publishColumnsKeyValueMap = {}
+
   const resetPublishSelection = () => {
     publishColumnsKeyValueMap = {}
   }
   const publishSelections = (function (type,data){
     if(tableFilter){
-      publishColumns.forEach((column) => {
+      publishColumns.forEach((column, i, columns) => {
         if(!publishColumnsKeyValueMap[column]){
           publishColumnsKeyValueMap[column] = []
         }
@@ -264,7 +264,8 @@ function TableVis(element, props) {
         }else {
           publishColumnsKeyValueMap[column] = [...publishColumnsKeyValueMap[column],data[column]]
         }
-        onAddFilter(column, publishColumnsKeyValueMap[column], false);
+
+        onAddFilter(column, publishColumnsKeyValueMap[column], false, (i === columns.length - 1));
       });
     }
   })
