@@ -164,7 +164,7 @@ class Slice(Model, AuditMixinNullable, ImportExportMixin):
     owners = relationship(security_manager.user_model, secondary=slice_user)
 
     export_fields = ('slice_name', 'datasource_type', 'datasource_name',
-                     'viz_type', 'params', 'cache_timeout')
+                     'viz_type', 'params', 'cache_timeout', 'uuid')
 
     def __repr__(self):
         return self.slice_name or str(self.id)
@@ -413,7 +413,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
 
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
-                     'description', 'css', 'slug')
+                     'description', 'css', 'slug', 'uuid')
 
     def __repr__(self):
         return self.dashboard_title or str(self.id)
@@ -749,7 +749,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
                      'expose_in_sqllab', 'allow_run_async',
-                     'allow_ctas', 'allow_csv_upload', 'extra')
+                     'allow_ctas', 'allow_csv_upload', 'extra', 'uuid')
     export_children = ['tables']
 
     def __repr__(self):

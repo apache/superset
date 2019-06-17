@@ -58,7 +58,7 @@ class ImportExportMixin():
     # List of (str) names of attributes
     # with the SQL Alchemy forward references
 
-    export_fields = []
+    export_fields = ['uuid']
     # The names of the attributes
     # that are available for import and export
 
@@ -94,7 +94,7 @@ class ImportExportMixin():
                 str(c.type), c.default.arg) if c.default else str(c.type))
 
         schema = {c.name: formatter(c) for c in cls.__table__.columns
-                  if (c.name in cls.export_fields and
+                  if (c.name in cls.export_fields + ['uuid'] and
                   c.name not in parent_excludes)}
         if recursive:
             for c in cls.export_children:
@@ -108,7 +108,7 @@ class ImportExportMixin():
                          recursive=True, sync=[]):
         """Import obj from a dictionary"""
         parent_refs = cls._parent_foreign_key_mappings()
-        export_fields = set(cls.export_fields) | set(parent_refs.keys())
+        export_fields = set(cls.export_fields + ['uuid']) | set(parent_refs.keys())
         new_children = {c: dict_rep.get(c) for c in cls.export_children
                         if c in dict_rep}
         unique_constrains = cls._unique_constrains()
@@ -117,7 +117,7 @@ class ImportExportMixin():
 
         # Remove fields that should not get imported
         for k in list(dict_rep):
-            if k not in export_fields:
+            if k not in export_fields + ['uuid']:
                 del dict_rep[k]
 
         if not parent:
@@ -207,7 +207,7 @@ class ImportExportMixin():
 
         dict_rep = {c.name: getattr(self, c.name)
                     for c in cls.__table__.columns
-                    if (c.name in self.export_fields and
+                    if (c.name in self.export_fields + ['uuid'] and
                         c.name not in parent_excludes and
                         (include_defaults or (
                             getattr(self, c.name) is not None and
@@ -231,7 +231,7 @@ class ImportExportMixin():
 
     def override(self, obj):
         """Overrides the plain fields of the dashboard."""
-        for field in obj.__class__.export_fields:
+        for field in obj.__class__.export_fields + ['uuid']:
             setattr(self, field, getattr(obj, field))
 
     def copy(self):
