@@ -20,6 +20,7 @@ import { List } from 'immutable';
 import PropTypes from 'prop-types';
 import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
+import JSONTree from 'react-json-tree';
 import {
   Column,
   Grid,
@@ -29,14 +30,59 @@ import {
   Table,
 } from 'react-virtualized';
 import { getTextDimension } from '@superset-ui/dimension';
+import { t } from '@superset-ui/translation';
+
+import Button from '../Button';
+import CopyToClipboard from '../CopyToClipboard';
+import ModalTrigger from '../ModalTrigger';
 import TooltipWrapper from '../TooltipWrapper';
 
 function getTextWidth(text, font = '12px Roboto') {
   return getTextDimension({ text, style: { font } }).width;
 }
 
+function safeJsonObjectParse(data) {
+  // First perform a cheap proxy to avoid calling JSON.parse on data that is clearly not a
+  // JSON object or array
+  if (typeof data !== 'string' || ['{', '['].indexOf(data.substring(0, 1)) === -1) {
+    return null;
+  }
+
+  // We know `data` is a string starting with '{' or '[', so try to parse it as a valid object
+  try {
+    const jsonData = JSON.parse(data);
+    if (jsonData && typeof jsonData === 'object') {
+      return jsonData;
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
 const SCROLL_BAR_HEIGHT = 15;
 const GRID_POSITION_ADJUSTMENT = 4;
+const JSON_TREE_THEME = {
+  scheme: 'monokai',
+  author: 'wimer hazenberg (http://www.monokai.nl)',
+  base00: '#272822',
+  base01: '#383830',
+  base02: '#49483e',
+  base03: '#75715e',
+  base04: '#a59f85',
+  base05: '#f8f8f2',
+  base06: '#f5f4f1',
+  base07: '#f9f8f5',
+  base08: '#f92672',
+  base09: '#fd971f',
+  base0A: '#f4bf75',
+  base0B: '#a6e22e',
+  base0C: '#a1efe4',
+  base0D: '#66d9ef',
+  base0E: '#ae81ff',
+  base0F: '#cc6633',
+};
+
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
 export const MAX_COLUMNS_FOR_TABLE = 50;
@@ -68,9 +114,11 @@ export default class FilterableTable extends PureComponent {
   constructor(props) {
     super(props);
     this.list = List(this.formatTableData(props.data));
+    this.addJsonModal = this.addJsonModal.bind(this);
     this.renderGridCell = this.renderGridCell.bind(this);
     this.renderGridCellHeader = this.renderGridCellHeader.bind(this);
     this.renderGrid = this.renderGrid.bind(this);
+    this.renderTableCell = this.renderTableCell.bind(this);
     this.renderTableHeader = this.renderTableHeader.bind(this);
     this.renderTable = this.renderTable.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
@@ -165,6 +213,17 @@ export default class FilterableTable extends PureComponent {
     this.setState({ sortBy, sortDirection });
   }
 
+  addJsonModal(node, jsonObject, jsonString) {
+    return (
+      <ModalTrigger
+        modalBody={<JSONTree data={jsonObject} theme={JSON_TREE_THEME} />}
+        modalFooter={<Button><CopyToClipboard shouldShowText={false} text={jsonString} /></Button>}
+        modalTitle={t('Cell Content')}
+        triggerNode={node}
+      />
+    );
+  }
+
   renderTableHeader({ dataKey, label, sortBy, sortDirection }) {
     const className = this.props.expandedColumns.indexOf(label) > -1
       ? 'header-style-disabled'
@@ -200,15 +259,22 @@ export default class FilterableTable extends PureComponent {
 
   renderGridCell({ columnIndex, key, rowIndex, style }) {
     const columnKey = this.props.orderedColumnKeys[columnIndex];
-    return (
+    const cellData = this.list.get(rowIndex)[columnKey];
+    const cellNode = (
       <div
         key={key}
         style={{ ...style, top: style.top - GRID_POSITION_ADJUSTMENT }}
         className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
       >
-        {this.list.get(rowIndex)[columnKey]}
+        {cellData}
       </div>
     );
+
+    const jsonObject = safeJsonObjectParse(cellData);
+    if (jsonObject) {
+      return this.addJsonModal(cellNode, jsonObject, cellData);
+    }
+    return cellNode;
   }
 
   renderGrid() {
@@ -266,6 +332,15 @@ export default class FilterableTable extends PureComponent {
     );
   }
 
+  renderTableCell({ cellData }) {
+    const cellNode = String(cellData);
+    const jsonObject = safeJsonObjectParse(cellData);
+    if (jsonObject) {
+      return this.addJsonModal(cellNode, jsonObject, cellData);
+    }
+    return cellNode;
+  }
+
   renderTable() {
     const { sortBy, sortDirection } = this.state;
     const {
@@ -321,6 +396,7 @@ export default class FilterableTable extends PureComponent {
           >
             {orderedColumnKeys.map(columnKey => (
               <Column
+                cellRenderer={this.renderTableCell}
                 dataKey={columnKey}
                 disableSort={false}
                 headerRenderer={this.renderTableHeader}
