@@ -23,7 +23,8 @@ from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
 import logging
 import time
-import urllib.error, urllib.request
+from urllib.error import URLError
+import urllib.request
 
 import croniter
 from dateutil.tz import tzlocal
@@ -260,7 +261,7 @@ def _get_slice_data(schedule):
     opener.addheaders.append(('Cookie', f"session={cookies['session']}"))
     response = opener.open(slice_url)
     if response.getcode() != 200:
-        raise urllib.error()
+        raise URLError(response.getcode())
 
     # TODO: Move to the csv module
     rows = [r.split(b",") for r in response.content.splitlines()]
