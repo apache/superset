@@ -23,7 +23,7 @@ croniter==0.3.29
 cryptography==2.4.2
 decorator==4.3.0          # via retry
 defusedxml==0.5.0         # via python3-openid
-flask-appbuilder==2.0.0
+flask-appbuilder==2.1.4
 flask-babel==0.11.1       # via flask-appbuilder
 flask-caching==1.4.0
 flask-compress==1.4.0
@@ -31,7 +31,7 @@ flask-jwt-extended==3.18.1  # via flask-appbuilder
 flask-login==0.4.1        # via flask-appbuilder
 flask-migrate==2.1.1
 flask-openid==1.2.5       # via flask-appbuilder
-flask-sqlalchemy==2.3.2   # via flask-appbuilder, flask-migrate
+flask-sqlalchemy==2.4.0   # via flask-appbuilder, flask-migrate
 flask-talisman==0.6.0
 flask-wtf==0.14.2
 flask==1.0.2

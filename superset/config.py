@@ -351,7 +351,13 @@ MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 # in the results backend. This also becomes the limit when exporting CSVs
 SQL_MAX_ROW = 100000
 
-# Default row limit for SQL Lab queries
+# Maximum number of rows displayed in SQL Lab UI
+# Is set to avoid out of memory/localstorage issues in browsers. Does not affect
+# exported CSVs
+DISPLAY_MAX_ROW = 10000
+
+# Default row limit for SQL Lab queries. Is overridden by setting a new limit in
+# the SQL Lab UI
 DEFAULT_SQLLAB_LIMIT = 1000
 
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
@@ -607,11 +613,6 @@ DOCUMENTATION_URL = None
 # the query issue time.
 DEFAULT_RELATIVE_START_TIME = 'today'
 DEFAULT_RELATIVE_END_TIME = 'today'
-
-# Is epoch_s/epoch_ms datetime format supposed to be considered since UTC ?
-# If not, it is sassumed then the epoch_s/epoch_ms is seconds since 1/1/1970
-# localtime (in the tz where the superset webserver is running)
-IS_EPOCH_S_TRULY_UTC = False
 
 # Configure which SQL validator to use for each engine
 SQL_VALIDATORS_BY_ENGINE = {

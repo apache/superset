@@ -21,10 +21,12 @@ import logging
 
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
+from flask_appbuilder.fieldwidgets import Select2Widget
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
+from wtforms.ext.sqlalchemy.fields import QuerySelectField
 
 from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
@@ -75,6 +77,17 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             'above.',
             True),
     }
+
+    add_form_extra_fields = {
+        'datasource': QuerySelectField(
+            'Datasource',
+            query_factory=lambda: db.session().query(models.DruidDatasource),
+            allow_blank=True,
+            widget=Select2Widget(extra_classes='readonly'),
+        ),
+    }
+
+    edit_form_extra_fields = add_form_extra_fields
 
     def pre_update(self, col):
         # If a dimension spec JSON is given, ensure that it is
@@ -145,6 +158,17 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'is_restricted': _('Is Restricted'),
     }
 
+    add_form_extra_fields = {
+        'datasource': QuerySelectField(
+            'Datasource',
+            query_factory=lambda: db.session().query(models.DruidDatasource),
+            allow_blank=True,
+            widget=Select2Widget(extra_classes='readonly'),
+        ),
+    }
+
+    edit_form_extra_fields = add_form_extra_fields
+
     def post_add(self, metric):
         if metric.is_restricted:
             security_manager.add_permission_view_menu('metric_access', metric.get_perm())
@@ -198,6 +222,14 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
             'Druid supports basic authentication. See '
             '[auth](http://druid.io/docs/latest/design/auth.html) and '
             'druid-basic-security extension',
+        ),
+    }
+
+    edit_form_extra_fields = {
+        'cluster_name': QuerySelectField(
+            'Cluster',
+            query_factory=lambda: db.session().query(models.DruidCluster),
+            widget=Select2Widget(extra_classes='readonly'),
         ),
     }
 

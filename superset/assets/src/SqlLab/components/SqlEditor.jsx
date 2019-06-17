@@ -242,10 +242,10 @@ class SqlEditor extends React.PureComponent {
   }
   runQuery() {
     if (this.props.database) {
-      this.startQuery(this.props.database.allow_run_async);
+      this.startQuery();
     }
   }
-  startQuery(runAsync = false, ctas = false) {
+  startQuery(ctas = false) {
     const qe = this.props.queryEditor;
     const query = {
       dbId: qe.dbId,
@@ -256,7 +256,7 @@ class SqlEditor extends React.PureComponent {
       tempTableName: ctas ? this.state.ctas : '',
       templateParams: qe.templateParams,
       queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
-      runAsync,
+      runAsync: this.props.database ? this.props.database.allow_run_async : false,
       ctas,
     };
     this.props.actions.runQuery(query);
@@ -268,7 +268,7 @@ class SqlEditor extends React.PureComponent {
     }
   }
   createTableAs() {
-    this.startQuery(true, true);
+    this.startQuery(true);
   }
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
@@ -308,7 +308,7 @@ class SqlEditor extends React.PureComponent {
         </div>
         <SouthPane
           editorQueries={this.props.editorQueries}
-          latestQueryId={this.props.latestQuery ? this.props.latestQuery.id : 0}
+          latestQueryId={this.props.latestQuery && this.props.latestQuery.id}
           dataPreviewQueries={this.props.dataPreviewQueries}
           actions={this.props.actions}
           height={southPaneHeight}
@@ -346,7 +346,11 @@ class SqlEditor extends React.PureComponent {
     }
     const qe = this.props.queryEditor;
     let limitWarning = null;
-    if (this.props.latestQuery && this.props.latestQuery.limit_reached) {
+    if (
+      this.props.latestQuery
+      && this.props.latestQuery.results
+      && this.props.latestQuery.results.displayLimitReached
+    ) {
       const tooltip = (
         <Tooltip id="tooltip">
           {t(`It appears that the number of rows in the query results displayed

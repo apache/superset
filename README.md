@@ -94,29 +94,8 @@ Superset speaks many SQL dialects through SQLAlchemy, a Python
 ORM that is compatible with
 [most common databases](https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html).
 
-Superset can be used to visualize data out of most databases:
-* MySQL
-* Postgres
-* Vertica
-* Oracle
-* Microsoft SQL Server
-* SQLite
-* Greenplum
-* Firebird
-* MariaDB
-* Sybase
-* IBM DB2
-* Exasol
-* MonetDB
-* Snowflake
-* Redshift
-* Clickhouse
-* Apache Kylin
-* Apache Drill
-* Google BigQuery
-* **more!** look for the availability of a SQLAlchemy dialect for your database
-  to find out whether it will work with Superset
-
+A list of currently supported SQL databases can be found
+[here](https://superset.incubator.apache.org/#databases).
 
 Apache Druid (Incubating)!
 ------
@@ -168,6 +147,7 @@ Who uses Apache Superset (incubating)?
 Here's a list of organizations who have taken the time to send a PR to let
 the world know they are using Superset. Join our growing community!
 
+ 1. [6play](https://www.6play.fr)
  1. [AiHello](https://www.aihello.com)
  1. [Airbnb](https://github.com/airbnb)
  1. [Airboxlab](https://foobot.io)
@@ -193,6 +173,7 @@ the world know they are using Superset. Join our growing community!
  1. [Grassroot](https://www.grassrootinstitute.org/)
  1. [Hostnfly](https://www.hostnfly.com/)
  1. [HuiShouBao](http://www.huishoubao.com/)
+ 1. [Intercom](https://www.intercom.com/)
  1. [jampp](https://jampp.com/)
  1. [Konfío](http://konfio.mx)
  1. [Kuaishou](https://www.kuaishou.com/)
@@ -214,6 +195,7 @@ the world know they are using Superset. Join our growing community!
  1. [Steamroot](https://streamroot.io/)
  1. [Showmax](https://tech.showmax.com)
  1. [Tails.com](https://tails.com)
+ 1. [Tenable](https://www.tenable.com)
  1. [THEICONIC](http://theiconic.com.au/)
  1. [Tobii](http://www.tobii.com/)
  1. [Tooploox](https://www.tooploox.com/)

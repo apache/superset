@@ -38,7 +38,7 @@ import sqlparse
 
 from superset import app, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
-from superset.db_engine_specs import TimestampExpression
+from superset.db_engine_specs.base import TimestampExpression
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
@@ -133,13 +133,12 @@ class TableColumn(Model, BaseColumn):
         return self.table
 
     def get_time_filter(self, start_dttm, end_dttm):
-        is_epoch_in_utc = config.get('IS_EPOCH_S_TRULY_UTC', False)
         col = self.get_sqla_col(label='__time')
         l = []  # noqa: E741
         if start_dttm:
-            l.append(col >= text(self.dttm_sql_literal(start_dttm, is_epoch_in_utc)))
+            l.append(col >= text(self.dttm_sql_literal(start_dttm)))
         if end_dttm:
-            l.append(col <= text(self.dttm_sql_literal(end_dttm, is_epoch_in_utc)))
+            l.append(col <= text(self.dttm_sql_literal(end_dttm)))
         return and_(*l)
 
     def get_timestamp_expression(self, time_grain: Optional[str]) \
@@ -173,7 +172,7 @@ class TableColumn(Model, BaseColumn):
                 TableColumn.column_name == lookup_column.column_name).first()
         return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
-    def dttm_sql_literal(self, dttm, is_epoch_in_utc):
+    def dttm_sql_literal(self, dttm):
         """Convert datetime object to a SQL expression string
 
         If database_expression is empty, the internal dttm
@@ -186,11 +185,7 @@ class TableColumn(Model, BaseColumn):
         if self.database_expression:
             return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
         elif tf:
-            if is_epoch_in_utc:
-                seconds_since_epoch = dttm.timestamp()
-            else:
-                seconds_since_epoch = (dttm - datetime(1970, 1, 1)).total_seconds()
-            seconds_since_epoch = int(seconds_since_epoch)
+            seconds_since_epoch = int(dttm.timestamp())
             if tf == 'epoch_s':
                 return str(seconds_since_epoch)
             elif tf == 'epoch_ms':
