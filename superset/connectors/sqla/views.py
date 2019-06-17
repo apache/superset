@@ -18,19 +18,19 @@
 """Views used by the SqlAlchemy connector"""
 import logging
 
-from flask import flash, Markup, redirect
+from flask import flash, Markup, redirect,request, Response
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-
+import simplejson as json
 from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
 from superset.utils import core as utils
 from superset.views.base import (
-    DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
+    DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,json_error_response, json_success,
     ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
@@ -268,6 +268,27 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'modified': _('Modified'),
         'hive_partitions': _('Hive Partitions')
     }
+
+    @expose('/create', methods=['POST'])
+    def create(self):
+        try:
+            database_id = int(request.args.get('database_id'))
+            table_name =  request.args.get('table_name')
+            schema =  request.args.get('schema')
+            database = db.session.query(models.Database).filter_by(id=database_id).one()
+            table_model = models.SqlaTable(
+                table_name=table_name,
+                schema=schema,
+                database_id=database_id,
+                database = database
+            )
+            db.session.add(table_model)
+            db.session.commit()
+            logging.info('table is created with id = '+str(table_model.id)+' and linked with database id = '+str(database_id))
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response(e)
+        return json_success(json.dumps({'table_name': str(table_model.id)+'__table'}))
 
     def pre_add(self, table):
         with db.session.no_autoflush:

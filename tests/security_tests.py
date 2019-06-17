@@ -247,6 +247,12 @@ class RolePermissionTests(SupersetTestCase):
             ['Superset', 'log'],
             ['Superset', 'theme'],
             ['Superset', 'welcome'],
+            ['DatabaseAsync', 'create'],
+            ['DatabaseTablesAsync', 'create'],
+            ['Superset', 'addtodashboard'],
+            ['TableModelView', 'create'],
+            ['DatabaseView', 'create'],
+            ['Dashboard', 'addnew'],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
