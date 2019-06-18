@@ -30,7 +30,16 @@ type PropsWithDefault = Props & Readonly<typeof defaultProps>;
 export default class SuperChart extends React.PureComponent<Props, {}> {
   static defaultProps = defaultProps;
 
+  /**
+   * SuperChart's core
+   */
+  core?: SuperChartCore | null;
+
   private createChartProps = ChartProps.createSelector();
+
+  private setRef = (core: SuperChartCore | null) => {
+    this.core = core;
+  };
 
   renderChart(width: number, height: number) {
     const {
@@ -50,6 +59,7 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
 
     const chart = (
       <SuperChartCore
+        ref={this.setRef}
         id={id}
         className={className}
         chartType={chartType}
