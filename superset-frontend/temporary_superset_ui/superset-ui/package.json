@@ -42,7 +42,7 @@
   "devDependencies": {
     "@superset-ui/build-config": "^0.1.1",
     "@superset-ui/commit-config": "^0.0.9",
-    "fast-glob": "^2.2.6",
+    "fast-glob": "^3.0.1",
     "fs-extra": "^8.0.1",
     "husky": "^2.3.0",
     "lerna": "^3.2.1",
