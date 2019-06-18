@@ -23,7 +23,7 @@ from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (
     BooleanField, Field, IntegerField, SelectField, StringField)
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
-from wtforms.validators import DataRequired, NumberRange, Optional
+from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 from superset import app, db, security_manager
 from superset.models import core as models
@@ -123,8 +123,7 @@ class CsvToDatabaseForm(DynamicForm):
         _('Schema'),
         description=_('Specify a schema (if database flavor supports this).'),
         validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
+        widget=BS3TextFieldWidget())
     sep = StringField(
         _('Delimiter'),
         description=_('Delimiter used by CSV file (for whitespace use \s+).'),
@@ -146,17 +145,15 @@ class CsvToDatabaseForm(DynamicForm):
             'Row containing the headers to use as '
             'column names (0 is first line of data). '
             'Leave empty if there is no header row.'),
-        validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
+        validators=[Optional(), NumberRange(min=0)],
+        widget=BS3TextFieldWidget())
     index_col = IntegerField(
         _('Index Column'),
         description=_(
             'Column to use as the row labels of the '
             'dataframe. Leave empty if no index column.'),
-        validators=[Optional(), NumberRange(0, 1E+20)],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
+        validators=[Optional(), NumberRange(min=0)],
+        widget=BS3TextFieldWidget())
     mangle_dupe_cols = BooleanField(
         _('Mangle Duplicate Columns'),
         description=_('Specify duplicate columns as "X.0, X.1".'))
@@ -166,15 +163,13 @@ class CsvToDatabaseForm(DynamicForm):
     skiprows = IntegerField(
         _('Skip Rows'),
         description=_('Number of rows to skip at start of file.'),
-        validators=[Optional(), NumberRange(0, 1E+20)],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
+        validators=[Optional(), NumberRange(min=0)],
+        widget=BS3TextFieldWidget())
     nrows = IntegerField(
         _('Rows to Read'),
         description=_('Number of rows of file to read.'),
-        validators=[Optional(), NumberRange(0, 1E+20)],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
+        validators=[Optional(), NumberRange(min=0)],
+        widget=BS3TextFieldWidget())
     skip_blank_lines = BooleanField(
         _('Skip Blank Lines'),
         description=_(
@@ -193,10 +188,10 @@ class CsvToDatabaseForm(DynamicForm):
             'automatically.'))
     decimal = StringField(
         _('Decimal Character'),
+        default='.',
         description=_('Character to interpret as decimal point.'),
-        validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or '.'])
+        validators=[Optional(), Length(min=1, max=1)],
+        widget=BS3TextFieldWidget())
     index = BooleanField(
         _('Dataframe Index'),
         description=_('Write dataframe index as a column.'))
@@ -206,5 +201,4 @@ class CsvToDatabaseForm(DynamicForm):
             'Column label for index column(s). If None is given '
             'and Dataframe Index is True, Index Names are used.'),
         validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
+        widget=BS3TextFieldWidget())
