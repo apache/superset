@@ -1,3 +1,40 @@
+## [0.11.12](https://github.com/apache-superset/superset-ui/compare/v0.11.11...v0.11.12) (2019-06-18)
+
+
+### ✨ Features
+
+* store reference to container and update bindings ([#180](https://github.com/apache-superset/superset-ui/issues/180)) ([00e9a40](https://github.com/apache-superset/superset-ui/commit/00e9a40))
+
+
+
+## [0.11.11](https://github.com/apache-superset/superset-ui/compare/v0.11.10...v0.11.11) (2019-06-18)
+
+
+### ✨ Features
+
+* add error boundary and responsiveness to SuperChart ([#175](https://github.com/apache-superset/superset-ui/issues/175)) ([c17b13d](https://github.com/apache-superset/superset-ui/commit/c17b13d))
+
+
+
+## [0.11.10](https://github.com/apache-superset/superset-ui/compare/v0.11.9...v0.11.10) (2019-06-13)
+
+
+### ✨ Features
+
+* add parseLength function to @superset-ui/dimension ([#171](https://github.com/apache-superset/superset-ui/issues/171)) ([c0ef45f](https://github.com/apache-superset/superset-ui/commit/c0ef45f))
+* allow chart plugin to be unregistered ([#168](https://github.com/apache-superset/superset-ui/issues/168)) ([32f8dd3](https://github.com/apache-superset/superset-ui/commit/32f8dd3))
+
+
+
+## [0.11.9](https://github.com/apache-superset/superset-ui/compare/v0.11.8...v0.11.9) (2019-05-25)
+
+
+### 🐞 Bug Fixes
+
+* remove padding in WithLegend ([2f0a400](https://github.com/apache-superset/superset-ui/commit/2f0a400))
+
+
+
 ## [0.11.8](https://github.com/apache-superset/superset-ui/compare/v0.11.7...v0.11.8) (2019-05-23)
 
 
