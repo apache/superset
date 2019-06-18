@@ -12,7 +12,7 @@ export type QueryData = PlainObject;
 type Filters = any[];
 type ChartPropsSelector = (c: ChartPropsConfig) => ChartProps;
 
-interface ChartPropsConfig {
+export interface ChartPropsConfig {
   annotationData?: AnnotationData;
   datasource?: SnakeCaseDatasource;
   filters?: Filters;

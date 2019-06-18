@@ -1,209 +1,111 @@
-import * as React from 'react';
-import { createSelector } from 'reselect';
-import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
-import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
-import ChartProps from '../models/ChartProps';
-import createLoadableRenderer, { LoadableRenderer } from './createLoadableRenderer';
-import { ChartType } from '../models/ChartPlugin';
-import { PreTransformProps, TransformProps, PostTransformProps } from '../types/TransformFunction';
-import { HandlerFunction } from '../types/Base';
+import React from 'react';
+import ErrorBoundary, { ErrorBoundaryProps, FallbackProps } from 'react-error-boundary';
+import { parseLength } from '@superset-ui/dimension';
+import { ParentSize } from '@vx/responsive';
+import SuperChartCore, { Props as SuperChartCoreProps } from './SuperChartCore';
+import DefaultFallbackComponent from './FallbackComponent';
+import ChartProps, { ChartPropsConfig } from '../models/ChartProps';
 
-const IDENTITY = (x: any) => x;
-
-const EMPTY = () => null;
-
-/* eslint-disable sort-keys */
 const defaultProps = {
-  id: '',
-  className: '',
-  preTransformProps: IDENTITY,
-  overrideTransformProps: undefined,
-  postTransformProps: IDENTITY,
-  onRenderSuccess() {},
-  onRenderFailure() {},
+  FallbackComponent: DefaultFallbackComponent,
+  // eslint-disable-next-line no-magic-numbers
+  height: 400 as string | number,
+  width: '100%' as string | number,
 };
-/* eslint-enable sort-keys */
 
-interface LoadingProps {
-  error: any;
-}
+export type FallbackPropsWithDimension = FallbackProps & { width?: number; height?: number };
 
-interface LoadedModules {
-  Chart: ChartType;
-  transformProps: TransformProps;
-}
+export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
+  Omit<ChartPropsConfig, 'width' | 'height'> & {
+    disableErrorBoundary?: boolean;
+    debounceTime?: number;
+    FallbackComponent?: React.ComponentType<FallbackPropsWithDimension>;
+    onErrorBoundary?: ErrorBoundaryProps['onError'];
+    height?: number | string;
+    width?: number | string;
+  };
 
-interface RenderProps {
-  chartProps: ChartProps;
-  preTransformProps?: PreTransformProps;
-  postTransformProps?: PostTransformProps;
-}
+type PropsWithDefault = Props & Readonly<typeof defaultProps>;
 
-const BLANK_CHART_PROPS = new ChartProps();
-
-export interface SuperChartProps {
-  id?: string;
-  className?: string;
-  chartProps?: ChartProps | null;
-  chartType: string;
-  preTransformProps?: PreTransformProps;
-  overrideTransformProps?: TransformProps;
-  postTransformProps?: PostTransformProps;
-  onRenderSuccess?: HandlerFunction;
-  onRenderFailure?: HandlerFunction;
-}
-
-export default class SuperChart extends React.PureComponent<SuperChartProps, {}> {
+export default class SuperChart extends React.PureComponent<Props, {}> {
   static defaultProps = defaultProps;
 
-  processChartProps: (input: {
-    chartProps: ChartProps;
-    preTransformProps?: PreTransformProps;
-    transformProps?: TransformProps;
-    postTransformProps?: PostTransformProps;
-  }) => any;
+  private createChartProps = ChartProps.createSelector();
 
-  createLoadableRenderer: (input: {
-    chartType: string;
-    overrideTransformProps?: TransformProps;
-  }) => LoadableRenderer<RenderProps, LoadedModules> | (() => null);
-
-  constructor(props: SuperChartProps) {
-    super(props);
-
-    this.renderChart = this.renderChart.bind(this);
-    this.renderLoading = this.renderLoading.bind(this);
-
-    // memoized function so it will not recompute
-    // and return previous value
-    // unless one of
-    // - preTransformProps
-    // - transformProps
-    // - postTransformProps
-    // - chartProps
-    // is changed.
-    this.processChartProps = createSelector(
-      input => input.preTransformProps,
-      input => input.transformProps,
-      input => input.postTransformProps,
-      input => input.chartProps,
-      (pre = IDENTITY, transform = IDENTITY, post = IDENTITY, chartProps) =>
-        post(transform(pre(chartProps))),
-    );
-
-    const componentRegistry = getChartComponentRegistry();
-    const transformPropsRegistry = getChartTransformPropsRegistry();
-
-    // memoized function so it will not recompute
-    // and return previous value
-    // unless one of
-    // - chartType
-    // - overrideTransformProps
-    // is changed.
-    this.createLoadableRenderer = createSelector(
-      input => input.chartType,
-      input => input.overrideTransformProps,
-      (chartType, overrideTransformProps) => {
-        if (chartType) {
-          const Renderer = createLoadableRenderer({
-            loader: {
-              Chart: () => componentRegistry.getAsPromise(chartType),
-              transformProps: overrideTransformProps
-                ? () => Promise.resolve(overrideTransformProps)
-                : () => transformPropsRegistry.getAsPromise(chartType),
-            },
-            loading: (loadingProps: LoadingProps) => this.renderLoading(loadingProps, chartType),
-            render: this.renderChart,
-          });
-
-          // Trigger preloading.
-          Renderer.preload();
-
-          return Renderer;
-        }
-
-        return EMPTY;
-      },
-    );
-  }
-
-  renderChart(loaded: LoadedModules, props: RenderProps) {
-    const { Chart, transformProps } = loaded;
-    const { chartProps, preTransformProps, postTransformProps } = props;
-
-    return (
-      <Chart
-        {...this.processChartProps({
-          /* eslint-disable sort-keys */
-          chartProps,
-          preTransformProps,
-          transformProps,
-          postTransformProps,
-          /* eslint-enable sort-keys */
-        })}
-      />
-    );
-  }
-
-  renderLoading(loadingProps: LoadingProps, chartType: string) {
-    const { error } = loadingProps;
-
-    if (error) {
-      return (
-        <div className="alert alert-warning" role="alert">
-          <strong>ERROR</strong>&nbsp;
-          <code>chartType=&quot;{chartType}&quot;</code> &mdash;
-          {error.toString()}
-        </div>
-      );
-    }
-
-    return null;
-  }
-
-  render() {
+  renderChart(width: number, height: number) {
     const {
       id,
       className,
+      chartType,
       preTransformProps,
+      overrideTransformProps,
       postTransformProps,
-      chartProps = BLANK_CHART_PROPS,
       onRenderSuccess,
       onRenderFailure,
-    } = this.props;
+      disableErrorBoundary,
+      FallbackComponent,
+      onErrorBoundary,
+      ...rest
+    } = this.props as PropsWithDefault;
 
-    // Create LoadableRenderer and start preloading
-    // the lazy-loaded Chart components
-    const Renderer = this.createLoadableRenderer(this.props);
-
-    // Do not render if chartProps is set to null.
-    // but the pre-loading has been started in this.createLoadableRenderer
-    // to prepare for rendering once chartProps becomes available.
-    if (chartProps === null) {
-      return null;
-    }
-
-    const containerProps: {
-      id?: string;
-      className?: string;
-    } = {};
-    if (id) {
-      containerProps.id = id;
-    }
-    if (className) {
-      containerProps.className = className;
-    }
-
-    return (
-      <div {...containerProps}>
-        <Renderer
-          preTransformProps={preTransformProps}
-          postTransformProps={postTransformProps}
-          chartProps={chartProps}
-          onRenderSuccess={onRenderSuccess}
-          onRenderFailure={onRenderFailure}
-        />
-      </div>
+    const chart = (
+      <SuperChartCore
+        id={id}
+        className={className}
+        chartType={chartType}
+        chartProps={this.createChartProps({
+          ...rest,
+          height,
+          width,
+        })}
+        preTransformProps={preTransformProps}
+        overrideTransformProps={overrideTransformProps}
+        postTransformProps={postTransformProps}
+        onRenderSuccess={onRenderSuccess}
+        onRenderFailure={onRenderFailure}
+      />
     );
+
+    // Include the error boundary by default unless it is specifically disabled.
+    return disableErrorBoundary === true ? (
+      chart
+    ) : (
+      <ErrorBoundary
+        FallbackComponent={(props: FallbackProps) => (
+          <FallbackComponent width={width} height={height} {...props} />
+        )}
+        onError={onErrorBoundary}
+      >
+        {chart}
+      </ErrorBoundary>
+    );
+  }
+
+  render() {
+    const { width: inputWidth, height: inputHeight } = this.props as PropsWithDefault;
+
+    // Parse them in case they are % or 'auto'
+    const widthInfo = parseLength(inputWidth);
+    const heightInfo = parseLength(inputHeight);
+
+    // If any of the dimension is dynamic, get parent's dimension
+    if (widthInfo.isDynamic || heightInfo.isDynamic) {
+      const { debounceTime } = this.props;
+
+      return (
+        <ParentSize debounceTime={debounceTime}>
+          {({ width, height }) =>
+            width > 0 &&
+            height > 0 &&
+            this.renderChart(
+              widthInfo.isDynamic ? Math.floor(width * widthInfo.multiplier) : widthInfo.value,
+              heightInfo.isDynamic ? Math.floor(height * heightInfo.multiplier) : heightInfo.value,
+            )
+          }
+        </ParentSize>
+      );
+    }
+
+    return this.renderChart(widthInfo.value, heightInfo.value);
   }
 }
