@@ -1552,7 +1552,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Emit Filter Events'),
     renderTrigger: true,
-    default: false,
+    default: true,
     description: t('Whether to apply filter when items are clicked'),
   },
 
@@ -1715,6 +1715,17 @@ export const controls = {
     default: true,
     description: t('The rich tooltip shows a list of all series for that ' +
       'point in time'),
+    mapStateToProps: (state, controls, actions) => {
+      let props = {};
+      if (state && state.controls && state.controls.hasOwnProperty('table_filter') && controls.label == t("Rich Tooltip")) {
+        props.disabled = (state.controls.table_filter.value) ? true : false;
+        if (props.disabled && state.controls.rich_tooltip.value) {
+          props.default = props.value = false;
+          actions.setControlValue('rich_tooltip', props.value, undefined);
+        }
+      }
+      return { ...props };
+    },
   },
 
   chart_interactivity: {

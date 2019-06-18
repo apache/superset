@@ -106,7 +106,10 @@ export default class Control extends React.PureComponent {
   }
   render() {
     const ControlType = controlMap[this.props.type];
-    const divStyle = this.props.hidden ? { display: 'none' } : null;
+    let divStyle = this.props.hidden ? { display: 'none' } : null;
+    if(this.props.disabled){
+      divStyle = {...divStyle, 'pointer-events':'none', 'opacity':.5};
+    }
     return (
       <div
         className="Control"

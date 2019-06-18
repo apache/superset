@@ -75,6 +75,7 @@ export default function transformProps(chartProps) {
     yLogScale,
     showOverlay,
     overlayLabel,
+    tableFilter,
   } = formData;
 
   const rawData = payload.data || [];
@@ -138,5 +139,6 @@ export default function transformProps(chartProps) {
     onAddFilter,
     showOverlay,
     overlayLabel,
+    tableFilter,
   };
 }

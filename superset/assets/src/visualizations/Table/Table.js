@@ -147,7 +147,7 @@ function TableVis(element, props) {
     .enter()
     .append('tr')
     .on('click', function (d) {
-      if (!enableCellClick) {
+      if (!enableCellClick && tableFilter) {
         const rowNodeClicked = d3.select(this);
         if(!d3.event.shiftKey){
           resetPublishSelection();

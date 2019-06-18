@@ -151,6 +151,7 @@ const propTypes = {
   xAxisShowMinMax: PropTypes.bool,
   xIsLogScale: PropTypes.bool,
   showOverlay: PropTypes.bool,
+  tableFilter: PropTypes.bool,
   xTicksLayout: PropTypes.oneOf(['auto', 'staggered', '45°']),
   yAxisFormat: PropTypes.string,
   yAxisBounds: PropTypes.arrayOf(PropTypes.number),
@@ -251,6 +252,7 @@ function nvd3Vis(element, props) {
     yIsLogScale,
     onAddFilter = NOOP,
     showOverlay,
+    tableFilter,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -266,10 +268,10 @@ function nvd3Vis(element, props) {
     return types.indexOf(vizType) >= 0;
   }
 
-  function findYAxisField(xField, publishedColumns) {
+  function findYAxisField(key, publishedColumns) {
 
     return publishedColumns.find((column) => {
-       return xField != column
+      return key == column
     });
 
   }
@@ -314,16 +316,15 @@ function nvd3Vis(element, props) {
         } else {
           chart = nv.models.lineChart();
         }
-        chart.lines.dispatch.on('elementClick', function(e) {
-          const publishedColumns = formData.publishColumns;
-
-          const xField = formData.granularitySqla;
-          const yField = findYAxisField(xField, publishedColumns);
-
-
-          if (xField != undefined && e.point) onAddFilter(xField, e.point.x, false, false);
-          if (yField != undefined && e.point) onAddFilter(yField, e.point.y, false, true);
-
+        chart.lines.dispatch.on('elementClick', function (e) {
+          if (tableFilter) {
+            const publishedColumns = formData.publishColumns;
+            const yColumn = formData.metrics[e.seriesIndex].column.column_name
+            const xField = formData.granularitySqla;
+            const yField = findYAxisField(yColumn, publishedColumns);
+            if (xField != undefined && e.point) onAddFilter(xField, e.point.x, false, false);
+            if (yField != undefined && e.point) onAddFilter(yField, e.point.y, false, true);
+          }
         });
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(lineInterpolation);
@@ -970,7 +971,7 @@ function nvd3Vis(element, props) {
   // hide tooltips before rendering chart, if the chart is being re-rendered sometimes
   // there are left over tooltips in the dom,
   // this will clear them before rendering the chart again.
-  hideTooltips();
+  hideTooltips(true);
 
   nv.addGraph(drawGraph);
 }
