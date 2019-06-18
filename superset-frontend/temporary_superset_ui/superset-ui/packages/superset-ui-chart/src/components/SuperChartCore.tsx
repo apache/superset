@@ -3,7 +3,7 @@ import { createSelector } from 'reselect';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
 import ChartProps from '../models/ChartProps';
-import createLoadableRenderer, { LoadableRenderer } from './createLoadableRenderer';
+import createLoadableRenderer from './createLoadableRenderer';
 import { ChartType } from '../models/ChartPlugin';
 import { PreTransformProps, TransformProps, PostTransformProps } from '../types/TransformFunction';
 import { HandlerFunction } from '../types/Base';
@@ -56,78 +56,70 @@ export type Props = {
 export default class SuperChartCore extends React.PureComponent<Props, {}> {
   static defaultProps = defaultProps;
 
-  processChartProps: (input: {
-    chartProps: ChartProps;
-    preTransformProps?: PreTransformProps;
-    transformProps?: TransformProps;
-    postTransformProps?: PostTransformProps;
-  }) => any;
+  /**
+   * The HTML element that wraps all chart content
+   */
+  container?: HTMLElement | null;
 
-  createLoadableRenderer: (input: {
-    chartType: string;
-    overrideTransformProps?: TransformProps;
-  }) => LoadableRenderer<RenderProps, LoadedModules> | (() => null);
+  /**
+   * memoized function so it will not recompute
+   * and return previous value
+   * unless one of
+   * - preTransformProps
+   * - transformProps
+   * - postTransformProps
+   * - chartProps
+   * is changed.
+   */
+  processChartProps = createSelector(
+    (input: {
+      chartProps: ChartProps;
+      preTransformProps?: PreTransformProps;
+      transformProps?: TransformProps;
+      postTransformProps?: PostTransformProps;
+    }) => input.preTransformProps,
+    input => input.transformProps,
+    input => input.postTransformProps,
+    input => input.chartProps,
+    (pre = IDENTITY, transform = IDENTITY, post = IDENTITY, chartProps) =>
+      post(transform(pre(chartProps))),
+  );
 
-  constructor(props: Props) {
-    super(props);
+  /**
+   * memoized function so it will not recompute
+   * and return previous value
+   * unless one of
+   * - chartType
+   * - overrideTransformProps
+   * is changed.
+   */
+  private createLoadableRenderer = createSelector(
+    (input: { chartType: string; overrideTransformProps?: TransformProps }) => input.chartType,
+    input => input.overrideTransformProps,
+    (chartType, overrideTransformProps) => {
+      if (chartType) {
+        const Renderer = createLoadableRenderer({
+          loader: {
+            Chart: () => getChartComponentRegistry().getAsPromise(chartType),
+            transformProps: overrideTransformProps
+              ? () => Promise.resolve(overrideTransformProps)
+              : () => getChartTransformPropsRegistry().getAsPromise(chartType),
+          },
+          loading: (loadingProps: LoadingProps) => this.renderLoading(loadingProps, chartType),
+          render: this.renderChart,
+        });
 
-    this.renderChart = this.renderChart.bind(this);
-    this.renderLoading = this.renderLoading.bind(this);
+        // Trigger preloading.
+        Renderer.preload();
 
-    // memoized function so it will not recompute
-    // and return previous value
-    // unless one of
-    // - preTransformProps
-    // - transformProps
-    // - postTransformProps
-    // - chartProps
-    // is changed.
-    this.processChartProps = createSelector(
-      input => input.preTransformProps,
-      input => input.transformProps,
-      input => input.postTransformProps,
-      input => input.chartProps,
-      (pre = IDENTITY, transform = IDENTITY, post = IDENTITY, chartProps) =>
-        post(transform(pre(chartProps))),
-    );
+        return Renderer;
+      }
 
-    const componentRegistry = getChartComponentRegistry();
-    const transformPropsRegistry = getChartTransformPropsRegistry();
+      return EMPTY;
+    },
+  );
 
-    // memoized function so it will not recompute
-    // and return previous value
-    // unless one of
-    // - chartType
-    // - overrideTransformProps
-    // is changed.
-    this.createLoadableRenderer = createSelector(
-      input => input.chartType,
-      input => input.overrideTransformProps,
-      (chartType, overrideTransformProps) => {
-        if (chartType) {
-          const Renderer = createLoadableRenderer({
-            loader: {
-              Chart: () => componentRegistry.getAsPromise(chartType),
-              transformProps: overrideTransformProps
-                ? () => Promise.resolve(overrideTransformProps)
-                : () => transformPropsRegistry.getAsPromise(chartType),
-            },
-            loading: (loadingProps: LoadingProps) => this.renderLoading(loadingProps, chartType),
-            render: this.renderChart,
-          });
-
-          // Trigger preloading.
-          Renderer.preload();
-
-          return Renderer;
-        }
-
-        return EMPTY;
-      },
-    );
-  }
-
-  renderChart(loaded: LoadedModules, props: RenderProps) {
+  private renderChart = (loaded: LoadedModules, props: RenderProps) => {
     const { Chart, transformProps } = loaded;
     const { chartProps, preTransformProps, postTransformProps } = props;
 
@@ -143,9 +135,9 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
         })}
       />
     );
-  }
+  };
 
-  renderLoading(loadingProps: LoadingProps, chartType: string) {
+  private renderLoading = (loadingProps: LoadingProps, chartType: string) => {
     const { error } = loadingProps;
 
     if (error) {
@@ -159,7 +151,11 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
     }
 
     return null;
-  }
+  };
+
+  private setRef = (container: HTMLElement | null) => {
+    this.container = container;
+  };
 
   render() {
     const {
@@ -195,7 +191,7 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
     }
 
     return (
-      <div {...containerProps}>
+      <div {...containerProps} ref={this.setRef}>
         <Renderer
           preTransformProps={preTransformProps}
           postTransformProps={postTransformProps}

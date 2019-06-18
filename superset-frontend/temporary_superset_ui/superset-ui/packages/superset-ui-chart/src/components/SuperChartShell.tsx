@@ -22,7 +22,7 @@ type ClassicProps = Omit<
 
 export type Props = ClassicProps | SuperChartProps;
 
-export default function SuperChartShell(props: Props) {
+const SuperChartShell = React.forwardRef<SuperChart, Props>((props, ref) => {
   if ('chartProps' in props) {
     const { chartProps, ...rest } = props;
 
@@ -42,6 +42,7 @@ export default function SuperChartShell(props: Props) {
 
     return (
       <SuperChart
+        ref={ref}
         {...rest}
         annotationData={annotationData}
         datasource={datasource}
@@ -58,5 +59,7 @@ export default function SuperChartShell(props: Props) {
     );
   }
 
-  return <SuperChart {...props} />;
-}
+  return <SuperChart ref={ref} {...props} />;
+});
+
+export default SuperChartShell;
