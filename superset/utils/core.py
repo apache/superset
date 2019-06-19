@@ -298,7 +298,7 @@ class DashboardEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, o)
 
 
-def parse_human_timedelta(s: str):
+def parse_human_timedelta(s: str) -> timedelta:
     """
     Returns ``datetime.datetime`` from natural language time deltas
 
@@ -310,6 +310,19 @@ def parse_human_timedelta(s: str):
     d = cal.parse(s or '', dttm)[0]
     d = datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
     return d - dttm
+
+
+def parse_past_timedelta(delta_str: str) -> timedelta:
+    """
+    Takes a delta like '1 year' and finds the timedelta for that period in
+    the past, then represents that past timedelta in positive terms.
+
+    parse_human_timedelta('1 year') find the timedelta 1 year in the future.
+    parse_past_timedelta('1 year') returns -datetime.timedelta(-365)
+    or datetime.timedelta(365).
+    """
+    return -parse_human_timedelta(
+        delta_str if delta_str.startswith('-') else f'-{delta_str}')
 
 
 class JSONEncodedDict(TypeDecorator):
@@ -1003,9 +1016,9 @@ def get_since_until(time_range: Optional[str] = None,
         until = parse_human_datetime(until) if until else relative_end
 
     if time_shift:
-        time_shift = parse_human_timedelta(time_shift)
-        since = since if since is None else (since - time_shift)  # noqa: T400
-        until = until if until is None else (until - time_shift)  # noqa: T400
+        time_delta = parse_past_timedelta(time_shift)
+        since = since if since is None else (since - time_delta)  # noqa: T400
+        until = until if until is None else (until - time_delta)  # noqa: T400
 
     if since and until and since > until:
         raise ValueError(_('From date cannot be larger than to date'))
