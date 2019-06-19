@@ -31,20 +31,31 @@ from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import lazy_gettext as _
 import pandas
-from pydruid.client import PyDruid
-from pydruid.utils.aggregators import count
-from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
-from pydruid.utils.filters import Dimension, Filter
-from pydruid.utils.having import Aggregation
-from pydruid.utils.postaggregator import (
-    Const,
-    Field,
-    HyperUniqueCardinality,
-    Postaggregator,
-    Quantile,
-    Quantiles,
-)
-import requests
+
+try:
+    from pydruid.client import PyDruid
+    from pydruid.utils.aggregators import count
+    from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
+    from pydruid.utils.filters import Dimension, Filter
+    from pydruid.utils.having import Aggregation
+    from pydruid.utils.postaggregator import (
+        Const,
+        Field,
+        HyperUniqueCardinality,
+        Postaggregator,
+        Quantile,
+        Quantiles,
+    )
+    import requests
+except ImportError as e:
+    print(
+        "pydruid and requests are optional dependencies, and "
+        "it seems they are not installed on your system. Aborting..."
+    )
+    from sys import exit
+
+    exit(1)
+
 import sqlalchemy as sa
 from sqlalchemy import (
     Boolean,
