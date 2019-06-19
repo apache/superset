@@ -31,7 +31,7 @@ export default function withVerification(WrappedComponent, optionLabel, optionsN
     constructor(props) {
       super(props);
       this.state = {
-        validOptions: new Set(),
+        validOptions: null,
         hasRunVerification: false,
       };
 
@@ -69,7 +69,7 @@ export default function withVerification(WrappedComponent, optionLabel, optionsN
     render() {
       const { validOptions } = this.state;
       const options = this.props[optionsName];
-      const verifiedOptions = validOptions.size ?
+      const verifiedOptions = validOptions ?
         options.filter(o => (validOptions.has(o[optionLabel]))) :
         options;
 

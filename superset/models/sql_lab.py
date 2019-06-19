@@ -59,7 +59,6 @@ class Query(Model, ExtraJSONMixin):
     executed_sql = Column(Text)
     # Could be configured in the superset config.
     limit = Column(Integer)
-    limit_used = Column(Boolean, default=False)
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
 
@@ -94,10 +93,6 @@ class Query(Model, ExtraJSONMixin):
         sqla.Index('ti_user_id_changed_on', user_id, changed_on),
     )
 
-    @property
-    def limit_reached(self):
-        return self.rows == self.limit if self.limit_used else False
-
     def to_dict(self):
         return {
             'changedOn': self.changed_on,
@@ -122,7 +117,6 @@ class Query(Model, ExtraJSONMixin):
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
             'user': user_label(self.user),
-            'limit_reached': self.limit_reached,
             'resultsKey': self.results_key,
             'trackingUrl': self.tracking_url,
             'extra': self.extra,
