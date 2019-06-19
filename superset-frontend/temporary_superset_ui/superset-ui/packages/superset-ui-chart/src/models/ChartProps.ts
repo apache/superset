@@ -9,7 +9,7 @@ type SnakeCaseDatasource = PlainObject;
 type CamelCaseFormData = PlainObject;
 type SnakeCaseFormData = PlainObject;
 export type QueryData = PlainObject;
-type Filters = any[];
+type Filters = PlainObject;
 type ChartPropsSelector = (c: ChartPropsConfig) => ChartProps;
 
 export interface ChartPropsConfig {
@@ -54,7 +54,7 @@ export default class ChartProps {
     const {
       annotationData = {},
       datasource = {},
-      filters = [],
+      filters = {},
       formData = {},
       hooks = {},
       onAddFilter = NOOP,
