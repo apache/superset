@@ -205,6 +205,10 @@ export default function(bootstrapData) {
     dashboardState: {
       sliceIds: Array.from(sliceIds),
       refresh: false,
+      // All the filter_box's state in this dashboard
+      // When dashboard is first loaded into browser,
+      // its value is from preselect_filters that dashboard owner saved in dashboard's meta data
+      // When user start interacting with dashboard, it will be user picked values from all filter_box
       filters,
       directPathToChild,
       expandedSlices: dashboard.metadata.expanded_slices || {},

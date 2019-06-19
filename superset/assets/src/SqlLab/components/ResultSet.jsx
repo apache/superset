@@ -73,6 +73,7 @@ export default class ResultSet extends React.PureComponent {
     // when new results comes in, save them locally and clear in store
     if (this.props.cache && (!nextProps.query.cached)
       && nextProps.query.results
+      && nextProps.query.results.data
       && nextProps.query.results.data.length > 0) {
       this.setState(
         { data: nextProps.query.results.data },
@@ -231,6 +232,7 @@ export default class ResultSet extends React.PureComponent {
       return (
         <Button
           bsSize="sm"
+          className="fetch"
           bsStyle="primary"
           onClick={this.reFetchQueryResults.bind(this, query)}
         >

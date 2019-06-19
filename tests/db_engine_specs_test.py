@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import inspect
 from unittest import mock
 
 from sqlalchemy import column, literal_column, select, table
@@ -22,12 +21,20 @@ from sqlalchemy.dialects import mssql, oracle, postgresql
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.types import String, UnicodeText
 
-from superset import db_engine_specs
-from superset.db_engine_specs import (
-    BaseEngineSpec, BQEngineSpec, HiveEngineSpec, MssqlEngineSpec,
-    MySQLEngineSpec, OracleEngineSpec, PinotEngineSpec, PostgresEngineSpec,
-    PrestoEngineSpec,
+from superset.db_engine_specs import engines
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    builtin_time_grains,
+    create_time_grains_tuple,
 )
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+from superset.db_engine_specs.hive import HiveEngineSpec
+from superset.db_engine_specs.mssql import MssqlEngineSpec
+from superset.db_engine_specs.mysql import MySQLEngineSpec
+from superset.db_engine_specs.oracle import OracleEngineSpec
+from superset.db_engine_specs.pinot import PinotEngineSpec
+from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
 
@@ -302,24 +309,23 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             'PT1S': '{col}',
             'PT1M': '{col}',
         }
-        time_grains = db_engine_specs._create_time_grains_tuple(time_grains,
-                                                                time_grain_functions,
-                                                                blacklist)
+        time_grains = create_time_grains_tuple(time_grains,
+                                               time_grain_functions,
+                                               blacklist)
         self.assertEqual(1, len(time_grains))
         self.assertEqual('PT1S', time_grains[0].duration)
 
     def test_engine_time_grain_validity(self):
-        time_grains = set(db_engine_specs.builtin_time_grains.keys())
+        time_grains = set(builtin_time_grains.keys())
         # loop over all subclasses of BaseEngineSpec
-        for cls_name, cls in inspect.getmembers(db_engine_specs):
-            if inspect.isclass(cls) and issubclass(cls, BaseEngineSpec) \
-                    and cls is not BaseEngineSpec:
+        for engine in engines.values():
+            if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
-                self.assertGreater(len(cls.time_grain_functions), 0)
+                self.assertGreater(len(engine.time_grain_functions), 0)
                 # make sure that all defined time grains are supported
-                defined_time_grains = {grain.duration for grain in cls.get_time_grains()}
-                intersection = time_grains.intersection(defined_time_grains)
-                self.assertSetEqual(defined_time_grains, intersection, cls_name)
+                defined_grains = {grain.duration for grain in engine.get_time_grains()}
+                intersection = time_grains.intersection(defined_grains)
+                self.assertSetEqual(defined_grains, intersection, engine)
 
     def test_presto_get_view_names_return_empty_list(self):
         self.assertEquals([], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY))
@@ -691,19 +697,19 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))
 
     def test_bigquery_sqla_column_label(self):
-        label = BQEngineSpec.make_label_compatible(column('Col').name)
+        label = BigQueryEngineSpec.make_label_compatible(column('Col').name)
         label_expected = 'Col'
         self.assertEqual(label, label_expected)
 
-        label = BQEngineSpec.make_label_compatible(column('SUM(x)').name)
+        label = BigQueryEngineSpec.make_label_compatible(column('SUM(x)').name)
         label_expected = 'SUM_x__5f110b965a993675bc4953bb3e03c4a5'
         self.assertEqual(label, label_expected)
 
-        label = BQEngineSpec.make_label_compatible(column('SUM[x]').name)
+        label = BigQueryEngineSpec.make_label_compatible(column('SUM[x]').name)
         label_expected = 'SUM_x__7ebe14a3f9534aeee125449b0bc083a8'
         self.assertEqual(label, label_expected)
 
-        label = BQEngineSpec.make_label_compatible(column('12345_col').name)
+        label = BigQueryEngineSpec.make_label_compatible(column('12345_col').name)
         label_expected = '_12345_col_8d3906e2ea99332eb185f7f8ecb2ffd6'
         self.assertEqual(label, label_expected)
 
@@ -756,14 +762,14 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """ Make sure base engine spec removes schema name from table name
         ie. when try_remove_schema_from_table_name == True. """
         base_result_expected = ['table', 'table_2']
-        base_result = db_engine_specs.BaseEngineSpec.get_table_names(
+        base_result = BaseEngineSpec.get_table_names(
             schema='schema', inspector=inspector)
         self.assertListEqual(base_result_expected, base_result)
 
         """ Make sure postgres doesn't try to remove schema name from table name
         ie. when try_remove_schema_from_table_name == False. """
         pg_result_expected = ['schema.table', 'table_2', 'table_3']
-        pg_result = db_engine_specs.PostgresEngineSpec.get_table_names(
+        pg_result = PostgresEngineSpec.get_table_names(
             schema='schema', inspector=inspector)
         self.assertListEqual(pg_result_expected, pg_result)
 
