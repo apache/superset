@@ -55,7 +55,6 @@ except ImportError as e:
     from sys import exit
 
     exit(1)
-
 import sqlalchemy as sa
 from sqlalchemy import (
     Boolean,

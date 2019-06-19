@@ -53,12 +53,12 @@ import pandas as pd
 import parsedatetime
 try:
     from pydruid.utils.having import Having
-except ImportError as e:
-    print("pydruid is an optional dependency, and "
-          "it seems it is not installed on your system. Aborting...")
+except ImportError:
+    print("""pydruid is an optional dependency, and
+          it seems it is not installed on your system. Aborting...
+          """)
     from sys import exit
     exit(1)
-
 import sqlalchemy as sa
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
