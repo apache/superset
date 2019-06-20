@@ -238,7 +238,7 @@ class RolePermissionTests(SupersetTestCase):
         """Preventing the addition of unsecured views without has_access decorator"""
         # These FAB views are secured in their body as opposed to by decorators
         method_whitelist = ('action', 'action_post')
-        # List of redirect & other benign views
+        # List of manually secured, redirect & other benign views
         views_whitelist = [
             ['MyIndexView', 'index'],
             ['UtilView', 'back'],
@@ -247,6 +247,7 @@ class RolePermissionTests(SupersetTestCase):
             ['AuthDBView', 'logout'],
             ['R', 'index'],
             ['Superset', 'log'],
+            ['Superset', 'queries'],
             ['Superset', 'theme'],
             ['Superset', 'welcome'],
             ['SecurityApi', 'login'],

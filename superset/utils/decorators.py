@@ -17,12 +17,14 @@
 from datetime import datetime, timedelta
 from functools import wraps
 import logging
+from typing import Callable
 
 from contextlib2 import contextmanager
-from flask import request
+from flask import g, request
 
 from superset import app, cache
 from superset.utils.dates import now_as_float
+from superset.views.base import json_error_response
 
 
 # If a user sets `max_age` to 0, for long the browser should cache the
@@ -116,3 +118,22 @@ def etag_cache(max_age, check_perms=bool):
         return wrapper
 
     return decorator
+
+
+def logged_in_api(f: Callable) -> Callable:
+    """
+    Use this decorator to require a user to be logged to use your API methods.
+    If the user is not logged in, this will return an HTTP 401.
+
+    :param f: the api function to be wrapped
+    :returns: the wrapped function
+    """
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not g.user.is_active:
+            return json_error_response(
+                'Please login to access this api.', status=401)
+
+        return f(*args, **kwargs)
+
+    return wrapper

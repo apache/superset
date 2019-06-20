@@ -59,7 +59,7 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
-from superset.utils.decorators import etag_cache
+from superset.utils.decorators import etag_cache, logged_in_api
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -2800,14 +2800,11 @@ class Superset(BaseSupersetView):
         security_manager.assert_datasource_permission(datasource)
         return json_success(json.dumps(datasource.data))
 
-    @has_access_api
+    @logged_in_api
     @expose('/queries/<last_updated_ms>')
     def queries(self, last_updated_ms):
         """Get the updated queries."""
         stats_logger.incr('queries')
-        if not g.user.get_id():
-            return json_error_response(
-                'Please login to access the queries.', status=403)
 
         # Unix time, milliseconds.
         last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
