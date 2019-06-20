@@ -10,8 +10,8 @@ import pandas as pd
 
 from superset import app, cli, db
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.models.core import Dashboard, Database
-from superset.utils.dashboard_import_export import get_or_create_main_db
+from superset.models.core import Dashboard, Database, Slice
+from superset.utils.core import get_or_create_db_by_name
 from tests.base_tests import SupersetTestCase
 
 config = app.config
@@ -135,8 +135,65 @@ class SupersetCliTestCase(SupersetTestCase):
 
         # Did all rows get imported?
         df = pd.read_sql('SELECT * FROM wb_health_population',
-                         get_or_create_main_db().get_sqla_engine())
+                         get_or_create_db_by_name(db_name='main').get_sqla_engine())
         self.assertEqual(len(df.index), 11770)
+
+    def test_examples_import_duplicate(self):
+        """Test `superset examples import` when existing dashboard/diff uuid is present"""
+        # Load a pre-existing "World's Bank" Dashboard via `superset load_examples`
+        self.runner.invoke(
+            app.cli,
+            ['load_examples']
+        )
+        # Load the same dashboard but different uuids
+        self.runner.invoke(
+            app.cli,
+            [
+                'examples', 'import', '-e',
+                'World Bank Health Nutrition and Population Stats',
+            ],
+        )
+
+        # Did the dashboard get imported to the main DB more than once?
+        dashboards = db.session.query(Dashboard).filter(
+            Dashboard.dashboard_title.in_(["World's Bank Data"])).all()
+        self.assertEqual(len(dashboards), 2)
+
+        # Did the slices get imported to the main DB more than once?
+        slices = db.session.query(Slice).filter(
+            Slice.slice_name.in_(["World's Population"])
+        ).all()
+        self.assertEqual(len(slices), 2)
+
+    def test_examples_import_duplicate_uuid(self):
+        """Test `superset examples import` when existing dashboard/same uuid is present"""
+        # Load a pre-existing "World's Bank" Dashboard
+        self.runner.invoke(
+            app.cli,
+            [
+                'examples', 'import', '-e',
+                'World Bank Health Nutrition and Population Stats',
+            ],
+        )
+        # Load the same dashboard but different uuids
+        self.runner.invoke(
+            app.cli,
+            [
+                'examples', 'import', '-e',
+                'World Bank Health Nutrition and Population Stats',
+            ],
+        )
+
+        # Did the dashboard get imported to the main DB just once?
+        dashboards = db.session.query(Dashboard).filter(
+            Dashboard.dashboard_title.in_(["World's Bank Data"])).all()
+        self.assertEqual(len(dashboards), 1)
+
+        # Did the slices get imported just once?
+        slices = db.session.query(Slice).filter(
+            Slice.slice_name.in_(["World's Population"])
+        ).all()
+        self.assertEqual(len(slices), 1)
 
     def test_examples_remove(self):
         """Test `superset examples remove`"""
@@ -161,8 +218,6 @@ class SupersetCliTestCase(SupersetTestCase):
         # Is the dashboard still in the main db?
         total = db.session.query(Dashboard).filter(
             Dashboard.dashboard_title.in_(["World's Bank Data"])).count()
-        logging.debug('total 1')
-        logging.debug(total)
         self.assertEqual(total, 0)
 
         # Is the data table gone?
@@ -177,8 +232,6 @@ class SupersetCliTestCase(SupersetTestCase):
                 Database.database_name == db_name and
                 SqlaTable.table_name == 'wb_health_population')
         ).count()
-        logging.debug('total 2')
-        logging.debug(total)
         self.assertEqual(total, 0)
 
     def test_examples_export(self):
