@@ -44,6 +44,11 @@ creation of permissions set `FAB_UPDATE_PERMS = False` on config.
 which adds missing non-nullable fields and uniqueness constraints to the metrics
 and sql_metrics tables. Depending on the integrity of the data, manual
 intervention may be required.
+* [7616](https://github.com/apache/incubator-superset/pull/7616): this bug fix
+changes time_compare deltas to correctly evaluate to the number of days prior
+instead of number of days in the future. It will change the data for advanced
+analytics time_compare so `1 year` from 5/1/2019 will be calculated as 365 days
+instead of 366 days.
 
 ## Superset 0.32.0
 
