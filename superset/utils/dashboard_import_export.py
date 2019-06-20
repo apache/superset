@@ -112,12 +112,13 @@ def import_dashboards(session, data, is_example=False, data_blob_urls=None,
     substitute_db_name = get_db_name(database_uri) if database_uri else \
         get_or_create_db_by_name(db_name='main').database_name
 
-    import_dashboard(session, data, import_time)
-    import_datasources(data, import_time, substitute_db_name=substitute_db_name)
-    session.commit()
-
     import_files_to_table(data, is_example=True, data_blob_urls=data_blob_urls)
     session.commit()
+
+    import_datasources(data, import_time, substitute_db_name=substitute_db_name)
+    import_dashboard(session, data, import_time)
+    session.commit()
+
 
 
 def get_db_name(uri):
