@@ -164,7 +164,7 @@ class Slice(Model, AuditMixinNullable, ImportExportMixin):
     owners = relationship(security_manager.user_model, secondary=slice_user)
 
     export_fields = ('slice_name', 'datasource_type', 'datasource_name',
-                     'viz_type', 'params', 'cache_timeout', 'uuid')
+                     'viz_type', 'params', 'cache_timeout')
 
     def __repr__(self):
         return self.slice_name or str(self.id)
@@ -352,11 +352,11 @@ class Slice(Model, AuditMixinNullable, ImportExportMixin):
         session = db.session
         make_transient(slc_to_import)
         slc_to_import.dashboards = []
-        slc_to_import.alter_params(
-            remote_id=slc_to_import.id, import_time=import_time)
+        slc_to_import.alter_params(remote_id=slc_to_import.id, import_time=import_time)
 
-        slc_to_import = slc_to_import.copy()
+        slc_to_import = slc_to_import.copy()  # Resets id to None
         params = slc_to_import.params_dict
+
         slc_to_import.datasource_id = ConnectorRegistry.get_datasource_by_name(
             session, slc_to_import.datasource_type, params['datasource_name'],
             params['schema'], params['database_name']).id
@@ -413,7 +413,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
 
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
-                     'description', 'css', 'slug', 'uuid')
+                     'description', 'css', 'slug')
 
     def __repr__(self):
         return self.dashboard_title or str(self.id)
@@ -553,15 +553,14 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         new_timed_refresh_immune_slices = []
         new_expanded_slices = {}
         i_params_dict = dashboard_to_import.params_dict
-        remote_id_slice_map = {
-            slc.params_dict['remote_id']: slc
+        uuid_slice_map = {
+            slc.uuid: slc
             for slc in session.query(Slice).all()
-            if 'remote_id' in slc.params_dict
         }
         for slc in slices:
             logging.info('Importing slice {} from the dashboard: {}'.format(
                 slc.to_json(), dashboard_to_import.dashboard_title))
-            remote_slc = remote_id_slice_map.get(slc.id)
+            remote_slc = uuid_slice_map.get(slc.uuid)
             new_slc_id = Slice.import_obj(slc, remote_slc, import_time=import_time)
             old_to_new_slc_id_dict[slc.id] = new_slc_id
             # update json metadata that deals with slice ids
@@ -582,14 +581,15 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         # override the dashboard
         existing_dashboard = None
         for dash in session.query(Dashboard).all():
-            if ('remote_id' in dash.params_dict and
-                    dash.params_dict['remote_id'] ==
-                    dashboard_to_import.id):
+            if ('uuid' in dash.params_dict and
+                    dash.params_dict['uuid'] ==
+                    dashboard_to_import.uuid):
                 existing_dashboard = dash
 
         dashboard_to_import.id = None
         alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
-        dashboard_to_import.alter_params(import_time=import_time)
+        dashboard_to_import.alter_params(import_time=import_time,
+                                         uuid=dashboard_to_import.uuid)
         if new_expanded_slices:
             dashboard_to_import.alter_params(
                 expanded_slices=new_expanded_slices)
@@ -749,7 +749,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
                      'expose_in_sqllab', 'allow_run_async',
-                     'allow_ctas', 'allow_csv_upload', 'extra', 'uuid')
+                     'allow_ctas', 'allow_csv_upload', 'extra')
     export_children = ['tables']
 
     def __repr__(self):
