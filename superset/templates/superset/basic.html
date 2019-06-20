@@ -17,6 +17,9 @@
   under the License.
 #}
 {% import 'appbuilder/general/lib.html' as lib %}
+{% set app_favicon = appbuilder.app.config.get('APP_FAVICON', "/static/assets/images/favicon.png") %}
+{% set app_favicon_type = appbuilder.app.config.get('APP_FAVICON_TYPE', "image/png") %}
+
 <html>
   <head>
     <title>
@@ -30,7 +33,7 @@
     </title>
     {% block head_meta %}{% endblock %}
     {% block head_css %}
-      <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+      <link rel="icon" type="{{app_favicon_type}}" href="{{app_favicon}}">
       <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
       <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/font-awesome.min.css">
 
