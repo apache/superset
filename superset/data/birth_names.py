@@ -19,6 +19,7 @@ import textwrap
 
 import pandas as pd
 from sqlalchemy import DateTime, String
+from sqlalchemy.sql import column
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlMetric, TableColumn
@@ -64,15 +65,18 @@ def load_birth_names():
     obj.filter_select_enabled = True
 
     if not any(col.column_name == 'num_california' for col in obj.columns):
+        col_state = str(column('state').compile(db.engine))
+        col_num = str(column('num').compile(db.engine))
         obj.columns.append(TableColumn(
             column_name='num_california',
-            expression="CASE WHEN state = 'CA' THEN num ELSE 0 END",
+            expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
         ))
 
     if not any(col.metric_name == 'sum__num' for col in obj.metrics):
+        col = str(column('num').compile(db.engine))
         obj.metrics.append(SqlMetric(
             metric_name='sum__num',
-            expression='SUM(num)',
+            expression=f'SUM({col})',
         ))
 
     db.session.merge(obj)
