@@ -45,4 +45,19 @@ describe('createD3NumberFormatter(config)', () => {
       expect(formatter.description).toEqual('lorem ipsum');
     });
   });
+  describe('config.locale', () => {
+    it('supports locale customization such as currency', () => {
+      const formatter = createD3NumberFormatter({
+        description: 'lorem ipsum',
+        formatString: '$.2f',
+        locale: {
+          decimal: '.',
+          thousands: ',',
+          grouping: [3],
+          currency: ['€', ''],
+        },
+      });
+      expect(formatter(200)).toEqual('€200.00');
+    });
+  });
 });
