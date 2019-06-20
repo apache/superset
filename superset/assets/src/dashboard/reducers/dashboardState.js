@@ -46,11 +46,8 @@ export default function dashboardStateReducer(state = {}, action) {
     [CLOSE_MODAL]() {
       return { ...state, modalChartId: -1 };
     },
-    [ON_RECONCILE]() {
-      return { ...state, doReconcile: true };
-    },
     [ON_SUCCESS_RECONCILE]() {
-      return { ...state, doReconcile: false, publishSubscriberMap: action.publishSubscriberMap };
+      return { ...state, publishSubscriberMap: action.publishSubscriberMap };
     },
     [UPDATE_CSS]() {
       return { ...state, css: action.css };

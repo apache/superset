@@ -135,21 +135,9 @@ export function onSave() {
   return { type: ON_SAVE };
 }
 
-export const ON_RECONCILE = 'ON_RECONCILE';
-export function onReconcile() {
-  return { type: ON_RECONCILE };
-}
-
 export const ON_SUCCESS_RECONCILE = 'ON_SUCCESS_RECONCILE';
 export function onSuccessReconcile(publishSubscriberMap) {
   return { type: ON_SUCCESS_RECONCILE, publishSubscriberMap };
-}
-
-export function reconcileSuccess(data, id) {
-  return dispatch => {
-    dispatch(onSuccessReconcile(data.pub_sub_info))
-    dispatch(saveDashboardRequest(data, id, SAVE_TYPE_OVERWRITE, 'This dashboard was reconcile successfully.'));
-  };
 }
 
 export function saveDashboardRequestSuccess() {

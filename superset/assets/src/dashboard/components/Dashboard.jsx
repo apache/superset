@@ -193,22 +193,7 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    const { refresh, filters, hasUnsavedChanges, doReconcile } = this.props.dashboardState;
-    //reconcile dashboard
-    if (doReconcile) {
-      const publishSubscriberMap = getPublishSubscriberMap(this.getAllCharts());
-      const savePayload = {
-        positions: this.props.layout,
-        css: this.props.dashboardState.css,
-        expanded_slices: this.props.dashboardState.expandedSlices,
-        dashboard_title: this.props.layout[DASHBOARD_HEADER_ID].meta.text,
-        default_filters: JSON.stringify(this.props.dashboardState.filters),
-        duplicate_slices: false,
-        pub_sub_info: publishSubscriberMap,
-      };
-      const dashID = this.props.dashboardInfo.id;
-      this.props.actions.reconcileSuccess(savePayload, dashID);
-    }
+    const { refresh, filters, hasUnsavedChanges } = this.props.dashboardState;
     if (refresh) {
       // refresh charts if a filter was removed, added, or changed
       let changedFilterKey = null;

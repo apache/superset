@@ -62,7 +62,6 @@ const propTypes = {
   updateCss: PropTypes.func.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
   maxUndoHistoryExceeded: PropTypes.bool.isRequired,
-  onReconcile: PropTypes.func.isRequired,
 
   // redux
   onUndo: PropTypes.func.isRequired,
@@ -215,7 +214,6 @@ class Header extends React.PureComponent {
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
-      onReconcile,
     } = this.props;
 
     const userCanEdit = dashboardInfo.dash_edit_perm;
@@ -334,7 +332,6 @@ class Header extends React.PureComponent {
             userCanEdit={userCanEdit}
             userCanSave={userCanSaveAs}
             isLoading={isLoading}
-            reconcileDashboard={onReconcile}
           />
         </div>
       </div>
