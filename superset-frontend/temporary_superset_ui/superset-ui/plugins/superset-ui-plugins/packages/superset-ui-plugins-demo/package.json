@@ -30,7 +30,7 @@
   "homepage": "https://github.com/apache-superset/superset-ui-plugins#readme",
   "dependencies": {
     "@babel/polyfill": "^7.4.3",
-    "@data-ui/event-flow": "^0.0.78",
+    "@data-ui/event-flow": "^0.0.79",
     "@storybook/addon-actions": "^5.0.9",
     "@storybook/addon-knobs": "^5.0.9",
     "@storybook/addon-links": "^5.0.9",
