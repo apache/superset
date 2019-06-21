@@ -856,10 +856,14 @@ class Superset(BaseSupersetView):
 
             slices = json.loads(request.form.get('slices'))
             for _slice in slices:
+                columns = json.dumps([])
+                if 'columns' in _slice:
+                    columns = json.dumps(_slice['columns'])
                 params = {
                     'database_id':json.loads(db_response.content)['database_id'],
                     'table_name':_slice['table_name'],
-                    'schema':_slice['schema']
+                    'schema':_slice['schema'],
+                    'columns':columns,
                     }
                 table_response = req_session.post(request.host_url+'tablemodelview/create' ,headers = headers,data = request.form,params=params)
                 _slice['datasource'] =  json.loads(table_response.content)['table_name']

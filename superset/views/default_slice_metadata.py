@@ -1,12 +1,12 @@
 DEFAULT_SLICES = {
                   'table': {
-                      'slice_name':'new_table2',
-                      'datasource':'2__table',
+                      'slice_name':'Untitled',
+                      'datasource':None,
                       'viz_type':'table',
                       'url_params':{},
                       'publish_columns':[],
-                      'granularity_sqla':'timestamp',
-                      'time_grain_sqla':'P1D',
+                      'granularity_sqla':None,
+                      'time_grain_sqla':None,
                       'time_range':'No filter',
                       'query_with_partitions':False,
                       'groupby':[],
@@ -27,12 +27,13 @@ DEFAULT_SLICES = {
                       'color_pn':True
                   },
                   'pie': {
-                      'datasource':'5__table',
+                      'slice_name':'Untitled',
+                      'datasource':None,
                       'viz_type':'pie',
                       'url_params':{},
                       'publish_columns':[],
-                      'granularity_sqla':'bin_ts',
-                      'time_grain_sqla':'P1D',
+                      'granularity_sqla':None,
+                      'time_grain_sqla':None,
                       'time_range':'No filter',
                       'query_with_partitions':True,
                       'metric':{
@@ -59,7 +60,7 @@ DEFAULT_SLICES = {
                       },
                       'adhoc_filters':[],
                       'groupby':['agg_count'],
-                      'row_limit':'25',
+                      'row_limit':100,
                       'pie_label_type':'key',
                       'number_format':'.3s',
                       'donut':False,
@@ -69,12 +70,13 @@ DEFAULT_SLICES = {
                       'color_scheme':'bnbColors'
                   },
                   'line': {
-                    'datasource':'5__table',
+                    'slice_name':'Untitled',
+                    'datasource':None,
                     'viz_type':'line',
                     'url_params':{},
                     'publish_columns':[],
-                    'granularity_sqla':'bin_ts',
-                    'time_grain_sqla':'P1D',
+                    'granularity_sqla':None,
+                    'time_grain_sqla':None,
                     'time_range':'No filter',
                     'query_with_partitions':True,
                     'metrics':[
@@ -104,7 +106,7 @@ DEFAULT_SLICES = {
                     'timeseries_limit_metric':None,
                     'order_desc':True,
                     'contribution':False,
-                    'row_limit':50000,
+                    'row_limit':100,
                     'color_scheme':'bnbColors',
                     'show_brush':'auto',
                     'send_time_range':False,
@@ -131,12 +133,13 @@ DEFAULT_SLICES = {
                     'annotation_layers':[]
                   },
                   'dist_bar': {
-                     'datasource':'1__table',
+                     'slice_name':'Untitled',
+                     'datasource':None,
                      'viz_type':'dist_bar',
                      'url_params':{},
                      'publish_columns':[],
-                     'granularity_sqla':'created_on',
-                     'time_grain_sqla':'P1D',
+                     'granularity_sqla':None,
+                     'time_grain_sqla':None,
                      'time_range':'Last week',
                      'query_with_partitions':False,
                      'metrics':[
@@ -165,7 +168,7 @@ DEFAULT_SLICES = {
                       'adhoc_filters':[],
                       'groupby':['created_on'],
                       'columns':[],
-                      'row_limit':10000,
+                      'row_limit':100,
                       'contribution':False,
                       'color_scheme':'bnbColors',
                       'show_legend':True,
@@ -191,7 +194,7 @@ SIMPLE_ADHOC_FILTER = {
                 'fromFormData': True,
                 'operator': '==',
                 'sqlExpression': None,
-                'subject': 'control_availability'
+                'subject': None
 }
 
 DEFAULT_COLUMN = {

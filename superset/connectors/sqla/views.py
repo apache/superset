@@ -34,6 +34,7 @@ from superset.views.base import (
     ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
+from superset.connectors.sqla.models import TableColumn
 
 logger = logging.getLogger(__name__)
 
@@ -269,6 +270,15 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'hive_partitions': _('Hive Partitions')
     }
 
+    def get_table_columns(self,columns):
+        table_columns = []
+        for column in columns:
+            table_column = TableColumn()
+            for prop in column:
+                setattr(table_column, prop, column[prop])
+            table_columns.append(table_column)
+        return table_columns
+
     @expose('/create', methods=['POST'])
     def create(self):
         try:
@@ -276,11 +286,14 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
             table_name =  request.args.get('table_name')
             schema =  request.args.get('schema')
             database = db.session.query(models.Database).filter_by(id=database_id).one()
+            columns = json.loads(request.args.get('columns'))
+            table_columns = self.get_table_columns(columns)
             table_model = models.SqlaTable(
                 table_name=table_name,
                 schema=schema,
                 database_id=database_id,
-                database = database
+                database = database,
+                columns= table_columns,
             )
             db.session.add(table_model)
             db.session.commit()
