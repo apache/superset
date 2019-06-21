@@ -54,11 +54,7 @@ import parsedatetime
 try:
     from pydruid.utils.having import Having
 except ImportError:
-    print("""pydruid is an optional dependency, and
-          it seems it is not installed on your system. Aborting...
-          """)
-    from sys import exit
-    exit(1)
+    pass
 import sqlalchemy as sa
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
@@ -186,18 +182,21 @@ def string_to_num(s: str):
         return None
 
 
-class DimSelector(Having):
-    def __init__(self, **args):
-        # Just a hack to prevent any exceptions
-        Having.__init__(self, type="equalTo", aggregation=None, value=None)
+try:
+    class DimSelector(Having):
+        def __init__(self, **args):
+            # Just a hack to prevent any exceptions
+            Having.__init__(self, type='equalTo', aggregation=None, value=None)
 
-        self.having = {
-            "having": {
-                "type": "dimSelector",
-                "dimension": args["dimension"],
-                "value": args["value"],
+            self.having = {
+                'having': {
+                    'type': 'dimSelector',
+                    'dimension': args['dimension'],
+                    'value': args['value'],
+                },
             }
-        }
+except NameError:
+    pass
 
 
 def list_minus(l: List, minus: List) -> List:
