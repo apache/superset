@@ -61,7 +61,6 @@ def make_shell_context():
 def init():
     """Inits the Superset application"""
     utils.get_or_create_db_by_name(db_name='main')
-    # utils.get_or_create_db_by_name(db_name='examples')
     appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
 
