@@ -34,7 +34,7 @@ from superset import (
     app, appbuilder, data, db, security_manager,
 )
 from superset.data.helpers import (
-    download_url_to_blob_url, get_examples_file_list, get_examples_uris, 
+    download_url_to_blob_url, get_examples_file_list, get_examples_uris,
     list_examples_table,
 )
 from superset.exceptions import DashboardNotFoundException, ExampleNotFoundException
@@ -220,7 +220,7 @@ def export_example(dashboard_id, dashboard_title, description, example_title,
 @examples.command('list')
 @click.option(
     '--examples-repo', '-r',
-    help="Full name of Github repository containing examples, ex: " + 
+    help='Full name of Github repository containing examples, ex: ' +
          "'apache-superset/examples-data'",
     default=None)
 @click.option(
@@ -242,7 +242,7 @@ def _list_examples(examples_repo, examples_tag, full_fields):
     default=config.get('SQLALCHEMY_EXAMPLES_URI'))
 @click.option(
     '--examples-repo', '-r',
-    help="Full name of Github repository containing examples, ex: " +
+    help='Full name of Github repository containing examples, ex: ' +
          "'apache-superset/examples-data'",
     default=None)
 @click.option(
@@ -272,7 +272,7 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
     for example_file in examples_files:
 
         metadata_download_url = example_file['metadata_file']['download_url']
-        example_metadata_json = requests.get(metadata_download_url, 
+        example_metadata_json = requests.get(metadata_download_url,
                                              headers=headers).content
         # Cheaply load json without generating objects
         example_metadata = json.loads(example_metadata_json)
@@ -289,7 +289,7 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
         exit(1)
 
     # Parse data to get file download_urls -> blob_urls
-    example_metadata = json.loads(import_example_json, 
+    example_metadata = json.loads(import_example_json,
                                   object_hook=utils.decode_dashboards)
 
     # The given download url won't work for data files, need a blob url
@@ -320,7 +320,7 @@ def import_example(example_title, examples_repo, examples_tag, database_uri):
     default=config.get('SQLALCHEMY_EXAMPLES_URI'))
 @click.option(
     '--examples-repo', '-r',
-    help="Full name of Github repository containing examples, ex: " + 
+    help='Full name of Github repository containing examples, ex: ' +
          "'apache-superset/examples-data'",
     default=None)
 @click.option(
@@ -375,7 +375,7 @@ def remove_example(example_title, database_uri, examples_repo, examples_tag):
             session,
             import_example_data,
             dashboard_title,
-            database_uri=database_uri
+            database_uri=database_uri,
         )
     except DashboardNotFoundException as e:
         logging.exception(e)

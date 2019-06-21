@@ -33,7 +33,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy_utils.types.uuid import UUIDType
 import yaml
 
-from superset.utils.core import SQLAJsonEncoder, QueryStatus
+from superset.utils.core import QueryStatus, SQLAJsonEncoder
 
 
 def json_to_dict(json_str):

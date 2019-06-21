@@ -61,7 +61,7 @@ def table_to_sql(path, table_name, engine):
     logging.info(f'Import data from file {path} into table {table_name}')
 
     try:
-        df = pd.read_csv(path, parse_dates=True, infer_datetime_format=True, 
+        df = pd.read_csv(path, parse_dates=True, infer_datetime_format=True,
                          compression='infer')
         df.to_sql(
             table_name,
@@ -69,7 +69,7 @@ def table_to_sql(path, table_name, engine):
             if_exists='replace',
             chunksize=500,
             index=False)
-    except (pd.errors.ParserError, pd.errors.OutOfBoundsDatetime, 
+    except (pd.errors.ParserError, pd.errors.OutOfBoundsDatetime,
             pd.errors.EmptyDataError) as e:
         logging.exception(e)
         raise SupersetException('Error reading table into database!')
@@ -99,7 +99,7 @@ def import_files_to_table(data, is_example=False, data_blob_urls=None):
                 table_to_sql(table['file_name'], table['table_name'], engine)
 
 
-def import_dashboards(session, data, is_example=False, data_blob_urls=None, 
+def import_dashboards(session, data, is_example=False, data_blob_urls=None,
                       database_uri=None, import_time=None):
     """Imports dashboards from a stream to databases"""
     current_tt = int(time.time())
@@ -118,7 +118,6 @@ def import_dashboards(session, data, is_example=False, data_blob_urls=None,
     import_datasources(data, import_time, substitute_db_name=substitute_db_name)
     import_dashboard(session, data, import_time)
     session.commit()
-
 
 
 def get_db_name(uri):
@@ -188,7 +187,7 @@ def get_slug(session, dashboard_id=None, dashboard_title=None):
     return slug
 
 
-def remove_dashboard(session, import_example_data, dashboard_title, database_uri=None, 
+def remove_dashboard(session, import_example_data, dashboard_title, database_uri=None,
                      primary_key=Column('id', Integer, primary_key=True)):
     """Remove a dashboard based on id or title"""
 
@@ -209,7 +208,7 @@ def remove_dashboard(session, import_example_data, dashboard_title, database_uri
     SqlaTable = ConnectorRegistry.sources['table']
     for f in import_example_data['files']:
         t = session.query(SqlaTable).filter(
-            SqlaTable.table_name == f['table_name']
+            SqlaTable.table_name == f['table_name'],
         ).one()
         session.delete(t)
         session.commit()

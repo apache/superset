@@ -21,9 +21,6 @@ import unittest
 import yaml
 
 from superset import db
-from superset.connectors.druid.models import (
-    DruidColumn, DruidDatasource, DruidMetric,
-)
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.utils.core import get_main_database
 from .base_tests import SupersetTestCase

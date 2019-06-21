@@ -8,7 +8,7 @@ import tempfile
 
 import pandas as pd
 
-from superset import app, cli, db
+from superset import app, cli, db  # noqa: F401
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.core import Dashboard, Database, Slice
 from superset.utils.core import get_or_create_db_by_name
@@ -143,7 +143,7 @@ class SupersetCliTestCase(SupersetTestCase):
         # Load a pre-existing "World's Bank" Dashboard via `superset load_examples`
         self.runner.invoke(
             app.cli,
-            ['load_examples']
+            ['load_examples'],
         )
         # Load the same dashboard but different uuids
         self.runner.invoke(
@@ -161,7 +161,7 @@ class SupersetCliTestCase(SupersetTestCase):
 
         # Did the slices get imported to the main DB more than once?
         slices = db.session.query(Slice).filter(
-            Slice.slice_name.in_(["World's Population"])
+            Slice.slice_name.in_(["World's Population"]),
         ).all()
         self.assertEqual(len(slices), 2)
 
@@ -191,7 +191,7 @@ class SupersetCliTestCase(SupersetTestCase):
 
         # Did the slices get imported just once?
         slices = db.session.query(Slice).filter(
-            Slice.slice_name.in_(["World's Population"])
+            Slice.slice_name.in_(["World's Population"]),
         ).all()
         self.assertEqual(len(slices), 1)
 
