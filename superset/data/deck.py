@@ -417,9 +417,9 @@ def load_deck_dash():
             'area',
         ],
         'js_data_mutator':
-            'data => data.map(d => ({'
-            '    ...d,'
-            '    elevation: d.extraProps.population/d.extraProps.area/10,'
+            'data => data.map(d => ({\n'
+            '    ...d,\n'
+            '    elevation: d.extraProps.population/d.extraProps.area/10,\n'
             '}));',
         'js_tooltip': '',
         'js_onclick_href': '',
