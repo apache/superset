@@ -270,7 +270,6 @@ export default function (bootstrapData) {
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
       publishSubscriberMap: publishSubscriberMap,
-      doReconcile: false,
       modalSliceIds: Array.from(modalSliceIds),
     },
     dashboardLayout,

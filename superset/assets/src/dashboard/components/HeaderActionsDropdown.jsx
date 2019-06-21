@@ -49,7 +49,6 @@ const propTypes = {
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   onSave: PropTypes.func.isRequired,
-  reconcileDashboard: PropTypes.func.isRequired,
 };
 
 const defaultProps = {};
@@ -112,7 +111,6 @@ class HeaderActionsDropdown extends React.PureComponent {
       userCanEdit,
       userCanSave,
       isLoading,
-      reconcileDashboard,
     } = this.props;
 
     const emailTitle = t('Superset Dashboard');
@@ -190,10 +188,6 @@ class HeaderActionsDropdown extends React.PureComponent {
             onChange={this.changeCss}
           />
         )}
-
-        <MenuItem onClick={reconcileDashboard} disabled={isLoading}>
-          {t('Reconcile dashboard')}
-        </MenuItem>
       </DropdownButton>
     );
   }

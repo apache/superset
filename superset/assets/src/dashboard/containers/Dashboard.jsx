@@ -24,7 +24,6 @@ import Dashboard from '../components/Dashboard';
 import {
   addSliceToDashboard,
   removeSliceFromDashboard,
-  reconcileSuccess,
   changeFilter,
   updateModalChart,
   hideModal,
@@ -68,7 +67,6 @@ function mapDispatchToProps(dispatch) {
         addSliceToDashboard,
         removeSliceFromDashboard,
         runQuery,
-        reconcileSuccess,
         changeFilter,
         updateModalChart,
         hideModal,
