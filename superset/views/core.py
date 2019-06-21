@@ -1881,7 +1881,7 @@ class Superset(BaseSupersetView):
         dash = session.query(models.Dashboard).filter_by(id=dashboard_id).first()
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form.get("data"))
-        self._set_dash_metadata(dash, data)
+        Superset._set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
         session.close()
