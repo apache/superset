@@ -101,7 +101,6 @@ try:
             }
             self.name = name
 
-
     class CustomPostAggregator(Postaggregator):
         """A way to allow users to specify completely custom PostAggregators"""
         def __init__(self, name, post_aggregator):
