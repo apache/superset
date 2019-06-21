@@ -19,15 +19,43 @@
 import logging
 from typing import List
 
-from flask import g
+from flask import current_app, g
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
+from flask_appbuilder.security.views import (
+    PermissionModelView, PermissionViewModelView, RoleModelView, UserModelView)
+from flask_appbuilder.widgets import ListWidget
 from sqlalchemy import or_
 
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName
+
+
+class SupersetSecurityListWidget(ListWidget):
+    """
+        Redeclaring to avoid circular imports
+    """
+    template = 'superset/fab_overrides/list.html'
+
+
+class SupersetRoleListWidget(ListWidget):
+    """
+        Role model view from FAB already uses a custom list widget override
+        So we override the override
+    """
+    template = 'superset/fab_overrides/list_role.html'
+
+    def __init__(self, **kwargs):
+        kwargs['appbuilder'] = current_app.appbuilder
+        super().__init__(**kwargs)
+
+
+UserModelView.list_widget = SupersetSecurityListWidget
+RoleModelView.list_widget = SupersetRoleListWidget
+PermissionViewModelView.list_widget = SupersetSecurityListWidget
+PermissionModelView.list_widget = SupersetSecurityListWidget
 
 
 class SupersetSecurityManager(SecurityManager):
