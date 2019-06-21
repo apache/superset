@@ -183,11 +183,11 @@ export default class TableSelector extends React.PureComponent {
     }
     this.props.onTableChange(tableName, schemaName);
   }
-  changeSchema(schemaOpt) {
+  changeSchema(schemaOpt, force = false) {
     const schema = schemaOpt ? schemaOpt.value : null;
     this.props.onSchemaChange(schema);
     this.setState({ schema }, () => {
-      this.fetchTables();
+      this.fetchTables(force);
       this.onChange();
     });
   }
