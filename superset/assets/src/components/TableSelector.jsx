@@ -130,12 +130,7 @@ export default class TableSelector extends React.PureComponent {
           `${encodeURIComponent(schema)}/${encodeURIComponent(substr)}/${forceRefresh}/`);
        return SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          const filterOptions = createFilterOptions({
-            options: json.options.map(o => ({
-              value: o.value.table,
-              label: o.label,
-            })),
-          });
+          const filterOptions = createFilterOptions({ options: json.options });
           this.setState(() => ({
             filterOptions,
             tableLoading: false,
