@@ -702,15 +702,15 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEqual(label, label_expected)
 
         label = BigQueryEngineSpec.make_label_compatible(column('SUM(x)').name)
-        label_expected = 'SUM_x__5f110b965a993675bc4953bb3e03c4a5'
+        label_expected = 'SUM_x__5f110'
         self.assertEqual(label, label_expected)
 
         label = BigQueryEngineSpec.make_label_compatible(column('SUM[x]').name)
-        label_expected = 'SUM_x__7ebe14a3f9534aeee125449b0bc083a8'
+        label_expected = 'SUM_x__7ebe1'
         self.assertEqual(label, label_expected)
 
         label = BigQueryEngineSpec.make_label_compatible(column('12345_col').name)
-        label_expected = '_12345_col_8d3906e2ea99332eb185f7f8ecb2ffd6'
+        label_expected = '_12345_col_8d390'
         self.assertEqual(label, label_expected)
 
     def test_oracle_sqla_column_name_length_exceeded(self):

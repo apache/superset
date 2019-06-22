@@ -88,7 +88,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         label_mutated = re.sub(r'[^\w]+', '_', label_mutated)
         if label_mutated != label:
             # add first 5 chars from md5 hash to label to avoid possible collisions
-            label_mutated += label_hashed[:5]
+            label_mutated += label_hashed[:6]
 
         return label_mutated
 
@@ -160,8 +160,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
         gbq_kwargs['project_id'] = kwargs['con'].engine.url.host
         gbq_kwargs['destination_table'] = f"{kwargs.pop('schema')}.{kwargs.pop('name')}"
 
-        # Remove unsupported kwargs
-        for key, value in kwargs.items():
-            if key in ('project_id', 'if_exists', 'name', 'schema'):
-                gbq_kwargs[key] = value
+        # Only pass through supported kwargs
+        supported_kwarg_keys = {'if_exists'}
+        for key in supported_kwarg_keys:
+            if key in kwargs:
+                gbq_kwargs[key] = kwargs[key]
         df.to_gbq(**gbq_kwargs)
