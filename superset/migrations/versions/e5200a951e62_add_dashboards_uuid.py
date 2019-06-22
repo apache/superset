@@ -95,18 +95,6 @@ class TableColumn(Base):
     uuid = Column(UUIDType(binary=False), default=get_uuid)
 
 
-class DashboardEmailSchedule(Base):
-    __tablename__ = 'dashboard_email_schedules'
-    id = Column(Integer, primary_key=True)
-    uuid = Column(UUIDType(binary=False), default=get_uuid)
-
-
-class SliceEmailSchedule(Base):
-    __tablename__ = 'slice_email_schedules'
-    id = Column(Integer, primary_key=True)
-    uuid = Column(UUIDType(binary=False), default=get_uuid)
-
-
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
@@ -137,8 +125,6 @@ def upgrade():
     add_uuid_column('sql_metrics', SqlMetric)
     add_uuid_column('tables', SqlaTable)
     add_uuid_column('table_columns', TableColumn)
-    add_uuid_column('dashboard_email_schedules', DashboardEmailSchedule)
-    add_uuid_column('slice_email_schedules', SliceEmailSchedule)
 
     session.close()
 
@@ -169,10 +155,4 @@ def downgrade():
         batch_op.drop_column('uuid')
 
     with op.batch_alter_table('table_columns') as batch_op:
-        batch_op.drop_column('uuid')
-
-    with op.batch_alter_table('dashboard_email_schedules') as batch_op:
-        batch_op.drop_column('uuid')
-
-    with op.batch_alter_table('slice_email_schedules') as batch_op:
         batch_op.drop_column('uuid')
