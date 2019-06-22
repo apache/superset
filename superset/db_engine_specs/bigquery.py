@@ -18,7 +18,6 @@ import hashlib
 import re
 
 import pandas as pd
-
 from sqlalchemy import literal_column
 
 from superset.db_engine_specs.base import BaseEngineSpec
