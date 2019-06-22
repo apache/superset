@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import hashlib
 import re
+
+import pandas as pd
 
 from sqlalchemy import literal_column
 
@@ -86,8 +87,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
         # replace non-alphanumeric characters with underscores
         label_mutated = re.sub(r'[^\w]+', '_', label_mutated)
         if label_mutated != label:
-            # add md5 hash to label to avoid possible collisions
-            label_mutated += label_hashed
+            # add first 5 chars from md5 hash to label to avoid possible collisions
+            label_mutated += label_hashed[:5]
 
         return label_mutated
 
@@ -141,3 +142,26 @@ class BigQueryEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_ms_to_dttm(cls):
         return 'TIMESTAMP_MILLIS({col})'
+
+    @classmethod
+    def df_to_sql(cls, df: pd.DataFrame, **kwargs):
+        """
+        Upload data from a Pandas DataFrame to BigQuery. Calls
+        `DataFrame.to_gbq()` which requires `pandas_gbq` to be installed.
+
+        :param df: Dataframe with data to be uploaded
+        :param kwargs: kwargs to be passed to to_gbq() method. Requires both `schema
+        and ``name` to be present in kwargs, which are combined and passed to
+        `to_gbq()` as `destination_table`.
+        """
+        if not ('name' in kwargs and 'schema' in kwargs):
+            raise Exception('name and schema need to be defined in kwargs')
+        gbq_kwargs = {}
+        gbq_kwargs['project_id'] = kwargs['con'].engine.url.host
+        gbq_kwargs['destination_table'] = f"{kwargs.pop('schema')}.{kwargs.pop('name')}"
+
+        # Remove unsupported kwargs
+        for key, value in kwargs.items():
+            if key in ('project_id', 'if_exists', 'name', 'schema'):
+                gbq_kwargs[key] = value
+        df.to_gbq(**gbq_kwargs)
