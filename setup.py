@@ -109,8 +109,8 @@ setup(
     ],
     extras_require={
         'bigquery': [
-            'pybigquery',
-            'pandas_gbq',
+            'pybigquery>=0.4.10',
+            'pandas_gbq>=0.10.0',
         ],
         'cors': ['flask-cors>=2.0.0'],
         'hive': [
