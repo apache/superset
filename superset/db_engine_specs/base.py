@@ -230,36 +230,45 @@ class BaseEngineSpec(object):
         return parsed_query.get_query_with_new_limit(limit)
 
     @staticmethod
-    def csv_to_df(**kwargs):
+    def csv_to_df(**kwargs) -> pd.DataFrame:
+        """ Read csv into Pandas DataFrame
+        :param kwargs: params to be passed to DataFrame.read_csv
+        :return: Pandas DataFrame containing data from csv
+        """
         kwargs['filepath_or_buffer'] = \
             config['UPLOAD_FOLDER'] + kwargs['filepath_or_buffer']
         kwargs['encoding'] = 'utf-8'
         kwargs['iterator'] = True
         chunks = pd.read_csv(**kwargs)
-        df = pd.DataFrame()
         df = pd.concat(chunk for chunk in chunks)
         return df
 
-    @staticmethod
-    def df_to_db(df, table, **kwargs):
+    @classmethod
+    def df_to_sql(cls, df: pd.DataFrame, **kwargs):
+        """ Upload data from a Pandas DataFrame to a database. For
+        regular engines this calls the DataFrame.to_sql() method. Can be
+        overridden for engines that don't work well with to_sql(), e.g.
+        BigQuery.
+        :param df: Dataframe with data to be uploaded
+        :param kwargs: kwargs to be passed to to_sql() method
+        """
         df.to_sql(**kwargs)
-        table.user_id = g.user.id
-        table.schema = kwargs['schema']
-        table.fetch_metadata()
-        db.session.add(table)
-        db.session.commit()
 
-    @staticmethod
-    def create_table_from_csv(form, table):
-        def _allowed_file(filename):
+    @classmethod
+    def create_table_from_csv(cls, form, table):
+        """ Create table (including metadata in backend) from contents of a csv.
+        :param form: Parameters defining how to process data
+        :param table: Metadata of new table to be created
+        """
+        def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
             extension = os.path.splitext(filename)[1]
-            return extension and extension[1:] in config['ALLOWED_EXTENSIONS']
+            return extension is not None and extension[1:] in config['ALLOWED_EXTENSIONS']
 
         filename = secure_filename(form.csv_file.data.filename)
         if not _allowed_file(filename):
             raise Exception('Invalid file type selected')
-        kwargs = {
+        csv_to_df_kwargs = {
             'filepath_or_buffer': filename,
             'sep': form.sep.data,
             'header': form.header.data if form.header.data else 0,
@@ -273,10 +282,9 @@ class BaseEngineSpec(object):
             'infer_datetime_format': form.infer_datetime_format.data,
             'chunksize': 10000,
         }
-        df = BaseEngineSpec.csv_to_df(**kwargs)
+        df = cls.csv_to_df(**csv_to_df_kwargs)
 
-        df_to_db_kwargs = {
-            'table': table,
+        df_to_sql_kwargs = {
             'df': df,
             'name': form.name.data,
             'con': create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
@@ -286,8 +294,13 @@ class BaseEngineSpec(object):
             'index_label': form.index_label.data,
             'chunksize': 10000,
         }
+        cls.df_to_sql(**df_to_sql_kwargs)
 
-        BaseEngineSpec.df_to_db(**df_to_db_kwargs)
+        table.user_id = g.user.id
+        table.schema = form.schema.data
+        table.fetch_metadata()
+        db.session.add(table)
+        db.session.commit()
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):

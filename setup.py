@@ -108,6 +108,10 @@ setup(
         'wtforms-json',
     ],
     extras_require={
+        'bigquery': [
+            'pybigquery>=0.4.10',
+            'pandas_gbq>=0.10.0',
+        ],
         'cors': ['flask-cors>=2.0.0'],
         'hive': [
             'pyhive[hive]>=0.6.1',
