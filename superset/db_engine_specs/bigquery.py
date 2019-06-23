@@ -153,15 +153,22 @@ class BigQueryEngineSpec(BaseEngineSpec):
         and ``name` to be present in kwargs, which are combined and passed to
         `to_gbq()` as `destination_table`.
         """
-        if not ('name' in kwargs and 'schema' in kwargs):
-            raise Exception('name and schema need to be defined in kwargs')
-        gbq_kwargs = {}
-        gbq_kwargs['project_id'] = kwargs['con'].engine.url.host
-        gbq_kwargs['destination_table'] = f"{kwargs.pop('schema')}.{kwargs.pop('name')}"
+        try:
+            import pandas_gbq as pd_gbq
 
-        # Only pass through supported kwargs
-        supported_kwarg_keys = {'if_exists'}
-        for key in supported_kwarg_keys:
-            if key in kwargs:
-                gbq_kwargs[key] = kwargs[key]
-        df.to_gbq(**gbq_kwargs)
+            if not ('name' in kwargs and 'schema' in kwargs):
+                raise Exception('name and schema need to be defined in kwargs')
+            gbq_kwargs = {}
+            gbq_kwargs['project_id'] = kwargs['con'].engine.url.host
+            gbq_kwargs['destination_table'] = f"{kwargs.pop('schema')}.{kwargs.pop('name')}"
+
+            # Only pass through supported kwargs
+            supported_kwarg_keys = {'if_exists'}
+            for key in supported_kwarg_keys:
+                if key in kwargs:
+                    gbq_kwargs[key] = kwargs[key]
+            pd_gbq.to_gbq(df, **gbq_kwargs)
+        except ImportError:
+            raise Exception('Could not import the library `pandas_gbq`, which is '
+                            'required to be installed in your environment in order '
+                            'to load CSV files to BigQuery')
