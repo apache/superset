@@ -319,10 +319,23 @@ function nvd3Vis(element, props) {
         chart.lines.dispatch.on('elementClick', function (e) {
           if (tableFilter) {
             const publishedColumns = formData.publishColumns;
-            const yColumn = formData.metrics[e.seriesIndex].column.column_name
+            let yColumn;
+            let metric;
+            if (formData.metrics.length == 1) {
+              metric = formData.metrics[0];
+            } else {
+              let key = e.series.key;
+              metric = formData.metrics.find((metric) => {
+                return key.includes(metric.label);
+              })
+            }
+            if (metric && metric.column) {
+              yColumn = metric.column.column_name;
+            }
             const xField = formData.granularitySqla;
             const yField = findYAxisField(yColumn, publishedColumns);
-            if (xField != undefined && e.point) onAddFilter(xField, e.point.x, false, false);
+            
+            if (xField != undefined && e.point) onAddFilter(xField, e.point.x, false, !yField);
             if (yField != undefined && e.point) onAddFilter(yField, e.point.y, false, true);
           }
         });
