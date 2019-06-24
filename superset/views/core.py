@@ -197,7 +197,7 @@ class DashboardFilter(SupersetFilter):
         users_favorite_dash_query = (
             db.session.query(Favorites.obj_id)
             .filter(and_(Favorites.user_id == User.get_user_id(),
-                              Favorites.class_name == 'Dashboard'))
+                         Favorites.class_name == 'Dashboard'))
         )
         owner_ids_query = (
             db.session.query(Dash.id)
