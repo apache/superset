@@ -28,9 +28,9 @@ def fetch_logs(self, max_rows=1024,
     .. note::
         This is not a part of DB-API.
     """
-    from pyhive import hive
-    from TCLIService import ttypes
-    from thrift import Thrift
+    from pyhive import hive  # noqa
+    from TCLIService import ttypes # noqa
+    from thrift import Thrift  # pylint: disable=import-error
     orientation = orientation or ttypes.TFetchOrientation.FETCH_NEXT
     try:
         req = ttypes.TGetLogReq(operationHandle=self._operationHandle)

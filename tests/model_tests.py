@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import textwrap
+import unittest
 
 import pandas
 from sqlalchemy.engine.url import make_url
@@ -56,6 +57,10 @@ class DatabaseModelTestCase(SupersetTestCase):
         db = make_url(model.get_sqla_engine(schema='foo').url).database
         self.assertEquals('prod', db)
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('thrift'), 'thrift not installed')
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pyhive'), 'pyhive not installed')
     def test_database_schema_hive(self):
         sqlalchemy_uri = 'hive://hive@hive.airbnb.io:10000/default?auth=NOSASL'
         model = Database(sqlalchemy_uri=sqlalchemy_uri)
@@ -65,6 +70,8 @@ class DatabaseModelTestCase(SupersetTestCase):
         db = make_url(model.get_sqla_engine(schema='core_db').url).database
         self.assertEquals('core_db', db)
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('MySQLdb'), 'mysqlclient not installed')
     def test_database_schema_mysql(self):
         sqlalchemy_uri = 'mysql://root@localhost/superset'
         model = Database(sqlalchemy_uri=sqlalchemy_uri)
@@ -75,6 +82,8 @@ class DatabaseModelTestCase(SupersetTestCase):
         db = make_url(model.get_sqla_engine(schema='staging').url).database
         self.assertEquals('staging', db)
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('MySQLdb'), 'mysqlclient not installed')
     def test_database_impersonate_user(self):
         uri = 'mysql://root@localhost'
         example_user = 'giuseppe'
