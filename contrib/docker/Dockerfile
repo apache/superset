@@ -43,11 +43,11 @@ RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
 
 WORKDIR /home/superset
 
-COPY requirements.txt .
+COPY requirements/ .
 COPY requirements-dev.txt .
 
 RUN pip install --upgrade setuptools pip \
-    && pip install -r requirements.txt -r requirements-dev.txt \
+    && pip install -r requirements/requirements-base.txt -r requirements-dev.txt \
     && rm -rf /root/.cache/pip
 
 COPY --chown=superset:superset superset superset

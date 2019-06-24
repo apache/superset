@@ -131,7 +131,8 @@ Finally, never submit a PR that will put master branch in broken state. If the P
   - Recommended capture tools ([Kap](https://getkap.co/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
   - If no screenshot is provided, the committers will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
 - **Dependencies:** Be careful about adding new dependency and avoid unnecessary dependencies.
-  - For Python, include it in `setup.py` denoting any specific restrictions and in `requirements.txt` pinned to a specific version which ensures that the application build is deterministic.
+  - For Python, include it in `requirements/requirements.json` denoting any specific restrictions
+  - Run `python requirements/compile_requirementrs.py` to compile and pin the requirements and check them into the repo
   - For Javascript, include new libraries in `package.json`
 - **Tests:** The pull request should include tests, either as doctests, unit tests, or both. Make sure to resolve all errors and test failures. See [Testing](#testing) for how to run tests.
 - **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR. Doc string are often sufficient, make sure to follow the sphinx compatible standards.
@@ -312,7 +313,7 @@ virtualenv -p python3 venv # setup a python3.6 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
-pip install -r requirements.txt
+pip install -r requirements/requirements-base.txt
 pip install -r requirements-dev.txt
 
 # Install Superset in editable (development) mode

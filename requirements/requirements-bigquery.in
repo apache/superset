@@ -1,0 +1,2 @@
+pybigquery>=0.4.10
+pandas_gbq>=0.10.0

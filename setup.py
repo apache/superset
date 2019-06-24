@@ -56,6 +56,9 @@ print('-==-' * 15)
 with open(os.path.join(PACKAGE_DIR, 'version_info.json'), 'w') as version_file:
     json.dump(version_info, version_file)
 
+REQS_DIR = os.path.join(BASE_DIR, 'requirements')
+with open(os.path.join(REQS_DIR, 'requirements.json'), 'r') as f:
+    requirements = json.load(f)
 
 setup(
     name='apache-superset',
@@ -68,61 +71,8 @@ setup(
     include_package_data=True,
     zip_safe=False,
     scripts=['superset/bin/superset'],
-    install_requires=[
-        'bleach>=3.0.2, <4.0.0',
-        'celery>=4.2.0, <5.0.0',
-        'click>=6.0, <7.0.0',  # `click`>=7 forces "-" instead of "_"
-        'colorama',
-        'contextlib2',
-        'croniter>=0.3.28',
-        'cryptography>=2.4.2',
-        'flask>=1.0.0, <2.0.0',
-        'flask-appbuilder>=2.1.5, <2.3.0',
-        'flask-caching',
-        'flask-compress',
-        'flask-talisman',
-        'flask-migrate',
-        'flask-wtf',
-        'geopy',
-        'gunicorn',  # deprecated
-        'humanize',
-        'idna',
-        'isodate',
-        'markdown>=3.0',
-        'pandas>=0.18.0, <0.24.0',  # `pandas`>=0.24.0 changes datetimelike API
-        'parsedatetime',
-        'pathlib2',
-        'polyline',
-        'pydruid>=0.5.2',
-        'python-dateutil',
-        'python-dotenv',
-        'python-geohash',
-        'pyyaml>=5.1',
-        'requests>=2.22.0',
-        'retry>=0.9.2',
-        'selenium>=3.141.0',
-        'simplejson>=3.15.0',
-        'sqlalchemy>=1.3.5,<2.0',
-        'sqlalchemy-utils>=0.33.2',
-        'sqlparse',
-        'wtforms-json',
-    ],
-    extras_require={
-        'bigquery': [
-            'pybigquery>=0.4.10',
-            'pandas_gbq>=0.10.0',
-        ],
-        'cors': ['flask-cors>=2.0.0'],
-        'gsheets': ['gsheetsdb>=0.1.9'],
-        'hive': [
-            'pyhive[hive]>=0.6.1',
-            'tableschema',
-            'thrift>=0.11.0, <1.0.0',
-        ],
-        'mysql': ['mysqlclient==1.4.2.post1'],
-        'postgres': ['psycopg2-binary==2.7.5'],
-        'presto': ['pyhive[presto]>=0.4.0'],
-    },
+    install_requires=requirements['base'],
+    extras_require=requirements['extras'],
     author='Apache Software Foundation',
     author_email='dev@superset.incubator.apache.org',
     url='https://superset.apache.org/',
