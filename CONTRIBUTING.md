@@ -314,7 +314,7 @@ source venv/bin/activate
 
 # Install external dependencies
 pip install -r requirements/requirements-base.txt
-pip install -r requirements-dev.txt
+pip install -r requirements/requirements-dev.txt
 
 # Install Superset in editable (development) mode
 pip install -e .
