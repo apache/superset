@@ -29,7 +29,7 @@ import {
   SortIndicator,
   Table,
 } from 'react-virtualized';
-import { getTextDimension } from '@superset-ui/dimension';
+import { createSVGNode, getTextDimension } from '@superset-ui/dimension';
 import { t } from '@superset-ui/translation';
 
 import Button from '../Button';
@@ -37,8 +37,10 @@ import CopyToClipboard from '../CopyToClipboard';
 import ModalTrigger from '../ModalTrigger';
 import TooltipWrapper from '../TooltipWrapper';
 
+const svg = createSVGNode({ container: document.body });
+
 function getTextWidth(text, font = '12px Roboto') {
-  return getTextDimension({ text, style: { font } }).width;
+  return getTextDimension({ text, style: { font }, existingSVGNode: svg }).width;
 }
 
 function safeJsonObjectParse(data) {
