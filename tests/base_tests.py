@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
+import imp
 import json
 import unittest
 from unittest.mock import Mock, patch
@@ -72,6 +73,14 @@ class SupersetTestCase(unittest.TestCase):
             .filter_by(id=table_id)
             .one()
         )
+
+    @staticmethod
+    def is_module_installed(module_name):
+        try:
+            imp.find_module(module_name)
+            return True
+        except ImportError:
+            return False
 
     def get_or_create(self, cls, criteria, session, **kwargs):
         obj = session.query(cls).filter_by(**criteria).first()

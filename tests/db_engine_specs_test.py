@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import unittest
 from unittest import mock
 
 from sqlalchemy import column, literal_column, select, table
@@ -137,7 +138,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             HiveEngineSpec.extract_error_message(Exception(msg)))
 
     def get_generic_database(self):
-        return Database(sqlalchemy_uri='mysql://localhost')
+        return Database(sqlalchemy_uri='sqlite://')
 
     def sql_limit_regex(
             self, sql, expected_sql,
@@ -177,22 +178,16 @@ class DbEngineSpecsTestCase(SupersetTestCase):
     def test_wrapped_query(self):
         self.sql_limit_regex(
             'SELECT * FROM a',
-            'SELECT * \nFROM (SELECT * FROM a) AS inner_qry \n LIMIT 1000',
+            'SELECT * \nFROM (SELECT * FROM a) AS inner_qry\n LIMIT 1000 OFFSET 0',
             MssqlEngineSpec,
         )
 
-    def test_wrapped_semi(self):
-        self.sql_limit_regex(
-            'SELECT * FROM a;',
-            'SELECT * \nFROM (SELECT * FROM a) AS inner_qry \n LIMIT 1000',
-            MssqlEngineSpec,
-        )
-
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('MySQLdb'), 'mysqlclient not installed')
     def test_wrapped_semi_tabs(self):
         self.sql_limit_regex(
             'SELECT * FROM a  \t \n   ; \t  \n  ',
-            'SELECT * \nFROM (SELECT * FROM a) AS inner_qry \n LIMIT 1000',
-            MssqlEngineSpec,
+            'SELECT * FROM a\nLIMIT 1000',
         )
 
     def test_simple_limit_query(self):
@@ -247,10 +242,18 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 LIMIT         1000""",
         )
 
-    def test_get_datatype(self):
-        self.assertEquals('STRING', PrestoEngineSpec.get_datatype('string'))
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('MySQLdb'), 'mysqlclient not installed')
+    def test_get_datatype_mysql(self):
         self.assertEquals('TINY', MySQLEngineSpec.get_datatype(1))
         self.assertEquals('VARCHAR', MySQLEngineSpec.get_datatype(15))
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pyhive'), 'pyhive not installed')
+    def test_get_datatype_presto(self):
+        self.assertEquals('STRING', PrestoEngineSpec.get_datatype('string'))
+
+    def test_get_datatype(self):
         self.assertEquals('VARCHAR', BaseEngineSpec.get_datatype('VARCHAR'))
 
     def test_limit_with_implicit_offset(self):
@@ -291,12 +294,8 @@ class DbEngineSpecsTestCase(SupersetTestCase):
 
     def test_limit_with_non_token_limit(self):
         self.sql_limit_regex(
-            """
-                SELECT
-                    'LIMIT 777'""",
-            """
-                SELECT
-                    'LIMIT 777'\nLIMIT 1000""",
+            """SELECT 'LIMIT 777'""",
+            """SELECT 'LIMIT 777'\nLIMIT 1000""",
         )
 
     def test_time_grain_blacklist(self):
