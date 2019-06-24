@@ -36,6 +36,7 @@ from superset.utils.core import (
     merge_request_params,
     parse_human_timedelta,
     parse_js_uri_path_item,
+    parse_past_timedelta,
     validate_json,
     zlib_compress,
     zlib_decompress_to_string,
@@ -119,9 +120,21 @@ class UtilsTestCase(unittest.TestCase):
         assert isinstance(base_json_conv(uuid.uuid4()), str) is True
 
     @patch('superset.utils.core.datetime')
-    def test_parse_human_timedelta(self, mock_now):
-        mock_now.return_value = datetime(2016, 12, 1)
+    def test_parse_human_timedelta(self, mock_datetime):
+        mock_datetime.now.return_value = datetime(2019, 4, 1)
+        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
         self.assertEquals(parse_human_timedelta('now'), timedelta(0))
+        self.assertEquals(parse_human_timedelta('1 year'), timedelta(366))
+        self.assertEquals(parse_human_timedelta('-1 year'), timedelta(-365))
+
+    @patch('superset.utils.core.datetime')
+    def test_parse_past_timedelta(self, mock_datetime):
+        mock_datetime.now.return_value = datetime(2019, 4, 1)
+        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+        self.assertEquals(parse_past_timedelta('1 year'), timedelta(365))
+        self.assertEquals(parse_past_timedelta('-1 year'), timedelta(365))
+        self.assertEquals(parse_past_timedelta('52 weeks'), timedelta(364))
+        self.assertEquals(parse_past_timedelta('1 month'), timedelta(31))
 
     def test_zlib_compression(self):
         json_str = '{"test": 1}'

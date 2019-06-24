@@ -23,7 +23,7 @@ croniter==0.3.29
 cryptography==2.4.2
 decorator==4.3.0          # via retry
 defusedxml==0.5.0         # via python3-openid
-flask-appbuilder==2.1.4
+flask-appbuilder==2.1.5
 flask-babel==0.11.1       # via flask-appbuilder
 flask-caching==1.4.0
 flask-compress==1.4.0
@@ -55,7 +55,7 @@ pandas==0.23.4
 parsedatetime==2.0.0
 pathlib2==2.3.0
 polyline==1.3.2
-prison==0.1.0             # via flask-appbuilder
+prison==0.1.2             # via flask-appbuilder
 py==1.7.0                 # via retry
 pycparser==2.19           # via cffi
 pydruid==0.5.3
@@ -74,7 +74,7 @@ selenium==3.141.0
 simplejson==3.15.0
 six==1.11.0               # via bleach, cryptography, flask-jwt-extended, flask-talisman, isodate, jsonschema, pathlib2, polyline, prison, pydruid, pyrsistent, python-dateutil, sqlalchemy-utils, wtforms-json
 sqlalchemy-utils==0.33.11
-sqlalchemy==1.3.1
+sqlalchemy==1.3.5
 sqlparse==0.2.4
 urllib3==1.24.3           # via requests, selenium
 vine==1.1.4               # via amqp

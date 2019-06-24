@@ -22,6 +22,7 @@ import textwrap
 
 import pandas as pd
 from sqlalchemy import DateTime, String
+from sqlalchemy.sql import column
 
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
@@ -75,9 +76,11 @@ def load_world_bank_health_n_pop():
     ]
     for m in metrics:
         if not any(col.metric_name == m for col in tbl.metrics):
+            aggr_func = m[:3]
+            col = str(column(m[5:]).compile(db.engine))
             tbl.metrics.append(SqlMetric(
                 metric_name=m,
-                expression=f'{m[:3]}({m[5:]})',
+                expression=f'{aggr_func}({col})',
             ))
 
     db.session.merge(tbl)

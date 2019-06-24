@@ -243,7 +243,7 @@ div.Workspace {
     .schemaPane {
         flex: 0 0 300px;
         max-width: 300px;
-        transition: all .3s ease-in-out;
+        transition: transform .3s ease-in-out;
     }
 
     .queryPane {
@@ -255,13 +255,18 @@ div.Workspace {
         transform: translateX(0);
     }
 
-    .schemaPane-enter-active, .schemaPane-exit-active {
-        transform: translateX(-50%);
+    .schemaPane-exit-active {
+        transform: translateX(-120%);
+    }
+
+    .schemaPane-enter-active {
+        transform: translateX(0);
+        max-width: 300px;
     }
 
     .schemaPane-enter, .schemaPane-exit-done {
-        transform: translateX(-100%);
         max-width: 0;
+        transform: translateX(-120%);
         overflow: hidden;
     }
 
@@ -420,4 +425,12 @@ a.Link {
     .Select {
         margin-right: 3px;
     }
+}
+
+.SouthPane .tab-content .alert {
+    margin-top: 10px;
+}
+
+.SouthPane .tab-content button.fetch {
+    margin-top: 10px;
 }

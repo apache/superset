@@ -193,7 +193,7 @@ class ParsedQuery(object):
         """returns the query with the specified limit"""
         """does not change the underlying query"""
         if not self._limit:
-            return f'{self.sql}\nLIMIT {new_limit}'
+            return f'{self.stripped()}\nLIMIT {new_limit}'
         limit_pos = None
         tokens = self._parsed[0].tokens
         # Add all items to before_str until there is a limit

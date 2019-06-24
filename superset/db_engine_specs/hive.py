@@ -94,8 +94,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         except pyhive.exc.ProgrammingError:
             return []
 
-    @staticmethod
-    def create_table_from_csv(form, table):
+    @classmethod
+    def create_table_from_csv(cls, form, table):
         """Uploads a csv file and creates a superset datasource in Hive."""
         def convert_to_hive_type(col_type):
             """maps tableschema's types to hive types"""
