@@ -29,8 +29,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from superset import db
 
 # revision identifiers, used by Alembic.
-revision = 'c3a8f8611885'
-down_revision = '4fa88fe24e94'
+revision = "c3a8f8611885"
+down_revision = "4fa88fe24e94"
 
 
 Base = declarative_base()
@@ -38,17 +38,18 @@ Base = declarative_base()
 
 class Slice(Base):
     """Declarative class to do query in upgrade"""
-    __tablename__ = 'slices'
+
+    __tablename__ = "slices"
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
-    druid_datasource_id = Column(Integer, ForeignKey('datasources.id'))
-    table_id = Column(Integer, ForeignKey('tables.id'))
+    druid_datasource_id = Column(Integer, ForeignKey("datasources.id"))
+    table_id = Column(Integer, ForeignKey("tables.id"))
     perm = Column(String(2000))
 
 
 def upgrade():
     bind = op.get_bind()
-    op.add_column('slices', sa.Column('perm', sa.String(length=2000), nullable=True))
+    op.add_column("slices", sa.Column("perm", sa.String(length=2000), nullable=True))
     session = db.Session(bind=bind)
 
     # Use Slice class defined here instead of models.Slice
@@ -62,5 +63,5 @@ def upgrade():
 
 def downgrade():
     # Use batch_alter_table because dropping columns is not supported in SQLite
-    with op.batch_alter_table('slices') as batch_op:
-        batch_op.drop_column('perm')
+    with op.batch_alter_table("slices") as batch_op:
+        batch_op.drop_column("perm")

@@ -38,24 +38,22 @@ QueryStatus = utils.QueryStatus
 
 
 class PrestoEngineSpec(BaseEngineSpec):
-    engine = 'presto'
+    engine = "presto"
 
     time_grain_functions = {
-        None: '{col}',
-        'PT1S': "date_trunc('second', CAST({col} AS TIMESTAMP))",
-        'PT1M': "date_trunc('minute', CAST({col} AS TIMESTAMP))",
-        'PT1H': "date_trunc('hour', CAST({col} AS TIMESTAMP))",
-        'P1D': "date_trunc('day', CAST({col} AS TIMESTAMP))",
-        'P1W': "date_trunc('week', CAST({col} AS TIMESTAMP))",
-        'P1M': "date_trunc('month', CAST({col} AS TIMESTAMP))",
-        'P0.25Y': "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
-        'P1Y': "date_trunc('year', CAST({col} AS TIMESTAMP))",
-        'P1W/1970-01-03T00:00:00Z':
-            "date_add('day', 5, date_trunc('week', date_add('day', 1, "
-            'CAST({col} AS TIMESTAMP))))',
-        '1969-12-28T00:00:00Z/P1W':
-            "date_add('day', -1, date_trunc('week', "
-            "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+        None: "{col}",
+        "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
+        "PT1M": "date_trunc('minute', CAST({col} AS TIMESTAMP))",
+        "PT1H": "date_trunc('hour', CAST({col} AS TIMESTAMP))",
+        "P1D": "date_trunc('day', CAST({col} AS TIMESTAMP))",
+        "P1W": "date_trunc('week', CAST({col} AS TIMESTAMP))",
+        "P1M": "date_trunc('month', CAST({col} AS TIMESTAMP))",
+        "P0.25Y": "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
+        "P1Y": "date_trunc('year', CAST({col} AS TIMESTAMP))",
+        "P1W/1970-01-03T00:00:00Z": "date_add('day', 5, date_trunc('week', "
+        "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+        "1969-12-28T00:00:00Z/P1W": "date_add('day', -1, date_trunc('week', "
+        "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
     }
 
     @classmethod
@@ -76,10 +74,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         :param data_type: column data type
         :return: column info object
         """
-        return {
-            'name': name,
-            'type': f'{data_type}',
-        }
+        return {"name": name, "type": f"{data_type}"}
 
     @classmethod
     def _get_full_name(cls, names: List[Tuple[str, str]]) -> str:
@@ -88,7 +83,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         :param names: list of all individual column names
         :return: full column name
         """
-        return '.'.join(column[0] for column in names if column[0])
+        return ".".join(column[0] for column in names if column[0])
 
     @classmethod
     def _has_nested_data_types(cls, component_type: str) -> bool:
@@ -98,10 +93,12 @@ class PrestoEngineSpec(BaseEngineSpec):
         :param component_type: data type
         :return: boolean
         """
-        comma_regex = r',(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
-        white_space_regex = r'\s(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
-        return re.search(comma_regex, component_type) is not None \
+        comma_regex = r",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
+        white_space_regex = r"\s(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
+        return (
+            re.search(comma_regex, component_type) is not None
             or re.search(white_space_regex, component_type) is not None
+        )
 
     @classmethod
     def _split_data_type(cls, data_type: str, delimiter: str) -> List[str]:
@@ -114,38 +111,38 @@ class PrestoEngineSpec(BaseEngineSpec):
         :return: list of strings after breaking it by the delimiter
         """
         return re.split(
-            r'{}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'.format(delimiter), data_type)
+            r"{}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)".format(delimiter), data_type
+        )
 
     @classmethod
-    def _parse_structural_column(cls,
-                                 parent_column_name: str,
-                                 parent_data_type: str,
-                                 result: List[dict]) -> None:
+    def _parse_structural_column(
+        cls, parent_column_name: str, parent_data_type: str, result: List[dict]
+    ) -> None:
         """
         Parse a row or array column
         :param result: list tracking the results
         """
         formatted_parent_column_name = parent_column_name
         # Quote the column name if there is a space
-        if ' ' in parent_column_name:
+        if " " in parent_column_name:
             formatted_parent_column_name = f'"{parent_column_name}"'
-        full_data_type = f'{formatted_parent_column_name} {parent_data_type}'
+        full_data_type = f"{formatted_parent_column_name} {parent_data_type}"
         original_result_len = len(result)
         # split on open parenthesis ( to get the structural
         # data type and its component types
-        data_types = cls._split_data_type(full_data_type, r'\(')
+        data_types = cls._split_data_type(full_data_type, r"\(")
         stack: List[Tuple[str, str]] = []
         for data_type in data_types:
             # split on closed parenthesis ) to track which component
             # types belong to what structural data type
-            inner_types = cls._split_data_type(data_type, r'\)')
+            inner_types = cls._split_data_type(data_type, r"\)")
             for inner_type in inner_types:
                 # We have finished parsing multiple structural data types
                 if not inner_type and len(stack) > 0:
                     stack.pop()
                 elif cls._has_nested_data_types(inner_type):
                     # split on comma , to get individual data types
-                    single_fields = cls._split_data_type(inner_type, ',')
+                    single_fields = cls._split_data_type(inner_type, ",")
                     for single_field in single_fields:
                         single_field = single_field.strip()
                         # If component type starts with a comma, the first single field
@@ -153,30 +150,37 @@ class PrestoEngineSpec(BaseEngineSpec):
                         if not single_field:
                             continue
                         # split on whitespace to get field name and data type
-                        field_info = cls._split_data_type(single_field, r'\s')
+                        field_info = cls._split_data_type(single_field, r"\s")
                         # check if there is a structural data type within
                         # overall structural data type
-                        if field_info[1] == 'array' or field_info[1] == 'row':
+                        if field_info[1] == "array" or field_info[1] == "row":
                             stack.append((field_info[0], field_info[1]))
                             full_parent_path = cls._get_full_name(stack)
-                            result.append(cls._create_column_info(
-                                full_parent_path,
-                                presto_type_map[field_info[1]]()))
+                            result.append(
+                                cls._create_column_info(
+                                    full_parent_path, presto_type_map[field_info[1]]()
+                                )
+                            )
                         else:  # otherwise this field is a basic data type
                             full_parent_path = cls._get_full_name(stack)
-                            column_name = '{}.{}'.format(full_parent_path, field_info[0])
-                            result.append(cls._create_column_info(
-                                column_name, presto_type_map[field_info[1]]()))
+                            column_name = "{}.{}".format(
+                                full_parent_path, field_info[0]
+                            )
+                            result.append(
+                                cls._create_column_info(
+                                    column_name, presto_type_map[field_info[1]]()
+                                )
+                            )
                     # If the component type ends with a structural data type, do not pop
                     # the stack. We have run across a structural data type within the
                     # overall structural data type. Otherwise, we have completely parsed
                     # through the entire structural data type and can move on.
-                    if not (inner_type.endswith('array') or inner_type.endswith('row')):
+                    if not (inner_type.endswith("array") or inner_type.endswith("row")):
                         stack.pop()
                 # We have an array of row objects (i.e. array(row(...)))
-                elif 'array' == inner_type or 'row' == inner_type:
+                elif "array" == inner_type or "row" == inner_type:
                     # Push a dummy object to represent the structural data type
-                    stack.append(('', inner_type))
+                    stack.append(("", inner_type))
                 # We have an array of a basic data types(i.e. array(varchar)).
                 elif len(stack) > 0:
                     # Because it is an array of a basic data type. We have finished
@@ -185,12 +189,14 @@ class PrestoEngineSpec(BaseEngineSpec):
         # Unquote the column name if necessary
         if formatted_parent_column_name != parent_column_name:
             for index in range(original_result_len, len(result)):
-                result[index]['name'] = result[index]['name'].replace(
-                    formatted_parent_column_name, parent_column_name)
+                result[index]["name"] = result[index]["name"].replace(
+                    formatted_parent_column_name, parent_column_name
+                )
 
     @classmethod
     def _show_columns(
-            cls, inspector: Inspector, table_name: str, schema: str) -> List[RowProxy]:
+        cls, inspector: Inspector, table_name: str, schema: str
+    ) -> List[RowProxy]:
         """
         Show presto column names
         :param inspector: object that performs database schema inspection
@@ -201,13 +207,14 @@ class PrestoEngineSpec(BaseEngineSpec):
         quote = inspector.engine.dialect.identifier_preparer.quote_identifier
         full_table = quote(table_name)
         if schema:
-            full_table = '{}.{}'.format(quote(schema), full_table)
-        columns = inspector.bind.execute('SHOW COLUMNS FROM {}'.format(full_table))
+            full_table = "{}.{}".format(quote(schema), full_table)
+        columns = inspector.bind.execute("SHOW COLUMNS FROM {}".format(full_table))
         return columns
 
     @classmethod
     def get_columns(
-            cls, inspector: Inspector, table_name: str, schema: str) -> List[dict]:
+        cls, inspector: Inspector, table_name: str, schema: str
+    ) -> List[dict]:
         """
         Get columns from a Presto data source. This includes handling row and
         array data types
@@ -222,22 +229,26 @@ class PrestoEngineSpec(BaseEngineSpec):
         for column in columns:
             try:
                 # parse column if it is a row or array
-                if 'array' in column.Type or 'row' in column.Type:
+                if "array" in column.Type or "row" in column.Type:
                     structural_column_index = len(result)
                     cls._parse_structural_column(column.Column, column.Type, result)
-                    result[structural_column_index]['nullable'] = getattr(
-                        column, 'Null', True)
-                    result[structural_column_index]['default'] = None
+                    result[structural_column_index]["nullable"] = getattr(
+                        column, "Null", True
+                    )
+                    result[structural_column_index]["default"] = None
                     continue
                 else:  # otherwise column is a basic data type
                     column_type = presto_type_map[column.Type]()
             except KeyError:
-                logging.info('Did not recognize type {} of column {}'.format(
-                    column.Type, column.Column))
+                logging.info(
+                    "Did not recognize type {} of column {}".format(
+                        column.Type, column.Column
+                    )
+                )
                 column_type = types.NullType
             column_info = cls._create_column_info(column.Column, column_type)
-            column_info['nullable'] = getattr(column, 'Null', True)
-            column_info['default'] = None
+            column_info["nullable"] = getattr(column, "Null", True)
+            column_info["default"] = None
             result.append(column_info)
         return result
 
@@ -258,9 +269,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         :return: column clauses
         """
         column_clauses = []
-        # Column names are separated by periods. This regex will find periods in a string
-        # if they are not enclosed in quotes because if a period is enclosed in quotes,
-        # then that period is part of a column name.
+        # Column names are separated by periods. This regex will find periods in a
+        # string if they are not enclosed in quotes because if a period is enclosed in
+        # quotes, then that period is part of a column name.
         dot_pattern = r"""\.                # split on period
                           (?=               # look ahead
                           (?:               # create non-capture group
@@ -269,26 +280,28 @@ class PrestoEngineSpec(BaseEngineSpec):
         dot_regex = re.compile(dot_pattern, re.VERBOSE)
         for col in cols:
             # get individual column names
-            col_names = re.split(dot_regex, col['name'])
+            col_names = re.split(dot_regex, col["name"])
             # quote each column name if it is not already quoted
             for index, col_name in enumerate(col_names):
                 if not cls._is_column_name_quoted(col_name):
                     col_names[index] = '"{}"'.format(col_name)
-            quoted_col_name = '.'.join(
+            quoted_col_name = ".".join(
                 col_name if cls._is_column_name_quoted(col_name) else f'"{col_name}"'
-                for col_name in col_names)
+                for col_name in col_names
+            )
             # create column clause in the format "name"."name" AS "name.name"
-            column_clause = literal_column(quoted_col_name).label(col['name'])
+            column_clause = literal_column(quoted_col_name).label(col["name"])
             column_clauses.append(column_clause)
         return column_clauses
 
     @classmethod
     def _filter_out_array_nested_cols(
-            cls, cols: List[dict]) -> Tuple[List[dict], List[dict]]:
+        cls, cols: List[dict]
+    ) -> Tuple[List[dict], List[dict]]:
         """
         Filter out columns that correspond to array content. We know which columns to
-        skip because cols is a list provided to us in a specific order where a structural
-        column is positioned right before its content.
+        skip because cols is a list provided to us in a specific order where a
+        structural column is positioned right before its content.
 
         Example: Column Name: ColA, Column Data Type: array(row(nest_obj int))
                  cols = [ ..., ColA, ColA.nest_obj, ... ]
@@ -296,20 +309,21 @@ class PrestoEngineSpec(BaseEngineSpec):
         When we run across an array, check if subsequent column names start with the
         array name and skip them.
         :param cols: columns
-        :return: filtered list of columns and list of array columns and its nested fields
+        :return: filtered list of columns and list of array columns and its nested
+        fields
         """
         filtered_cols = []
         array_cols = []
         curr_array_col_name = None
         for col in cols:
             # col corresponds to an array's content and should be skipped
-            if curr_array_col_name and col['name'].startswith(curr_array_col_name):
+            if curr_array_col_name and col["name"].startswith(curr_array_col_name):
                 array_cols.append(col)
                 continue
             # col is an array so we need to check if subsequent
             # columns correspond to the array's contents
-            elif str(col['type']) == 'ARRAY':
-                curr_array_col_name = col['name']
+            elif str(col["type"]) == "ARRAY":
+                curr_array_col_name = col["name"]
                 array_cols.append(col)
                 filtered_cols.append(col)
             else:
@@ -318,9 +332,18 @@ class PrestoEngineSpec(BaseEngineSpec):
         return filtered_cols, array_cols
 
     @classmethod
-    def select_star(cls, my_db, table_name: str, engine: Engine, schema: str = None,
-                    limit: int = 100, show_cols: bool = False, indent: bool = True,
-                    latest_partition: bool = True, cols: List[dict] = []) -> str:
+    def select_star(
+        cls,
+        my_db,
+        table_name: str,
+        engine: Engine,
+        schema: str = None,
+        limit: int = 100,
+        show_cols: bool = False,
+        indent: bool = True,
+        latest_partition: bool = True,
+        cols: List[dict] = [],
+    ) -> str:
         """
         Include selecting properties of row objects. We cannot easily break arrays into
         rows, so render the whole array in its own row and skip columns that correspond
@@ -328,59 +351,71 @@ class PrestoEngineSpec(BaseEngineSpec):
         """
         presto_cols = cols
         if show_cols:
-            dot_regex = r'\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
+            dot_regex = r"\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
             presto_cols = [
-                col for col in presto_cols if not re.search(dot_regex, col['name'])]
+                col for col in presto_cols if not re.search(dot_regex, col["name"])
+            ]
         return super(PrestoEngineSpec, cls).select_star(
-            my_db, table_name, engine, schema, limit,
-            show_cols, indent, latest_partition, presto_cols,
+            my_db,
+            table_name,
+            engine,
+            schema,
+            limit,
+            show_cols,
+            indent,
+            latest_partition,
+            presto_cols,
         )
 
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         database = uri.database
         if selected_schema and database:
-            selected_schema = parse.quote(selected_schema, safe='')
-            if '/' in database:
-                database = database.split('/')[0] + '/' + selected_schema
+            selected_schema = parse.quote(selected_schema, safe="")
+            if "/" in database:
+                database = database.split("/")[0] + "/" + selected_schema
             else:
-                database += '/' + selected_schema
+                database += "/" + selected_schema
             uri.database = database
         return uri
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
-        if tt == 'DATE':
+        if tt == "DATE":
             return "from_iso8601_date('{}')".format(dttm.isoformat()[:10])
-        if tt == 'TIMESTAMP':
+        if tt == "TIMESTAMP":
             return "from_iso8601_timestamp('{}')".format(dttm.isoformat())
-        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
 
     @classmethod
     def epoch_to_dttm(cls):
-        return 'from_unixtime({col})'
+        return "from_unixtime({col})"
 
     @classmethod
-    def get_all_datasource_names(cls, db, datasource_type: str) \
-            -> List[utils.DatasourceName]:
+    def get_all_datasource_names(
+        cls, db, datasource_type: str
+    ) -> List[utils.DatasourceName]:
         datasource_df = db.get_df(
-            'SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S '
+            "SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S "
             "ORDER BY concat(table_schema, '.', table_name)".format(
-                datasource_type.upper(),
+                datasource_type.upper()
             ),
-            None)
+            None,
+        )
         datasource_names: List[utils.DatasourceName] = []
         for unused, row in datasource_df.iterrows():
-            datasource_names.append(utils.DatasourceName(
-                schema=row['table_schema'], table=row['table_name']))
+            datasource_names.append(
+                utils.DatasourceName(
+                    schema=row["table_schema"], table=row["table_name"]
+                )
+            )
         return datasource_names
 
     @classmethod
-    def _build_column_hierarchy(cls,
-                                columns: List[dict],
-                                parent_column_types: List[str],
-                                column_hierarchy: dict) -> None:
+    def _build_column_hierarchy(
+        cls, columns: List[dict], parent_column_types: List[str], column_hierarchy: dict
+    ) -> None:
         """
         Build a graph where the root node represents a column whose data type is in
         parent_column_types. A node's children represent that column's nested fields
@@ -392,28 +427,30 @@ class PrestoEngineSpec(BaseEngineSpec):
         if len(columns) == 0:
             return
         root = columns.pop(0)
-        root_info = {'type': root['type'], 'children': []}
-        column_hierarchy[root['name']] = root_info
+        root_info = {"type": root["type"], "children": []}
+        column_hierarchy[root["name"]] = root_info
         while columns:
             column = columns[0]
             # If the column name does not start with the root's name,
             # then this column is not a nested field
-            if not column['name'].startswith(f"{root['name']}."):
+            if not column["name"].startswith(f"{root['name']}."):
                 break
             # If the column's data type is one of the parent types,
             # then this column may have nested fields
-            if str(column['type']) in parent_column_types:
-                cls._build_column_hierarchy(columns, parent_column_types,
-                                            column_hierarchy)
-                root_info['children'].append(column['name'])
+            if str(column["type"]) in parent_column_types:
+                cls._build_column_hierarchy(
+                    columns, parent_column_types, column_hierarchy
+                )
+                root_info["children"].append(column["name"])
                 continue
             else:  # The column is a nested field
-                root_info['children'].append(column['name'])
+                root_info["children"].append(column["name"])
                 columns.pop(0)
 
     @classmethod
     def _create_row_and_array_hierarchy(
-            cls, selected_columns: List[dict]) -> Tuple[dict, dict, List[dict]]:
+        cls, selected_columns: List[dict]
+    ) -> Tuple[dict, dict, List[dict]]:
         """
         Build graphs where the root node represents a row or array and its children
         are that column's nested fields
@@ -425,29 +462,30 @@ class PrestoEngineSpec(BaseEngineSpec):
         array_column_hierarchy: OrderedDict = OrderedDict()
         expanded_columns: List[dict] = []
         for column in selected_columns:
-            if column['type'].startswith('ROW'):
+            if column["type"].startswith("ROW"):
                 parsed_row_columns: List[dict] = []
-                cls._parse_structural_column(column['name'],
-                                             column['type'].lower(),
-                                             parsed_row_columns)
+                cls._parse_structural_column(
+                    column["name"], column["type"].lower(), parsed_row_columns
+                )
                 expanded_columns = expanded_columns + parsed_row_columns[1:]
                 filtered_row_columns, array_columns = cls._filter_out_array_nested_cols(
-                    parsed_row_columns)
-                cls._build_column_hierarchy(filtered_row_columns,
-                                            ['ROW'],
-                                            row_column_hierarchy)
-                cls._build_column_hierarchy(array_columns,
-                                            ['ROW', 'ARRAY'],
-                                            array_column_hierarchy)
-            elif column['type'].startswith('ARRAY'):
+                    parsed_row_columns
+                )
+                cls._build_column_hierarchy(
+                    filtered_row_columns, ["ROW"], row_column_hierarchy
+                )
+                cls._build_column_hierarchy(
+                    array_columns, ["ROW", "ARRAY"], array_column_hierarchy
+                )
+            elif column["type"].startswith("ARRAY"):
                 parsed_array_columns: List[dict] = []
-                cls._parse_structural_column(column['name'],
-                                             column['type'].lower(),
-                                             parsed_array_columns)
+                cls._parse_structural_column(
+                    column["name"], column["type"].lower(), parsed_array_columns
+                )
                 expanded_columns = expanded_columns + parsed_array_columns[1:]
-                cls._build_column_hierarchy(parsed_array_columns,
-                                            ['ROW', 'ARRAY'],
-                                            array_column_hierarchy)
+                cls._build_column_hierarchy(
+                    parsed_array_columns, ["ROW", "ARRAY"], array_column_hierarchy
+                )
         return row_column_hierarchy, array_column_hierarchy, expanded_columns
 
     @classmethod
@@ -457,7 +495,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         :param columns: list of columns
         :return: dictionary representing an empty row of data
         """
-        return {column['name']: '' for column in columns}
+        return {column["name"]: "" for column in columns}
 
     @classmethod
     def _expand_row_data(cls, datum: dict, column: str, column_hierarchy: dict) -> None:
@@ -470,22 +508,23 @@ class PrestoEngineSpec(BaseEngineSpec):
         """
         if column in datum:
             row_data = datum[column]
-            row_children = column_hierarchy[column]['children']
+            row_children = column_hierarchy[column]["children"]
             if row_data and len(row_data) != len(row_children):
-                raise Exception('The number of data values and number of nested'
-                                'fields are not equal')
+                raise Exception(
+                    "The number of data values and number of nested"
+                    "fields are not equal"
+                )
             elif row_data:
                 for index, data_value in enumerate(row_data):
                     datum[row_children[index]] = data_value
             else:
                 for row_child in row_children:
-                    datum[row_child] = ''
+                    datum[row_child] = ""
 
     @classmethod
     def _split_array_columns_by_process_state(
-            cls, array_columns: List[str],
-            array_column_hierarchy: dict,
-            datum: dict) -> Tuple[List[str], Set[str]]:
+        cls, array_columns: List[str], array_column_hierarchy: dict, datum: dict
+    ) -> Tuple[List[str], Set[str]]:
         """
         Take a list of array columns and split them according to whether or not we are
         ready to process them from a data set
@@ -501,7 +540,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         for array_column in array_columns:
             if array_column in datum:
                 array_columns_to_process.append(array_column)
-            elif str(array_column_hierarchy[array_column]['type']) == 'ARRAY':
+            elif str(array_column_hierarchy[array_column]["type"]) == "ARRAY":
                 child_array = array_column
                 unprocessed_array_columns.add(child_array)
             elif child_array and array_column.startswith(child_array):
@@ -510,7 +549,8 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _convert_data_list_to_array_data_dict(
-            cls, data: List[dict], array_columns_to_process: List[str]) -> dict:
+        cls, data: List[dict], array_columns_to_process: List[str]
+    ) -> dict:
         """
         Pull out array data from rows of data into a dictionary where the key represents
         the index in the data list and the value is the array data values
@@ -536,10 +576,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         return array_data_dict
 
     @classmethod
-    def _process_array_data(cls,
-                            data: List[dict],
-                            all_columns: List[dict],
-                            array_column_hierarchy: dict) -> dict:
+    def _process_array_data(
+        cls, data: List[dict], all_columns: List[dict], array_column_hierarchy: dict
+    ) -> dict:
         """
         Pull out array data that is ready to be processed into a dictionary.
         The key refers to the index in the original data set. The value is
@@ -575,38 +614,39 @@ class PrestoEngineSpec(BaseEngineSpec):
         # Determine what columns are ready to be processed. This is necessary for
         # array columns that contain rows with nested arrays. We first process
         # the outer arrays before processing inner arrays.
-        array_columns_to_process, \
-            unprocessed_array_columns = cls._split_array_columns_by_process_state(
-                array_columns, array_column_hierarchy, data[0])
+        array_columns_to_process, unprocessed_array_columns = cls._split_array_columns_by_process_state(
+            array_columns, array_column_hierarchy, data[0]
+        )
 
         # Pull out array data that is ready to be processed into a dictionary.
         all_array_data = cls._convert_data_list_to_array_data_dict(
-            data, array_columns_to_process)
+            data, array_columns_to_process
+        )
 
         for original_data_index, expanded_array_data in all_array_data.items():
             for array_column in array_columns:
                 if array_column in unprocessed_array_columns:
                     continue
                 # Expand array values that are rows
-                if str(array_column_hierarchy[array_column]['type']) == 'ROW':
+                if str(array_column_hierarchy[array_column]["type"]) == "ROW":
                     for array_value in expanded_array_data:
-                        cls._expand_row_data(array_value,
-                                             array_column,
-                                             array_column_hierarchy)
+                        cls._expand_row_data(
+                            array_value, array_column, array_column_hierarchy
+                        )
                     continue
                 array_data = expanded_array_data[0][array_column]
                 array_children = array_column_hierarchy[array_column]
                 # This is an empty array of primitive data type
-                if not array_data and not array_children['children']:
+                if not array_data and not array_children["children"]:
                     continue
                 # Pull out complex array values into its own row of data
-                elif array_data and array_children['children']:
+                elif array_data and array_children["children"]:
                     for array_index, data_value in enumerate(array_data):
                         if array_index >= len(expanded_array_data):
                             empty_data = cls._create_empty_row_of_data(all_columns)
                             expanded_array_data.append(empty_data)
                         for index, datum_value in enumerate(data_value):
-                            array_child = array_children['children'][index]
+                            array_child = array_children["children"][index]
                             expanded_array_data[array_index][array_child] = datum_value
                 # Pull out primitive array values into its own row of data
                 elif array_data:
@@ -617,15 +657,15 @@ class PrestoEngineSpec(BaseEngineSpec):
                         expanded_array_data[array_index][array_column] = data_value
                 # This is an empty array with nested fields
                 else:
-                    for index, array_child in enumerate(array_children['children']):
+                    for index, array_child in enumerate(array_children["children"]):
                         for array_value in expanded_array_data:
-                            array_value[array_child] = ''
+                            array_value[array_child] = ""
         return all_array_data
 
     @classmethod
-    def _consolidate_array_data_into_data(cls,
-                                          data: List[dict],
-                                          array_data: dict) -> None:
+    def _consolidate_array_data_into_data(
+        cls, data: List[dict], array_data: dict
+    ) -> None:
         """
         Consolidate data given a list representing rows of data and a dictionary
         representing expanded array data
@@ -659,14 +699,14 @@ class PrestoEngineSpec(BaseEngineSpec):
         while data_index < len(data):
             data[data_index].update(array_data[original_data_index][0])
             array_data[original_data_index].pop(0)
-            data[data_index + 1:data_index + 1] = array_data[original_data_index]
+            data[data_index + 1 : data_index + 1] = array_data[original_data_index]
             data_index = data_index + len(array_data[original_data_index]) + 1
             original_data_index = original_data_index + 1
 
     @classmethod
-    def _remove_processed_array_columns(cls,
-                                        unprocessed_array_columns: Set[str],
-                                        array_column_hierarchy: dict) -> None:
+    def _remove_processed_array_columns(
+        cls, unprocessed_array_columns: Set[str], array_column_hierarchy: dict
+    ) -> None:
         """
         Remove keys representing array columns that have already been processed
         :param unprocessed_array_columns: list of unprocessed array columns
@@ -680,9 +720,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                 del array_column_hierarchy[array_column]
 
     @classmethod
-    def expand_data(cls,
-                    columns: List[dict],
-                    data: List[dict]) -> Tuple[List[dict], List[dict], List[dict]]:
+    def expand_data(
+        cls, columns: List[dict], data: List[dict]
+    ) -> Tuple[List[dict], List[dict], List[dict]]:
         """
         We do not immediately display rows and arrays clearly in the data grid. This
         method separates out nested fields and data values to help clearly display
@@ -707,18 +747,18 @@ class PrestoEngineSpec(BaseEngineSpec):
         all_columns: List[dict] = []
         # Get the list of all columns (selected fields and their nested fields)
         for column in columns:
-            if column['type'].startswith('ARRAY') or column['type'].startswith('ROW'):
-                cls._parse_structural_column(column['name'],
-                                             column['type'].lower(),
-                                             all_columns)
+            if column["type"].startswith("ARRAY") or column["type"].startswith("ROW"):
+                cls._parse_structural_column(
+                    column["name"], column["type"].lower(), all_columns
+                )
             else:
                 all_columns.append(column)
 
         # Build graphs where the root node is a row or array and its children are that
         # column's nested fields
-        row_column_hierarchy,\
-            array_column_hierarchy,\
-            expanded_columns = cls._create_row_and_array_hierarchy(columns)
+        row_column_hierarchy, array_column_hierarchy, expanded_columns = cls._create_row_and_array_hierarchy(
+            columns
+        )
 
         # Pull out a row's nested fields and their values into separate columns
         ordered_row_columns = row_column_hierarchy.keys()
@@ -729,17 +769,18 @@ class PrestoEngineSpec(BaseEngineSpec):
         while array_column_hierarchy:
             array_columns = list(array_column_hierarchy.keys())
             # Determine what columns are ready to be processed.
-            array_columns_to_process,\
-                unprocessed_array_columns = cls._split_array_columns_by_process_state(
-                    array_columns, array_column_hierarchy, data[0])
-            all_array_data = cls._process_array_data(data,
-                                                     all_columns,
-                                                     array_column_hierarchy)
+            array_columns_to_process, unprocessed_array_columns = cls._split_array_columns_by_process_state(
+                array_columns, array_column_hierarchy, data[0]
+            )
+            all_array_data = cls._process_array_data(
+                data, all_columns, array_column_hierarchy
+            )
             # Consolidate the original data set and the expanded array data
             cls._consolidate_array_data_into_data(data, all_array_data)
             # Remove processed array columns from the graph
-            cls._remove_processed_array_columns(unprocessed_array_columns,
-                                                array_column_hierarchy)
+            cls._remove_processed_array_columns(
+                unprocessed_array_columns, array_column_hierarchy
+            )
 
         return all_columns, data, expanded_columns
 
@@ -748,25 +789,26 @@ class PrestoEngineSpec(BaseEngineSpec):
         indexes = database.get_indexes(table_name, schema_name)
         if not indexes:
             return {}
-        cols = indexes[0].get('column_names', [])
+        cols = indexes[0].get("column_names", [])
         full_table_name = table_name
-        if schema_name and '.' not in table_name:
-            full_table_name = '{}.{}'.format(schema_name, table_name)
+        if schema_name and "." not in table_name:
+            full_table_name = "{}.{}".format(schema_name, table_name)
         pql = cls._partition_query(full_table_name)
         col_name, latest_part = cls.latest_partition(
-            table_name, schema_name, database, show_first=True)
+            table_name, schema_name, database, show_first=True
+        )
         return {
-            'partitions': {
-                'cols': cols,
-                'latest': {col_name: latest_part},
-                'partitionQuery': pql,
-            },
+            "partitions": {
+                "cols": cols,
+                "latest": {col_name: latest_part},
+                "partitionQuery": pql,
+            }
         }
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
-        logging.info('Polling the cursor for progress')
+        logging.info("Polling the cursor for progress")
         polled = cursor.poll()
         # poll returns dict -- JSON status information or ``None``
         # if the query is done
@@ -774,7 +816,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         # b34bdbf51378b3979eaf5eca9e956f06ddc36ca0/pyhive/presto.py#L178
         while polled:
             # Update the object and wait for the kill signal.
-            stats = polled.get('stats', {})
+            stats = polled.get("stats", {})
 
             query = session.query(type(query)).filter_by(id=query.id).one()
             if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
@@ -782,50 +824,51 @@ class PrestoEngineSpec(BaseEngineSpec):
                 break
 
             if stats:
-                state = stats.get('state')
+                state = stats.get("state")
 
                 # if already finished, then stop polling
-                if state == 'FINISHED':
+                if state == "FINISHED":
                     break
 
-                completed_splits = float(stats.get('completedSplits'))
-                total_splits = float(stats.get('totalSplits'))
+                completed_splits = float(stats.get("completedSplits"))
+                total_splits = float(stats.get("totalSplits"))
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
                     logging.info(
-                        'Query progress: {} / {} '
-                        'splits'.format(completed_splits, total_splits))
+                        "Query progress: {} / {} "
+                        "splits".format(completed_splits, total_splits)
+                    )
                     if progress > query.progress:
                         query.progress = progress
                     session.commit()
             time.sleep(1)
-            logging.info('Polling the cursor for progress')
+            logging.info("Polling the cursor for progress")
             polled = cursor.poll()
 
     @classmethod
     def extract_error_message(cls, e):
         if (
-                hasattr(e, 'orig') and
-                type(e.orig).__name__ == 'DatabaseError' and
-                isinstance(e.orig[0], dict)):
+            hasattr(e, "orig")
+            and type(e.orig).__name__ == "DatabaseError"
+            and isinstance(e.orig[0], dict)
+        ):
             error_dict = e.orig[0]
-            return '{} at {}: {}'.format(
-                error_dict.get('errorName'),
-                error_dict.get('errorLocation'),
-                error_dict.get('message'),
+            return "{} at {}: {}".format(
+                error_dict.get("errorName"),
+                error_dict.get("errorLocation"),
+                error_dict.get("message"),
             )
         if (
-                type(e).__name__ == 'DatabaseError' and
-                hasattr(e, 'args') and
-                len(e.args) > 0
+            type(e).__name__ == "DatabaseError"
+            and hasattr(e, "args")
+            and len(e.args) > 0
         ):
             error_dict = e.args[0]
-            return error_dict.get('message')
+            return error_dict.get("message")
         return utils.error_msg_from_exception(e)
 
     @classmethod
-    def _partition_query(
-            cls, table_name, limit=0, order_by=None, filters=None):
+    def _partition_query(cls, table_name, limit=0, order_by=None, filters=None):
         """Returns a partition query
 
         :param table_name: the name of the table to get partitions from
@@ -838,42 +881,44 @@ class PrestoEngineSpec(BaseEngineSpec):
         :type order_by: list of (str, bool) tuples
         :param filters: dict of field name and filter value combinations
         """
-        limit_clause = 'LIMIT {}'.format(limit) if limit else ''
-        order_by_clause = ''
+        limit_clause = "LIMIT {}".format(limit) if limit else ""
+        order_by_clause = ""
         if order_by:
             l = []  # noqa: E741
             for field, desc in order_by:
-                l.append(field + ' DESC' if desc else '')
-            order_by_clause = 'ORDER BY ' + ', '.join(l)
+                l.append(field + " DESC" if desc else "")
+            order_by_clause = "ORDER BY " + ", ".join(l)
 
-        where_clause = ''
+        where_clause = ""
         if filters:
             l = []  # noqa: E741
             for field, value in filters.items():
                 l.append(f"{field} = '{value}'")
-            where_clause = 'WHERE ' + ' AND '.join(l)
+            where_clause = "WHERE " + " AND ".join(l)
 
-        sql = textwrap.dedent(f"""\
+        sql = textwrap.dedent(
+            f"""\
             SELECT * FROM "{table_name}$partitions"
 
             {where_clause}
             {order_by_clause}
             {limit_clause}
-        """)
+        """
+        )
         return sql
 
     @classmethod
-    def where_latest_partition(
-            cls, table_name, schema, database, qry, columns=None):
+    def where_latest_partition(cls, table_name, schema, database, qry, columns=None):
         try:
             col_name, value = cls.latest_partition(
-                table_name, schema, database, show_first=True)
+                table_name, schema, database, show_first=True
+            )
         except Exception:
             # table is not partitioned
             return False
         if value is not None:
             for c in columns:
-                if c.get('name') == col_name:
+                if c.get("name") == col_name:
                     return qry.where(Column(col_name) == value)
         return False
 
@@ -900,15 +945,17 @@ class PrestoEngineSpec(BaseEngineSpec):
         ('ds', '2018-01-01')
         """
         indexes = database.get_indexes(table_name, schema)
-        if len(indexes[0]['column_names']) < 1:
+        if len(indexes[0]["column_names"]) < 1:
             raise SupersetTemplateException(
-                'The table should have one partitioned field')
-        elif not show_first and len(indexes[0]['column_names']) > 1:
+                "The table should have one partitioned field"
+            )
+        elif not show_first and len(indexes[0]["column_names"]) > 1:
             raise SupersetTemplateException(
-                'The table should have a single partitioned field '
-                'to use this function. You may want to use '
-                '`presto.latest_sub_partition`')
-        part_field = indexes[0]['column_names'][0]
+                "The table should have a single partitioned field "
+                "to use this function. You may want to use "
+                "`presto.latest_sub_partition`"
+            )
+        part_field = indexes[0]["column_names"][0]
         sql = cls._partition_query(table_name, 1, [(part_field, True)])
         df = database.get_df(sql, schema)
         return part_field, cls._latest_partition_from_df(df)
@@ -941,15 +988,14 @@ class PrestoEngineSpec(BaseEngineSpec):
         '2018-01-01'
         """
         indexes = database.get_indexes(table_name, schema)
-        part_fields = indexes[0]['column_names']
+        part_fields = indexes[0]["column_names"]
         for k in kwargs.keys():
             if k not in k in part_fields:
-                msg = 'Field [{k}] is not part of the portioning key'
+                msg = "Field [{k}] is not part of the portioning key"
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
             msg = (
-                'A filter needs to be specified for {} out of the '
-                '{} fields.'
+                "A filter needs to be specified for {} out of the " "{} fields."
             ).format(len(part_fields) - 1, len(part_fields))
             raise SupersetTemplateException(msg)
 
@@ -957,9 +1003,8 @@ class PrestoEngineSpec(BaseEngineSpec):
             if field not in kwargs.keys():
                 field_to_return = field
 
-        sql = cls._partition_query(
-            table_name, 1, [(field_to_return, True)], kwargs)
+        sql = cls._partition_query(table_name, 1, [(field_to_return, True)], kwargs)
         df = database.get_df(sql, schema)
         if df.empty:
-            return ''
+            return ""
         return df.to_dict()[field_to_return][0]
