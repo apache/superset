@@ -1,3 +1,5 @@
+/* eslint-disable react/no-multi-comp */
+
 import PropTypes from 'prop-types';
 import React from 'react';
 import { mount } from 'enzyme';
@@ -45,7 +47,7 @@ describe('reactify(renderFn)', () => {
       return <TheChart id="test" content={content} />;
     }
   }
-  /* eslint-disable-next-line react/no-multi-comp */
+
   class AnotherTestComponent extends React.PureComponent<{}, {}, any> {
     render() {
       return <TheChartWithWillUnmountHook id="another_test" />;
