@@ -31,8 +31,12 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.add_column('dashboards', sa.Column('published', sa.Boolean(), nullable=True))
+    with op.batch_alter_table('dashboards') as batch_op:
+        batch_op.add_column(sa.Column('published', sa.Boolean(), nullable=True))
+    op.execute('UPDATE dashboards SET published=1')
+
 
 
 def downgrade():
-    op.drop_column('dashboards', 'published')
+    with op.batch_alter_table('dashboards') as batch_op:
+        batch_op.drop_column('published')
