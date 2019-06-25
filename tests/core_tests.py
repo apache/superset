@@ -39,7 +39,6 @@ from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
-from superset.utils.core import get_main_database
 from superset.views.core import DatabaseView
 from .base_tests import SupersetTestCase
 from .fixtures.pyodbcRow import Row
@@ -345,7 +344,7 @@ class CoreTests(SupersetTestCase):
 
     def test_testconn(self, username="admin"):
         self.login(username=username)
-        database = get_main_database(db.session)
+        database = utils.get_main_database()
 
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = json.dumps(
@@ -376,7 +375,7 @@ class CoreTests(SupersetTestCase):
         assert response.headers["Content-Type"] == "application/json"
 
     def test_custom_password_store(self):
-        database = get_main_database(db.session)
+        database = utils.get_main_database()
         conn_pre = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
 
         def custom_password_store(uri):
@@ -394,13 +393,13 @@ class CoreTests(SupersetTestCase):
         # validate that sending a password-masked uri does not over-write the decrypted
         # uri
         self.login(username=username)
-        database = get_main_database(db.session)
+        database = utils.get_main_database()
         sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
         url = "databaseview/edit/{}".format(database.id)
         data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
         data["sqlalchemy_uri"] = database.safe_sqlalchemy_uri()
         self.client.post(url, data=data)
-        database = get_main_database(db.session)
+        database = utils.get_main_database()
         self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
     def test_warm_up_cache(self):
@@ -483,27 +482,27 @@ class CoreTests(SupersetTestCase):
 
     def test_extra_table_metadata(self):
         self.login("admin")
-        dbid = get_main_database(db.session).id
+        dbid = utils.get_main_database().id
         self.get_json_resp(
             f"/superset/extra_table_metadata/{dbid}/" "ab_permission_view/panoramix/"
         )
 
     def test_process_template(self):
-        maindb = get_main_database(db.session)
+        maindb = utils.get_main_database()
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
 
     def test_get_template_kwarg(self):
-        maindb = get_main_database(db.session)
+        maindb = utils.get_main_database()
         s = "{{ foo }}"
         tp = jinja_context.get_template_processor(database=maindb, foo="bar")
         rendered = tp.process_template(s)
         self.assertEqual("bar", rendered)
 
     def test_template_kwarg(self):
-        maindb = get_main_database(db.session)
+        maindb = utils.get_main_database()
         s = "{{ foo }}"
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(s, foo="bar")
@@ -516,7 +515,7 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data["data"][0]["test"], "2017-01-01T00:00:00")
 
     def test_table_metadata(self):
-        maindb = get_main_database(db.session)
+        maindb = utils.get_main_database()
         backend = maindb.backend
         data = self.get_json_resp("/superset/table/{}/ab_user/null/".format(maindb.id))
         self.assertEqual(data["name"], "ab_user")
@@ -615,15 +614,16 @@ class CoreTests(SupersetTestCase):
         test_file.write("john,1\n")
         test_file.write("paul,2\n")
         test_file.close()
-        main_db_uri = (
-            db.session.query(models.Database).filter_by(database_name="main").one()
-        )
+        example_db = utils.get_example_database()
+        example_db.allow_csv_upload = True
+        db_id = example_db.id
+        db.session.commit()
         test_file = open(filename, "rb")
         form_data = {
             "csv_file": test_file,
             "sep": ",",
             "name": table_name,
-            "con": main_db_uri.id,
+            "con": db_id,
             "if_exists": "append",
             "index_label": "test_label",
             "mangle_dupe_cols": False,
@@ -638,8 +638,8 @@ class CoreTests(SupersetTestCase):
 
         try:
             # ensure uploaded successfully
-            form_post = self.get_resp(url, data=form_data)
-            assert 'CSV file "testCSV.csv" uploaded to table' in form_post
+            resp = self.get_resp(url, data=form_data)
+            assert 'CSV file "testCSV.csv" uploaded to table' in resp
         finally:
             os.remove(filename)
 
@@ -769,7 +769,8 @@ class CoreTests(SupersetTestCase):
 
     def test_select_star(self):
         self.login(username="admin")
-        resp = self.get_resp("/superset/select_star/1/birth_names")
+        examples_db = utils.get_example_database()
+        resp = self.get_resp(f"/superset/select_star/{examples_db.id}/birth_names")
         self.assertIn("gender", resp)
 
 

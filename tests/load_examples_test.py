@@ -34,3 +34,6 @@ class SupersetDataFrameTestCase(SupersetTestCase):
 
     def test_load_test_users_run(self):
         load_test_users_run()
+
+    def test_load_unicode_test_data(self):
+        data.load_unicode_test_data()

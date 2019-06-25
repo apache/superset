@@ -23,28 +23,30 @@ from superset.utils import core as utils
 from .helpers import config, get_example_data, get_slice_json, merge_slice, Slice, TBL
 
 
-def load_random_time_series_data():
+def load_random_time_series_data(only_metadata=False):
     """Loading random time series data from a zip file in the repo"""
-    data = get_example_data("random_time_series.json.gz")
-    pdf = pd.read_json(data)
-    pdf.ds = pd.to_datetime(pdf.ds, unit="s")
-    pdf.to_sql(
-        "random_time_series",
-        db.engine,
-        if_exists="replace",
-        chunksize=500,
-        dtype={"ds": DateTime},
-        index=False,
-    )
-    print("Done loading table!")
-    print("-" * 80)
+    database = utils.get_example_database()
+    if not only_metadata:
+        data = get_example_data("random_time_series.json.gz")
+        pdf = pd.read_json(data)
+        pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+        pdf.to_sql(
+            "random_time_series",
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            dtype={"ds": DateTime},
+            index=False,
+        )
+        print("Done loading table!")
+        print("-" * 80)
 
     print("Creating table [random_time_series] reference")
     obj = db.session.query(TBL).filter_by(table_name="random_time_series").first()
     if not obj:
         obj = TBL(table_name="random_time_series")
     obj.main_dttm_col = "ds"
-    obj.database = utils.get_or_create_main_db()
+    obj.database = database
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()

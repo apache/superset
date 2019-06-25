@@ -24,32 +24,35 @@ from superset.utils import core as utils
 from .helpers import TBL, get_example_data
 
 
-def load_sf_population_polygons():
+def load_sf_population_polygons(only_metadata=False):
     tbl_name = "sf_population_polygons"
+    database = utils.get_example_database()
 
-    data = get_example_data("sf_population.json.gz")
-    df = pd.read_json(data)
-    df["contour"] = df.contour.map(json.dumps)
+    if not only_metadata:
+        data = get_example_data("sf_population.json.gz")
+        df = pd.read_json(data)
+        df["contour"] = df.contour.map(json.dumps)
 
-    df.to_sql(
-        tbl_name,
-        db.engine,
-        if_exists="replace",
-        chunksize=500,
-        dtype={
-            "zipcode": BigInteger,
-            "population": BigInteger,
-            "contour": Text,
-            "area": BigInteger,
-        },
-        index=False,
-    )
+        df.to_sql(
+            tbl_name,
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            dtype={
+                "zipcode": BigInteger,
+                "population": BigInteger,
+                "contour": Text,
+                "area": BigInteger,
+            },
+            index=False,
+        )
+
     print("Creating table {} reference".format(tbl_name))
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Population density of San Francisco"
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = database
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

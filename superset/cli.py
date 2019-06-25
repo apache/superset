@@ -46,6 +46,7 @@ def make_shell_context():
 def init():
     """Inits the Superset application"""
     utils.get_or_create_main_db()
+    utils.get_example_database()
     appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
 
@@ -67,50 +68,50 @@ def version(verbose):
     print(Style.RESET_ALL)
 
 
-def load_examples_run(load_test_data):
+def load_examples_run(load_test_data, only_metadata=False):
     print("Loading examples into {}".format(db))
 
     data.load_css_templates()
 
     print("Loading energy related dataset")
-    data.load_energy()
+    data.load_energy(only_metadata)
 
     print("Loading [World Bank's Health Nutrition and Population Stats]")
-    data.load_world_bank_health_n_pop()
+    data.load_world_bank_health_n_pop(only_metadata)
 
     print("Loading [Birth names]")
-    data.load_birth_names()
+    data.load_birth_names(only_metadata)
 
     print("Loading [Unicode test data]")
-    data.load_unicode_test_data()
+    data.load_unicode_test_data(only_metadata)
 
     if not load_test_data:
         print("Loading [Random time series data]")
-        data.load_random_time_series_data()
+        data.load_random_time_series_data(only_metadata)
 
         print("Loading [Random long/lat data]")
-        data.load_long_lat_data()
+        data.load_long_lat_data(only_metadata)
 
         print("Loading [Country Map data]")
-        data.load_country_map_data()
+        data.load_country_map_data(only_metadata)
 
         print("Loading [Multiformat time series]")
-        data.load_multiformat_time_series()
+        data.load_multiformat_time_series(only_metadata)
 
         print("Loading [Paris GeoJson]")
-        data.load_paris_iris_geojson()
+        data.load_paris_iris_geojson(only_metadata)
 
         print("Loading [San Francisco population polygons]")
-        data.load_sf_population_polygons()
+        data.load_sf_population_polygons(only_metadata)
 
         print("Loading [Flights data]")
-        data.load_flights()
+        data.load_flights(only_metadata)
 
         print("Loading [BART lines]")
-        data.load_bart_lines()
+        data.load_bart_lines(only_metadata)
 
         print("Loading [Multi Line]")
-        data.load_multi_line()
+        data.load_multi_line(only_metadata=True)
 
         print("Loading [Misc Charts] dashboard")
         data.load_misc_dashboard()
@@ -119,14 +120,17 @@ def load_examples_run(load_test_data):
         data.load_deck_dash()
 
     print("Loading [Tabbed dashboard]")
-    data.load_tabbed_dashboard()
+    data.load_tabbed_dashboard(only_metadata)
 
 
 @app.cli.command()
 @click.option("--load-test-data", "-t", is_flag=True, help="Load additional test data")
-def load_examples(load_test_data):
+@click.option(
+    "--only-metadata", "-m", is_flag=True, help="Only load metadata, skip actual data"
+)
+def load_examples(load_test_data, only_metadata=False):
     """Loads a set of Slices and Dashboards and a supporting dataset """
-    load_examples_run(load_test_data)
+    load_examples_run(load_test_data, only_metadata)
 
 
 @app.cli.command()
@@ -405,7 +409,7 @@ def load_test_users_run():
         for perm in security_manager.find_role("Gamma").permissions:
             security_manager.add_permission_role(gamma_sqllab_role, perm)
         utils.get_or_create_main_db()
-        db_perm = utils.get_main_database(security_manager.get_session).perm
+        db_perm = utils.get_main_database().perm
         security_manager.add_permission_view_menu("database_access", db_perm)
         db_pvm = security_manager.find_permission_view_menu(
             view_menu_name=db_perm, permission_name="database_access"

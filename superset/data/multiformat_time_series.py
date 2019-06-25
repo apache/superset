@@ -31,38 +31,41 @@ from .helpers import (
 )
 
 
-def load_multiformat_time_series():
+def load_multiformat_time_series(only_metadata=False):
     """Loading time series data from a zip file in the repo"""
-    data = get_example_data("multiformat_time_series.json.gz")
-    pdf = pd.read_json(data)
+    database = utils.get_example_database()
+    if not only_metadata:
+        data = get_example_data("multiformat_time_series.json.gz")
+        pdf = pd.read_json(data)
 
-    pdf.ds = pd.to_datetime(pdf.ds, unit="s")
-    pdf.ds2 = pd.to_datetime(pdf.ds2, unit="s")
-    pdf.to_sql(
-        "multiformat_time_series",
-        db.engine,
-        if_exists="replace",
-        chunksize=500,
-        dtype={
-            "ds": Date,
-            "ds2": DateTime,
-            "epoch_s": BigInteger,
-            "epoch_ms": BigInteger,
-            "string0": String(100),
-            "string1": String(100),
-            "string2": String(100),
-            "string3": String(100),
-        },
-        index=False,
-    )
-    print("Done loading table!")
-    print("-" * 80)
+        pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+        pdf.ds2 = pd.to_datetime(pdf.ds2, unit="s")
+        pdf.to_sql(
+            "multiformat_time_series",
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            dtype={
+                "ds": Date,
+                "ds2": DateTime,
+                "epoch_s": BigInteger,
+                "epoch_ms": BigInteger,
+                "string0": String(100),
+                "string1": String(100),
+                "string2": String(100),
+                "string3": String(100),
+            },
+            index=False,
+        )
+        print("Done loading table!")
+        print("-" * 80)
+
     print("Creating table [multiformat_time_series] reference")
     obj = db.session.query(TBL).filter_by(table_name="multiformat_time_series").first()
     if not obj:
         obj = TBL(table_name="multiformat_time_series")
     obj.main_dttm_col = "ds"
-    obj.database = utils.get_or_create_main_db()
+    obj.database = database
     dttm_and_expr_dict = {
         "ds": [None, None],
         "ds2": [None, None],

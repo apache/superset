@@ -374,6 +374,21 @@ class SqlaTable(Model, BaseDatasource):
     def database_name(self):
         return self.database.name
 
+    @classmethod
+    def get_datasource_by_name(cls, session, datasource_name, schema, database_name):
+        schema = schema or None
+        query = (
+            session.query(cls)
+            .join(Database)
+            .filter(cls.table_name == datasource_name)
+            .filter(Database.database_name == database_name)
+        )
+        # Handling schema being '' or None, which is easier to handle
+        # in python than in the SQLA query in a multi-dialect way
+        for tbl in query.all():
+            if schema == (tbl.schema or None):
+                return tbl
+
     @property
     def link(self):
         name = escape(self.name)

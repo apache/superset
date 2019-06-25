@@ -40,7 +40,7 @@ from .helpers import (
 )
 
 
-def load_tabbed_dashboard():
+def load_tabbed_dashboard(only_metadata=False):
     """Creating a tabbed dashboard"""
 
     print("Creating a dashboard with nested tabs")

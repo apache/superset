@@ -35,26 +35,28 @@ from .helpers import (
 )
 
 
-def load_energy():
+def load_energy(only_metadata=False):
     """Loads an energy related dataset to use with sankey and graphs"""
     tbl_name = "energy_usage"
-    data = get_example_data("energy.json.gz")
-    pdf = pd.read_json(data)
-    pdf.to_sql(
-        tbl_name,
-        db.engine,
-        if_exists="replace",
-        chunksize=500,
-        dtype={"source": String(255), "target": String(255), "value": Float()},
-        index=False,
-    )
+    database = utils.get_example_database()
+    if not only_metadata:
+        data = get_example_data("energy.json.gz")
+        pdf = pd.read_json(data)
+        pdf.to_sql(
+            tbl_name,
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            dtype={"source": String(255), "target": String(255), "value": Float()},
+            index=False,
+        )
 
     print("Creating table [wb_health_population] reference")
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Energy consumption"
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = database
 
     if not any(col.metric_name == "sum__value" for col in tbl.metrics):
         col = str(column("value").compile(db.engine))

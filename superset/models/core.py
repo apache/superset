@@ -666,12 +666,13 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             )
             make_transient(copied_dashboard)
             for slc in copied_dashboard.slices:
+                make_transient(slc)
                 datasource_ids.add((slc.datasource_id, slc.datasource_type))
                 # add extra params for the import
                 slc.alter_params(
                     remote_id=slc.id,
                     datasource_name=slc.datasource.name,
-                    schema=slc.datasource.name,
+                    schema=slc.datasource.schema,
                     database_name=slc.datasource.database.name,
                 )
             copied_dashboard.alter_params(remote_id=dashboard_id)

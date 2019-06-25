@@ -35,38 +35,41 @@ from .helpers import (
 )
 
 
-def load_unicode_test_data():
+def load_unicode_test_data(only_metadata=False):
     """Loading unicode test dataset from a csv file in the repo"""
-    data = get_example_data(
-        "unicode_utf8_unixnl_test.csv", is_gzip=False, make_bytes=True
-    )
-    df = pd.read_csv(data, encoding="utf-8")
-    # generate date/numeric data
-    df["dttm"] = datetime.datetime.now().date()
-    df["value"] = [random.randint(1, 100) for _ in range(len(df))]
-    df.to_sql(  # pylint: disable=no-member
-        "unicode_test",
-        db.engine,
-        if_exists="replace",
-        chunksize=500,
-        dtype={
-            "phrase": String(500),
-            "short_phrase": String(10),
-            "with_missing": String(100),
-            "dttm": Date(),
-            "value": Float(),
-        },
-        index=False,
-    )
-    print("Done loading table!")
-    print("-" * 80)
+    database = utils.get_example_database()
+
+    if not only_metadata:
+        data = get_example_data(
+            "unicode_utf8_unixnl_test.csv", is_gzip=False, make_bytes=True
+        )
+        df = pd.read_csv(data, encoding="utf-8")
+        # generate date/numeric data
+        df["dttm"] = datetime.datetime.now().date()
+        df["value"] = [random.randint(1, 100) for _ in range(len(df))]
+        df.to_sql(  # pylint: disable=no-member
+            "unicode_test",
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            dtype={
+                "phrase": String(500),
+                "short_phrase": String(10),
+                "with_missing": String(100),
+                "dttm": Date(),
+                "value": Float(),
+            },
+            index=False,
+        )
+        print("Done loading table!")
+        print("-" * 80)
 
     print("Creating table [unicode_test] reference")
     obj = db.session.query(TBL).filter_by(table_name="unicode_test").first()
     if not obj:
         obj = TBL(table_name="unicode_test")
     obj.main_dttm_col = "dttm"
-    obj.database = utils.get_or_create_main_db()
+    obj.database = database
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -104,7 +107,7 @@ def load_unicode_test_data():
     merge_slice(slc)
 
     print("Creating a dashboard")
-    dash = db.session.query(Dash).filter_by(dashboard_title="Unicode Test").first()
+    dash = db.session.query(Dash).filter_by(slug="unicode-test").first()
 
     if not dash:
         dash = Dash()
