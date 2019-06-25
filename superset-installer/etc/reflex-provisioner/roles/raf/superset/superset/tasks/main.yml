@@ -55,9 +55,11 @@
     - name: superset-deployment
       file: superset-deployment.yaml
       type: Deployment
+      state: reloaded
     - name: superset-service
       file: superset-service.yaml
       type: Service
+      state: reloaded
   register: superset_deploy_files
   when:
     - superset_deploy
@@ -86,6 +88,7 @@
     resource: "{{ item.item.type }}"
     filename: "{{ superset_host_k8s_dir }}/{{ item.item.file }}"
     state: "{{ item.changed | ternary('latest','present') }}"
+    state: "{{ item.item.state | default( item.changed | ternary('latest','present')) }}"
     force: "true"
   with_items: "{{ superset_deploy_files.results }}"
   when:
