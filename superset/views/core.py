@@ -1566,7 +1566,7 @@ class Superset(BaseSupersetView):
                 metrics = col.get_metrics().values()
                 col.datasource.add_missing_metrics(metrics)
             db.session.commit()
-        return json_success('OK')
+        return json_success('"OK"')
 
     @api
     @has_access_api
@@ -1858,7 +1858,8 @@ class Superset(BaseSupersetView):
             engine = create_engine(uri, **engine_params)
 
             with closing(engine.connect()) as conn:
-                return json_success(json.dumps(conn.scalar(select([1]))))
+                conn.scalar(select([1]))
+                return json_success('"OK"')
         except Exception as e:
             logging.exception(e)
             return json_error_response((
