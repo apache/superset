@@ -25,106 +25,77 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = '18e88e1cc004'
-down_revision = '430039611635'
+revision = "18e88e1cc004"
+down_revision = "430039611635"
 
 
 def upgrade():
     try:
         op.alter_column(
-            'clusters', 'changed_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "clusters", "changed_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'clusters', 'created_on',
-            existing_type=sa.DATETIME(), nullable=True)
-        op.drop_constraint(None, 'columns', type_='foreignkey')
-        op.drop_constraint(None, 'columns', type_='foreignkey')
-        op.drop_column('columns', 'created_on')
-        op.drop_column('columns', 'created_by_fk')
-        op.drop_column('columns', 'changed_on')
-        op.drop_column('columns', 'changed_by_fk')
+            "clusters", "created_on", existing_type=sa.DATETIME(), nullable=True
+        )
+        op.drop_constraint(None, "columns", type_="foreignkey")
+        op.drop_constraint(None, "columns", type_="foreignkey")
+        op.drop_column("columns", "created_on")
+        op.drop_column("columns", "created_by_fk")
+        op.drop_column("columns", "changed_on")
+        op.drop_column("columns", "changed_by_fk")
         op.alter_column(
-            'css_templates', 'changed_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "css_templates", "changed_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'css_templates', 'created_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "css_templates", "created_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'dashboards', 'changed_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "dashboards", "changed_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'dashboards', 'created_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
-        op.create_unique_constraint(None, 'dashboards', ['slug'])
+            "dashboards", "created_on", existing_type=sa.DATETIME(), nullable=True
+        )
+        op.create_unique_constraint(None, "dashboards", ["slug"])
         op.alter_column(
-            'datasources', 'changed_by_fk',
-            existing_type=sa.INTEGER(),
-            nullable=True)
+            "datasources", "changed_by_fk", existing_type=sa.INTEGER(), nullable=True
+        )
         op.alter_column(
-            'datasources', 'changed_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "datasources", "changed_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'datasources', 'created_by_fk',
-            existing_type=sa.INTEGER(),
-            nullable=True)
+            "datasources", "created_by_fk", existing_type=sa.INTEGER(), nullable=True
+        )
         op.alter_column(
-            'datasources', 'created_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "datasources", "created_on", existing_type=sa.DATETIME(), nullable=True
+        )
+        op.alter_column("dbs", "changed_on", existing_type=sa.DATETIME(), nullable=True)
+        op.alter_column("dbs", "created_on", existing_type=sa.DATETIME(), nullable=True)
         op.alter_column(
-            'dbs', 'changed_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "slices", "changed_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'dbs', 'created_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "slices", "created_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'slices', 'changed_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "sql_metrics", "changed_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'slices', 'created_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "sql_metrics", "created_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'sql_metrics', 'changed_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "table_columns", "changed_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'sql_metrics', 'created_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "table_columns", "created_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'table_columns', 'changed_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "tables", "changed_on", existing_type=sa.DATETIME(), nullable=True
+        )
         op.alter_column(
-            'table_columns', 'created_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
-        op.alter_column(
-            'tables', 'changed_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
-        op.alter_column(
-            'tables', 'created_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
-        op.alter_column(
-            'url', 'changed_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
-        op.alter_column(
-            'url', 'created_on',
-            existing_type=sa.DATETIME(),
-            nullable=True)
+            "tables", "created_on", existing_type=sa.DATETIME(), nullable=True
+        )
+        op.alter_column("url", "changed_on", existing_type=sa.DATETIME(), nullable=True)
+        op.alter_column("url", "created_on", existing_type=sa.DATETIME(), nullable=True)
     except Exception:
         pass
 
