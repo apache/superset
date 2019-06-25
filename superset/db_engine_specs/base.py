@@ -78,6 +78,13 @@ class TimestampExpression(ColumnClause):
         super().__init__(expr, **kwargs)
         self.col = col
 
+    @property
+    def _constructor(self):
+        # Needed to ensure that the column label is rendered correctly when
+        # proxied to the outer query.
+        # See https://github.com/sqlalchemy/sqlalchemy/issues/4730
+        return ColumnClause
+
 
 @compiles(TimestampExpression)
 def compile_timegrain_expression(element: TimestampExpression, compiler, **kw):
@@ -123,9 +130,9 @@ class BaseEngineSpec(object):
         cls, col: ColumnClause, pdf: Optional[str], time_grain: Optional[str]
     ) -> TimestampExpression:
         """
-        Construct a TimeExpression to be used in a SQLAlchemy query.
+        Construct a TimestampExpression to be used in a SQLAlchemy query.
 
-        :param col: Target column for the TimeExpression
+        :param col: Target column for the TimestampExpression
         :param pdf: date format (seconds or milliseconds)
         :param time_grain: time grain, e.g. P1Y for 1 year
         :return: TimestampExpression object
