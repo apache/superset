@@ -36,7 +36,6 @@ def upgrade():
     op.execute('UPDATE dashboards SET published=1')
 
 
-
 def downgrade():
     with op.batch_alter_table('dashboards') as batch_op:
         batch_op.drop_column('published')
