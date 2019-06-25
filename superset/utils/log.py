@@ -16,9 +16,11 @@
 # under the License.
 # pylint: disable=C,R,W
 from abc import ABC, abstractmethod
+from datetime import datetime
+import functools
 import json
 
-from flask import current_app
+from flask import current_app, g, request
 
 
 class AbstractEventLogger(ABC):
@@ -26,6 +28,55 @@ class AbstractEventLogger(ABC):
     @abstractmethod
     def log(self, user_id, action, *args, **kwargs):
         pass
+
+    def log_this(self, f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            user_id = None
+            if g.user:
+                user_id = g.user.get_id()
+            d = request.form.to_dict() or {}
+
+            # request parameters can overwrite post body
+            request_params = request.args.to_dict()
+            d.update(request_params)
+            d.update(kwargs)
+
+            slice_id = d.get('slice_id')
+            dashboard_id = d.get('dashboard_id')
+
+            try:
+                slice_id = int(
+                    slice_id or json.loads(d.get('form_data')).get('slice_id'))
+            except (ValueError, TypeError):
+                slice_id = 0
+
+            self.stats_logger.incr(f.__name__)
+            start_dttm = datetime.now()
+            value = f(*args, **kwargs)
+            duration_ms = (datetime.now() - start_dttm).total_seconds() * 1000
+
+            # bulk insert
+            try:
+                explode_by = d.get('explode')
+                records = json.loads(d.get(explode_by))
+            except Exception:
+                records = [d]
+
+            referrer = request.referrer[:1000] if request.referrer else None
+
+            self.log(
+                user_id,
+                f.__name__,
+                records=records,
+                dashboard_id=dashboard_id,
+                slice_id=slice_id,
+                duration_ms=duration_ms,
+                referrer=referrer,
+            )
+            return value
+
+        return wrapper
 
     @property
     def stats_logger(self):
