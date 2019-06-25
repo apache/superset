@@ -16,10 +16,7 @@
 # under the License.
 """Unit tests for Sql Lab"""
 import unittest
-from unittest.mock import (
-    MagicMock,
-    patch,
-)
+from unittest.mock import MagicMock, patch
 
 from pyhive.exc import DatabaseError
 
@@ -33,12 +30,12 @@ from superset.sql_validators.presto_db import (
 from .base_tests import SupersetTestCase
 
 PRESTO_TEST_FEATURE_FLAGS = {
-    'SQL_VALIDATORS_BY_ENGINE': {
-        'presto': 'PrestoDBSQLValidator',
-        'sqlite': 'PrestoDBSQLValidator',
-        'postgresql': 'PrestoDBSQLValidator',
-        'mysql': 'PrestoDBSQLValidator',
-    },
+    "SQL_VALIDATORS_BY_ENGINE": {
+        "presto": "PrestoDBSQLValidator",
+        "sqlite": "PrestoDBSQLValidator",
+        "postgresql": "PrestoDBSQLValidator",
+        "mysql": "PrestoDBSQLValidator",
+    }
 }
 
 
@@ -51,26 +48,22 @@ class SqlValidatorEndpointTests(SupersetTestCase):
     def test_validate_sql_endpoint_noconfig(self):
         """Assert that validate_sql_json errors out when no validators are
         configured for any db"""
-        self.login('admin')
+        self.login("admin")
 
-        app.config['SQL_VALIDATORS_BY_ENGINE'] = {}
+        app.config["SQL_VALIDATORS_BY_ENGINE"] = {}
 
         resp = self.validate_sql(
-            'SELECT * FROM ab_user',
-            client_id='1',
-            raise_on_error=False,
+            "SELECT * FROM ab_user", client_id="1", raise_on_error=False
         )
-        self.assertIn('error', resp)
-        self.assertIn('no SQL validator is configured', resp['error'])
+        self.assertIn("error", resp)
+        self.assertIn("no SQL validator is configured", resp["error"])
 
-    @patch('superset.views.core.get_validator_by_name')
-    @patch.dict('superset._feature_flags',
-                PRESTO_TEST_FEATURE_FLAGS,
-                clear=True)
+    @patch("superset.views.core.get_validator_by_name")
+    @patch.dict("superset._feature_flags", PRESTO_TEST_FEATURE_FLAGS, clear=True)
     def test_validate_sql_endpoint_mocked(self, get_validator_by_name):
         """Assert that, with a mocked validator, annotations make it back out
         from the validate_sql_json endpoint as a list of json dictionaries"""
-        self.login('admin')
+        self.login("admin")
 
         validator = MagicMock()
         get_validator_by_name.return_value = validator
@@ -80,42 +73,39 @@ class SqlValidatorEndpointTests(SupersetTestCase):
                 line_number=4,
                 start_column=12,
                 end_column=42,
-            ),
+            )
         ]
 
         resp = self.validate_sql(
-            'SELECT * FROM somewhere_over_the_rainbow',
-            client_id='1',
+            "SELECT * FROM somewhere_over_the_rainbow",
+            client_id="1",
             raise_on_error=False,
         )
 
         self.assertEqual(1, len(resp))
-        self.assertIn('expected,', resp[0]['message'])
+        self.assertIn("expected,", resp[0]["message"])
 
-    @patch('superset.views.core.get_validator_by_name')
-    @patch.dict('superset._feature_flags',
-                PRESTO_TEST_FEATURE_FLAGS,
-                clear=True)
+    @patch("superset.views.core.get_validator_by_name")
+    @patch.dict("superset._feature_flags", PRESTO_TEST_FEATURE_FLAGS, clear=True)
     def test_validate_sql_endpoint_failure(self, get_validator_by_name):
         """Assert that validate_sql_json errors out when the selected validator
         raises an unexpected exception"""
-        self.login('admin')
+        self.login("admin")
 
         validator = MagicMock()
         get_validator_by_name.return_value = validator
-        validator.validate.side_effect = Exception('Kaboom!')
+        validator.validate.side_effect = Exception("Kaboom!")
 
         resp = self.validate_sql(
-            'SELECT * FROM ab_user',
-            client_id='1',
-            raise_on_error=False,
+            "SELECT * FROM ab_user", client_id="1", raise_on_error=False
         )
-        self.assertIn('error', resp)
-        self.assertIn('Kaboom!', resp['error'])
+        self.assertIn("error", resp)
+        self.assertIn("Kaboom!", resp["error"])
 
 
 class BaseValidatorTests(SupersetTestCase):
     """Testing for the base sql validator"""
+
     def setUp(self):
         self.validator = BaseSQLValidator
 
@@ -126,6 +116,7 @@ class BaseValidatorTests(SupersetTestCase):
 
 class PrestoValidatorTests(SupersetTestCase):
     """Testing for the prestodb sql validator"""
+
     def setUp(self):
         self.validator = PrestoDBSQLValidator
         self.database = MagicMock()  # noqa
@@ -138,52 +129,49 @@ class PrestoValidatorTests(SupersetTestCase):
         self.logout()
 
     PRESTO_ERROR_TEMPLATE = {
-        'errorLocation': {
-            'lineNumber': 10,
-            'columnNumber': 20,
-        },
-        'message': "your query isn't how I like it",
+        "errorLocation": {"lineNumber": 10, "columnNumber": 20},
+        "message": "your query isn't how I like it",
     }
 
-    @patch('superset.sql_validators.presto_db.g')
+    @patch("superset.sql_validators.presto_db.g")
     def test_validator_success(self, flask_g):
-        flask_g.user.username = 'nobody'
-        sql = 'SELECT 1 FROM default.notarealtable'
-        schema = 'default'
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
 
         errors = self.validator.validate(sql, schema, self.database)
 
         self.assertEqual([], errors)
 
-    @patch('superset.sql_validators.presto_db.g')
+    @patch("superset.sql_validators.presto_db.g")
     def test_validator_db_error(self, flask_g):
-        flask_g.user.username = 'nobody'
-        sql = 'SELECT 1 FROM default.notarealtable'
-        schema = 'default'
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
 
         fetch_fn = self.database.db_engine_spec.fetch_data
-        fetch_fn.side_effect = DatabaseError('dummy db error')
+        fetch_fn.side_effect = DatabaseError("dummy db error")
 
         with self.assertRaises(PrestoSQLValidationError):
             self.validator.validate(sql, schema, self.database)
 
-    @patch('superset.sql_validators.presto_db.g')
+    @patch("superset.sql_validators.presto_db.g")
     def test_validator_unexpected_error(self, flask_g):
-        flask_g.user.username = 'nobody'
-        sql = 'SELECT 1 FROM default.notarealtable'
-        schema = 'default'
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
 
         fetch_fn = self.database.db_engine_spec.fetch_data
-        fetch_fn.side_effect = Exception('a mysterious failure')
+        fetch_fn.side_effect = Exception("a mysterious failure")
 
         with self.assertRaises(Exception):
             self.validator.validate(sql, schema, self.database)
 
-    @patch('superset.sql_validators.presto_db.g')
+    @patch("superset.sql_validators.presto_db.g")
     def test_validator_query_error(self, flask_g):
-        flask_g.user.username = 'nobody'
-        sql = 'SELECT 1 FROM default.notarealtable'
-        schema = 'default'
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
 
         fetch_fn = self.database.db_engine_spec.fetch_data
         fetch_fn.side_effect = DatabaseError(self.PRESTO_ERROR_TEMPLATE)
@@ -193,18 +181,16 @@ class PrestoValidatorTests(SupersetTestCase):
         self.assertEqual(1, len(errors))
 
     def test_validate_sql_endpoint(self):
-        self.login('admin')
+        self.login("admin")
         # NB this is effectively an integration test -- when there's a default
         #    validator for sqlite, this test will fail because the validator
         #    will no longer error out.
         resp = self.validate_sql(
-            'SELECT * FROM ab_user',
-            client_id='1',
-            raise_on_error=False,
+            "SELECT * FROM ab_user", client_id="1", raise_on_error=False
         )
-        self.assertIn('error', resp)
-        self.assertIn('no SQL validator is configured', resp['error'])
+        self.assertIn("error", resp)
+        self.assertIn("no SQL validator is configured", resp["error"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

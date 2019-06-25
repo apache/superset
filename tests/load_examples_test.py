@@ -20,7 +20,6 @@ from .base_tests import SupersetTestCase
 
 
 class SupersetDataFrameTestCase(SupersetTestCase):
-
     def test_load_css_templates(self):
         data.load_css_templates()
 
