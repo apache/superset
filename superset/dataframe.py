@@ -36,7 +36,7 @@ INFER_COL_TYPES_THRESHOLD = 95
 INFER_COL_TYPES_SAMPLE_SIZE = 100
 
 
-def dedup(l, suffix='__', case_sensitive=True):
+def dedup(l, suffix="__", case_sensitive=True):
     """De-duplicates a list of string by suffixing a counter
 
     Always returns the same number of entries as provided, and always returns
@@ -44,7 +44,9 @@ def dedup(l, suffix='__', case_sensitive=True):
 
     >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar', 'Bar'])))
     foo,bar,bar__1,bar__2,Bar
-    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar', 'Bar'], case_sensitive=False)))
+    >>> print(
+        ','.join(dedup(['foo', 'bar', 'bar', 'bar', 'Bar'], case_sensitive=False))
+    )
     foo,bar,bar__1,bar__2,Bar__3
     """
     new_l = []
@@ -63,18 +65,18 @@ def dedup(l, suffix='__', case_sensitive=True):
 class SupersetDataFrame(object):
     # Mapping numpy dtype.char to generic database types
     type_map = {
-        'b': 'BOOL',  # boolean
-        'i': 'INT',  # (signed) integer
-        'u': 'INT',  # unsigned integer
-        'l': 'INT',  # 64bit integer
-        'f': 'FLOAT',  # floating-point
-        'c': 'FLOAT',  # complex-floating point
-        'm': None,  # timedelta
-        'M': 'DATETIME',  # datetime
-        'O': 'OBJECT',  # (Python) objects
-        'S': 'BYTE',  # (byte-)string
-        'U': 'STRING',  # Unicode
-        'V': None,   # raw data (void)
+        "b": "BOOL",  # boolean
+        "i": "INT",  # (signed) integer
+        "u": "INT",  # unsigned integer
+        "l": "INT",  # 64bit integer
+        "f": "FLOAT",  # floating-point
+        "c": "FLOAT",  # complex-floating point
+        "m": None,  # timedelta
+        "M": "DATETIME",  # datetime
+        "O": "OBJECT",  # (Python) objects
+        "S": "BYTE",  # (byte-)string
+        "U": "STRING",  # Unicode
+        "V": None,  # raw data (void)
     }
 
     def __init__(self, data, cursor_description, db_engine_spec):
@@ -85,8 +87,7 @@ class SupersetDataFrame(object):
         self.column_names = dedup(column_names)
 
         data = data or []
-        self.df = (
-            pd.DataFrame(list(data), columns=self.column_names).infer_objects())
+        self.df = pd.DataFrame(list(data), columns=self.column_names).infer_objects()
 
         self._type_dict = {}
         try:
@@ -106,9 +107,13 @@ class SupersetDataFrame(object):
     @property
     def data(self):
         # work around for https://github.com/pandas-dev/pandas/issues/18372
-        data = [dict((k, _maybe_box_datetimelike(v))
-                for k, v in zip(self.df.columns, np.atleast_1d(row)))
-                for row in self.df.values]
+        data = [
+            dict(
+                (k, _maybe_box_datetimelike(v))
+                for k, v in zip(self.df.columns, np.atleast_1d(row))
+            )
+            for row in self.df.values
+        ]
         for d in data:
             for k, v in list(d.items()):
                 # if an int is too big for Java Script to handle
@@ -123,7 +128,7 @@ class SupersetDataFrame(object):
         """Given a numpy dtype, Returns a generic database type"""
         if isinstance(dtype, ExtensionDtype):
             return cls.type_map.get(dtype.kind)
-        elif hasattr(dtype, 'char'):
+        elif hasattr(dtype, "char"):
             return cls.type_map.get(dtype.char)
 
     @classmethod
@@ -141,10 +146,9 @@ class SupersetDataFrame(object):
 
     @staticmethod
     def is_date(np_dtype, db_type_str):
-
         def looks_daty(s):
             if isinstance(s, str):
-                return any([s.lower().startswith(ss) for ss in ('time', 'date')])
+                return any([s.lower().startswith(ss) for ss in ("time", "date")])
             return False
 
         if looks_daty(db_type_str):
@@ -157,20 +161,23 @@ class SupersetDataFrame(object):
     def is_dimension(cls, dtype, column_name):
         if cls.is_id(column_name):
             return False
-        return dtype.name in ('object', 'bool')
+        return dtype.name in ("object", "bool")
 
     @classmethod
     def is_id(cls, column_name):
-        return column_name.startswith('id') or column_name.endswith('id')
+        return column_name.startswith("id") or column_name.endswith("id")
 
     @classmethod
     def agg_func(cls, dtype, column_name):
         # consider checking for key substring too.
         if cls.is_id(column_name):
-            return 'count_distinct'
-        if (hasattr(dtype, 'type') and issubclass(dtype.type, np.generic) and
-                np.issubdtype(dtype, np.number)):
-            return 'sum'
+            return "count_distinct"
+        if (
+            hasattr(dtype, "type")
+            and issubclass(dtype.type, np.generic)
+            and np.issubdtype(dtype, np.number)
+        ):
+            return "sum"
         return None
 
     @property
@@ -188,42 +195,36 @@ class SupersetDataFrame(object):
         if sample_size:
             sample = self.df.sample(sample_size)
         for col in self.df.dtypes.keys():
-            db_type_str = (
-                self._type_dict.get(col) or
-                self.db_type(self.df.dtypes[col])
-            )
+            db_type_str = self._type_dict.get(col) or self.db_type(self.df.dtypes[col])
             column = {
-                'name': col,
-                'agg': self.agg_func(self.df.dtypes[col], col),
-                'type': db_type_str,
-                'is_date': self.is_date(self.df.dtypes[col], db_type_str),
-                'is_dim': self.is_dimension(self.df.dtypes[col], col),
+                "name": col,
+                "agg": self.agg_func(self.df.dtypes[col], col),
+                "type": db_type_str,
+                "is_date": self.is_date(self.df.dtypes[col], db_type_str),
+                "is_dim": self.is_dimension(self.df.dtypes[col], col),
             }
 
-            if not db_type_str or db_type_str.upper() == 'OBJECT':
+            if not db_type_str or db_type_str.upper() == "OBJECT":
                 v = sample[col].iloc[0] if not sample[col].empty else None
                 if isinstance(v, str):
-                    column['type'] = 'STRING'
+                    column["type"] = "STRING"
                 elif isinstance(v, int):
-                    column['type'] = 'INT'
+                    column["type"] = "INT"
                 elif isinstance(v, float):
-                    column['type'] = 'FLOAT'
+                    column["type"] = "FLOAT"
                 elif isinstance(v, (datetime, date)):
-                    column['type'] = 'DATETIME'
-                    column['is_date'] = True
-                    column['is_dim'] = False
+                    column["type"] = "DATETIME"
+                    column["is_date"] = True
+                    column["is_dim"] = False
                 # check if encoded datetime
                 if (
-                        column['type'] == 'STRING' and
-                        self.datetime_conversion_rate(sample[col]) >
-                        INFER_COL_TYPES_THRESHOLD):
-                    column.update({
-                        'is_date': True,
-                        'is_dim': False,
-                        'agg': None,
-                    })
+                    column["type"] == "STRING"
+                    and self.datetime_conversion_rate(sample[col])
+                    > INFER_COL_TYPES_THRESHOLD
+                ):
+                    column.update({"is_date": True, "is_dim": False, "agg": None})
             # 'agg' is optional attribute
-            if not column['agg']:
-                column.pop('agg', None)
+            if not column["agg"]:
+                column.pop("agg", None)
             columns.append(column)
         return columns
