@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.1.2",
-    "whatwg-fetch": "^2.0.4"
+    "whatwg-fetch": "^3.0.0"
   },
   "publishConfig": {
     "access": "public"
