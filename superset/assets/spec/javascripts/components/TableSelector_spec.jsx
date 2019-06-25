@@ -219,7 +219,11 @@ describe('TableSelector', () => {
     //   const handleErrors = sinon.stub();
     //   expect(handleErrors.callCount).toBe(0);
     //   wrapper.setProps({ handleErrors });
-    //   fetchMock.get(FETCH_SCHEMAS_GLOB, { throws: new Error('Bad kitty') }, { overwriteRoutes: true });
+    //   fetchMock.get(
+    //     FETCH_SCHEMAS_GLOB,
+    //     { throws: new Error('Bad kitty') },
+    //     { overwriteRoutes: true },
+    //   );
     //   wrapper
     //     .instance()
     //     .fetchSchemas(123)
