@@ -173,7 +173,7 @@ export default class FilterableTable extends PureComponent {
     let type;
     if (content.substring(0, 1) === '[') {
       type = '[…]';
-    } else if (content.substring(0, 1) === '[') {
+    } else if (content.substring(0, 1) === '{') {
       type = '{…}';
     } else {
       type = '';
