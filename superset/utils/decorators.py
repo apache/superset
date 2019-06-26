@@ -56,6 +56,7 @@ def etag_cache(max_age, check_perms=bool):
     dataframe cache for requests that produce the same SQL.
 
     """
+
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -65,7 +66,7 @@ def etag_cache(max_age, check_perms=bool):
             # for POST requests we can't set cache headers, use the response
             # cache nor use conditional requests; this will still use the
             # dataframe cache in `superset/viz.py`, though.
-            if request.method == 'POST':
+            if request.method == "POST":
                 return f(*args, **kwargs)
 
             response = None
@@ -81,7 +82,7 @@ def etag_cache(max_age, check_perms=bool):
                 except Exception:  # pylint: disable=broad-except
                     if app.debug:
                         raise
-                    logging.exception('Exception possibly due to cache backend.')
+                    logging.exception("Exception possibly due to cache backend.")
 
             # if no response was cached, compute it using the wrapped function
             if response is None:
@@ -91,8 +92,9 @@ def etag_cache(max_age, check_perms=bool):
                 response.cache_control.public = True
                 response.last_modified = datetime.utcnow()
                 expiration = max_age if max_age != 0 else FAR_FUTURE
-                response.expires = \
-                    response.last_modified + timedelta(seconds=expiration)
+                response.expires = response.last_modified + timedelta(
+                    seconds=expiration
+                )
                 response.add_etag()
 
                 # if we have a cache, store the response from the request
@@ -102,16 +104,16 @@ def etag_cache(max_age, check_perms=bool):
                     except Exception:  # pylint: disable=broad-except
                         if app.debug:
                             raise
-                    logging.exception('Exception possibly due to cache backend.')
+                    logging.exception("Exception possibly due to cache backend.")
 
             return response.make_conditional(request)
 
         if cache:
             wrapper.uncached = f
             wrapper.cache_timeout = max_age
-            wrapper.make_cache_key = \
-                cache._memoize_make_cache_key(  # pylint: disable=protected-access
-                    make_name=None, timeout=max_age)
+            wrapper.make_cache_key = cache._memoize_make_cache_key(  # pylint: disable=protected-access
+                make_name=None, timeout=max_age
+            )
 
         return wrapper
 

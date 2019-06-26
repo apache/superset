@@ -22,6 +22,4 @@ from .base import SQLValidationAnnotation  # noqa
 
 
 def get_validator_by_name(name: str) -> Optional[base.BaseSQLValidator]:
-    return {
-        'PrestoDBSQLValidator': presto_db.PrestoDBSQLValidator,
-    }.get(name)
+    return {"PrestoDBSQLValidator": presto_db.PrestoDBSQLValidator}.get(name)
