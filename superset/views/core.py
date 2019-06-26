@@ -69,7 +69,7 @@ from superset.exceptions import (
 from superset.jinja_context import get_template_processor
 from superset.legacy import update_time_range
 import superset.models.core as models
-from superset.models.sql_lab import Query
+from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators import get_validator_by_name
@@ -2846,9 +2846,26 @@ class Superset(BaseSupersetView):
     @expose("/sqllab")
     def sqllab(self):
         """SQL Editor"""
+
+        # Send list of tab state ids, together with full payload for active tab
+        tab_state_ids = (
+            db.session
+            .query(TabState.id)
+            .filter_by(user_id=g.user.get_id())
+            .all()
+        )
+        active_tab = (
+            db.session
+            .query(TabState)
+            .filter_by(user_id=g.user.get_id(), active=True)
+            .first()
+        )
+
         d = {
-            "defaultDbId": config.get("SQLLAB_DEFAULT_DBID"),
-            "common": self.common_bootstrap_payload(),
+            'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
+            'common': self.common_bootstrap_payload(),
+            'tab_state_ids': tab_state_ids,
+            'active_tab': active_tab,
         }
         return self.render_template(
             "superset/basic.html",

@@ -188,7 +188,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
         return "/superset/sqllab?savedQueryId={0}".format(self.id)
 
 
-class TabState(Model, ExtraJSONMixin):
+class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
 
     __tablename__ = 'tab_state'
 
@@ -196,6 +196,7 @@ class TabState(Model, ExtraJSONMixin):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     label = Column(String(256))
+    active = Column(Boolean, default=False)
 
     # tables that are open in the schema browser and their data previews
     table_schemas = relationship('TableSchema')
@@ -205,7 +206,7 @@ class TabState(Model, ExtraJSONMixin):
     query = relationship('Query')
 
 
-class TableSchema(Model, ExtraJSONMixin):
+class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
 
     __tablename__ = 'table_schema'
 
