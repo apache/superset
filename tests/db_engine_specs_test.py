@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import pandas as pd
 import unittest
 from unittest import mock
 
-from sqlalchemy import column, literal_column, select, table
+import pandas as pd
+from sqlalchemy import column, literal_column, table
 from sqlalchemy.dialects import mssql, oracle, postgresql
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql import select

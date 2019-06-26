@@ -797,11 +797,10 @@ class PrestoEngineSpec(BaseEngineSpec):
         col_names, latest_parts = cls.latest_partition(
             table_name, schema_name, database, show_first=True
         )
-        latest = {col_name: latest_parts[i] for i, col_name in enumerate(col_names)}
         return {
             "partitions": {
                 "cols": cols,
-                "latest": latest,
+                "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": pql,
             }
         }
@@ -917,15 +916,15 @@ class PrestoEngineSpec(BaseEngineSpec):
         except Exception:
             # table is not partitioned
             return False
-        if values is not None:
-            is_partitioned = False
-            for i, col_name in enumerate(col_names):
-                if (column.get("name") == col_name for column in columns):
-                    is_partitioned = True
-                    qry = qry.where(Column(col_name) == values[i])
-            if is_partitioned:
-                return qry
-        return False
+
+        if values is None:
+            return False
+
+        column_names = {column.get('name') for column in columns or []}
+        for col_name, value in zip(col_names, values):
+            if col_name in column_names:
+                qry = qry.where(Column(col_name) == value)
+        return qry
 
     @classmethod
     def _latest_partition_from_df(cls, df):
