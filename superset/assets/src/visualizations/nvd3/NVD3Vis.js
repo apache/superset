@@ -342,6 +342,14 @@ function nvd3Vis(element, props) {
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(lineInterpolation);
         chart.clipEdge(false);
+        //listen chart stateChange
+        chart.dispatch.on('stateChange', function (evt) {
+          // update styles related to markers and annotation layer default timeout
+          setTimeout(() => {
+            showLineMarkers();
+            setAnnotationLayerStyles(annotatedLayerMarkerWidth);
+          });
+        })
         break;
 
       case 'time_pivot':
@@ -646,10 +654,24 @@ function nvd3Vis(element, props) {
       }
     }
 
-    if (showMarkers) {
-      svg.selectAll('.nv-point')
+    const showLineMarkers = function() {
+      if (showMarkers) {
+        svg.selectAll('.nv-point')
+          .style('stroke-opacity', 1)
+          .style('fill-opacity', 1);
+      }
+    }
+
+    showLineMarkers();
+
+    const setAnnotationLayerStyles = function(annotatedLayerMarkerWidth) {
+      // Display styles for Time Series Annotations
+      d3.selectAll('.slice_container .nv-timeseries-annotation-layer.showMarkerstrue .nv-point')
         .style('stroke-opacity', 1)
-        .style('fill-opacity', 1);
+        .style('fill-opacity', 1)
+        .style('stroke-width', annotatedLayerMarkerWidth);
+      d3.selectAll('.slice_container .nv-timeseries-annotation-layer.hideLinetrue')
+        .style('stroke-width', 0);
     }
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
@@ -966,14 +988,7 @@ function nvd3Vis(element, props) {
             }
           });
         }
-
-        // Display styles for Time Series Annotations
-        d3.selectAll('.slice_container .nv-timeseries-annotation-layer.showMarkerstrue .nv-point')
-          .style('stroke-opacity', 1)
-          .style('fill-opacity', 1)
-          .style('stroke-width', annotatedLayerMarkerWidth);
-        d3.selectAll('.slice_container .nv-timeseries-annotation-layer.hideLinetrue')
-          .style('stroke-width', 0);
+        setAnnotationLayerStyles(annotatedLayerMarkerWidth);
       }
     }
 
