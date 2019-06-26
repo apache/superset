@@ -26,6 +26,23 @@ def get_env_variable(var_name, default=None):
                         .format(var_name)
             raise EnvironmentError(error_msg)
 
+# handling the case of 'null' and 'simple' cache type
+# creating the cache config using util function
+# as the kubernetes template variable doesn't support object structure.
+def get_cache_config():
+    cache_config = {}
+    if CACHE_TYPE is not 'null':
+        cache_config = {
+            'CACHE_TYPE' : CACHE_TYPE
+        }
+    else:
+        cache_config = {
+            'CACHE_TYPE' : CACHE_TYPE, 'CACHE_DEFAULT_TIMEOUT' : int(CACHE_DEFAULT_TIMEOUT)
+        }
+
+    return cache_config
+
+
 # Help configuration
 HELP_ENABLED = boolify(get_env_variable('HELP_ENABLED'))
 
@@ -34,6 +51,11 @@ LOG_LEVEL = boolify(get_env_variable('LOG_LEVEL'))
 #stale session timeout
 SESSION_LIFETIME_SECONDS = eval(get_env_variable('SESSION_LIFETIME_SECONDS'))
 PERMANENT_SESSION_LIFETIME = timedelta(seconds=SESSION_LIFETIME_SECONDS)
+
+# Enable Simple Flask Caching
+CACHE_DEFAULT_TIMEOUT = eval(get_env_variable('CACHE_DEFAULT_TIMEOUT'))
+CACHE_TYPE = get_env_variable('CACHE_TYPE')
+CACHE_CONFIG = get_cache_config()
 
 # Change application name
 APP_NAME = get_env_variable('APP_NAME')
