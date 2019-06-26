@@ -34,10 +34,10 @@ describe('SouthPane', () => {
 
   const mockedProps = {
     editorQueries: [
-      { cached: false, changedOn: 1559238552333, db: 'main', dbId: 1, id: 'LCly_kkIN' },
-      { cached: false, changedOn: 1559238500401, db: 'main', dbId: 1, id: 'lXJa7F9_r' },
-      { cached: false, changedOn: 1559238506925, db: 'main', dbId: 1, id: '2g2_iRFMl' },
-      { cached: false, changedOn: 1559238516395, db: 'main', dbId: 1, id: 'erWdqEWPm' },
+      { cached: false, changedOn: Date.now(), db: 'main', dbId: 1, id: 'LCly_kkIN', startDttm: Date.now() },
+      { cached: false, changedOn: 1559238500401, db: 'main', dbId: 1, id: 'lXJa7F9_r', startDttm: 1559238500401 },
+      { cached: false, changedOn: 1559238506925, db: 'main', dbId: 1, id: '2g2_iRFMl', startDttm: 1559238506925 },
+      { cached: false, changedOn: 1559238516395, db: 'main', dbId: 1, id: 'erWdqEWPm', startDttm: 1559238516395 },
     ],
     latestQueryId: 'LCly_kkIN',
     dataPreviewQueries: [],

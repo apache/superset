@@ -44,7 +44,7 @@ const defaultProps = {
 
 const VALID_METRIC = { metric_name: 'sum__value', expression: 'SUM(energy_usage.value)' };
 
-function setup(overrides) {
+function setup(overrides, validMetric) {
   const onChange = sinon.spy();
   const props = {
     onChange,
@@ -53,7 +53,7 @@ function setup(overrides) {
   };
   const VerifiedControl = withVerification(MetricsControl, 'metric_name', 'savedMetrics');
   const wrapper = shallow(<VerifiedControl {...props} />);
-  fetchMock.mock('glob:*/valid_metrics*', `["${VALID_METRIC.metric_name}"]`);
+  fetchMock.mock('glob:*/valid_metrics*', validMetric || `["${VALID_METRIC.metric_name}"]`);
   return { props, wrapper, onChange };
 }
 
@@ -100,6 +100,16 @@ describe('VerifiedMetricsControl', () => {
     wrapper.setProps({ ...props, controlValues: { metrics: 'avg__value' } });
     setTimeout(() => {
       expect(fetchMock.calls(defaultProps.getEndpoint())).toHaveLength(1);
+      fetchMock.reset();
+    }, 0);
+  });
+
+  it('Returns no verified options if none are valid', () => {
+    const { wrapper } = setup({}, []);
+    setTimeout(() => {
+      expect(fetchMock.calls(defaultProps.getEndpoint())).toHaveLength(1);
+      const child = wrapper.find(MetricsControl);
+      expect(child.props().savedMetrics).toEqual([]);
       fetchMock.reset();
     }, 0);
   });

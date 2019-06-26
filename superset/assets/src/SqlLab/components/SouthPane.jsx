@@ -27,7 +27,7 @@ import { t } from '@superset-ui/translation';
 import * as Actions from '../actions/sqlLab';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
-import { STATUS_OPTIONS, STATE_BSSTYLE_MAP } from '../constants';
+import { STATUS_OPTIONS, STATE_BSSTYLE_MAP, LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../constants';
 
 const TAB_HEIGHT = 44;
 
@@ -37,7 +37,7 @@ const TAB_HEIGHT = 44;
 */
 const propTypes = {
   editorQueries: PropTypes.array.isRequired,
-  latestQueryId: PropTypes.string.isRequired,
+  latestQueryId: PropTypes.string,
   dataPreviewQueries: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired,
   activeSouthPaneTab: PropTypes.string,
@@ -87,7 +87,8 @@ export class SouthPane extends React.PureComponent {
       latestQuery = props.editorQueries.find(q => q.id === this.props.latestQueryId);
     }
     let results;
-    if (latestQuery) {
+    if (latestQuery &&
+      (Date.now() - latestQuery.startDttm) <= LOCALSTORAGE_MAX_QUERY_AGE_MS) {
       results = (
         <ResultSet
           showControls
