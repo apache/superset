@@ -23,19 +23,19 @@ Create Date: 2018-03-30 14:00:44.929483
 """
 
 # revision identifiers, used by Alembic.
-revision = 'd6ffdf31bdd4'
-down_revision = 'd7c1a0d6f2da'
+revision = "d6ffdf31bdd4"
+down_revision = "d7c1a0d6f2da"
 
 from alembic import op
 import sqlalchemy as sa
 
 
 def upgrade():
-    with op.batch_alter_table('dashboards') as batch_op:
-        batch_op.add_column(sa.Column('published', sa.Boolean(), nullable=True))
-    op.execute('UPDATE dashboards SET published=True')
+    with op.batch_alter_table("dashboards") as batch_op:
+        batch_op.add_column(sa.Column("published", sa.Boolean(), nullable=True))
+    op.execute("UPDATE dashboards SET published=True")
 
 
 def downgrade():
-    with op.batch_alter_table('dashboards') as batch_op:
-        batch_op.drop_column('published')
+    with op.batch_alter_table("dashboards") as batch_op:
+        batch_op.drop_column("published")

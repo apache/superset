@@ -25,18 +25,18 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = 'a65458420354'
-down_revision = '2fcdcb35e487'
+revision = "a65458420354"
+down_revision = "2fcdcb35e487"
 
 
 def upgrade():
     op.add_column(
-        'query',
+        "query",
         sa.Column(
-            'end_result_backend_time',
-            sa.Numeric(precision=20, scale=6),
-            nullable=True))
+            "end_result_backend_time", sa.Numeric(precision=20, scale=6), nullable=True
+        ),
+    )
 
 
 def downgrade():
-    op.drop_column('query', 'end_result_backend_time')
+    op.drop_column("query", "end_result_backend_time")

@@ -44,7 +44,7 @@ def load_tabbed_dashboard():
     """Creating a tabbed dashboard"""
 
     print("Creating a dashboard with nested tabs")
-    slug = 'tabbed_dash'
+    slug = "tabbed_dash"
     dash = db.session.query(Dash).filter_by(slug=slug).first()
 
     if not dash:
@@ -53,12 +53,13 @@ def load_tabbed_dashboard():
     # reuse charts in "World's Bank Data and create
     # new dashboard with nested tabs
     tabbed_dash_slices = set()
-    tabbed_dash_slices.add('Region Filter')
-    tabbed_dash_slices.add('Growth Rate')
-    tabbed_dash_slices.add('Treemap')
-    tabbed_dash_slices.add('Box plot')
+    tabbed_dash_slices.add("Region Filter")
+    tabbed_dash_slices.add("Growth Rate")
+    tabbed_dash_slices.add("Treemap")
+    tabbed_dash_slices.add("Box plot")
 
-    js = textwrap.dedent("""\
+    js = textwrap.dedent(
+        """\
     {
       "CHART-c0EjR-OZ0n": {
         "children": [],
@@ -337,12 +338,11 @@ def load_tabbed_dashboard():
         "type": "TABS"
       }
     }
-        """)
+        """
+    )
     pos = json.loads(js)
     slices = [
-        db.session.query(Slice)
-            .filter_by(slice_name=name)
-            .first()
+        db.session.query(Slice).filter_by(slice_name=name).first()
         for name in tabbed_dash_slices
     ]
 
@@ -350,7 +350,7 @@ def load_tabbed_dashboard():
     update_slice_ids(pos, slices)
     dash.position_json = json.dumps(pos, indent=4)
     dash.slices = slices
-    dash.dashboard_title = 'Tabbed Dashboard'
+    dash.dashboard_title = "Tabbed Dashboard"
     dash.slug = slug
 
     db.session.merge(dash)

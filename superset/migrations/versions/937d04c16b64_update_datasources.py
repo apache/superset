@@ -23,8 +23,8 @@ Create Date: 2018-07-20 16:08:10.195843
 """
 
 # revision identifiers, used by Alembic.
-revision = '937d04c16b64'
-down_revision = 'd94d33dbe938'
+revision = "937d04c16b64"
+down_revision = "d94d33dbe938"
 
 from alembic import op
 import sqlalchemy as sa
@@ -33,20 +33,16 @@ import sqlalchemy as sa
 def upgrade():
 
     # Enforce that the datasource_name column be non-nullable.
-    with op.batch_alter_table('datasources') as batch_op:
+    with op.batch_alter_table("datasources") as batch_op:
         batch_op.alter_column(
-            'datasource_name',
-            existing_type=sa.String(255),
-            nullable=False,
+            "datasource_name", existing_type=sa.String(255), nullable=False
         )
 
 
 def downgrade():
 
     # Forego that the datasource_name column be non-nullable.
-    with op.batch_alter_table('datasources') as batch_op:
+    with op.batch_alter_table("datasources") as batch_op:
         batch_op.alter_column(
-            'datasource_name',
-            existing_type=sa.String(255),
-            nullable=True,
+            "datasource_name", existing_type=sa.String(255), nullable=True
         )
