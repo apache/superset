@@ -296,9 +296,9 @@ python setup.py build_sphinx
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps. 
+Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
 
-Developers should use a virtualenv. 
+Developers should use a virtualenv.
 
 ```
 pip install virtualenv
@@ -447,6 +447,15 @@ export enum FeatureFlag {
 those specified under FEATURE_FLAGS in `superset_config.py`. For example, `DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False }` in `superset/config.py` and `FEATURE_FLAGS = { 'BAR': True, 'BAZ': True }` in `superset_config.py` will result
 in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
 
+## Git Hooks
+
+Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/). To install run the following:
+
+```bash
+pip3 install -r requirements-dev.txt
+pre-commit install
+```
+
 ## Linting
 
 Lint the project with:
@@ -460,6 +469,10 @@ cd superset/assets
 npm ci
 npm run lint
 ```
+
+The Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html).
+
 
 ## Testing
 
@@ -736,7 +749,7 @@ to work on `async` related features.
 
 To do this, you'll need to:
 * Add an additional database entry. We recommend you copy the connection
-  string from the database labeled `main`, and then enable `SQL Lab` and the 
+  string from the database labeled `main`, and then enable `SQL Lab` and the
   features you want to use. Don't forget to check the `Async` box
 * Configure a results backend, here's a local `FileSystemCache` example,
   not recommended for production,

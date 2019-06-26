@@ -41,42 +41,45 @@ from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
 
 FRONTEND_CONF_KEYS = (
-    'SUPERSET_WEBSERVER_TIMEOUT',
-    'SUPERSET_DASHBOARD_POSITION_DATA_LIMIT',
-    'ENABLE_JAVASCRIPT_CONTROLS',
-    'DEFAULT_SQLLAB_LIMIT',
-    'SQL_MAX_ROW',
-    'SUPERSET_WEBSERVER_DOMAINS',
-    'SQLLAB_SAVE_WARNING_MESSAGE',
+    "SUPERSET_WEBSERVER_TIMEOUT",
+    "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
+    "ENABLE_JAVASCRIPT_CONTROLS",
+    "DEFAULT_SQLLAB_LIMIT",
+    "SQL_MAX_ROW",
+    "SUPERSET_WEBSERVER_DOMAINS",
+    "SQLLAB_SAVE_WARNING_MESSAGE",
 )
 
 
 def get_error_msg():
-    if conf.get('SHOW_STACKTRACE'):
+    if conf.get("SHOW_STACKTRACE"):
         error_msg = traceback.format_exc()
     else:
-        error_msg = 'FATAL ERROR \n'
+        error_msg = "FATAL ERROR \n"
         error_msg += (
-            'Stacktrace is hidden. Change the SHOW_STACKTRACE '
-            'configuration setting to enable it')
+            "Stacktrace is hidden. Change the SHOW_STACKTRACE "
+            "configuration setting to enable it"
+        )
     return error_msg
 
 
 def json_error_response(msg=None, status=500, stacktrace=None, payload=None, link=None):
     if not payload:
-        payload = {'error': '{}'.format(msg)}
-        if stacktrace:
-            payload['stacktrace'] = stacktrace
+        payload = {"error": "{}".format(msg)}
+        if stacktrace and conf.get("SHOW_STACKTRACE"):
+            payload["stacktrace"] = stacktrace
     if link:
-        payload['link'] = link
+        payload["link"] = link
 
     return Response(
         json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
-        status=status, mimetype='application/json')
+        status=status,
+        mimetype="application/json",
+    )
 
 
 def json_success(json_msg, status=200):
-    return Response(json_msg, status=status, mimetype='application/json')
+    return Response(json_msg, status=status, mimetype="application/json")
 
 
 def data_payload_response(payload_json, has_error=False):
@@ -85,11 +88,9 @@ def data_payload_response(payload_json, has_error=False):
 
 
 def generate_download_headers(extension, filename=None):
-    filename = filename if filename else datetime.now().strftime('%Y%m%d_%H%M%S')
-    content_disp = 'attachment; filename={}.{}'.format(filename, extension)
-    headers = {
-        'Content-Disposition': content_disp,
-    }
+    filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
+    content_disp = "attachment; filename={}.{}".format(filename, extension)
+    headers = {"Content-Disposition": content_disp}
     return headers
 
 
@@ -98,6 +99,7 @@ def api(f):
     A decorator to label an endpoint as an API. Catches uncaught exceptions and
     return the response in the JSON format
     """
+
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
@@ -111,63 +113,71 @@ def api(f):
 def handle_api_exception(f):
     """
     A decorator to catch superset exceptions. Use it after the @api decorator above
-    so superset exception handler is triggered before the handler for generic exceptions.
+    so superset exception handler is triggered before the handler for generic
+    exceptions.
     """
+
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as e:
             logging.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e),
-                                       status=e.status,
-                                       stacktrace=traceback.format_exc(),
-                                       link=e.link)
+            return json_error_response(
+                utils.error_msg_from_exception(e),
+                status=e.status,
+                stacktrace=traceback.format_exc(),
+                link=e.link,
+            )
         except SupersetException as e:
             logging.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e),
-                                       stacktrace=traceback.format_exc(),
-                                       status=e.status)
+            return json_error_response(
+                utils.error_msg_from_exception(e),
+                stacktrace=traceback.format_exc(),
+                status=e.status,
+            )
         except Exception as e:
             logging.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e),
-                                       stacktrace=traceback.format_exc())
+            return json_error_response(
+                utils.error_msg_from_exception(e), stacktrace=traceback.format_exc()
+            )
+
     return functools.update_wrapper(wraps, f)
 
 
 def get_datasource_exist_error_msg(full_name):
-    return __('Datasource %(name)s already exists', name=full_name)
+    return __("Datasource %(name)s already exists", name=full_name)
 
 
 def get_user_roles():
     if g.user.is_anonymous:
-        public_role = conf.get('AUTH_ROLE_PUBLIC')
+        public_role = conf.get("AUTH_ROLE_PUBLIC")
         return [security_manager.find_role(public_role)] if public_role else []
     return g.user.roles
 
 
 class BaseSupersetView(BaseView):
-
     def json_response(self, obj, status=200):
         return Response(
             json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,
-            mimetype='application/json')
+            mimetype="application/json",
+        )
 
     def common_bootstrap_payload(self):
         """Common data always sent to the client"""
         messages = get_flashed_messages(with_categories=True)
         locale = str(get_locale())
         return {
-            'flash_messages': messages,
-            'conf': {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
-            'locale': locale,
-            'language_pack': get_language_pack(locale),
-            'feature_flags': get_feature_flags(),
+            "flash_messages": messages,
+            "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
+            "locale": locale,
+            "language_pack": get_language_pack(locale),
+            "feature_flags": get_feature_flags(),
         }
 
 
 class SupersetListWidget(ListWidget):
-    template = 'superset/fab_overrides/list.html'
+    template = "superset/fab_overrides/list.html"
 
 
 class SupersetModelView(ModelView):
@@ -179,7 +189,8 @@ class ListWidgetWithCheckboxes(ListWidget):
     """An alternative to list view that renders Boolean fields as checkboxes
 
     Works in conjunction with the `checkbox` view."""
-    template = 'superset/fab_overrides/list_with_checkboxes.html'
+
+    template = "superset/fab_overrides/list_with_checkboxes.html"
 
 
 def validate_json(form, field):  # noqa
@@ -191,7 +202,7 @@ def validate_json(form, field):  # noqa
 
 
 class YamlExportMixin(object):
-    @action('yaml_export', __('Export to YAML'), __('Export to YAML?'), 'fa-download')
+    @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(self, items):
         if not isinstance(items, list):
             items = [items]
@@ -199,8 +210,9 @@ class YamlExportMixin(object):
         data = [t.export_to_dict() for t in items]
         return Response(
             yaml.safe_dump(data),
-            headers=generate_download_headers('yaml'),
-            mimetype='application/text')
+            headers=generate_download_headers("yaml"),
+            mimetype="application/text",
+        )
 
 
 class DeleteMixin(object):
@@ -218,20 +230,28 @@ class DeleteMixin(object):
         try:
             self.pre_delete(item)
         except Exception as e:
-            flash(str(e), 'danger')
+            flash(str(e), "danger")
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
-            pvs = security_manager.get_session.query(
-                security_manager.permissionview_model).filter_by(
-                view_menu=view_menu).all()
+            pvs = (
+                security_manager.get_session.query(
+                    security_manager.permissionview_model
+                )
+                .filter_by(view_menu=view_menu)
+                .all()
+            )
 
             schema_view_menu = None
-            if hasattr(item, 'schema_perm'):
+            if hasattr(item, "schema_perm"):
                 schema_view_menu = security_manager.find_view_menu(item.schema_perm)
 
-                pvs.extend(security_manager.get_session.query(
-                    security_manager.permissionview_model).filter_by(
-                    view_menu=schema_view_menu).all())
+                pvs.extend(
+                    security_manager.get_session.query(
+                        security_manager.permissionview_model
+                    )
+                    .filter_by(view_menu=schema_view_menu)
+                    .all()
+                )
 
             if self.datamodel.delete(item):
                 self.post_delete(item)
@@ -251,11 +271,7 @@ class DeleteMixin(object):
             self.update_redirect()
 
     @action(
-        'muldelete',
-        __('Delete'),
-        __('Delete all Really?'),
-        'fa-trash',
-        single=False,
+        "muldelete", __("Delete"), __("Delete all Really?"), "fa-trash", single=False
     )
     def muldelete(self, items):
         if not items:
@@ -264,7 +280,7 @@ class DeleteMixin(object):
             try:
                 self.pre_delete(item)
             except Exception as e:
-                flash(str(e), 'danger')
+                flash(str(e), "danger")
             else:
                 self._delete(item.id)
         self.update_redirect()
@@ -296,8 +312,7 @@ class SupersetFilter(BaseFilter):
         """Whether the user has this role name"""
         if not isinstance(role_name_or_list, list):
             role_name_or_list = [role_name_or_list]
-        return any(
-            [r.name in role_name_or_list for r in self.get_user_roles()])
+        return any([r.name in role_name_or_list for r in self.get_user_roles()])
 
     def has_perm(self, permission_name, view_menu_name):
         """Whether the user has this perm"""
@@ -316,7 +331,7 @@ class DatasourceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
             return query
-        perms = self.get_view_menus('datasource_access')
+        perms = self.get_view_menus("datasource_access")
         # TODO(bogdan): add `schema_access` support here
         return query.filter(self.model.perm.in_(perms))
 
@@ -325,7 +340,8 @@ class CsvResponse(Response):
     """
     Override Response to take into account csv encoding from config.py
     """
-    charset = conf.get('CSV_EXPORT').get('encoding', 'utf-8')
+
+    charset = conf.get("CSV_EXPORT").get("encoding", "utf-8")
 
 
 def check_ownership(obj, raise_if_false=True):
@@ -341,32 +357,31 @@ def check_ownership(obj, raise_if_false=True):
         return False
 
     security_exception = SupersetSecurityException(
-        "You don't have the rights to alter [{}]".format(obj))
+        "You don't have the rights to alter [{}]".format(obj)
+    )
 
     if g.user.is_anonymous:
         if raise_if_false:
             raise security_exception
         return False
     roles = [r.name for r in get_user_roles()]
-    if 'Admin' in roles:
+    if "Admin" in roles:
         return True
     session = db.create_scoped_session()
     orig_obj = session.query(obj.__class__).filter_by(id=obj.id).first()
 
     # Making a list of owners that works across ORM models
     owners = []
-    if hasattr(orig_obj, 'owners'):
+    if hasattr(orig_obj, "owners"):
         owners += orig_obj.owners
-    if hasattr(orig_obj, 'owner'):
+    if hasattr(orig_obj, "owner"):
         owners += [orig_obj.owner]
-    if hasattr(orig_obj, 'created_by'):
+    if hasattr(orig_obj, "created_by"):
         owners += [orig_obj.created_by]
 
     owner_names = [o.username for o in owners if o]
 
-    if (
-            g.user and hasattr(g.user, 'username') and
-            g.user.username in owner_names):
+    if g.user and hasattr(g.user, "username") and g.user.username in owner_names:
         return True
     if raise_if_false:
         raise security_exception
@@ -375,11 +390,8 @@ def check_ownership(obj, raise_if_false=True):
 
 
 def bind_field(
-        self,
-        form: DynamicForm,
-        unbound_field: UnboundField,
-        options: Dict[Any, Any],
-    ) -> Field:
+    self, form: DynamicForm, unbound_field: UnboundField, options: Dict[Any, Any]
+) -> Field:
     """
     Customize how fields are bound by stripping all whitespace.
 
@@ -389,7 +401,7 @@ def bind_field(
     :returns: The bound field
     """
 
-    filters = unbound_field.kwargs.get('filters', [])
+    filters = unbound_field.kwargs.get("filters", [])
     filters.append(lambda x: x.strip() if isinstance(x, str) else x)
     return unbound_field.bind(form=form, filters=filters, **options)
 

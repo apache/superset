@@ -25,29 +25,30 @@ from .helpers import TBL, get_example_data
 
 
 def load_paris_iris_geojson():
-    tbl_name = 'paris_iris_mapping'
+    tbl_name = "paris_iris_mapping"
 
-    data = get_example_data('paris_iris.json.gz')
+    data = get_example_data("paris_iris.json.gz")
     df = pd.read_json(data)
-    df['features'] = df.features.map(json.dumps)
+    df["features"] = df.features.map(json.dumps)
 
     df.to_sql(
         tbl_name,
         db.engine,
-        if_exists='replace',
+        if_exists="replace",
         chunksize=500,
         dtype={
-            'color': String(255),
-            'name': String(255),
-            'features': Text,
-            'type': Text,
+            "color": String(255),
+            "name": String(255),
+            "features": Text,
+            "type": Text,
         },
-        index=False)
-    print('Creating table {} reference'.format(tbl_name))
+        index=False,
+    )
+    print("Creating table {} reference".format(tbl_name))
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
-    tbl.description = 'Map of Paris'
+    tbl.description = "Map of Paris"
     tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()

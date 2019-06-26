@@ -17,9 +17,7 @@
 # pylint: disable=C,R,W
 import json
 
-from sqlalchemy import (
-    and_, Boolean, Column, Integer, String, Text,
-)
+from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, relationship
 
@@ -67,7 +65,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     @declared_attr
     def slices(self):
         return relationship(
-            'Slice',
+            "Slice",
             primaryjoin=lambda: and_(
                 foreign(Slice.datasource_id) == self.id,
                 foreign(Slice.datasource_type) == self.type,
@@ -82,11 +80,11 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     @property
     def uid(self):
         """Unique id across datasource types"""
-        return f'{self.id}__{self.type}'
+        return f"{self.id}__{self.type}"
 
     @property
     def column_names(self):
-        return sorted([c.column_name for c in self.columns], key=lambda x: x or '')
+        return sorted([c.column_name for c in self.columns], key=lambda x: x or "")
 
     @property
     def columns_types(self):
@@ -94,7 +92,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     @property
     def main_dttm_col(self):
-        return 'timestamp'
+        return "timestamp"
 
     @property
     def datasource_name(self):
@@ -120,22 +118,18 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     @property
     def url(self):
-        return '/{}/edit/{}'.format(self.baselink, self.id)
+        return "/{}/edit/{}".format(self.baselink, self.id)
 
     @property
     def explore_url(self):
         if self.default_endpoint:
             return self.default_endpoint
         else:
-            return '/superset/explore/{obj.type}/{obj.id}/'.format(obj=self)
+            return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
 
     @property
     def column_formats(self):
-        return {
-            m.metric_name: m.d3format
-            for m in self.metrics
-            if m.d3format
-        }
+        return {m.metric_name: m.d3format for m in self.metrics if m.d3format}
 
     def add_missing_metrics(self, metrics):
         exisiting_metrics = {m.metric_name for m in self.metrics}
@@ -148,14 +142,14 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     def short_data(self):
         """Data representation of the datasource sent to the frontend"""
         return {
-            'edit_url': self.url,
-            'id': self.id,
-            'uid': self.uid,
-            'schema': self.schema,
-            'name': self.name,
-            'type': self.type,
-            'connection': self.connection,
-            'creator': str(self.created_by),
+            "edit_url": self.url,
+            "id": self.id,
+            "uid": self.uid,
+            "schema": self.schema,
+            "name": self.name,
+            "type": self.type,
+            "connection": self.connection,
+            "creator": str(self.created_by),
         }
 
     @property
@@ -168,68 +162,65 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         order_by_choices = []
         # self.column_names return sorted column_names
         for s in self.column_names:
-            s = str(s or '')
-            order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
-            order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
+            s = str(s or "")
+            order_by_choices.append((json.dumps([s, True]), s + " [asc]"))
+            order_by_choices.append((json.dumps([s, False]), s + " [desc]"))
 
-        verbose_map = {'__timestamp': 'Time'}
-        verbose_map.update({
-            o.metric_name: o.verbose_name or o.metric_name
-            for o in self.metrics
-        })
-        verbose_map.update({
-            o.column_name: o.verbose_name or o.column_name
-            for o in self.columns
-        })
+        verbose_map = {"__timestamp": "Time"}
+        verbose_map.update(
+            {o.metric_name: o.verbose_name or o.metric_name for o in self.metrics}
+        )
+        verbose_map.update(
+            {o.column_name: o.verbose_name or o.column_name for o in self.columns}
+        )
         return {
             # simple fields
-            'id': self.id,
-            'column_formats': self.column_formats,
-            'description': self.description,
-            'database': self.database.data,  # pylint: disable=no-member
-            'default_endpoint': self.default_endpoint,
-            'filter_select': self.filter_select_enabled,  # TODO deprecate
-            'filter_select_enabled': self.filter_select_enabled,
-            'name': self.name,
-            'datasource_name': self.datasource_name,
-            'type': self.type,
-            'schema': self.schema,
-            'offset': self.offset,
-            'cache_timeout': self.cache_timeout,
-            'params': self.params,
-            'perm': self.perm,
-            'edit_url': self.url,
-
+            "id": self.id,
+            "column_formats": self.column_formats,
+            "description": self.description,
+            "database": self.database.data,  # pylint: disable=no-member
+            "default_endpoint": self.default_endpoint,
+            "filter_select": self.filter_select_enabled,  # TODO deprecate
+            "filter_select_enabled": self.filter_select_enabled,
+            "name": self.name,
+            "datasource_name": self.datasource_name,
+            "type": self.type,
+            "schema": self.schema,
+            "offset": self.offset,
+            "cache_timeout": self.cache_timeout,
+            "params": self.params,
+            "perm": self.perm,
+            "edit_url": self.url,
             # sqla-specific
-            'sql': self.sql,
-
+            "sql": self.sql,
             # one to many
-            'columns': [o.data for o in self.columns],
-            'metrics': [o.data for o in self.metrics],
-
+            "columns": [o.data for o in self.columns],
+            "metrics": [o.data for o in self.metrics],
             # TODO deprecate, move logic to JS
-            'order_by_choices': order_by_choices,
-            'owners': [owner.id for owner in self.owners],
-            'verbose_map': verbose_map,
-            'select_star': self.select_star,
+            "order_by_choices": order_by_choices,
+            "owners": [owner.id for owner in self.owners],
+            "verbose_map": verbose_map,
+            "select_star": self.select_star,
         }
 
     @staticmethod
     def filter_values_handler(
-            values, target_column_is_numeric=False, is_list_target=False):
+        values, target_column_is_numeric=False, is_list_target=False
+    ):
         def handle_single_value(v):
             # backward compatibility with previous <select> components
             if isinstance(v, str):
-                v = v.strip('\t\n\'"')
+                v = v.strip("\t\n'\"")
                 if target_column_is_numeric:
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
                     v = utils.string_to_num(v)
-                if v == '<NULL>':
+                if v == "<NULL>":
                     return None
-                elif v == '<empty string>':
-                    return ''
+                elif v == "<empty string>":
+                    return ""
             return v
+
         if isinstance(values, (list, tuple)):
             values = [handle_single_value(v) for v in values]
         else:
@@ -278,8 +269,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             if col.column_name == column_name:
                 return col
 
-    def get_fk_many_from_list(
-            self, object_list, fkmany, fkmany_class, key_attr):
+    def get_fk_many_from_list(self, object_list, fkmany, fkmany_class, key_attr):
         """Update ORM one-to-many list from object list
 
         Used for syncing metrics and columns using the same code"""
@@ -302,13 +292,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         for obj in object_list:
             key = obj.get(key_attr)
             if key not in orm_keys:
-                del obj['id']
+                del obj["id"]
                 orm_kwargs = {}
                 for k in obj:
-                    if (
-                        k in fkmany_class.update_from_object_fields and
-                        k in obj
-                    ):
+                    if k in fkmany_class.update_from_object_fields and k in obj:
                         orm_kwargs[k] = obj[k]
                 new_obj = fkmany_class(**orm_kwargs)
                 new_fks.append(new_obj)
@@ -329,16 +316,18 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         for attr in self.update_from_object_fields:
             setattr(self, attr, obj.get(attr))
 
-        self.owners = obj.get('owners', [])
+        self.owners = obj.get("owners", [])
 
         # Syncing metrics
         metrics = self.get_fk_many_from_list(
-            obj.get('metrics'), self.metrics, self.metric_class, 'metric_name')
+            obj.get("metrics"), self.metrics, self.metric_class, "metric_name"
+        )
         self.metrics = metrics
 
         # Syncing columns
         self.columns = self.get_fk_many_from_list(
-            obj.get('columns'), self.columns, self.column_class, 'column_name')
+            obj.get("columns"), self.columns, self.column_class, "column_name"
+        )
 
 
 class BaseColumn(AuditMixinNullable, ImportMixin):
@@ -363,32 +352,31 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
         return self.column_name
 
     num_types = (
-        'DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'NUMBER',
-        'LONG', 'REAL', 'NUMERIC', 'DECIMAL', 'MONEY',
+        "DOUBLE",
+        "FLOAT",
+        "INT",
+        "BIGINT",
+        "NUMBER",
+        "LONG",
+        "REAL",
+        "NUMERIC",
+        "DECIMAL",
+        "MONEY",
     )
-    date_types = ('DATE', 'TIME', 'DATETIME')
-    str_types = ('VARCHAR', 'STRING', 'CHAR')
+    date_types = ("DATE", "TIME", "DATETIME")
+    str_types = ("VARCHAR", "STRING", "CHAR")
 
     @property
     def is_num(self):
-        return (
-            self.type and
-            any([t in self.type.upper() for t in self.num_types])
-        )
+        return self.type and any([t in self.type.upper() for t in self.num_types])
 
     @property
     def is_time(self):
-        return (
-            self.type and
-            any([t in self.type.upper() for t in self.date_types])
-        )
+        return self.type and any([t in self.type.upper() for t in self.date_types])
 
     @property
     def is_string(self):
-        return (
-            self.type and
-            any([t in self.type.upper() for t in self.str_types])
-        )
+        return self.type and any([t in self.type.upper() for t in self.str_types])
 
     @property
     def expression(self):
@@ -397,9 +385,17 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     @property
     def data(self):
         attrs = (
-            'id', 'column_name', 'verbose_name', 'description', 'expression',
-            'filterable', 'groupby', 'is_dttm', 'type',
-            'database_expression', 'python_date_format',
+            "id",
+            "column_name",
+            "verbose_name",
+            "description",
+            "expression",
+            "filterable",
+            "groupby",
+            "is_dttm",
+            "type",
+            "database_expression",
+            "python_date_format",
         )
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
 
@@ -432,6 +428,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
         backref=backref('metrics', cascade='all, delete-orphan'),
         enable_typechecks=False)
     """
+
     @property
     def perm(self):
         raise NotImplementedError()
@@ -443,6 +440,12 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
     @property
     def data(self):
         attrs = (
-            'id', 'metric_name', 'verbose_name', 'description', 'expression',
-            'warning_text', 'd3format')
+            "id",
+            "metric_name",
+            "verbose_name",
+            "description",
+            "expression",
+            "warning_text",
+            "d3format",
+        )
         return {s: getattr(self, s) for s in attrs}

@@ -27,6 +27,7 @@ from superset.utils import core as utils
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
 # https://github.com/python/mypy/issues/5288
 
+
 class QueryObject:
     """
     The query object's schema matches the interfaces of DB connectors like sqla
@@ -34,25 +35,25 @@ class QueryObject:
     """
 
     def __init__(
-            self,
-            granularity: str,
-            metrics: List[Union[Dict, str]],
-            groupby: List[str] = None,
-            filters: List[str] = None,
-            time_range: Optional[str] = None,
-            time_shift: Optional[str] = None,
-            is_timeseries: bool = False,
-            timeseries_limit: int = 0,
-            row_limit: int = app.config.get('ROW_LIMIT'),
-            timeseries_limit_metric: Optional[Dict] = None,
-            order_desc: bool = True,
-            extras: Optional[Dict] = None,
-            prequeries: Optional[List[Dict]] = None,
-            is_prequery: bool = False,
-            columns: List[str] = None,
-            orderby: List[List] = None,
-            relative_start: str = app.config.get('DEFAULT_RELATIVE_START_TIME', 'today'),
-            relative_end: str = app.config.get('DEFAULT_RELATIVE_END_TIME', 'today'),
+        self,
+        granularity: str,
+        metrics: List[Union[Dict, str]],
+        groupby: List[str] = None,
+        filters: List[str] = None,
+        time_range: Optional[str] = None,
+        time_shift: Optional[str] = None,
+        is_timeseries: bool = False,
+        timeseries_limit: int = 0,
+        row_limit: int = app.config.get("ROW_LIMIT"),
+        timeseries_limit_metric: Optional[Dict] = None,
+        order_desc: bool = True,
+        extras: Optional[Dict] = None,
+        prequeries: Optional[List[Dict]] = None,
+        is_prequery: bool = False,
+        columns: List[str] = None,
+        orderby: List[List] = None,
+        relative_start: str = app.config.get("DEFAULT_RELATIVE_START_TIME", "today"),
+        relative_end: str = app.config.get("DEFAULT_RELATIVE_END_TIME", "today"),
     ):
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(
@@ -69,7 +70,7 @@ class QueryObject:
         # Temporal solution for backward compatability issue
         # due the new format of non-ad-hoc metric.
         self.metrics = [
-            metric if 'expressionType' in metric else metric['label']   # noqa: T484
+            metric if "expressionType" in metric else metric["label"]  # noqa: T484
             for metric in metrics
         ]
         self.row_limit = row_limit
@@ -85,22 +86,22 @@ class QueryObject:
 
     def to_dict(self):
         query_object_dict = {
-            'granularity': self.granularity,
-            'from_dttm': self.from_dttm,
-            'to_dttm': self.to_dttm,
-            'is_timeseries': self.is_timeseries,
-            'groupby': self.groupby,
-            'metrics': self.metrics,
-            'row_limit': self.row_limit,
-            'filter': self.filter,
-            'timeseries_limit': self.timeseries_limit,
-            'timeseries_limit_metric': self.timeseries_limit_metric,
-            'order_desc': self.order_desc,
-            'prequeries': self.prequeries,
-            'is_prequery': self.is_prequery,
-            'extras': self.extras,
-            'columns': self.columns,
-            'orderby': self.orderby,
+            "granularity": self.granularity,
+            "from_dttm": self.from_dttm,
+            "to_dttm": self.to_dttm,
+            "is_timeseries": self.is_timeseries,
+            "groupby": self.groupby,
+            "metrics": self.metrics,
+            "row_limit": self.row_limit,
+            "filter": self.filter,
+            "timeseries_limit": self.timeseries_limit,
+            "timeseries_limit_metric": self.timeseries_limit_metric,
+            "order_desc": self.order_desc,
+            "prequeries": self.prequeries,
+            "is_prequery": self.is_prequery,
+            "extras": self.extras,
+            "columns": self.columns,
+            "orderby": self.orderby,
         }
         return query_object_dict
 
@@ -115,17 +116,14 @@ class QueryObject:
         cache_dict = self.to_dict()
         cache_dict.update(extra)
 
-        for k in ['from_dttm', 'to_dttm']:
+        for k in ["from_dttm", "to_dttm"]:
             del cache_dict[k]
         if self.time_range:
-            cache_dict['time_range'] = self.time_range
+            cache_dict["time_range"] = self.time_range
         json_data = self.json_dumps(cache_dict, sort_keys=True)
-        return hashlib.md5(json_data.encode('utf-8')).hexdigest()
+        return hashlib.md5(json_data.encode("utf-8")).hexdigest()
 
     def json_dumps(self, obj, sort_keys=False):
         return json.dumps(
-            obj,
-            default=utils.json_int_dttm_ser,
-            ignore_nan=True,
-            sort_keys=sort_keys,
+            obj, default=utils.json_int_dttm_ser, ignore_nan=True, sort_keys=sort_keys
         )

@@ -22,7 +22,7 @@ class Row(object):
         self.values = values
 
     def __name__(self):
-        return 'Row'
+        return "Row"
 
     def __iter__(self):
         return (item for item in self.values)

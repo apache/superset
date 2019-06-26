@@ -36,7 +36,7 @@ def is_subselect(parsed):
     if not parsed.is_group():
         return False
     for item in parsed.tokens:
-        if item.ttype is DML and item.value.upper() == 'SELECT':
+        if item.ttype is DML and item.value.upper() == "SELECT":
             return True
     return False
 
@@ -52,7 +52,7 @@ def extract_from_part(parsed):
                 raise StopIteration
             else:
                 yield item
-        elif item.ttype is Keyword and item.value.upper() == 'FROM':
+        elif item.ttype is Keyword and item.value.upper() == "FROM":
             from_seen = True
 
 

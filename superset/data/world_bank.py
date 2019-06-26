@@ -22,6 +22,7 @@ import textwrap
 
 import pandas as pd
 from sqlalchemy import DateTime, String
+from sqlalchemy.sql import column
 
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
@@ -42,230 +43,270 @@ from .helpers import (
 
 def load_world_bank_health_n_pop():
     """Loads the world bank health dataset, slices and a dashboard"""
-    tbl_name = 'wb_health_population'
-    data = get_example_data('countries.json.gz')
+    tbl_name = "wb_health_population"
+    data = get_example_data("countries.json.gz")
     pdf = pd.read_json(data)
-    pdf.columns = [col.replace('.', '_') for col in pdf.columns]
+    pdf.columns = [col.replace(".", "_") for col in pdf.columns]
     pdf.year = pd.to_datetime(pdf.year)
     pdf.to_sql(
         tbl_name,
         db.engine,
-        if_exists='replace',
+        if_exists="replace",
         chunksize=50,
         dtype={
-            'year': DateTime(),
-            'country_code': String(3),
-            'country_name': String(255),
-            'region': String(255),
+            "year": DateTime(),
+            "country_code": String(3),
+            "country_name": String(255),
+            "region": String(255),
         },
-        index=False)
+        index=False,
+    )
 
-    print('Creating table [wb_health_population] reference')
+    print("Creating table [wb_health_population] reference")
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
-    tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
-    tbl.main_dttm_col = 'year'
+    tbl.description = utils.readfile(os.path.join(DATA_FOLDER, "countries.md"))
+    tbl.main_dttm_col = "year"
     tbl.database = utils.get_or_create_main_db()
     tbl.filter_select_enabled = True
 
     metrics = [
-        'sum__SP_POP_TOTL', 'sum__SH_DYN_AIDS', 'sum__SH_DYN_AIDS',
-        'sum__SP_RUR_TOTL_ZS', 'sum__SP_DYN_LE00_IN', 'sum__SP_RUR_TOTL'
+        "sum__SP_POP_TOTL",
+        "sum__SH_DYN_AIDS",
+        "sum__SH_DYN_AIDS",
+        "sum__SP_RUR_TOTL_ZS",
+        "sum__SP_DYN_LE00_IN",
+        "sum__SP_RUR_TOTL",
     ]
     for m in metrics:
         if not any(col.metric_name == m for col in tbl.metrics):
-            tbl.metrics.append(SqlMetric(
-                metric_name=m,
-                expression=f'{m[:3]}({m[5:]})',
-            ))
+            aggr_func = m[:3]
+            col = str(column(m[5:]).compile(db.engine))
+            tbl.metrics.append(
+                SqlMetric(metric_name=m, expression=f"{aggr_func}({col})")
+            )
 
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
 
     defaults = {
-        'compare_lag': '10',
-        'compare_suffix': 'o10Y',
-        'limit': '25',
-        'granularity_sqla': 'year',
-        'groupby': [],
-        'metric': 'sum__SP_POP_TOTL',
-        'metrics': ['sum__SP_POP_TOTL'],
-        'row_limit': config.get('ROW_LIMIT'),
-        'since': '2014-01-01',
-        'until': '2014-01-02',
-        'time_range': '2014-01-01 : 2014-01-02',
-        'where': '',
-        'markup_type': 'markdown',
-        'country_fieldtype': 'cca3',
-        'secondary_metric': 'sum__SP_POP_TOTL',
-        'entity': 'country_code',
-        'show_bubbles': True,
+        "compare_lag": "10",
+        "compare_suffix": "o10Y",
+        "limit": "25",
+        "granularity_sqla": "year",
+        "groupby": [],
+        "metric": "sum__SP_POP_TOTL",
+        "metrics": ["sum__SP_POP_TOTL"],
+        "row_limit": config.get("ROW_LIMIT"),
+        "since": "2014-01-01",
+        "until": "2014-01-02",
+        "time_range": "2014-01-01 : 2014-01-02",
+        "where": "",
+        "markup_type": "markdown",
+        "country_fieldtype": "cca3",
+        "secondary_metric": "sum__SP_POP_TOTL",
+        "entity": "country_code",
+        "show_bubbles": True,
     }
 
-    print('Creating slices')
+    print("Creating slices")
     slices = [
         Slice(
-            slice_name='Region Filter',
-            viz_type='filter_box',
-            datasource_type='table',
+            slice_name="Region Filter",
+            viz_type="filter_box",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='filter_box',
+                viz_type="filter_box",
                 date_filter=False,
                 filter_configs=[
                     {
-                        'asc': False,
-                        'clearable': True,
-                        'column': 'region',
-                        'key': '2s98dfu',
-                        'metric': 'sum__SP_POP_TOTL',
-                        'multiple': True,
-                    }, {
-                        'asc': False,
-                        'clearable': True,
-                        'key': 'li3j2lk',
-                        'column': 'country_name',
-                        'metric': 'sum__SP_POP_TOTL',
-                        'multiple': True,
+                        "asc": False,
+                        "clearable": True,
+                        "column": "region",
+                        "key": "2s98dfu",
+                        "metric": "sum__SP_POP_TOTL",
+                        "multiple": True,
                     },
-                ])),
+                    {
+                        "asc": False,
+                        "clearable": True,
+                        "key": "li3j2lk",
+                        "column": "country_name",
+                        "metric": "sum__SP_POP_TOTL",
+                        "multiple": True,
+                    },
+                ],
+            ),
+        ),
         Slice(
             slice_name="World's Population",
-            viz_type='big_number',
-            datasource_type='table',
+            viz_type="big_number",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                since='2000',
-                viz_type='big_number',
-                compare_lag='10',
-                metric='sum__SP_POP_TOTL',
-                compare_suffix='over 10Y')),
+                since="2000",
+                viz_type="big_number",
+                compare_lag="10",
+                metric="sum__SP_POP_TOTL",
+                compare_suffix="over 10Y",
+            ),
+        ),
         Slice(
-            slice_name='Most Populated Countries',
-            viz_type='table',
-            datasource_type='table',
+            slice_name="Most Populated Countries",
+            viz_type="table",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='table',
-                metrics=['sum__SP_POP_TOTL'],
-                groupby=['country_name'])),
+                viz_type="table",
+                metrics=["sum__SP_POP_TOTL"],
+                groupby=["country_name"],
+            ),
+        ),
         Slice(
-            slice_name='Growth Rate',
-            viz_type='line',
-            datasource_type='table',
+            slice_name="Growth Rate",
+            viz_type="line",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='line',
-                since='1960-01-01',
-                metrics=['sum__SP_POP_TOTL'],
-                num_period_compare='10',
-                groupby=['country_name'])),
+                viz_type="line",
+                since="1960-01-01",
+                metrics=["sum__SP_POP_TOTL"],
+                num_period_compare="10",
+                groupby=["country_name"],
+            ),
+        ),
         Slice(
-            slice_name='% Rural',
-            viz_type='world_map',
-            datasource_type='table',
+            slice_name="% Rural",
+            viz_type="world_map",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='world_map',
-                metric='sum__SP_RUR_TOTL_ZS',
-                num_period_compare='10')),
+                viz_type="world_map",
+                metric="sum__SP_RUR_TOTL_ZS",
+                num_period_compare="10",
+            ),
+        ),
         Slice(
-            slice_name='Life Expectancy VS Rural %',
-            viz_type='bubble',
-            datasource_type='table',
+            slice_name="Life Expectancy VS Rural %",
+            viz_type="bubble",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='bubble',
-                since='2011-01-01',
-                until='2011-01-02',
-                series='region',
+                viz_type="bubble",
+                since="2011-01-01",
+                until="2011-01-02",
+                series="region",
                 limit=0,
-                entity='country_name',
-                x='sum__SP_RUR_TOTL_ZS',
-                y='sum__SP_DYN_LE00_IN',
-                size='sum__SP_POP_TOTL',
-                max_bubble_size='50',
-                filters=[{
-                    'col': 'country_code',
-                    'val': [
-                        'TCA', 'MNP', 'DMA', 'MHL', 'MCO', 'SXM', 'CYM',
-                        'TUV', 'IMY', 'KNA', 'ASM', 'ADO', 'AMA', 'PLW',
-                    ],
-                    'op': 'not in'}],
-            )),
+                entity="country_name",
+                x="sum__SP_RUR_TOTL_ZS",
+                y="sum__SP_DYN_LE00_IN",
+                size="sum__SP_POP_TOTL",
+                max_bubble_size="50",
+                filters=[
+                    {
+                        "col": "country_code",
+                        "val": [
+                            "TCA",
+                            "MNP",
+                            "DMA",
+                            "MHL",
+                            "MCO",
+                            "SXM",
+                            "CYM",
+                            "TUV",
+                            "IMY",
+                            "KNA",
+                            "ASM",
+                            "ADO",
+                            "AMA",
+                            "PLW",
+                        ],
+                        "op": "not in",
+                    }
+                ],
+            ),
+        ),
         Slice(
-            slice_name='Rural Breakdown',
-            viz_type='sunburst',
-            datasource_type='table',
+            slice_name="Rural Breakdown",
+            viz_type="sunburst",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='sunburst',
-                groupby=['region', 'country_name'],
-                secondary_metric='sum__SP_RUR_TOTL',
-                since='2011-01-01',
-                until='2011-01-01')),
+                viz_type="sunburst",
+                groupby=["region", "country_name"],
+                secondary_metric="sum__SP_RUR_TOTL",
+                since="2011-01-01",
+                until="2011-01-01",
+            ),
+        ),
         Slice(
             slice_name="World's Pop Growth",
-            viz_type='area',
-            datasource_type='table',
+            viz_type="area",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                since='1960-01-01',
-                until='now',
-                viz_type='area',
-                groupby=['region'])),
+                since="1960-01-01",
+                until="now",
+                viz_type="area",
+                groupby=["region"],
+            ),
+        ),
         Slice(
-            slice_name='Box plot',
-            viz_type='box_plot',
-            datasource_type='table',
+            slice_name="Box plot",
+            viz_type="box_plot",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                since='1960-01-01',
-                until='now',
-                whisker_options='Min/max (no outliers)',
-                x_ticks_layout='staggered',
-                viz_type='box_plot',
-                groupby=['region'])),
+                since="1960-01-01",
+                until="now",
+                whisker_options="Min/max (no outliers)",
+                x_ticks_layout="staggered",
+                viz_type="box_plot",
+                groupby=["region"],
+            ),
+        ),
         Slice(
-            slice_name='Treemap',
-            viz_type='treemap',
-            datasource_type='table',
+            slice_name="Treemap",
+            viz_type="treemap",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                since='1960-01-01',
-                until='now',
-                viz_type='treemap',
-                metrics=['sum__SP_POP_TOTL'],
-                groupby=['region', 'country_code'])),
+                since="1960-01-01",
+                until="now",
+                viz_type="treemap",
+                metrics=["sum__SP_POP_TOTL"],
+                groupby=["region", "country_code"],
+            ),
+        ),
         Slice(
-            slice_name='Parallel Coordinates',
-            viz_type='para',
-            datasource_type='table',
+            slice_name="Parallel Coordinates",
+            viz_type="para",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                since='2011-01-01',
-                until='2011-01-01',
-                viz_type='para',
+                since="2011-01-01",
+                until="2011-01-01",
+                viz_type="para",
                 limit=100,
-                metrics=[
-                    'sum__SP_POP_TOTL',
-                    'sum__SP_RUR_TOTL_ZS',
-                    'sum__SH_DYN_AIDS'],
-                secondary_metric='sum__SP_POP_TOTL',
-                series='country_name')),
+                metrics=["sum__SP_POP_TOTL", "sum__SP_RUR_TOTL_ZS", "sum__SH_DYN_AIDS"],
+                secondary_metric="sum__SP_POP_TOTL",
+                series="country_name",
+            ),
+        ),
     ]
     misc_dash_slices.add(slices[-1].slice_name)
     for slc in slices:
@@ -273,12 +314,13 @@ def load_world_bank_health_n_pop():
 
     print("Creating a World's Health Bank dashboard")
     dash_name = "World's Bank Data"
-    slug = 'world_health'
+    slug = "world_health"
     dash = db.session.query(Dash).filter_by(slug=slug).first()
 
     if not dash:
         dash = Dash()
-    js = textwrap.dedent("""\
+    js = textwrap.dedent(
+        """\
 {
     "CHART-36bfc934": {
         "children": [],
@@ -494,7 +536,8 @@ def load_world_bank_health_n_pop():
     },
     "DASHBOARD_VERSION_KEY": "v2"
 }
-    """)
+    """
+    )
     pos = json.loads(js)
     update_slice_ids(pos, slices)
 
