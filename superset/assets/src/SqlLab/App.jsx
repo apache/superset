@@ -78,7 +78,7 @@ const store = createStore(
   initialState,
   compose(
     applyMiddleware(thunkMiddleware),
-    initEnhancer(true, sqlLabPersistStateConfig),
+    initEnhancer(false, sqlLabPersistStateConfig),
   ),
 );
 

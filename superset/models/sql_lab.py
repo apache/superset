@@ -188,6 +188,40 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
         return "/superset/sqllab?savedQueryId={0}".format(self.id)
 
 
+class TabState(Model, ExtraJSONMixin):
+
+    __tablename__ = 'tab_state'
+
+    # basic info
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('ab_user.id'))
+    label = Column(String(256))
+
+    # tables that are open in the schema browser and their data previews
+    table_schemas = relationship('TableSchema')
+
+    # the query in the textarea, and results (if any)
+    query_id = Column(Integer, ForeignKey('query.id'))
+    query = relationship('Query')
+
+
+class TableSchema(Model, ExtraJSONMixin):
+
+    __tablename__ = 'table_schema'
+
+    id = Column(Integer, primary_key=True)
+    tab_state_id = Column(Integer, ForeignKey('tab_state.id'))
+
+    # DB
+    database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
+    database = relationship('Database', foreign_keys=[database_id])
+    schema = Column(String(256))
+    table = Column(String(256))
+
+    # JSON describing the schema, partitions, latest partition, etc.
+    results = Column(Text)
+
+
 # events for updating tags
 sqla.event.listen(SavedQuery, "after_insert", QueryUpdater.after_insert)
 sqla.event.listen(SavedQuery, "after_update", QueryUpdater.after_update)
