@@ -1,3 +1,16 @@
+## [0.10.34](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.33...v0.10.34) (2019-06-26)
+
+
+
+## [0.10.33](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.32...v0.10.33) (2019-06-26)
+
+
+### Bug Fixes
+
+* heatmap errors with null data ([3206645](https://github.com/apache-superset/superset-ui-plugins/commit/3206645))
+
+
+
 ## [0.10.32](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.31...v0.10.32) (2019-06-12)
 
 
