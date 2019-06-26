@@ -109,8 +109,8 @@ function Heatmap(element, props) {
 
     for (let i = 0; i < records.length; i++) {
       const datum = records[i];
-      longestX = Math.max(longestX, datum.x.toString().length || 1);
-      longestY = Math.max(longestY, datum.y.toString().length || 1);
+      longestX = Math.max(longestX, (datum.x && datum.x.toString().length) || 1);
+      longestY = Math.max(longestY, (datum.y && datum.y.toString().length) || 1);
     }
 
     if (leftMargin === 'auto') {
