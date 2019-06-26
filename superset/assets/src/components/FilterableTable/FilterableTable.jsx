@@ -37,12 +37,6 @@ import CopyToClipboard from '../CopyToClipboard';
 import ModalTrigger from '../ModalTrigger';
 import TooltipWrapper from '../TooltipWrapper';
 
-const svg = createSVGNode({ container: document.body });
-
-function getTextWidth(text, font = '12px Roboto') {
-  return getTextDimension({ text, style: { font }, existingSVGNode: svg }).width;
-}
-
 function safeJsonObjectParse(data) {
   // First perform a cheap proxy to avoid calling JSON.parse on data that is clearly not a
   // JSON object or array
@@ -152,6 +146,10 @@ export default class FilterableTable extends PureComponent {
   getWidthsForColumns() {
     const PADDING = 40; // accounts for cell padding and width of sorting icon
     const widthsByColumnKey = {};
+
+    // create SVG element to compute width of each cell
+    const svg = createSVGNode({ container: document.body, style: { font: '12px Roboto' } });
+    const getTextWidth = text => getTextDimension({ text, existingSVGNode: svg }).width;
     this.props.orderedColumnKeys.forEach((key) => {
       const colWidths = this.list
         .map(d => getTextWidth(d[key]) + PADDING) // get width for each value for a key
@@ -159,6 +157,8 @@ export default class FilterableTable extends PureComponent {
       // set max width as value for key
       widthsByColumnKey[key] = Math.max(...colWidths);
     });
+    document.body.removeChild(svg);
+
     return widthsByColumnKey;
   }
 
