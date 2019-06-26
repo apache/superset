@@ -178,20 +178,20 @@ describe('TableSelector', () => {
         });
     });
 
-    // // Test needs to be fixed: Github issue #7768
-    // it('should dispatch a danger toast on error', () => {
-    //   fetchMock.get(FETCH_TABLES_GLOB, { throws: 'error' }, { overwriteRoutes: true });
+    // Test needs to be fixed: Github issue #7768
+    xit('should dispatch a danger toast on error', () => {
+      fetchMock.get(FETCH_TABLES_GLOB, { throws: 'error' }, { overwriteRoutes: true });
 
-    //   wrapper
-    //     .instance()
-    //     .fetchTables(true, 'birth_names')
-    //     .then(() => {
-    //       expect(wrapper.state().tableOptions).toEqual([]);
-    //       expect(wrapper.state().tableOptions).toHaveLength(0);
-    //       expect(mockedProps.handleError.callCount).toBe(1);
-    //       return Promise.resolve();
-    //     });
-    // });
+      wrapper
+        .instance()
+        .fetchTables(true, 'birth_names')
+        .then(() => {
+          expect(wrapper.state().tableOptions).toEqual([]);
+          expect(wrapper.state().tableOptions).toHaveLength(0);
+          expect(mockedProps.handleError.callCount).toBe(1);
+          return Promise.resolve();
+        });
+    });
   });
 
   describe('fetchSchemas', () => {
@@ -214,24 +214,24 @@ describe('TableSelector', () => {
         });
     });
 
-    // // Test needs to be fixed: Github issue #7768
-    // it('should dispatch a danger toast on error', () => {
-    //   const handleErrors = sinon.stub();
-    //   expect(handleErrors.callCount).toBe(0);
-    //   wrapper.setProps({ handleErrors });
-    //   fetchMock.get(
-    //     FETCH_SCHEMAS_GLOB,
-    //     { throws: new Error('Bad kitty') },
-    //     { overwriteRoutes: true },
-    //   );
-    //   wrapper
-    //     .instance()
-    //     .fetchSchemas(123)
-    //     .then(() => {
-    //       expect(wrapper.state().schemaOptions).toEqual([]);
-    //       expect(handleErrors.callCount).toBe(1);
-    //     });
-    // });
+    // Test needs to be fixed: Github issue #7768
+    xit('should dispatch a danger toast on error', () => {
+      const handleErrors = sinon.stub();
+      expect(handleErrors.callCount).toBe(0);
+      wrapper.setProps({ handleErrors });
+      fetchMock.get(
+        FETCH_SCHEMAS_GLOB,
+        { throws: new Error('Bad kitty') },
+        { overwriteRoutes: true },
+      );
+      wrapper
+        .instance()
+        .fetchSchemas(123)
+        .then(() => {
+          expect(wrapper.state().schemaOptions).toEqual([]);
+          expect(handleErrors.callCount).toBe(1);
+        });
+    });
   });
 
   describe('changeTable', () => {
