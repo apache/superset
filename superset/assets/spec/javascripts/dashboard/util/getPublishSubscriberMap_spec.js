@@ -232,21 +232,19 @@ describe('getPublishSubscriberMap', () => {
           "subscriber_layers":[
             {
               "actions": ["APPLY_FILTER"],
-              "linked_slice": [{
-                publisher_id: 1,
-                subscribe_columns: [
-                  {
-                    col: 'A',
-                    op: '==',
-                    "actions": ["APPLY_FILTER"],
-                  },
-                  {
-                    col: 'B',
-                    op: '!=',
-                    "actions": ["APPLY_FILTER"],
-                  }
-                ]
-              }]
+              "sliceId": 1,
+              "subscribe_columns": [
+                {
+                  col: 'A',
+                  op: '==',
+                  "actions": ["APPLY_FILTER"],
+                },
+                {
+                  col: 'B',
+                  op: '!=',
+                  "actions": ["APPLY_FILTER"],
+                }
+              ]
             }
           ],
           "extras": {},
@@ -280,17 +278,15 @@ describe('getPublishSubscriberMap', () => {
           "subscriber_layers":[
             {
               "actions": ["APPLY_FILTER"],
-              "linked_slice": [{
-                publisher_id: 1,
-                subscribe_columns: [
-                  {
-                    col: 'B',
-                    op: '!=',
-                    "actions": ["APPLY_FILTER"]
-                  }
-                ]
-              }]
-            } 
+              "sliceId": 1,
+              "subscribe_columns": [
+                {
+                  col: 'B',
+                  op: '!=',
+                  "actions": ["APPLY_FILTER"]
+                }
+              ]
+            }
           ],
           "extras": {},
           "useAsModal": false,
@@ -331,31 +327,23 @@ describe('getPublishSubscriberMap', () => {
           "subscriber_layers":[
             {
               "actions": ["APPLY_FILTER"],
-              "linked_slice": [
+              "sliceId": 1,
+              "subscribe_columns": [
                 {
-                  publisher_id: 1,
-                  subscribe_columns: [
-                    {
-                      col: "B",
-                      op: "!=",
-                      "actions": ["APPLY_FILTER"]
-                    }
-                  ]
+                  col: "B",
+                  op: "!=",
+                  "actions": ["APPLY_FILTER"]
                 }
               ]
             },
             {
               "actions": ["APPLY_FILTER"],
-              "linked_slice": [
+              sliceId: 3,
+              subscribe_columns: [
                 {
-                  publisher_id: 3,
-                  subscribe_columns: [
-                    {
-                      col: "C",
-                      op: "in",
-                      "actions": ["APPLY_FILTER"]
-                    }
-                  ]
+                  col: "C",
+                  op: "in",
+                  "actions": ["APPLY_FILTER"]
                 }
               ]
             }
@@ -399,16 +387,13 @@ describe('getPublishSubscriberMap', () => {
           "subscriber_layers":[
             {
               "actions": ["APPLY_FILTER"],
-              "linked_slice": [{
-                publisher_id: 1,
-                subscribe_columns: [
-                  {
-                    col: "B",
-                    op: "!=",
-                    "actions": ["APPLY_FILTER"]
-                  }
-                ]
-              }
+              sliceId: 1,
+              subscribe_columns: [
+                {
+                  col: "B",
+                  op: "!=",
+                  "actions": ["APPLY_FILTER"]
+                }
               ]
             }
           ],
@@ -424,31 +409,23 @@ describe('getPublishSubscriberMap', () => {
           "subscriber_layers":[
             {
               "actions": ["APPLY_FILTER"],
-              "linked_slice": [
+              sliceId: 1,
+              subscribe_columns: [
                 {
-                  publisher_id: 1,
-                  subscribe_columns: [
-                    {
-                      col: "A",
-                      op: ">=",
-                      "actions": ["APPLY_FILTER"]
-                    }
-                  ]
+                  col: "A",
+                  op: ">=",
+                  "actions": ["APPLY_FILTER"]
                 }
               ]
             },
             {
               "actions": ["APPLY_FILTER"],
-              "linked_slice": [
+              sliceId: 3,
+              subscribe_columns: [
                 {
-                  publisher_id: 3,
-                  subscribe_columns: [
-                    {
-                      col: "C",
-                      op: "in",
-                      "actions": ["APPLY_FILTER"]
-                    }
-                  ]
+                  col: "C",
+                  op: "in",
+                  "actions": ["APPLY_FILTER"]
                 }
               ]
             }
@@ -492,16 +469,13 @@ describe('getPublishSubscriberMap', () => {
           "subscriber_layers":[
             {
               "actions": ["APPLY_FILTER"],
-              "linked_slice": [{
-                publisher_id: 1,
-                subscribe_columns: [
-                  {
-                    col: "B",
-                    op: "!=",
-                    "actions": ["APPLY_FILTER"]
-                  }
-                ]
-              }
+              sliceId: 1,
+              subscribe_columns: [
+                {
+                  col: "B",
+                  op: "!=",
+                  "actions": ["APPLY_FILTER"]
+                }
               ]
             }
           ],
@@ -517,16 +491,12 @@ describe('getPublishSubscriberMap', () => {
           "subscriber_layers":[
             {
               "actions": ["APPLY_FILTER"],
-              "linked_slice": [
+              "sliceId": 3,
+              "subscribe_columns": [
                 {
-                  publisher_id: 3,
-                  subscribe_columns: [
-                    {
-                      col: "C",
-                      op: "in",
-                      "actions": ["APPLY_FILTER"]
-                    }
-                  ]
+                  col: "C",
+                  op: "in",
+                  "actions": ["APPLY_FILTER"]
                 }
               ]
             }
@@ -579,16 +549,13 @@ describe('getPublishSubscriberMap', () => {
           "subscriber_layers":[
             {
               "actions": ["APPLY_FILTER"],
-              "linked_slice": [{
-                publisher_id: 1,
-                subscribe_columns: [
-                  {
-                    col: "B",
-                    op: "!=",
-                    "actions": ["APPLY_FILTER"]
-                  }
-                ]
-              }
+              "sliceId": 1,
+              subscribe_columns: [
+                {
+                  col: "B",
+                  op: "!=",
+                  "actions": ["APPLY_FILTER"]
+                }
               ]
             }
           ],
@@ -604,16 +571,12 @@ describe('getPublishSubscriberMap', () => {
           "subscriber_layers":[
             {
               "actions": ["APPLY_FILTER"],
-              "linked_slice": [
+              sliceId: 3,
+              subscribe_columns: [
                 {
-                  publisher_id: 3,
-                  subscribe_columns: [
-                    {
-                      col: "C",
-                      op: "in",
-                      "actions": ["APPLY_FILTER"]
-                    }
-                  ]
+                  col: "C",
+                  op: "in",
+                  "actions": ["APPLY_FILTER"]
                 }
               ]
             }

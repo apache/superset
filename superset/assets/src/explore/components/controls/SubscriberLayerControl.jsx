@@ -49,14 +49,9 @@ class SubscriberLayerControl extends React.PureComponent {
     this.removeSubscriberLayer = this.removeSubscriberLayer.bind(this);
   }
 
-  componentWillReceiveProps(nextProps) {
-    const { name, validationErrors, value, options } = nextProps;
-  }
-
   addSubscriberLayer(subscriberLayer) {
     const subscriber = subscriberLayer;
     let subscribers = this.props.value.slice();
-    subscriber['publish_columns'] = this.props.formData.publish_columns;
     const i = subscribers.findIndex(x => x.name === (subscriber.oldName || subscriber.name));
     delete subscriber.oldName;
     if (i > -1) {

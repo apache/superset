@@ -24,15 +24,15 @@ export function getActionsMapForSlice(slice) {
                 if (isUseAsModalActionExist(susbcriberLayer.actions)) {
                     if (!actions['USE_AS_MODAL'])
                         actions['USE_AS_MODAL'] = [];
-                    actions['USE_AS_MODAL'].push([susbcriberLayer.linked_slice[0]['publisher_id']]);
+                    actions['USE_AS_MODAL'].push([susbcriberLayer.sliceId]);
                 }
-                let subscribe_columns = susbcriberLayer.linked_slice[0]['subscribe_columns']
+                let subscribe_columns = susbcriberLayer.subscribe_columns
                 subscribe_columns.forEach(column => {
                     let column_actions = column.actions;
                     column_actions.forEach(action => {
                         if (!actions[action])
                             actions[action] = [];
-                        actions[action] = union(actions[action], [susbcriberLayer.linked_slice[0]['publisher_id']]);
+                        actions[action] = union(actions[action], [susbcriberLayer.sliceId]);
                     })
                 })
             });
@@ -96,9 +96,9 @@ export function getSubHeaderForSlice(subscribers, chartId, filters) {
 
                             if(values.length > 0) {
                                 if(subHeader != '') {
-                                    values.push(subHeader) 
+                                    values.push(subHeader)
                                 }
-                                
+
                                 subHeader = values.join(' | ');
                             }
                         }

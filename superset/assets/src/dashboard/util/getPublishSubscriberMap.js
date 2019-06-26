@@ -153,8 +153,12 @@ function getLinkedSlicesFromSubscriberLayer(subscriberLayer) {
     if (subscriberLayer) {
         linkedSlices = [];
         subscriberLayer.forEach(element => {
-            element.linked_slice.forEach(item => {
-                linkedSlices.push(item);
+            element.subscribe_columns.forEach(item => {
+
+                linkedSlices.push({
+                  publisher_id: element.sliceId,
+                  subscribe_columns: element.subscribe_columns
+                });
             });
         });
     }
