@@ -68,7 +68,7 @@ export function getUniqueActionsForSlice(slice) {
 }
 
 export function getModalSliceIDFor(publishSubscriberMap, publisherId) {
-    if (publishSubscriberMap && publishSubscriberMap.hasOwnProperty('subscribers')) {
+    if (publisherId && publishSubscriberMap && publishSubscriberMap.hasOwnProperty('subscribers')) {
         const subscribers = publishSubscriberMap.publishers[publisherId]['subcribers'];
         let modalSliceId;
         subscribers.forEach(subscriberId => {
