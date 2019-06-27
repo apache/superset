@@ -794,13 +794,13 @@ class PrestoEngineSpec(BaseEngineSpec):
         if schema_name and "." not in table_name:
             full_table_name = "{}.{}".format(schema_name, table_name)
         pql = cls._partition_query(full_table_name)
-        col_name, latest_part = cls.latest_partition(
+        col_names, latest_parts = cls.latest_partition(
             table_name, schema_name, database, show_first=True
         )
         return {
             "partitions": {
                 "cols": cols,
-                "latest": {col_name: latest_part},
+                "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": pql,
             }
         }
@@ -910,22 +910,26 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def where_latest_partition(cls, table_name, schema, database, qry, columns=None):
         try:
-            col_name, value = cls.latest_partition(
+            col_names, values = cls.latest_partition(
                 table_name, schema, database, show_first=True
             )
         except Exception:
             # table is not partitioned
             return False
-        if value is not None:
-            for c in columns:
-                if c.get("name") == col_name:
-                    return qry.where(Column(col_name) == value)
-        return False
+
+        if values is None:
+            return False
+
+        column_names = {column.get('name') for column in columns or []}
+        for col_name, value in zip(col_names, values):
+            if col_name in column_names:
+                qry = qry.where(Column(col_name) == value)
+        return qry
 
     @classmethod
     def _latest_partition_from_df(cls, df):
         if not df.empty:
-            return df.to_records(index=False)[0][0]
+            return df.to_records(index=False)[0].item()
 
     @classmethod
     def latest_partition(cls, table_name, schema, database, show_first=False):
@@ -955,10 +959,11 @@ class PrestoEngineSpec(BaseEngineSpec):
                 "to use this function. You may want to use "
                 "`presto.latest_sub_partition`"
             )
-        part_field = indexes[0]["column_names"][0]
-        sql = cls._partition_query(table_name, 1, [(part_field, True)])
+        column_names = indexes[0]["column_names"]
+        part_fields = [(column_name, True) for column_name in column_names]
+        sql = cls._partition_query(table_name, 1, part_fields)
         df = database.get_df(sql, schema)
-        return part_field, cls._latest_partition_from_df(df)
+        return column_names, cls._latest_partition_from_df(df)
 
     @classmethod
     def latest_sub_partition(cls, table_name, schema, database, **kwargs):
