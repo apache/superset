@@ -102,7 +102,7 @@ export default class FixedOrMetricControl extends React.Component {
           >
             <MetricsControl
               name="metric"
-              datasource={this.state.datasource}
+              columns={this.props.datasource.columns}
               multi={false}
               onFocus={() => { this.setType(controlTypes.metric); }}
               onChange={this.setMetric}
