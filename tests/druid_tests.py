@@ -21,12 +21,15 @@ import unittest
 from unittest.mock import Mock, patch
 
 from superset import db, security_manager
-from superset.connectors.druid.models import (
-    DruidCluster,
-    DruidColumn,
-    DruidDatasource,
-    DruidMetric,
-)
+try:
+    from superset.connectors.druid.models import (
+        DruidCluster,
+        DruidColumn,
+        DruidDatasource,
+        DruidMetric,
+    )
+except ModuleNotFoundError:
+    pass
 from .base_tests import SupersetTestCase
 
 
@@ -131,6 +134,8 @@ class DruidTests(SupersetTestCase):
 
         return cluster
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
     @patch("superset.connectors.druid.models.PyDruid")
     def test_client(self, PyDruid):
         self.login(username="admin")
@@ -189,6 +194,8 @@ class DruidTests(SupersetTestCase):
         resp = self.get_json_resp(url, {"form_data": json.dumps(form_data)})
         self.assertEqual("Canada", resp["data"]["records"][0]["dim1"])
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
     def test_druid_sync_from_config(self):
         CLUSTER_NAME = "new_druid"
         self.login()
@@ -276,6 +283,8 @@ class DruidTests(SupersetTestCase):
         )
         assert resp.status_code == 201
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
     def test_filter_druid_datasource(self):
         CLUSTER_NAME = "new_druid"
         cluster = self.get_or_create(
@@ -311,6 +320,8 @@ class DruidTests(SupersetTestCase):
         self.assertIn("datasource_for_gamma", resp)
         self.assertNotIn("datasource_not_for_gamma", resp)
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
     @patch("superset.connectors.druid.models.PyDruid")
     def test_sync_druid_perm(self, PyDruid):
         self.login(username="admin")
@@ -354,6 +365,8 @@ class DruidTests(SupersetTestCase):
         )
         assert pv is not None
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
     @patch("superset.connectors.druid.models.PyDruid")
     def test_refresh_metadata(self, PyDruid):
         self.login(username="admin")
@@ -381,6 +394,8 @@ class DruidTests(SupersetTestCase):
                 json.loads(metric.json)["type"], "double{}".format(agg.capitalize())
             )
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
     @patch("superset.connectors.druid.models.PyDruid")
     def test_refresh_metadata_augment_type(self, PyDruid):
         self.login(username="admin")
@@ -413,6 +428,8 @@ class DruidTests(SupersetTestCase):
 
             self.assertEqual(metric.json_obj["type"], "long{}".format(agg.capitalize()))
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
     @patch("superset.connectors.druid.models.PyDruid")
     def test_refresh_metadata_augment_verbose_name(self, PyDruid):
         self.login(username="admin")
@@ -460,6 +477,8 @@ class DruidTests(SupersetTestCase):
             cluster.get_base_broker_url(), "http://localhost:7980/druid/v2"
         )
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
     @patch("superset.connectors.druid.models.PyDruid")
     def test_druid_time_granularities(self, PyDruid):
         self.login(username="admin")
@@ -518,6 +537,8 @@ class DruidTests(SupersetTestCase):
                 instance.timeseries.call_args[1]["granularity"]["period"],
             )
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
     @patch("superset.connectors.druid.models.PyDruid")
     def test_external_metadata(self, PyDruid):
         self.login(username="admin")
