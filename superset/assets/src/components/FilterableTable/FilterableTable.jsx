@@ -125,6 +125,13 @@ export default class FilterableTable extends PureComponent {
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
 
+    // columns that have complex type and were expanded into sub columns
+    this.complexColumns = props.orderedColumnKeys
+      .reduce((obj, key) => ({
+        ...obj,
+        [key]: props.expandedColumns.some(name => name.startsWith(key + '.')),
+      }), {});
+
     this.widthsForColumnsByKey = this.getWidthsForColumns();
     this.totalTableWidth = props.orderedColumnKeys
       .map(key => this.widthsForColumnsByKey[key])
@@ -166,19 +173,17 @@ export default class FilterableTable extends PureComponent {
   }
 
   getCellContent({ cellData, columnKey }) {
-    const complexColumn = this.props.expandedColumns.some(
-      name => name.startsWith(columnKey + '.'),
-    );
     const content = String(cellData);
-    let type;
-    if (content.substring(0, 1) === '[') {
-      type = '[…]';
-    } else if (content.substring(0, 1) === '{') {
-      type = '{…}';
+    const firstCharacter = content.substring(0, 1);
+    let truncated;
+    if (firstCharacter === '[') {
+      truncated = '[…]';
+    } else if (firstCharacter === '{') {
+      truncated = '{…}';
     } else {
-      type = '';
+      truncated = '';
     }
-    return complexColumn ? type : content;
+    return this.complexColumns[columnKey] ? truncated : content;
   }
 
   formatTableData(data) {
