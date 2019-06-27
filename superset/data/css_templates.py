@@ -22,12 +22,13 @@ from superset.models.core import CssTemplate
 
 def load_css_templates():
     """Loads 2 css templates to demonstrate the feature"""
-    print('Creating default CSS templates')
+    print("Creating default CSS templates")
 
-    obj = db.session.query(CssTemplate).filter_by(template_name='Flat').first()
+    obj = db.session.query(CssTemplate).filter_by(template_name="Flat").first()
     if not obj:
-        obj = CssTemplate(template_name='Flat')
-    css = textwrap.dedent("""\
+        obj = CssTemplate(template_name="Flat")
+    css = textwrap.dedent(
+        """\
     .gridster div.widget {
         transition: background-color 0.5s ease;
         background-color: #FAFAFA;
@@ -58,16 +59,17 @@ def load_css_templates():
         '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
      ];
     */
-    """)
+    """
+    )
     obj.css = css
     db.session.merge(obj)
     db.session.commit()
 
-    obj = (
-        db.session.query(CssTemplate).filter_by(template_name='Courier Black').first())
+    obj = db.session.query(CssTemplate).filter_by(template_name="Courier Black").first()
     if not obj:
-        obj = CssTemplate(template_name='Courier Black')
-    css = textwrap.dedent("""\
+        obj = CssTemplate(template_name="Courier Black")
+    css = textwrap.dedent(
+        """\
     .gridster div.widget {
         transition: background-color 0.5s ease;
         background-color: #EEE;
@@ -113,7 +115,8 @@ def load_css_templates():
         '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
      ];
     */
-    """)
+    """
+    )
     obj.css = css
     db.session.merge(obj)
     db.session.commit()

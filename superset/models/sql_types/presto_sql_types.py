@@ -22,84 +22,90 @@ from sqlalchemy.sql.type_api import TypeEngine
 
 # _compiler_dispatch is defined to help with type compilation
 
+
 class TinyInteger(Integer):
     """
     A type for tiny ``int`` integers.
     """
+
     def python_type(self):
         return int
 
     @classmethod
     def _compiler_dispatch(cls, _visitor, **_kw):
-        return 'TINYINT'
+        return "TINYINT"
 
 
 class Interval(TypeEngine):
     """
     A type for intervals.
     """
+
     def python_type(self):
         return None
 
     @classmethod
     def _compiler_dispatch(cls, _visitor, **_kw):
-        return 'INTERVAL'
+        return "INTERVAL"
 
 
 class Array(TypeEngine):
     """
     A type for arrays.
     """
+
     def python_type(self):
         return list
 
     @classmethod
     def _compiler_dispatch(cls, _visitor, **_kw):
-        return 'ARRAY'
+        return "ARRAY"
 
 
 class Map(TypeEngine):
     """
     A type for maps.
     """
+
     def python_type(self):
         return dict
 
     @classmethod
     def _compiler_dispatch(cls, _visitor, **_kw):
-        return 'MAP'
+        return "MAP"
 
 
 class Row(TypeEngine):
     """
     A type for rows.
     """
+
     def python_type(self):
         return None
 
     @classmethod
     def _compiler_dispatch(cls, _visitor, **_kw):
-        return 'ROW'
+        return "ROW"
 
 
 type_map = {
-    'boolean': types.Boolean,
-    'tinyint': TinyInteger,
-    'smallint': types.SmallInteger,
-    'integer': types.Integer,
-    'bigint': types.BigInteger,
-    'real': types.Float,
-    'double': types.Float,
-    'decimal': types.DECIMAL,
-    'varchar': types.String,
-    'char': types.CHAR,
-    'varbinary': types.VARBINARY,
-    'JSON': types.JSON,
-    'date': types.DATE,
-    'time': types.Time,
-    'timestamp': types.TIMESTAMP,
-    'interval': Interval,
-    'array': Array,
-    'map': Map,
-    'row': Row,
+    "boolean": types.Boolean,
+    "tinyint": TinyInteger,
+    "smallint": types.SmallInteger,
+    "integer": types.Integer,
+    "bigint": types.BigInteger,
+    "real": types.Float,
+    "double": types.Float,
+    "decimal": types.DECIMAL,
+    "varchar": types.String,
+    "char": types.CHAR,
+    "varbinary": types.VARBINARY,
+    "JSON": types.JSON,
+    "date": types.DATE,
+    "time": types.Time,
+    "timestamp": types.TIMESTAMP,
+    "interval": Interval,
+    "array": Array,
+    "map": Map,
+    "row": Row,
 }

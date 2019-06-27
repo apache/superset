@@ -28,15 +28,16 @@ from sqlalchemy.ext.declarative import declarative_base
 from superset import db
 
 # revision identifiers, used by Alembic.
-revision = '130915240929'
-down_revision = 'f231d82b9b26'
+revision = "130915240929"
+down_revision = "f231d82b9b26"
 
 Base = declarative_base()
 
 
 class Table(Base):
     """Declarative class to do query in upgrade"""
-    __tablename__ = 'tables'
+
+    __tablename__ = "tables"
     id = sa.Column(sa.Integer, primary_key=True)
     sql = sa.Column(sa.Text)
     is_sqllab_view = sa.Column(sa.Boolean())
@@ -45,9 +46,9 @@ class Table(Base):
 def upgrade():
     bind = op.get_bind()
     op.add_column(
-        'tables',
+        "tables",
         sa.Column(
-            'is_sqllab_view',
+            "is_sqllab_view",
             sa.Boolean(),
             nullable=True,
             default=False,
@@ -67,4 +68,4 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_column('tables', 'is_sqllab_view')
+    op.drop_column("tables", "is_sqllab_view")

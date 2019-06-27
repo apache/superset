@@ -23,17 +23,17 @@ Create Date: 2019-06-04 10:12:36.675369
 """
 
 # revision identifiers, used by Alembic.
-revision = 'd7c1a0d6f2da'
-down_revision = 'afc69274c25a'
+revision = "d7c1a0d6f2da"
+down_revision = "afc69274c25a"
 
 from alembic import op
 import sqlalchemy as sa
 
 
 def upgrade():
-    with op.batch_alter_table('query') as batch_op:
-        batch_op.drop_column('limit_used')
+    with op.batch_alter_table("query") as batch_op:
+        batch_op.drop_column("limit_used")
 
 
 def downgrade():
-    op.add_column('query', sa.Column('limit_used', sa.BOOLEAN(), nullable=True))
+    op.add_column("query", sa.Column("limit_used", sa.BOOLEAN(), nullable=True))
