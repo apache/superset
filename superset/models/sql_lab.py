@@ -205,6 +205,16 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     query_id = Column(Integer, ForeignKey('query.id'))
     query = relationship('Query')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'label': self.label,
+            'active': self.active,
+            'table_schemas': [ts.to_dict() for ts in self.table_schemas],
+            'query': self.query.to_dict(),
+        }
+
 
 class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
 
@@ -221,6 +231,16 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
 
     # JSON describing the schema, partitions, latest partition, etc.
     results = Column(Text)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tab_state_id': self.tab_state_id,
+            'database_id': self.database_id,
+            'schema': self.schema,
+            'table': self.table,
+            'results': self.results,
+        }
 
 
 # events for updating tags
