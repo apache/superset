@@ -57,7 +57,7 @@
     "@superset-ui/legacy-plugin-chart-country-map": "^0.10.11",
     "@superset-ui/legacy-plugin-chart-event-flow": "^0.10.11",
     "@superset-ui/legacy-plugin-chart-force-directed": "^0.10.11",
-    "@superset-ui/legacy-plugin-chart-heatmap": "^0.10.11",
+    "@superset-ui/legacy-plugin-chart-heatmap": "^0.10.34",
     "@superset-ui/legacy-plugin-chart-histogram": "^0.10.11",
     "@superset-ui/legacy-plugin-chart-horizon": "^0.10.11",
     "@superset-ui/legacy-plugin-chart-iframe": "^0.10.11",
