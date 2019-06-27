@@ -21,6 +21,8 @@ import { t } from '@superset-ui/translation';
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 
 export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
+  const queryEditors = [];
+
   const defaultQueryEditor = {
     id: shortid.generate(),
     title: t('Untitled Query'),
@@ -37,6 +39,44 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     },
   };
 
+  restBootstrapData.tab_state_ids.forEach(({id, label}) => {
+    let queryEditor;
+    if (restBootstrapData.active_tab && restBootstrapData.active_tab.id === id) {
+      queryEditor = {
+        id: restBootstrapData.active_tab.id,
+        title: restBootstrapData.active_tab.label,
+        sql: restBootstrapData.active_tab.query.sql,
+        selectedText: null,
+        latestQueryId: null,
+        autorun: false,
+        dbId: restBootstrapData.active_tab.query.dbId,
+        schema: restBootstrapData.active_tab.query.schema,
+        queryLimit: restBootstrapData.common.conf.DEFAULT_SQLLAB_LIMIT,
+        validationResult: {
+          id: null,
+          errors: [],
+          completed: false,
+        },
+      };
+    } else {
+      // dummy state, actual state will be loaded on tab switch
+      queryEditor = {
+        ...defaultQueryEditor,
+        id,
+        title: label,
+      };
+    }
+    queryEditors.push(queryEditor);
+  });
+
+  const activeQueryEditorId = restBootstrapData.active_tab
+    ? restBootstrapData.active_tab.id
+    : defaultQueryEditor.id;
+
+  if (queryEditors.length === 0) {
+    queryEditors.push(defaultQueryEditor);
+  }
+
   return {
     sqlLab: {
       activeSouthPaneTab: 'Results',
@@ -44,8 +84,8 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       databases: {},
       offline: false,
       queries: {},
-      queryEditors: [defaultQueryEditor],
-      tabHistory: [defaultQueryEditor.id],
+      queryEditors: queryEditors,
+      tabHistory: [activeQueryEditorId],
       tables: [],
       queriesLastUpdate: Date.now(),
     },

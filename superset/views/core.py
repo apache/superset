@@ -2850,7 +2850,7 @@ class Superset(BaseSupersetView):
         # Send list of tab state ids, together with full payload for active tab
         tab_state_ids = (
             db.session
-            .query(TabState.id)
+            .query(TabState.id, TabState.label)
             .filter_by(user_id=g.user.get_id())
             .all()
         )
@@ -2865,7 +2865,7 @@ class Superset(BaseSupersetView):
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
             'common': self.common_bootstrap_payload(),
             'tab_state_ids': tab_state_ids,
-            'active_tab': active_tab,
+            'active_tab': active_tab.to_dict(),
         }
         return self.render_template(
             "superset/basic.html",
