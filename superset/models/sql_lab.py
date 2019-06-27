@@ -23,7 +23,14 @@ from flask import Markup
 from flask_appbuilder import Model
 import sqlalchemy as sqla
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
 )
 from sqlalchemy.orm import backref, relationship
 
@@ -39,15 +46,15 @@ class Query(Model, ExtraJSONMixin):
     Now that SQL Lab support multi-statement execution, an entry in this
     table may represent multiple SQL statements executed sequentially"""
 
-    __tablename__ = 'query'
+    __tablename__ = "query"
     id = Column(Integer, primary_key=True)
     client_id = Column(String(11), unique=True, nullable=False)
 
-    database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
+    database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
 
     # Store the tmp table into the DB only if the user asks for it.
     tmp_table_name = Column(String(256))
-    user_id = Column(Integer, ForeignKey('ab_user.id'), nullable=True)
+    user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     status = Column(String(16), default=QueryStatus.PENDING)
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
@@ -78,59 +85,55 @@ class Query(Model, ExtraJSONMixin):
     tracking_url = Column(Text)
 
     changed_on = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
-        nullable=True)
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
 
     database = relationship(
-        'Database',
+        "Database",
         foreign_keys=[database_id],
-        backref=backref('queries', cascade='all, delete-orphan'))
+        backref=backref("queries", cascade="all, delete-orphan"),
+    )
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
-    __table_args__ = (
-        sqla.Index('ti_user_id_changed_on', user_id, changed_on),
-    )
+    __table_args__ = (sqla.Index("ti_user_id_changed_on", user_id, changed_on),)
 
     def to_dict(self):
         return {
-            'changedOn': self.changed_on,
-            'changed_on': self.changed_on.isoformat(),
-            'dbId': self.database_id,
-            'db': self.database.database_name,
-            'endDttm': self.end_time,
-            'errorMessage': self.error_message,
-            'executedSql': self.executed_sql,
-            'id': self.client_id,
-            'limit': self.limit,
-            'progress': self.progress,
-            'rows': self.rows,
-            'schema': self.schema,
-            'ctas': self.select_as_cta,
-            'serverId': self.id,
-            'sql': self.sql,
-            'sqlEditorId': self.sql_editor_id,
-            'startDttm': self.start_time,
-            'state': self.status.lower(),
-            'tab': self.tab_name,
-            'tempTable': self.tmp_table_name,
-            'userId': self.user_id,
-            'user': user_label(self.user),
-            'resultsKey': self.results_key,
-            'trackingUrl': self.tracking_url,
-            'extra': self.extra,
+            "changedOn": self.changed_on,
+            "changed_on": self.changed_on.isoformat(),
+            "dbId": self.database_id,
+            "db": self.database.database_name,
+            "endDttm": self.end_time,
+            "errorMessage": self.error_message,
+            "executedSql": self.executed_sql,
+            "id": self.client_id,
+            "limit": self.limit,
+            "progress": self.progress,
+            "rows": self.rows,
+            "schema": self.schema,
+            "ctas": self.select_as_cta,
+            "serverId": self.id,
+            "sql": self.sql,
+            "sqlEditorId": self.sql_editor_id,
+            "startDttm": self.start_time,
+            "state": self.status.lower(),
+            "tab": self.tab_name,
+            "tempTable": self.tmp_table_name,
+            "userId": self.user_id,
+            "user": user_label(self.user),
+            "resultsKey": self.results_key,
+            "trackingUrl": self.tracking_url,
+            "extra": self.extra,
         }
 
     @property
     def name(self):
         """Name property"""
         ts = datetime.now().isoformat()
-        ts = ts.replace('-', '').replace(':', '').split('.')[0]
-        tab = (self.tab_name.replace(' ', '_').lower()
-               if self.tab_name else 'notab')
-        tab = re.sub(r'\W+', '', tab)
-        return f'sqllab_{tab}_{ts}'
+        ts = ts.replace("-", "").replace(":", "").split(".")[0]
+        tab = self.tab_name.replace(" ", "_").lower() if self.tab_name else "notab"
+        tab = re.sub(r"\W+", "", tab)
+        return f"sqllab_{tab}_{ts}"
 
     @property
     def database_name(self):
@@ -144,30 +147,34 @@ class Query(Model, ExtraJSONMixin):
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
     """ORM model for SQL query"""
 
-    __tablename__ = 'saved_query'
+    __tablename__ = "saved_query"
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('ab_user.id'), nullable=True)
-    db_id = Column(Integer, ForeignKey('dbs.id'), nullable=True)
+    user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
+    db_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
     schema = Column(String(128))
     label = Column(String(256))
     description = Column(Text)
     sql = Column(Text)
     user = relationship(
         security_manager.user_model,
-        backref=backref('saved_queries', cascade='all, delete-orphan'),
-        foreign_keys=[user_id])
+        backref=backref("saved_queries", cascade="all, delete-orphan"),
+        foreign_keys=[user_id],
+    )
     database = relationship(
-        'Database',
+        "Database",
         foreign_keys=[db_id],
-        backref=backref('saved_queries', cascade='all, delete-orphan'))
+        backref=backref("saved_queries", cascade="all, delete-orphan"),
+    )
 
     @property
     def pop_tab_link(self):
-        return Markup(f"""
+        return Markup(
+            f"""
             <a href="/superset/sqllab?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>
             </a>
-        """)
+        """
+        )
 
     @property
     def user_email(self):
@@ -178,10 +185,10 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
         return self.database.sqlalchemy_uri
 
     def url(self):
-        return '/superset/sqllab?savedQueryId={0}'.format(self.id)
+        return "/superset/sqllab?savedQueryId={0}".format(self.id)
 
 
 # events for updating tags
-sqla.event.listen(SavedQuery, 'after_insert', QueryUpdater.after_insert)
-sqla.event.listen(SavedQuery, 'after_update', QueryUpdater.after_update)
-sqla.event.listen(SavedQuery, 'after_delete', QueryUpdater.after_delete)
+sqla.event.listen(SavedQuery, "after_insert", QueryUpdater.after_insert)
+sqla.event.listen(SavedQuery, "after_update", QueryUpdater.after_update)
+sqla.event.listen(SavedQuery, "after_delete", QueryUpdater.after_delete)

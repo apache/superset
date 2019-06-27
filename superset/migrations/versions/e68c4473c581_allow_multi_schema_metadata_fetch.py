@@ -25,16 +25,16 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = 'e68c4473c581'
-down_revision = 'e866bd2d4976'
+revision = "e68c4473c581"
+down_revision = "e866bd2d4976"
 
 
 def upgrade():
 
     op.add_column(
-        'dbs',
+        "dbs",
         sa.Column(
-            'allow_multi_schema_metadata_fetch',
+            "allow_multi_schema_metadata_fetch",
             sa.Boolean(),
             nullable=True,
             default=True,
@@ -43,4 +43,4 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_column('dbs', 'allow_multi_schema_metadata_fetch')
+    op.drop_column("dbs", "allow_multi_schema_metadata_fetch")

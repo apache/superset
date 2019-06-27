@@ -37,7 +37,7 @@ from werkzeug.utils import secure_filename
 from superset import app, db, sql_parse
 from superset.utils import core as utils
 
-Grain = namedtuple('Grain', 'name label function duration')
+Grain = namedtuple("Grain", "name label function duration")
 
 config = app.config
 
@@ -46,23 +46,23 @@ QueryStatus = utils.QueryStatus
 config = app.config
 
 builtin_time_grains = {
-    None: 'Time Column',
-    'PT1S': 'second',
-    'PT1M': 'minute',
-    'PT5M': '5 minute',
-    'PT10M': '10 minute',
-    'PT15M': '15 minute',
-    'PT0.5H': 'half hour',
-    'PT1H': 'hour',
-    'P1D': 'day',
-    'P1W': 'week',
-    'P1M': 'month',
-    'P0.25Y': 'quarter',
-    'P1Y': 'year',
-    '1969-12-28T00:00:00Z/P1W': 'week_start_sunday',
-    '1969-12-29T00:00:00Z/P1W': 'week_start_monday',
-    'P1W/1970-01-03T00:00:00Z': 'week_ending_saturday',
-    'P1W/1970-01-04T00:00:00Z': 'week_ending_sunday',
+    None: "Time Column",
+    "PT1S": "second",
+    "PT1M": "minute",
+    "PT5M": "5 minute",
+    "PT10M": "10 minute",
+    "PT15M": "15 minute",
+    "PT0.5H": "half hour",
+    "PT1H": "hour",
+    "P1D": "day",
+    "P1W": "week",
+    "P1M": "month",
+    "P0.25Y": "quarter",
+    "P1Y": "year",
+    "1969-12-28T00:00:00Z/P1W": "week_start_sunday",
+    "1969-12-29T00:00:00Z/P1W": "week_start_monday",
+    "P1W/1970-01-03T00:00:00Z": "week_ending_saturday",
+    "P1W/1970-01-04T00:00:00Z": "week_ending_sunday",
 }
 
 
@@ -78,17 +78,25 @@ class TimestampExpression(ColumnClause):
         super().__init__(expr, **kwargs)
         self.col = col
 
+    @property
+    def _constructor(self):
+        # Needed to ensure that the column label is rendered correctly when
+        # proxied to the outer query.
+        # See https://github.com/sqlalchemy/sqlalchemy/issues/4730
+        return ColumnClause
+
 
 @compiles(TimestampExpression)
 def compile_timegrain_expression(element: TimestampExpression, compiler, **kw):
-    return element.name.replace('{col}', compiler.process(element.col, **kw))
+    return element.name.replace("{col}", compiler.process(element.col, **kw))
 
 
 class LimitMethod(object):
     """Enum the ways that limits can be applied"""
-    FETCH_MANY = 'fetch_many'
-    WRAP_SQL = 'wrap_sql'
-    FORCE_LIMIT = 'force_limit'
+
+    FETCH_MANY = "fetch_many"
+    WRAP_SQL = "wrap_sql"
+    FORCE_LIMIT = "force_limit"
 
 
 def create_time_grains_tuple(time_grains, time_grain_functions, blacklist):
@@ -104,7 +112,7 @@ def create_time_grains_tuple(time_grains, time_grain_functions, blacklist):
 class BaseEngineSpec(object):
     """Abstract class for database engine specific configurations"""
 
-    engine = 'base'  # str as defined in sqlalchemy.engine.engine
+    engine = "base"  # str as defined in sqlalchemy.engine.engine
     time_grain_functions: Dict[Optional[str], str] = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
@@ -118,12 +126,13 @@ class BaseEngineSpec(object):
     try_remove_schema_from_table_name = True
 
     @classmethod
-    def get_timestamp_expr(cls, col: ColumnClause, pdf: Optional[str],
-                           time_grain: Optional[str]) -> TimestampExpression:
+    def get_timestamp_expr(
+        cls, col: ColumnClause, pdf: Optional[str], time_grain: Optional[str]
+    ) -> TimestampExpression:
         """
-        Construct a TimeExpression to be used in a SQLAlchemy query.
+        Construct a TimestampExpression to be used in a SQLAlchemy query.
 
-        :param col: Target column for the TimeExpression
+        :param col: Target column for the TimestampExpression
         :param pdf: date format (seconds or milliseconds)
         :param time_grain: time grain, e.g. P1Y for 1 year
         :return: TimestampExpression object
@@ -132,25 +141,26 @@ class BaseEngineSpec(object):
             time_expr = cls.time_grain_functions.get(time_grain)
             if not time_expr:
                 raise NotImplementedError(
-                    f'No grain spec for {time_grain} for database {cls.engine}')
+                    f"No grain spec for {time_grain} for database {cls.engine}"
+                )
         else:
-            time_expr = '{col}'
+            time_expr = "{col}"
 
         # if epoch, translate to DATE using db specific conf
-        if pdf == 'epoch_s':
-            time_expr = time_expr.replace('{col}', cls.epoch_to_dttm())
-        elif pdf == 'epoch_ms':
-            time_expr = time_expr.replace('{col}', cls.epoch_ms_to_dttm())
+        if pdf == "epoch_s":
+            time_expr = time_expr.replace("{col}", cls.epoch_to_dttm())
+        elif pdf == "epoch_ms":
+            time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
 
         return TimestampExpression(time_expr, col, type_=DateTime)
 
     @classmethod
     def get_time_grains(cls):
-        blacklist = config.get('TIME_GRAIN_BLACKLIST', [])
+        blacklist = config.get("TIME_GRAIN_BLACKLIST", [])
         grains = builtin_time_grains.copy()
-        grains.update(config.get('TIME_GRAIN_ADDONS', {}))
+        grains.update(config.get("TIME_GRAIN_ADDONS", {}))
         grain_functions = cls.time_grain_functions.copy()
-        grain_addon_functions = config.get('TIME_GRAIN_ADDON_FUNCTIONS', {})
+        grain_addon_functions = config.get("TIME_GRAIN_ADDON_FUNCTIONS", {})
         grain_functions.update(grain_addon_functions.get(cls.engine, {}))
         return create_time_grains_tuple(grains, grain_functions, blacklist)
 
@@ -169,9 +179,9 @@ class BaseEngineSpec(object):
         return cursor.fetchall()
 
     @classmethod
-    def expand_data(cls,
-                    columns: List[dict],
-                    data: List[dict]) -> Tuple[List[dict], List[dict], List[dict]]:
+    def expand_data(
+        cls, columns: List[dict], data: List[dict]
+    ) -> Tuple[List[dict], List[dict], List[dict]]:
         return columns, data, []
 
     @classmethod
@@ -189,7 +199,7 @@ class BaseEngineSpec(object):
 
     @classmethod
     def epoch_ms_to_dttm(cls):
-        return cls.epoch_to_dttm().replace('{col}', '({col}/1000)')
+        return cls.epoch_to_dttm().replace("{col}", "({col}/1000)")
 
     @classmethod
     def get_datatype(cls, type_code):
@@ -205,12 +215,10 @@ class BaseEngineSpec(object):
     def apply_limit_to_sql(cls, sql, limit, database):
         """Alters the SQL statement to apply a LIMIT clause"""
         if cls.limit_method == LimitMethod.WRAP_SQL:
-            sql = sql.strip('\t\n ;')
+            sql = sql.strip("\t\n ;")
             qry = (
-                select('*')
-                .select_from(
-                    TextAsFrom(text(sql), ['*']).alias('inner_qry'),
-                )
+                select("*")
+                .select_from(TextAsFrom(text(sql), ["*"]).alias("inner_qry"))
                 .limit(limit)
             )
             return database.compile_sqla_query(qry)
@@ -230,95 +238,119 @@ class BaseEngineSpec(object):
         return parsed_query.get_query_with_new_limit(limit)
 
     @staticmethod
-    def csv_to_df(**kwargs):
-        kwargs['filepath_or_buffer'] = \
-            config['UPLOAD_FOLDER'] + kwargs['filepath_or_buffer']
-        kwargs['encoding'] = 'utf-8'
-        kwargs['iterator'] = True
+    def csv_to_df(**kwargs) -> pd.DataFrame:
+        """ Read csv into Pandas DataFrame
+        :param kwargs: params to be passed to DataFrame.read_csv
+        :return: Pandas DataFrame containing data from csv
+        """
+        kwargs["filepath_or_buffer"] = (
+            config["UPLOAD_FOLDER"] + kwargs["filepath_or_buffer"]
+        )
+        kwargs["encoding"] = "utf-8"
+        kwargs["iterator"] = True
         chunks = pd.read_csv(**kwargs)
-        df = pd.DataFrame()
         df = pd.concat(chunk for chunk in chunks)
         return df
 
-    @staticmethod
-    def df_to_db(df, table, **kwargs):
+    @classmethod
+    def df_to_sql(cls, df: pd.DataFrame, **kwargs):
+        """ Upload data from a Pandas DataFrame to a database. For
+        regular engines this calls the DataFrame.to_sql() method. Can be
+        overridden for engines that don't work well with to_sql(), e.g.
+        BigQuery.
+        :param df: Dataframe with data to be uploaded
+        :param kwargs: kwargs to be passed to to_sql() method
+        """
         df.to_sql(**kwargs)
+
+    @classmethod
+    def create_table_from_csv(cls, form, table):
+        """ Create table (including metadata in backend) from contents of a csv.
+        :param form: Parameters defining how to process data
+        :param table: Metadata of new table to be created
+        """
+
+        def _allowed_file(filename: str) -> bool:
+            # Only allow specific file extensions as specified in the config
+            extension = os.path.splitext(filename)[1]
+            return (
+                extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
+            )
+
+        filename = secure_filename(form.csv_file.data.filename)
+        if not _allowed_file(filename):
+            raise Exception("Invalid file type selected")
+        csv_to_df_kwargs = {
+            "filepath_or_buffer": filename,
+            "sep": form.sep.data,
+            "header": form.header.data if form.header.data else 0,
+            "index_col": form.index_col.data,
+            "mangle_dupe_cols": form.mangle_dupe_cols.data,
+            "skipinitialspace": form.skipinitialspace.data,
+            "skiprows": form.skiprows.data,
+            "nrows": form.nrows.data,
+            "skip_blank_lines": form.skip_blank_lines.data,
+            "parse_dates": form.parse_dates.data,
+            "infer_datetime_format": form.infer_datetime_format.data,
+            "chunksize": 10000,
+        }
+        df = cls.csv_to_df(**csv_to_df_kwargs)
+
+        df_to_sql_kwargs = {
+            "df": df,
+            "name": form.name.data,
+            "con": create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
+            "schema": form.schema.data,
+            "if_exists": form.if_exists.data,
+            "index": form.index.data,
+            "index_label": form.index_label.data,
+            "chunksize": 10000,
+        }
+        cls.df_to_sql(**df_to_sql_kwargs)
+
         table.user_id = g.user.id
-        table.schema = kwargs['schema']
+        table.schema = form.schema.data
         table.fetch_metadata()
         db.session.add(table)
         db.session.commit()
 
-    @staticmethod
-    def create_table_from_csv(form, table):
-        def _allowed_file(filename):
-            # Only allow specific file extensions as specified in the config
-            extension = os.path.splitext(filename)[1]
-            return extension and extension[1:] in config['ALLOWED_EXTENSIONS']
-
-        filename = secure_filename(form.csv_file.data.filename)
-        if not _allowed_file(filename):
-            raise Exception('Invalid file type selected')
-        kwargs = {
-            'filepath_or_buffer': filename,
-            'sep': form.sep.data,
-            'header': form.header.data if form.header.data else 0,
-            'index_col': form.index_col.data,
-            'mangle_dupe_cols': form.mangle_dupe_cols.data,
-            'skipinitialspace': form.skipinitialspace.data,
-            'skiprows': form.skiprows.data,
-            'nrows': form.nrows.data,
-            'skip_blank_lines': form.skip_blank_lines.data,
-            'parse_dates': form.parse_dates.data,
-            'infer_datetime_format': form.infer_datetime_format.data,
-            'chunksize': 10000,
-        }
-        df = BaseEngineSpec.csv_to_df(**kwargs)
-
-        df_to_db_kwargs = {
-            'table': table,
-            'df': df,
-            'name': form.name.data,
-            'con': create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
-            'schema': form.schema.data,
-            'if_exists': form.if_exists.data,
-            'index': form.index.data,
-            'index_label': form.index_label.data,
-            'chunksize': 10000,
-        }
-
-        BaseEngineSpec.df_to_db(**df_to_db_kwargs)
-
     @classmethod
     def convert_dttm(cls, target_type, dttm):
-        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
 
     @classmethod
-    def get_all_datasource_names(cls, db, datasource_type: str) \
-            -> List[utils.DatasourceName]:
+    def get_all_datasource_names(
+        cls, db, datasource_type: str
+    ) -> List[utils.DatasourceName]:
         """Returns a list of all tables or views in database.
 
         :param db: Database instance
         :param datasource_type: Datasource_type can be 'table' or 'view'
         :return: List of all datasources in database or schema
         """
-        schemas = db.get_all_schema_names(cache=db.schema_cache_enabled,
-                                          cache_timeout=db.schema_cache_timeout,
-                                          force=True)
+        schemas = db.get_all_schema_names(
+            cache=db.schema_cache_enabled,
+            cache_timeout=db.schema_cache_timeout,
+            force=True,
+        )
         all_datasources: List[utils.DatasourceName] = []
         for schema in schemas:
-            if datasource_type == 'table':
+            if datasource_type == "table":
                 all_datasources += db.get_all_table_names_in_schema(
-                    schema=schema, force=True,
+                    schema=schema,
+                    force=True,
                     cache=db.table_cache_enabled,
-                    cache_timeout=db.table_cache_timeout)
-            elif datasource_type == 'view':
+                    cache_timeout=db.table_cache_timeout,
+                )
+            elif datasource_type == "view":
                 all_datasources += db.get_all_view_names_in_schema(
-                    schema=schema, force=True,
+                    schema=schema,
+                    force=True,
                     cache=db.table_cache_enabled,
-                    cache_timeout=db.table_cache_timeout)
+                    cache_timeout=db.table_cache_timeout,
+                )
             else:
-                raise Exception(f'Unsupported datasource_type: {datasource_type}')
+                raise Exception(f"Unsupported datasource_type: {datasource_type}")
         return all_datasources
 
     @classmethod
@@ -368,14 +400,14 @@ class BaseEngineSpec(object):
     def get_table_names(cls, inspector, schema):
         tables = inspector.get_table_names(schema)
         if schema and cls.try_remove_schema_from_table_name:
-            tables = [re.sub(f'^{schema}\\.', '', table) for table in tables]
+            tables = [re.sub(f"^{schema}\\.", "", table) for table in tables]
         return sorted(tables)
 
     @classmethod
     def get_view_names(cls, inspector, schema):
         views = inspector.get_view_names(schema)
         if schema and cls.try_remove_schema_from_table_name:
-            views = [re.sub(f'^{schema}\\.', '', view) for view in views]
+            views = [re.sub(f"^{schema}\\.", "", view) for view in views]
         return sorted(views)
 
     @classmethod
@@ -383,19 +415,27 @@ class BaseEngineSpec(object):
         return inspector.get_columns(table_name, schema)
 
     @classmethod
-    def where_latest_partition(
-            cls, table_name, schema, database, qry, columns=None):
+    def where_latest_partition(cls, table_name, schema, database, qry, columns=None):
         return False
 
     @classmethod
     def _get_fields(cls, cols):
-        return [column(c.get('name')) for c in cols]
+        return [column(c.get("name")) for c in cols]
 
     @classmethod
-    def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
-                    show_cols=False, indent=True, latest_partition=True,
-                    cols=None):
-        fields = '*'
+    def select_star(
+        cls,
+        my_db,
+        table_name,
+        engine,
+        schema=None,
+        limit=100,
+        show_cols=False,
+        indent=True,
+        latest_partition=True,
+        cols=None,
+    ):
+        fields = "*"
         cols = cols or []
         if (show_cols or latest_partition) and not cols:
             cols = my_db.get_columns(table_name, schema)
@@ -404,7 +444,7 @@ class BaseEngineSpec(object):
             fields = cls._get_fields(cols)
         quote = engine.dialect.identifier_preparer.quote
         if schema:
-            full_table_name = quote(schema) + '.' + quote(table_name)
+            full_table_name = quote(schema) + "." + quote(table_name)
         else:
             full_table_name = quote(table_name)
 
@@ -414,7 +454,8 @@ class BaseEngineSpec(object):
             qry = qry.limit(limit)
         if latest_partition:
             partition_query = cls.where_latest_partition(
-                table_name, schema, my_db, qry, columns=cols)
+                table_name, schema, my_db, qry, columns=cols
+            )
             if partition_query != False:  # noqa
                 qry = partition_query
         sql = my_db.compile_sqla_query(qry)
@@ -462,7 +503,10 @@ class BaseEngineSpec(object):
         generate a truncated label by calling truncate_label().
         """
         label_mutated = cls.mutate_label(label)
-        if cls.max_column_name_length and len(label_mutated) > cls.max_column_name_length:
+        if (
+            cls.max_column_name_length
+            and len(label_mutated) > cls.max_column_name_length
+        ):
             label_mutated = cls.truncate_label(label)
         if cls.force_column_alias_quotes:
             label_mutated = quoted_name(label_mutated, True)
@@ -497,10 +541,10 @@ class BaseEngineSpec(object):
         this method is used to construct a deterministic and unique label based on
         an md5 hash.
         """
-        label = hashlib.md5(label.encode('utf-8')).hexdigest()
+        label = hashlib.md5(label.encode("utf-8")).hexdigest()
         # truncate hash if it exceeds max length
         if cls.max_column_name_length and len(label) > cls.max_column_name_length:
-            label = label[:cls.max_column_name_length]
+            label = label[: cls.max_column_name_length]
         return label
 
     @classmethod
