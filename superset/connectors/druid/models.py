@@ -31,7 +31,6 @@ from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import lazy_gettext as _
 import pandas
-
 try:
     from pydruid.client import PyDruid
     from pydruid.utils.aggregators import count
