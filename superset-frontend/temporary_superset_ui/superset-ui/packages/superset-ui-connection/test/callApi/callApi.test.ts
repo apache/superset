@@ -53,7 +53,7 @@ describe('callApi()', () => {
         expect(fetchMock.calls(mockPutUrl)).toHaveLength(1);
         expect(fetchMock.calls(mockPatchUrl)).toHaveLength(1);
 
-        return Promise.resolve();
+        return true;
       });
     });
 
@@ -85,7 +85,7 @@ describe('callApi()', () => {
         expect(fetchParams.signal).toBe(mockRequest.signal);
         expect(fetchParams.body).toBe(mockRequest.body);
 
-        return Promise.resolve();
+        return true;
       });
     });
   });
@@ -106,7 +106,7 @@ describe('callApi()', () => {
           expect(body.get(key)).toBe(JSON.stringify(postPayload[key]));
         });
 
-        return Promise.resolve();
+        return true;
       });
     });
 
@@ -124,7 +124,7 @@ describe('callApi()', () => {
         expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
         expect(body.get('noValue')).toBeNull();
 
-        return Promise.resolve();
+        return true;
       });
     });
 
@@ -155,7 +155,7 @@ describe('callApi()', () => {
           expect(unstringified.get(key)).toBe(String(postPayload[key]));
         });
 
-        return Promise.resolve();
+        return true;
       });
     });
   });
@@ -176,7 +176,7 @@ describe('callApi()', () => {
           expect(body.get(key)).toBe(JSON.stringify(postPayload[key]));
         });
 
-        return Promise.resolve();
+        return true;
       });
     });
 
@@ -194,7 +194,7 @@ describe('callApi()', () => {
         expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
         expect(body.get('noValue')).toBeNull();
 
-        return Promise.resolve();
+        return true;
       });
     });
 
@@ -225,7 +225,7 @@ describe('callApi()', () => {
           expect(unstringified.get(key)).toBe(String(postPayload[key]));
         });
 
-        return Promise.resolve();
+        return true;
       });
     });
   });
@@ -246,7 +246,7 @@ describe('callApi()', () => {
           expect(body.get(key)).toBe(JSON.stringify(postPayload[key]));
         });
 
-        return Promise.resolve();
+        return true;
       });
     });
 
@@ -264,7 +264,7 @@ describe('callApi()', () => {
         expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
         expect(body.get('noValue')).toBeNull();
 
-        return Promise.resolve();
+        return true;
       });
     });
 
@@ -295,7 +295,7 @@ describe('callApi()', () => {
           expect(unstringified.get(key)).toBe(String(postPayload[key]));
         });
 
-        return Promise.resolve();
+        return true;
       });
     });
   });
@@ -309,7 +309,7 @@ describe('callApi()', () => {
         supersetCache.match(mockCacheUrl).then(cachedResponse => {
           expect(cachedResponse).toBeDefined();
 
-          return Promise.resolve();
+          return true;
         }),
       );
     }));
@@ -347,7 +347,7 @@ describe('callApi()', () => {
         expect(calls).toHaveLength(2);
         expect(fetchParams.headers).toEqual(expect.objectContaining(headers));
 
-        return Promise.resolve();
+        return true;
       });
     }));
 

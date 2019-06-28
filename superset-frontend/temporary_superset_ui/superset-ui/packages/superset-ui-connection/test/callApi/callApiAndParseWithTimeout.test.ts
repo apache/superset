@@ -94,7 +94,7 @@ describe('callApiAndParseWithTimeout()', () => {
         (response: Json) => {
           expect(response.json).toEqual(expect.objectContaining(mockGetPayload));
 
-          return Promise.resolve();
+          return true;
         },
       );
     });
