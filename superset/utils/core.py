@@ -75,6 +75,23 @@ JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 sources = {"chart": 0, "dashboard": 1, "sql_lab": 2}
 
+try:
+    # Having might not have been imported.
+    class DimSelector(Having):
+        def __init__(self, **args):
+            # Just a hack to prevent any exceptions
+            Having.__init__(self, type='equalTo', aggregation=None, value=None)
+
+            self.having = {
+                'having': {
+                    'type': 'dimSelector',
+                    'dimension': args['dimension'],
+                    'value': args['value'],
+                },
+            }
+except NameError:
+    pass
+
 
 def flasher(msg, severity=None):
     """Flask's flash if available, logging call if not"""
@@ -180,23 +197,6 @@ def string_to_num(s: str):
         return float(s)
     except ValueError:
         return None
-
-
-try:
-    class DimSelector(Having):
-        def __init__(self, **args):
-            # Just a hack to prevent any exceptions
-            Having.__init__(self, type='equalTo', aggregation=None, value=None)
-
-            self.having = {
-                'having': {
-                    'type': 'dimSelector',
-                    'dimension': args['dimension'],
-                    'value': args['value'],
-                },
-            }
-except NameError:
-    pass
 
 
 def list_minus(l: List, minus: List) -> List:

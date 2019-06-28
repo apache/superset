@@ -47,9 +47,6 @@ try:
     )
     import requests
 except ImportError:
-    print(_('pydruid and requests are optional dependencies, and '
-            'it seems they are not installed on your system. Some features '
-            'might not be available.'))
     pass
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -76,20 +73,14 @@ try:
         DimSelector, DTTM_ALIAS, flasher,
     )
 except ImportError:
-    print(_('DimSelector depends on Having, but it is not available '
-            'because pydruid is an optional dependency'))
+    pass
 DRUID_TZ = conf.get('DRUID_TZ')
 POST_AGG_TYPE = 'postagg'
 metadata = Model.metadata  # pylint: disable=no-member
 
 
-# Function wrapper because bound methods cannot
-# be passed to processes
-def _fetch_metadata_for(datasource):
-    return datasource.latest_metadata()
-
-
 try:
+    # Postaggregator might not have been imported.
     class JavascriptPostAggregator(Postaggregator):
         def __init__(self, name, field_names, function):
             self.post_aggregator = {
@@ -107,6 +98,12 @@ try:
             self.post_aggregator = post_aggregator
 except NameError:
     pass
+
+
+# Function wrapper because bound methods cannot
+# be passed to processes
+def _fetch_metadata_for(datasource):
+    return datasource.latest_metadata()
 
 
 class DruidCluster(Model, AuditMixinNullable, ImportMixin):
