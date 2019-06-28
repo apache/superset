@@ -30,7 +30,7 @@ const propTypes = {
 };
 
 const draftButtonTooltip = t(
-  'This dashboard is not published which means it will not show up in the list of dashboards. ' +
+  'This dashboard is not published, it will not show up in the list of dashboards. ' +
     'Click here to publish this dashboard.',
 );
 
