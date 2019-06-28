@@ -44,7 +44,7 @@ describe('parseResponse()', () => {
       expect(Object.keys(args)).toEqual(expect.arrayContaining(['response', 'json']));
       expect(args.json).toEqual(expect.objectContaining(mockGetPayload));
 
-      return Promise.resolve();
+      return true;
     });
   });
 
@@ -65,7 +65,7 @@ describe('parseResponse()', () => {
         expect(error.stack).toBeDefined();
         expect(error.message.includes('Unexpected token')).toBe(true);
 
-        return Promise.resolve();
+        return true;
       });
   });
 
@@ -84,7 +84,7 @@ describe('parseResponse()', () => {
       expect(Object.keys(args)).toEqual(expect.arrayContaining(['response', 'text']));
       expect(args.text).toBe(mockTextJsonResponse);
 
-      return Promise.resolve();
+      return true;
     });
   });
 
@@ -105,7 +105,7 @@ describe('parseResponse()', () => {
       expect(fetchMock.calls(mockNoParseUrl)).toHaveLength(1);
       expect(response.bodyUsed).toBe(false);
 
-      return Promise.resolve();
+      return true;
     });
   });
 
