@@ -58,7 +58,7 @@ describe('SupersetClientClass', () => {
       return new SupersetClientClass().init().then(() => {
         expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(1);
 
-        return Promise.resolve();
+        return true;
       });
     });
 
@@ -68,7 +68,7 @@ describe('SupersetClientClass', () => {
       return new SupersetClientClass({ csrfToken: 'abc' }).init().then(() => {
         expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(0);
 
-        return Promise.resolve();
+        return true;
       });
     });
 
@@ -85,7 +85,7 @@ describe('SupersetClientClass', () => {
           expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(1);
           expect(client.csrfToken).not.toBe(initialToken);
 
-          return Promise.resolve();
+          return true;
         });
       });
     });
@@ -103,7 +103,7 @@ describe('SupersetClientClass', () => {
         .catch(error => {
           expect(error.status).toBe(403);
 
-          return Promise.resolve();
+          return true;
         });
     });
 
@@ -117,7 +117,7 @@ describe('SupersetClientClass', () => {
         .catch(error => {
           expect(error).toBeDefined();
 
-          return Promise.resolve();
+          return true;
         });
     });
 
@@ -132,7 +132,7 @@ describe('SupersetClientClass', () => {
         .catch(error => {
           expect(error).toBeDefined();
 
-          return Promise.resolve();
+          return true;
         });
     });
   });
@@ -148,7 +148,7 @@ describe('SupersetClientClass', () => {
       return client.init().then(() => {
         expect(client.isAuthenticated()).toBe(true);
 
-        return Promise.resolve();
+        return true;
       });
     });
 
@@ -175,7 +175,7 @@ describe('SupersetClientClass', () => {
           expect(error).toEqual(expect.objectContaining({ error: expect.any(String) }));
           expect(client.isAuthenticated()).toBe(false);
 
-          return Promise.resolve();
+          return true;
         });
     });
 
@@ -191,7 +191,7 @@ describe('SupersetClientClass', () => {
           .catch(() => {
             expect(client.isAuthenticated()).toBe(true);
 
-            return Promise.resolve();
+            return true;
           }),
       );
     });
@@ -228,7 +228,7 @@ describe('SupersetClientClass', () => {
                 },
               );
 
-              return Promise.resolve();
+              return true;
             });
         });
     });
@@ -282,7 +282,7 @@ describe('SupersetClientClass', () => {
           expect(authSpy).toHaveBeenCalledTimes(5);
           authSpy.mockRestore();
 
-          return Promise.resolve();
+          return true;
         }),
       );
     });
@@ -308,7 +308,7 @@ describe('SupersetClientClass', () => {
             expect.objectContaining(clientConfig.headers as Object),
           );
 
-          return Promise.resolve();
+          return true;
         }),
       );
     });
@@ -325,7 +325,7 @@ describe('SupersetClientClass', () => {
           ]).then(() => {
             expect(fetchMock.calls(mockGetUrl)).toHaveLength(2);
 
-            return Promise.resolve();
+            return true;
           }),
         );
       });
@@ -343,7 +343,7 @@ describe('SupersetClientClass', () => {
                 expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
                 expect(text).toBe(mockTextJsonResponse);
 
-                return Promise.resolve();
+                return true;
               })
               .catch(throwIfCalled),
           )
@@ -382,7 +382,7 @@ describe('SupersetClientClass', () => {
                   expect.objectContaining(overrideConfig.headers as Object),
                 );
 
-                return Promise.resolve();
+                return true;
               })
               .catch(throwIfCalled),
           )
@@ -402,7 +402,7 @@ describe('SupersetClientClass', () => {
           ]).then(() => {
             expect(fetchMock.calls(mockPostUrl)).toHaveLength(2);
 
-            return Promise.resolve();
+            return true;
           }),
         );
       });
@@ -434,7 +434,7 @@ describe('SupersetClientClass', () => {
               expect.objectContaining(overrideConfig.headers as Object),
             );
 
-            return Promise.resolve();
+            return true;
           }),
         );
       });
@@ -448,7 +448,7 @@ describe('SupersetClientClass', () => {
             expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
             expect(text).toBe(mockTextJsonResponse);
 
-            return Promise.resolve();
+            return true;
           }),
         );
       });
@@ -467,7 +467,7 @@ describe('SupersetClientClass', () => {
               expect(formData.get(key)).toBe(JSON.stringify(postPayload[key]));
             });
 
-            return Promise.resolve();
+            return true;
           }),
         );
       });
@@ -485,7 +485,7 @@ describe('SupersetClientClass', () => {
               expect(formData.get(key)).toBe(String(postPayload[key]));
             });
 
-            return Promise.resolve();
+            return true;
           }),
         );
       });
