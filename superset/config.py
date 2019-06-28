@@ -258,6 +258,7 @@ ALLOWED_EXTENSIONS = set(["csv"])
 # method.
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8"}
+CSV_EXPORT_USE_VERBOSE_NAMES_AS_HEADERS = False
 
 # ---------------------------------------------------
 # Time grain configurations

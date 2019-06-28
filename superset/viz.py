@@ -491,6 +491,15 @@ class BaseViz(object):
     def get_csv(self):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
+        if config.get("CSV_EXPORT_USE_VERBOSE_NAMES_AS_HEADERS"):
+            columns_with_verbose_names = {
+                column.column_name: column.verbose_name
+                for column in self.datasource.columns
+                if hasattr(column, "verbose_name")
+                and column.verbose_name
+                and column.column_name in df.columns
+            }
+            df = df.rename(columns=columns_with_verbose_names)
         return df.to_csv(index=include_index, **config.get("CSV_EXPORT"))
 
     def get_data(self, df):
