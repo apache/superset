@@ -33,11 +33,11 @@ def get_cache_config():
     cache_config = {}
     if CACHE_TYPE is not 'null':
         cache_config = {
-            'CACHE_TYPE' : CACHE_TYPE
+            'CACHE_TYPE' : CACHE_TYPE, 'CACHE_DEFAULT_TIMEOUT' : int(CACHE_DEFAULT_TIMEOUT)
         }
     else:
         cache_config = {
-            'CACHE_TYPE' : CACHE_TYPE, 'CACHE_DEFAULT_TIMEOUT' : int(CACHE_DEFAULT_TIMEOUT)
+            'CACHE_TYPE' : CACHE_TYPE
         }
 
     return cache_config
