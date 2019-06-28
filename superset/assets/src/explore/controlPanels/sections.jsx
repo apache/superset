@@ -97,7 +97,7 @@ export const NVD3TimeSeries = [
       ['time_compare', 'comparison_type'],
       [<h1 className="section-header">{t('Python Functions')}</h1>],
       [<h2 className="section-header">pandas.resample</h2>],
-      ['resample_how', 'resample_rule', 'resample_fillmethod'],
+      ['resample_rule', 'resample_method'],
     ],
   },
 ];
