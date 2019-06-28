@@ -28,7 +28,7 @@ try:
         DruidDatasource,
         DruidMetric,
     )
-except ModuleNotFoundError:
+except ImportError:
     pass
 from .base_tests import SupersetTestCase
 

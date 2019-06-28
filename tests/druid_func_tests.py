@@ -21,7 +21,7 @@ from unittest.mock import Mock
 try:
     from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
     import pydruid.utils.postaggregator as postaggs
-except ModuleNotFoundError:
+except ImportError:
     pass
 
 import superset.connectors.druid.models as models
