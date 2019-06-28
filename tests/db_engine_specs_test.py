@@ -17,9 +17,11 @@
 import unittest
 from unittest import mock
 
-from sqlalchemy import column, literal_column, select, table
+import pandas as pd
+from sqlalchemy import column, literal_column, table
 from sqlalchemy.dialects import mssql, oracle, postgresql
 from sqlalchemy.engine.result import RowProxy
+from sqlalchemy.sql import select
 from sqlalchemy.types import String, UnicodeText
 
 from superset.db_engine_specs import engines
@@ -759,6 +761,24 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEqual(actual_cols, expected_cols)
         self.assertEqual(actual_data, expected_data)
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+
+    def test_presto_extra_table_metadata(self):
+        db = mock.Mock()
+        db.get_indexes = mock.Mock(return_value=[{'column_names': ['ds', 'hour']}])
+        df = pd.DataFrame({'ds': ['01-01-19'], 'hour': [1]})
+        db.get_df = mock.Mock(return_value=df)
+        result = PrestoEngineSpec.extra_table_metadata(db, 'test_table', 'test_schema')
+        self.assertEqual({'ds': '01-01-19', 'hour': 1}, result['partitions']['latest'])
+
+    def test_presto_where_latest_partition(self):
+        db = mock.Mock()
+        db.get_indexes = mock.Mock(return_value=[{'column_names': ['ds', 'hour']}])
+        df = pd.DataFrame({'ds': ['01-01-19'], 'hour': [1]})
+        db.get_df = mock.Mock(return_value=df)
+        columns = [{'name': 'ds'}, {'name': 'hour'}]
+        result = PrestoEngineSpec.where_latest_partition('test_table', 'test_schema', db, select(), columns)
+        query_result = str(result.compile(compile_kwargs={'literal_binds': True}))
+        self.assertEqual('SELECT  \nWHERE ds = \'01-01-19\' AND hour = 1', query_result)
 
     def test_hive_get_view_names_return_empty_list(self):
         self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))
