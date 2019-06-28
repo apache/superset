@@ -146,7 +146,7 @@ export default class SupersetClientClass {
         return Promise.reject({ error: 'Failed to fetch CSRF token' });
       }
 
-      return Promise.resolve(this.csrfToken);
+      return this.csrfToken;
     });
 
     return this.csrfPromise;
