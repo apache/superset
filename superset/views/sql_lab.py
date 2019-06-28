@@ -189,6 +189,18 @@ class TabStateView(BaseSupersetView):
         )
         return json_success(json.dumps(tab_state.to_dict(), default=utils.json_iso_dttm_ser))
 
+    @has_access_api
+    @expose('activate/<int:tab_state_id>', methods=['POST'])
+    def activate(self, tab_state_id):
+        result = (
+            db.session
+            .query(TabState)
+            .filter_by(user_id=g.user.get_id())
+            .update({'active': TabState.id == tab_state_id})
+        )
+        db.session.commit()
+        return json_success(json.dumps(tab_state_id))
+
 
 appbuilder.add_view_no_menu(TabStateView)
 
