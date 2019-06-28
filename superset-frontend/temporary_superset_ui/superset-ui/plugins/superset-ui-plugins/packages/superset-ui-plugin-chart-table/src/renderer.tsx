@@ -1,3 +1,6 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable no-magic-numbers */
 import React, { CSSProperties } from 'react';
 import { HEIGHT_TO_PX } from '@airbnb/lunar/lib/components/DataTable/constants';
 import { RendererProps } from '@airbnb/lunar/lib/components/DataTable/types';
@@ -38,7 +41,7 @@ export const getRenderer = ({
   handleCellSelected: (cell: Cell) => any;
 }) => (props: RendererProps) => {
   const { key } = props;
-  let value = props.row.rowData.data[key];
+  const value = props.row.rowData.data[key];
   const isMetric = column.type === 'metric';
   let Parent;
 
@@ -59,31 +62,31 @@ export const getRenderer = ({
     const color = colorPositiveNegative && value < 0 ? NEGATIVE_COLOR : POSITIVE_COLOR;
     Parent = ({ children }: { children: React.ReactNode }) => {
       const boxStyle: CSSProperties = {
-        margin: '0px -16px',
         backgroundColor: enableFilter && isSelected({ key, value }) ? SELECTION_COLOR : undefined,
+        margin: '0px -16px',
       };
       const boxContainerStyle: CSSProperties = {
-        position: 'relative',
-        height: HEIGHT_TO_PX[heightType],
-        textAlign: isMetric ? 'right' : 'left',
-        display: 'flex',
         alignItems: 'center',
+        display: 'flex',
+        height: HEIGHT_TO_PX[heightType],
         margin: '0px 16px',
+        position: 'relative',
+        textAlign: isMetric ? 'right' : 'left',
       };
 
       const barStyle: CSSProperties = {
         background: color,
-        width: `${width}%`,
+        borderRadius: 3,
+        height: HEIGHT_TO_PX[heightType] / 2 + 4,
         left: `${left}%`,
         position: 'absolute',
-        height: HEIGHT_TO_PX[heightType] / 2 + 4,
-        borderRadius: 3,
+        width: `${width}%`,
       };
 
       const numberStyle: CSSProperties = {
-        zIndex: 10,
         marginLeft: 'auto',
         marginRight: '4px',
+        zIndex: 10,
       };
 
       return (
@@ -96,9 +99,7 @@ export const getRenderer = ({
       );
     };
   } else {
-    Parent = ({ children }: { children: React.ReactNode }) => (
-      <React.Fragment>{children}</React.Fragment>
-    );
+    Parent = ({ children }: { children: React.ReactNode }) => <>{children}</>;
   }
 
   return (

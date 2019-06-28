@@ -21,7 +21,7 @@ type Props = {
   tableFilter: boolean;
 };
 
-function NOOP(key: string, value: number[]) {}
+function NOOP(_key: string, _value: number[]) {}
 
 const defaultProps = {
   alignPositiveNegative: false,
@@ -55,12 +55,42 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
   constructor(props: InternalTableProps) {
     super(props);
     this.state = {
-      selectedCells: new Set(),
-      searchKeyword: '',
       filteredRows: [],
+      // eslint-disable-next-line react/no-unused-state
       filters: props.filters,
+      searchKeyword: '',
+      selectedCells: new Set(),
     };
   }
+
+  static getDerivedStateFromProps: React.GetDerivedStateFromProps<
+    InternalTableProps,
+    TableState
+  > = (props: InternalTableProps, state: TableState) => {
+    const { filters } = props;
+    const { selectedCells, filters: prevFilters } = state;
+    if (prevFilters !== filters) {
+      const newSelectedCells = new Set(Array.from(selectedCells));
+      Object.keys(filters).forEach(key => {
+        filters[key].forEach(value => {
+          newSelectedCells.add(
+            getCellHash({
+              key,
+              value,
+            }),
+          );
+        });
+      });
+
+      return {
+        ...state,
+        filters,
+        selectedCells: newSelectedCells,
+      };
+    }
+
+    return state;
+  };
 
   handleCellSelected = (cell: Cell) => () => {
     const { selectedCells } = this.state;
@@ -85,6 +115,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
 
   isSelected = (cell: Cell) => {
     const { selectedCells } = this.state;
+
     return selectedCells.has(getCellHash(cell));
   };
 
@@ -93,42 +124,18 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     const { data } = this.props;
     if (searchKeyword !== value) {
       const filteredRows = data.filter(row => {
-        const content = Object.values(row.data)
+        const content = Object.keys(row.data)
+          .map(key => row.data[key])
           .join('|')
           .toLowerCase();
+
         return content.indexOf(value.toLowerCase()) >= 0;
       });
       this.setState({
-        searchKeyword: value,
         filteredRows,
+        searchKeyword: value,
       });
     }
-  };
-
-  static getDerivedStateFromProps: React.GetDerivedStateFromProps<
-    InternalTableProps,
-    TableState
-  > = (props: InternalTableProps, state: TableState) => {
-    const { filters } = props;
-    const { selectedCells, filters: prevFilters } = state;
-    if (prevFilters !== filters) {
-      const newSelectedCells = new Set(Array.from(selectedCells));
-      Object.keys(filters).forEach(key => {
-        filters[key].forEach(value => {
-          newSelectedCells.add(
-            getCellHash({
-              key,
-              value,
-            }),
-          );
-        });
-      });
-      return {
-        ...state,
-        selectedCells: newSelectedCells,
-      };
-    }
-    return state;
   };
 
   render() {
@@ -147,19 +154,19 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
 
     const renderers: Renderers = {};
 
-    const dataToRender = searchKeyword !== '' ? filteredRows : data;
+    const dataToRender = searchKeyword === '' ? data : filteredRows;
     const columnMetadata: ColumnMetadata = {};
 
     columns.forEach(column => {
       renderers[column.key] = getRenderer({
-        column,
         alignPositiveNegative,
         colorPositiveNegative,
+        column,
         enableFilter: tableFilter,
-        isSelected: this.isSelected,
         handleCellSelected: this.handleCellSelected,
+        isSelected: this.isSelected,
       });
-      if (column.type == 'metric') {
+      if (column.type === 'metric') {
         columnMetadata[column.key] = {
           rightAlign: 1,
         };
@@ -167,7 +174,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     });
 
     return (
-      <React.Fragment>
+      <>
         {includeSearch && (
           <div {...css(styles.searchBar)}>
             <div {...css(styles.searchBox)}>
@@ -193,21 +200,22 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
           renderers={renderers}
           height={height}
         />
-      </React.Fragment>
+      </>
     );
   }
 }
 
 export default withStyles(({ unit }) => ({
   searchBar: {
-    display: 'flex',
-    flexGrow: 0,
-    flexDirection: 'row-reverse',
-    marginBottom: unit,
     alignItems: 'baseline',
+    display: 'flex',
+    flexDirection: 'row-reverse',
+    flexGrow: 0,
+    marginBottom: unit,
   },
   searchBox: {
-    width: 25 * unit,
     marginLeft: unit,
+    // eslint-disable-next-line no-magic-numbers
+    width: 25 * unit,
   },
 }))(TableVis);

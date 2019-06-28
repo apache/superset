@@ -3,6 +3,7 @@ import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
 import dataLegacy from './dataLegacy';
 import data from './data';
+
 export default [
   {
     renderStory: () => (
@@ -55,7 +56,6 @@ export default [
             alignPn: true,
             colorPn: true,
             includeSearch: true,
-            pageLength: 0,
             metrics: ['sum__num', 'trend'],
             orderDesc: true,
             pageLength: 0,
@@ -90,7 +90,6 @@ export default [
             alignPn: false,
             colorPn: true,
             includeSearch: true,
-            pageLength: 0,
             metrics: ['sum__num', 'trend'],
             orderDesc: true,
             pageLength: 0,

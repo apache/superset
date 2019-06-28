@@ -49,7 +49,7 @@ export default function processColumns({
 
   const processedColumns = columns.map((key: string) => {
     let label = verboseMap[key];
-    let formatString = columnFormats && columnFormats[key];
+    const formatString = columnFormats && columnFormats[key];
     let formatFunction: NumberFormatter | TimeFormatter | undefined;
     let type = 'string';
 
@@ -64,8 +64,8 @@ export default function processColumns({
     if (metrics.indexOf(key) >= 0) {
       formatFunction = getNumberFormatter(formatString);
       type = 'metric';
-      extraField['maxValue'] = maxes[key];
-      extraField['minValue'] = mins[key];
+      extraField.maxValue = maxes[key];
+      extraField.minValue = mins[key];
     }
 
     // Handle verbose names for percents
@@ -80,9 +80,9 @@ export default function processColumns({
     }
 
     return {
+      format: formatFunction,
       key,
       label,
-      format: formatFunction,
       type,
       ...extraField,
     };

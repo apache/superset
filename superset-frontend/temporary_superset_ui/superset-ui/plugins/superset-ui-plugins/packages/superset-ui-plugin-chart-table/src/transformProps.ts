@@ -53,14 +53,16 @@ function transformData(data: PlainObject[], formData: PlainObject) {
       percentMetrics.forEach(metric => {
         newSumMetrics[metric] = (sumMetrics[metric] || 0) + (item[metric] || 0);
       });
+
       return newSumMetrics;
     }, {});
     records = data.map(item => {
       const newItem = { ...item };
       percentMetrics.forEach(metric => {
         newItem[`%${metric}`] =
-          sumPercentMetrics[metric] !== 0 ? newItem[metric] / sumPercentMetrics[metric] : null;
+          sumPercentMetrics[metric] === 0 ? null : newItem[metric] / sumPercentMetrics[metric];
       });
+
       return newItem;
     });
     percentMetrics.forEach(metric => {
@@ -75,8 +77,8 @@ function transformData(data: PlainObject[], formData: PlainObject) {
   }
 
   return {
-    records,
     columns: [...columns],
+    records,
   };
 }
 
@@ -103,27 +105,27 @@ export default function transformProps(chartProps: ChartProps) {
   });
 
   const processedData = processData({
-    timeseriesLimitMetric,
+    metrics,
     orderDesc,
     records,
-    metrics,
+    timeseriesLimitMetric,
   });
 
   const processedColumns = processColumns({
     columns,
+    datasource,
     metrics,
     records,
     tableTimestampFormat,
-    datasource,
   });
 
   return {
-    height,
-    data: processedData,
     alignPositiveNegative: alignPn,
     colorPositiveNegative: colorPn,
     columns: processedColumns,
+    data: processedData,
     filters,
+    height,
     includeSearch,
     onAddFilter,
     orderDesc,

@@ -1,5 +1,5 @@
-import { PlainObject } from './types';
 import { ChartFormDataMetric, AdhocMetric } from '@superset-ui/chart';
+import { PlainObject } from './types';
 
 export default function processData({
   timeseriesLimitMetric,
@@ -28,12 +28,14 @@ export default function processData({
       if (orderDesc) {
         return -delta;
       }
+
       return delta;
     });
     if (metrics.indexOf(sortByKey) < 0) {
       processedData = processedData.map(row => {
         const data = { ...row.data };
         delete data[sortByKey];
+
         return {
           data,
         };
