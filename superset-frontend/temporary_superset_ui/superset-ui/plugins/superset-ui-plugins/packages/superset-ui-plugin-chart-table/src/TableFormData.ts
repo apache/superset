@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { ChartFormData, ChartFormDataMetric } from '@superset-ui/chart';
 
 type TableFormData = ChartFormData & {
