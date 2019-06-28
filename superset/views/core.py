@@ -208,6 +208,7 @@ class DatabaseViewFilter(SupersetFilter):
         perms = self.get_view_menus('datasource_access')
         return query.filter(self.model.perm.in_(perms))
 
+
 class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
 
