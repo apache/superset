@@ -7,8 +7,8 @@ export default function buildQuery(formData: TableFormData) {
   return buildQueryContext(formData, baseQueryObject => {
     const isTimeseries = formData.include_time;
     let columns: string[] = [];
-    let groupby = baseQueryObject.groupby;
-    let orderby: [QueryObjectMetric, boolean][] = [];
+    let { groupby } = baseQueryObject;
+    const orderby: [QueryObjectMetric, boolean][] = [];
     const sortby = formData.timeseries_limit_metric;
     if (formData.all_columns && formData.all_columns.length > 0) {
       columns = [...formData.all_columns];
@@ -21,13 +21,14 @@ export default function buildQuery(formData: TableFormData) {
     } else if (sortby) {
       orderby.push([convertMetric(sortby), !formData.order_desc]);
     }
+
     return [
       {
         ...baseQueryObject,
         columns,
+        groupby,
         is_timeseries: isTimeseries,
         orderby,
-        groupby,
       },
     ];
   });

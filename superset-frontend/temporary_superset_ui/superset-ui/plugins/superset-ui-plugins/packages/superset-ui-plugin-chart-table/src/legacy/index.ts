@@ -17,9 +17,9 @@
  * under the License.
  */
 import { ChartPlugin } from '@superset-ui/chart';
+import Core from '@airbnb/lunar/lib';
 import transformProps from './transformProps';
 import createMetadata from '../createMetadata';
-import Core from '@airbnb/lunar/lib';
 
 Core.initialize({ name: 'superset-datatable' });
 
