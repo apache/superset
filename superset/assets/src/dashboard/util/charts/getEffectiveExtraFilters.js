@@ -54,6 +54,8 @@ const getFilter = (col, op, val) => {
   }
 }
 
+const valueToString = (value) => value ? value.toString() : value;
+
 export function getEffectiveExtraFilters({
   dashboardMetadata,
   filters,
@@ -93,14 +95,14 @@ export function getEffectiveExtraFilters({
               effectiveFilters.push(getFilter(field, op, filtersFromSlice[field]));
             } else {
               filtersFromSlice[field].forEach(val => {
-                effectiveFilters.push(getFilter(field, op, val.toString()));
+                effectiveFilters.push(getFilter(field, op, valueToString(val)));
               })
             }
           } else {
             if (op == 'in' || op == 'not in') {
               effectiveFilters.push(getFilter(field, op, [filtersFromSlice[field]]));
             } else {
-              effectiveFilters.push(getFilter(field, op, filtersFromSlice[field].toString()));
+              effectiveFilters.push(getFilter(field, op, valueToString(filtersFromSlice[field])));
             }
           }
         } else {
