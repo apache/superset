@@ -40,6 +40,9 @@ type TableState = {
   selectedCells: Set<string>;
   searchKeyword: string;
   filteredRows: ParentRow[];
+  filters: {
+    [key: string]: (string | number)[];
+  };
 };
 
 function getCellHash(cell: Cell) {
@@ -55,6 +58,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
       selectedCells: new Set(),
       searchKeyword: '',
       filteredRows: [],
+      filters: props.filters,
     };
   }
 
@@ -92,7 +96,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
         const content = Object.values(row.data)
           .join('|')
           .toLowerCase();
-        return content.indexOf(value) >= 0;
+        return content.indexOf(value.toLowerCase()) >= 0;
       });
       this.setState({
         searchKeyword: value,
@@ -106,22 +110,25 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     TableState
   > = (props: InternalTableProps, state: TableState) => {
     const { filters } = props;
-    const { selectedCells } = state;
-    const newSelectedCells = new Set(Array.from(selectedCells));
-    Object.keys(filters).forEach(key => {
-      filters[key].forEach(value => {
-        newSelectedCells.add(
-          getCellHash({
-            key,
-            value,
-          }),
-        );
+    const { selectedCells, filters: prevFilters } = state;
+    if (prevFilters !== filters) {
+      const newSelectedCells = new Set(Array.from(selectedCells));
+      Object.keys(filters).forEach(key => {
+        filters[key].forEach(value => {
+          newSelectedCells.add(
+            getCellHash({
+              key,
+              value,
+            }),
+          );
+        });
       });
-    });
-    return {
-      ...state,
-      selectedCells: newSelectedCells,
-    };
+      return {
+        ...state,
+        selectedCells: newSelectedCells,
+      };
+    }
+    return state;
   };
 
   render() {
