@@ -25,6 +25,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
 
   const defaultQueryEditor = {
     id: shortid.generate(),
+    loaded: true,
     title: t('Untitled Query'),
     sql: 'SELECT *\nFROM\nWHERE',
     selectedText: null,
@@ -39,11 +40,12 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     },
   };
 
-  restBootstrapData.tab_state_ids.forEach(({id, label}) => {
+  restBootstrapData.tab_state_ids.forEach(({ id, label }) => {
     let queryEditor;
     if (restBootstrapData.active_tab && restBootstrapData.active_tab.id === id) {
       queryEditor = {
         id: restBootstrapData.active_tab.id,
+        loaded: true,
         title: restBootstrapData.active_tab.label,
         sql: restBootstrapData.active_tab.query.sql,
         selectedText: null,
@@ -51,7 +53,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
         autorun: false,
         dbId: restBootstrapData.active_tab.query.dbId,
         schema: restBootstrapData.active_tab.query.schema,
-        queryLimit: restBootstrapData.common.conf.DEFAULT_SQLLAB_LIMIT,
+        queryLimit: restBootstrapData.active_tab.query.limit,
         validationResult: {
           id: null,
           errors: [],
@@ -63,6 +65,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       queryEditor = {
         ...defaultQueryEditor,
         id,
+        loaded: false,
         title: label,
       };
     }
@@ -83,10 +86,10 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       alerts: [],
       databases: {},
       offline: false,
-      queries: {},
-      queryEditors: queryEditors,
+      queries: {},  // XXX
+      queryEditors,
       tabHistory: [activeQueryEditorId],
-      tables: [],
+      tables: [],  // XXX
       queriesLastUpdate: Date.now(),
     },
     messageToasts: getToastsFromPyFlashMessages(

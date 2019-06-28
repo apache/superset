@@ -26,10 +26,16 @@ from flask_babel import lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
 import simplejson as json
 
-from superset import appbuilder, get_feature_flags, security_manager
-from superset.models.sql_lab import Query, SavedQuery
+from superset import appbuilder, db, get_feature_flags, security_manager
+from superset.models.sql_lab import Query, SavedQuery, TabState
 from superset.utils import core as utils
-from .base import BaseSupersetView, DeleteMixin, SupersetFilter, SupersetModelView
+from .base import (
+    BaseSupersetView,
+    DeleteMixin,
+    json_success,
+    SupersetFilter,
+    SupersetModelView,
+)
 
 
 class QueryFilter(SupersetFilter):
@@ -168,6 +174,24 @@ class SavedQueryViewApi(SavedQueryView):
 
 appbuilder.add_view_no_menu(SavedQueryViewApi)
 appbuilder.add_view_no_menu(SavedQueryView)
+
+
+class TabStateView(BaseSupersetView):
+
+    @has_access_api
+    @expose('/<int:tab_state_id>', methods=['GET'])
+    def get(self, tab_state_id):
+        tab_state = (
+            db.session
+            .query(TabState)
+            .filter_by(id=tab_state_id)
+            .first()
+        )
+        return json_success(json.dumps(tab_state.to_dict(), default=utils.json_iso_dttm_ser))
+
+
+appbuilder.add_view_no_menu(TabStateView)
+
 
 appbuilder.add_link(
     __("Saved Queries"), href="/sqllab/my_queries/", icon="fa-save", category="SQL Lab"

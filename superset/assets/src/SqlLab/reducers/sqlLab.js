@@ -274,6 +274,9 @@ export default function sqlLabReducer(state = {}, action) {
       }
       return state;
     },
+    [actions.LOAD_QUERY_EDITOR]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { ...action.queryEditor });
+    },
     [actions.SET_ACTIVE_SOUTHPANE_TAB]() {
       return Object.assign({}, state, { activeSouthPaneTab: action.tabId });
     },

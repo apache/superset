@@ -54,6 +54,7 @@ export const QUERY_EDITOR_PERSIST_HEIGHT = 'QUERY_EDITOR_PERSIST_HEIGHT';
 
 export const SET_DATABASES = 'SET_DATABASES';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
+export const LOAD_QUERY_EDITOR = 'LOAD_QUERY_EDITOR';
 export const SET_ACTIVE_SOUTHPANE_TAB = 'SET_ACTIVE_SOUTHPANE_TAB';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
 export const SET_USER_OFFLINE = 'SET_USER_OFFLINE';
@@ -285,6 +286,38 @@ export function cloneQueryToNewTab(query) {
 
 export function setActiveQueryEditor(queryEditor) {
   return { type: SET_ACTIVE_QUERY_EDITOR, queryEditor };
+}
+
+export function loadQueryEditor(queryEditor) {
+  return { type: LOAD_QUERY_EDITOR, queryEditor };
+}
+
+export function switchQueryEditor(queryEditor) {
+  return function (dispatch) {
+    if (!queryEditor.loaded) {
+      SupersetClient.get({
+        endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      })
+        .then(({ json }) => {
+          const loadedQueryEditor = {
+            id: json.id,
+            loaded: true,
+            title: json.label,
+            sql: json.query.sql,
+            dbId: json.query.dbId,
+            schema: json.query.schema,
+            queryLimit: json.query.limit,
+          };
+          dispatch(loadQueryEditor(loadedQueryEditor));
+          dispatch(setActiveQueryEditor(loadedQueryEditor));
+        })
+        .catch(() =>
+          dispatch(addDangerToast(t('An error occurred while fetching tab state'))),
+        );
+    } else {
+      dispatch(setActiveQueryEditor(queryEditor));
+    }
+  };
 }
 
 export function setActiveSouthPaneTab(tabId) {
