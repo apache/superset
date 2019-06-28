@@ -23,8 +23,8 @@ Create Date: 2018-06-13 10:20:35.846744
 """
 
 # revision identifiers, used by Alembic.
-revision = '4451805bbaa1'
-down_revision = 'bddc498dd179'
+revision = "4451805bbaa1"
+down_revision = "bddc498dd179"
 
 
 from alembic import op
@@ -38,23 +38,23 @@ Base = declarative_base()
 
 
 class Slice(Base):
-    __tablename__ = 'slices'
+    __tablename__ = "slices"
 
     id = Column(Integer, primary_key=True)
-    datasource_id = Column(Integer, ForeignKey('tables.id'))
+    datasource_id = Column(Integer, ForeignKey("tables.id"))
     datasource_type = Column(String(200))
     params = Column(Text)
 
 
 class Table(Base):
-    __tablename__ = 'tables'
+    __tablename__ = "tables"
 
     id = Column(Integer, primary_key=True)
-    database_id = Column(Integer, ForeignKey('dbs.id'))
+    database_id = Column(Integer, ForeignKey("dbs.id"))
 
 
 class Database(Base):
-    __tablename__ = 'dbs'
+    __tablename__ = "dbs"
 
     id = Column(Integer, primary_key=True)
     sqlalchemy_uri = Column(String(1024))
@@ -68,7 +68,7 @@ def replace(source, target):
         session.query(Slice, Database)
         .join(Table, Slice.datasource_id == Table.id)
         .join(Database, Table.database_id == Database.id)
-        .filter(Slice.datasource_type == 'table')
+        .filter(Slice.datasource_type == "table")
         .all()
     )
 
@@ -79,11 +79,11 @@ def replace(source, target):
             if engine.dialect.identifier_preparer._double_percents:
                 params = json.loads(slc.params)
 
-                if 'adhoc_filters' in params:
-                    for filt in params['adhoc_filters']:
-                        if 'sqlExpression' in filt:
-                            filt['sqlExpression'] = (
-                                filt['sqlExpression'].replace(source, target)
+                if "adhoc_filters" in params:
+                    for filt in params["adhoc_filters"]:
+                        if "sqlExpression" in filt:
+                            filt["sqlExpression"] = filt["sqlExpression"].replace(
+                                source, target
                             )
 
                     slc.params = json.dumps(params, sort_keys=True)
@@ -95,8 +95,8 @@ def replace(source, target):
 
 
 def upgrade():
-    replace('%%', '%')
+    replace("%%", "%")
 
 
 def downgrade():
-    replace('%', '%%')
+    replace("%", "%%")

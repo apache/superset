@@ -38,6 +38,7 @@ changelog.sh
 dist
 dump.rdb
 env
+venv*
 env_py3
 envpy3
 env36
