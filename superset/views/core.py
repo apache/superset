@@ -959,7 +959,7 @@ class KV(BaseSupersetView):
             kv = db.session.query(models.KeyValue).filter_by(id=key_id).one()
         except Exception as e:
             return json_error_response(e)
-        return Response(kv.value, status=200)
+        return Response(kv.value, status=200, content_type='text/plain')
 
 
 appbuilder.add_view_no_menu(KV)
