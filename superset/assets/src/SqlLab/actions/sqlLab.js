@@ -285,7 +285,17 @@ export function cloneQueryToNewTab(query) {
 }
 
 export function setActiveQueryEditor(queryEditor) {
-  return { type: SET_ACTIVE_QUERY_EDITOR, queryEditor };
+  return function (dispatch) {
+    SupersetClient.post({
+      endpoint: encodeURI(`/tabstateview/activate/${queryEditor.id}`),
+    })
+      .then(() => {
+        dispatch({ type: SET_ACTIVE_QUERY_EDITOR, queryEditor });
+      })
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting active tab'))),
+      );
+  };
 }
 
 export function loadQueryEditor(queryEditor) {
