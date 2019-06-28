@@ -195,6 +195,18 @@ class DashboardFilter(SupersetFilter):
         )
         return query
 
+class DatabaseViewFilter(SupersetFilter):
+
+    """
+    By default, database list is not permission driven. It shows all
+    databases to all users. This filter allows us to restrict that view.
+    """
+
+    def apply(self, query, func):  # noqa
+        if security_manager.all_datasource_access():
+            return query
+        perms = self.get_view_menus('datasource_access')
+        return query.filter(self.model.perm.in_(perms))
 
 class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
