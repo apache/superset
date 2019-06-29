@@ -80,6 +80,36 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     queryEditors.push(defaultQueryEditor);
   }
 
+  const tables = [];
+  if (restBootstrapData.active_tab) {
+    restBootstrapData.active_tab.table_schemas.forEach((tableSchema) => {
+      console.log(tableSchema);
+      const {
+        columns,
+        selectStar,
+        primaryKey,
+        foreignKeys,
+        indexes,
+      } = tableSchema.results;
+      const table = {
+        dbId: tableSchema.database_id,
+        queryEditorId: tableSchema.tab_state_id,
+        schema: tableSchema.schema,
+        name: tableSchema.table,
+        expanded: tableSchema.expanded,
+        id: tableSchema.id,
+        dataPreviewQueryId: null,
+        columns,
+        selectStar,
+        primaryKey,
+        foreignKeys,
+        indexes,
+      };
+      console.log(table);
+      tables.push(table);
+    });
+  }
+
   return {
     sqlLab: {
       activeSouthPaneTab: 'Results',
@@ -89,7 +119,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       queries: {},  // XXX
       queryEditors,
       tabHistory: [activeQueryEditorId],
-      tables: [],  // XXX
+      tables,
       queriesLastUpdate: Date.now(),
     },
     messageToasts: getToastsFromPyFlashMessages(
