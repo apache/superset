@@ -21,6 +21,7 @@ import re
 
 from flask import Markup
 from flask_appbuilder import Model
+import simplejson as json
 import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean,
@@ -223,7 +224,6 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
     id = Column(Integer, primary_key=True)
     tab_state_id = Column(Integer, ForeignKey('tab_state.id'))
 
-    # DB
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     database = relationship('Database', foreign_keys=[database_id])
     schema = Column(String(256))
@@ -232,6 +232,8 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
     # JSON describing the schema, partitions, latest partition, etc.
     results = Column(Text)
 
+    expanded = Column(Boolean, default=False)
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -239,7 +241,8 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
             'database_id': self.database_id,
             'schema': self.schema,
             'table': self.table,
-            'results': self.results,
+            'results': json.loads(self.results),
+            'expanded': self.expanded,
         }
 
 
