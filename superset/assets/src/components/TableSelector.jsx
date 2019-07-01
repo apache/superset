@@ -108,10 +108,10 @@ export default class TableSelector extends React.PureComponent {
         `${encodeURIComponent(this.props.schema)}/${encodeURIComponent(input)}`),
     }).then(({ json }) => {
       const options = json.options.map(o => ({
-        value: o.value.table,
-        schema: o.value.schema,
+        value: o.value,
+        schema: o.schema,
         label: o.label,
-        title: o.label,
+        title: o.title,
       }));
       return ({ options });
     });
@@ -138,10 +138,10 @@ export default class TableSelector extends React.PureComponent {
        return SupersetClient.get({ endpoint })
         .then(({ json }) => {
           const options = json.options.map(o => ({
-            value: o.value.table,
-            schema: o.value.schema,
+            value: o.value,
+            schema: o.schema,
             label: o.label,
-            title: o.label,
+            title: o.title,
           }));
           this.setState(() => ({
             filterOptions: createFilterOptions({ options }),

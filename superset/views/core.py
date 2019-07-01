@@ -1627,14 +1627,15 @@ class Superset(BaseSupersetView):
             max_tables = max_items * len(tables) // total_items
             max_views = max_items * len(views) // total_items
 
-        def get_datasource_value(ds_name: utils.DatasourceName) -> Dict[str, str]:
-            return {'schema': ds_name.schema, 'table': ds_name.table}
-
-        table_options = [{'value': get_datasource_value(tn),
-                          'label': get_datasource_label(tn)}
+        table_options = [{'value': tn.table,
+                          'schema': tn.schema,
+                          'label': get_datasource_label(tn),
+                          'title': get_datasource_label(tn)}
                          for tn in tables[:max_tables]]
-        table_options.extend([{'value': get_datasource_value(vn),
-                               'label': f'[view] {get_datasource_label(vn)}'}
+        table_options.extend([{'value': vn.table,
+                               'schema': vn.schema,
+                               'label': f'[view] {get_datasource_label(vn)}',
+                               'title': f'[view] {get_datasource_label(vn)}'}
                               for vn in views[:max_views]])
         payload = {
             'tableLength': len(tables) + len(views),
