@@ -591,7 +591,7 @@ class PrestoEngineSpec(BaseEngineSpec):
               {'ColumnA': [1, 2], 'ColumnB': [3]},
               {'ColumnA': [11, 22], 'ColumnB': [33]}
           ]
-          all_array_data (intially) = {
+          all_array_data (initially) = {
               0: [{'ColumnA': [1, 2], 'ColumnB': [3}],
               1: [{'ColumnA': [11, 22], 'ColumnB': [33]}]
           }
