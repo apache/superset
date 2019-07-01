@@ -115,6 +115,7 @@ export default class FilterableTable extends PureComponent {
     super(props);
     this.list = List(this.formatTableData(props.data));
     this.addJsonModal = this.addJsonModal.bind(this);
+    this.getCellContent = this.getCellContent.bind(this);
     this.renderGridCell = this.renderGridCell.bind(this);
     this.renderGridCellHeader = this.renderGridCellHeader.bind(this);
     this.renderGrid = this.renderGrid.bind(this);
@@ -123,6 +124,13 @@ export default class FilterableTable extends PureComponent {
     this.renderTable = this.renderTable.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
+
+    // columns that have complex type and were expanded into sub columns
+    this.complexColumns = props.orderedColumnKeys
+      .reduce((obj, key) => ({
+        ...obj,
+        [key]: props.expandedColumns.some(name => name.startsWith(key + '.')),
+      }), {});
 
     this.widthsForColumnsByKey = this.getWidthsForColumns();
     this.totalTableWidth = props.orderedColumnKeys
@@ -152,21 +160,30 @@ export default class FilterableTable extends PureComponent {
     const widthsByColumnKey = {};
     this.props.orderedColumnKeys.forEach((key) => {
       const colWidths = this.list
-        .map(d => getTextWidth(d[key]) + PADDING) // get width for each value for a key
-        .push(getTextWidth(key) + PADDING); // add width of column key to end of list
+        // get width for each value for a key
+        .map(d => getTextWidth(
+          this.getCellContent({ cellData: d[key], columnKey: key })) + PADDING,
+        )
+        // add width of column key to end of list
+        .push(getTextWidth(key) + PADDING);
       // set max width as value for key
       widthsByColumnKey[key] = Math.max(...colWidths);
     });
     return widthsByColumnKey;
   }
 
-  fitTableToWidthIfNeeded() {
-    const containerWidth = this.container.clientWidth;
-    if (this.totalTableWidth < containerWidth) {
-      // fit table width if content doesn't fill the width of the container
-      this.totalTableWidth = containerWidth;
+  getCellContent({ cellData, columnKey }) {
+    const content = String(cellData);
+    const firstCharacter = content.substring(0, 1);
+    let truncated;
+    if (firstCharacter === '[') {
+      truncated = '[…]';
+    } else if (firstCharacter === '{') {
+      truncated = '{…}';
+    } else {
+      truncated = '';
     }
-    this.setState({ fitted: true });
+    return this.complexColumns[columnKey] ? truncated : content;
   }
 
   formatTableData(data) {
@@ -211,6 +228,15 @@ export default class FilterableTable extends PureComponent {
 
   sort({ sortBy, sortDirection }) {
     this.setState({ sortBy, sortDirection });
+  }
+
+  fitTableToWidthIfNeeded() {
+    const containerWidth = this.container.clientWidth;
+    if (this.totalTableWidth < containerWidth) {
+      // fit table width if content doesn't fill the width of the container
+      this.totalTableWidth = containerWidth;
+    }
+    this.setState({ fitted: true });
   }
 
   addJsonModal(node, jsonObject, jsonString) {
@@ -260,13 +286,14 @@ export default class FilterableTable extends PureComponent {
   renderGridCell({ columnIndex, key, rowIndex, style }) {
     const columnKey = this.props.orderedColumnKeys[columnIndex];
     const cellData = this.list.get(rowIndex)[columnKey];
+    const content = this.getCellContent({ cellData, columnKey });
     const cellNode = (
       <div
         key={key}
         style={{ ...style, top: style.top - GRID_POSITION_ADJUSTMENT }}
         className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
       >
-        {cellData}
+        {content}
       </div>
     );
 
@@ -332,8 +359,8 @@ export default class FilterableTable extends PureComponent {
     );
   }
 
-  renderTableCell({ cellData }) {
-    const cellNode = String(cellData);
+  renderTableCell({ cellData, columnKey }) {
+    const cellNode = this.getCellContent({ cellData, columnKey });
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
       return this.addJsonModal(cellNode, jsonObject, cellData);
@@ -396,7 +423,7 @@ export default class FilterableTable extends PureComponent {
           >
             {orderedColumnKeys.map(columnKey => (
               <Column
-                cellRenderer={this.renderTableCell}
+                cellRenderer={({ cellData }) => this.renderTableCell({ cellData, columnKey })}
                 dataKey={columnKey}
                 disableSort={false}
                 headerRenderer={this.renderTableHeader}
