@@ -195,6 +195,7 @@ class DashboardFilter(SupersetFilter):
         )
         return query
 
+
 class DatabaseViewFilter(SupersetFilter):
 
     """
