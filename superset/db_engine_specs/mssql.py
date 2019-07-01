@@ -23,25 +23,25 @@ from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 
 class MssqlEngineSpec(BaseEngineSpec):
-    engine = 'mssql'
+    engine = "mssql"
     epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"
     limit_method = LimitMethod.WRAP_SQL
     max_column_name_length = 128
 
     time_grain_functions = {
-        None: '{col}',
-        'PT1S': "DATEADD(second, DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')",
-        'PT1M': 'DATEADD(minute, DATEDIFF(minute, 0, {col}), 0)',
-        'PT5M': 'DATEADD(minute, DATEDIFF(minute, 0, {col}) / 5 * 5, 0)',
-        'PT10M': 'DATEADD(minute, DATEDIFF(minute, 0, {col}) / 10 * 10, 0)',
-        'PT15M': 'DATEADD(minute, DATEDIFF(minute, 0, {col}) / 15 * 15, 0)',
-        'PT0.5H': 'DATEADD(minute, DATEDIFF(minute, 0, {col}) / 30 * 30, 0)',
-        'PT1H': 'DATEADD(hour, DATEDIFF(hour, 0, {col}), 0)',
-        'P1D': 'DATEADD(day, DATEDIFF(day, 0, {col}), 0)',
-        'P1W': 'DATEADD(week, DATEDIFF(week, 0, {col}), 0)',
-        'P1M': 'DATEADD(month, DATEDIFF(month, 0, {col}), 0)',
-        'P0.25Y': 'DATEADD(quarter, DATEDIFF(quarter, 0, {col}), 0)',
-        'P1Y': 'DATEADD(year, DATEDIFF(year, 0, {col}), 0)',
+        None: "{col}",
+        "PT1S": "DATEADD(second, DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')",
+        "PT1M": "DATEADD(minute, DATEDIFF(minute, 0, {col}), 0)",
+        "PT5M": "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 5 * 5, 0)",
+        "PT10M": "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 10 * 10, 0)",
+        "PT15M": "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 15 * 15, 0)",
+        "PT0.5H": "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 30 * 30, 0)",
+        "PT1H": "DATEADD(hour, DATEDIFF(hour, 0, {col}), 0)",
+        "P1D": "DATEADD(day, DATEDIFF(day, 0, {col}), 0)",
+        "P1W": "DATEADD(week, DATEDIFF(week, 0, {col}), 0)",
+        "P1M": "DATEADD(month, DATEDIFF(month, 0, {col}), 0)",
+        "P0.25Y": "DATEADD(quarter, DATEDIFF(quarter, 0, {col}), 0)",
+        "P1Y": "DATEADD(year, DATEDIFF(year, 0, {col}), 0)",
     }
 
     @classmethod
@@ -51,13 +51,13 @@ class MssqlEngineSpec(BaseEngineSpec):
     @classmethod
     def fetch_data(cls, cursor, limit):
         data = super(MssqlEngineSpec, cls).fetch_data(cursor, limit)
-        if data and type(data[0]).__name__ == 'Row':
+        if data and type(data[0]).__name__ == "Row":
             data = [[elem for elem in r] for r in data]
         return data
 
     column_types = [
-        (String(), re.compile(r'^(?<!N)((VAR){0,1}CHAR|TEXT|STRING)', re.IGNORECASE)),
-        (UnicodeText(), re.compile(r'^N((VAR){0,1}CHAR|TEXT)', re.IGNORECASE)),
+        (String(), re.compile(r"^(?<!N)((VAR){0,1}CHAR|TEXT|STRING)", re.IGNORECASE)),
+        (UnicodeText(), re.compile(r"^N((VAR){0,1}CHAR|TEXT)", re.IGNORECASE)),
     ]
 
     @classmethod

@@ -203,6 +203,7 @@ the world know they are using Superset. Join our growing community!
  1. [Twitter](https://twitter.com/)
  1. [Udemy](https://www.udemy.com/)
  1. [VIPKID](https://www.vipkid.com.cn/)
+ 1. [WeSure](https://www.wesure.cn/)
  1. [Windsor.ai](https://www.windsor.ai/)
  1. [Yahoo!](https://yahoo.com/)
  1. [Zaihang](http://www.zaih.com/)

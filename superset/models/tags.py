@@ -65,7 +65,7 @@ class Tag(Model, AuditMixinNullable):
 
     """A tag attached to an object (query, chart or dashboard)."""
 
-    __tablename__ = 'tag'
+    __tablename__ = "tag"
     id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     name = Column(String(250), unique=True)
     type = Column(Enum(TagTypes))
@@ -75,13 +75,13 @@ class TaggedObject(Model, AuditMixinNullable):
 
     """An association between an object and a tag."""
 
-    __tablename__ = 'tagged_object'
+    __tablename__ = "tagged_object"
     id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
-    tag_id = Column(Integer, ForeignKey('tag.id'))
+    tag_id = Column(Integer, ForeignKey("tag.id"))
     object_id = Column(Integer)
     object_type = Column(Enum(ObjectTypes))
 
-    tag = relationship('Tag')
+    tag = relationship("Tag")
 
 
 def get_tag(name, session, type_):
@@ -97,14 +97,14 @@ def get_tag(name, session, type_):
 
 def get_object_type(class_name):
     mapping = {
-        'slice': ObjectTypes.chart,
-        'dashboard': ObjectTypes.dashboard,
-        'query': ObjectTypes.query,
+        "slice": ObjectTypes.chart,
+        "dashboard": ObjectTypes.dashboard,
+        "query": ObjectTypes.query,
     }
     try:
         return mapping[class_name.lower()]
     except KeyError:
-        raise Exception('No mapping found for {0}'.format(class_name))
+        raise Exception("No mapping found for {0}".format(class_name))
 
 
 class ObjectUpdater(object):
@@ -113,17 +113,15 @@ class ObjectUpdater(object):
 
     @classmethod
     def get_owners_ids(cls, target):
-        raise NotImplementedError('Subclass should implement `get_owners_ids`')
+        raise NotImplementedError("Subclass should implement `get_owners_ids`")
 
     @classmethod
     def _add_owners(cls, session, target):
         for owner_id in cls.get_owners_ids(target):
-            name = 'owner:{0}'.format(owner_id)
+            name = "owner:{0}".format(owner_id)
             tag = get_tag(name, session, TagTypes.owner)
             tagged_object = TaggedObject(
-                tag_id=tag.id,
-                object_id=target.id,
-                object_type=cls.object_type,
+                tag_id=tag.id, object_id=target.id, object_type=cls.object_type
             )
             session.add(tagged_object)
 
@@ -136,12 +134,9 @@ class ObjectUpdater(object):
         cls._add_owners(session, target)
 
         # add `type:` tags
-        tag = get_tag(
-            'type:{0}'.format(cls.object_type), session, TagTypes.type)
+        tag = get_tag("type:{0}".format(cls.object_type), session, TagTypes.type)
         tagged_object = TaggedObject(
-            tag_id=tag.id,
-            object_id=target.id,
-            object_type=cls.object_type,
+            tag_id=tag.id, object_id=target.id, object_type=cls.object_type
         )
         session.add(tagged_object)
 
@@ -153,15 +148,19 @@ class ObjectUpdater(object):
         session = Session(bind=connection)
 
         # delete current `owner:` tags
-        query = session.query(TaggedObject.id).join(Tag).filter(
-            TaggedObject.object_type == cls.object_type,
-            TaggedObject.object_id == target.id,
-            Tag.type == TagTypes.owner,
+        query = (
+            session.query(TaggedObject.id)
+            .join(Tag)
+            .filter(
+                TaggedObject.object_type == cls.object_type,
+                TaggedObject.object_id == target.id,
+                Tag.type == TagTypes.owner,
+            )
         )
         ids = [row[0] for row in query]
-        session.query(TaggedObject).filter(
-            TaggedObject.id.in_(ids)).delete(
-                synchronize_session=False)
+        session.query(TaggedObject).filter(TaggedObject.id.in_(ids)).delete(
+            synchronize_session=False
+        )
 
         # add `owner:` tags
         cls._add_owners(session, target)
@@ -184,7 +183,7 @@ class ObjectUpdater(object):
 
 class ChartUpdater(ObjectUpdater):
 
-    object_type = 'chart'
+    object_type = "chart"
 
     @classmethod
     def get_owners_ids(cls, target):
@@ -193,7 +192,7 @@ class ChartUpdater(ObjectUpdater):
 
 class DashboardUpdater(ObjectUpdater):
 
-    object_type = 'dashboard'
+    object_type = "dashboard"
 
     @classmethod
     def get_owners_ids(cls, target):
@@ -202,7 +201,7 @@ class DashboardUpdater(ObjectUpdater):
 
 class QueryUpdater(ObjectUpdater):
 
-    object_type = 'query'
+    object_type = "query"
 
     @classmethod
     def get_owners_ids(cls, target):
@@ -210,12 +209,11 @@ class QueryUpdater(ObjectUpdater):
 
 
 class FavStarUpdater(object):
-
     @classmethod
     def after_insert(cls, mapper, connection, target):
         # pylint: disable=unused-argument
         session = Session(bind=connection)
-        name = 'favorited_by:{0}'.format(target.user_id)
+        name = "favorited_by:{0}".format(target.user_id)
         tag = get_tag(name, session, TagTypes.favorited_by)
         tagged_object = TaggedObject(
             tag_id=tag.id,
@@ -230,15 +228,19 @@ class FavStarUpdater(object):
     def after_delete(cls, mapper, connection, target):
         # pylint: disable=unused-argument
         session = Session(bind=connection)
-        name = 'favorited_by:{0}'.format(target.user_id)
-        query = session.query(TaggedObject.id).join(Tag).filter(
-            TaggedObject.object_id == target.obj_id,
-            Tag.type == TagTypes.favorited_by,
-            Tag.name == name,
+        name = "favorited_by:{0}".format(target.user_id)
+        query = (
+            session.query(TaggedObject.id)
+            .join(Tag)
+            .filter(
+                TaggedObject.object_id == target.obj_id,
+                Tag.type == TagTypes.favorited_by,
+                Tag.name == name,
+            )
         )
         ids = [row[0] for row in query]
-        session.query(TaggedObject).filter(
-            TaggedObject.id.in_(ids)).delete(
-                synchronize_session=False)
+        session.query(TaggedObject).filter(TaggedObject.id.in_(ids)).delete(
+            synchronize_session=False
+        )
 
         session.commit()

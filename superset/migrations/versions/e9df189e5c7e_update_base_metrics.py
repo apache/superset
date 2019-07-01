@@ -26,8 +26,8 @@ Create Date: 2018-07-20 15:57:48.118304
 """
 
 # revision identifiers, used by Alembic.
-revision = 'e9df189e5c7e'
-down_revision = '7f2635b51f5d'
+revision = "e9df189e5c7e"
+down_revision = "7f2635b51f5d"
 
 from alembic import op
 from sqlalchemy import Column, engine, Integer, String, Text
@@ -38,9 +38,7 @@ from superset.utils.core import generic_find_uq_constraint_name
 
 Base = declarative_base()
 
-conv = {
-    'uq': 'uq_%(table_name)s_%(column_0_name)s',
-}
+conv = {"uq": "uq_%(table_name)s_%(column_0_name)s"}
 
 
 class BaseMetricMixin:
@@ -48,13 +46,13 @@ class BaseMetricMixin:
 
 
 class DruidMetric(BaseMetricMixin, Base):
-    __tablename__ = 'metrics'
+    __tablename__ = "metrics"
 
     datasource_id = Column(Integer)
 
 
 class SqlMetric(BaseMetricMixin, Base):
-    __tablename__ = 'sql_metrics'
+    __tablename__ = "sql_metrics"
 
     table_id = Column(Integer)
 
@@ -71,20 +69,12 @@ def upgrade():
     session.commit()
 
     # Enforce that metrics.metric_name column be non-nullable.
-    with op.batch_alter_table('metrics') as batch_op:
-        batch_op.alter_column(
-            'metric_name',
-            existing_type=String(255),
-            nullable=False,
-        )
+    with op.batch_alter_table("metrics") as batch_op:
+        batch_op.alter_column("metric_name", existing_type=String(255), nullable=False)
 
     # Enforce that metrics.json column be non-nullable.
-    with op.batch_alter_table('metrics') as batch_op:
-        batch_op.alter_column(
-            'json',
-            existing_type=Text,
-            nullable=False,
-        )
+    with op.batch_alter_table("metrics") as batch_op:
+        batch_op.alter_column("json", existing_type=Text, nullable=False)
 
     # Delete the orphaned sql_metrics records.
     for record in session.query(SqlMetric).all():
@@ -95,27 +85,19 @@ def upgrade():
 
     # Reduce the size of the sql_metrics.metric_name column for constraint
     # viability and enforce that it to be non-nullable.
-    with op.batch_alter_table('sql_metrics') as batch_op:
+    with op.batch_alter_table("sql_metrics") as batch_op:
         batch_op.alter_column(
-            'metric_name',
-            existing_type=String(512),
-            nullable=False,
-            type_=String(255),
+            "metric_name", existing_type=String(512), nullable=False, type_=String(255)
         )
 
     # Enforce that sql_metrics.expression column be non-nullable.
-    with op.batch_alter_table('sql_metrics') as batch_op:
-        batch_op.alter_column(
-            'expression',
-            existing_type=Text,
-            nullable=False,
-        )
+    with op.batch_alter_table("sql_metrics") as batch_op:
+        batch_op.alter_column("expression", existing_type=Text, nullable=False)
 
     # Add the missing uniqueness constraint to the sql_metrics table.
-    with op.batch_alter_table('sql_metrics', naming_convention=conv) as batch_op:
+    with op.batch_alter_table("sql_metrics", naming_convention=conv) as batch_op:
         batch_op.create_unique_constraint(
-            'uq_sql_metrics_metric_name',
-            ['metric_name', 'table_id'],
+            "uq_sql_metrics_metric_name", ["metric_name", "table_id"]
         )
 
 
@@ -124,46 +106,30 @@ def downgrade():
     insp = engine.reflection.Inspector.from_engine(bind)
 
     # Remove the missing uniqueness constraint from the sql_metrics table.
-    with op.batch_alter_table('sql_metrics', naming_convention=conv) as batch_op:
+    with op.batch_alter_table("sql_metrics", naming_convention=conv) as batch_op:
         batch_op.drop_constraint(
             generic_find_uq_constraint_name(
-                'sql_metrics',
-                {'metric_name', 'table_id'},
-                insp,
-            ) or 'uq_sql_metrics_table_id',
-            type_='unique',
+                "sql_metrics", {"metric_name", "table_id"}, insp
+            )
+            or "uq_sql_metrics_table_id",
+            type_="unique",
         )
 
     # Restore the size of the sql_metrics.metric_name column and forego that it
     # be non-nullable.
-    with op.batch_alter_table('sql_metrics') as batch_op:
+    with op.batch_alter_table("sql_metrics") as batch_op:
         batch_op.alter_column(
-            'metric_name',
-            existing_type=String(255),
-            nullable=True,
-            type_=String(512),
+            "metric_name", existing_type=String(255), nullable=True, type_=String(512)
         )
 
     # Forego that the sql_metrics.expression column be non-nullable.
-    with op.batch_alter_table('sql_metrics') as batch_op:
-        batch_op.alter_column(
-            'expression',
-            existing_type=Text,
-            nullable=True,
-        )
+    with op.batch_alter_table("sql_metrics") as batch_op:
+        batch_op.alter_column("expression", existing_type=Text, nullable=True)
 
     # Forego that the metrics.metric_name column be non-nullable.
-    with op.batch_alter_table('metrics') as batch_op:
-        batch_op.alter_column(
-            'metric_name',
-            existing_type=String(255),
-            nullable=True,
-        )
+    with op.batch_alter_table("metrics") as batch_op:
+        batch_op.alter_column("metric_name", existing_type=String(255), nullable=True)
 
     # Forego that the metrics.json column be non-nullable.
-    with op.batch_alter_table('metrics') as batch_op:
-        batch_op.alter_column(
-            'json',
-            existing_type=Text,
-            nullable=True,
-        )
+    with op.batch_alter_table("metrics") as batch_op:
+        batch_op.alter_column("json", existing_type=Text, nullable=True)

@@ -29,61 +29,59 @@ from .base import BaseSupersetView, json_error_response
 
 class Datasource(BaseSupersetView):
     """Datasource-related views"""
-    @expose('/save/', methods=['POST'])
+
+    @expose("/save/", methods=["POST"])
     @has_access_api
     def save(self):
-        datasource = json.loads(request.form.get('data'))
-        datasource_id = datasource.get('id')
-        datasource_type = datasource.get('type')
+        datasource = json.loads(request.form.get("data"))
+        datasource_id = datasource.get("id")
+        datasource_type = datasource.get("type")
         orm_datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session)
+            datasource_type, datasource_id, db.session
+        )
 
-        if 'owners' in datasource:
-            datasource['owners'] = db.session.query(orm_datasource.owner_class).filter(
-                orm_datasource.owner_class.id.in_(datasource['owners'])).all()
+        if "owners" in datasource:
+            datasource["owners"] = (
+                db.session.query(orm_datasource.owner_class)
+                .filter(orm_datasource.owner_class.id.in_(datasource["owners"]))
+                .all()
+            )
         orm_datasource.update_from_object(datasource)
         data = orm_datasource.data
         db.session.commit()
         return self.json_response(data)
 
-    @expose('/get/<datasource_type>/<datasource_id>/')
+    @expose("/get/<datasource_type>/<datasource_id>/")
     @has_access_api
     def get(self, datasource_type, datasource_id):
         orm_datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session)
+            datasource_type, datasource_id, db.session
+        )
 
         if not orm_datasource:
-            return json_error_response(
-                'This datasource does not exist',
-                status='400',
-            )
+            return json_error_response("This datasource does not exist", status="400")
         elif not orm_datasource.data:
-            return json_error_response(
-                'Error fetching datasource data.',
-                status='500',
-            )
+            return json_error_response("Error fetching datasource data.", status="500")
 
         return self.json_response(orm_datasource.data)
 
-    @expose('/external_metadata/<datasource_type>/<datasource_id>/')
+    @expose("/external_metadata/<datasource_type>/<datasource_id>/")
     @has_access_api
     def external_metadata(self, datasource_type=None, datasource_id=None):
         """Gets column info from the source system"""
-        if datasource_type == 'druid':
+        if datasource_type == "druid":
             datasource = ConnectorRegistry.get_datasource(
-                datasource_type, datasource_id, db.session)
-        elif datasource_type == 'table':
-            database = (
-                db.session
-                .query(Database)
-                .filter_by(id=request.args.get('db_id'))
-                .one()
+                datasource_type, datasource_id, db.session
             )
-            Table = ConnectorRegistry.sources['table']
+        elif datasource_type == "table":
+            database = (
+                db.session.query(Database).filter_by(id=request.args.get("db_id")).one()
+            )
+            Table = ConnectorRegistry.sources["table"]
             datasource = Table(
                 database=database,
-                table_name=request.args.get('table_name'),
-                schema=request.args.get('schema') or None,
+                table_name=request.args.get("table_name"),
+                schema=request.args.get("schema") or None,
             )
         external_metadata = datasource.external_metadata()
         return self.json_response(external_metadata)

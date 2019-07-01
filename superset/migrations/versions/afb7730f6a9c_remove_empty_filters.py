@@ -23,8 +23,8 @@ Create Date: 2018-06-07 09:52:54.535961
 """
 
 # revision identifiers, used by Alembic.
-revision = 'afb7730f6a9c'
-down_revision = 'c5756bec8b47'
+revision = "afb7730f6a9c"
+down_revision = "c5756bec8b47"
 
 from alembic import op
 import json
@@ -37,7 +37,7 @@ Base = declarative_base()
 
 
 class Slice(Base):
-    __tablename__ = 'slices'
+    __tablename__ = "slices"
 
     id = Column(Integer, primary_key=True)
     params = Column(Text)
@@ -51,14 +51,15 @@ def upgrade():
         try:
             params = json.loads(slc.params)
 
-            for key in ('filters', 'having_filters', 'extra_filters'):
+            for key in ("filters", "having_filters", "extra_filters"):
                 value = params.get(key)
 
                 # Remove empty in/not-in filters.
                 if value:
                     params[key] = [
-                        x for x in value
-                        if not (x['op'] in ('in', 'not in') and not x['val'])
+                        x
+                        for x in value
+                        if not (x["op"] in ("in", "not in") and not x["val"])
                     ]
 
             slc.params = json.dumps(params, sort_keys=True)

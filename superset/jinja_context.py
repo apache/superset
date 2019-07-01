@@ -31,14 +31,14 @@ from superset import app
 
 config = app.config
 BASE_CONTEXT = {
-    'datetime': datetime,
-    'random': random,
-    'relativedelta': relativedelta,
-    'time': time,
-    'timedelta': timedelta,
-    'uuid': uuid,
+    "datetime": datetime,
+    "random": random,
+    "relativedelta": relativedelta,
+    "time": time,
+    "timedelta": timedelta,
+    "uuid": uuid,
 }
-BASE_CONTEXT.update(config.get('JINJA_CONTEXT_ADDONS', {}))
+BASE_CONTEXT.update(config.get("JINJA_CONTEXT_ADDONS", {}))
 
 
 def url_param(param, default=None):
@@ -63,16 +63,16 @@ def url_param(param, default=None):
     if request.args.get(param):
         return request.args.get(param, default)
     # Supporting POST as well as get
-    if request.form.get('form_data'):
-        form_data = json.loads(request.form.get('form_data'))
-        url_params = form_data.get('url_params') or {}
+    if request.form.get("form_data"):
+        form_data = json.loads(request.form.get("form_data"))
+        url_params = form_data.get("url_params") or {}
         return url_params.get(param, default)
     return default
 
 
 def current_user_id():
     """The id of the user who is currently logged in"""
-    if hasattr(g, 'user') and g.user:
+    if hasattr(g, "user") and g.user:
         return g.user.id
 
 
@@ -88,7 +88,8 @@ def filter_values(column, default=None):
     This is useful if:
         - you want to use a filter box to filter a query where the name of filter box
           column doesn't match the one in the select statement
-        - you want to have the ability for filter inside the main query for speed purposes
+        - you want to have the ability for filter inside the main query for speed
+          purposes
 
     This searches for "filters" and "extra_filters" in form_data for a match
 
@@ -105,19 +106,19 @@ def filter_values(column, default=None):
     :return: returns a list of filter values
     :type: list
     """
-    form_data = json.loads(request.form.get('form_data', '{}'))
+    form_data = json.loads(request.form.get("form_data", "{}"))
     return_val = []
-    for filter_type in ['filters', 'extra_filters']:
+    for filter_type in ["filters", "extra_filters"]:
         if filter_type not in form_data:
             continue
 
         for f in form_data[filter_type]:
-            if f['col'] == column:
-                if isinstance(f['val'], list):
-                    for v in f['val']:
+            if f["col"] == column:
+                if isinstance(f["val"], list):
+                    for v in f["val"]:
                         return_val.append(v)
                 else:
-                    return_val.append(f['val'])
+                    return_val.append(f["val"])
 
     if return_val:
         return return_val
@@ -142,6 +143,7 @@ class BaseTemplateProcessor(object):
     and are given access to the ``models.Database`` object and schema
     name. For globally available methods use ``@classmethod``.
     """
+
     engine = None
 
     def __init__(self, database=None, query=None, table=None, **kwargs):
@@ -153,11 +155,11 @@ class BaseTemplateProcessor(object):
         elif table:
             self.schema = table.schema
         self.context = {
-            'url_param': url_param,
-            'current_user_id': current_user_id,
-            'current_username': current_username,
-            'filter_values': filter_values,
-            'form_data': {},
+            "url_param": url_param,
+            "current_user_id": current_user_id,
+            "current_username": current_username,
+            "filter_values": filter_values,
+            "form_data": {},
         }
         self.context.update(kwargs)
         self.context.update(BASE_CONTEXT)
@@ -183,30 +185,30 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
     The methods described here are namespaced under ``presto`` in the
     jinja context as in ``SELECT '{{ presto.some_macro_call() }}'``
     """
-    engine = 'presto'
+
+    engine = "presto"
 
     @staticmethod
     def _schema_table(table_name, schema):
-        if '.' in table_name:
-            schema, table_name = table_name.split('.')
+        if "." in table_name:
+            schema, table_name = table_name.split(".")
         return table_name, schema
 
     def latest_partition(self, table_name):
         table_name, schema = self._schema_table(table_name, self.schema)
         return self.database.db_engine_spec.latest_partition(
-            table_name, schema, self.database)[1]
+            table_name, schema, self.database
+        )[1]
 
     def latest_sub_partition(self, table_name, **kwargs):
         table_name, schema = self._schema_table(table_name, self.schema)
         return self.database.db_engine_spec.latest_sub_partition(
-            table_name=table_name,
-            schema=schema,
-            database=self.database,
-            **kwargs)
+            table_name=table_name, schema=schema, database=self.database, **kwargs
+        )
 
 
 class HiveTemplateProcessor(PrestoTemplateProcessor):
-    engine = 'hive'
+    engine = "hive"
 
 
 template_processors = {}
