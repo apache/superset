@@ -198,6 +198,7 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
             logging.info("Running query: \n{}".format(sql))
             db_engine_spec.execute(cursor, sql, async_=True)
+            cursor.connection.commit()
             logging.info("Handling cursor")
             db_engine_spec.handle_cursor(cursor, query, session)
 
