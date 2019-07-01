@@ -36,6 +36,7 @@ export default {
       controlSetRows: [
         ['pandas_aggfunc', 'pivot_margins'],
         ['number_format', 'combine_metric'],
+        ['transpose_pivot'],
       ],
     },
   ],
