@@ -36,6 +36,7 @@ from typing import List, NamedTuple, Optional, Tuple
 from urllib.parse import unquote_plus
 import uuid
 import zlib
+import re
 
 import bleach
 import celery
@@ -71,6 +72,8 @@ ADHOC_METRIC_EXPRESSION_TYPES = {
 }
 
 JS_MAX_INTEGER = 9007199254740991   # Largest int Java Script can handle 2^53-1
+
+BAD_CHARACTER_LIST = ['drop', 'alter', '--', ';', 'add' , 'update', 'union']
 
 sources = {
     'chart': 0,
@@ -1095,10 +1098,25 @@ def split_adhoc_filters_into_base_filters(fd):
                     sql_where_filters.append(adhoc_filter.get('sqlExpression'))
                 elif clause == 'HAVING':
                     sql_having_filters.append(adhoc_filter.get('sqlExpression'))
+
+        if (sql_where_filters and validate(sql_where_filters)) or (simple_where_filters and validate(simple_where_filters)):
+            raise Exception(_('Invalid query filters defined.'))
+
         fd['where'] = ' AND '.join(['({})'.format(sql) for sql in sql_where_filters])
         fd['having'] = ' AND '.join(['({})'.format(sql) for sql in sql_having_filters])
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
+
+
+def validate(customClause):
+    """Validates if the custom where clause contains a word matching the list of pre-defined bad characters"""
+    tempList = split(customClause)
+    return any(word in tempList for word in BAD_CHARACTER_LIST)
+
+
+def split(customClause):
+    """Return a splitted string based on period(.) and white space [\s]"""
+    return re.split(r'[.\s]\s*', str(customClause).lower())
 
 
 def get_username() -> Optional[str]:
