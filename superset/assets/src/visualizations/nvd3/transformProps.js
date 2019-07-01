@@ -140,5 +140,6 @@ export default function transformProps(chartProps) {
     showOverlay,
     overlayLabel,
     tableFilter,
+    columns: datasource.columns,
   };
 }

@@ -46,6 +46,7 @@ import {
   stringifyTimeRange,
   wrapTooltip,
 } from './utils';
+import convertPyToJsDateFormat from '../../utils/pyToJsDateFormats';
 import {
   annotationLayerType,
   boxPlotValueType,
@@ -198,7 +199,7 @@ const propTypes = {
   onAddFilter: PropTypes.func,
 };
 
-const NOOP = () => {};
+const NOOP = () => { };
 const formatter = getNumberFormatter();
 
 function nvd3Vis(element, props) {
@@ -253,6 +254,7 @@ function nvd3Vis(element, props) {
     onAddFilter = NOOP,
     showOverlay,
     tableFilter,
+    columns,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -276,6 +278,25 @@ function nvd3Vis(element, props) {
 
   }
 
+  function getXAxisFieldVal(xField, pointX, columns) {
+    let xFieldVal = pointX;
+    const columnObj = columns.find((column) => {
+      return xField === column.column_name;
+    })
+
+    if (columnObj.python_date_format && columnObj.python_date_format != 'epoch_ms') {
+      if (columnObj.python_date_format == 'epoch_s') {
+        xFieldVal = xFieldVal / 1000;
+      }
+      else {
+        const jsDateFormat = convertPyToJsDateFormat(columnObj.python_date_format);
+        const momentDate = moment(new Date(pointX));
+        xFieldVal = momentDate.utc().format(jsDateFormat);
+      }
+    }
+    return xFieldVal;
+  }
+
   const drawGraph = function () {
     const d3Element = d3.select(element);
     let svg = d3Element.select('svg');
@@ -290,8 +311,8 @@ function nvd3Vis(element, props) {
     const staggerLabels = xTicksLayout === 'staggered';
     const xLabelRotation =
       ((xTicksLayout === 'auto' && isVizTypes(['column', 'dist_bar']))
-      || xTicksLayout === '45°')
-      ? 45 : 0;
+        || xTicksLayout === '45°')
+        ? 45 : 0;
     if (xLabelRotation === 45 && isTruthy(showBrush)) {
       onError(t('You cannot use 45° tick layout along with the time range filter'));
       return null;
@@ -334,8 +355,11 @@ function nvd3Vis(element, props) {
             }
             const xField = formData.granularitySqla;
             const yField = findYAxisField(yColumn, publishedColumns);
-            
-            if (xField != undefined && e.point) onAddFilter(xField, e.point.x, false, !yField);
+
+            if (xField != undefined && e.point) {
+              const xFieldVal = getXAxisFieldVal(xField, e.point.x, columns);
+              onAddFilter(xField, xFieldVal, false, !yField);
+            }
             if (yField != undefined && e.point) onAddFilter(yField, e.point.y, false, true);
           }
         });
@@ -515,7 +539,7 @@ function nvd3Vis(element, props) {
     }
 
     if (chart.forceY && yAxisBounds &&
-        (yAxisBounds[0] !== null || yAxisBounds[1] !== null)) {
+      (yAxisBounds[0] !== null || yAxisBounds[1] !== null)) {
       chart.forceY(yAxisBounds);
     }
     if (yIsLogScale) {
@@ -654,7 +678,7 @@ function nvd3Vis(element, props) {
       }
     }
 
-    const showLineMarkers = function() {
+    const showLineMarkers = function () {
       if (showMarkers) {
         svg.selectAll('.nv-point')
           .style('stroke-opacity', 1)
@@ -664,7 +688,7 @@ function nvd3Vis(element, props) {
 
     showLineMarkers();
 
-    const setAnnotationLayerStyles = function(annotatedLayerMarkerWidth) {
+    const setAnnotationLayerStyles = function (annotatedLayerMarkerWidth) {
       // Display styles for Time Series Annotations
       d3.selectAll('.slice_container .nv-timeseries-annotation-layer.showMarkerstrue .nv-point')
         .style('stroke-opacity', 1)
@@ -854,59 +878,59 @@ function nvd3Vis(element, props) {
               x.annotationType === ANNOTATION_TYPES.EVENT &&
               annotationData && annotationData[x.name]
             )).forEach((config, index) => {
-            const e = applyNativeColumns(config);
-            // Add event annotation layer
-            const annotations = d3.select(element)
-              .select('.nv-wrap')
-              .append('g')
-              .attr('class', `nv-event-annotation-layer-${index}`);
-            const aColor = e.color || getColor(cleanColorInput(e.name), colorScheme);
+              const e = applyNativeColumns(config);
+              // Add event annotation layer
+              const annotations = d3.select(element)
+                .select('.nv-wrap')
+                .append('g')
+                .attr('class', `nv-event-annotation-layer-${index}`);
+              const aColor = e.color || getColor(cleanColorInput(e.name), colorScheme);
 
-            const tip = tipFactory(e);
-            const records = (annotationData[e.name].records || []).map((r) => {
-              const timeValue = new Date(moment.utc(r[e.timeColumn]));
+              const tip = tipFactory(e);
+              const records = (annotationData[e.name].records || []).map((r) => {
+                const timeValue = new Date(moment.utc(r[e.timeColumn]));
 
-              return {
-                ...r,
-                [e.timeColumn]: timeValue,
-              };
-            }).filter(record => !Number.isNaN(record[e.timeColumn].getMilliseconds()));
+                return {
+                  ...r,
+                  [e.timeColumn]: timeValue,
+                };
+              }).filter(record => !Number.isNaN(record[e.timeColumn].getMilliseconds()));
 
-            if (records.length) {
-              annotations.selectAll('line')
-                .data(records)
-                .enter()
-                .append('line')
-                .attr({
-                  x1: d => xScale(new Date(d[e.timeColumn])),
-                  y1: 0,
-                  x2: d => xScale(new Date(d[e.timeColumn])),
-                  y2: annotationHeight,
-                })
-                .attr('class', `${e.opacity} ${e.style}`)
-                .style('stroke', aColor)
-                .style('stroke-width', e.width)
-                .on('mouseover', tip.show)
-                .on('mouseout', tip.hide)
-                .call(tip);
-            }
+              if (records.length) {
+                annotations.selectAll('line')
+                  .data(records)
+                  .enter()
+                  .append('line')
+                  .attr({
+                    x1: d => xScale(new Date(d[e.timeColumn])),
+                    y1: 0,
+                    x2: d => xScale(new Date(d[e.timeColumn])),
+                    y2: annotationHeight,
+                  })
+                  .attr('class', `${e.opacity} ${e.style}`)
+                  .style('stroke', aColor)
+                  .style('stroke-width', e.width)
+                  .on('mouseover', tip.show)
+                  .on('mouseout', tip.hide)
+                  .call(tip);
+              }
 
-            // update annotation positions on brush event
-            chart.focus.dispatch.on('onBrush.event-annotation', function () {
-              annotations.selectAll('line')
-                .data(records)
-                .attr({
-                  x1: d => xScale(new Date(d[e.timeColumn])),
-                  y1: 0,
-                  x2: d => xScale(new Date(d[e.timeColumn])),
-                  y2: annotationHeight,
-                  opacity: (d) => {
-                    const x = xScale(new Date(d[e.timeColumn]));
-                    return (x > 0) && (x < chartWidth) ? 1 : 0;
-                  },
-                });
+              // update annotation positions on brush event
+              chart.focus.dispatch.on('onBrush.event-annotation', function () {
+                annotations.selectAll('line')
+                  .data(records)
+                  .attr({
+                    x1: d => xScale(new Date(d[e.timeColumn])),
+                    y1: 0,
+                    x2: d => xScale(new Date(d[e.timeColumn])),
+                    y2: annotationHeight,
+                    opacity: (d) => {
+                      const x = xScale(new Date(d[e.timeColumn]));
+                      return (x > 0) && (x < chartWidth) ? 1 : 0;
+                    },
+                  });
+              });
             });
-          });
 
           // Interval annotations
           activeAnnotationLayers
@@ -914,66 +938,66 @@ function nvd3Vis(element, props) {
               x.annotationType === ANNOTATION_TYPES.INTERVAL &&
               annotationData && annotationData[x.name]
             )).forEach((config, index) => {
-            const e = applyNativeColumns(config);
-            // Add interval annotation layer
-            const annotations = d3.select(element)
-              .select('.nv-wrap')
-              .append('g')
-              .attr('class', `nv-interval-annotation-layer-${index}`);
+              const e = applyNativeColumns(config);
+              // Add interval annotation layer
+              const annotations = d3.select(element)
+                .select('.nv-wrap')
+                .append('g')
+                .attr('class', `nv-interval-annotation-layer-${index}`);
 
-            const aColor = e.color || getColor(cleanColorInput(e.name), colorScheme);
-            const tip = tipFactory(e);
+              const aColor = e.color || getColor(cleanColorInput(e.name), colorScheme);
+              const tip = tipFactory(e);
 
-            const records = (annotationData[e.name].records || []).map((r) => {
-              const timeValue = new Date(moment.utc(r[e.timeColumn]));
-              const intervalEndValue = new Date(moment.utc(r[e.intervalEndColumn]));
-              return {
-                ...r,
-                [e.timeColumn]: timeValue,
-                [e.intervalEndColumn]: intervalEndValue,
-              };
-            }).filter(record => (
-              !Number.isNaN(record[e.timeColumn].getMilliseconds()) &&
-              !Number.isNaN(record[e.intervalEndColumn].getMilliseconds())
-            ));
+              const records = (annotationData[e.name].records || []).map((r) => {
+                const timeValue = new Date(moment.utc(r[e.timeColumn]));
+                const intervalEndValue = new Date(moment.utc(r[e.intervalEndColumn]));
+                return {
+                  ...r,
+                  [e.timeColumn]: timeValue,
+                  [e.intervalEndColumn]: intervalEndValue,
+                };
+              }).filter(record => (
+                !Number.isNaN(record[e.timeColumn].getMilliseconds()) &&
+                !Number.isNaN(record[e.intervalEndColumn].getMilliseconds())
+              ));
 
-            if (records.length) {
-              annotations.selectAll('rect')
-                .data(records)
-                .enter()
-                .append('rect')
-                .attr({
-                  x: d => Math.min(xScale(new Date(d[e.timeColumn])),
-                    xScale(new Date(d[e.intervalEndColumn]))),
-                  y: 0,
-                  width: d => Math.max(Math.abs(xScale(new Date(d[e.intervalEndColumn])) -
-                    xScale(new Date(d[e.timeColumn]))), 1),
-                  height: annotationHeight,
-                })
-                .attr('class', `${e.opacity} ${e.style}`)
-                .style('stroke-width', e.width)
-                .style('stroke', aColor)
-                .style('fill', aColor)
-                .style('fill-opacity', 0.2)
-                .on('mouseover', tip.show)
-                .on('mouseout', tip.hide)
-                .call(tip);
-            }
+              if (records.length) {
+                annotations.selectAll('rect')
+                  .data(records)
+                  .enter()
+                  .append('rect')
+                  .attr({
+                    x: d => Math.min(xScale(new Date(d[e.timeColumn])),
+                      xScale(new Date(d[e.intervalEndColumn]))),
+                    y: 0,
+                    width: d => Math.max(Math.abs(xScale(new Date(d[e.intervalEndColumn])) -
+                      xScale(new Date(d[e.timeColumn]))), 1),
+                    height: annotationHeight,
+                  })
+                  .attr('class', `${e.opacity} ${e.style}`)
+                  .style('stroke-width', e.width)
+                  .style('stroke', aColor)
+                  .style('fill', aColor)
+                  .style('fill-opacity', 0.2)
+                  .on('mouseover', tip.show)
+                  .on('mouseout', tip.hide)
+                  .call(tip);
+              }
 
-            // update annotation positions on brush event
-            chart.focus.dispatch.on('onBrush.interval-annotation', function () {
-              annotations.selectAll('rect')
-                .data(records)
-                .attr({
-                  x: d => xScale(new Date(d[e.timeColumn])),
-                  width: (d) => {
-                    const x1 = xScale(new Date(d[e.timeColumn]));
-                    const x2 = xScale(new Date(d[e.intervalEndColumn]));
-                    return x2 - x1;
-                  },
-                });
+              // update annotation positions on brush event
+              chart.focus.dispatch.on('onBrush.interval-annotation', function () {
+                annotations.selectAll('rect')
+                  .data(records)
+                  .attr({
+                    x: d => xScale(new Date(d[e.timeColumn])),
+                    width: (d) => {
+                      const x1 = xScale(new Date(d[e.timeColumn]));
+                      const x2 = xScale(new Date(d[e.intervalEndColumn]));
+                      return x2 - x1;
+                    },
+                  });
+              });
             });
-          });
         }
 
         // rerender chart appended with annotation layer
