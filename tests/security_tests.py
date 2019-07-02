@@ -290,6 +290,32 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(("can_slice", "Superset"), gamma_perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), gamma_perm_set)
 
+    def test_rho_permissions(self):
+        def assert_can_read(view_menu):
+            self.assertIn(("can_list", view_menu), rho_perm_set)
+
+        def assert_cannot_read(view_menu):
+            self.assertNotIn(("can_show", view_menu), rho_perm_set)
+
+        def assert_cannot_write(view_menu):
+            self.assertNotIn(("can_add", view_menu), rho_perm_set)
+            self.assertNotIn(("can_delete", view_menu), rho_perm_set)
+            self.assertNotIn(("can_edit", view_menu), rho_perm_set)
+            self.assertNotIn(("can_save", view_menu), rho_perm_set)
+
+        def assert_cannot_all(view_menu):
+            assert_cannot_read(view_menu)
+            assert_cannot_write(view_menu)
+
+        rho_perm_set = set()
+        for perm in security_manager.find_role("Rho").permissions:
+            rho_perm_set.add((perm.permission.name, perm.view_menu.name))
+
+        assert_can_read("DashboardModelView")
+        assert_cannot_all("DruidclusterModelView")
+        assert_cannot_all("TableModelView")
+        assert_cannot_all("SliceModelView")
+
     def test_views_are_secured(self):
         """Preventing the addition of unsecured views without has_access decorator"""
         # These FAB views are secured in their body as opposed to by decorators

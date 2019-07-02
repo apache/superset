@@ -125,6 +125,18 @@ class SupersetSecurityManager(SecurityManager):
         "all_datasource_access",
     }
 
+<<<<<<< HEAD
+=======
+    GAMMA_ONLY_PERMISSIONS = {
+        "can_add",
+        "can_add_slices",
+        "can_delete",
+        "can_edit",
+        "can_explore",
+        "can_show",
+    }
+
+>>>>>>> d50f21f4... reformatting using black
     OBJECT_SPEC_PERMISSIONS = {
         "database_access",
         "schema_access",
@@ -645,7 +657,6 @@ class SupersetSecurityManager(SecurityManager):
             or pvm.permission.name in self.ALPHA_ONLY_PERMISSIONS
         )
 
-<<<<<<< HEAD
     def _is_gamma_only(self, pvm: PermissionModelView) -> bool:
         """
         Return True if the FAB permission/view is accessible to all, False
@@ -655,9 +666,6 @@ class SupersetSecurityManager(SecurityManager):
         :returns: Whether the FAB object is accessible to all users
         """
 
-=======
-    def is_gamma_only(self, pvm):
->>>>>>> a9ae07b5... fix security.py W504 line break after binary operator
         if (
             pvm.view_menu.name in self.RHO_READ_ONLY_MODEL_VIEWS
             and pvm.permission.name not in self.READ_ONLY_PERMISSION
