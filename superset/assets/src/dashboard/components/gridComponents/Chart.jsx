@@ -149,14 +149,13 @@ class Chart extends React.Component {
     return this.props.dashboardInfo.id;
   }
 
-  getChartHeight() {
+  getChartHeight(includeChartHeaderHeight = true) {
     const headerHeight = this.getHeaderHeight();
     const descriptionHeight =
       this.props.isExpanded && this.descriptionRef
         ? this.descriptionRef.offsetHeight
         : 0;
-
-    return this.state.height - headerHeight - descriptionHeight;
+    return includeChartHeaderHeight ? this.state.height - headerHeight - descriptionHeight : this.state.height - descriptionHeight;
   }
 
   getHeaderHeight() {
@@ -227,26 +226,28 @@ class Chart extends React.Component {
 
     return (
       <div>
-        <SliceHeader
-          innerRef={this.setHeaderRef}
-          slice={slice}
-          isExpanded={!!isExpanded}
-          isCached={isCached}
-          cachedDttm={cachedDttm}
-          updatedDttm={chartUpdateEndTime}
-          toggleExpandSlice={toggleExpandSlice}
-          forceRefresh={this.forceRefresh}
-          editMode={editMode}
-          annotationQuery={chart.annotationQuery}
-          exploreChart={this.exploreChart}
-          exportCSV={this.exportCSV}
-          canExportCSV={canExportCSV}
-          updateSliceName={updateSliceName}
-          sliceName={sliceName}
-          sliceSubHeader={sliceSubHeader}
-          supersetCanExplore={supersetCanExplore}
-          sliceCanEdit={sliceCanEdit}
-        />
+        {formData.chart_header && (
+          <SliceHeader
+            innerRef={this.setHeaderRef}
+            slice={slice}
+            isExpanded={!!isExpanded}
+            isCached={isCached}
+            cachedDttm={cachedDttm}
+            updatedDttm={chartUpdateEndTime}
+            toggleExpandSlice={toggleExpandSlice}
+            forceRefresh={this.forceRefresh}
+            editMode={editMode}
+            annotationQuery={chart.annotationQuery}
+            exploreChart={this.exploreChart}
+            exportCSV={this.exportCSV}
+            canExportCSV={canExportCSV}
+            updateSliceName={updateSliceName}
+            sliceName={sliceName}
+            sliceSubHeader={sliceSubHeader}
+            supersetCanExplore={supersetCanExplore}
+            sliceCanEdit={sliceCanEdit}
+          />
+        )}
 
         {/*
           This usage of dangerouslySetInnerHTML is safe since it is being used to render
@@ -272,7 +273,7 @@ class Chart extends React.Component {
         >
           <ChartContainer
             width={width}
-            height={this.getChartHeight()}
+            height={this.getChartHeight(formData.chart_header)}
             addFilter={this.addFilter}
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}

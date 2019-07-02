@@ -148,6 +148,7 @@ export function sectionsToRender(vizType, datasourceType) {
     sectionsCopy.datasourceAndVizType,
     sectionsCopy.linkedSlices,
     sectionsCopy.subscribers,
+    sectionsCopy.advancedOptions,
     datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
     isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? sectionsCopy.filters : undefined,
     config.controlPanelSections,

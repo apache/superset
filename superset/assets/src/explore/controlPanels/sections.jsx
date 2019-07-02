@@ -90,6 +90,14 @@ export const subscribers = {
   ],
 };
 
+export const advancedOptions = {
+  label: t('Advanced Options'),
+  expanded: true,
+  controlSetRows: [
+    ['chart_header'],
+  ],
+};
+
 export const NVD3TimeSeries = [
   {
     label: t('Query'),
@@ -106,8 +114,8 @@ export const NVD3TimeSeries = [
   {
     label: t('Advanced Analytics'),
     description: t('This section contains options ' +
-    'that allow for advanced analytical post processing ' +
-    'of query results'),
+      'that allow for advanced analytical post processing ' +
+      'of query results'),
     controlSetRows: [
       [<h1 className="section-header">{t('Moving Average')}</h1>],
       ['rolling_type', 'rolling_periods', 'min_periods'],
