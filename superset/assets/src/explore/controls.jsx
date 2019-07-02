@@ -1725,7 +1725,7 @@ export const controls = {
       'point in time'),
     mapStateToProps: (state, controls, actions) => {
       let props = {};
-      if (state && state.controls && state.controls.hasOwnProperty('table_filter') && controls.label == t("Rich Tooltip")) {
+      if (state && state.controls && state.controls.hasOwnProperty('table_filter') && state.controls.hasOwnProperty('rich_tooltip') && controls.label == t("Rich Tooltip")) {
         props.disabled = (state.controls.table_filter.value) ? true : false;
         if (props.disabled && state.controls.rich_tooltip.value) {
           props.default = props.value = false;
