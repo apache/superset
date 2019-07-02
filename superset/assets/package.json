@@ -99,7 +99,7 @@
     "jquery": "3.1.1",
     "json-bigint": "^0.3.0",
     "lodash": "^4.17.11",
-    "mapbox-gl": "^0.53.0",
+    "mapbox-gl": "^0.53.x",
     "mathjs": "^3.20.2",
     "moment": "^2.20.1",
     "mousetrap": "^1.6.1",
