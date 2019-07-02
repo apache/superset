@@ -53,6 +53,9 @@ jobs:
         - nvm install 10.14.2
     - language: python
       python: 3.6
+      env: TOXENV=black
+    - language: python
+      python: 3.6
       env: TOXENV=flake8
     - language: python
       python: 3.6

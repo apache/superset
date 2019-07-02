@@ -654,10 +654,10 @@ class PivotTableViz(BaseViz):
 
     def query_obj(self):
         d = super().query_obj()
-        groupby = self.form_data.get('groupby')
-        columns = self.form_data.get('columns')
-        metrics = self.form_data.get('metrics')
-        transpose = self.form_data.get('transpose_pivot')
+        groupby = self.form_data.get("groupby")
+        columns = self.form_data.get("columns")
+        metrics = self.form_data.get("metrics")
+        transpose = self.form_data.get("transpose_pivot")
         if not columns:
             columns = []
         if not groupby:
@@ -665,10 +665,14 @@ class PivotTableViz(BaseViz):
         if not groupby:
             raise Exception(_("Please choose at least one 'Group by' field "))
         if transpose and not columns:
-            raise Exception(_((
-                "Please choose at least one 'Columns' field when "
-                "select 'Transpose Pivot' option"
-            )))
+            raise Exception(
+                _(
+                    (
+                        "Please choose at least one 'Columns' field when "
+                        "select 'Transpose Pivot' option"
+                    )
+                )
+            )
         if not metrics:
             raise Exception(_("Please choose at least one metric"))
         if any(v in groupby for v in columns) or any(v in columns for v in groupby):
@@ -685,14 +689,14 @@ class PivotTableViz(BaseViz):
         if aggfunc == "sum":
             aggfunc = lambda x: x.sum(min_count=1)  # noqa: E731
 
-        groupby = self.form_data.get('groupby')
-        columns = self.form_data.get('columns')
-        if self.form_data.get('transpose_pivot'):
+        groupby = self.form_data.get("groupby")
+        columns = self.form_data.get("columns")
+        if self.form_data.get("transpose_pivot"):
             groupby, columns = columns, groupby
         df = df.pivot_table(
             index=groupby,
             columns=columns,
-            values=[utils.get_metric_name(m) for m in self.form_data.get('metrics')],
+            values=[utils.get_metric_name(m) for m in self.form_data.get("metrics")],
             aggfunc=aggfunc,
             margins=self.form_data.get("pivot_margins"),
             dropna=False,
