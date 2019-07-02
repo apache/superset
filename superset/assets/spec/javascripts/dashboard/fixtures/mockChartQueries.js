@@ -48,6 +48,7 @@ export default {
       where: '',
       compare_suffix: 'o10Y',
       datasource: datasourceId,
+      chart_header: true,
     },
     formData: {
       datasource: datasourceId,
@@ -74,6 +75,7 @@ export default {
       granularity: 'ds',
       markup_type: 'markdown',
       compare_suffix: 'o10Y',
+      chart_header: true,
     },
   },
 };
