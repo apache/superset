@@ -1143,14 +1143,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if fd.get("granularity") == "all":
             raise Exception(_("Pick a time granularity for your time series"))
 
-        if not aggregate:
-            df = df.pivot_table(
-                index=DTTM_ALIAS,
-                columns=fd.get("groupby"),
-                values=self.metric_labels,
-                dropna=False,
-            )
-        else:
+        if aggregate:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
                 columns=fd.get("groupby"),
@@ -1159,14 +1152,19 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 aggfunc=sum,
                 dropna=False,
             )
+        else:
+            df = df.pivot_table(
+                index=DTTM_ALIAS,
+                columns=fd.get("groupby"),
+                values=self.metric_labels,
+                dropna=False,
+            )
 
-        fm = fd.get("resample_fillmethod")
-        if not fm:
-            fm = None
-        how = fd.get("resample_how")
         rule = fd.get("resample_rule")
-        if how and rule:
-            df = df.resample(rule, how=how, fill_method=fm)
+        method = fd.get("resample_method")
+
+        if rule and method:
+            df = getattr(df.resample(rule), method)()
 
         if self.sort_series:
             dfs = df.sum()
