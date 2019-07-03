@@ -31,8 +31,5 @@ pyhive==0.6.1
 pylint==1.9.2
 python-dotenv==0.10.1
 redis==2.10.6
-sphinx==2.1.2
-sphinx_autodoc_typehints==1.6.0
-sphinx_rtd_theme==0.4.3
 statsd==3.3.0
 tox==3.11.1

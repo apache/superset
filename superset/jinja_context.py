@@ -71,8 +71,7 @@ def url_param(param: str, default: Optional[str] = None) -> Optional[Any]:
 
 
 def current_user_id() -> Optional[int]:
-    """The id of the user who is currently logged in
-    """
+    """The id of the user who is currently logged in"""
     if hasattr(g, "user") and g.user:
         return g.user.id
     return None
