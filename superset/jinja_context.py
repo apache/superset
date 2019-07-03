@@ -21,7 +21,7 @@ import inspect
 import json
 import random
 import time
-from typing import Optional, List, Tuple
+from typing import Any, List, Optional, Tuple
 import uuid
 
 from dateutil.relativedelta import relativedelta
@@ -42,7 +42,7 @@ BASE_CONTEXT = {
 BASE_CONTEXT.update(config.get("JINJA_CONTEXT_ADDONS", {}))
 
 
-def url_param(param: str, default: Optional[str] = None) -> str:
+def url_param(param: str, default: Optional[str] = None) -> Optional[Any]:
     """Read a url or post parameter and use it in your SQL Lab query
 
     When in SQL Lab, it's possible to add arbitrary URL "query string"
@@ -62,24 +62,27 @@ def url_param(param: str, default: Optional[str] = None) -> str:
     if request.args.get(param):
         return request.args.get(param, default)
     # Supporting POST as well as get
-    if request.form.get("form_data"):
-        form_data = json.loads(request.form.get("form_data"))
+    form_data = request.form.get("form_data")
+    if isinstance(form_data, str):
+        form_data = json.loads(form_data)
         url_params = form_data.get("url_params") or {}
         return url_params.get(param, default)
     return default
 
 
-def current_user_id() -> int:
+def current_user_id() -> Optional[int]:
     """The id of the user who is currently logged in
     """
     if hasattr(g, "user") and g.user:
         return g.user.id
+    return None
 
 
-def current_username() -> str:
+def current_username() -> Optional[str]:
     """The username of the user who is currently logged in"""
     if g.user:
         return g.user.username
+    return None
 
 
 def filter_values(column: str, default: Optional[str] = None) -> List[str]:
@@ -142,7 +145,7 @@ class BaseTemplateProcessor(object):
     name. For globally available methods use ``@classmethod``.
     """
 
-    engine = None
+    engine: Optional[str] = None
 
     def __init__(self, database=None, query=None, table=None, **kwargs):
         self.database = database
