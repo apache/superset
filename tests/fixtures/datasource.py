@@ -39,7 +39,6 @@ datasource_post = {
             "groupby": True,
             "is_dttm": True,
             "type": "DATETIME",
-            "database_expression": "",
         },
         {
             "id": 505,
@@ -51,7 +50,6 @@ datasource_post = {
             "groupby": True,
             "is_dttm": False,
             "type": "VARCHAR(16)",
-            "database_expression": None,
         },
         {
             "id": 506,
@@ -63,7 +61,6 @@ datasource_post = {
             "groupby": True,
             "is_dttm": None,
             "type": "VARCHAR(255)",
-            "database_expression": None,
         },
         {
             "id": 508,
@@ -75,7 +72,6 @@ datasource_post = {
             "groupby": True,
             "is_dttm": None,
             "type": "VARCHAR(10)",
-            "database_expression": None,
         },
         {
             "id": 509,
@@ -87,7 +83,6 @@ datasource_post = {
             "groupby": True,
             "is_dttm": None,
             "type": "BIGINT(20)",
-            "database_expression": None,
         },
         {
             "id": 510,
@@ -99,7 +94,6 @@ datasource_post = {
             "groupby": False,
             "is_dttm": False,
             "type": "BIGINT(20)",
-            "database_expression": None,
         },
         {
             "id": 532,
@@ -111,7 +105,6 @@ datasource_post = {
             "groupby": True,
             "is_dttm": None,
             "type": "BIGINT(20)",
-            "database_expression": None,
         },
         {
             "id": 522,
@@ -123,7 +116,6 @@ datasource_post = {
             "groupby": False,
             "is_dttm": False,
             "type": "NUMBER",
-            "database_expression": None,
         },
     ],
     "metrics": [

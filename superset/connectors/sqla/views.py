@@ -65,7 +65,6 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         "expression",
         "is_dttm",
         "python_date_format",
-        "database_expression",
     ]
     add_columns = edit_columns
     list_columns = [
@@ -105,21 +104,8 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
                 'datetime.html#strftime-strptime-behavior">'
                 "python datetime string pattern</a> "
                 "expression. If time is stored in epoch "
-                "format, put `epoch_s` or `epoch_ms`. Leave `Database Expression` "
-                "below empty if timestamp is stored in "
-                "String or Integer(epoch) type"
+                "format, put `epoch_s` or `epoch_ms`."
             ),
-            True,
-        ),
-        "database_expression": utils.markdown(
-            "The database expression to cast internal datetime "
-            "constants to database date/timestamp type according to the DBAPI. "
-            "The expression should follow the pattern of "
-            "%Y-%m-%d %H:%M:%S, based on different DBAPI. "
-            "The string should be a python string formatter \n"
-            "`Ex: TO_DATE('{}', 'YYYY-MM-DD HH24:MI:SS')` for Oracle "
-            "Superset uses default expression based on DB URI if this "
-            "field is blank.",
             True,
         ),
     }
@@ -133,7 +119,6 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         "expression": _("Expression"),
         "is_dttm": _("Is temporal"),
         "python_date_format": _("Datetime Format"),
-        "database_expression": _("Database Expression"),
         "type": _("Type"),
     }
 
