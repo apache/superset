@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.connectors.sqla.models import TableColumn
+from superset import db
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.druid import DruidEngineSpec
+from superset.utils.core import get_main_database
 from .base_tests import SupersetTestCase
 
 
@@ -39,3 +41,20 @@ class DatabaseModelTestCase(SupersetTestCase):
 
         col = TableColumn(column_name="foo", type="STRING")
         self.assertEquals(col.is_time, False)
+
+    def test_cache_key_wrapper(self):
+        query = "SELECT '{{ cache_key_wrapper('user_1') }}' as user"
+        table = SqlaTable(sql=query, database=get_main_database(db.session))
+        query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["user"],
+            "metrics": [],
+            "is_timeseries": False,
+            "filter": [],
+            "is_prequery": False,
+            "extras": {"where": "(user != '{{ cache_key_wrapper('user_2') }}')"},
+        }
+        extra_cache_keys = table.get_extra_cache_keys(query_obj)
+        self.assertListEqual(extra_cache_keys, ["user_1", "user_2"])

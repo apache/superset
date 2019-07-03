@@ -129,7 +129,43 @@ def filter_values(column: str, default: Optional[str] = None) -> List[str]:
         return []
 
 
-class BaseTemplateProcessor(object):
+class CacheKeyWrapper:
+    """ Dummy class that exposes a method used to store additional values used in
+     calculation of query object cache keys"""
+
+    def __init__(self, extra_cache_keys: Optional[List[Any]] = None):
+        self.extra_cache_keys = extra_cache_keys
+
+    def cache_key_wrapper(self, key: Any) -> Any:
+        """ Adds values to a list that is added to the query object used for calculating
+        a cache key.
+
+        This is needed if the following applies:
+            - Caching is enabled
+            - The query is dynamically generated using a jinja template
+            - A username or similar is used as a filter in the query
+
+        Example when using a SQL query as a data source ::
+
+            SELECT action, count(*) as times
+            FROM logs
+            WHERE logged_in_user = '{{ cache_key_wrapper(current_username()) }}'
+            GROUP BY action
+
+        This will ensure that the query results that were cached by `user_1` will
+        **not** be seen by `user_2`, as the `cache_key` for the query will be
+        different. ``cache_key_wrapper`` can be used similarly for regular table data
+        sources by adding a `Custom SQL` filter.
+
+        :param key: Any value that should be considered when calculating the cache key
+        :return: the original value ``key`` passed to the function
+        """
+        if self.extra_cache_keys is not None:
+            self.extra_cache_keys.append(key)
+        return key
+
+
+class BaseTemplateProcessor:
     """Base class for database-specific jinja context
 
     There's this bit of magic in ``process_template`` that instantiates only
@@ -146,7 +182,14 @@ class BaseTemplateProcessor(object):
 
     engine: Optional[str] = None
 
-    def __init__(self, database=None, query=None, table=None, **kwargs):
+    def __init__(
+        self,
+        database=None,
+        query=None,
+        table=None,
+        extra_cache_keys: Optional[List[Any]] = None,
+        **kwargs
+    ):
         self.database = database
         self.query = query
         self.schema = None
@@ -158,6 +201,7 @@ class BaseTemplateProcessor(object):
             "url_param": url_param,
             "current_user_id": current_user_id,
             "current_username": current_username,
+            "cache_key_wrapper": CacheKeyWrapper(extra_cache_keys).cache_key_wrapper,
             "filter_values": filter_values,
             "form_data": {},
         }
@@ -189,7 +233,9 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
     engine = "presto"
 
     @staticmethod
-    def _schema_table(table_name: str, schema: str) -> Tuple[str, str]:
+    def _schema_table(
+        table_name: str, schema: Optional[str]
+    ) -> Tuple[str, Optional[str]]:
         if "." in table_name:
             schema, table_name = table_name.split(".")
         return table_name, schema
