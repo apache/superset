@@ -455,12 +455,19 @@ class SqlEditor extends React.PureComponent {
   }
   render() {
     return (
-      <div ref={this.sqlEditorRef} className="SqlEditor">
-        <CSSTransition
+      <Split
+        ref={this.sqlEditorRef}
+        className="SqlEditor"
+        sizes={[20, 80]}
+        direction="horizontal"
+        minSize={300}
+        gutterSize={2}
+      >
+        {/* <CSSTransition
           classNames="schemaPane"
           in={!this.props.hideLeftBar}
           timeout={300}
-        >
+        > */}
           <div className="schemaPane">
             <SqlEditorLeftBar
               database={this.props.database}
@@ -469,9 +476,9 @@ class SqlEditor extends React.PureComponent {
               actions={this.props.actions}
             />
           </div>
-        </CSSTransition>
+        {/* </CSSTransition> */}
         {this.queryPane()}
-      </div>
+      </Split>
     );
   }
 }

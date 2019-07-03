@@ -242,7 +242,6 @@ div.Workspace {
 
     .schemaPane {
         flex: 0 0 300px;
-        max-width: 300px;
         transition: transform .3s ease-in-out;
     }
 
@@ -273,18 +272,25 @@ div.Workspace {
     .schemaPane-exit-done + .queryPane {
         margin-left: 0;
     }
-
-    .gutter {
-        border-top: 1px solid #ccc;
-        border-bottom: 1px solid #ccc;
-        width: 3%;
-        margin: 3px 47%;
-    }
-
-    .gutter.gutter-vertical {
-        cursor: row-resize;
-    }
 }
+
+.SqlEditor .gutter-horizontal {
+    background-color: #ccc;
+    // border-left: 1px solid #ccc;
+    // border-right: 1px solid #ccc;
+    // height: 3%;
+    // margin: 47% 3px;
+    cursor: col-resize;
+}
+
+.queryPane .gutter-vertical {
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    width: 3%;
+    margin: 3px 47%;
+    cursor: row-resize;
+}
+
 
 .SqlEditorLeftBar {
     height: 100%;
