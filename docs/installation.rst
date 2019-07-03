@@ -377,7 +377,7 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
-| Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://`                                   |
+| Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://``                                  |
 +------------------+---------------------------------------+-------------------------------------------------+
 | IBM Db2          | ``pip install ibm_db_sa``             | ``db2+ibm_db://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -423,6 +423,15 @@ You can also use `PyAthena` library(no java required) like this ::
 
 See `PyAthena <https://github.com/laughingman7743/PyAthena#sqlalchemy>`_.
 
+(Google) BigQuery
+-----------------
+
+The connection string for BigQuery looks like this ::
+
+    bigquery://{project_id}
+
+To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
+
 Snowflake
 ---------
 
@@ -458,7 +467,7 @@ Required environment variables: ::
 See `Teradata SQLAlchemy <https://github.com/Teradata/sqlalchemy-teradata>`_.
 
 Apache Drill
----------
+------------
 At the time of writing, the SQLAlchemy Dialect is not available on pypi and must be downloaded here:
 `SQLAlchemy Drill <https://github.com/JohnOmernik/sqlalchemy-drill>`_
 
@@ -850,6 +859,7 @@ You can configure which validation implementation is used with which database
 engine by adding a block like the following to your config.py:
 
 .. code-block:: python
+
      FEATURE_FLAGS = {
          'SQL_VALIDATORS_BY_ENGINE': {
              'presto': 'PrestoDBSQLValidator',
