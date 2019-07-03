@@ -94,6 +94,7 @@ OnPasteSelect.propTypes = {
   multi: PropTypes.bool.isRequired,
   value: PropTypes.any,
   isValidNewOption: PropTypes.func,
+  noResultsText: PropTypes.string,
 };
 OnPasteSelect.defaultProps = {
   separator: [',', '\n', '\t'],
