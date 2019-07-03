@@ -93,14 +93,14 @@ def filter_values(column: str, default: Optional[str] = None) -> List[str]:
         - you want to have the ability for filter inside the main query for speed
           purposes
 
-    This searches for "filters" and "extra_filters" in form_data for a match
+    This searches for "filters" and "extra_filters" in ``form_data`` for a match
 
     Usage example::
 
         SELECT action, count(*) as times
         FROM logs
         WHERE action in ( {{ "'" + "','".join(filter_values('action_type')) + "'" }} )
-        GROUP BY 1
+        GROUP BY action
 
     :param column: column/filter name to lookup
     :param default: default value to return if there's no matching columns
