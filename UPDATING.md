@@ -27,6 +27,11 @@ assists people when migrating to a new version.
 make all Unix timestamp (which by definition are in UTC) comparisons refer
 to a timestamp in UTC as opposed to local time.
 
+* [7653](https://github.com/apache/incubator-superset/pull/7653): a change
+which deprecates the table_columns.database_expression column. Expressions
+should be handled by the DB engine spec conversion, Python date format, or
+custom column expression/type.
+
 * [5451](https://github.com/apache/incubator-superset/pull/5451): a change
 which adds missing non-nullable fields to the `datasources` table. Depending on
 the integrity of the data, manual intervention may be required.
