@@ -192,6 +192,7 @@ the world know they are using Superset. Join our growing community!
  1. [ScopeAI](https://www.getscopeai.com)
  1. [Shopee](https://shopee.sg)
  1. [Shopkick](https://www.shopkick.com)
+ 1. [source{d}](https://www.sourced.tech)
  1. [Steamroot](https://streamroot.io/)
  1. [Showmax](https://tech.showmax.com)
  1. [Tails.com](https://tails.com)
