@@ -106,7 +106,17 @@ def load_world_bank_health_n_pop():
         "where": "",
         "markup_type": "markdown",
         "country_fieldtype": "cca3",
-        "secondary_metric": "sum__SP_POP_TOTL",
+        "secondary_metric": {
+            "aggregate": "SUM",
+            "column": {
+                "column_name": "SP_RUR_TOTL",
+                "optionName": "_col_SP_RUR_TOTL",
+                "type": "DOUBLE",
+            },
+            "expressionType": "SIMPLE",
+            "hasCustomLabel": True,
+            "label": "Rural Population",
+        },
         "entity": "country_code",
         "show_bubbles": True,
     }
@@ -244,7 +254,6 @@ def load_world_bank_health_n_pop():
                 defaults,
                 viz_type="sunburst",
                 groupby=["region", "country_name"],
-                secondary_metric="sum__SP_RUR_TOTL",
                 since="2011-01-01",
                 until="2011-01-01",
             ),

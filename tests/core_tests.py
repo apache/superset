@@ -280,7 +280,8 @@ class CoreTests(SupersetTestCase):
             ]
         for name, method, url in urls:
             logging.info(f"[{name}]/[{method}]: {url}")
-            self.client.get(url)
+            resp = self.client.get(url)
+            self.assertEqual(resp.status_code, 200)
 
     def test_tablemodelview_list(self):
         self.login(username="admin")
