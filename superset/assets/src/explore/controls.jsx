@@ -171,6 +171,7 @@ const metric = {
   ...metrics,
   multi: false,
   label: t('Metric'),
+  description: t('Metric'),
   default: props => mainMetric(props.savedMetrics),
 };
 
