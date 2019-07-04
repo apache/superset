@@ -97,7 +97,12 @@ articles. See [Documentation](#documentation) for more details.
 
 ### Add Translations
 
-If you are proficient in a non-English language, you can help translate text strings from Superset's UI. You can jump in to the existing language dictionaries at `superset/translations/<language_code>/LC_MESSAGES/messages.po`, or even create a dictionary for a new language altogether. See [Translating](#translating) for more details.
+If you are proficient in a non-English language, you can help translate
+text strings from Superset's UI. You can jump in to the existing
+language dictionaries at
+`superset/translations/<language_code>/LC_MESSAGES/messages.po`, or
+even create a dictionary for a new language altogether.
+See [Translating](#translating) for more details.
 
 ### Ask Questions
 
@@ -578,16 +583,23 @@ See [`superset/assets/cypress_build.sh`](https://github.com/apache/incubator-sup
 
 ## Translating
 
-We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset. In Python files, we import the magic `_` function using:
+We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset.
+In Python files, we import the magic `_` function using:
 
 ```python
 from flask_babel import lazy_gettext as _
 ```
 
-then wrap our translatable strings with it, e.g. `_('Translate me')`. During extraction, string literals passed to `_` will be added to the generated `.po` file for each language for later translation.
-At runtime, the `_` function will return the translation of the given string for the current language, or the given string itself if no translation is available.
+then wrap our translatable strings with it, e.g. `_('Translate me')`.
+During extraction, string literals passed to `_` will be added to the
+generated `.po` file for each language for later translation.
 
-In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number).
+At runtime, the `_` function will return the translation of the given
+string for the current language, or the given string itself
+if no translation is available.
+
+In JavaScript, the technique is similar:
+we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
 import { t, tn } from '@superset-ui/translation';
