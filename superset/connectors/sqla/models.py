@@ -839,14 +839,14 @@ class SqlaTable(Model, BaseDatasource):
                     "columns": columns,
                     "order_desc": True,
                 }
-                result = self.query(subquery_obj)
+                df = self.get_df_from_query_obj(subquery_obj)
                 dimensions = [
                     c
-                    for c in result.df.columns
+                    for c in df.columns
                     if c not in metrics and c in groupby_exprs_sans_timestamp
                 ]
                 top_groups = self._get_top_groups(
-                    result.df, dimensions, groupby_exprs_sans_timestamp
+                    df, dimensions, groupby_exprs_sans_timestamp
                 )
                 qry = qry.where(top_groups)
 
@@ -877,12 +877,8 @@ class SqlaTable(Model, BaseDatasource):
 
         return or_(*groups)
 
-    def query(self, query_obj):
-        qry_start_dttm = datetime.now()
-        query_str_ext = self.get_query_str_extended(query_obj)
-        sql = query_str_ext.sql
-        status = utils.QueryStatus.SUCCESS
-        error_message = None
+    def get_df_from_query_obj(self, query_obj):
+        sql = self.get_query_str_extended(query_obj).sql
 
         def mutator(df):
             labels_expected = query_str_ext.labels_expected
@@ -896,8 +892,15 @@ class SqlaTable(Model, BaseDatasource):
                     df.columns = labels_expected
             return df
 
+        return self.database.get_df(sql, self.schema, mutator)
+
+    def query(self, query_obj):
+        qry_start_dttm = datetime.now()
+        status = utils.QueryStatus.SUCCESS
+        error_message = None
+
         try:
-            df = self.database.get_df(sql, self.schema, mutator)
+            df = self.get_df_from_query_obj(query_obj)
         except Exception as e:
             df = None
             status = utils.QueryStatus.FAILED
