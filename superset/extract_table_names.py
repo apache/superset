@@ -17,6 +17,7 @@
 # under the License.
 # pylint: disable=C,R,W
 #
+
 # Copyright (C) 2016 Andi Albrecht, albrecht.andi@gmail.com
 #
 # This example is part of python-sqlparse and is released under
