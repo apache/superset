@@ -81,3 +81,6 @@ ghostdriver.log
 testCSV.csv
 .terser-plugin-cache/
 apache-superset-*.tar.gz*
+
+# Translation binaries
+messages.mo
