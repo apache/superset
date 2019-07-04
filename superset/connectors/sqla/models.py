@@ -42,6 +42,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import Label, TextAsFrom
@@ -50,6 +51,7 @@ import sqlparse
 from superset import app, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.db_engine_specs.base import TimestampExpression
+from superset.exceptions import DatabaseNotFound
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
@@ -1005,11 +1007,19 @@ class SqlaTable(Model, BaseDatasource):
             )
 
         def lookup_database(table):
-            return (
-                db.session.query(Database)
-                .filter_by(database_name=table.params_dict["database_name"])
-                .one()
-            )
+            try:
+                return (
+                    db.session.query(Database)
+                    .filter_by(database_name=table.params_dict["database_name"])
+                    .one()
+                )
+            except NoResultFound:
+                raise DatabaseNotFound(
+                    _(
+                        "Database '%(name)s' is not found",
+                        name=table.params_dict["database_name"],
+                    )
+                )
 
         return import_datasource.import_datasource(
             db.session, i_datasource, lookup_database, lookup_sqlatable, import_time
