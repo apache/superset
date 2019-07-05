@@ -559,7 +559,7 @@ function nvd3Vis(element, props) {
         chart.interactiveLayer.tooltip.contentGenerator(d =>
           generateRichLineTooltipContent(d, smartDateVerboseFormatter, yAxisFormatter),
         );
-      } else {
+      } else if (areaStackedStyle !== 'expand') {
         // area chart
         chart.interactiveLayer.tooltip.contentGenerator(d =>
           generateAreaChartTooltipContent(d, smartDateVerboseFormatter, yAxisFormatter),
