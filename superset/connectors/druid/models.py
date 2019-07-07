@@ -63,7 +63,7 @@ from sqlalchemy_utils import EncryptedType
 from superset import conf, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.exceptions import MetricPermException, SupersetException
-from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
+from superset.models.helpers import AuditMixinNullable, ExportImportMixin, QueryResult
 from superset.utils import core as utils, import_datasource
 from superset.utils.core import DimSelector, DTTM_ALIAS, flasher
 
@@ -97,7 +97,7 @@ class CustomPostAggregator(Postaggregator):
         self.post_aggregator = post_aggregator
 
 
-class DruidCluster(Model, AuditMixinNullable, ImportMixin):
+class DruidCluster(Model, AuditMixinNullable, ExportImportMixin):
 
     """ORM object referencing the Druid clusters"""
 

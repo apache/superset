@@ -22,11 +22,11 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, relationship
 
 from superset.models.core import Slice
-from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.helpers import AuditMixinNullable, ExportImportMixin
 from superset.utils import core as utils
 
 
-class BaseDatasource(AuditMixinNullable, ImportMixin):
+class BaseDatasource(AuditMixinNullable, ExportImportMixin):
     """A common interface to objects that are queryable
     (tables and datasources)"""
 
@@ -330,7 +330,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         )
 
 
-class BaseColumn(AuditMixinNullable, ImportMixin):
+class BaseColumn(AuditMixinNullable, ExportImportMixin):
     """Interface for column"""
 
     __tablename__ = None  # {connector_name}_column
@@ -347,6 +347,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
 
     # [optional] Set this to support import/export functionality
     export_fields = []
+    export_ordering = "column_name"
 
     def __repr__(self):
         return self.column_name
@@ -399,7 +400,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
 
 
-class BaseMetric(AuditMixinNullable, ImportMixin):
+class BaseMetric(AuditMixinNullable, ExportImportMixin):
 
     """Interface for Metrics"""
 
@@ -413,6 +414,8 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
     is_restricted = Column(Boolean, default=False, nullable=True)
     d3format = Column(String(128))
     warning_text = Column(Text)
+
+    export_ordering = "metric_name"
 
     """
     The interface should also declare a datasource relationship pointing

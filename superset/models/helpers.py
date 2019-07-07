@@ -32,6 +32,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 import yaml
 
 from superset.utils.core import QueryStatus
+from superset.utils.sqla import uuid_sqla_column
 
 
 def json_to_dict(json_str):
@@ -43,18 +44,26 @@ def json_to_dict(json_str):
         return {}
 
 
-class ImportMixin(object):
+class ExportImportMixin(object):
+    uuid = uuid_sqla_column
     export_parent = None
+
     # The name of the attribute
     # with the SQL Alchemy back reference
-
     export_children = []
-    # List of (str) names of attributes
-    # with the SQL Alchemy forward references
 
-    export_fields = []
     # The names of the attributes
-    # that are available for import and export
+    # that are made available for import and export
+    export_fields = []
+
+    # Fields that are stored as json string in db, this abstraction
+    # will serialize/deserialize them so that it's a consistent data structure
+    export_fields_json = []
+
+    # If a collection is exported, this str represents by which argument
+    # to sort the collection achieve a deterministic order.
+    # Deterministic ordering is useful for diffing and unit tests
+    export_ordering = None
 
     @classmethod
     def _parent_foreign_key_mappings(cls):
@@ -63,6 +72,10 @@ class ImportMixin(object):
         if parent_rel:
             return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}
         return {}
+
+    @property
+    def export_fields_with_uuid(self):
+        return list(self.export_fields) + ["uuid"]
 
     @classmethod
     def _unique_constrains(cls):
@@ -74,6 +87,22 @@ class ImportMixin(object):
         ]
         unique.extend({c.name} for c in cls.__table__.columns if c.unique)
         return unique
+
+    def as_json(self):
+        return json.dumps(self.export_to_dict(), indent=2, sort_keys=True)
+
+    def as_yaml(self):
+        return yaml.safe_dump(self.export_to_dict())
+
+    @property
+    def as_json_wrapped(self):
+        s = escape(self.as_json())
+        return Markup(f"<pre><code>{s}</code></pre>")
+
+    @property
+    def as_yaml_wrapped(self):
+        s = escape(self.as_yaml())
+        return Markup(f"<pre><code>{s}</code></pre>")
 
     @classmethod
     def export_schema(cls, recursive=True, include_parent_ref=False):
@@ -122,6 +151,8 @@ class ImportMixin(object):
         for k in list(dict_rep):
             if k not in export_fields:
                 del dict_rep[k]
+            if k in cls.export_fields_json:
+                dict_rep[k] = json.dumps(dict_rep[k])
 
         if not parent:
             if cls.export_parent:
@@ -217,35 +248,42 @@ class ImportMixin(object):
             parent_ref = cls.__mapper__.relationships.get(cls.export_parent)
             if parent_ref:
                 parent_excludes = {c.name for c in parent_ref.local_columns}
-        dict_rep = {
-            c.name: getattr(self, c.name)
-            for c in cls.__table__.columns
+
+        dict_rep = dict()
+
+        for c in cls.__table__.columns:
+            key = c.name
+            value = getattr(self, key)
             if (
-                c.name in self.export_fields
-                and c.name not in parent_excludes
+                key in self.export_fields_with_uuid
+                and key not in parent_excludes
                 and (
                     include_defaults
-                    or (
-                        getattr(self, c.name) is not None
-                        and (not c.default or getattr(self, c.name) != c.default.arg)
-                    )
+                    or (value is not None and (not c.default or value != c.default.arg))
                 )
-            )
-        }
+            ):
+                if key in self.export_fields_json:
+                    value = json.loads(value)
+                dict_rep[key] = value
         if recursive:
-            for c in self.export_children:
+            for relationship_name in self.export_children:
                 # sorting to make lists of children stable
-                dict_rep[c] = sorted(
-                    [
+                orm_children = getattr(self, relationship_name)
+                sort_by = None
+                children = []
+                if orm_children:
+                    children = [
                         child.export_to_dict(
                             recursive=recursive,
                             include_parent_ref=include_parent_ref,
                             include_defaults=include_defaults,
                         )
-                        for child in getattr(self, c)
-                    ],
-                    key=lambda k: sorted(k.items()),
-                )
+                        for child in orm_children
+                    ]
+                    sort_by = orm_children[0].export_ordering
+                if sort_by:
+                    children = sorted(children, key=lambda x: x.get(sort_by))
+                dict_rep[relationship_name] = children
 
         return dict_rep
 

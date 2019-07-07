@@ -303,6 +303,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         "created_on",
         "changed_by",
         "changed_on",
+        "as_yaml_wrapped",
     ]
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"
@@ -634,6 +635,15 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         "params",
         "cache_timeout",
     ]
+    show_columns = [
+        "slice_name",
+        "description",
+        "viz_type",
+        "owners",
+        "dashboards",
+        "cache_timeout",
+        "as_yaml_wrapped",
+    ]
     base_order = ("changed_on", "desc")
     description_columns = {
         "description": Markup(
@@ -655,6 +665,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     }
     base_filters = [["id", SliceFilter, lambda: []]]
     label_columns = {
+        "as_yaml_wrapped": _("YAML"),
         "cache_timeout": _("Cache Timeout"),
         "creator": _("Creator"),
         "dashboards": _("Dashboards"),
@@ -666,6 +677,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         "slice_link": _("Chart"),
         "slice_name": _("Name"),
         "table": _("Table"),
+        "uuid": "UUID",
         "viz_type": _("Visualization Type"),
     }
 
@@ -770,7 +782,16 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         "css",
         "json_metadata",
     ]
-    show_columns = edit_columns + ["table_names", "charts"]
+    show_columns = [
+        "dashboard_title",
+        "slug",
+        "uuid",
+        "owners",
+        "css",
+        "table_names",
+        "charts",
+        "as_yaml_wrapped",
+    ]
     search_columns = ("dashboard_title", "slug", "owners")
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
@@ -797,6 +818,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     }
     base_filters = [["slice", DashboardFilter, lambda: []]]
     label_columns = {
+        "as_yaml_wrapped": _("YAML"),
         "dashboard_link": _("Dashboard"),
         "dashboard_title": _("Title"),
         "slug": _("Slug"),
@@ -804,10 +826,10 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         "owners": _("Owners"),
         "creator": _("Creator"),
         "modified": _("Modified"),
-        "position_json": _("Position JSON"),
         "css": _("CSS"),
         "json_metadata": _("JSON Metadata"),
         "table_names": _("Underlying Tables"),
+        "uuid": "UUID",
     }
 
     def pre_add(self, obj):

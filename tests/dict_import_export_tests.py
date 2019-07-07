@@ -112,7 +112,20 @@ class DictImportExportTests(SupersetTestCase):
     def get_table_by_name(self, name):
         return db.session.query(SqlaTable).filter_by(table_name=name).first()
 
+    @classmethod
+    def drop_uuid(cls, obj):
+        if type(obj) == dict:
+            if "uuid" in obj:
+                obj.pop("uuid")
+            for k in list(obj):
+                cls.drop_uuid(obj[k])
+        if type(obj) == list:
+            for o in obj:
+                cls.drop_uuid(o)
+
     def yaml_compare(self, obj_1, obj_2):
+        self.drop_uuid(obj_1)
+        self.drop_uuid(obj_2)
         obj_1_str = yaml.safe_dump(obj_1, default_flow_style=False)
         obj_2_str = yaml.safe_dump(obj_2, default_flow_style=False)
         self.assertEquals(obj_1_str, obj_2_str)

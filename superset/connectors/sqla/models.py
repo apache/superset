@@ -331,6 +331,7 @@ class SqlaTable(Model, BaseDatasource):
     ]
     export_parent = "database"
     export_children = ["metrics", "columns"]
+    export_ordering = "table_name"
 
     sqla_aggregations = {
         "COUNT_DISTINCT": lambda column_name: sa.func.COUNT(sa.distinct(column_name)),

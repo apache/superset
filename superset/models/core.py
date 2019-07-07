@@ -56,7 +56,7 @@ import sqlparse
 from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
-from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.helpers import AuditMixinNullable, ExportImportMixin
 from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import cache as cache_util, core as utils
@@ -151,7 +151,7 @@ slice_user = Table(
 )
 
 
-class Slice(Model, AuditMixinNullable, ImportMixin):
+class Slice(Model, AuditMixinNullable, ExportImportMixin):
 
     """A slice is essentially a report or a view on data"""
 
@@ -176,6 +176,8 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         "params",
         "cache_timeout",
     )
+    export_fields_json = ["params"]
+    export_ordering = "slice_name"
 
     def __repr__(self):
         return self.slice_name or str(self.id)
@@ -407,7 +409,7 @@ dashboard_user = Table(
 )
 
 
-class Dashboard(Model, AuditMixinNullable, ImportMixin):
+class Dashboard(Model, AuditMixinNullable, ExportImportMixin):
 
     """The dashboard object!"""
 
@@ -430,6 +432,8 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         "css",
         "slug",
     )
+    export_fields_json = ("position_json", "json_metadata")
+    export_ordering = "dashboard_title"
 
     def __repr__(self):
         return self.dashboard_title or str(self.id)
@@ -695,7 +699,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         )
 
 
-class Database(Model, AuditMixinNullable, ImportMixin):
+class Database(Model, AuditMixinNullable, ExportImportMixin):
 
     """An ORM object that stores Database related information"""
 
@@ -744,6 +748,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         "extra",
     )
     export_children = ["tables"]
+    export_ordering = "database_name"
 
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.database_name
