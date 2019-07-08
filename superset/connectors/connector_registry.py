@@ -41,6 +41,11 @@ class ConnectorRegistry(object):
         )
 
     @classmethod
+    def get_datasource_by_uuid(cls, session, source_type, uuid):
+        source_class = ConnectorRegistry.sources[source_type]
+        return session.query(source_class).filter_by(uuid=uuid).one()
+
+    @classmethod
     def get_all_datasources(cls, session):
         datasources = []
         for source_type in ConnectorRegistry.sources:
