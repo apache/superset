@@ -15,8 +15,24 @@
 # limitations under the License.
 #
 repos:
-  - repo: https://github.com/ambv/black
+-   repo: https://github.com/ambv/black
     rev: stable
     hooks:
-      - id: black
+    -   id: black
         language_version: python3.6
+
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.2.3
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-docstring-first
+    -   id: check-json
+    -   id: check-added-large-files
+    -   id: check-yaml
+    -   id: debug-statements
+
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.7.1
+    hooks:
+    -   id: flake8
