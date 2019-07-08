@@ -1,11 +1,7 @@
 import inspect
 import os
 
-from flask import (
-    flash,
-    Markup,
-    redirect,
-)
+from flask import flash, Markup, redirect
 from flask_appbuilder import SimpleFormView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __
@@ -14,11 +10,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
-from superset import (
-    app,
-    appbuilder,
-    security_manager,
-)
+from superset import app, appbuilder, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetException
 import superset.models.core as models
@@ -358,11 +350,17 @@ appbuilder.add_view_no_menu(DatabaseTablesAsync)
 
 class DatabaseAsync(DatabaseView):
     list_columns = [
-        'id', 'database_name',
-        'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
-        'allow_run_async', 'allow_dml',
-        'allow_multi_schema_metadata_fetch', 'allow_csv_upload',
-        'allows_subquery', 'backend',
+        "id",
+        "database_name",
+        "expose_in_sqllab",
+        "allow_ctas",
+        "force_ctas_schema",
+        "allow_run_async",
+        "allow_dml",
+        "allow_multi_schema_metadata_fetch",
+        "allow_csv_upload",
+        "allows_subquery",
+        "backend",
     ]
 
 

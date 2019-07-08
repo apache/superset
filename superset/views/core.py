@@ -228,7 +228,8 @@ class DashboardFilter(SupersetFilter):
         )
         return query
 
-from .database import views as in_views # noqa
+
+from .database import views as in_views  # noqa
 
 
 if config.get("ENABLE_ACCESS_REQUEST"):

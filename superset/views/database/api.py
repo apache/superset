@@ -7,8 +7,8 @@ from .views import DatabaseView
 
 
 class DatabaseAsyncApi(ModelRestApi):
-    class_permission_name = 'DatabaseAsync'
-    resource_name = 'database'
+    class_permission_name = "DatabaseAsync"
+    resource_name = "database"
     allow_browser_login = True
     datamodel = SQLAInterface(models.Database)
 
