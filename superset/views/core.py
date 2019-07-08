@@ -60,8 +60,7 @@ from superset import (
     get_feature_flags,
     results_backend,
     security_manager,
-    sql_lab,
-    viz,
+    sql_lab, viz
 )
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
@@ -94,11 +93,17 @@ from .base import (
     SupersetModelView,
     YamlExportMixin,
 )
-from .utils import bootstrap_user_data, get_datasource_info, get_form_data, get_viz
+from .utils import (
+    apply_display_max_row_limit,
+    bootstrap_user_data,
+    get_datasource_info,
+    get_form_data,
+    get_viz,
+)
 
 config = app.config
-CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
-stats_logger = config.get("STATS_LOGGER")
+CACHE_DEFAULT_TIMEOUT = config.get('CACHE_DEFAULT_TIMEOUT', 0)
+stats_logger = config.get('STATS_LOGGER')
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
 
@@ -178,9 +183,18 @@ class SliceFilter(SupersetFilter):
         return query.filter(self.model.perm.in_(perms))
 
 
-class DashboardFilter(SupersetFilter):
+class DatabaseFilter(SupersetFilter):
+    def apply(self, query, func):  # noqa
+        if security_manager.all_database_access():
+            return query
+        perms = self.get_view_menus("database_access")
+        return query.filter(self.model.perm.in_(perms))
 
-    """List dashboards for which users have access to at least one slice or are owners"""
+
+class DashboardFilter(SupersetFilter):
+    """
+    List dashboards for which users have access to at least one slice or are owners.
+    """
 
     def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
@@ -348,6 +362,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             "If selected, please set the schemas allowed for csv upload in Extra."
         ),
     }
+    base_filters = [["id", DatabaseFilter, lambda: []]]
     label_columns = {
         "expose_in_sqllab": _("Expose in SQL Lab"),
         "allow_ctas": _("Allow CREATE TABLE AS"),
@@ -636,6 +651,10 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         "table": _("Table"),
         "viz_type": _("Visualization Type"),
     }
+
+    add_form_query_rel_fields = {"dashboards": [["name", DashboardFilter, None]]}
+
+    edit_form_query_rel_fields = add_form_query_rel_fields
 
     def pre_add(self, obj):
         utils.validate_json(obj.params)
@@ -950,7 +969,7 @@ class R(BaseSupersetView):
     """used for short urls"""
 
     @event_logger.log_this
-    @expose("/<url_id>")
+    @expose('/<url_id>')
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
         if url and url.url:
@@ -1693,7 +1712,7 @@ class Superset(BaseSupersetView):
                 metrics = col.get_metrics().values()
                 col.datasource.add_missing_metrics(metrics)
             db.session.commit()
-        return json_success("OK")
+        return json_success('"OK"')
 
     @api
     @has_access_api
@@ -1990,7 +2009,8 @@ class Superset(BaseSupersetView):
             engine = create_engine(uri, **engine_params)
 
             with closing(engine.connect()) as conn:
-                return json_success(json.dumps(conn.scalar(select([1]))))
+                conn.scalar(select([1]))
+                return json_success('"OK"')
         except Exception as e:
             logging.exception(e)
             return json_error_response(
@@ -2424,12 +2444,12 @@ class Superset(BaseSupersetView):
 
     @api
     @event_logger.log_this
-    @expose("/log/", methods=["POST"])
+    @expose('/log/', methods=['POST'])
     def log(self):
         return Response(status=200)
 
     @has_access
-    @expose("/sync_druid/", methods=["POST"])
+    @expose('/sync_druid/', methods=['POST'])
     @event_logger.log_this
     def sync_druid_source(self):
         """Syncs the druid datasource in main db with the provided config.
@@ -2485,7 +2505,7 @@ class Superset(BaseSupersetView):
         return Response(status=201)
 
     @has_access
-    @expose("/sqllab_viz/", methods=["POST"])
+    @expose('/sqllab_viz/', methods=['POST'])
     @event_logger.log_this
     def sqllab_viz(self):
         SqlaTable = ConnectorRegistry.sources["table"]
@@ -2522,7 +2542,7 @@ class Superset(BaseSupersetView):
         return self.json_response(json.dumps({"table_id": table.id}))
 
     @has_access
-    @expose("/table/<database_id>/<table_name>/<schema>/")
+    @expose('/table/<database_id>/<table_name>/<schema>/')
     @event_logger.log_this
     def table(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
@@ -2586,7 +2606,7 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(tbl))
 
     @has_access
-    @expose("/extra_table_metadata/<database_id>/<table_name>/<schema>/")
+    @expose('/extra_table_metadata/<database_id>/<table_name>/<schema>/')
     @event_logger.log_this
     def extra_table_metadata(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
@@ -2596,8 +2616,8 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(payload))
 
     @has_access
-    @expose("/select_star/<database_id>/<table_name>")
-    @expose("/select_star/<database_id>/<table_name>/<schema>")
+    @expose('/select_star/<database_id>/<table_name>')
+    @expose('/select_star/<database_id>/<table_name>/<schema>')
     @event_logger.log_this
     def select_star(self, database_id, table_name, schema=None):
         mydb = db.session.query(models.Database).filter_by(id=database_id).first()
@@ -2612,7 +2632,7 @@ class Superset(BaseSupersetView):
         return self.render_template("superset/theme.html")
 
     @has_access_api
-    @expose("/cached_key/<key>/")
+    @expose('/cached_key/<key>/')
     @event_logger.log_this
     def cached_key(self, key):
         """Returns a key from the cache"""
@@ -2622,7 +2642,7 @@ class Superset(BaseSupersetView):
         return "nope"
 
     @has_access_api
-    @expose("/cache_key_exist/<key>/")
+    @expose('/cache_key_exist/<key>/')
     @event_logger.log_this
     def cache_key_exist(self, key):
         """Returns if a key from cache exist"""
@@ -2631,7 +2651,7 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps({"key_exist": key_exist}), status=status)
 
     @has_access_api
-    @expose("/results/<key>/")
+    @expose('/results/<key>/')
     @event_logger.log_this
     def results(self, key):
         """Serves a key off of the results backend"""
@@ -2663,16 +2683,18 @@ class Superset(BaseSupersetView):
             )
 
         payload = utils.zlib_decompress_to_string(blob)
-        display_limit = app.config.get("DEFAULT_SQLLAB_LIMIT", None)
-        if display_limit:
-            payload_json = json.loads(payload)
-            payload_json["data"] = payload_json["data"][:display_limit]
+        payload_json = json.loads(payload)
+
         return json_success(
-            json.dumps(payload_json, default=utils.json_iso_dttm_ser, ignore_nan=True)
+            json.dumps(
+                apply_display_max_row_limit(payload_json),
+                default=utils.json_iso_dttm_ser,
+                ignore_nan=True,
+            )
         )
 
     @has_access_api
-    @expose("/stop_query/", methods=["POST"])
+    @expose('/stop_query/', methods=['POST'])
     @event_logger.log_this
     def stop_query(self):
         client_id = request.form.get("client_id")
@@ -2685,7 +2707,7 @@ class Superset(BaseSupersetView):
         return self.json_response("OK")
 
     @has_access_api
-    @expose("/validate_sql_json/", methods=["POST", "GET"])
+    @expose('/validate_sql_json/', methods=['POST', 'GET'])
     @event_logger.log_this
     def validate_sql_json(self):
         """Validates that arbitrary sql is acceptable for the given database.
@@ -2748,7 +2770,7 @@ class Superset(BaseSupersetView):
             return json_error_response(f"{msg}")
 
     @has_access_api
-    @expose("/sql_json/", methods=["POST", "GET"])
+    @expose('/sql_json/', methods=['POST', 'GET'])
     @event_logger.log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
@@ -2873,8 +2895,9 @@ class Superset(BaseSupersetView):
                     return_results=True,
                     user_name=g.user.username if g.user else None,
                 )
+
             payload = json.dumps(
-                data,
+                apply_display_max_row_limit(data),
                 default=utils.pessimistic_json_iso_dttm_ser,
                 ignore_nan=True,
                 encoding=None,
@@ -2887,7 +2910,7 @@ class Superset(BaseSupersetView):
         return json_success(payload)
 
     @has_access
-    @expose("/csv/<client_id>")
+    @expose('/csv/<client_id>')
     @event_logger.log_this
     def csv(self, client_id):
         """Download the query results as csv."""
@@ -2934,7 +2957,7 @@ class Superset(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access
-    @expose("/fetch_datasource_metadata")
+    @expose('/fetch_datasource_metadata')
     @event_logger.log_this
     def fetch_datasource_metadata(self):
         datasource_id, datasource_type = request.args.get("datasourceKey").split("__")
@@ -2976,7 +2999,7 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(dict_queries, default=utils.json_int_dttm_ser))
 
     @has_access
-    @expose("/search_queries")
+    @expose('/search_queries')
     @event_logger.log_this
     def search_queries(self) -> Response:
         """
@@ -3238,12 +3261,12 @@ app.url_map.converters["regex"] = RegexConverter
 
 
 @app.route('/<regex("panoramix\/.*"):url>')
-def panoramix(url):  # noqa
+def panoramix(url):
     return redirect(request.full_path.replace("panoramix", "superset"))
 
 
 @app.route('/<regex("caravel\/.*"):url>')
-def caravel(url):  # noqa
+def caravel(url):
     return redirect(request.full_path.replace("caravel", "superset"))
 
 

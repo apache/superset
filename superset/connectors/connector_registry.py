@@ -51,15 +51,21 @@ class ConnectorRegistry(object):
         return datasources
 
     @classmethod
-    def get_datasource_by_name(cls, session, datasource_type, datasource_name,
-                               schema, database_name):
+    def get_datasource_by_name(
+        cls, session, datasource_type, datasource_name, schema, database_name
+    ):
         datasource_class = ConnectorRegistry.sources[datasource_type]
         datasources = session.query(datasource_class).all()
 
         # Filter datasoures that don't have database.
-        db_ds = [d for d in datasources if d.database and
-                 d.database.name == database_name and
-                 d.name == datasource_name and schema == schema]
+        db_ds = [
+            d
+            for d in datasources
+            if d.database
+            and d.database.name == database_name
+            and d.name == datasource_name
+            and schema == schema
+        ]
         return db_ds[0]
 
     @classmethod
@@ -87,8 +93,8 @@ class ConnectorRegistry(object):
         )
 
     @classmethod
-    def query_datasources_by_name(
-            cls, session, database, datasource_name, schema=None):
+    def query_datasources_by_name(cls, session, database, datasource_name, schema=None):
         datasource_class = ConnectorRegistry.sources[database.type]
         return datasource_class.query_datasources_by_name(
-            session, database, datasource_name, schema=None)
+            session, database, datasource_name, schema=None
+        )

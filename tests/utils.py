@@ -17,11 +17,11 @@
 import json
 from os import path
 
-FIXTURES_DIR = 'tests/fixtures'
+FIXTURES_DIR = "tests/fixtures"
 
 
 def read_fixture(fixture_file_name):
-    with open(path.join(FIXTURES_DIR, fixture_file_name), 'rb') as fixture_file:
+    with open(path.join(FIXTURES_DIR, fixture_file_name), "rb") as fixture_file:
         return fixture_file.read()
 
 
