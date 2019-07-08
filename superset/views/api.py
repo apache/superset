@@ -20,17 +20,16 @@ from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 import simplejson as json
 
-from superset import appbuilder, db, security_manager
+from superset import appbuilder, db, event_logger, security_manager
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
 import superset.models.core as models
-from superset.models.core import Log
 from superset.utils import core as utils
 from .base import api, BaseSupersetView, handle_api_exception
 
 
 class Api(BaseSupersetView):
-    @Log.log_this
+    @event_logger.log_this
     @api
     @handle_api_exception
     @has_access_api
@@ -48,7 +47,7 @@ class Api(BaseSupersetView):
             payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
         )
 
-    @Log.log_this
+    @event_logger.log_this
     @api
     @handle_api_exception
     @has_access_api
