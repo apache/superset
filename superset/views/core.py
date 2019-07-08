@@ -44,8 +44,7 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
-from sqlalchemy import and_, create_engine, MetaData, or_, select
-from sqlalchemy.engine.url import make_url
+from sqlalchemy import and_, MetaData, or_, select
 from sqlalchemy.exc import IntegrityError
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
@@ -2014,47 +2013,32 @@ class Superset(BaseSupersetView):
     def testconn(self):
         """Tests a sqla connection"""
         try:
-            username = g.user.username if g.user is not None else None
-            uri = request.json.get("uri")
             db_name = request.json.get("name")
-            impersonate_user = request.json.get("impersonate_user")
-            database = None
+            uri = request.json.get("uri")
+
+            # if the database already exists in the database, only its safe (password-masked) URI
+            # would be shown in the UI and would be passed in the form data.
+            # so if the database already exists and the form was submitted with the safe URI,
+            # we assume we should retrieve the decrypted URI to test the connection.
             if db_name:
-                database = (
+                existing_database = (
                     db.session.query(models.Database)
                     .filter_by(database_name=db_name)
                     .first()
                 )
-                if database and uri == database.safe_sqlalchemy_uri():
-                    # the password-masked uri was passed
-                    # use the URI associated with this database
-                    uri = database.sqlalchemy_uri_decrypted
+                if existing_database and uri == existing_database.safe_sqlalchemy_uri():
+                    uri = existing_database.sqlalchemy_uri_decrypted
 
-            configuration = {}
+            # this is the database instance that will be tested
+            database = models.Database(
+                # extras is sent as json, but required to be a string in the Database model
+                extra=json.dumps(request.json.get("extras", {})),
+                impersonate_user=request.json.get("impersonate_user"),
+            )
+            database.set_sqlalchemy_uri(uri)
 
-            if database and uri:
-                url = make_url(uri)
-                db_engine = models.Database.get_db_engine_spec_for_backend(
-                    url.get_backend_name()
-                )
-                db_engine.patch()
-
-                masked_url = database.get_password_masked_url_from_uri(uri)
-                logging.info("Superset.testconn(). Masked URL: {0}".format(masked_url))
-
-                configuration.update(
-                    db_engine.get_configuration_for_impersonation(
-                        uri, impersonate_user, username
-                    )
-                )
-
-            engine_params = request.json.get("extras", {}).get("engine_params", {})
-            connect_args = engine_params.get("connect_args")
-
-            if configuration and connect_args is not None:
-                connect_args["configuration"] = configuration
-
-            engine = create_engine(uri, **engine_params)
+            username = g.user.username if g.user is not None else None
+            engine = database.get_sqla_engine(user_name=username)
 
             with closing(engine.connect()) as conn:
                 conn.scalar(select([1]))
@@ -2062,9 +2046,7 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             return json_error_response(
-                ("Connection failed!\n\n" "The error message returned was:\n{}").format(
-                    e
-                )
+                "Connection failed!\n\n" "The error message returned was:\n{}".format(e)
             )
 
     @api
