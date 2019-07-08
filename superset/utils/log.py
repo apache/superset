@@ -24,7 +24,6 @@ from flask import current_app, g, request
 
 
 class AbstractEventLogger(ABC):
-
     @abstractmethod
     def log(self, user_id, action, *args, **kwargs):
         pass
@@ -42,12 +41,13 @@ class AbstractEventLogger(ABC):
             d.update(request_params)
             d.update(kwargs)
 
-            slice_id = d.get('slice_id')
-            dashboard_id = d.get('dashboard_id')
+            slice_id = d.get("slice_id")
+            dashboard_id = d.get("dashboard_id")
 
             try:
                 slice_id = int(
-                    slice_id or json.loads(d.get('form_data')).get('slice_id'))
+                    slice_id or json.loads(d.get("form_data")).get("slice_id")
+                )
             except (ValueError, TypeError):
                 slice_id = 0
 
@@ -58,7 +58,7 @@ class AbstractEventLogger(ABC):
 
             # bulk insert
             try:
-                explode_by = d.get('explode')
+                explode_by = d.get("explode")
                 records = json.loads(d.get(explode_by))
             except Exception:
                 records = [d]
@@ -80,19 +80,18 @@ class AbstractEventLogger(ABC):
 
     @property
     def stats_logger(self):
-        return current_app.config.get('STATS_LOGGER')
+        return current_app.config.get("STATS_LOGGER")
 
 
 class DBEventLogger(AbstractEventLogger):
-
     def log(self, user_id, action, *args, **kwargs):
         from superset.models.core import Log
 
-        records = kwargs.get('records', list())
-        dashboard_id = kwargs.get('dashboard_id')
-        slice_id = kwargs.get('slice_id')
-        duration_ms = kwargs.get('duration_ms')
-        referrer = kwargs.get('referrer')
+        records = kwargs.get("records", list())
+        dashboard_id = kwargs.get("dashboard_id")
+        slice_id = kwargs.get("slice_id")
+        duration_ms = kwargs.get("duration_ms")
+        referrer = kwargs.get("referrer")
 
         logs = list()
         for record in records:
@@ -107,7 +106,8 @@ class DBEventLogger(AbstractEventLogger):
                 slice_id=slice_id,
                 duration_ms=duration_ms,
                 referrer=referrer,
-                user_id=user_id)
+                user_id=user_id,
+            )
             logs.append(log)
 
         sesh = current_app.appbuilder.get_session
