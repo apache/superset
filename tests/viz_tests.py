@@ -18,6 +18,7 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 import uuid
 
+import numpy as np
 import pandas as pd
 
 from superset import app
@@ -1047,3 +1048,35 @@ class TimeSeriesVizTestCase(SupersetTestCase):
             },
         ]
         self.assertEqual(expected, viz_data)
+
+    def test_process_data_resample(self):
+        datasource = self.get_datasource_mock()
+
+        df = pd.DataFrame(
+            {
+                "__timestamp": pd.to_datetime(
+                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
+                ),
+                "y": [1.0, 2.0, 5.0, 7.0],
+            }
+        )
+
+        self.assertEqual(
+            viz.NVD3TimeSeriesViz(
+                datasource,
+                {"metrics": ["y"], "resample_method": "sum", "resample_rule": "1D"},
+            )
+            .process_data(df)["y"]
+            .tolist(),
+            [1.0, 2.0, 0.0, 0.0, 5.0, 0.0, 7.0],
+        )
+
+        np.testing.assert_equal(
+            viz.NVD3TimeSeriesViz(
+                datasource,
+                {"metrics": ["y"], "resample_method": "asfreq", "resample_rule": "1D"},
+            )
+            .process_data(df)["y"]
+            .tolist(),
+            [1.0, 2.0, np.nan, np.nan, 5.0, np.nan, 7.0],
+        )

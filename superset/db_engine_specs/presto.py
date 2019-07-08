@@ -591,7 +591,7 @@ class PrestoEngineSpec(BaseEngineSpec):
               {'ColumnA': [1, 2], 'ColumnB': [3]},
               {'ColumnA': [11, 22], 'ColumnB': [33]}
           ]
-          all_array_data (intially) = {
+          all_array_data (initially) = {
               0: [{'ColumnA': [1, 2], 'ColumnB': [3}],
               1: [{'ColumnA': [11, 22], 'ColumnB': [33]}]
           }
@@ -920,7 +920,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         if values is None:
             return False
 
-        column_names = {column.get('name') for column in columns or []}
+        column_names = {column.get("name") for column in columns or []}
         for col_name, value in zip(col_names, values):
             if col_name in column_names:
                 qry = qry.where(Column(col_name) == value)

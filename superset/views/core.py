@@ -127,24 +127,36 @@ def is_owner(obj, user):
     return obj and user in obj.owners
 
 
-def check_datasource_perms(self, datasource_type=None, datasource_id=None):
+def check_datasource_perms(
+    self, datasource_type: str = None, datasource_id: int = None
+) -> None:
     """
     Check if user can access a cached response from explore_json.
 
     This function takes `self` since it must have the same signature as the
     the decorated method.
 
+    :param datasource_type: The datasource type, i.e., 'druid' or 'table'
+    :param datasource_id: The datasource ID
+    :raises SupersetSecurityException: If the user cannot access the resource
     """
+
     form_data = get_form_data()[0]
-    datasource_id, datasource_type = get_datasource_info(
-        datasource_id, datasource_type, form_data
-    )
+
+    try:
+        datasource_id, datasource_type = get_datasource_info(
+            datasource_id, datasource_type, form_data
+        )
+    except SupersetException as e:
+        raise SupersetSecurityException(str(e))
+
     viz_obj = get_viz(
         datasource_type=datasource_type,
         datasource_id=datasource_id,
         form_data=form_data,
         force=False,
     )
+
     security_manager.assert_datasource_permission(viz_obj.datasource)
 
 
@@ -614,7 +626,7 @@ class KV(BaseSupersetView):
             kv = db.session.query(models.KeyValue).filter_by(id=key_id).one()
         except Exception as e:
             return json_error_response(e)
-        return Response(kv.value, status=200)
+        return Response(kv.value, status=200, content_type="text/plain")
 
 
 appbuilder.add_view_no_menu(KV)
@@ -1058,9 +1070,14 @@ class Superset(BaseSupersetView):
         force = request.args.get("force") == "true"
 
         form_data = get_form_data()[0]
-        datasource_id, datasource_type = get_datasource_info(
-            datasource_id, datasource_type, form_data
-        )
+
+        try:
+            datasource_id, datasource_type = get_datasource_info(
+                datasource_id, datasource_type, form_data
+            )
+        except SupersetException as e:
+            return json_error_response(utils.error_msg_from_exception(e))
+
         viz_obj = get_viz(
             datasource_type=datasource_type,
             datasource_id=datasource_id,
@@ -1079,7 +1096,26 @@ class Superset(BaseSupersetView):
         """Overrides the dashboards using json instances from the file."""
         f = request.files.get("file")
         if request.method == "POST" and f:
-            dashboard_import_export.import_dashboards(db.session, f.stream)
+            try:
+                dashboard_import_export.import_dashboards(db.session, f.stream)
+            except DatabaseNotFound as e:
+                flash(
+                    _(
+                        "Cannot import dashboard: %(db_error)s.\n"
+                        "Make sure to create the database before "
+                        "importing the dashboard.",
+                        db_error=e,
+                    ),
+                    "danger",
+                )
+            except Exception:
+                flash(
+                    _(
+                        "An unknown error occurred. "
+                        "Please contact your Superset administrator"
+                    ),
+                    "danger",
+                )
             return redirect("/dashboard/list/")
         return self.render_template("superset/import_dashboards.html")
 
@@ -1104,12 +1140,15 @@ class Superset(BaseSupersetView):
     def explore(self, datasource_type=None, datasource_id=None):
         user_id = g.user.get_id() if g.user else None
         form_data, slc = get_form_data(use_slice_data=True)
-
-        datasource_id, datasource_type = get_datasource_info(
-            datasource_id, datasource_type, form_data
-        )
-
         error_redirect = "/chart/list/"
+
+        try:
+            datasource_id, datasource_type = get_datasource_info(
+                datasource_id, datasource_type, form_data
+            )
+        except SupersetException:
+            return redirect(error_redirect)
+
         datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session
         )
@@ -1457,18 +1496,22 @@ class Superset(BaseSupersetView):
             max_tables = max_items * len(tables) // total_items
             max_views = max_items * len(views) // total_items
 
-        def get_datasource_value(ds_name: utils.DatasourceName) -> Dict[str, str]:
-            return {"schema": ds_name.schema, "table": ds_name.table}
-
         table_options = [
-            {"value": get_datasource_value(tn), "label": get_datasource_label(tn)}
+            {
+                "value": tn.table,
+                "schema": tn.schema,
+                "label": get_datasource_label(tn),
+                "title": get_datasource_label(tn),
+            }
             for tn in tables[:max_tables]
         ]
         table_options.extend(
             [
                 {
-                    "value": get_datasource_value(vn),
+                    "value": vn.table,
+                    "schema": vn.schema,
                     "label": f"[view] {get_datasource_label(vn)}",
+                    "title": f"[view] {get_datasource_label(vn)}",
                 }
                 for vn in views[:max_views]
             ]

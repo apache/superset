@@ -99,15 +99,22 @@ export default class TableSelector extends React.PureComponent {
     });
   }
   getTableNamesBySubStr(input) {
-    const { tableName } = this.state;
     if (!this.props.dbId || !input) {
-      const options = this.addOptionIfMissing([], tableName);
+      const options = [];
       return Promise.resolve({ options });
     }
     return SupersetClient.get({
       endpoint: encodeURI(`/superset/tables/${this.props.dbId}/` +
         `${encodeURIComponent(this.props.schema)}/${encodeURIComponent(input)}`),
-    }).then(({ json }) => ({ options: this.addOptionIfMissing(json.options, tableName) }));
+    }).then(({ json }) => {
+      const options = json.options.map(o => ({
+        value: o.value,
+        schema: o.schema,
+        label: o.label,
+        title: o.title,
+      }));
+      return ({ options });
+    });
   }
   dbMutator(data) {
     this.props.getDbList(data.result);
@@ -130,15 +137,16 @@ export default class TableSelector extends React.PureComponent {
           `${encodeURIComponent(schema)}/${encodeURIComponent(substr)}/${forceRefresh}/`);
        return SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          const filterOptions = createFilterOptions({ options: json.options });
+          const options = json.options.map(o => ({
+            value: o.value,
+            schema: o.schema,
+            label: o.label,
+            title: o.title,
+          }));
           this.setState(() => ({
-            filterOptions,
+            filterOptions: createFilterOptions({ options }),
             tableLoading: false,
-            tableOptions: json.options.map(o => ({
-              value: o.value,
-              label: o.label,
-              title: o.label,
-            })),
+            tableOptions: options,
           }));
           this.props.onTablesLoad(json.options);
         })
@@ -176,8 +184,8 @@ export default class TableSelector extends React.PureComponent {
       this.setState({ tableName: '' });
       return;
     }
-    const schemaName = tableOpt.value.schema;
-    const tableName = tableOpt.value.table;
+    const schemaName = tableOpt.schema;
+    const tableName = tableOpt.value;
     if (this.props.tableNameSticky) {
       this.setState({ tableName }, this.onChange);
     }
@@ -190,12 +198,6 @@ export default class TableSelector extends React.PureComponent {
       this.fetchTables(force);
       this.onChange();
     });
-  }
-  addOptionIfMissing(options, value) {
-    if (options.filter(o => o.value === this.state.tableName).length === 0 && value) {
-      return [...options, { value, label: value }];
-    }
-    return options;
   }
   renderDatabaseOption(db) {
     return (
@@ -269,7 +271,7 @@ export default class TableSelector extends React.PureComponent {
       tableSelectPlaceholder = t('Select table ');
       tableSelectDisabled = true;
     }
-    const options = this.addOptionIfMissing(this.state.tableOptions, this.state.tableName);
+    const options = this.state.tableOptions;
     const select = this.props.schema ? (
       <Select
         name="select-table"

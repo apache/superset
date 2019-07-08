@@ -280,7 +280,8 @@ class CoreTests(SupersetTestCase):
             ]
         for name, method, url in urls:
             logging.info(f"[{name}]/[{method}]: {url}")
-            self.client.get(url)
+            resp = self.client.get(url)
+            self.assertEqual(resp.status_code, 200)
 
     def test_tablemodelview_list(self):
         self.login(username="admin")
@@ -726,6 +727,14 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp(url)
         self.assertEqual(data["status"], None)
         self.assertEqual(data["error"], None)
+
+    def test_slice_payload_no_datasource(self):
+        self.login(username="admin")
+        data = self.get_json_resp("/superset/explore_json/", raise_on_error=False)
+
+        self.assertEqual(
+            data["error"], "The datasource associated with this chart no longer exists"
+        )
 
     @mock.patch("superset.security.SupersetSecurityManager.schemas_accessible_by_user")
     @mock.patch("superset.security.SupersetSecurityManager.database_access")

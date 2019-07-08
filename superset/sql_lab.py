@@ -40,6 +40,7 @@ from superset.utils.decorators import stats_timing
 config = app.config
 stats_logger = config.get("STATS_LOGGER")
 SQLLAB_TIMEOUT = config.get("SQLLAB_ASYNC_TIME_LIMIT_SEC", 600)
+SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
 log_query = config.get("QUERY_LOGGER")
 
 
@@ -114,7 +115,10 @@ def session_scope(nullpool):
 
 
 @celery_app.task(
-    name="sql_lab.get_sql_results", bind=True, soft_time_limit=SQLLAB_TIMEOUT
+    name="sql_lab.get_sql_results",
+    bind=True,
+    time_limit=SQLLAB_HARD_TIMEOUT,
+    soft_time_limit=SQLLAB_TIMEOUT,
 )
 def get_sql_results(
     ctask,

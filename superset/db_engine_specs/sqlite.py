@@ -26,6 +26,8 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     time_grain_functions = {
         None: "{col}",
+        "PT1S": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:%S', {col}))",
+        "PT1M": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:00', {col}))",
         "PT1H": "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))",
         "P1D": "DATE({col})",
         "P1W": "DATE({col}, -strftime('%W', {col}) || ' days')",
