@@ -60,6 +60,11 @@ from superset import (
 )
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource
+from superset.exceptions import (
+    DatabaseNotFound,
+    SupersetException,
+    SupersetSecurityException,
+)
 from superset.jinja_context import get_template_processor
 from superset.legacy import update_time_range
 import superset.models.core as models
@@ -223,7 +228,8 @@ class DashboardFilter(SupersetFilter):
         )
         return query
 
-from .database import views
+from .database import views as in_views # noqa
+
 
 if config.get("ENABLE_ACCESS_REQUEST"):
 

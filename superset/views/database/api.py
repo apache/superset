@@ -3,7 +3,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import appbuilder
 import superset.models.core as models
-
 from .views import DatabaseView
 
 

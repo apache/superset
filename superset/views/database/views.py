@@ -14,13 +14,6 @@ from sqlalchemy import MetaData
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
-from .forms import CsvToDatabaseForm
-from ..base import (
-    DeleteMixin,
-    SupersetFilter,
-    SupersetModelView,
-    YamlExportMixin,
-)
 from superset import (
     app,
     appbuilder,
@@ -28,8 +21,15 @@ from superset import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetException
-from superset.utils import core as utils
 import superset.models.core as models
+from superset.utils import core as utils
+from superset.views.base import (
+    DeleteMixin,
+    SupersetFilter,
+    SupersetModelView,
+    YamlExportMixin,
+)
+from .forms import CsvToDatabaseForm
 
 
 config = app.config
@@ -341,8 +341,8 @@ class CsvToDatabaseView(SimpleFormView):
         if schemas:
             return schema in schemas
         return (
-                security_manager.database_access(database)
-                or security_manager.all_datasource_access()
+            security_manager.database_access(database)
+            or security_manager.all_datasource_access()
         )
 
 
@@ -354,7 +354,6 @@ class DatabaseTablesAsync(DatabaseView):
 
 
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
-
 
 
 class DatabaseAsync(DatabaseView):
