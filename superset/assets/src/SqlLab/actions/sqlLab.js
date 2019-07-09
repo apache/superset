@@ -55,6 +55,7 @@ export const QUERY_EDITOR_PERSIST_HEIGHT = 'QUERY_EDITOR_PERSIST_HEIGHT';
 export const SET_DATABASES = 'SET_DATABASES';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
 export const LOAD_QUERY_EDITOR = 'LOAD_QUERY_EDITOR';
+export const SET_TABLES = 'SET_TABLES';
 export const SET_ACTIVE_SOUTHPANE_TAB = 'SET_ACTIVE_SOUTHPANE_TAB';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
 export const SET_USER_OFFLINE = 'SET_USER_OFFLINE';
@@ -302,6 +303,40 @@ export function loadQueryEditor(queryEditor) {
   return { type: LOAD_QUERY_EDITOR, queryEditor };
 }
 
+/*
+export function setTables(tableSchemas) {
+  const tables = tableSchemas.forEach((tableSchema) => {
+    const {
+      columns,
+      selectStar,
+      primaryKey,
+      foreignKeys,
+      indexes,
+    } = tableSchema.results;
+    const table = {
+      dbId: tableSchema.database_id,
+      queryEditorId: tableSchema.tab_state_id,
+      schema: tableSchema.schema,
+      name: tableSchema.table,
+      expanded: tableSchema.expanded,
+      id: tableSchema.id,
+      dataPreviewQueryId: null,
+      columns,
+      selectStar,
+      primaryKey,
+      foreignKeys,
+      indexes,
+      isMetadataLoading: false,
+      isExtraMetadataLoading: false,
+    };
+    const query = {
+      id: dataPreviewQueryId,
+    };
+  });
+  return { type: SET_TABLES, tables };
+}
+*/
+
 export function switchQueryEditor(queryEditor) {
   return function (dispatch) {
     if (!queryEditor.loaded) {
@@ -316,9 +351,15 @@ export function switchQueryEditor(queryEditor) {
             sql: json.query.sql,
             dbId: json.query.dbId,
             schema: json.query.schema,
-            queryLimit: json.query.limit,
+            queryLimit: json.queryLimit,
+            validationResult: {
+              id: null,
+              errors: [],
+              completed: false,
+            },
           };
           dispatch(loadQueryEditor(loadedQueryEditor));
+          // dispatch(setTables(json.table_schemas || []));
           dispatch(setActiveQueryEditor(loadedQueryEditor));
         })
         .catch(() =>
@@ -422,6 +463,7 @@ export function addTable(query, tableName, schemaName) {
           expanded: true,
           isMetadataLoading: false,
         };
+        console.log(newTable);
 
         return Promise.all([
           dispatch(mergeTable(newTable, dataPreviewQuery)), // Merge table to tables in state
@@ -453,6 +495,11 @@ export function addTable(query, tableName, schemaName) {
           dispatch(addDangerToast(t('An error occurred while fetching table metadata'))),
         ]),
       );
+
+    SupersetClient.post({
+      endpoint: encodeURI(`/tableschemaview/${table.id}`),
+      postPayload: { table: newTable },
+    });
   };
 }
 
@@ -479,11 +526,33 @@ export function reFetchQueryResults(query) {
 }
 
 export function expandTable(table) {
-  return { type: EXPAND_TABLE, table };
+  return function (dispatch) {
+    SupersetClient.post({
+      endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
+      postPayload: { expanded: true },
+    })
+      .then(() => {
+        dispatch({ type: EXPAND_TABLE, table });
+      })
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while expanding the table schema'))),
+      );
+  };
 }
 
 export function collapseTable(table) {
-  return { type: COLLAPSE_TABLE, table };
+  return function (dispatch) {
+    SupersetClient.post({
+      endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
+      postPayload: { expanded: false },
+    })
+      .then(() => {
+        dispatch({ type: COLLAPSE_TABLE, table });
+      })
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while collapsing the table schema'))),
+      );
+  };
 }
 
 export function removeTable(table) {

@@ -2621,8 +2621,8 @@ class Superset(BaseSupersetView):
                     query_id,
                     rendered_query,
                     return_results=True,
-                    user_name=g.user.username if g.user else None,
-                )
+                    store_results=not query.select_as_cta,
+                    user_name=g.user.username if g.user else None)
 
             payload = json.dumps(
                 apply_display_max_row_limit(data),
