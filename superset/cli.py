@@ -69,7 +69,11 @@ def version(verbose):
 
 
 def load_examples_run(load_test_data, only_metadata=False):
-    print("Loading examples into {}".format(db))
+    if only_metadata:
+        print("Loading examples metadata")
+    else:
+        examples_db = utils.get_example_database()
+        print(f"Loading examples metadata and related data into {examples_db}")
 
     data.load_css_templates()
 
