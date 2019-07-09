@@ -277,6 +277,9 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.LOAD_QUERY_EDITOR]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { ...action.queryEditor });
     },
+    [actions.SET_TABLES]() {
+      return alterInArr(state, 'tables', action.tables[0], { ...action.tables[0] });
+    },
     [actions.SET_ACTIVE_SOUTHPANE_TAB]() {
       return Object.assign({}, state, { activeSouthPaneTab: action.tabId });
     },

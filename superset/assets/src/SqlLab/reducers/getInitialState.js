@@ -53,7 +53,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
         autorun: false,
         dbId: restBootstrapData.active_tab.query.dbId,
         schema: restBootstrapData.active_tab.query.schema,
-        queryLimit: restBootstrapData.active_tab.query.limit,
+        queryLimit: restBootstrapData.active_tab.queryLimit,
         validationResult: {
           id: null,
           errors: [],
@@ -83,7 +83,6 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   const tables = [];
   if (restBootstrapData.active_tab) {
     restBootstrapData.active_tab.table_schemas.forEach((tableSchema) => {
-      console.log(tableSchema);
       const {
         columns,
         selectStar,
@@ -105,7 +104,6 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
         foreignKeys,
         indexes,
       };
-      console.log(table);
       tables.push(table);
     });
   }

@@ -205,6 +205,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     # the query in the textarea, and results (if any)
     query_id = Column(Integer, ForeignKey('query.id'))
     query = relationship('Query')
+    query_limit = Column(Integer)
 
     def to_dict(self):
         return {
@@ -214,6 +215,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             'active': self.active,
             'table_schemas': [ts.to_dict() for ts in self.table_schemas],
             'query': self.query.to_dict(),
+            'query_limit': self.query_limit,
         }
 
 

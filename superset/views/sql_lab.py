@@ -17,7 +17,7 @@
 # pylint: disable=C,R,W
 from typing import Callable
 
-from flask import g, redirect
+from flask import g, redirect, request
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -27,7 +27,7 @@ from flask_sqlalchemy import BaseQuery
 import simplejson as json
 
 from superset import appbuilder, db, get_feature_flags, security_manager
-from superset.models.sql_lab import Query, SavedQuery, TabState
+from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.utils import core as utils
 from .base import (
     BaseSupersetView,
@@ -202,7 +202,41 @@ class TabStateView(BaseSupersetView):
         return json_success(json.dumps(tab_state_id))
 
 
+class TableSchemaView(BaseSupersetView):
+
+    @has_access_api
+    @expose('/', methods=['POST'])
+    def post(self):
+        payload = json.loads(request.form['table'])
+
+
+    @has_access_api
+    @expose('/<int:table_schema_id>/expanded', methods=['GET', 'POST'])
+    def expanded(self, table_schema_id):
+        if request.method == 'POST':
+            payload = json.loads(request.form['expanded'])
+            result = (
+                db.session
+                .query(TableSchema)
+                .filter_by(id=table_schema_id)
+                .update({'expanded': payload})
+            )
+            db.session.commit()
+            response = json.dumps({'id': table_schema_id, 'expanded': payload})
+        else:  # GET
+            expanded = (
+                db.session
+                .query(TableSchema.expanded)
+                .filter_by(id=table_schema_id)
+                .first()
+            )
+            response = json.dumps(expanded)
+
+        return json_success(response)
+
+
 appbuilder.add_view_no_menu(TabStateView)
+appbuilder.add_view_no_menu(TableSchemaView)
 
 
 appbuilder.add_link(
