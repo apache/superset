@@ -73,7 +73,7 @@ setup(
         "croniter>=0.3.28",
         "cryptography>=2.4.2",
         "flask>=1.0.0, <2.0.0",
-        "flask-appbuilder>=2.1.5, <2.3.0",
+        "flask-appbuilder>=2.1.6, <2.3.0",
         "flask-caching",
         "flask-compress",
         "flask-talisman",

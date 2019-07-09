@@ -19,7 +19,6 @@
 from contextlib import closing
 from copy import copy, deepcopy
 from datetime import datetime
-import functools
 import json
 import logging
 import textwrap
@@ -1196,69 +1195,6 @@ class Log(Model):
     dttm = Column(DateTime, default=datetime.utcnow)
     duration_ms = Column(Integer)
     referrer = Column(String(1024))
-
-    @classmethod
-    def log_this(cls, f):
-        """Decorator to log user actions"""
-
-        @functools.wraps(f)
-        def wrapper(*args, **kwargs):
-            user_id = None
-            if g.user:
-                user_id = g.user.get_id()
-            d = request.form.to_dict() or {}
-
-            # request parameters can overwrite post body
-            request_params = request.args.to_dict()
-            d.update(request_params)
-            d.update(kwargs)
-
-            slice_id = d.get("slice_id")
-            dashboard_id = d.get("dashboard_id")
-
-            try:
-                slice_id = int(
-                    slice_id or json.loads(d.get("form_data")).get("slice_id")
-                )
-            except (ValueError, TypeError):
-                slice_id = 0
-
-            stats_logger.incr(f.__name__)
-            start_dttm = datetime.now()
-            value = f(*args, **kwargs)
-            duration_ms = (datetime.now() - start_dttm).total_seconds() * 1000
-
-            # bulk insert
-            try:
-                explode_by = d.get("explode")
-                records = json.loads(d.get(explode_by))
-            except Exception:
-                records = [d]
-
-            referrer = request.referrer[:1000] if request.referrer else None
-            logs = []
-            for record in records:
-                try:
-                    json_string = json.dumps(record)
-                except Exception:
-                    json_string = None
-                log = cls(
-                    action=f.__name__,
-                    json=json_string,
-                    dashboard_id=dashboard_id,
-                    slice_id=slice_id,
-                    duration_ms=duration_ms,
-                    referrer=referrer,
-                    user_id=user_id,
-                )
-                logs.append(log)
-
-            sesh = db.session()
-            sesh.bulk_save_objects(logs)
-            sesh.commit()
-            return value
-
-        return wrapper
 
 
 class FavStar(Model):

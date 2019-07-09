@@ -678,6 +678,40 @@ environment variable: ::
 
 *Adapted from http://flask.pocoo.org/snippets/69/*
 
+Event Logging
+-------------
+
+Superset by default logs special action event on it's database. These log can be accessed on the UI navigating to
+"Security" -> "Action Log". You can freely customize these logs by implementing your own event log class.
+
+Example of a simple JSON to Stdout class::
+
+    class JSONStdOutEventLogger(AbstractEventLogger):
+
+        def log(self, user_id, action, *args, **kwargs):
+            records = kwargs.get('records', list())
+            dashboard_id = kwargs.get('dashboard_id')
+            slice_id = kwargs.get('slice_id')
+            duration_ms = kwargs.get('duration_ms')
+            referrer = kwargs.get('referrer')
+
+            for record in records:
+                log = dict(
+                    action=action,
+                    json=record,
+                    dashboard_id=dashboard_id,
+                    slice_id=slice_id,
+                    duration_ms=duration_ms,
+                    referrer=referrer,
+                    user_id=user_id
+                )
+                print(json.dumps(log))
+
+
+Then on Superset's config reference the class you want to use::
+
+    EVENT_LOGGER = JSONStdOutEventLogger
+
 
 Upgrading
 ---------
