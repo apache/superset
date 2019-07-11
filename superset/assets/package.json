@@ -21,7 +21,6 @@
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true"
   },
-  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/apache/incubator-superset.git"
