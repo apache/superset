@@ -72,6 +72,7 @@ export const dashboardStatePropShape = PropTypes.shape({
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object,
   editMode: PropTypes.bool,
+  isPublished: PropTypes.bool.isRequired,
   builderPaneType: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
