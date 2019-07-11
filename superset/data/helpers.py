@@ -27,31 +27,32 @@ from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models import core as models
 
-BASE_URL = 'https://github.com/apache-superset/examples-data/blob/master/'
+BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"
 
 # Shortcuts
 DB = models.Database
 Slice = models.Slice
 Dash = models.Dashboard
 
-TBL = ConnectorRegistry.sources['table']
+TBL = ConnectorRegistry.sources["table"]
 
 config = app.config
 
-DATA_FOLDER = os.path.join(config.get('BASE_DIR'), 'data')
+DATA_FOLDER = os.path.join(config.get("BASE_DIR"), "data")
 
 misc_dash_slices = set()  # slices assembled in a 'Misc Chart' dashboard
 
 
 def update_slice_ids(layout_dict, slices):
     charts = [
-        component for component in layout_dict.values()
-        if isinstance(component, dict) and component['type'] == 'CHART'
+        component
+        for component in layout_dict.values()
+        if isinstance(component, dict) and component["type"] == "CHART"
     ]
-    sorted_charts = sorted(charts, key=lambda k: k['meta']['chartId'])
+    sorted_charts = sorted(charts, key=lambda k: k["meta"]["chartId"])
     for i, chart_component in enumerate(sorted_charts):
         if i < len(slices):
-            chart_component['meta']['chartId'] = int(slices[i].id)
+            chart_component["meta"]["chartId"] = int(slices[i].id)
 
 
 def merge_slice(slc):
@@ -69,9 +70,9 @@ def get_slice_json(defaults, **kwargs):
 
 
 def get_example_data(filepath, is_gzip=True, make_bytes=False):
-    content = requests.get(f'{BASE_URL}{filepath}?raw=true').content
+    content = requests.get(f"{BASE_URL}{filepath}?raw=true").content
     if is_gzip:
-        content = zlib.decompress(content, zlib.MAX_WBITS|16)
+        content = zlib.decompress(content, zlib.MAX_WBITS | 16)
     if make_bytes:
         content = BytesIO(content)
     return content

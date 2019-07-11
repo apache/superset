@@ -23,7 +23,7 @@ from colorama import Fore, Style
 class BaseStatsLogger(object):
     """Base class for logging realtime events"""
 
-    def __init__(self, prefix='superset'):
+    def __init__(self, prefix="superset"):
         self.prefix = prefix
 
     def key(self, key):
@@ -49,33 +49,34 @@ class BaseStatsLogger(object):
 
 class DummyStatsLogger(BaseStatsLogger):
     def incr(self, key):
-        logging.debug(
-            Fore.CYAN + '[stats_logger] (incr) ' + key + Style.RESET_ALL)
+        logging.debug(Fore.CYAN + "[stats_logger] (incr) " + key + Style.RESET_ALL)
 
     def decr(self, key):
-        logging.debug((
-            Fore.CYAN + '[stats_logger] (decr) ' + key + Style.RESET_ALL))
+        logging.debug((Fore.CYAN + "[stats_logger] (decr) " + key + Style.RESET_ALL))
 
     def timing(self, key, value):
-        logging.debug((
-            Fore.CYAN +
-            f'[stats_logger] (timing) {key} | {value} ' +
-            Style.RESET_ALL))
+        logging.debug(
+            (Fore.CYAN + f"[stats_logger] (timing) {key} | {value} " + Style.RESET_ALL)
+        )
 
     def gauge(self, key, value):
-        logging.debug((
-            Fore.CYAN + '[stats_logger] (gauge) ' +
-            f'{key} | {value}' +
-            Style.RESET_ALL))
+        logging.debug(
+            (
+                Fore.CYAN
+                + "[stats_logger] (gauge) "
+                + f"{key} | {value}"
+                + Style.RESET_ALL
+            )
+        )
 
 
 try:
     from statsd import StatsClient
 
     class StatsdStatsLogger(BaseStatsLogger):
-
-        def __init__(self, host='localhost', port=8125,
-                     prefix='superset', statsd_client=None):
+        def __init__(
+            self, host="localhost", port=8125, prefix="superset", statsd_client=None
+        ):
             """
             Initializes from either params or a supplied, pre-constructed statsd client.
 
@@ -99,6 +100,7 @@ try:
         def gauge(self, key):
             # pylint: disable=no-value-for-parameter
             self.client.gauge(key)
+
 
 except Exception:
     pass

@@ -30,6 +30,7 @@ import {
   SHOW_BUILDER_PANE,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
+  TOGGLE_PUBLISHED,
   UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
 } from '../actions/dashboardState';
@@ -70,6 +71,9 @@ export default function dashboardStateReducer(state = {}, action) {
     },
     [TOGGLE_FAVE_STAR]() {
       return { ...state, isStarred: action.isStarred };
+    },
+    [TOGGLE_PUBLISHED]() {
+      return { ...state, isPublished: action.isPublished };
     },
     [SET_EDIT_MODE]() {
       return {

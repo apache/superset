@@ -33,44 +33,45 @@ from .helpers import (
 
 def load_multiformat_time_series():
     """Loading time series data from a zip file in the repo"""
-    data = get_example_data('multiformat_time_series.json.gz')
+    data = get_example_data("multiformat_time_series.json.gz")
     pdf = pd.read_json(data)
 
-    pdf.ds = pd.to_datetime(pdf.ds, unit='s')
-    pdf.ds2 = pd.to_datetime(pdf.ds2, unit='s')
+    pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+    pdf.ds2 = pd.to_datetime(pdf.ds2, unit="s")
     pdf.to_sql(
-        'multiformat_time_series',
+        "multiformat_time_series",
         db.engine,
-        if_exists='replace',
+        if_exists="replace",
         chunksize=500,
         dtype={
-            'ds': Date,
-            'ds2': DateTime,
-            'epoch_s': BigInteger,
-            'epoch_ms': BigInteger,
-            'string0': String(100),
-            'string1': String(100),
-            'string2': String(100),
-            'string3': String(100),
+            "ds": Date,
+            "ds2": DateTime,
+            "epoch_s": BigInteger,
+            "epoch_ms": BigInteger,
+            "string0": String(100),
+            "string1": String(100),
+            "string2": String(100),
+            "string3": String(100),
         },
-        index=False)
-    print('Done loading table!')
-    print('-' * 80)
-    print('Creating table [multiformat_time_series] reference')
-    obj = db.session.query(TBL).filter_by(table_name='multiformat_time_series').first()
+        index=False,
+    )
+    print("Done loading table!")
+    print("-" * 80)
+    print("Creating table [multiformat_time_series] reference")
+    obj = db.session.query(TBL).filter_by(table_name="multiformat_time_series").first()
     if not obj:
-        obj = TBL(table_name='multiformat_time_series')
-    obj.main_dttm_col = 'ds'
+        obj = TBL(table_name="multiformat_time_series")
+    obj.main_dttm_col = "ds"
     obj.database = utils.get_or_create_main_db()
     dttm_and_expr_dict = {
-        'ds': [None, None],
-        'ds2': [None, None],
-        'epoch_s': ['epoch_s', None],
-        'epoch_ms': ['epoch_ms', None],
-        'string2': ['%Y%m%d-%H%M%S', None],
-        'string1': ['%Y-%m-%d^%H:%M:%S', None],
-        'string0': ['%Y-%m-%d %H:%M:%S.%f', None],
-        'string3': ['%Y/%m/%d%H:%M:%S.%f', None],
+        "ds": [None, None],
+        "ds2": [None, None],
+        "epoch_s": ["epoch_s", None],
+        "epoch_ms": ["epoch_ms", None],
+        "string2": ["%Y%m%d-%H%M%S", None],
+        "string1": ["%Y-%m-%d^%H:%M:%S", None],
+        "string0": ["%Y-%m-%d %H:%M:%S.%f", None],
+        "string3": ["%Y/%m/%d%H:%M:%S.%f", None],
     }
     for col in obj.columns:
         dttm_and_expr = dttm_and_expr_dict[col.column_name]
@@ -82,26 +83,26 @@ def load_multiformat_time_series():
     obj.fetch_metadata()
     tbl = obj
 
-    print('Creating Heatmap charts')
+    print("Creating Heatmap charts")
     for i, col in enumerate(tbl.columns):
         slice_data = {
-            'metrics': ['count'],
-            'granularity_sqla': col.column_name,
-            'row_limit': config.get('ROW_LIMIT'),
-            'since': '2015',
-            'until': '2016',
-            'where': '',
-            'viz_type': 'cal_heatmap',
-            'domain_granularity': 'month',
-            'subdomain_granularity': 'day',
+            "metrics": ["count"],
+            "granularity_sqla": col.column_name,
+            "row_limit": config.get("ROW_LIMIT"),
+            "since": "2015",
+            "until": "2016",
+            "where": "",
+            "viz_type": "cal_heatmap",
+            "domain_granularity": "month",
+            "subdomain_granularity": "day",
         }
 
         slc = Slice(
-            slice_name=f'Calendar Heatmap multiformat {i}',
-            viz_type='cal_heatmap',
-            datasource_type='table',
+            slice_name=f"Calendar Heatmap multiformat {i}",
+            viz_type="cal_heatmap",
+            datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(slice_data),
         )
         merge_slice(slc)
-    misc_dash_slices.add('Calendar Heatmap multiformat 0')
+    misc_dash_slices.add("Calendar Heatmap multiformat 0")

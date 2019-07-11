@@ -97,7 +97,12 @@ articles. See [Documentation](#documentation) for more details.
 
 ### Add Translations
 
-If you are proficient in a non-English language, you can help translate text strings from Superset's UI. You can jump in to the existing language dictionaries at `superset/translations/<language_code>/LC_MESSAGES/messages.po`, or even create a dictionary for a new language altogether. See [Translating](#translating) for more details.
+If you are proficient in a non-English language, you can help translate
+text strings from Superset's UI. You can jump in to the existing
+language dictionaries at
+`superset/translations/<language_code>/LC_MESSAGES/messages.po`, or
+even create a dictionary for a new language altogether.
+See [Translating](#translating) for more details.
 
 ### Ask Questions
 
@@ -296,9 +301,9 @@ python setup.py build_sphinx
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps. 
+Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
 
-Developers should use a virtualenv. 
+Developers should use a virtualenv.
 
 ```
 pip install virtualenv
@@ -319,7 +324,7 @@ pip install -r requirements-dev.txt
 pip install -e .
 
 # Create an admin user in your metadata database
-fabmanager create-admin --app superset
+flask fab create-admin
 
 # Initialize the database
 superset db upgrade
@@ -335,6 +340,9 @@ superset load_examples
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 ```
+
+If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
+`FLASK_ENV=development superset run -p 8088 --reload --debugger`
 
 #### Logging to the browser console
 
@@ -444,6 +452,15 @@ export enum FeatureFlag {
 those specified under FEATURE_FLAGS in `superset_config.py`. For example, `DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False }` in `superset/config.py` and `FEATURE_FLAGS = { 'BAR': True, 'BAZ': True }` in `superset_config.py` will result
 in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
 
+## Git Hooks
+
+Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/). To install run the following:
+
+```bash
+pip3 install -r requirements-dev.txt
+pre-commit install
+```
+
 ## Linting
 
 Lint the project with:
@@ -457,6 +474,10 @@ cd superset/assets
 npm ci
 npm run lint
 ```
+
+The Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html).
+
 
 ## Testing
 
@@ -562,16 +583,23 @@ See [`superset/assets/cypress_build.sh`](https://github.com/apache/incubator-sup
 
 ## Translating
 
-We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset. In Python files, we import the magic `_` function using:
+We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset.
+In Python files, we import the magic `_` function using:
 
 ```python
 from flask_babel import lazy_gettext as _
 ```
 
-then wrap our translatable strings with it, e.g. `_('Translate me')`. During extraction, string literals passed to `_` will be added to the generated `.po` file for each language for later translation.
-At runtime, the `_` function will return the translation of the given string for the current language, or the given string itself if no translation is available.
+then wrap our translatable strings with it, e.g. `_('Translate me')`.
+During extraction, string literals passed to `_` will be added to the
+generated `.po` file for each language for later translation.
 
-In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number).
+At runtime, the `_` function will return the translation of the given
+string for the current language, or the given string itself
+if no translation is available.
+
+In JavaScript, the technique is similar:
+we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
 import { t, tn } from '@superset-ui/translation';
@@ -594,7 +622,7 @@ LANGUAGES = {
 ### Extracting new strings for translation
 
 ```bash
-fabmanager babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
+flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
 ```
 
 You can then translate the strings gathered in files located under
@@ -607,7 +635,7 @@ For the translations to take effect:
 ```bash
 # In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
 npm install -g po2json
-fabmanager babel-compile --target superset/translations
+flask fab babel-compile --target superset/translations
 # Convert the en PO file into a JSON file
 po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
 ```
@@ -733,7 +761,7 @@ to work on `async` related features.
 
 To do this, you'll need to:
 * Add an additional database entry. We recommend you copy the connection
-  string from the database labeled `main`, and then enable `SQL Lab` and the 
+  string from the database labeled `main`, and then enable `SQL Lab` and the
   features you want to use. Don't forget to check the `Async` box
 * Configure a results backend, here's a local `FileSystemCache` example,
   not recommended for production,
