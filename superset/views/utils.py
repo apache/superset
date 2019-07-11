@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
 from flask import g, request
@@ -24,50 +25,44 @@ import simplejson as json
 
 from superset import app, db, viz
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.exceptions import SupersetException
 from superset.legacy import update_time_range
 import superset.models.core as models
+from superset.utils.core import QueryStatus
 
 
-FORM_DATA_KEY_BLACKLIST = []
-if not app.config.get('ENABLE_JAVASCRIPT_CONTROLS'):
-    FORM_DATA_KEY_BLACKLIST = [
-        'js_tooltip',
-        'js_onclick_href',
-        'js_data_mutator',
-    ]
+FORM_DATA_KEY_BLACKLIST: List[str] = []
+if not app.config.get("ENABLE_JAVASCRIPT_CONTROLS"):
+    FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
 def bootstrap_user_data(username=None, include_perms=False):
     if not username:
         username = g.user.username
 
-    user = (
-        db.session.query(ab_models.User)
-        .filter_by(username=username)
-        .one()
-    )
+    user = db.session.query(ab_models.User).filter_by(username=username).one()
 
     payload = {
-        'username': user.username,
-        'firstName': user.first_name,
-        'lastName': user.last_name,
-        'userId': user.id,
-        'isActive': user.is_active,
-        'createdOn': user.created_on.isoformat(),
-        'email': user.email,
+        "username": user.username,
+        "firstName": user.first_name,
+        "lastName": user.last_name,
+        "userId": user.id,
+        "isActive": user.is_active,
+        "createdOn": user.created_on.isoformat(),
+        "email": user.email,
     }
 
     if include_perms:
         roles, permissions = get_permissions(user)
-        payload['roles'] = roles
-        payload['permissions'] = permissions
+        payload["roles"] = roles
+        payload["permissions"] = permissions
 
     return payload
 
 
 def get_permissions(user):
     if not user.roles:
-        raise AttributeError('User object does not have roles')
+        raise AttributeError("User object does not have roles")
 
     roles = {}
     permissions = defaultdict(set)
@@ -75,11 +70,8 @@ def get_permissions(user):
         perms = set()
         for perm in role.permissions:
             if perm.permission and perm.view_menu:
-                perms.add(
-                    (perm.permission.name, perm.view_menu.name),
-                )
-                if perm.permission.name in ('datasource_access',
-                                            'database_access'):
+                perms.add((perm.permission.name, perm.view_menu.name))
+                if perm.permission.name in ("datasource_access", "database_access"):
                     permissions[perm.permission.name].add(perm.view_menu.name)
         roles[role.name] = [
             [perm.permission.name, perm.view_menu.name]
@@ -91,35 +83,24 @@ def get_permissions(user):
 
 
 def get_viz(
-        slice_id=None,
-        form_data=None,
-        datasource_type=None,
-        datasource_id=None,
-        force=False,
+    slice_id=None, form_data=None, datasource_type=None, datasource_id=None, force=False
 ):
     if slice_id:
-        slc = (
-            db.session.query(models.Slice)
-            .filter_by(id=slice_id)
-            .one()
-        )
+        slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
         return slc.get_viz()
     else:
-        viz_type = form_data.get('viz_type', 'table')
+        viz_type = form_data.get("viz_type", "table")
         datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session)
-        viz_obj = viz.viz_types[viz_type](
-            datasource,
-            form_data=form_data,
-            force=force,
+            datasource_type, datasource_id, db.session
         )
+        viz_obj = viz.viz_types[viz_type](datasource, form_data=form_data, force=force)
         return viz_obj
 
 
 def get_form_data(slice_id=None, use_slice_data=False):
     form_data = {}
-    post_data = request.form.get('form_data')
-    request_args_data = request.args.get('form_data')
+    post_data = request.form.get("form_data")
+    request_args_data = request.args.get("form_data")
     # Supporting POST
     if post_data:
         form_data.update(json.loads(post_data))
@@ -127,30 +108,27 @@ def get_form_data(slice_id=None, use_slice_data=False):
     if request_args_data:
         form_data.update(json.loads(request_args_data))
 
-    url_id = request.args.get('r')
+    url_id = request.args.get("r")
     if url_id:
         saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
         if saved_url:
             url_str = parse.unquote_plus(
-                saved_url.url.split('?')[1][10:], encoding='utf-8', errors=None)
+                saved_url.url.split("?")[1][10:], encoding="utf-8", errors=None
+            )
             url_form_data = json.loads(url_str)
             # allow form_date in request override saved url
             url_form_data.update(form_data)
             form_data = url_form_data
 
-    form_data = {
-        k: v
-        for k, v in form_data.items()
-        if k not in FORM_DATA_KEY_BLACKLIST
-    }
+    form_data = {k: v for k, v in form_data.items() if k not in FORM_DATA_KEY_BLACKLIST}
 
     # When a slice_id is present, load from DB and override
     # the form_data from the DB with the other form_data provided
-    slice_id = form_data.get('slice_id') or slice_id
+    slice_id = form_data.get("slice_id") or slice_id
     slc = None
 
     # Check if form data only contains slice_id, additional filters and viz type
-    valid_keys = ['slice_id', 'extra_filters', 'adhoc_filters', 'viz_type']
+    valid_keys = ["slice_id", "extra_filters", "adhoc_filters", "viz_type"]
     valid_slice_id = all(key in valid_keys for key in form_data)
 
     # Include the slice_form_data if request from explore or slice calls
@@ -167,20 +145,61 @@ def get_form_data(slice_id=None, use_slice_data=False):
     return form_data, slc
 
 
-def get_datasource_info(datasource_id, datasource_type, form_data):
-    """Compatibility layer for handling of datasource info
+def get_datasource_info(
+    datasource_id: Optional[int],
+    datasource_type: Optional[str],
+    form_data: Dict[str, Any],
+) -> Tuple[int, Optional[str]]:
+    """
+    Compatibility layer for handling of datasource info
 
     datasource_id & datasource_type used to be passed in the URL
     directory, now they should come as part of the form_data,
-    This function allows supporting both without duplicating code"""
-    datasource = form_data.get('datasource', '')
-    if '__' in datasource:
-        datasource_id, datasource_type = datasource.split('__')
+
+    This function allows supporting both without duplicating code
+
+    :param datasource_id: The datasource ID
+    :param datasource_type: The datasource type, i.e., 'druid' or 'table'
+    :param form_data: The URL form data
+    :returns: The datasource ID and type
+    :raises SupersetException: If the datasource no longer exists
+    """
+
+    datasource = form_data.get("datasource", "")
+
+    if "__" in datasource:
+        datasource_id, datasource_type = datasource.split("__")
         # The case where the datasource has been deleted
-        datasource_id = None if datasource_id == 'None' else datasource_id
+        if datasource_id == "None":
+            datasource_id = None
 
     if not datasource_id:
-        raise Exception(
-            'The datasource associated with this chart no longer exists')
+        raise SupersetException(
+            "The datasource associated with this chart no longer exists"
+        )
+
     datasource_id = int(datasource_id)
     return datasource_id, datasource_type
+
+
+def apply_display_max_row_limit(sql_results: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Given a `sql_results` nested structure, applies a limit to the number of rows
+
+    `sql_results` here is the nested structure coming out of sql_lab.get_sql_results, it
+    contains metadata about the query, as well as the data set returned by the query.
+    This method limits the number of rows adds a `displayLimitReached: True` flag to the
+    metadata.
+
+    :param sql_results: The results of a sql query from sql_lab.get_sql_results
+    :returns: The mutated sql_results structure
+    """
+    display_limit = app.config.get("DISPLAY_MAX_ROW")
+    if (
+        display_limit
+        and sql_results["status"] == QueryStatus.SUCCESS
+        and display_limit < sql_results["query"]["rows"]
+    ):
+        sql_results["data"] = sql_results["data"][:display_limit]
+        sql_results["displayLimitReached"] = True
+    return sql_results

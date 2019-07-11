@@ -99,6 +99,32 @@ export function saveFaveStar(id, isStarred) {
   };
 }
 
+export const TOGGLE_PUBLISHED = 'TOGGLE_PUBLISHED';
+export function togglePublished(isPublished) {
+  return { type: TOGGLE_PUBLISHED, isPublished };
+}
+
+export function savePublished(id, isPublished) {
+  return function savePublishedThunk(dispatch) {
+    return SupersetClient.post({
+      endpoint: `/superset/dashboard/${id}/published/`,
+      postPayload: { published: isPublished },
+    })
+      .then(() => {
+        const nowPublished = isPublished ? 'published' : 'hidden';
+        dispatch(addSuccessToast(t(`This dashboard is now ${nowPublished}`)));
+        dispatch(togglePublished(isPublished));
+      })
+      .catch(() => {
+        dispatch(
+          addDangerToast(
+            t('You do not have permissions to edit this dashboard.'),
+          ),
+        );
+      });
+  };
+}
+
 export const TOGGLE_EXPAND_SLICE = 'TOGGLE_EXPAND_SLICE';
 export function toggleExpandSlice(sliceId) {
   return { type: TOGGLE_EXPAND_SLICE, sliceId };

@@ -14,11 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# Translations template for PROJECT.
-# Copyright (C) 2018 ORGANIZATION
-# This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2018.
-#
+
 #, fuzzy
 msgid ""
 msgstr ""

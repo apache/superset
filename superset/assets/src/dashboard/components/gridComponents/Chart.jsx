@@ -283,7 +283,7 @@ class Chart extends React.Component {
             chartId={id}
             chartStatus={chart.chartStatus}
             datasource={datasource}
-            filters={filters}
+            initialValues={filters[id]}
             formData={formData}
             queryResponse={chart.queryResponse}
             timeout={timeout}

@@ -78,8 +78,8 @@ class URLShortLinkButton extends React.Component {
         onEnter={this.getCopyUrl}
         overlay={this.renderPopover()}
       >
-        <span className="btn btn-default btn-sm" data-test="short-link-button">
-          <i className="fa fa-link" />&nbsp;
+        <span className="short-link-trigger btn btn-default btn-sm" data-test="short-link-button">
+          <i className="short-link-trigger fa fa-link" />&nbsp;
         </span>
       </OverlayTrigger>
     );
