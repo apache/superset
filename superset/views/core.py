@@ -42,8 +42,7 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
-from sqlalchemy import and_, MetaData, or_, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_, or_, select
 from werkzeug.routing import BaseConverter
 
 from superset import (
@@ -229,8 +228,8 @@ class DashboardFilter(SupersetFilter):
         return query
 
 
+from .database import api as database_api  # noqa
 from .database import views as in_views  # noqa
-from .database import api as database_api
 
 if config.get("ENABLE_ACCESS_REQUEST"):
 
