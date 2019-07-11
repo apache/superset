@@ -774,24 +774,22 @@ class UtilsTestCase(unittest.TestCase):
 
     def test_setup_cache_null_config(self):
         app = Flask(__name__)
-        cache_config = {
-            'CACHE_TYPE': 'null',
-        }
+        cache_config = {"CACHE_TYPE": "null"}
         self.assertIsNone(setup_cache(app, cache_config))
 
     def test_setup_cache_standard_config(self):
         app = Flask(__name__)
         cache_config = {
-            'CACHE_TYPE': 'redis',
-            'CACHE_DEFAULT_TIMEOUT': 60,
-            'CACHE_KEY_PREFIX': 'superset_results',
-            'CACHE_REDIS_URL': 'redis://localhost:6379/0',
+            "CACHE_TYPE": "redis",
+            "CACHE_DEFAULT_TIMEOUT": 60,
+            "CACHE_KEY_PREFIX": "superset_results",
+            "CACHE_REDIS_URL": "redis://localhost:6379/0",
         }
         assert isinstance(setup_cache(app, cache_config), Cache) is True
 
     def test_setup_cache_custom_function(self):
         app = Flask(__name__)
-        CustomCache = type('CustomCache', (object,), {"__init__": lambda *args: None})
+        CustomCache = type("CustomCache", (object,), {"__init__": lambda *args: None})
 
         def init_cache(app):
             return CustomCache(app, {})
