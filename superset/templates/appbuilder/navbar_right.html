@@ -6,7 +6,7 @@
 {% if languages.keys()|length > 1 %}
 <li class="dropdown">
     <a class="dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)">
-       <div class="f16"><i class="flag {{languages[locale].get('flag')}}"></i>&nbsp;<b class="caret"></b>
+	    <div class="f16">&nbsp;{{languages[locale].get('name')}}<b class="caret"></b>
        </div>
     </a>
     <ul class="dropdown-menu" id="language-picker">
@@ -15,7 +15,7 @@
             {% if lang != locale %}
                 <a tabindex="-1" href="{{appbuilder.get_url_for_locale(lang)}}">
                   <div class="f16">
-                    <i class="flag {{languages[lang].get('flag')}}"></i> - {{languages[lang].get('name')}}
+	             {{languages[lang].get('name')}}
                   </div>
                 </a>
             {% endif %}
@@ -43,6 +43,4 @@
         </ul>
     </li>
 {% else %}
-    <li><a href="{{appbuilder.get_url_for_login}}">
-    <i class="fa fa-fw fa-sign-in"></i>{{_("Login")}}</a></li>
 {% endif %}
