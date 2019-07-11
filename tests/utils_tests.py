@@ -20,10 +20,9 @@ import unittest
 from unittest.mock import patch
 import uuid
 
-import numpy
-
 from flask import Flask
 from flask_caching import Cache
+import numpy
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
@@ -793,6 +792,7 @@ class UtilsTestCase(unittest.TestCase):
     def test_setup_cache_custom_function(self):
         app = Flask(__name__)
         CustomCache = type('CustomCache', (object,), {"__init__": lambda *args: None})
+
         def init_cache(app):
             return CustomCache(app, {})
 

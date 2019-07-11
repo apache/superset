@@ -523,7 +523,7 @@ into your global default defined in ``CACHE_CONFIG``.
 
 It is also possible to pass a custom cache initialization function in the
 config to handle additional caching use cases. The function must return an
-object that is compatible with the `Flask-Cache <https://pythonhosted.org/Flask-Cache/>` API.
+object that is compatible with the `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ API.
 
 .. code-block:: python
 
