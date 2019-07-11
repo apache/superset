@@ -102,7 +102,9 @@ WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log"]
 DEBUG = os.environ.get("FLASK_ENV") == "development"
 FLASK_USE_RELOAD = True
 
-# Whether to show the stacktrace on 500 error
+# Superset allows server-side python stacktraces to be surfaced to the
+# user when this feature is on. This may has security implications
+# and it's more secure to turn it off in production settings.
 SHOW_STACKTRACE = True
 
 # Extract and use X-Forwarded-For/X-Forwarded-Proto headers?
@@ -309,10 +311,8 @@ DEFAULT_MODULE_DS_MAP = OrderedDict(
 ADDITIONAL_MODULE_DS_MAP = {}
 ADDITIONAL_MIDDLEWARE = []
 
-"""
-1) https://docs.python-guide.org/writing/logging/
-2) https://docs.python.org/2/library/logging.config.html
-"""
+# 1) https://docs.python-guide.org/writing/logging/
+# 2) https://docs.python.org/2/library/logging.config.html
 
 # Console Log Settings
 
@@ -404,10 +404,8 @@ class CeleryConfig(object):
 
 CELERY_CONFIG = CeleryConfig
 
-"""
 # Set celery config to None to disable all the above configuration
-CELERY_CONFIG = None
-"""
+# CELERY_CONFIG = None
 
 # Additional static HTTP headers to be served by your Superset server. Note
 # Flask-Talisman aplies the relevant security HTTP headers.
