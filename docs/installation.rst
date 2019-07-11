@@ -377,7 +377,7 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
-| Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://`                                   |
+| Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://``                                  |
 +------------------+---------------------------------------+-------------------------------------------------+
 | IBM Db2          | ``pip install ibm_db_sa``             | ``db2+ibm_db://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -423,6 +423,15 @@ You can also use `PyAthena` library(no java required) like this ::
 
 See `PyAthena <https://github.com/laughingman7743/PyAthena#sqlalchemy>`_.
 
+(Google) BigQuery
+-----------------
+
+The connection string for BigQuery looks like this ::
+
+    bigquery://{project_id}
+
+To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
+
 Snowflake
 ---------
 
@@ -458,7 +467,7 @@ Required environment variables: ::
 See `Teradata SQLAlchemy <https://github.com/Teradata/sqlalchemy-teradata>`_.
 
 Apache Drill
----------
+------------
 At the time of writing, the SQLAlchemy Dialect is not available on pypi and must be downloaded here:
 `SQLAlchemy Drill <https://github.com/JohnOmernik/sqlalchemy-drill>`_
 
@@ -669,6 +678,40 @@ environment variable: ::
 
 *Adapted from http://flask.pocoo.org/snippets/69/*
 
+Event Logging
+-------------
+
+Superset by default logs special action event on it's database. These log can be accessed on the UI navigating to
+"Security" -> "Action Log". You can freely customize these logs by implementing your own event log class.
+
+Example of a simple JSON to Stdout class::
+
+    class JSONStdOutEventLogger(AbstractEventLogger):
+
+        def log(self, user_id, action, *args, **kwargs):
+            records = kwargs.get('records', list())
+            dashboard_id = kwargs.get('dashboard_id')
+            slice_id = kwargs.get('slice_id')
+            duration_ms = kwargs.get('duration_ms')
+            referrer = kwargs.get('referrer')
+
+            for record in records:
+                log = dict(
+                    action=action,
+                    json=record,
+                    dashboard_id=dashboard_id,
+                    slice_id=slice_id,
+                    duration_ms=duration_ms,
+                    referrer=referrer,
+                    user_id=user_id
+                )
+                print(json.dumps(log))
+
+
+Then on Superset's config reference the class you want to use::
+
+    EVENT_LOGGER = JSONStdOutEventLogger
+
 
 Upgrading
 ---------
@@ -850,6 +893,7 @@ You can configure which validation implementation is used with which database
 engine by adding a block like the following to your config.py:
 
 .. code-block:: python
+
      FEATURE_FLAGS = {
          'SQL_VALIDATORS_BY_ENGINE': {
              'presto': 'PrestoDBSQLValidator',

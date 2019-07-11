@@ -23,7 +23,7 @@ from __future__ import unicode_literals
 from flask import g, request, Response
 from flask_appbuilder import expose
 
-from superset import app, appbuilder, security_manager
+from superset import app, appbuilder, event_logger, security_manager
 from superset.exceptions import SupersetException
 import superset.models.core as models
 from superset.views.core import Superset
@@ -31,7 +31,6 @@ from .base import json_error_response
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
-log_this = models.Log.log_this
 DAR = models.DatasourceAccessRequest
 
 
@@ -57,8 +56,8 @@ class Lyft(Superset):
                 raise UserDontExistException('Email to impersonate not found')
             g.user = user
 
+    @event_logger.log_this
     @expose('/sql_json/', methods=['POST', 'GET'])
-    @log_this
     def sql_json(self):
         try:
             Lyft.authorize()
@@ -68,8 +67,8 @@ class Lyft(Superset):
             return json_error_response('{}'.format(e))
         return self.sql_json_call(request)
 
+    @event_logger.log_this
     @expose('/queries/<last_updated_ms>')
-    @log_this
     def queries(self, last_updated_ms):
         try:
             self.authorize()
@@ -77,8 +76,8 @@ class Lyft(Superset):
             return json_error_response('{}'.format(e))
         return self.queries_call(last_updated_ms)
 
+    @event_logger.log_this
     @expose('/results/<key>')
-    @log_this
     def results(self, key):
         try:
             self.authorize()

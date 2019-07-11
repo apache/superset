@@ -40,12 +40,12 @@ from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
+from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
-from sqlalchemy import and_, create_engine, MetaData, or_, select
-from sqlalchemy.engine.url import make_url
+from sqlalchemy import and_, MetaData, or_, select
 from sqlalchemy.exc import IntegrityError
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
@@ -56,6 +56,7 @@ from superset import (
     cache,
     conf,
     db,
+    event_logger,
     get_feature_flags,
     results_backend,
     security_manager,
@@ -64,7 +65,11 @@ from superset import (
 )
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
-from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.exceptions import (
+    DatabaseNotFound,
+    SupersetException,
+    SupersetSecurityException,
+)
 from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
 from superset.legacy import update_time_range
@@ -86,6 +91,7 @@ from .base import (
     DeleteMixin,
     generate_download_headers,
     get_error_msg,
+    get_user_roles,
     handle_api_exception,
     json_error_response,
     json_success,
@@ -104,7 +110,6 @@ from .utils import (
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
 stats_logger = config.get("STATS_LOGGER")
-log_this = models.Log.log_this
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
 
@@ -211,36 +216,59 @@ class DatabaseFilter(SupersetFilter):
 
 class DashboardFilter(SupersetFilter):
     """
-    List dashboards for which users have access to at least one slice or are owners.
+    List dashboards with the following criteria:
+        1. Those which the user owns
+        2. Those which the user has favorited
+        3. Those which have been published (if they have access to at least one slice)
+
+    If the user is an admin show them all dashboards.
+    This means they do not get curation but can still sort by "published"
+    if they wish to see those dashboards which are published first
     """
 
     def apply(self, query, func):  # noqa
-        if security_manager.all_datasource_access():
-            return query
+        Dash = models.Dashboard
+        User = ab_models.User
         Slice = models.Slice  # noqa
-        Dash = models.Dashboard  # noqa
-        User = security_manager.user_model
-        # TODO(bogdan): add `schema_access` support here
+        Favorites = models.FavStar
+
+        user_roles = [role.name.lower() for role in list(self.get_user_roles())]
+        if "admin" in user_roles:
+            return query
+
         datasource_perms = self.get_view_menus("datasource_access")
-        slice_ids_qry = db.session.query(Slice.id).filter(
-            Slice.perm.in_(datasource_perms)
+        all_datasource_access = security_manager.all_datasource_access()
+        published_dash_query = (
+            db.session.query(Dash.id)
+            .join(Dash.slices)
+            .filter(
+                and_(
+                    Dash.published == True,  # noqa
+                    or_(Slice.perm.in_(datasource_perms), all_datasource_access),
+                )
+            )
         )
-        owner_ids_qry = (
+
+        users_favorite_dash_query = db.session.query(Favorites.obj_id).filter(
+            and_(
+                Favorites.user_id == User.get_user_id(),
+                Favorites.class_name == "Dashboard",
+            )
+        )
+        owner_ids_query = (
             db.session.query(Dash.id)
             .join(Dash.owners)
             .filter(User.id == User.get_user_id())
         )
+
         query = query.filter(
             or_(
-                Dash.id.in_(
-                    db.session.query(Dash.id)
-                    .distinct()
-                    .join(Dash.slices)
-                    .filter(Slice.id.in_(slice_ids_qry))
-                ),
-                Dash.id.in_(owner_ids_qry),
+                Dash.id.in_(owner_ids_query),
+                Dash.id.in_(published_dash_query),
+                Dash.id.in_(users_favorite_dash_query),
             )
         )
+
         return query
 
 
@@ -761,8 +789,8 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     add_title = _("Add Dashboard")
     edit_title = _("Edit Dashboard")
 
-    list_columns = ["dashboard_link", "creator", "modified"]
-    order_columns = ["modified"]
+    list_columns = ["dashboard_link", "creator", "published", "modified"]
+    order_columns = ["modified", "published"]
     edit_columns = [
         "dashboard_title",
         "slug",
@@ -770,9 +798,10 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         "position_json",
         "css",
         "json_metadata",
+        "published",
     ]
     show_columns = edit_columns + ["table_names", "charts"]
-    search_columns = ("dashboard_title", "slug", "owners")
+    search_columns = ("dashboard_title", "slug", "owners", "published")
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
     description_columns = {
@@ -795,6 +824,10 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             "want to alter specific parameters."
         ),
         "owners": _("Owners is a list of users who can alter the dashboard."),
+        "published": _(
+            "Determines whether or not this dashboard is "
+            "visible in the list of all dashboards"
+        ),
     }
     base_filters = [["slice", DashboardFilter, lambda: []]]
     label_columns = {
@@ -839,7 +872,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         ids = "".join("&id={}".format(d.id) for d in items)
         return redirect("/dashboard/export_dashboards_form?{}".format(ids[1:]))
 
-    @log_this
+    @event_logger.log_this
     @has_access
     @expose("/export_dashboards_form")
     def download_dashboards(self):
@@ -954,7 +987,7 @@ class KV(BaseSupersetView):
 
     """Used for storing and retrieving key value pairs"""
 
-    @log_this
+    @event_logger.log_this
     @has_access_api
     @expose("/store/", methods=["POST"])
     def store(self):
@@ -967,7 +1000,7 @@ class KV(BaseSupersetView):
             return json_error_response(e)
         return Response(json.dumps({"id": obj.id}), status=200)
 
-    @log_this
+    @event_logger.log_this
     @has_access_api
     @expose("/<key_id>/", methods=["GET"])
     def get_value(self, key_id):
@@ -976,7 +1009,7 @@ class KV(BaseSupersetView):
             kv = db.session.query(models.KeyValue).filter_by(id=key_id).one()
         except Exception as e:
             return json_error_response(e)
-        return Response(kv.value, status=200, content_type='text/plain')
+        return Response(kv.value, status=200, content_type="text/plain")
 
 
 appbuilder.add_view_no_menu(KV)
@@ -986,7 +1019,7 @@ class R(BaseSupersetView):
 
     """used for short urls"""
 
-    @log_this
+    @event_logger.log_this
     @expose("/<url_id>")
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
@@ -1001,7 +1034,7 @@ class R(BaseSupersetView):
             flash("URL to nowhere...", "danger")
             return redirect("/")
 
-    @log_this
+    @event_logger.log_this
     @has_access_api
     @expose("/shortner/", methods=["POST"])
     def shortner(self):
@@ -1083,7 +1116,7 @@ class Superset(BaseSupersetView):
             {"granted": granted_perms, "requested": list(db_ds_names)}, status=201
         )
 
-    @log_this
+    @event_logger.log_this
     @has_access
     @expose("/request_access/")
     def request_access(self):
@@ -1128,7 +1161,7 @@ class Superset(BaseSupersetView):
             datasource_names=", ".join([o.name for o in datasources]),
         )
 
-    @log_this
+    @event_logger.log_this
     @has_access
     @expose("/approve")
     def approve(self):
@@ -1366,7 +1399,7 @@ class Superset(BaseSupersetView):
         payload = viz_obj.get_payload()
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
-    @log_this
+    @event_logger.log_this
     @api
     @has_access_api
     @expose("/slice_json/<slice_id>")
@@ -1383,7 +1416,7 @@ class Superset(BaseSupersetView):
         )
         return self.generate_json(viz_obj)
 
-    @log_this
+    @event_logger.log_this
     @api
     @has_access_api
     @expose("/annotation_json/<layer_id>")
@@ -1396,7 +1429,7 @@ class Superset(BaseSupersetView):
         payload = viz_obj.get_payload()
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
-    @log_this
+    @event_logger.log_this
     @api
     @has_access_api
     @handle_api_exception
@@ -1439,18 +1472,37 @@ class Superset(BaseSupersetView):
             viz_obj, csv=csv, query=query, results=results, samples=samples
         )
 
-    @log_this
+    @event_logger.log_this
     @has_access
     @expose("/import_dashboards", methods=["GET", "POST"])
     def import_dashboards(self):
         """Overrides the dashboards using json instances from the file."""
         f = request.files.get("file")
         if request.method == "POST" and f:
-            dashboard_import_export.import_dashboards(db.session, f.stream)
+            try:
+                dashboard_import_export.import_dashboards(db.session, f.stream)
+            except DatabaseNotFound as e:
+                flash(
+                    _(
+                        "Cannot import dashboard: %(db_error)s.\n"
+                        "Make sure to create the database before "
+                        "importing the dashboard.",
+                        db_error=e,
+                    ),
+                    "danger",
+                )
+            except Exception:
+                flash(
+                    _(
+                        "An unknown error occurred. "
+                        "Please contact your Superset administrator"
+                    ),
+                    "danger",
+                )
             return redirect("/dashboard/list/")
         return self.render_template("superset/import_dashboards.html")
 
-    @log_this
+    @event_logger.log_this
     @has_access
     @expose("/explorev2/<datasource_type>/<datasource_id>/")
     def explorev2(self, datasource_type, datasource_id):
@@ -1464,7 +1516,7 @@ class Superset(BaseSupersetView):
             )
         )
 
-    @log_this
+    @event_logger.log_this
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
@@ -1996,47 +2048,32 @@ class Superset(BaseSupersetView):
     def testconn(self):
         """Tests a sqla connection"""
         try:
-            username = g.user.username if g.user is not None else None
-            uri = request.json.get("uri")
             db_name = request.json.get("name")
-            impersonate_user = request.json.get("impersonate_user")
-            database = None
+            uri = request.json.get("uri")
+
+            # if the database already exists in the database, only its safe (password-masked) URI
+            # would be shown in the UI and would be passed in the form data.
+            # so if the database already exists and the form was submitted with the safe URI,
+            # we assume we should retrieve the decrypted URI to test the connection.
             if db_name:
-                database = (
+                existing_database = (
                     db.session.query(models.Database)
                     .filter_by(database_name=db_name)
                     .first()
                 )
-                if database and uri == database.safe_sqlalchemy_uri():
-                    # the password-masked uri was passed
-                    # use the URI associated with this database
-                    uri = database.sqlalchemy_uri_decrypted
+                if existing_database and uri == existing_database.safe_sqlalchemy_uri():
+                    uri = existing_database.sqlalchemy_uri_decrypted
 
-            configuration = {}
+            # this is the database instance that will be tested
+            database = models.Database(
+                # extras is sent as json, but required to be a string in the Database model
+                extra=json.dumps(request.json.get("extras", {})),
+                impersonate_user=request.json.get("impersonate_user"),
+            )
+            database.set_sqlalchemy_uri(uri)
 
-            if database and uri:
-                url = make_url(uri)
-                db_engine = models.Database.get_db_engine_spec_for_backend(
-                    url.get_backend_name()
-                )
-                db_engine.patch()
-
-                masked_url = database.get_password_masked_url_from_uri(uri)
-                logging.info("Superset.testconn(). Masked URL: {0}".format(masked_url))
-
-                configuration.update(
-                    db_engine.get_configuration_for_impersonation(
-                        uri, impersonate_user, username
-                    )
-                )
-
-            engine_params = request.json.get("extras", {}).get("engine_params", {})
-            connect_args = engine_params.get("connect_args")
-
-            if configuration and connect_args is not None:
-                connect_args["configuration"] = configuration
-
-            engine = create_engine(uri, **engine_params)
+            username = g.user.username if g.user is not None else None
+            engine = database.get_sqla_engine(user_name=username)
 
             with closing(engine.connect()) as conn:
                 conn.scalar(select([1]))
@@ -2044,9 +2081,7 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             return json_error_response(
-                ("Connection failed!\n\n" "The error message returned was:\n{}").format(
-                    e
-                )
+                "Connection failed!\n\n" "The error message returned was:\n{}".format(e)
             )
 
     @api
@@ -2385,6 +2420,41 @@ class Superset(BaseSupersetView):
         session.commit()
         return json_success(json.dumps({"count": count}))
 
+    @api
+    @has_access_api
+    @expose("/dashboard/<dashboard_id>/published/", methods=("GET", "POST"))
+    def publish(self, dashboard_id):
+        """Gets and toggles published status on dashboards"""
+        session = db.session()
+        Dashboard = models.Dashboard  # noqa
+        Role = ab_models.Role
+        dash = (
+            session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+        )
+        admin_role = session.query(Role).filter(Role.name == "Admin").one_or_none()
+
+        if request.method == "GET":
+            if dash:
+                return json_success(json.dumps({"published": dash.published}))
+            else:
+                return json_error_response(
+                    "ERROR: cannot find dashboard {0}".format(dashboard_id), status=404
+                )
+
+        else:
+            edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
+            if not edit_perm:
+                return json_error_response(
+                    'ERROR: "{0}" cannot alter dashboard "{1}"'.format(
+                        g.user.username, dash.dashboard_title
+                    ),
+                    status=403,
+                )
+
+            dash.published = str(request.form["published"]).lower() == "true"
+            session.commit()
+            return json_success(json.dumps({"published": dash.published}))
+
     @has_access
     @expose("/dashboard/<dashboard_id>/")
     def dashboard(self, dashboard_id):
@@ -2430,7 +2500,7 @@ class Superset(BaseSupersetView):
         edit_mode = request.args.get("edit") == "true"
 
         # Hack to log the dashboard_id properly, even when getting a slug
-        @log_this
+        @event_logger.log_this
         def dashboard(**kwargs):  # noqa
             pass
 
@@ -2473,14 +2543,14 @@ class Superset(BaseSupersetView):
         )
 
     @api
-    @log_this
+    @event_logger.log_this
     @expose("/log/", methods=["POST"])
     def log(self):
         return Response(status=200)
 
     @has_access
     @expose("/sync_druid/", methods=["POST"])
-    @log_this
+    @event_logger.log_this
     def sync_druid_source(self):
         """Syncs the druid datasource in main db with the provided config.
 
@@ -2536,7 +2606,7 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/sqllab_viz/", methods=["POST"])
-    @log_this
+    @event_logger.log_this
     def sqllab_viz(self):
         SqlaTable = ConnectorRegistry.sources["table"]
         data = json.loads(request.form.get("data"))
@@ -2573,7 +2643,7 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
-    @log_this
+    @event_logger.log_this
     def table(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
@@ -2637,7 +2707,7 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/extra_table_metadata/<database_id>/<table_name>/<schema>/")
-    @log_this
+    @event_logger.log_this
     def extra_table_metadata(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
@@ -2648,7 +2718,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/select_star/<database_id>/<table_name>")
     @expose("/select_star/<database_id>/<table_name>/<schema>")
-    @log_this
+    @event_logger.log_this
     def select_star(self, database_id, table_name, schema=None):
         mydb = db.session.query(models.Database).filter_by(id=database_id).first()
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
@@ -2663,7 +2733,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/cached_key/<key>/")
-    @log_this
+    @event_logger.log_this
     def cached_key(self, key):
         """Returns a key from the cache"""
         resp = cache.get(key)
@@ -2673,7 +2743,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/cache_key_exist/<key>/")
-    @log_this
+    @event_logger.log_this
     def cache_key_exist(self, key):
         """Returns if a key from cache exist"""
         key_exist = True if cache.get(key) else False
@@ -2682,7 +2752,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/results/<key>/")
-    @log_this
+    @event_logger.log_this
     def results(self, key):
         return self.results_call(key)
 
@@ -2728,7 +2798,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/stop_query/", methods=["POST"])
-    @log_this
+    @event_logger.log_this
     def stop_query(self):
         client_id = request.form.get("client_id")
         try:
@@ -2741,7 +2811,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/validate_sql_json/", methods=["POST", "GET"])
-    @log_this
+    @event_logger.log_this
     def validate_sql_json(self):
         """Validates that arbitrary sql is acceptable for the given database.
         Returns a list of error/warning annotations as json.
@@ -2804,7 +2874,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/sql_json/", methods=["POST", "GET"])
-    @log_this
+    @event_logger.log_this
     def sql_json(self):
         return self.sql_json_call(request)
 
@@ -2947,7 +3017,7 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/csv/<client_id>")
-    @log_this
+    @event_logger.log_this
     def csv(self, client_id):
         """Download the query results as csv."""
         logging.info("Exporting CSV file [{}]".format(client_id))
@@ -2994,7 +3064,7 @@ class Superset(BaseSupersetView):
     @handle_api_exception
     @has_access
     @expose("/fetch_datasource_metadata")
-    @log_this
+    @event_logger.log_this
     def fetch_datasource_metadata(self):
         datasource_id, datasource_type = request.args.get("datasourceKey").split("__")
         datasource = ConnectorRegistry.get_datasource(
@@ -3039,7 +3109,7 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/search_queries")
-    @log_this
+    @event_logger.log_this
     def search_queries(self) -> Response:
         """
         Search for previously run sqllab queries. Used for Sqllab Query Search

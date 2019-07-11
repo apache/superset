@@ -131,6 +131,17 @@ describe('Tabs', () => {
     expect(onChangeTab.callCount).toBe(1);
   });
 
+  it('should not call onChangeTab when anchor link is clicked', () => {
+    const onChangeTab = sinon.spy();
+    const wrapper = setup({ editMode: true, onChangeTab });
+    wrapper
+      .find('.dashboard-component-tabs .nav-tabs a .short-link-trigger')
+      .at(1) // will not call if it is already selected
+      .simulate('click');
+
+    expect(onChangeTab.callCount).toBe(0);
+  });
+
   it('should render a HoverMenu in editMode', () => {
     let wrapper = setup();
     expect(wrapper.find(HoverMenu)).toHaveLength(0);

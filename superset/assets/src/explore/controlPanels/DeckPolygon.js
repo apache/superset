@@ -26,10 +26,10 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
+        ['line_column', 'line_type'],
         ['adhoc_filters'],
         ['metric', 'point_radius_fixed'],
         ['row_limit', null],
-        ['line_column', 'line_type'],
         ['reverse_long_lat', 'filter_nulls'],
       ],
     },

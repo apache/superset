@@ -14,6 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-sphinx==2.1.2
-sphinx_autodoc_typehints==1.6.0
-sphinx-rtd-theme==0.4.3
+FROM python:3.6-jessie
+COPY make_tarball.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

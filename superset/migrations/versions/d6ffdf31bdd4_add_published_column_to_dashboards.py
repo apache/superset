@@ -14,47 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+"""Add published column to dashboards
+
+Revision ID: d6ffdf31bdd4
+Revises: b4a38aa87893
+Create Date: 2018-03-30 14:00:44.929483
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = "d6ffdf31bdd4"
+down_revision = "b4a38aa87893"
+
+from alembic import op
+import sqlalchemy as sa
 
 
-class SupersetException(Exception):
-    status = 500
-
-    def __init__(self, msg):
-        super(SupersetException, self).__init__(msg)
-
-
-class SupersetTimeoutException(SupersetException):
-    pass
+def upgrade():
+    with op.batch_alter_table("dashboards") as batch_op:
+        batch_op.add_column(sa.Column("published", sa.Boolean(), nullable=True))
+    op.execute("UPDATE dashboards SET published='1'")
 
 
-class SupersetSecurityException(SupersetException):
-    status = 401
-
-    def __init__(self, msg, link=None):
-        super(SupersetSecurityException, self).__init__(msg)
-        self.link = link
-
-
-class MetricPermException(SupersetException):
-    pass
-
-
-class NoDataException(SupersetException):
-    status = 400
-
-
-class NullValueException(SupersetException):
-    status = 400
-
-
-class SupersetTemplateException(SupersetException):
-    pass
-
-
-class SpatialException(SupersetException):
-    pass
-
-
-class DatabaseNotFound(SupersetException):
-    status = 400
+def downgrade():
+    with op.batch_alter_table("dashboards") as batch_op:
+        batch_op.drop_column("published")

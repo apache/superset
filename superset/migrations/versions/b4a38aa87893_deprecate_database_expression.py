@@ -14,47 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+"""deprecate database expression
+
+Revision ID: b4a38aa87893
+Revises: ab8c66efdd01
+Create Date: 2019-06-05 11:35:16.222519
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = "b4a38aa87893"
+down_revision = "ab8c66efdd01"
+
+from alembic import op
+import sqlalchemy as sa
 
 
-class SupersetException(Exception):
-    status = 500
-
-    def __init__(self, msg):
-        super(SupersetException, self).__init__(msg)
+def upgrade():
+    with op.batch_alter_table("table_columns") as batch_op:
+        batch_op.drop_column("database_expression")
 
 
-class SupersetTimeoutException(SupersetException):
-    pass
-
-
-class SupersetSecurityException(SupersetException):
-    status = 401
-
-    def __init__(self, msg, link=None):
-        super(SupersetSecurityException, self).__init__(msg)
-        self.link = link
-
-
-class MetricPermException(SupersetException):
-    pass
-
-
-class NoDataException(SupersetException):
-    status = 400
-
-
-class NullValueException(SupersetException):
-    status = 400
-
-
-class SupersetTemplateException(SupersetException):
-    pass
-
-
-class SpatialException(SupersetException):
-    pass
-
-
-class DatabaseNotFound(SupersetException):
-    status = 400
+def downgrade():
+    with op.batch_alter_table("table_columns") as batch_op:
+        batch_op.add_column(sa.Column("database_expression", sa.String(255)))

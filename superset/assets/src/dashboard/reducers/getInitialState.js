@@ -217,6 +217,7 @@ export default function(bootstrapData) {
       colorNamespace: dashboard.metadata.color_namespace,
       colorScheme: dashboard.metadata.color_scheme,
       editMode: dashboard.dash_edit_perm && editMode,
+      isPublished: dashboard.published,
       builderPaneType:
         dashboard.dash_edit_perm && editMode
           ? BUILDER_PANE_TYPE.ADD_COMPONENTS
