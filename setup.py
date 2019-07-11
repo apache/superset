@@ -85,7 +85,7 @@ setup(
         "idna",
         "isodate",
         "markdown>=3.0",
-        "pandas>=0.18.0, <0.24.0",  # `pandas`>=0.24.0 changes datetimelike API
+        "pandas>=0.24.2, <0.25.0",
         "parsedatetime",
         "pathlib2",
         "polyline",
