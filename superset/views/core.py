@@ -40,6 +40,7 @@ from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
+from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
@@ -90,6 +91,7 @@ from .base import (
     DeleteMixin,
     generate_download_headers,
     get_error_msg,
+    get_user_roles,
     handle_api_exception,
     json_error_response,
     json_success,
@@ -209,36 +211,59 @@ class DatabaseFilter(SupersetFilter):
 
 class DashboardFilter(SupersetFilter):
     """
-    List dashboards for which users have access to at least one slice or are owners.
+    List dashboards with the following criteria:
+        1. Those which the user owns
+        2. Those which the user has favorited
+        3. Those which have been published (if they have access to at least one slice)
+
+    If the user is an admin show them all dashboards.
+    This means they do not get curation but can still sort by "published"
+    if they wish to see those dashboards which are published first
     """
 
     def apply(self, query, func):  # noqa
-        if security_manager.all_datasource_access():
-            return query
+        Dash = models.Dashboard
+        User = ab_models.User
         Slice = models.Slice  # noqa
-        Dash = models.Dashboard  # noqa
-        User = security_manager.user_model
-        # TODO(bogdan): add `schema_access` support here
+        Favorites = models.FavStar
+
+        user_roles = [role.name.lower() for role in list(self.get_user_roles())]
+        if "admin" in user_roles:
+            return query
+
         datasource_perms = self.get_view_menus("datasource_access")
-        slice_ids_qry = db.session.query(Slice.id).filter(
-            Slice.perm.in_(datasource_perms)
+        all_datasource_access = security_manager.all_datasource_access()
+        published_dash_query = (
+            db.session.query(Dash.id)
+            .join(Dash.slices)
+            .filter(
+                and_(
+                    Dash.published == True,  # noqa
+                    or_(Slice.perm.in_(datasource_perms), all_datasource_access),
+                )
+            )
         )
-        owner_ids_qry = (
+
+        users_favorite_dash_query = db.session.query(Favorites.obj_id).filter(
+            and_(
+                Favorites.user_id == User.get_user_id(),
+                Favorites.class_name == "Dashboard",
+            )
+        )
+        owner_ids_query = (
             db.session.query(Dash.id)
             .join(Dash.owners)
             .filter(User.id == User.get_user_id())
         )
+
         query = query.filter(
             or_(
-                Dash.id.in_(
-                    db.session.query(Dash.id)
-                    .distinct()
-                    .join(Dash.slices)
-                    .filter(Slice.id.in_(slice_ids_qry))
-                ),
-                Dash.id.in_(owner_ids_qry),
+                Dash.id.in_(owner_ids_query),
+                Dash.id.in_(published_dash_query),
+                Dash.id.in_(users_favorite_dash_query),
             )
         )
+
         return query
 
 
@@ -759,8 +784,8 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     add_title = _("Add Dashboard")
     edit_title = _("Edit Dashboard")
 
-    list_columns = ["dashboard_link", "creator", "modified"]
-    order_columns = ["modified"]
+    list_columns = ["dashboard_link", "creator", "published", "modified"]
+    order_columns = ["modified", "published"]
     edit_columns = [
         "dashboard_title",
         "slug",
@@ -768,9 +793,10 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         "position_json",
         "css",
         "json_metadata",
+        "published",
     ]
     show_columns = edit_columns + ["table_names", "charts"]
-    search_columns = ("dashboard_title", "slug", "owners")
+    search_columns = ("dashboard_title", "slug", "owners", "published")
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
     description_columns = {
@@ -793,6 +819,10 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             "want to alter specific parameters."
         ),
         "owners": _("Owners is a list of users who can alter the dashboard."),
+        "published": _(
+            "Determines whether or not this dashboard is "
+            "visible in the list of all dashboards"
+        ),
     }
     base_filters = [["slice", DashboardFilter, lambda: []]]
     label_columns = {
@@ -2384,6 +2414,41 @@ class Superset(BaseSupersetView):
             count = len(favs)
         session.commit()
         return json_success(json.dumps({"count": count}))
+
+    @api
+    @has_access_api
+    @expose("/dashboard/<dashboard_id>/published/", methods=("GET", "POST"))
+    def publish(self, dashboard_id):
+        """Gets and toggles published status on dashboards"""
+        session = db.session()
+        Dashboard = models.Dashboard  # noqa
+        Role = ab_models.Role
+        dash = (
+            session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+        )
+        admin_role = session.query(Role).filter(Role.name == "Admin").one_or_none()
+
+        if request.method == "GET":
+            if dash:
+                return json_success(json.dumps({"published": dash.published}))
+            else:
+                return json_error_response(
+                    "ERROR: cannot find dashboard {0}".format(dashboard_id), status=404
+                )
+
+        else:
+            edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
+            if not edit_perm:
+                return json_error_response(
+                    'ERROR: "{0}" cannot alter dashboard "{1}"'.format(
+                        g.user.username, dash.dashboard_title
+                    ),
+                    status=403,
+                )
+
+            dash.published = str(request.form["published"]).lower() == "true"
+            session.commit()
+            return json_success(json.dumps({"published": dash.published}))
 
     @has_access
     @expose("/dashboard/<dashboard_id>/")
