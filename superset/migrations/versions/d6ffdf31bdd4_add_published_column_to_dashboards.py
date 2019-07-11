@@ -17,14 +17,14 @@
 """Add published column to dashboards
 
 Revision ID: d6ffdf31bdd4
-Revises: 45e7da7cfeba
+Revises: b4a38aa87893
 Create Date: 2018-03-30 14:00:44.929483
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "d6ffdf31bdd4"
-down_revision = "d7c1a0d6f2da"
+down_revision = "b4a38aa87893"
 
 from alembic import op
 import sqlalchemy as sa

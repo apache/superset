@@ -545,6 +545,10 @@ class PrestoEngineSpec(BaseEngineSpec):
                 unprocessed_array_columns.add(child_array)
             elif child_array and array_column.startswith(child_array):
                 unprocessed_array_columns.add(array_column)
+            else:
+                # array without any data
+                array_columns_to_process.append(array_column)
+                datum[array_column] = []
         return array_columns_to_process, unprocessed_array_columns
 
     @classmethod
