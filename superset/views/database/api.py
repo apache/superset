@@ -19,12 +19,19 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import appbuilder
 import superset.models.core as models
-from .views import DatabaseView
 
 
 class DatabaseAsyncApi(ModelRestApi):
     class_permission_name = "DatabaseAsync"
-    resource_name = "database"
+    method_permission_name = {
+        "get_list": "list",
+        "get": "show",
+        "post": "add",
+        "put": "edit",
+        "delete": "delete",
+        "info": "info"
+    }
+    resource_name = "databaseasync"
     allow_browser_login = True
     datamodel = SQLAInterface(models.Database)
 
@@ -41,12 +48,6 @@ class DatabaseAsyncApi(ModelRestApi):
         "allows_subquery",
         "backend",
     ]
-    add_columns = DatabaseView.add_columns
-    edit_columns = DatabaseView.edit_columns
-    show_columns = DatabaseView.show_columns
-    description_columns = DatabaseView.description_columns
-    base_order = DatabaseView.order_columns
-    label_columns = DatabaseView.label_columns
 
 
 appbuilder.add_api(DatabaseAsyncApi)

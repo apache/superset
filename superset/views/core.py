@@ -230,7 +230,7 @@ class DashboardFilter(SupersetFilter):
 
 
 from .database import views as in_views  # noqa
-
+from .database import api as database_api
 
 if config.get("ENABLE_ACCESS_REQUEST"):
 
