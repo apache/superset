@@ -32,6 +32,7 @@ import signal
 import smtplib
 import sys
 from time import struct_time
+import traceback
 from typing import List, NamedTuple, Optional, Tuple
 from urllib.parse import unquote_plus
 import uuid
@@ -41,7 +42,7 @@ import bleach
 import celery
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
-from flask import flash, Flask, g, Markup, render_template
+from flask import current_app, flash, Flask, g, Markup, render_template
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
@@ -1185,3 +1186,8 @@ def shortid() -> str:
 class DatasourceName(NamedTuple):
     table: str
     schema: str
+
+
+def get_stacktrace():
+    if current_app.config.get("SHOW_STACKTRACE"):
+        return traceback.format_exc()

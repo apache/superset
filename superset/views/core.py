@@ -21,7 +21,6 @@ import inspect
 import logging
 import os
 import re
-import traceback
 from typing import Dict, List  # noqa: F401
 from urllib import parse
 
@@ -3261,11 +3260,9 @@ class Superset(BaseSupersetView):
             return self.json_response(schemas_allowed_processed)
         except Exception:
             return json_error_response(
-                (
-                    "Failed to fetch schemas allowed for csv upload in this database! "
-                    "Please contact Superset Admin!\n\n"
-                    "The error message returned was:\n{}"
-                ).format(traceback.format_exc())
+                "Failed to fetch schemas allowed for csv upload in this database! "
+                "Please contact Superset Admin!",
+                stacktrace=utils.get_stacktrace(),
             )
 
 
