@@ -154,7 +154,7 @@ class ControlPanelsContainer extends React.Component {
               {querySectionsToRender.map(this.renderControlPanelSection)}
             </Tab>
             {displaySectionsToRender.length > 0 &&
-              <Tab eventKey="display" title={t('Visual Properties')}>
+              <Tab eventKey="display" title={t('Customize')}>
                 {displaySectionsToRender.map(this.renderControlPanelSection)}
               </Tab>
             }

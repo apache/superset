@@ -26,19 +26,21 @@ import sqlalchemy as sa
 from sqlalchemy.sql import expression
 
 # revision identifiers, used by Alembic.
-revision = '1d9e835a84f9'
-down_revision = '3dda56f1c4c6'
+revision = "1d9e835a84f9"
+down_revision = "3dda56f1c4c6"
 
 
 def upgrade():
     op.add_column(
-        'dbs',
+        "dbs",
         sa.Column(
-            'allow_csv_upload',
+            "allow_csv_upload",
             sa.Boolean(),
             nullable=False,
-            server_default=expression.true()))
+            server_default=expression.true(),
+        ),
+    )
 
 
 def downgrade():
-    op.drop_column('dbs', 'allow_csv_upload')
+    op.drop_column("dbs", "allow_csv_upload")

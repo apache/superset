@@ -24,11 +24,11 @@ Create Date: 2016-09-22 11:31:50.543820
 from alembic import op
 from superset import db
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import (Column, Integer, Boolean)
+from sqlalchemy import Column, Integer, Boolean
 
 # revision identifiers, used by Alembic.
-revision = 'eca4694defa7'
-down_revision = '5e4a03ef0bf0'
+revision = "eca4694defa7"
+down_revision = "5e4a03ef0bf0"
 
 Base = declarative_base()
 
@@ -37,7 +37,7 @@ class Database(Base):
 
     """An ORM object that stores Database related information"""
 
-    __tablename__ = 'dbs'
+    __tablename__ = "dbs"
     id = Column(Integer, primary_key=True)
     allow_run_sync = Column(Boolean, default=True)
 

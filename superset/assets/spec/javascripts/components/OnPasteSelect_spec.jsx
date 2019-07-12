@@ -74,7 +74,7 @@ describe('OnPasteSelect', () => {
   });
 
   describe('onPaste', () => {
-    it('calls onChange with pasted values', () => {
+    it('calls onChange with pasted comma separated values', () => {
       wrapper.instance().onPaste(evt);
       expected = props.options.slice(0, 4);
       expect(props.onChange.calledWith(expected)).toBe(true);
@@ -82,7 +82,39 @@ describe('OnPasteSelect', () => {
       expect(props.isValidNewOption.callCount).toBe(5);
     });
 
-    it('calls onChange without any duplicate values and adds new values', () => {
+    it('calls onChange with pasted new line separated values', () => {
+      evt.clipboardData.getData = sinon.spy(() =>
+        'United States\nChina\nRussian Federation\nIndia',
+      );
+      wrapper.instance().onPaste(evt);
+      expected = [
+        props.options[0],
+        props.options[1],
+        props.options[4],
+        props.options[2],
+      ];
+      expect(props.onChange.calledWith(expected)).toBe(true);
+      expect(evt.preventDefault.called).toBe(true);
+      expect(props.isValidNewOption.callCount).toBe(9);
+    });
+
+    it('calls onChange with pasted tab separated values', () => {
+      evt.clipboardData.getData = sinon.spy(() =>
+        'Russian Federation\tMexico\tIndia\tCanada',
+      );
+      wrapper.instance().onPaste(evt);
+      expected = [
+        props.options[4],
+        props.options[6],
+        props.options[2],
+        props.options[3],
+      ];
+      expect(props.onChange.calledWith(expected)).toBe(true);
+      expect(evt.preventDefault.called).toBe(true);
+      expect(props.isValidNewOption.callCount).toBe(13);
+    });
+
+    it('calls onChange without duplicate values and adds new comma separated values', () => {
       evt.clipboardData.getData = sinon.spy(() =>
         'China, China, China, China, Mexico, Mexico, Chi na, Mexico, ',
       );
@@ -94,12 +126,43 @@ describe('OnPasteSelect', () => {
       wrapper.instance().onPaste(evt);
       expect(props.onChange.calledWith(expected)).toBe(true);
       expect(evt.preventDefault.called).toBe(true);
-      expect(props.isValidNewOption.callCount).toBe(9);
+      expect(props.isValidNewOption.callCount).toBe(17);
       expect(props.options[0].value).toBe(expected[2].value);
       props.options.splice(0, 1);
     });
 
-    it('calls onChange with currently selected values and new values', () => {
+    it('calls onChange without duplicate values and parses new line separated values', () => {
+      evt.clipboardData.getData = sinon.spy(() =>
+        'United States\nCanada\nMexico\nUnited States\nCanada',
+      );
+      expected = [
+        props.options[0],
+        props.options[3],
+        props.options[6],
+      ];
+      wrapper.instance().onPaste(evt);
+      expect(props.onChange.calledWith(expected)).toBe(true);
+      expect(evt.preventDefault.called).toBe(true);
+      expect(props.isValidNewOption.callCount).toBe(20);
+    });
+
+    it('calls onChange without duplicate values and parses tab separated values', () => {
+        evt.clipboardData.getData = sinon.spy(() =>
+          'China\tIndia\tChina\tRussian Federation\tJapan\tJapan',
+        );
+        expected = [
+          props.options[1],
+          props.options[2],
+          props.options[4],
+          props.options[5],
+        ];
+        wrapper.instance().onPaste(evt);
+        expect(props.onChange.calledWith(expected)).toBe(true);
+        expect(evt.preventDefault.called).toBe(true);
+        expect(props.isValidNewOption.callCount).toBe(24);
+      });
+
+    it('calls onChange with currently selected values and new comma separated values', () => {
       props.value = ['United States', 'Canada', 'Mexico'];
       evt.clipboardData.getData = sinon.spy(() =>
         'United States, Canada, Japan, India',
@@ -115,7 +178,45 @@ describe('OnPasteSelect', () => {
       wrapper.instance().onPaste(evt);
       expect(props.onChange.calledWith(expected)).toBe(true);
       expect(evt.preventDefault.called).toBe(true);
-      expect(props.isValidNewOption.callCount).toBe(11);
+      expect(props.isValidNewOption.callCount).toBe(26);
     });
+
+    it('calls onChange with currently selected values and new "new line" separated values', () => {
+      props.value = ['China', 'India', 'Japan'];
+      evt.clipboardData.getData = sinon.spy(() =>
+        'Mexico\nJapan\nIndia',
+      );
+      wrapper = shallow(<OnPasteSelect {...props} />);
+      expected = [
+        props.options[1],
+        props.options[2],
+        props.options[5],
+        props.options[6],
+      ];
+      wrapper.instance().onPaste(evt);
+      expect(props.onChange.calledWith(expected)).toBe(true);
+      expect(evt.preventDefault.called).toBe(true);
+      expect(props.isValidNewOption.callCount).toBe(27);
+    });
+
+    it('calls onChange with currently selected values and new tab separated values', () => {
+        props.value = ['United States', 'Canada', 'Mexico', 'Russian Federation'];
+        evt.clipboardData.getData = sinon.spy(() =>
+          'United States\tCanada\tJapan\tIndia',
+        );
+        wrapper = shallow(<OnPasteSelect {...props} />);
+        expected = [
+          props.options[0],
+          props.options[3],
+          props.options[6],
+          props.options[4],
+          props.options[5],
+          props.options[2],
+        ];
+        wrapper.instance().onPaste(evt);
+        expect(props.onChange.calledWith(expected)).toBe(true);
+        expect(evt.preventDefault.called).toBe(true);
+        expect(props.isValidNewOption.callCount).toBe(29);
+      });
   });
 });

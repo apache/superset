@@ -91,6 +91,8 @@ OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for m
 
 Or if you're curious and want to install superset from bottom up, then go ahead.
 
+See also `contrib/docker/README.md <https://github.com/apache/incubator-superset/blob/master/contrib/docker/README.md>`_
+
 OS dependencies
 ---------------
 
@@ -121,7 +123,13 @@ that the required dependencies are installed: ::
     sudo yum upgrade python-setuptools
     sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
 
-**OSX**, system python is not recommended. brew's python also ships with pip  ::
+**Mac OS X** If possible, you should upgrade to the latest version of OS X as issues are more likely to be resolved for that version.
+You *will likely need* the latest version of XCode available for your installed version of OS X. You should also install
+the XCode command line tools: ::
+
+    xcode-select --install
+
+System python is not recommended. Homebrew's python also ships with pip: ::
 
     brew install pkg-config libffi openssl python
     env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==2.4.2
@@ -170,11 +178,12 @@ Follow these few simple steps to install Superset.::
     # Install superset
     pip install superset
 
-    # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
-    fabmanager create-admin --app superset
-
     # Initialize the database
     superset db upgrade
+
+    # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
+    $ export FLASK_APP=superset
+    flask fab create-admin
 
     # Load some data to play with
     superset load_examples
@@ -183,8 +192,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    superset runserver -d
-
+    superset run -p 8080 --with-threads --reload --debugger
 
 After installation, you should be able to point your browser to the right
 hostname:port `http://localhost:8088 <http://localhost:8088>`_, login using
@@ -218,10 +226,8 @@ Refer to the
 `Gunicorn documentation <https://docs.gunicorn.org/en/stable/design.html>`_
 for more information.
 
-Note that *gunicorn* does not
-work on Windows so the `superset runserver` command is not expected to work
-in that context. Also, note that the development web
-server (`superset runserver -d`) is not intended for production use.
+Note that the development web
+server (`superset run` or `flask run`) is not intended for production use.
 
 If not using gunicorn, you may want to disable the use of flask-compress
 by setting `ENABLE_FLASK_COMPRESS = False` in your `superset_config.py`
@@ -236,17 +242,11 @@ workers this creates a lot of contention and race conditions when defining
 permissions and views.
 
 To alleviate this issue, the automatic updating of permissions can be disabled
-by setting the environment variable
-`SUPERSET_UPDATE_PERMS` environment variable to `0`.
-The value `1` enables it, `0` disables it. Note if undefined the functionality
-is enabled to maintain backwards compatibility.
+by setting `FAB_UPDATE_PERMS = False` (defaults to True).
 
 In a production environment initialization could take on the following form:
 
-  export SUPERSET_UPDATE_PERMS=1
   superset init
-
-  export SUPERSET_UPDATE_PERMS=0
   gunicorn -w 10 ... superset:app
 
 Configuration behind a load balancer
@@ -346,52 +346,60 @@ connect to the databases you want to access through Superset.
 
 Here's a list of some of the recommended packages.
 
-+---------------+-------------------------------------+-------------------------------------------------+
-| database      | pypi package                        | SQLAlchemy URI prefix                           |
-+===============+=====================================+=================================================+
-|  MySQL        | ``pip install mysqlclient``         | ``mysql://``                                    |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Postgres     | ``pip install psycopg2``            | ``postgresql+psycopg2://``                      |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Presto       | ``pip install pyhive``              | ``presto://``                                   |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Hive         | ``pip install pyhive``              | ``hive://``                                     |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Oracle       | ``pip install cx_Oracle``           | ``oracle://``                                   |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  sqlite       |                                     | ``sqlite://``                                   |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Snowflake    | ``pip install snowflake-sqlalchemy``| ``snowflake://``                                |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Redshift     | ``pip install sqlalchemy-redshift`` | ``redshift+psycopg2://``                        |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  MSSQL        | ``pip install pymssql``             | ``mssql://``                                    |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Impala       | ``pip install impyla``              | ``impala://``                                   |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  SparkSQL     | ``pip install pyhive``              | ``jdbc+hive://``                                |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Greenplum    | ``pip install psycopg2``            | ``postgresql+psycopg2://``                      |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Athena       | ``pip install "PyAthenaJDBC>1.0.9"``| ``awsathena+jdbc://``                           |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Athena       | ``pip install "PyAthena>1.2.0"``    | ``awsathena+rest://``                           |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Vertica      | ``pip install                       |  ``vertica+vertica_python://``                  |
-|               | sqlalchemy-vertica-python``         |                                                 |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  ClickHouse   | ``pip install                       | ``clickhouse://``                               |
-|               | sqlalchemy-clickhouse``             |                                                 |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Kylin        | ``pip install kylinpy``             | ``kylin://``                                    |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  BigQuery     | ``pip install pybigquery``          | ``bigquery://``                                 |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Teradata     | ``pip install sqlalchemy-teradata`` | ``teradata://``                                 |
-+---------------+-------------------------------------+-------------------------------------------------+
-|  Pinot        | ``pip install pinotdb``             | ``pinot+http://controller:5436/``               |
-|               |                                     | ``query?server=http://controller:5983/``        |
-+---------------+-------------------------------------+-------------------------------------------------+
++------------------+---------------------------------------+-------------------------------------------------+
+| database         | pypi package                          | SQLAlchemy URI prefix                           |
++==================+=======================================+=================================================+
+| Amazon Athena    | ``pip install "PyAthenaJDBC>1.0.9"``  | ``awsathena+jdbc://``                           |
++------------------+---------------------------------------+-------------------------------------------------+
+| Amazon Athena    | ``pip install "PyAthena>1.2.0"``      | ``awsathena+rest://``                           |
++------------------+---------------------------------------+-------------------------------------------------+
+| Amazon Redshift  | ``pip install sqlalchemy-redshift``   | ``redshift+psycopg2://``                        |
++------------------+---------------------------------------+-------------------------------------------------+
+| Apache Drill     | ``pip install sqlalchemy-drill``      | For the REST API:``                             |
+|                  |                                       | ``drill+sadrill://``                            |
+|                  |                                       | For JDBC                                        |
+|                  |                                       | ``drill+jdbc://``                               |
++------------------+---------------------------------------+-------------------------------------------------+
+| Apache Druid     | ``pip install pyduid``                | ``druid://``                                    |
++------------------+---------------------------------------+-------------------------------------------------+
+| Apache Hive      | ``pip install pyhive``                | ``hive://``                                     |
++------------------+---------------------------------------+-------------------------------------------------+
+| Apache Impala    | ``pip install impyla``                | ``impala://``                                   |
++------------------+---------------------------------------+-------------------------------------------------+
+| Apache Kylin     | ``pip install kylinpy``               | ``kylin://``                                    |
++------------------+---------------------------------------+-------------------------------------------------+
+| Apache Pinot     | ``pip install pinotdb``               | ``pinot+http://CONTROLLER:5436/``               |
+|                  |                                       | ``query?server=http://CONTROLLER:5983/``        |
++------------------+---------------------------------------+-------------------------------------------------+
+| Apache Spark SQL | ``pip install pyhive``                | ``jdbc+hive://``                                |
++------------------+---------------------------------------+-------------------------------------------------+
+| BigQuery         | ``pip install pybigquery``            | ``bigquery://``                                 |
++------------------+---------------------------------------+-------------------------------------------------+
+| ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
++------------------+---------------------------------------+-------------------------------------------------+
+| Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://``                                  |
++------------------+---------------------------------------+-------------------------------------------------+
+| IBM Db2          | ``pip install ibm_db_sa``             | ``db2+ibm_db://``                               |
++------------------+---------------------------------------+-------------------------------------------------+
+| MySQL            | ``pip install mysqlclient``           | ``mysql://``                                    |
++------------------+---------------------------------------+-------------------------------------------------+
+| Oracle           | ``pip install cx_Oracle``             | ``oracle://``                                   |
++------------------+---------------------------------------+-------------------------------------------------+
+| PostgreSQL       | ``pip install psycopg2``              | ``postgresql+psycopg2://``                      |
++------------------+---------------------------------------+-------------------------------------------------+
+| Presto           | ``pip install pyhive``                | ``presto://``                                   |
++------------------+---------------------------------------+-------------------------------------------------+
+| Snowflake        | ``pip install snowflake-sqlalchemy``  | ``snowflake://``                                |
++------------------+---------------------------------------+-------------------------------------------------+
+| SQLite           |                                       | ``sqlite://``                                   |
++------------------+---------------------------------------+-------------------------------------------------+
+| SQL Server       | ``pip install pymssql``               | ``mssql://``                                    |
++------------------+---------------------------------------+-------------------------------------------------+
+| Teradata         | ``pip install sqlalchemy-teradata``   | ``teradata://``                                 |
++------------------+---------------------------------------+-------------------------------------------------+
+| Vertica          | ``pip install                         |  ``vertica+vertica_python://``                  |
+|                  | sqlalchemy-vertica-python``           |                                                 |
++------------------+---------------------------------------+-------------------------------------------------+
 
 Note that many other databases are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
@@ -414,6 +422,15 @@ You can also use `PyAthena` library(no java required) like this ::
     awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
 
 See `PyAthena <https://github.com/laughingman7743/PyAthena#sqlalchemy>`_.
+
+(Google) BigQuery
+-----------------
+
+The connection string for BigQuery looks like this ::
+
+    bigquery://{project_id}
+
+To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
 
 Snowflake
 ---------
@@ -444,10 +461,35 @@ The connection string for Teradata looks like this ::
 
 Required environment variables: ::
 
-    export ODBCINI=/.../teradata/client/ODBC_64/odbc.ini  
-    export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini 
+    export ODBCINI=/.../teradata/client/ODBC_64/odbc.ini
+    export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini
 
 See `Teradata SQLAlchemy <https://github.com/Teradata/sqlalchemy-teradata>`_.
+
+Apache Drill
+------------
+At the time of writing, the SQLAlchemy Dialect is not available on pypi and must be downloaded here:
+`SQLAlchemy Drill <https://github.com/JohnOmernik/sqlalchemy-drill>`_
+
+Alternatively, you can install it completely from the command line as follows: ::
+
+    git clone https://github.com/JohnOmernik/sqlalchemy-drill
+    cd sqlalchemy-drill
+    python3 setup.py install
+
+Once that is done, you can connect to Drill in two ways, either via the REST interface or by JDBC.  If you are connecting via JDBC, you must have the
+Drill JDBC Driver installed.
+
+The basic connection string for Drill looks like this ::
+
+    drill+sadrill://{username}:{password}@{host}:{port}/{storage_plugin}?use_ssl=True
+
+If you are using JDBC to connect to Drill, the connection string looks like this: ::
+
+    drill+jdbc://{username}:{password}@{host}:{port}/{storage_plugin}
+
+For a complete tutorial about how to use Apache Drill with Superset, see this tutorial:
+`Visualize Anything with Superset and Drill <http://thedataist.com/visualize-anything-with-superset-and-drill/>`_
 
 Caching
 -------
@@ -636,6 +678,40 @@ environment variable: ::
 
 *Adapted from http://flask.pocoo.org/snippets/69/*
 
+Event Logging
+-------------
+
+Superset by default logs special action event on it's database. These log can be accessed on the UI navigating to
+"Security" -> "Action Log". You can freely customize these logs by implementing your own event log class.
+
+Example of a simple JSON to Stdout class::
+
+    class JSONStdOutEventLogger(AbstractEventLogger):
+
+        def log(self, user_id, action, *args, **kwargs):
+            records = kwargs.get('records', list())
+            dashboard_id = kwargs.get('dashboard_id')
+            slice_id = kwargs.get('slice_id')
+            duration_ms = kwargs.get('duration_ms')
+            referrer = kwargs.get('referrer')
+
+            for record in records:
+                log = dict(
+                    action=action,
+                    json=record,
+                    dashboard_id=dashboard_id,
+                    slice_id=slice_id,
+                    duration_ms=duration_ms,
+                    referrer=referrer,
+                    user_id=user_id
+                )
+                print(json.dumps(log))
+
+
+Then on Superset's config reference the class you want to use::
+
+    EVENT_LOGGER = JSONStdOutEventLogger
+
 
 Upgrading
 ---------
@@ -660,10 +736,6 @@ users are active on the platform.
 
 Celery Tasks
 ------------
-On large analytic databases, it's common to run background jobs, reports
-and/or queries that execute for minutes or hours. In certain cases, we need
-to support long running tasks that execute beyond the typical web request's
-timeout (30-60 seconds).
 
 On large analytic databases, it's common to run queries that
 execute for minutes or hours.
@@ -816,6 +888,120 @@ in this dictionary are made available for users to use in their SQL.
         'my_crazy_macro': lambda x: x*2,
     }
 
+SQL Lab also includes a live query validation feature with pluggable backends.
+You can configure which validation implementation is used with which database
+engine by adding a block like the following to your config.py:
+
+.. code-block:: python
+
+     FEATURE_FLAGS = {
+         'SQL_VALIDATORS_BY_ENGINE': {
+             'presto': 'PrestoDBSQLValidator',
+         }
+     }
+
+The available validators and names can be found in `sql_validators/`.
+
+**Scheduling queries**
+
+You can optionally allow your users to schedule queries directly in SQL Lab.
+This is done by addding extra metadata to saved queries, which are then picked
+up by an external scheduled (like [Apache Airflow](https://airflow.apache.org/)).
+
+To allow scheduled queries, add the following to your `config.py`:
+
+.. code-block:: python
+
+    FEATURE_FLAGS = {
+        # Configuration for scheduling queries from SQL Lab. This information is
+        # collected when the user clicks "Schedule query", and saved into the `extra`
+        # field of saved queries.
+        # See: https://github.com/mozilla-services/react-jsonschema-form
+        'SCHEDULED_QUERIES': {
+            'JSONSCHEMA': {
+                'title': 'Schedule',
+                'description': (
+                    'In order to schedule a query, you need to specify when it '
+                    'should start running, when it should stop running, and how '
+                    'often it should run. You can also optionally specify '
+                    'dependencies that should be met before the query is '
+                    'executed. Please read the documentation for best practices '
+                    'and more information on how to specify dependencies.'
+                ),
+                'type': 'object',
+                'properties': {
+                    'output_table': {
+                        'type': 'string',
+                        'title': 'Output table name',
+                    },
+                    'start_date': {
+                        'type': 'string',
+                        'title': 'Start date',
+                        # date-time is parsed using the chrono library, see
+                        # https://www.npmjs.com/package/chrono-node#usage
+                        'format': 'date-time',
+                        'default': 'tomorrow at 9am',
+                    },
+                    'end_date': {
+                        'type': 'string',
+                        'title': 'End date',
+                        # date-time is parsed using the chrono library, see
+                        # https://www.npmjs.com/package/chrono-node#usage
+                        'format': 'date-time',
+                        'default': '9am in 30 days',
+                    },
+                    'schedule_interval': {
+                        'type': 'string',
+                        'title': 'Schedule interval',
+                    },
+                    'dependencies': {
+                        'type': 'array',
+                        'title': 'Dependencies',
+                        'items': {
+                            'type': 'string',
+                        },
+                    },
+                },
+            },
+            'UISCHEMA': {
+                'schedule_interval': {
+                    'ui:placeholder': '@daily, @weekly, etc.',
+                },
+                'dependencies': {
+                    'ui:help': (
+                        'Check the documentation for the correct format when '
+                        'defining dependencies.'
+                    ),
+                },
+            },
+            'VALIDATION': [
+                # ensure that start_date <= end_date
+                {
+                    'name': 'less_equal',
+                    'arguments': ['start_date', 'end_date'],
+                    'message': 'End date cannot be before start date',
+                    # this is where the error message is shown
+                    'container': 'end_date',
+                },
+            ],
+            # link to the scheduler; this example links to an Airflow pipeline
+            # that uses the query id and the output table as its name
+            'linkback': (
+                'https://airflow.example.com/admin/airflow/tree?'
+                'dag_id=query_${id}_${extra_json.schedule_info.output_table}'
+            ),
+        },
+    }
+
+This feature flag is based on [react-jsonschema-form](https://github.com/mozilla-services/react-jsonschema-form),
+and will add a button called "Schedule Query" to SQL Lab. When the button is
+clicked, a modal will show up where the user can add the metadata required for
+scheduling the query.
+
+This information can then be retrieved from the endpoint `/savedqueryviewapi/api/read`
+and used to schedule the queries that have `scheduled_queries` in their JSON
+metadata. For schedulers other than Airflow, additional fields can be easily
+added to the configuration file above.
 
 Celery Flower
 -------------
@@ -894,7 +1080,7 @@ Note that the above command will install Superset into ``default`` namespace of 
 Custom OAuth2 configuration
 ---------------------------
 
-Beyond FAB supported providers (github, twitter, linkedin, google, azure), its easy to connect Superset with other OAuth2 Authorization Server implementations that support "code" authorization. 
+Beyond FAB supported providers (github, twitter, linkedin, google, azure), its easy to connect Superset with other OAuth2 Authorization Server implementations that support "code" authorization.
 
 The first step: Configure authorization in Superset ``superset_config.py``.
 
@@ -913,10 +1099,10 @@ The first step: Configure authorization in Superset ``superset_config.py``.
                 },
                 'access_token_method':'POST',    # HTTP Method to call access_token_url
                 'access_token_params':{        # Additional parameters for calls to access_token_url
-                    'client_id':'myClientId'     
+                    'client_id':'myClientId'
                 },
-                'access_token_headers':{    # Additional headers for calls to access_token_url 
-                    'Authorization': 'Basic Base64EncodedClientIdAndSecret' 
+                'access_token_headers':{    # Additional headers for calls to access_token_url
+                    'Authorization': 'Basic Base64EncodedClientIdAndSecret'
                 },
                 'base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
                 'access_token_url':'https://myAuthorizationServer/oauth2AuthorizationServer/token',
@@ -924,25 +1110,25 @@ The first step: Configure authorization in Superset ``superset_config.py``.
             }
         }
     ]
-    
+
     # Will allow user self registration, allowing to create Flask users from Authorized User
     AUTH_USER_REGISTRATION = True
-    
+
     # The default user self registration role
     AUTH_USER_REGISTRATION_ROLE = "Public"
-    
+
 Second step: Create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager` and overrides `oauth_user_info`:
 
 .. code-block:: python
-    
+
     from superset.security import SupersetSecurityManager
-    
+
     class CustomSsoSecurityManager(SupersetSecurityManager):
 
         def oauth_user_info(self, provider, response=None):
             logging.debug("Oauth2 provider: {0}.".format(provider))
             if provider == 'egaSSO':
-                # As example, this line request a GET to base_url + '/' + userDetails with Bearer  Authentication, 
+                # As example, this line request a GET to base_url + '/' + userDetails with Bearer  Authentication,
         # and expects that authorization server checks the token, and response with user details
                 me = self.appbuilder.sm.oauth_remotes[provider].get('userDetails').data
                 logging.debug("user_data: {0}".format(me))
@@ -954,7 +1140,6 @@ This file must be located at the same directory than ``superset_config.py`` with
 Then we can add this two lines to ``superset_config.py``:
 
 .. code-block:: python
-  
+
   from custom_sso_security_manager import CustomSsoSecurityManager
   CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
-

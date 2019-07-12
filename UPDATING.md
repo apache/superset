@@ -21,8 +21,20 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
-## Superset 0.34.0
+## Next Version
 
+* [7667](https://github.com/apache/incubator-superset/pull/7667): a change to
+make all Unix timestamp (which by definition are in UTC) comparisons refer
+to a timestamp in UTC as opposed to local time.
+
+* [7653](https://github.com/apache/incubator-superset/pull/7653): a change
+which deprecates the table_columns.database_expression column. Expressions
+should be handled by the DB engine spec conversion, Python date format, or
+custom column expression/type.
+
+* The repo no longer contains translation binaries (`.mo`) files. If you
+  want translations in your build, you now have to run the command
+  `babel-compile --target superset/translations` as part of your builds
 * [5451](https://github.com/apache/incubator-superset/pull/5451): a change
 which adds missing non-nullable fields to the `datasources` table. Depending on
 the integrity of the data, manual intervention may be required.
@@ -31,11 +43,20 @@ the integrity of the data, manual intervention may be required.
 which adds missing non-nullable fields and uniqueness constraints to the
 `columns`and `table_columns` tables. Depending on the integrity of the data,
 manual intervention may be required.
-
+* `fabmanager` command line is deprecated since Flask-AppBuilder 2.0.0, use
+the new `flask fab <command>` integrated with *Flask cli*.
+* `SUPERSET_UPDATE_PERMS` environment variable was replaced by
+`FAB_UPDATE_PERMS` config boolean key. To disable automatic
+creation of permissions set `FAB_UPDATE_PERMS = False` on config.
 * [5453](https://github.com/apache/incubator-superset/pull/5453): a change
 which adds missing non-nullable fields and uniqueness constraints to the metrics
 and sql_metrics tables. Depending on the integrity of the data, manual
 intervention may be required.
+* [7616](https://github.com/apache/incubator-superset/pull/7616): this bug fix
+changes time_compare deltas to correctly evaluate to the number of days prior
+instead of number of days in the future. It will change the data for advanced
+analytics time_compare so `1 year` from 5/1/2019 will be calculated as 365 days
+instead of 366 days.
 
 ## Superset 0.32.0
 

@@ -38,6 +38,7 @@ changelog.sh
 dist
 dump.rdb
 env
+venv*
 env_py3
 envpy3
 env36
@@ -80,3 +81,6 @@ ghostdriver.log
 testCSV.csv
 .terser-plugin-cache/
 apache-superset-*.tar.gz*
+
+# Translation binaries
+messages.mo

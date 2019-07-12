@@ -34,6 +34,9 @@ export function getBreakPoints({
     // compute evenly distributed break points based on number of buckets
     const numBuckets = formDataNumBuckets ? parseInt(formDataNumBuckets, 10) : DEFAULT_NUM_BUCKETS;
     const [minValue, maxValue] = extent(features, accessor);
+    if (minValue === undefined) {
+      return [];
+    }
     const delta = (maxValue - minValue) / numBuckets;
     const precision = delta === 0
       ? 0

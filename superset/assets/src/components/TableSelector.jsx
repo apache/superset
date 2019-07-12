@@ -33,6 +33,8 @@ const propTypes = {
   schema: PropTypes.string,
   onSchemaChange: PropTypes.func,
   onDbChange: PropTypes.func,
+  onSchemasLoad: PropTypes.func,
+  onTablesLoad: PropTypes.func,
   getDbList: PropTypes.func,
   onTableChange: PropTypes.func,
   tableNameSticky: PropTypes.bool,
@@ -47,6 +49,8 @@ const propTypes = {
 const defaultProps = {
   onDbChange: () => {},
   onSchemaChange: () => {},
+  onSchemasLoad: () => {},
+  onTablesLoad: () => {},
   getDbList: () => {},
   onTableChange: () => {},
   onChange: () => {},
@@ -90,21 +94,27 @@ export default class TableSelector extends React.PureComponent {
   onChange() {
     this.props.onChange({
       dbId: this.state.dbId,
-      shema: this.state.schema,
+      schema: this.state.schema,
       tableName: this.state.tableName,
     });
   }
   getTableNamesBySubStr(input) {
-    const { tableName } = this.state;
     if (!this.props.dbId || !input) {
-      const options = this.addOptionIfMissing([], tableName);
+      const options = [];
       return Promise.resolve({ options });
     }
     return SupersetClient.get({
-      endpoint: (
-        `/superset/tables/${this.props.dbId}/` +
-        `${this.props.schema}/${input}`),
-    }).then(({ json }) => ({ options: this.addOptionIfMissing(json.options, tableName) }));
+      endpoint: encodeURI(`/superset/tables/${this.props.dbId}/` +
+        `${encodeURIComponent(this.props.schema)}/${encodeURIComponent(input)}`),
+    }).then(({ json }) => {
+      const options = json.options.map(o => ({
+        value: o.value,
+        schema: o.schema,
+        label: o.label,
+        title: o.title,
+      }));
+      return ({ options });
+    });
   }
   dbMutator(data) {
     this.props.getDbList(data.result);
@@ -123,19 +133,22 @@ export default class TableSelector extends React.PureComponent {
     const { dbId, schema } = this.props;
     if (dbId && schema) {
       this.setState(() => ({ tableLoading: true, tableOptions: [] }));
-      const endpoint = `/superset/tables/${dbId}/${schema}/${substr}/${forceRefresh}/`;
+      const endpoint = encodeURI(`/superset/tables/${dbId}/` +
+          `${encodeURIComponent(schema)}/${encodeURIComponent(substr)}/${forceRefresh}/`);
        return SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          const filterOptions = createFilterOptions({ options: json.options });
-          this.setState(() => ({
-            filterOptions,
-            tableLoading: false,
-            tableOptions: json.options.map(o => ({
-              value: o.value,
-              label: o.label,
-              title: o.label,
-            })),
+          const options = json.options.map(o => ({
+            value: o.value,
+            schema: o.schema,
+            label: o.label,
+            title: o.title,
           }));
+          this.setState(() => ({
+            filterOptions: createFilterOptions({ options }),
+            tableLoading: false,
+            tableOptions: options,
+          }));
+          this.props.onTablesLoad(json.options);
         })
         .catch(() => {
           this.setState(() => ({ tableLoading: false, tableOptions: [] }));
@@ -156,6 +169,7 @@ export default class TableSelector extends React.PureComponent {
         .then(({ json }) => {
           const schemaOptions = json.schemas.map(s => ({ value: s, label: s, title: s }));
           this.setState({ schemaOptions, schemaLoading: false });
+          this.props.onSchemasLoad(schemaOptions);
         })
         .catch(() => {
           this.setState({ schemaLoading: false, schemaOptions: [] });
@@ -170,31 +184,20 @@ export default class TableSelector extends React.PureComponent {
       this.setState({ tableName: '' });
       return;
     }
-    const namePieces = tableOpt.value.split('.');
-    let tableName = namePieces[0];
-    let schemaName = this.props.schema;
-    if (namePieces.length > 1) {
-      schemaName = namePieces[0];
-      tableName = namePieces[1];
-    }
+    const schemaName = tableOpt.schema;
+    const tableName = tableOpt.value;
     if (this.props.tableNameSticky) {
       this.setState({ tableName }, this.onChange);
     }
     this.props.onTableChange(tableName, schemaName);
   }
-  changeSchema(schemaOpt) {
+  changeSchema(schemaOpt, force = false) {
     const schema = schemaOpt ? schemaOpt.value : null;
     this.props.onSchemaChange(schema);
     this.setState({ schema }, () => {
-      this.fetchTables();
+      this.fetchTables(force);
       this.onChange();
     });
-  }
-  addOptionIfMissing(options, value) {
-    if (options.filter(o => o.value === this.state.tableName).length === 0 && value) {
-      return [...options, { value, label: value }];
-    }
-    return options;
   }
   renderDatabaseOption(db) {
     return (
@@ -268,7 +271,7 @@ export default class TableSelector extends React.PureComponent {
       tableSelectPlaceholder = t('Select table ');
       tableSelectDisabled = true;
     }
-    const options = this.addOptionIfMissing(this.state.tableOptions, this.state.tableName);
+    const options = this.state.tableOptions;
     const select = this.props.schema ? (
       <Select
         name="select-table"

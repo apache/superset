@@ -25,15 +25,15 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = '0b1f1ab473c0'
-down_revision = '55e910a74826'
+revision = "0b1f1ab473c0"
+down_revision = "55e910a74826"
 
 
 def upgrade():
-    with op.batch_alter_table('query') as batch_op:
-        batch_op.add_column(sa.Column('extra_json', sa.Text(), nullable=True))
+    with op.batch_alter_table("query") as batch_op:
+        batch_op.add_column(sa.Column("extra_json", sa.Text(), nullable=True))
 
 
 def downgrade():
-    with op.batch_alter_table('query') as batch_op:
-        batch_op.drop_column('extra_json')
+    with op.batch_alter_table("query") as batch_op:
+        batch_op.drop_column("extra_json")

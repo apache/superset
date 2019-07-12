@@ -97,7 +97,12 @@ articles. See [Documentation](#documentation) for more details.
 
 ### Add Translations
 
-If you are proficient in a non-English language, you can help translate text strings from Superset's UI. You can jump in to the existing language dictionaries at `superset/translations/<language_code>/LC_MESSAGES/messages.po`, or even create a dictionary for a new language altogether. See [Translating](#translating) for more details.
+If you are proficient in a non-English language, you can help translate
+text strings from Superset's UI. You can jump in to the existing
+language dictionaries at
+`superset/translations/<language_code>/LC_MESSAGES/messages.po`, or
+even create a dictionary for a new language altogether.
+See [Translating](#translating) for more details.
 
 ### Ask Questions
 
@@ -294,7 +299,17 @@ python setup.py build_sphinx
 
 ### Flask server
 
+#### OS Dependencies
+
 Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
+
+Developers should use a virtualenv.
+
+```
+pip install virtualenv
+```
+
+Then proceed with:
 
 ```bash
 # Create a virtual environemnt and activate it (recommended)
@@ -304,11 +319,12 @@ source venv/bin/activate
 # Install external dependencies
 pip install -r requirements.txt
 pip install -r requirements-dev.txt
+
 # Install Superset in editable (development) mode
 pip install -e .
 
-# Create an admin user
-fabmanager create-admin --app superset
+# Create an admin user in your metadata database
+flask fab create-admin
 
 # Initialize the database
 superset db upgrade
@@ -319,19 +335,30 @@ superset init
 # Load some data to play with
 superset load_examples
 
-# Start the Flask dev web server from inside the `superset` dir at port 8088
+# Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have css at this point.
 # See instructions below how to build the front-end assets.
-cd superset
-FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger
+FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 ```
+
+If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
+`FLASK_ENV=development superset run -p 8088 --reload --debugger`
 
 #### Logging to the browser console
 
-This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console:
+This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console using the [ConsoleLog](https://github.com/betodealmeida/consolelog) package. You need to mutate the app, by adding the following to your `config.py` or `superset_config.py`:
+
+```python
+from console_log import ConsoleLog
+
+def FLASK_APP_MUTATOR(app):
+    app.wsgi_app = ConsoleLog(app.wsgi_app, app.logger)
+```
+
+Then make sure you run your WSGI server using the right worker type:
 
 ```bash
-FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger --console-log
+FLASK_ENV=development gunicorn superset:app -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
 ```
 
 You can log anything to the browser console, including objects:
@@ -346,7 +373,14 @@ app.logger.info(form_data)
 
 Frontend assets (JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset/assets` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
 
-First, be sure you are using recent versions of NodeJS and npm. Using [nvm](https://github.com/creationix/nvm) to manage them is recommended.
+#### nvm and node
+
+First, be sure you are using recent versions of NodeJS and npm. Using [nvm](https://github.com/creationix/nvm) to manage them is recommended. Check the docs at the link to be sure, but at the time of writing the following would install nvm and node:
+
+```bash
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
+nvm install node
+```
 
 #### Prerequisite
 
@@ -387,6 +421,12 @@ npm run dev
 npm run prod
 ```
 
+If you run this service from somewhere other than your local machine, you may need to add hostname value to webpack.config.js at .devServer.public specifying the endpoint at which you will access the app. For example: myhost:9001. For convenience you may want to install webpack, webpack-cli and webpack-dev-server globally so that you can run them directly:
+
+```bash
+npm install --global webpack webpack-cli webpack-dev-server
+```
+
 #### Updating NPM packages
 
 Use npm in the prescribed way, making sure that
@@ -412,6 +452,15 @@ export enum FeatureFlag {
 those specified under FEATURE_FLAGS in `superset_config.py`. For example, `DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False }` in `superset/config.py` and `FEATURE_FLAGS = { 'BAR': True, 'BAZ': True }` in `superset_config.py` will result
 in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
 
+## Git Hooks
+
+Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/). To install run the following:
+
+```bash
+pip3 install -r requirements-dev.txt
+pre-commit install
+```
+
 ## Linting
 
 Lint the project with:
@@ -425,6 +474,10 @@ cd superset/assets
 npm ci
 npm run lint
 ```
+
+The Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html).
+
 
 ## Testing
 
@@ -508,14 +561,15 @@ superset db upgrade
 superset init
 superset load_test_users
 superset load_examples
-superset runserver
+superset run --port 8081
 ```
 
 Run Cypress tests:
 
 ```bash
-cd /superset/superset/assets
+cd superset/assets
 npm run build
+npm run install-cypress
 npm run cypress run
 
 # run tests from a specific file
@@ -525,18 +579,27 @@ npm run cypress run -- --spec cypress/integration/explore/link.test.js
 npm run cypress run -- --spec cypress/integration/dashboard/index.test.js --config video=true
 ```
 
+See [`superset/assets/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset/assets/cypress_build.sh).
+
 ## Translating
 
-We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset. In Python files, we import the magic `_` function using:
+We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset.
+In Python files, we import the magic `_` function using:
 
 ```python
 from flask_babel import lazy_gettext as _
 ```
 
-then wrap our translatable strings with it, e.g. `_('Translate me')`. During extraction, string literals passed to `_` will be added to the generated `.po` file for each language for later translation.
-At runtime, the `_` function will return the translation of the given string for the current language, or the given string itself if no translation is available.
+then wrap our translatable strings with it, e.g. `_('Translate me')`.
+During extraction, string literals passed to `_` will be added to the
+generated `.po` file for each language for later translation.
 
-In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number).
+At runtime, the `_` function will return the translation of the given
+string for the current language, or the given string itself
+if no translation is available.
+
+In JavaScript, the technique is similar:
+we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
 import { t, tn } from '@superset-ui/translation';
@@ -559,7 +622,7 @@ LANGUAGES = {
 ### Extracting new strings for translation
 
 ```bash
-fabmanager babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
+flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
 ```
 
 You can then translate the strings gathered in files located under
@@ -572,7 +635,7 @@ For the translations to take effect:
 ```bash
 # In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
 npm install -g po2json
-fabmanager babel-compile --target superset/translations
+flask fab babel-compile --target superset/translations
 # Convert the en PO file into a JSON file
 po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
 ```
@@ -698,7 +761,7 @@ to work on `async` related features.
 
 To do this, you'll need to:
 * Add an additional database entry. We recommend you copy the connection
-  string from the database labeled `main`, and then enable `SQL Lab` and the 
+  string from the database labeled `main`, and then enable `SQL Lab` and the
   features you want to use. Don't forget to check the `Async` box
 * Configure a results backend, here's a local `FileSystemCache` example,
   not recommended for production,

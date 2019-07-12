@@ -38,11 +38,6 @@ const defaultProps = {
 
 
 class AnchorLink extends React.PureComponent {
-  constructor(props) {
-    super(props);
-
-    this.handleClickAnchorLink = this.handleClickAnchorLink.bind(this);
-  }
 
   componentDidMount() {
     const hash = this.getLocationHash();
@@ -63,11 +58,6 @@ class AnchorLink extends React.PureComponent {
 
   getLocationHash() {
     return (window.location.hash || '').substring(1);
-  }
-
-  handleClickAnchorLink(ev) {
-    ev.preventDefault();
-    history.pushState(null, null, `#${this.props.anchorLinkId}`);
   }
 
   render() {

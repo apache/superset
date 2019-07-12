@@ -208,26 +208,9 @@ limitations under the License.
    subcomponents is subject to the terms and conditions of the following
    licenses.
 
+
 ========================================================================
 Third party Apache 2.0 licenses
 ========================================================================
 
-========================================================================
-MIT licenses
-========================================================================
-
-    (MIT License) cal-heatmap v3.6.2 (https://github.com/wa0x6e/cal-heatmap)
-
-========================================================================
-BSD 2-Clause licenses
-========================================================================
-
-========================================================================
-BSD 3-Clause licenses
-========================================================================
-
-    (BSD 3 License) parallel-coordinates v0.7.0 (http://syntagmatic.github.com/parallel-coordinates/)
-
-========================================================================
-Creative Commons Attribution 4.0
-========================================================================
+(Apache 2.0 License) The Roboto family of fonts (https://github.com/google/roboto)

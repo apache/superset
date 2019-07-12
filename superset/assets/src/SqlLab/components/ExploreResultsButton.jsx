@@ -85,8 +85,8 @@ class ExploreResultsButton extends React.PureComponent {
   }
   getColumns() {
     const props = this.props;
-    if (props.query && props.query.results && props.query.results.columns) {
-      return props.query.results.columns;
+    if (props.query && props.query.results && props.query.results.selected_columns) {
+      return props.query.results.selected_columns;
     }
     return [];
   }
@@ -97,7 +97,7 @@ class ExploreResultsButton extends React.PureComponent {
     const re1 = /^[A-Za-z_]\w*$/;  // starts with char or _, then only alphanum
     const re2 = /__\d+$/;  // does not finish with __ and then a number which screams dup col name
 
-    return this.props.query.results.columns.map(col => col.name)
+    return this.props.query.results.selected_columns.map(col => col.name)
       .filter(col => !re1.test(col) || re2.test(col));
   }
   datasourceName() {

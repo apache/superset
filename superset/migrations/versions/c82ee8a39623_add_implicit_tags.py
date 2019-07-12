@@ -23,18 +23,15 @@ Create Date: 2018-07-26 11:10:23.653524
 """
 
 # revision identifiers, used by Alembic.
-revision = 'c82ee8a39623'
-down_revision = 'c617da68de7d'
+revision = "c82ee8a39623"
+down_revision = "c617da68de7d"
 
 from alembic import op
 from sqlalchemy import Column, Enum, Integer, ForeignKey, String
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset.models.helpers import AuditMixinNullable
-from superset.models.tags import (
-    ObjectTypes,
-    TagTypes,
-)
+from superset.models.tags import ObjectTypes, TagTypes
 
 
 Base = declarative_base()
@@ -42,7 +39,8 @@ Base = declarative_base()
 
 class Tag(Base, AuditMixinNullable):
     """A tag attached to an object (query, chart or dashboard)."""
-    __tablename__ = 'tag'
+
+    __tablename__ = "tag"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(250), unique=True)
@@ -50,17 +48,18 @@ class Tag(Base, AuditMixinNullable):
 
 
 class TaggedObject(Base, AuditMixinNullable):
-    __tablename__ = 'tagged_object'
+    __tablename__ = "tagged_object"
 
     id = Column(Integer, primary_key=True)
-    tag_id = Column(Integer, ForeignKey('tag.id'))
+    tag_id = Column(Integer, ForeignKey("tag.id"))
     object_id = Column(Integer)
     object_type = Column(Enum(ObjectTypes))
 
 
 class User(Base):
     """Declarative class to do query in upgrade"""
-    __tablename__ = 'ab_user'
+
+    __tablename__ = "ab_user"
     id = Column(Integer, primary_key=True)
 
 
@@ -71,5 +70,5 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_table('tagged_object')
-    op.drop_table('tag')
+    op.drop_table("tagged_object")
+    op.drop_table("tag")

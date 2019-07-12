@@ -45,7 +45,7 @@ def get_form_data(chart_id, dashboard=None):
     filters in the GET request for charts.
 
     """
-    form_data = {'slice_id': chart_id}
+    form_data = {"slice_id": chart_id}
 
     if dashboard is None or not dashboard.json_metadata:
         return form_data
@@ -53,37 +53,35 @@ def get_form_data(chart_id, dashboard=None):
     json_metadata = json.loads(dashboard.json_metadata)
 
     # do not apply filters if chart is immune to them
-    if chart_id in json_metadata.get('filter_immune_slices', []):
+    if chart_id in json_metadata.get("filter_immune_slices", []):
         return form_data
 
-    default_filters = json.loads(json_metadata.get('default_filters', 'null'))
+    default_filters = json.loads(json_metadata.get("default_filters", "null"))
     if not default_filters:
         return form_data
 
     # are some of the fields in the chart immune to filters?
-    filter_immune_slice_fields = json_metadata.get('filter_immune_slice_fields', {})
+    filter_immune_slice_fields = json_metadata.get("filter_immune_slice_fields", {})
     immune_fields = filter_immune_slice_fields.get(str(chart_id), [])
 
     extra_filters = []
     for filters in default_filters.values():
         for col, val in filters.items():
             if col not in immune_fields:
-                extra_filters.append({'col': col, 'op': 'in', 'val': val})
+                extra_filters.append({"col": col, "op": "in", "val": val})
     if extra_filters:
-        form_data['extra_filters'] = extra_filters
+        form_data["extra_filters"] = extra_filters
 
     return form_data
 
 
 def get_url(params):
     """Return external URL for warming up a given chart/table cache."""
-    baseurl = 'http://{SUPERSET_WEBSERVER_ADDRESS}:{SUPERSET_WEBSERVER_PORT}/'.format(
-        **app.config)
+    baseurl = "http://{SUPERSET_WEBSERVER_ADDRESS}:{SUPERSET_WEBSERVER_PORT}/".format(
+        **app.config
+    )
     with app.test_request_context():
-        return urllib.parse.urljoin(
-            baseurl,
-            url_for('Superset.explore_json', **params),
-        )
+        return urllib.parse.urljoin(baseurl, url_for("Superset.explore_json", **params))
 
 
 class Strategy:
@@ -108,11 +106,12 @@ class Strategy:
         }
 
     """
+
     def __init__(self):
         pass
 
     def get_urls(self):
-        raise NotImplementedError('Subclasses must implement get_urls!')
+        raise NotImplementedError("Subclasses must implement get_urls!")
 
 
 class DummyStrategy(Strategy):
@@ -131,13 +130,13 @@ class DummyStrategy(Strategy):
 
     """
 
-    name = 'dummy'
+    name = "dummy"
 
     def get_urls(self):
         session = db.create_scoped_session()
         charts = session.query(Slice).all()
 
-        return [get_url({'form_data': get_form_data(chart.id)}) for chart in charts]
+        return [get_url({"form_data": get_form_data(chart.id)}) for chart in charts]
 
 
 class TopNDashboardsStrategy(Strategy):
@@ -158,9 +157,9 @@ class TopNDashboardsStrategy(Strategy):
 
     """
 
-    name = 'top_n_dashboards'
+    name = "top_n_dashboards"
 
-    def __init__(self, top_n=5, since='7 days ago'):
+    def __init__(self, top_n=5, since="7 days ago"):
         super(TopNDashboardsStrategy, self).__init__()
         self.top_n = top_n
         self.since = parse_human_datetime(since)
@@ -170,28 +169,18 @@ class TopNDashboardsStrategy(Strategy):
         session = db.create_scoped_session()
 
         records = (
-            session
-            .query(Log.dashboard_id, func.count(Log.dashboard_id))
-            .filter(and_(
-                Log.dashboard_id.isnot(None),
-                Log.dttm >= self.since,
-            ))
+            session.query(Log.dashboard_id, func.count(Log.dashboard_id))
+            .filter(and_(Log.dashboard_id.isnot(None), Log.dttm >= self.since))
             .group_by(Log.dashboard_id)
             .order_by(func.count(Log.dashboard_id).desc())
             .limit(self.top_n)
             .all()
         )
         dash_ids = [record.dashboard_id for record in records]
-        dashboards = (
-            session
-            .query(Dashboard)
-            .filter(Dashboard.id.in_(dash_ids))
-            .all()
-        )
+        dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
         for dashboard in dashboards:
             for chart in dashboard.slices:
-                urls.append(
-                    get_url({'form_data': get_form_data(chart.id, dashboard)}))
+                urls.append(get_url({"form_data": get_form_data(chart.id, dashboard)}))
 
         return urls
 
@@ -212,7 +201,7 @@ class DashboardTagsStrategy(Strategy):
         }
     """
 
-    name = 'dashboard_tags'
+    name = "dashboard_tags"
 
     def __init__(self, tags=None):
         super(DashboardTagsStrategy, self).__init__()
@@ -222,53 +211,41 @@ class DashboardTagsStrategy(Strategy):
         urls = []
         session = db.create_scoped_session()
 
-        tags = (
-            session
-            .query(Tag)
-            .filter(Tag.name.in_(self.tags))
-            .all()
-        )
+        tags = session.query(Tag).filter(Tag.name.in_(self.tags)).all()
         tag_ids = [tag.id for tag in tags]
 
         # add dashboards that are tagged
         tagged_objects = (
-            session
-            .query(TaggedObject)
-            .filter(and_(
-                TaggedObject.object_type == 'dashboard',
-                TaggedObject.tag_id.in_(tag_ids),
-            ))
+            session.query(TaggedObject)
+            .filter(
+                and_(
+                    TaggedObject.object_type == "dashboard",
+                    TaggedObject.tag_id.in_(tag_ids),
+                )
+            )
             .all()
         )
         dash_ids = [tagged_object.object_id for tagged_object in tagged_objects]
-        tagged_dashboards = (
-            session
-            .query(Dashboard)
-            .filter(Dashboard.id.in_(dash_ids))
-        )
+        tagged_dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids))
         for dashboard in tagged_dashboards:
             for chart in dashboard.slices:
-                urls.append(
-                    get_url({'form_data': get_form_data(chart.id, dashboard)}))
+                urls.append(get_url({"form_data": get_form_data(chart.id, dashboard)}))
 
         # add charts that are tagged
         tagged_objects = (
-            session
-            .query(TaggedObject)
-            .filter(and_(
-                TaggedObject.object_type == 'chart',
-                TaggedObject.tag_id.in_(tag_ids),
-            ))
+            session.query(TaggedObject)
+            .filter(
+                and_(
+                    TaggedObject.object_type == "chart",
+                    TaggedObject.tag_id.in_(tag_ids),
+                )
+            )
             .all()
         )
         chart_ids = [tagged_object.object_id for tagged_object in tagged_objects]
-        tagged_charts = (
-            session
-            .query(Slice)
-            .filter(Slice.id.in_(chart_ids))
-        )
+        tagged_charts = session.query(Slice).filter(Slice.id.in_(chart_ids))
         for chart in tagged_charts:
-            urls.append(get_url({'form_data': get_form_data(chart.id)}))
+            urls.append(get_url({"form_data": get_form_data(chart.id)}))
 
         return urls
 
@@ -276,7 +253,7 @@ class DashboardTagsStrategy(Strategy):
 strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
 
-@celery_app.task(name='cache-warmup')
+@celery_app.task(name="cache-warmup")
 def cache_warmup(strategy_name, *args, **kwargs):
     """
     Warm up cache.
@@ -284,33 +261,33 @@ def cache_warmup(strategy_name, *args, **kwargs):
     This task periodically hits charts to warm up the cache.
 
     """
-    logger.info('Loading strategy')
+    logger.info("Loading strategy")
     class_ = None
     for class_ in strategies:
         if class_.name == strategy_name:
             break
     else:
-        message = f'No strategy {strategy_name} found!'
+        message = f"No strategy {strategy_name} found!"
         logger.error(message)
         return message
 
-    logger.info(f'Loading {class_.__name__}')
+    logger.info(f"Loading {class_.__name__}")
     try:
         strategy = class_(*args, **kwargs)
-        logger.info('Success!')
+        logger.info("Success!")
     except TypeError:
-        message = 'Error loading strategy!'
+        message = "Error loading strategy!"
         logger.exception(message)
         return message
 
-    results = {'success': [], 'errors': []}
+    results = {"success": [], "errors": []}
     for url in strategy.get_urls():
         try:
-            logger.info(f'Fetching {url}')
+            logger.info(f"Fetching {url}")
             requests.get(url)
-            results['success'].append(url)
+            results["success"].append(url)
         except RequestException:
-            logger.exception('Error warming up cache!')
-            results['errors'].append(url)
+            logger.exception("Error warming up cache!")
+            results["errors"].append(url)
 
     return results

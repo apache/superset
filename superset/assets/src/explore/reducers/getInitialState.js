@@ -20,7 +20,8 @@ import shortid from 'shortid';
 
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 import { getChartKey } from '../exploreUtils';
-import { getControlsState, getFormDataFromControls } from '../store';
+import { getControlsState } from '../store';
+import { getFormDataFromControls } from '../controlUtils';
 
 export default function getInitialState(bootstrapData) {
   const controls = getControlsState(bootstrapData, bootstrapData.form_data);

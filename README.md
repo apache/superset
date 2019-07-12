@@ -94,28 +94,8 @@ Superset speaks many SQL dialects through SQLAlchemy, a Python
 ORM that is compatible with
 [most common databases](https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html).
 
-Superset can be used to visualize data out of most databases:
-* MySQL
-* Postgres
-* Vertica
-* Oracle
-* Microsoft SQL Server
-* SQLite
-* Greenplum
-* Firebird
-* MariaDB
-* Sybase
-* IBM DB2
-* Exasol
-* MonetDB
-* Snowflake
-* Redshift
-* Clickhouse
-* Apache Kylin
-* Google BigQuery
-* **more!** look for the availability of a SQLAlchemy dialect for your database
-  to find out whether it will work with Superset
-
+A list of currently supported SQL databases can be found
+[here](https://superset.incubator.apache.org/#databases).
 
 Apache Druid (Incubating)!
 ------
@@ -167,10 +147,12 @@ Who uses Apache Superset (incubating)?
 Here's a list of organizations who have taken the time to send a PR to let
 the world know they are using Superset. Join our growing community!
 
+ 1. [6play](https://www.6play.fr)
  1. [AiHello](https://www.aihello.com)
  1. [Airbnb](https://github.com/airbnb)
  1. [Airboxlab](https://foobot.io)
  1. [Aktia Bank plc](https://www.aktia.com)
+ 1. [American Express](https://www.americanexpress.com)
  1. [Amino](https://amino.com)
  1. [Apollo GraphQL](https://www.apollographql.com/)
  1. [Ascendica Development](http://ascendicadevelopment.com)
@@ -191,10 +173,12 @@ the world know they are using Superset. Join our growing community!
  1. [Grassroot](https://www.grassrootinstitute.org/)
  1. [Hostnfly](https://www.hostnfly.com/)
  1. [HuiShouBao](http://www.huishoubao.com/)
+ 1. [Intercom](https://www.intercom.com/)
  1. [jampp](https://jampp.com/)
  1. [Konfío](http://konfio.mx)
  1. [Kuaishou](https://www.kuaishou.com/)
  1. [Lime](https://www.limebike.com/)
+ 1. [Living Goods](https://www.livinggoods.org)
  1. [Lyft](https://www.lyft.com/)
  1. [Maieutical Labs](https://maieuticallabs.it)
  1. [Myra Labs](http://www.myralabs.com/)
@@ -208,9 +192,11 @@ the world know they are using Superset. Join our growing community!
  1. [ScopeAI](https://www.getscopeai.com)
  1. [Shopee](https://shopee.sg)
  1. [Shopkick](https://www.shopkick.com)
+ 1. [source{d}](https://www.sourced.tech)
  1. [Steamroot](https://streamroot.io/)
  1. [Showmax](https://tech.showmax.com)
  1. [Tails.com](https://tails.com)
+ 1. [Tenable](https://www.tenable.com)
  1. [THEICONIC](http://theiconic.com.au/)
  1. [Tobii](http://www.tobii.com/)
  1. [Tooploox](https://www.tooploox.com/)
@@ -218,6 +204,7 @@ the world know they are using Superset. Join our growing community!
  1. [Twitter](https://twitter.com/)
  1. [Udemy](https://www.udemy.com/)
  1. [VIPKID](https://www.vipkid.com.cn/)
+ 1. [WeSure](https://www.wesure.cn/)
  1. [Windsor.ai](https://www.windsor.ai/)
  1. [Yahoo!](https://yahoo.com/)
  1. [Zaihang](http://www.zaih.com/)

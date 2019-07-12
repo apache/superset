@@ -17,8 +17,10 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { validateControl, getControlsState, getFormDataFromControls } from '../store';
-import controls from '../controls';
+import {
+  getControlsState,
+} from '../store';
+import { getControlState, getFormDataFromControls } from '../controlUtils';
 import * as actions from '../actions/exploreActions';
 
 export default function exploreReducer(state = {}, action) {
@@ -78,11 +80,10 @@ export default function exploreReducer(state = {}, action) {
     [actions.SET_FIELD_VALUE]() {
       // These errors are reported from the Control components
       let errors = action.validationErrors || [];
-      let control = {
-        ...controls[action.controlName],
-        value: action.value,
+      const vizType = state.form_data.viz_type;
+      const control = {
+        ...getControlState(action.controlName, vizType, state, action.value),
       };
-      control = validateControl(control);
 
       // These errors are based on control config `validators`
       errors = errors.concat(control.validationErrors || []);
