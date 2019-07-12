@@ -135,8 +135,11 @@ def get_database_access_error_msg(database_name):
 
 
 def get_datasource_access_error_msg(datasource_name):
-    return __('This endpoint requires the datasource %(name)s, database or '
-              '`all_datasource_access` permission', name=datasource_name)
+    return __(
+        "This endpoint requires the datasource %(name)s, database or "
+        "`all_datasource_access` permission",
+        name=datasource_name,
+    )
 
 
 def is_owner(obj, user):
