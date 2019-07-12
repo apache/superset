@@ -18,7 +18,6 @@
 from datetime import datetime, timedelta
 import logging
 import pickle as pkl
-import traceback
 from typing import Dict, List
 
 import numpy as np
@@ -199,7 +198,7 @@ class QueryContext:
                 if not error_message:
                     error_message = "{}".format(e)
                 status = utils.QueryStatus.FAILED
-                stacktrace = traceback.format_exc()
+                stacktrace = utils.get_stacktrace()
 
             if is_loaded and cache_key and cache and status != utils.QueryStatus.FAILED:
                 try:
