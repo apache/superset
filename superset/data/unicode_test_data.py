@@ -75,7 +75,12 @@ def load_unicode_test_data():
     slice_data = {
         "granularity_sqla": "dttm",
         "groupby": [],
-        "metric": "sum__value",
+        "metric": {
+            "aggregate": "SUM",
+            "column": {"column_name": "value"},
+            "expressionType": "SIMPLE",
+            "label": "Value",
+        },
         "row_limit": config.get("ROW_LIMIT"),
         "since": "100 years ago",
         "until": "now",

@@ -100,7 +100,14 @@ class Tabs extends React.PureComponent {
     }
   }
 
-  handleClickTab(tabIndex) {
+  handleClickTab(tabIndex, ev) {
+    const target = ev.target;
+    // special handler for clicking on anchor link icon (or whitespace nearby):
+    // will show short link popover but do not change tab
+    if (target.classList.contains('short-link-trigger')) {
+      return;
+    }
+
     const { component, createComponent } = this.props;
 
     if (tabIndex === NEW_TAB_INDEX) {

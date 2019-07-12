@@ -21,6 +21,7 @@ import inspect
 import json
 import random
 import time
+from typing import Any, List, Optional, Tuple
 import uuid
 
 from dateutil.relativedelta import relativedelta
@@ -41,7 +42,7 @@ BASE_CONTEXT = {
 BASE_CONTEXT.update(config.get("JINJA_CONTEXT_ADDONS", {}))
 
 
-def url_param(param, default=None):
+def url_param(param: str, default: Optional[str] = None) -> Optional[Any]:
     """Read a url or post parameter and use it in your SQL Lab query
 
     When in SQL Lab, it's possible to add arbitrary URL "query string"
@@ -56,33 +57,34 @@ def url_param(param, default=None):
     it should carry through to your queries.
 
     :param param: the parameter to lookup
-    :type param: str
     :param default: the value to return in the absence of the parameter
-    :type default: str
     """
     if request.args.get(param):
         return request.args.get(param, default)
     # Supporting POST as well as get
-    if request.form.get("form_data"):
-        form_data = json.loads(request.form.get("form_data"))
+    form_data = request.form.get("form_data")
+    if isinstance(form_data, str):
+        form_data = json.loads(form_data)
         url_params = form_data.get("url_params") or {}
         return url_params.get(param, default)
     return default
 
 
-def current_user_id():
+def current_user_id() -> Optional[int]:
     """The id of the user who is currently logged in"""
     if hasattr(g, "user") and g.user:
         return g.user.id
+    return None
 
 
-def current_username():
+def current_username() -> Optional[str]:
     """The username of the user who is currently logged in"""
     if g.user:
         return g.user.username
+    return None
 
 
-def filter_values(column, default=None):
+def filter_values(column: str, default: Optional[str] = None) -> List[str]:
     """ Gets a values for a particular filter as a list
 
     This is useful if:
@@ -91,20 +93,18 @@ def filter_values(column, default=None):
         - you want to have the ability for filter inside the main query for speed
           purposes
 
-    This searches for "filters" and "extra_filters" in form_data for a match
+    This searches for "filters" and "extra_filters" in ``form_data`` for a match
 
-    Usage example:
+    Usage example::
+
         SELECT action, count(*) as times
         FROM logs
         WHERE action in ( {{ "'" + "','".join(filter_values('action_type')) + "'" }} )
-        GROUP BY 1
+        GROUP BY action
 
     :param column: column/filter name to lookup
-    :type column: str
     :param default: default value to return if there's no matching columns
-    :type default: str
     :return: returns a list of filter values
-    :type: list
     """
     form_data = json.loads(request.form.get("form_data", "{}"))
     return_val = []
@@ -144,7 +144,7 @@ class BaseTemplateProcessor(object):
     name. For globally available methods use ``@classmethod``.
     """
 
-    engine = None
+    engine: Optional[str] = None
 
     def __init__(self, database=None, query=None, table=None, **kwargs):
         self.database = database
@@ -167,7 +167,7 @@ class BaseTemplateProcessor(object):
             self.context[self.engine] = self
         self.env = SandboxedEnvironment()
 
-    def process_template(self, sql, **kwargs):
+    def process_template(self, sql: str, **kwargs) -> str:
         """Processes a sql template
 
         >>> sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
@@ -189,12 +189,12 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
     engine = "presto"
 
     @staticmethod
-    def _schema_table(table_name, schema):
+    def _schema_table(table_name: str, schema: str) -> Tuple[str, str]:
         if "." in table_name:
             schema, table_name = table_name.split(".")
         return table_name, schema
 
-    def latest_partition(self, table_name):
+    def latest_partition(self, table_name: str):
         table_name, schema = self._schema_table(table_name, self.schema)
         return self.database.db_engine_spec.latest_partition(
             table_name, schema, self.database

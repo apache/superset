@@ -394,7 +394,6 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
             "groupby",
             "is_dttm",
             "type",
-            "database_expression",
             "python_date_format",
         )
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}

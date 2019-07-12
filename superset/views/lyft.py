@@ -23,15 +23,14 @@ from __future__ import unicode_literals
 from flask import g, request, Response
 from flask_appbuilder import expose
 
-from superset import app, appbuilder, security_manager
+from superset import app, appbuilder, event_logger, security_manager
 from superset.exceptions import SupersetException
 import superset.models.core as models
 from superset.views.core import Superset
 from .base import json_error_response
 
 config = app.config
-stats_logger = config.get('STATS_LOGGER')
-log_this = models.Log.log_this
+stats_logger = config.get("STATS_LOGGER")
 DAR = models.DatasourceAccessRequest
 
 
@@ -40,7 +39,7 @@ class UserDontExistException(SupersetException):
 
 
 def json_success(json_msg, status=200):
-    return Response(json_msg, status=status, mimetype='application/json')
+    return Response(json_msg, status=status, mimetype="application/json")
 
 
 class Lyft(Superset):
@@ -48,42 +47,42 @@ class Lyft(Superset):
     def authorize():
         """Provides access if token, impersonates if specified"""
         if not security_manager.has_tom_key():
-            raise SupersetException('Wrong key')
+            raise SupersetException("Wrong key")
 
-        email = request.headers.get('IMPERSONATE')
+        email = request.headers.get("IMPERSONATE")
         if email:
             user = security_manager.find_user(email=email)
             if not user:
-                raise UserDontExistException('Email to impersonate not found')
+                raise UserDontExistException("Email to impersonate not found")
             g.user = user
 
-    @expose('/sql_json/', methods=['POST', 'GET'])
-    @log_this
+    @event_logger.log_this
+    @expose("/sql_json/", methods=["POST", "GET"])
     def sql_json(self):
         try:
             Lyft.authorize()
         except UserDontExistException as e:
-            return json_error_response('{}'.format(e), status=412)
+            return json_error_response("{}".format(e), status=412)
         except SupersetException as e:
-            return json_error_response('{}'.format(e))
+            return json_error_response("{}".format(e))
         return self.sql_json_call(request)
 
-    @expose('/queries/<last_updated_ms>')
-    @log_this
+    @event_logger.log_this
+    @expose("/queries/<last_updated_ms>")
     def queries(self, last_updated_ms):
         try:
             self.authorize()
         except (UserDontExistException, SupersetException) as e:
-            return json_error_response('{}'.format(e))
+            return json_error_response("{}".format(e))
         return self.queries_call(last_updated_ms)
 
-    @expose('/results/<key>')
-    @log_this
+    @event_logger.log_this
+    @expose("/results/<key>")
     def results(self, key):
         try:
             self.authorize()
         except (UserDontExistException, SupersetException) as e:
-            return json_error_response('{}'.format(e))
+            return json_error_response("{}".format(e))
         return self.results_call(key)
 
 

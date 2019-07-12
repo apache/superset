@@ -42,6 +42,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import Label, TextAsFrom
@@ -50,6 +51,7 @@ import sqlparse
 from superset import app, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.db_engine_specs.base import TimestampExpression
+from superset.exceptions import DatabaseNotFound
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
@@ -112,7 +114,6 @@ class TableColumn(Model, BaseColumn):
     is_dttm = Column(Boolean, default=False)
     expression = Column(Text)
     python_date_format = Column(String(255))
-    database_expression = Column(String(255))
 
     export_fields = (
         "table_id",
@@ -126,7 +127,6 @@ class TableColumn(Model, BaseColumn):
         "expression",
         "description",
         "python_date_format",
-        "database_expression",
     )
 
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
@@ -195,18 +195,9 @@ class TableColumn(Model, BaseColumn):
         return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
     def dttm_sql_literal(self, dttm):
-        """Convert datetime object to a SQL expression string
-
-        If database_expression is empty, the internal dttm
-        will be parsed as the string with the pattern that
-        the user inputted (python_date_format)
-        If database_expression is not empty, the internal dttm
-        will be parsed as the sql sentence for the database to convert
-        """
+        """Convert datetime object to a SQL expression string"""
         tf = self.python_date_format
-        if self.database_expression:
-            return self.database_expression.format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
-        elif tf:
+        if tf:
             seconds_since_epoch = int(dttm.timestamp())
             if tf == "epoch_s":
                 return str(seconds_since_epoch)
@@ -1016,11 +1007,19 @@ class SqlaTable(Model, BaseDatasource):
             )
 
         def lookup_database(table):
-            return (
-                db.session.query(Database)
-                .filter_by(database_name=table.params_dict["database_name"])
-                .one()
-            )
+            try:
+                return (
+                    db.session.query(Database)
+                    .filter_by(database_name=table.params_dict["database_name"])
+                    .one()
+                )
+            except NoResultFound:
+                raise DatabaseNotFound(
+                    _(
+                        "Database '%(name)s' is not found",
+                        name=table.params_dict["database_name"],
+                    )
+                )
 
         return import_datasource.import_datasource(
             db.session, i_datasource, lookup_database, lookup_sqlatable, import_time

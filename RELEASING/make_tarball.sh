@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -14,6 +15,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-sphinx==2.1.2
-sphinx_autodoc_typehints==1.6.0
-sphinx-rtd-theme==0.4.3
+set -ex
+
+if [ -z "$VERSION" ]; then
+  echo "VERSION is required to run this container"
+  exit 1
+fi
+
+
+echo "version: $VERSION"
+cd /tmp
+git clone --depth 1 --branch $VERSION https://github.com/apache/incubator-superset.git
+mkdir ~/$VERSION
+cd incubator-superset && \
+git archive \
+    --format=tar.gz \
+    --prefix=apache-superset-incubating-$VERSION/ \
+    HEAD \
+    -o ~/$VERSION/apache-superset-incubating.tar.gz
+
+gpg --armor --output apache-superset-incubating.tar.gz.asc --detach-sig apache-superset-incubating.tar.gz
+gpg --print-md SHA512 apache-superset-incubating.tar.gz > apache-superset-incubating.tar.gz.sha512

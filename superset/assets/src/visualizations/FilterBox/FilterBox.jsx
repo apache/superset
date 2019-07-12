@@ -250,6 +250,7 @@ class FilterBox extends React.Component {
         selectComponent={Creatable}
         selectWrap={VirtualizedSelect}
         optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
+        noResultsText={t('No results found')}
       />);
   }
 
