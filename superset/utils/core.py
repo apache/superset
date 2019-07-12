@@ -775,8 +775,14 @@ def choicify(values):
 
 def setup_cache(app: Flask, cache_config) -> Optional[Cache]:
     """Setup the flask-cache on a flask app"""
-    if cache_config and cache_config.get("CACHE_TYPE") != "null":
-        return Cache(app, config=cache_config)
+    if cache_config:
+        if isinstance(cache_config, dict):
+            if cache_config.get("CACHE_TYPE") != "null":
+                return Cache(app, config=cache_config)
+        else:
+            # Accepts a custom cache initialization function,
+            # returning an object compatible with Flask-Caching API
+            return cache_config(app)
 
     return None
 
