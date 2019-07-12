@@ -24,12 +24,14 @@ from flask import Flask
 from flask_caching import Cache
 import numpy
 
+from superset import app
 from superset.exceptions import SupersetException
 from superset.utils.core import (
     base_json_conv,
     convert_legacy_filters_into_adhoc,
     datetime_f,
     get_since_until,
+    get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
     JSONEncodedDict,
@@ -795,3 +797,19 @@ class UtilsTestCase(unittest.TestCase):
             return CustomCache(app, {})
 
         assert isinstance(setup_cache(app, init_cache), CustomCache) is True
+
+    def test_get_stacktrace(self):
+        with app.app_context():
+            app.config["SHOW_STACKTRACE"] = True
+            try:
+                raise Exception("NONONO!")
+            except Exception:
+                stacktrace = get_stacktrace()
+                self.assertIn("NONONO", stacktrace)
+
+            app.config["SHOW_STACKTRACE"] = False
+            try:
+                raise Exception("NONONO!")
+            except Exception:
+                stacktrace = get_stacktrace()
+                assert stacktrace is None

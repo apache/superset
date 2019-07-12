@@ -66,8 +66,7 @@ def get_error_msg():
 def json_error_response(msg=None, status=500, stacktrace=None, payload=None, link=None):
     if not payload:
         payload = {"error": "{}".format(msg)}
-        if stacktrace and conf.get("SHOW_STACKTRACE"):
-            payload["stacktrace"] = stacktrace
+        payload["stacktrace"] = utils.get_stacktrace()
     if link:
         payload["link"] = link
 
@@ -125,20 +124,20 @@ def handle_api_exception(f):
             return json_error_response(
                 utils.error_msg_from_exception(e),
                 status=e.status,
-                stacktrace=traceback.format_exc(),
+                stacktrace=utils.get_stacktrace(),
                 link=e.link,
             )
         except SupersetException as e:
             logging.exception(e)
             return json_error_response(
                 utils.error_msg_from_exception(e),
-                stacktrace=traceback.format_exc(),
+                stacktrace=utils.get_stacktrace(),
                 status=e.status,
             )
         except Exception as e:
             logging.exception(e)
             return json_error_response(
-                utils.error_msg_from_exception(e), stacktrace=traceback.format_exc()
+                utils.error_msg_from_exception(e), stacktrace=utils.get_stacktrace()
             )
 
     return functools.update_wrapper(wraps, f)
