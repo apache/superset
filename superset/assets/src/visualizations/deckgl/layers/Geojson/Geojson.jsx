@@ -89,7 +89,7 @@ function setTooltipContent(o) {
   );
 }
 
-export function getLayer(formData, payload, onAddFilter, setTooltip) {
+export function getLayer(formData, payload, onAddFilter, setTooltip, selected, onSelect, filters) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;

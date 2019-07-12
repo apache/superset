@@ -42,7 +42,7 @@ function setTooltipContent(formData) {
   );
 }
 
-export function getLayer(fd, payload, onAddFilter, setTooltip) {
+export function getLayer(fd, payload, onAddFilter, setTooltip, selected, onSelect, filters) {
   const dataWithRadius = payload.data.features.map((d) => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
     if (fd.multiplier) {
