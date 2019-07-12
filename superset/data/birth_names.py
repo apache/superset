@@ -388,6 +388,7 @@ def load_birth_names():
 
     if not dash:
         dash = Dash()
+    dash.published = True
     js = textwrap.dedent(
         # pylint: disable=line-too-long
         """\

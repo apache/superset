@@ -33,6 +33,7 @@ def load_misc_dashboard():
 
     if not dash:
         dash = Dash()
+    dash.published = True
     js = textwrap.dedent(
         """\
 {
