@@ -181,6 +181,7 @@ def load_deck_dash():
         "point_radius_fixed": {"type": "metric", "value": "count"},
         "point_unit": "square_m",
         "min_radius": 1,
+        "max_radius": 250,
         "row_limit": 5000,
         "time_range": " : ",
         "size": "count",
