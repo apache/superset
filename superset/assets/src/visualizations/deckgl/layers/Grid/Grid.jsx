@@ -34,7 +34,7 @@ function setTooltipContent(o) {
   );
 }
 
-export function getLayer(formData, payload, onAddFilter, setTooltip, selected, onSelect) {
+export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
   const c = fd.color_picker;
   let data = payload.data.features.map(d => ({
