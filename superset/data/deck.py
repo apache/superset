@@ -361,6 +361,8 @@ def load_deck_dash():
         "stroked": False,
         "extruded": True,
         "point_radius_scale": 100,
+        "point_radius_fixed": {"type": "metric", "value": "count"},
+        "multiplier": 1,
         "js_columns": ["population", "area"],
         "js_data_mutator": "data => data.map(d => ({\n"
         "    ...d,\n"
