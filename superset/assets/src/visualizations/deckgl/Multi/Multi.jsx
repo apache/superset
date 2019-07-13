@@ -29,6 +29,14 @@ const propTypes = {
   payload: PropTypes.object.isRequired,
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
+  onAddFilter: PropTypes.func,
+  setTooltip: PropTypes.func,
+  onSelect: PropTypes.func,
+};
+const defaultProps = {
+  onAddFilter() {},
+  setTooltip() {},
+  onSelect() {},
 };
 
 class DeckMulti extends React.PureComponent {
@@ -78,6 +86,10 @@ class DeckMulti extends React.PureComponent {
           const layer = layerGenerators[subsliceCopy.form_data.viz_type](
             subsliceCopy.form_data,
             json,
+            this.props.onAddFilter,
+            this.props.setTooltip,
+            [],
+            this.props.onSelect,
           );
           this.setState({
             subSlicesLayers: {
@@ -110,5 +122,6 @@ class DeckMulti extends React.PureComponent {
 }
 
 DeckMulti.propTypes = propTypes;
+DeckMulti.defaultProps = defaultProps;
 
 export default DeckMulti;
