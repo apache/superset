@@ -61,7 +61,7 @@ function setTooltipContent(formData) {
   };
 }
 
-export function getLayer(formData, payload, setTooltip, selected, onSelect, filters) {
+export function getLayer(formData, payload, onAddFilter, setTooltip, selected, onSelect, filters) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
@@ -236,6 +236,7 @@ class DeckGLPolygon extends React.Component {
     const layer = getLayer(
       this.props.formData,
       this.props.payload,
+      this.props.onAddFilter,
       this.props.setTooltip,
       this.state.selected,
       this.onSelect,
