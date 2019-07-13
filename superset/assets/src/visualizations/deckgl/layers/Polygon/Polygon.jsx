@@ -236,6 +236,7 @@ class DeckGLPolygon extends React.Component {
     const layer = getLayer(
       this.props.formData,
       this.props.payload,
+      this.props.onAddFilter,
       this.props.setTooltip,
       this.state.selected,
       this.onSelect,
