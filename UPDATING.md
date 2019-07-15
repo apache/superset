@@ -23,6 +23,10 @@ assists people when migrating to a new version.
 
 ## Next Version
 
+* [7848](https://github.com/apache/incubator-superset/pull/7848): If you are 
+running redis with celery, celery bump to 4.3.0 requires redis-py upgrade to
+3.2.0 or later.
+
 * [7667](https://github.com/apache/incubator-superset/pull/7667): a change to
 make all Unix timestamp (which by definition are in UTC) comparisons refer
 to a timestamp in UTC as opposed to local time.
