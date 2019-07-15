@@ -92,7 +92,8 @@ GB_RESULT_SET = [
     },
 ]
 
-DruidCluster.get_druid_version = lambda _: "0.9.1"
+if SupersetTestCase.is_module_installed("pydruid"):
+    DruidCluster.get_druid_version = lambda _: "0.9.1"
 
 
 class DruidTests(SupersetTestCase):
