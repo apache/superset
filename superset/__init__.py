@@ -250,6 +250,32 @@ if flask_app_mutator:
 
 from superset import views  # noqa
 
+# Check presence of pydruid
+try:
+    import pydruid
+
+    app.config['PYDRUID_AVAILABLE'] = True
+except ModuleNotFoundError:
+    app.config['PYDRUID_AVAILABLE'] = False
+
+
+if app.config.get('PYDRUID_AVAILABLE') is True:
+    from pydruid.utils.having import Having
+
+    # Having might not have been imported.
+    class DimSelector(Having):
+        def __init__(self, **args):
+            # Just a hack to prevent any exceptions
+            Having.__init__(self, type='equalTo', aggregation=None, value=None)
+
+            self.having = {
+                'having': {
+                    'type': 'dimSelector',
+                    'dimension': args['dimension'],
+                    'value': args['value'],
+                },
+            }
+
 # Registering sources
 module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")
 module_datasource_map.update(app.config.get("ADDITIONAL_MODULE_DS_MAP"))

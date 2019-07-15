@@ -31,23 +31,6 @@ from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import lazy_gettext as _
 import pandas
-try:
-    from pydruid.client import PyDruid
-    from pydruid.utils.aggregators import count
-    from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
-    from pydruid.utils.filters import Dimension, Filter
-    from pydruid.utils.having import Aggregation
-    from pydruid.utils.postaggregator import (
-        Const,
-        Field,
-        HyperUniqueCardinality,
-        Postaggregator,
-        Quantile,
-        Quantiles,
-    )
-    import requests
-except ImportError:
-    pass
 import sqlalchemy as sa
 from sqlalchemy import (
     Boolean,
@@ -68,18 +51,31 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.exceptions import MetricPermException, SupersetException
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.utils import core as utils, import_datasource
-try:
-    from superset.utils.core import (
-        DimSelector, DTTM_ALIAS, flasher,
-    )
-except ImportError:
-    pass
+
 DRUID_TZ = conf.get('DRUID_TZ')
 POST_AGG_TYPE = 'postagg'
 metadata = Model.metadata  # pylint: disable=no-member
 
+if conf.get('PYDRUID_AVAILABLE'):
+    from pydruid.client import PyDruid
+    from pydruid.utils.aggregators import count
+    from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
+    from pydruid.utils.filters import Dimension, Filter
+    from pydruid.utils.having import Aggregation
+    from pydruid.utils.postaggregator import (
+        Const,
+        Field,
+        HyperUniqueCardinality,
+        Postaggregator,
+        Quantile,
+        Quantiles,
+    )
+    import requests
+    from superset import DimSelector
+    from superset.utils.core import (
+        DTTM_ALIAS, flasher,
+    )
 
-try:
     # Postaggregator might not have been imported.
     class JavascriptPostAggregator(Postaggregator):
         def __init__(self, name, field_names, function):
@@ -96,8 +92,6 @@ try:
         def __init__(self, name, post_aggregator):
             self.name = name
             self.post_aggregator = post_aggregator
-except NameError:
-    pass
 
 
 # Function wrapper because bound methods cannot

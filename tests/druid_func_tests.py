@@ -18,16 +18,15 @@ import json
 import unittest
 from unittest.mock import Mock
 
-try:
-    from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
-    import pydruid.utils.postaggregator as postaggs
-except ImportError:
-    pass
 
 import superset.connectors.druid.models as models
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.exceptions import SupersetException
 from .base_tests import SupersetTestCase
+
+if SupersetTestCase.is_module_installed('pydruid'):
+    from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
+    import pydruid.utils.postaggregator as postaggs
 
 
 def mock_metric(metric_name, is_postagg=False):

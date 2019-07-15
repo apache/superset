@@ -21,16 +21,15 @@ import unittest
 from unittest.mock import Mock, patch
 
 from superset import db, security_manager
-try:
+from .base_tests import SupersetTestCase
+
+if SupersetTestCase.is_module_installed('pydruid'):
     from superset.connectors.druid.models import (
         DruidCluster,
         DruidColumn,
         DruidDatasource,
         DruidMetric,
     )
-except ImportError:
-    pass
-from .base_tests import SupersetTestCase
 
 
 class PickableMock(Mock):

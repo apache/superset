@@ -51,10 +51,6 @@ import markdown as md
 import numpy
 import pandas as pd
 import parsedatetime
-try:
-    from pydruid.utils.having import Having
-except ImportError:
-    pass
 import sqlalchemy as sa
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
@@ -74,23 +70,6 @@ ADHOC_METRIC_EXPRESSION_TYPES = {"SIMPLE": "SIMPLE", "SQL": "SQL"}
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 sources = {"chart": 0, "dashboard": 1, "sql_lab": 2}
-
-try:
-    # Having might not have been imported.
-    class DimSelector(Having):
-        def __init__(self, **args):
-            # Just a hack to prevent any exceptions
-            Having.__init__(self, type='equalTo', aggregation=None, value=None)
-
-            self.having = {
-                'having': {
-                    'type': 'dimSelector',
-                    'dimension': args['dimension'],
-                    'value': args['value'],
-                },
-            }
-except NameError:
-    pass
 
 
 def flasher(msg, severity=None):
