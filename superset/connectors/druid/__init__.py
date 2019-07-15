@@ -16,6 +16,6 @@
 # under the License.
 from superset import conf
 
-if conf.get('PYDRUID_AVAILABLE'):
+if conf.get("PYDRUID_AVAILABLE"):
     from . import models  # noqa
     from . import views  # noqa
