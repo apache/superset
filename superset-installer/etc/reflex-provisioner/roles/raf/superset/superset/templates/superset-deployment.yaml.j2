@@ -125,16 +125,15 @@ spec:
            subPath: auth-kerberized.sh
          - name: superset-configmap-volume
            mountPath: /usr/local/bin/docker-init.sh
-           subPath: docker-init.sh  
-{% if SUPERSET_AUTH_TYPE == 'AUTH_LDAP' %}            
-         - name: superset-cert-configmap-volume
-           mountPath: {{ SUPERSET_AUTH_LDAP_TLS_CACERTDIR }}
-{% endif %}            
-{% if superset_kerberos_enabled  %}           
-         - name: krb5-keytab-config-path
-           mountPath: /etc/security/keytabs/{{ superset_hive_keytab_name }}
-         - name: krb5-config-path
-           mountPath: /etc/{{ superset_krb5_conf_name }}
+           subPath: docker-init.sh          
+{% if superset_kerberos_enabled  %} 
+         - name: secret-krb5-keytab-volume
+           readOnly: true
+           mountPath: /etc/security/keytabs
+         - name: secret-krb5-config-volume
+           readOnly: true
+           mountPath: /etc/{{superset_krb5_conf_name}}
+           subPath: {{ superset_krb5_conf_name }}          
 {% endif %}           
       - name: nginx
         image: {{ nginx_docker_image_name }}:{{ nginx_image_tag }}
@@ -152,24 +151,21 @@ spec:
         - name: superset-configmap-volume
           configMap:
             name: superset-configmap
-            defaultMode: 0755
-{% if SUPERSET_AUTH_TYPE == 'AUTH_LDAP' %}             
-        - name: superset-cert-configmap-volume
-          configMap:
-            name: superset-cert-configmap
-            defaultMode: 0755
-{% endif %}            
+            defaultMode: 0755         
         - name: superset-nginx-configmap-volume
           configMap:
             name: superset-nginx-configmap
             defaultMode: 0755
 {% if superset_kerberos_enabled %}              
-        - name: krb5-keytab-config-path
-          hostPath:
-            path: {{ superset_kerberos_config_dir }}/{{ superset_hive_keytab_name }}
-        - name: krb5-config-path
-          hostPath:
-            path: {{ superset_kerberos_config_dir }}/{{ superset_krb5_conf_name }}
+        - name: secret-krb5-keytab-volume
+          secret:
+            secretName: krb5-keytab-secret
+            items:
+            - key: {{ superset_hive_keytab_name }}
+              path: {{ superset_hive_keytab_name }}
+        - name: secret-krb5-config-volume
+          secret:
+            secretName: krb5-config-secret
 {% endif %}             
         - name: secret-tls-volume
           secret:

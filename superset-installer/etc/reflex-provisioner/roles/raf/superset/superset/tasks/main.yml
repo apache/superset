@@ -46,9 +46,6 @@
     - name: superset-configmap
       file: superset-configmap.yaml
       type: configmap
-    - name: superset-cert-configmap
-      file: superset-cert-configmap.yaml
-      type: configmap
     - name: superset-nginx-configmap
       file: superset-nginx-configmap.yaml
       type: configmap
