@@ -283,11 +283,11 @@ def cache_warmup(strategy_name, *args, **kwargs):
     results = {"success": [], "errors": []}
     for url in strategy.get_urls():
         try:
-            logger.info(f'Fetching {url}')
+            logger.info(f"Fetching {url}")
             request.urlopen(url)
-            results['success'].append(url)
+            results["success"].append(url)
         except URLError:
-            logger.exception('Error warming up cache!')
-            results['errors'].append(url)
+            logger.exception("Error warming up cache!")
+            results["errors"].append(url)
 
     return results
