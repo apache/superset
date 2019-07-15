@@ -56,7 +56,7 @@ DRUID_TZ = conf.get("DRUID_TZ")
 POST_AGG_TYPE = "postagg"
 metadata = Model.metadata  # pylint: disable=no-member
 
-if conf.get("PYDRUID_AVAILABLE"):
+if conf.get("PYDRUID_AVAILABLE") is True:
     from pydruid.client import PyDruid
     from pydruid.utils.aggregators import count
     from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction

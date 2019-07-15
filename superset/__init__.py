@@ -252,15 +252,9 @@ from superset import views  # noqa
 
 # Check presence of pydruid
 try:
-    import pydruid
+    from pydruid.utils.having import Having
 
     app.config["PYDRUID_AVAILABLE"] = True
-except ModuleNotFoundError:
-    app.config["PYDRUID_AVAILABLE"] = False
-
-
-if app.config.get("PYDRUID_AVAILABLE") is True:
-    from pydruid.utils.having import Having
 
     # Having might not have been imported.
     class DimSelector(Having):
@@ -275,6 +269,8 @@ if app.config.get("PYDRUID_AVAILABLE") is True:
                     "value": args["value"],
                 }
             }
+except ModuleNotFoundError:
+    app.config["PYDRUID_AVAILABLE"] = False
 
 
 # Registering sources
