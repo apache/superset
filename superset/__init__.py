@@ -254,27 +254,28 @@ from superset import views  # noqa
 try:
     import pydruid
 
-    app.config['PYDRUID_AVAILABLE'] = True
+    app.config["PYDRUID_AVAILABLE"] = True
 except ModuleNotFoundError:
-    app.config['PYDRUID_AVAILABLE'] = False
+    app.config["PYDRUID_AVAILABLE"] = False
 
 
-if app.config.get('PYDRUID_AVAILABLE') is True:
+if app.config.get("PYDRUID_AVAILABLE") is True:
     from pydruid.utils.having import Having
 
     # Having might not have been imported.
     class DimSelector(Having):
         def __init__(self, **args):
             # Just a hack to prevent any exceptions
-            Having.__init__(self, type='equalTo', aggregation=None, value=None)
+            Having.__init__(self, type="equalTo", aggregation=None, value=None)
 
             self.having = {
-                'having': {
-                    'type': 'dimSelector',
-                    'dimension': args['dimension'],
-                    'value': args['value'],
-                },
+                "having": {
+                    "type": "dimSelector",
+                    "dimension": args["dimension"],
+                    "value": args["value"],
+                }
             }
+
 
 # Registering sources
 module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")

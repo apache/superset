@@ -52,11 +52,11 @@ from superset.exceptions import MetricPermException, SupersetException
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.utils import core as utils, import_datasource
 
-DRUID_TZ = conf.get('DRUID_TZ')
-POST_AGG_TYPE = 'postagg'
+DRUID_TZ = conf.get("DRUID_TZ")
+POST_AGG_TYPE = "postagg"
 metadata = Model.metadata  # pylint: disable=no-member
 
-if conf.get('PYDRUID_AVAILABLE'):
+if conf.get("PYDRUID_AVAILABLE"):
     from pydruid.client import PyDruid
     from pydruid.utils.aggregators import count
     from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
@@ -72,23 +72,22 @@ if conf.get('PYDRUID_AVAILABLE'):
     )
     import requests
     from superset import DimSelector
-    from superset.utils.core import (
-        DTTM_ALIAS, flasher,
-    )
+    from superset.utils.core import DTTM_ALIAS, flasher
 
     # Postaggregator might not have been imported.
     class JavascriptPostAggregator(Postaggregator):
         def __init__(self, name, field_names, function):
             self.post_aggregator = {
-                'type': 'javascript',
-                'fieldNames': field_names,
-                'name': name,
-                'function': function,
+                "type": "javascript",
+                "fieldNames": field_names,
+                "name": name,
+                "function": function,
             }
             self.name = name
 
     class CustomPostAggregator(Postaggregator):
         """A way to allow users to specify completely custom PostAggregators"""
+
         def __init__(self, name, post_aggregator):
             self.name = name
             self.post_aggregator = post_aggregator

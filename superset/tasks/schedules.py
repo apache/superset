@@ -258,7 +258,7 @@ def _get_slice_data(schedule):
         cookies["session"] = cookie
 
     opener = urllib.request.build_opener()
-    opener.addheaders.append(('Cookie', f"session={cookies['session']}"))
+    opener.addheaders.append(("Cookie", f"session={cookies['session']}"))
     response = opener.open(slice_url)
     if response.getcode() != 200:
         raise URLError(response.getcode())
