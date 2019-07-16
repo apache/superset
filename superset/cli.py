@@ -81,9 +81,6 @@ def load_examples_run(load_test_data):
     print("Loading [Birth names]")
     data.load_birth_names()
 
-    print("Loading [Unicode test data]")
-    data.load_unicode_test_data()
-
     if not load_test_data:
         print("Loading [Random time series data]")
         data.load_random_time_series_data()
@@ -118,8 +115,11 @@ def load_examples_run(load_test_data):
         print("Loading DECK.gl demo")
         data.load_deck_dash()
 
-    print("Loading [Tabbed dashboard]")
-    data.load_tabbed_dashboard()
+        print("Loading [Tabbed dashboard]")
+        data.load_tabbed_dashboard()
+
+        print("Loading [Unicode test data]")
+        data.load_unicode_test_data()
 
 
 @app.cli.command()
