@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import _ from 'lodash';
 import PropTypes from 'prop-types';
 import { SupersetClient } from '@superset-ui/connection';
 
@@ -53,7 +54,10 @@ class DeckMulti extends React.PureComponent {
 
   componentWillReceiveProps(nextProps) {
     const { formData, payload } = nextProps;
-    this.loadLayers(formData, payload);
+    const hasChanges = !_.isEqual(this.props.formData.deck_slices, nextProps.formData.deck_slices);
+    if (hasChanges) {
+      this.loadLayers(formData, payload);
+    }
   }
 
   onViewportChange(viewport) {
