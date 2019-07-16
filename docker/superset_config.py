@@ -122,3 +122,15 @@ class CeleryConfig(object):
 
 
 CELERY_CONFIG = CeleryConfig
+
+# KnoxSSO-superset integration constants
+IS_KNOX_SSO_ENABLED = boolify(get_env_variable('IS_KNOX_SSO_ENABLED'))
+KNOX_SSO_PUBLIC_KEY = get_env_variable('KNOX_SSO_PUBLIC_KEY')  
+KNOX_SSO_URL = get_env_variable('KNOX_SSO_URL')
+KNOX_SSO_COOKIE_NAME = get_env_variable('KNOX_SSO_COOKIE_NAME')
+if not KNOX_SSO_COOKIE_NAME:
+    KNOX_SSO_COOKIE_NAME = 'hadoop-jwt'
+
+KNOX_SSO_ORIGINALURL  = get_env_variable('KNOX_SSO_ORIGINALURL')
+if not KNOX_SSO_ORIGINALURL:
+    KNOX_SSO_ORIGINALURL = 'originalUrl'

@@ -246,3 +246,10 @@ if flask_app_mutator:
     flask_app_mutator(app)
 
 from superset import views  # noqa
+
+# KnoxSSO-Superset integration
+@app.before_request
+def parse_jwt_token():
+    from .sso_auth import parse_hadoop_jwt
+    return parse_hadoop_jwt()
+# END  KnoxSSO-Superset integration

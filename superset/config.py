@@ -586,6 +586,9 @@ DEFAULT_RELATIVE_END_TIME = 'today'
 IS_EPOCH_S_TRULY_UTC = False
 
 
+# set on IS_KNOX_SSO_ENABLED here ,because of unit test cases and rest KNOX varibales are defined in superset_config.py 
+IS_KNOX_SSO_ENABLED = False
+
 
 # A function that intercepts the SQL to be executed and can alter it.
 #
