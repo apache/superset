@@ -32,5 +32,8 @@ class SupersetDataFrameTestCase(SupersetTestCase):
     def test_load_birth_names(self):
         data.load_birth_names()
 
+    def test_load_tabbed_dashboard(self):
+        data.load_tabbed_dashboard()
+
     def test_load_test_users_run(self):
         load_test_users_run()
