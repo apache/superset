@@ -22,11 +22,13 @@ from superset.utils import core as utils
 from .helpers import get_example_data, TBL
 
 
-def load_flights(only_metadata=False):
+def load_flights(only_metadata=False, force=False):
     """Loading random time series data from a zip file in the repo"""
     tbl_name = "flights"
     database = utils.get_example_database()
-    if not only_metadata:
+    table_exists = database.has_table_by_name(tbl_name)
+
+    if not only_metadata and (not table_exists or force):
         data = get_example_data("flight_data.csv.gz", make_bytes=True)
         pdf = pd.read_csv(data, encoding="latin-1")
 

@@ -26,7 +26,7 @@ from colorama import Fore, Style
 from pathlib2 import Path
 import yaml
 
-from superset import app, appbuilder, examples, db, security_manager
+from superset import app, appbuilder, db, examples, security_manager
 from superset.utils import core as utils, dashboard_import_export, dict_import_export
 
 config = app.config
@@ -68,7 +68,7 @@ def version(verbose):
     print(Style.RESET_ALL)
 
 
-def load_examples_run(load_test_data, only_metadata=False):
+def load_examples_run(load_test_data, only_metadata=False, force=False):
     if only_metadata:
         print("Loading examples metadata")
     else:
@@ -78,44 +78,44 @@ def load_examples_run(load_test_data, only_metadata=False):
     examples.load_css_templates()
 
     print("Loading energy related dataset")
-    examples.load_energy(only_metadata)
+    examples.load_energy(only_metadata, force)
 
     print("Loading [World Bank's Health Nutrition and Population Stats]")
-    examples.load_world_bank_health_n_pop(only_metadata)
+    examples.load_world_bank_health_n_pop(only_metadata, force)
 
     print("Loading [Birth names]")
-    examples.load_birth_names(only_metadata)
+    examples.load_birth_names(only_metadata, force)
 
     print("Loading [Unicode test data]")
-    examples.load_unicode_test_data(only_metadata)
+    examples.load_unicode_test_data(only_metadata, force)
 
     if not load_test_data:
         print("Loading [Random time series data]")
-        examples.load_random_time_series_data(only_metadata)
+        examples.load_random_time_series_data(only_metadata, force)
 
         print("Loading [Random long/lat data]")
-        examples.load_long_lat_data(only_metadata)
+        examples.load_long_lat_data(only_metadata, force)
 
         print("Loading [Country Map data]")
-        examples.load_country_map_data(only_metadata)
+        examples.load_country_map_data(only_metadata, force)
 
         print("Loading [Multiformat time series]")
-        examples.load_multiformat_time_series(only_metadata)
+        examples.load_multiformat_time_series(only_metadata, force)
 
         print("Loading [Paris GeoJson]")
-        examples.load_paris_iris_geojson(only_metadata)
+        examples.load_paris_iris_geojson(only_metadata, force)
 
         print("Loading [San Francisco population polygons]")
-        examples.load_sf_population_polygons(only_metadata)
+        examples.load_sf_population_polygons(only_metadata, force)
 
         print("Loading [Flights data]")
-        examples.load_flights(only_metadata)
+        examples.load_flights(only_metadata, force)
 
         print("Loading [BART lines]")
-        examples.load_bart_lines(only_metadata)
+        examples.load_bart_lines(only_metadata, force)
 
         print("Loading [Multi Line]")
-        examples.load_multi_line(only_metadata=True)
+        examples.load_multi_line(only_metadata)
 
         print("Loading [Misc Charts] dashboard")
         examples.load_misc_dashboard()
@@ -132,9 +132,12 @@ def load_examples_run(load_test_data, only_metadata=False):
 @click.option(
     "--only-metadata", "-m", is_flag=True, help="Only load metadata, skip actual data"
 )
-def load_examples(load_test_data, only_metadata=False):
+@click.option(
+    "--force", "-f", is_flag=True, help="Force load data even if table already exists"
+)
+def load_examples(load_test_data, only_metadata=False, force=False):
     """Loads a set of Slices and Dashboards and a supporting dataset """
-    load_examples_run(load_test_data, only_metadata)
+    load_examples_run(load_test_data, only_metadata, force)
 
 
 @app.cli.command()

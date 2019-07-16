@@ -33,17 +33,20 @@ from .helpers import (
 )
 
 
-def load_country_map_data(only_metadata=False):
+def load_country_map_data(only_metadata=False, force=False):
     """Loading data for map with country map"""
+    tbl_name = "birth_france_by_region"
     database = utils.get_example_database()
-    if not only_metadata:
+    table_exists = database.has_table_by_name(tbl_name)
+
+    if not only_metadata and (not table_exists or force):
         csv_bytes = get_example_data(
             "birth_france_data_for_country_map.csv", is_gzip=False, make_bytes=True
         )
         data = pd.read_csv(csv_bytes, encoding="utf-8")
         data["dttm"] = datetime.datetime.now().date()
         data.to_sql(  # pylint: disable=no-member
-            "birth_france_by_region",
+            tbl_name,
             database.get_sqla_engine(),
             if_exists="replace",
             chunksize=500,
@@ -69,9 +72,9 @@ def load_country_map_data(only_metadata=False):
         print("-" * 80)
 
     print("Creating table reference")
-    obj = db.session.query(TBL).filter_by(table_name="birth_france_by_region").first()
+    obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not obj:
-        obj = TBL(table_name="birth_france_by_region")
+        obj = TBL(table_name=tbl_name)
     obj.main_dttm_col = "dttm"
     obj.database = database
     if not any(col.metric_name == "avg__2004" for col in obj.metrics):

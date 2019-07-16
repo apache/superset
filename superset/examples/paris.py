@@ -24,11 +24,12 @@ from superset.utils import core as utils
 from .helpers import TBL, get_example_data
 
 
-def load_paris_iris_geojson(only_metadata=False):
+def load_paris_iris_geojson(only_metadata=False, force=False):
     tbl_name = "paris_iris_mapping"
     database = utils.get_example_database()
+    table_exists = database.has_table_by_name(tbl_name)
 
-    if not only_metadata:
+    if not only_metadata and (not table_exists or force):
         data = get_example_data("paris_iris.json.gz")
         df = pd.read_json(data)
         df["features"] = df.features.map(json.dumps)

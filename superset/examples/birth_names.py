@@ -61,7 +61,7 @@ def load_birth_names(only_metadata=False, force=False):
         print("Done loading table!")
         print("-" * 80)
 
-    obj = db.session.query(TBL).filter_by(tbl_name=tbl_name).first()
+    obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not obj:
         print(f"Creating table [{tbl_name}] reference")
         obj = TBL(tbl_name="birth_names")
