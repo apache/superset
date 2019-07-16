@@ -29,6 +29,7 @@ import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import CachedLabel from '../../components/CachedLabel';
+import { APPLICATION_PREFIX } from '../../public-path';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -121,7 +122,7 @@ class ExploreChartHeader extends React.PureComponent {
           >
             <a
               className="edit-desc-icon"
-              href={`/chart/edit/${this.props.slice.slice_id}`}
+              href={ APPLICATION_PREFIX + `/chart/edit/${this.props.slice.slice_id}`}
             >
               <i className="fa fa-edit" />
             </a>

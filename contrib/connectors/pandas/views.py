@@ -1,7 +1,7 @@
 """Views used by the SqlAlchemy connector"""
 import json
 import logging
-from flask import flash, Markup, redirect
+from flask import flash, Markup, redirect, url_for
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.fieldwidgets import BS3TextAreaFieldWidget, BS3TextFieldWidget
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -327,7 +327,7 @@ class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
         resp = super(PandasDatasourceModelView, self).edit(pk)
         if isinstance(resp, basestring):
             return resp
-        return redirect('/superset/explore/pandas/{}/'.format(pk))
+        return redirect( url_for('Superset.explore') + 'pandas/{}/'.format(pk))
 
 
 appbuilder.add_view(

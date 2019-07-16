@@ -22,7 +22,7 @@
       .append('<button id="testconn" class="btn btn-sm btn-primary">{{ _("Test Connection") }}</button>');
     $("#testconn").click(function(e) {
       e.preventDefault();
-      var url = "/superset/testconn";
+      var url = "{{ url_for('Superset.testconn') }}";
       var csrf_token = "{{ csrf_token() if csrf_token else '' }}";
 
       $.ajaxSetup({
@@ -61,7 +61,7 @@
           $.each(data, function(i, d){
             var id = 'tbl_' + d;
             div.append('<span id="' + id + '" style="margin: 0px 10px 10px 0px;" class="btn btn-default">' + d + '</span>')
-            $('#' + id).click(function(){window.location = '/tablemodelview/add';})
+            $('#' + id).click(function(){window.location = "{{ url_for('TableModelView.add') }}";})
           });
       }).fail(function(error) {
           var respJSON = error.responseJSON;

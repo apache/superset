@@ -38,6 +38,7 @@ import ModalTrigger from './../../components/ModalTrigger';
 import Button from '../../components/Button';
 import RowCountLabel from './RowCountLabel';
 import { prepareCopyToClipboardTabularData } from '../../utils/common';
+import { APPLICATION_PREFIX } from '../../public-path';
 
 registerLanguage('markdown', markdownSyntax);
 registerLanguage('html', htmlSyntax);
@@ -186,7 +187,7 @@ export default class DisplayQueryButton extends React.PureComponent {
       return (<img
         className="loading"
         alt="Loading..."
-        src="/static/assets/images/loading.gif"
+        src={ APPLICATION_PREFIX + "/static/assets/images/loading.gif"}
       />);
     } else if (this.state.error) {
       return <pre>{this.state.error}</pre>;

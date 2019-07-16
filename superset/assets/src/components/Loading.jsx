@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { APPLICATION_PREFIX } from '../public-path';
 
 const propTypes = {
   size: PropTypes.number,
@@ -47,7 +48,7 @@ export default function Loading({ size, position }) {
     <img
       className="loading"
       alt="Loading..."
-      src="/static/assets/images/loading.gif"
+      src={ APPLICATION_PREFIX + "/static/assets/images/loading.gif" }
       style={styleWithWidth}
     />
   );

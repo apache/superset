@@ -29,6 +29,7 @@ import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import getDashboardUrl from '../util/getDashboardUrl';
+import { APPLICATION_PREFIX } from '../../public-path';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -166,7 +167,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           triggerNode={<span>{t('Set auto-refresh interval')}</span>}
         />
         {editMode && (
-          <MenuItem target="_blank" href={`/dashboard/edit/${dashboardId}`}>
+          <MenuItem target="_blank" href={ APPLICATION_PREFIX + `/dashboard/edit/${dashboardId}`}>
             {t('Edit dashboard metadata')}
           </MenuItem>
         )}

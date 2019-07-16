@@ -27,6 +27,7 @@ import { addDangerToast } from '../messageToasts/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import { allowCrossDomain } from '../utils/hostNamesConfig';
+import { APPLICATION_PREFIX } from '../public-path';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -249,7 +250,7 @@ export function redirectSQLLab(formData) {
     return SupersetClient.get({ url })
       .then(({ json }) => {
         const redirectUrl = new URL(window.location);
-        redirectUrl.pathname = '/superset/sqllab';
+        redirectUrl.pathname = APPLICATION_PREFIX + '/superset/sqllab';
         for (const key of redirectUrl.searchParams.keys()) {
           redirectUrl.searchParams.delete(key);
         }

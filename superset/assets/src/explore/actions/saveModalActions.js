@@ -18,6 +18,7 @@
  */
 import { SupersetClient } from '@superset-ui/connection';
 import { getExploreUrlAndPayload } from '../exploreUtils';
+import { APPLICATION_PREFIX } from '../../public-path';
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
 export function fetchDashboardsSucceeded(choices) {
@@ -84,20 +85,18 @@ export const GET_SLICE_BY_ID_FAILED = 'GET_SLICE_BY_ID_FAILED';
 export function sliceByIdFailed() {
   return { type: GET_SLICE_BY_ID_FAILED };
 }
-export function getSliceById(sliceId)
-{
+export function getSliceById(sliceId) {
   return (dispatch) => {
-    const url = '/superset/slice_json/'+ sliceId;
-    return $.ajax({
-      type: 'GET',
-      url,
-      data: undefined,
-      success: ((data) => {
-        dispatch(sliceById(data));
-      }),
-      error: (() => {
+    dispatch(fetchSlicesStarted());
+    return SupersetClient.get({
+      endpoint: `/superset/slice_json/${sliceId}`
+    })
+      .then(({ json }) => {
+        dispatch(sliceById(json));
+      })
+      .catch(response => getClientErrorObject(response).then(() => {
         dispatch(sliceByIdFailed());
       }),
-    });
+      );
   };
 }

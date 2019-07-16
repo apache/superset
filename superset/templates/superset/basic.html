@@ -17,6 +17,7 @@
   under the License.
 #}
 {% import 'appbuilder/general/lib.html' as lib %}
+{% set serverRoot =  request.script_root %}
 <html>
   <head>
     <title>
@@ -30,18 +31,18 @@
     </title>
     {% block head_meta %}{% endblock %}
     {% block head_css %}
-      <link rel="icon" type="image/png" href="/static/assets/images/guavus.ico">
-      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
-      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/font-awesome.min.css">
-
+      <link rel="icon" type="image/png" href="{{ url_for('static' , filename='assets/images/guavus.ico') }}">
+      <link rel="stylesheet" type="text/css" href="{{ url_for('static' , filename='appbuilder/css/flags/flags16.css') }}" />
+      <link rel="stylesheet" type="text/css" href="{{ url_for('static' , filename='appbuilder/css/font-awesome.min.css') }}">
+      <input type="hidden" id="app_prefix" name="app_prefix" value="{{ serverRoot }}">
       {% for entry in get_unloaded_chunks(css_manifest('theme'), loaded_chunks) %}
-        <link rel="stylesheet" type="text/css" href="{{ entry }}" />
+        <link rel="stylesheet" type="text/css" href="{{  url_for('static' , filename='assets/dist/'+entry) }}" />
       {% endfor %}
 
       {% if entry %}
         {% set entry_files = css_manifest(entry) %}
         {% for entry in get_unloaded_chunks(entry_files, loaded_chunks) %}
-          <link rel="stylesheet" type="text/css" href="{{ entry }}" />
+          <link rel="stylesheet" type="text/css" href="{{  url_for('static' , filename='assets/dist/'+entry) }}" />
         {% endfor %}
       {% endif %}
 
@@ -70,7 +71,7 @@
 
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}" >
-        <img src="/static/assets/images/loading.gif" style="width: 50px; margin: 10px;">
+        <img src="{{ url_for('static' , filename='assets/images/loading.gif') }}" style="width: 50px; margin: 10px;">
       </div>
 
         {% block footer %}

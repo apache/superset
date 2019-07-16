@@ -107,11 +107,13 @@ ENABLE_PROXY_FIX = False
 # ------------------------------
 # GLOBALS FOR APP Builder
 # ------------------------------
+
+APPLICATION_PREFIX = ''
 # Uncomment to setup Your App name
 APP_NAME = 'Dashboard Builder'
 
 # Uncomment to setup an App icon
-APP_ICON = '/static/assets/images/Logo_guavusThales.svg'
+APP_ICON = 'assets/images/Logo_guavusThales.svg'
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -172,18 +174,18 @@ BABEL_DEFAULT_LOCALE = 'en'
 # Your application default translation path
 BABEL_DEFAULT_FOLDER = 'superset/translations'
 # The allowed translation for you app
-HELP_ENABLED = False
+HELP_ENABLED = True
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
-    'it': {'flag': 'it', 'name': 'Italian'},
-    'fr': {'flag': 'fr', 'name': 'French'},
-    'zh': {'flag': 'cn', 'name': 'Chinese'},
-    'ja': {'flag': 'jp', 'name': 'Japanese'},
-    'de': {'flag': 'de', 'name': 'German'},
-    'pt': {'flag': 'pt', 'name': 'Portuguese'},
-    'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
-    'ru': {'flag': 'ru', 'name': 'Russian'},
-    'ko': {'flag': 'kr', 'name': 'Korean'},
+    # 'it': {'flag': 'it', 'name': 'Italian'},
+    # 'fr': {'flag': 'fr', 'name': 'French'},
+    # 'zh': {'flag': 'cn', 'name': 'Chinese'},
+    # 'ja': {'flag': 'jp', 'name': 'Japanese'},
+    # 'de': {'flag': 'de', 'name': 'German'},
+    # 'pt': {'flag': 'pt', 'name': 'Portuguese'},
+    # 'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
+    # 'ru': {'flag': 'ru', 'name': 'Russian'},
+    # 'ko': {'flag': 'kr', 'name': 'Korean'},
 }
 
 # ---------------------------------------------------

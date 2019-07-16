@@ -42,6 +42,8 @@ def get_cache_config():
 
     return cache_config
 
+# Application Root configuration
+APPLICATION_PREFIX = get_env_variable('APPLICATION_PREFIX')
 
 # Help configuration
 HELP_ENABLED = boolify(get_env_variable('HELP_ENABLED'))

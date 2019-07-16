@@ -27,6 +27,7 @@ import { t } from '@superset-ui/translation';
 
 import ControlHeader from '../ControlHeader';
 import DatasourceModal from '../../../datasource/DatasourceModal';
+import { APPLICATION_PREFIX } from '../../../public-path';
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -95,7 +96,7 @@ class DatasourceControl extends React.PureComponent {
             }
           >
             <a
-              href={`/superset/sqllab?datasourceKey=${this.props.value}`}
+              href={ APPLICATION_PREFIX + `/superset/sqllab?datasourceKey=${this.props.value}`}
               target="_blank"
               rel="noopener noreferrer"
             >

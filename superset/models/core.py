@@ -24,7 +24,7 @@ import json
 import logging
 import textwrap
 
-from flask import escape, g, Markup, request, flash
+from flask import escape, g, Markup, request, flash, url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -271,12 +271,13 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         update_time_range(form_data)
         return form_data
 
-    def get_explore_url(self, base_url='/superset/explore', overrides=None):
+    def get_explore_url(self, base_url='Superset.explore', overrides=None):
+        base_url = url_for(base_url)
         overrides = overrides or {}
         form_data = {'slice_id': self.id}
         form_data.update(overrides)
         params = parse.quote(json.dumps(form_data))
-        return f'{base_url}/?form_data={params}'
+        return f'{base_url}?form_data={params}'
 
     @property
     def slice_url(self):
@@ -286,11 +287,11 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     @property
     def explore_json_url(self):
         """Defines the url to access the slice"""
-        return self.get_explore_url('/superset/explore_json')
+        return self.get_explore_url('Superset.explore_json')
 
     @property
     def edit_url(self):
-        return '/chart/edit/{}'.format(self.id)
+        return url_for('SliceModelView.edit', pk = self.id)
 
     @property
     def slice_link(self):
@@ -420,12 +421,11 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 try:
                     if json.loads(default_filters):
                         filters = parse.quote(default_filters.encode('utf8'))
-                        return '/superset/dashboard/{}/?preselect_filters={}'.format(
-                            self.slug or self.id, filters)
+                        return url_for('Superset.dashboard' , dashboard_id='{}'.format(self.slug or self.id)) + '?preselect_filters={}'.format(filters)
                 except Exception:
                     pass
-        return '/superset/dashboard/{}/'.format(self.slug or self.id)
-
+        return url_for('Superset.dashboard', dashboard_id='{}'.format(self.slug or self.id)) 
+   
     @property
     def datasources(self):
         return {slc.datasource for slc in self.slices}

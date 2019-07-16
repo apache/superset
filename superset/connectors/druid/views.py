@@ -19,7 +19,7 @@ from datetime import datetime
 import json
 import logging
 
-from flask import flash, Markup, redirect
+from flask import flash, Markup, redirect, url_for
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
@@ -339,14 +339,14 @@ class Druid(BaseSupersetView):
                         cluster_name, utils.error_msg_from_exception(e)),
                     'danger')
                 logging.exception(e)
-                return redirect('/druidclustermodelview/list/')
+                return redirect(url_for('DruidClusterModelView.list'))
             cluster.metadata_last_refreshed = datetime.now()
             flash(
                 _('Refreshed metadata from cluster [{}]').format(
                     cluster.cluster_name),
                 'info')
         session.commit()
-        return redirect('/druiddatasourcemodelview/list/')
+        return redirect(url_for('DruidDatasourceModelView.list'))
 
     @has_access
     @expose('/scan_new_datasources/')
@@ -363,7 +363,7 @@ appbuilder.add_view_no_menu(Druid)
 appbuilder.add_link(
     'Scan New Datasources',
     label=__('Scan New Datasources'),
-    href='/druid/scan_new_datasources/',
+    href='Druid.scan_new_datasources',
     category='Sources',
     category_label=__('Sources'),
     category_icon='fa-database',
@@ -371,7 +371,7 @@ appbuilder.add_link(
 appbuilder.add_link(
     'Refresh Druid Metadata',
     label=__('Refresh Druid Metadata'),
-    href='/druid/refresh_datasources/',
+    href='Druid.refresh_datasources',
     category='Sources',
     category_label=__('Sources'),
     category_icon='fa-database',

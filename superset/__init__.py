@@ -21,7 +21,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
 
-from flask import Flask, redirect
+from flask import Flask, redirect, url_for
 from flask_appbuilder import AppBuilder, IndexView, SQLA
 from flask_appbuilder.baseviews import expose
 from flask_compress import Compress
@@ -192,10 +192,26 @@ for middleware in app.config.get('ADDITIONAL_MIDDLEWARE'):
     app.wsgi_app = middleware(app.wsgi_app)
 
 
+class PrefixMiddleware(object):
+
+    def __init__(self, app, prefix= conf.get('APPLICATION_PREFIX')):
+      self.app = app
+      self.prefix = prefix
+
+    def __call__(self, environ, start_response):
+
+       # if environ['PATH_INFO'].startswith(self.prefix):
+        environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+
+        environ['SCRIPT_NAME'] = self.prefix
+        return self.app(environ, start_response)
+
+app.wsgi_app = PrefixMiddleware(app.wsgi_app)
+
 class MyIndexView(IndexView):
     @expose('/')
     def index(self):
-        return redirect('/superset/welcome')
+        return redirect(url_for('Superset.welcome'))
 
 
 custom_sm = app.config.get('CUSTOM_SECURITY_MANAGER') or SupersetSecurityManager

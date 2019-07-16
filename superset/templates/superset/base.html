@@ -17,12 +17,14 @@
   under the License.
 #}
 {% extends "appbuilder/baselayout.html" %}
+{% set serverRoot =  request.script_root %}
 
   {% block head_css %}
     {{super()}}
-    <link rel="icon" type="image/png" href="/static/assets/images/guavus.ico">
+    <link rel="icon" type="image/png" href="{{ url_for('static' , filename='assets/images/guavus.ico') }}">
+    <input type="hidden" id="app_prefix" name="app_prefix" value="{{ serverRoot }}">
     {% for entry in get_unloaded_chunks(css_manifest('theme'), loaded_chunks) %}
-      <link rel="stylesheet" type="text/css" href="{{ entry }}" />
+      <link rel="stylesheet" type="text/css" href="{{  url_for('static' , filename='assets/dist/'+entry) }}" />
     {% endfor %}
   {% endblock %}
 

@@ -16,7 +16,9 @@
 # under the License.
 # pylint: disable=C,R,W
 import json
-
+from flask import (
+     url_for
+)
 from sqlalchemy import (
     and_, Boolean, Column, Integer, String, Text,
 )
@@ -127,7 +129,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         if self.default_endpoint:
             return self.default_endpoint
         else:
-            return '/superset/explore/{obj.type}/{obj.id}/'.format(obj=self)
+            return url_for('Superset.explore')+'{obj.type}/{obj.id}/'.format(obj=self)
 
     @property
     def column_formats(self):

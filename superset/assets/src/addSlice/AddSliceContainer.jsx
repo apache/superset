@@ -23,6 +23,7 @@ import Select from 'react-virtualized-select';
 import { t } from '@superset-ui/translation';
 
 import VizTypeControl from '../explore/components/controls/VizTypeControl';
+import { APPLICATION_PREFIX } from '../public-path';
 
 const propTypes = {
   datasources: PropTypes.arrayOf(PropTypes.shape({
@@ -51,7 +52,7 @@ export default class AddSliceContainer extends React.PureComponent {
         viz_type: this.state.visType,
         datasource: this.state.datasourceValue,
       }));
-    return `/superset/explore/?form_data=${formData}`;
+    return APPLICATION_PREFIX + `/superset/explore/?form_data=${formData}`;
   }
 
   gotoSlice() {

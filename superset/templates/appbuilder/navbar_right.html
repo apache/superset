@@ -91,8 +91,8 @@
 
 {% if HELP_ENABLED %}
 <li> 
-  <a href="/static/assets/help/index.html" target="_blank">
-  <img class="help-icon" title="Help" src="/static/assets/images/help_Up.svg"/>
+  <a href="{{ url_for('static' , filename='assets/help/index.html') }}" target="_blank">
+  <img class="help-icon" title="Help" src="{{ url_for('static' , filename='assets/images/help_Up.svg') }}"/>
  </a>
 </li>
 {% endif %}

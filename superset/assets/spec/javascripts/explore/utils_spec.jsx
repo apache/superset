@@ -28,6 +28,7 @@ describe('exploreUtils', () => {
     datasource: '1__table',
   };
   const sFormData = JSON.stringify(formData);
+  const uri = new URI();
   function compareURI(uri1, uri2) {
     expect(uri1.toString()).toBe(uri2.toString());
   }
@@ -46,7 +47,7 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore/'),
+        URI(uri.prefix+'/superset/explore/'),
       );
       expect(payload).toEqual(formData);
     });
@@ -59,7 +60,7 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/'),
+        URI(uri.prefix+'/superset/explore_json/'),
       );
       expect(payload).toEqual(formData);
     });
@@ -72,7 +73,7 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/')
+        URI(uri.prefix+'/superset/explore_json/')
           .search({ force: 'true' }),
       );
       expect(payload).toEqual(formData);
@@ -86,7 +87,7 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/')
+        URI(uri.prefix+'/superset/explore_json/')
           .search({ csv: 'true' }),
       );
       expect(payload).toEqual(formData);
@@ -100,7 +101,7 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore/')
+        URI(uri.prefix+'/superset/explore/')
           .search({ standalone: 'true' }),
       );
       expect(payload).toEqual(formData);
@@ -114,7 +115,7 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/')
+        URI(uri.prefix+'/superset/explore_json/')
           .search({ foo: 'bar' }),
       );
       expect(payload).toEqual(formData);
@@ -128,7 +129,7 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/')
+        URI(uri.prefix+'/superset/explore_json/')
           .search({ foo: 'bar' }),
       );
       expect(payload).toEqual(formData);
@@ -142,7 +143,7 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/')
+        URI(uri.prefix+'/superset/explore_json/')
           .search({ foo: 'bar' }),
       );
       expect(payload).toEqual(formData);
@@ -218,7 +219,7 @@ describe('exploreUtils', () => {
     it('generates proper base url with form_data', () => {
       compareURI(
         URI(getExploreLongUrl(formData, 'base')),
-        URI('/superset/explore/').search({ form_data: sFormData }),
+        URI(uri.prefix+'/superset/explore/').search({ form_data: sFormData }),
       );
     });
   });

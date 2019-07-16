@@ -20,6 +20,7 @@
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import { addDangerToast } from '../../messageToasts/actions';
+import { APPLICATION_PREFIX } from '../../public-path';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
@@ -90,39 +91,39 @@ export function resetControls() {
   return { type: RESET_FIELDS };
 }
 
+// Didn't find any references for fetchDatasources method, 
+// but for the sake of avoiding any unknowns, not removing this method 
 export function fetchDatasources() {
   return function (dispatch) {
     dispatch(fetchDatasourcesStarted());
-    const url = '/superset/datasources/';
-    $.ajax({
-      type: 'GET',
-      url,
-      success: (data) => {
-        dispatch(setDatasources(data));
-        dispatch(fetchDatasourcesSucceeded());
-      },
-      error(error) {
+    return SupersetClient.get({
+      endpoint: '/superset/datasources'
+    })
+      .then(({ json }) => { 
+        dispatch(setDatasources(json)); 
+        dispatch(fetchDatasourcesSucceeded()); 
+      })
+      .catch(response => getClientErrorObject(response).then((error) => {
         dispatch(fetchDatasourcesFailed(error.responseJSON.error));
-      },
-    });
+      }),
+    );
   };
 }
 
 export function fetchSlices() {
   return function (dispatch) {
     dispatch(fetchSlicesStarted());
-    const url = '/superset/user_slices';
-    $.ajax({
-      type: 'GET',
-      url,
-      success: (data) => {
-        dispatch(setSlices(data));
-        dispatch(fetchSlicesSucceeded());
-      },
-      error(error) {
+    return SupersetClient.get({
+      endpoint: '/superset/user_slices'
+    })
+      .then(({ json }) => { 
+        dispatch(setSlices(json)); 
+        dispatch(fetchSlicesSucceeded()); 
+      })
+      .catch(response => getClientErrorObject(response).then((error) => {
         dispatch(fetchSlicesFailed(error.responseJSON.error));
-      },
-    });
+      }),
+    );
   };
 }
 

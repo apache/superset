@@ -86,7 +86,7 @@ if (isDevMode) {
 
 const output = {
   path: BUILD_DIR,
-  publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks
+  publicPath: '' , // necessary for lazy-loaded chunks
 };
 
 if (isDevMode) {
@@ -200,7 +200,7 @@ const config = {
         test: /\.png$/,
         loader: 'url-loader',
         options: {
-          limit: 10000,
+          limit: 1000000,
           name: '[name].[hash:8].[ext]',
         },
       },

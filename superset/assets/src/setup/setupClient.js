@@ -17,11 +17,35 @@
  * under the License.
  */
 /* eslint no-console: 0 */
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient, SupersetClientClass } from '@superset-ui/connection';
+import URI from 'urijs';
+import { APPLICATION_PREFIX } from "../public-path";
 
 export default function setupClient() {
   const csrfNode = document.querySelector('#csrf_token');
   const csrfToken = csrfNode ? csrfNode.value : null;
+  
+  URI.prototype.prefix = APPLICATION_PREFIX;
+  
+  SupersetClientClass.prototype.getUrl = function({
+    host: inputHost,
+    endpoint = '',
+    url,
+  }) {
+    if(endpoint && endpoint.charAt(0) == "/") {
+      endpoint = APPLICATION_PREFIX+endpoint;
+    } else {
+      endpoint = APPLICATION_PREFIX+"/"+endpoint;
+    }
+    console.log("Setup Client -->", endpoint, url);
+  
+    if (typeof url === 'string') return url;
+
+    const host = inputHost || this.host;
+    const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
+
+    return `${this.protocol}//${cleanHost}/${endpoint[0] === '/' ? endpoint.slice(1) : endpoint}`;
+  }
 
   SupersetClient.configure({
     protocol: (window.location && window.location.protocol) || '',

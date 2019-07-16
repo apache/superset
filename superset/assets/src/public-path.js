@@ -17,7 +17,15 @@
  * under the License.
  */
 
-import { __webpack_public_path__ } from './public-path';
-__webpack_public_path__ = __webpack_public_path__;
-import '../stylesheets/react-select/select.less';
-import '../stylesheets/superset.less';
+export var APPLICATION_PREFIX = ""
+const container = document.getElementById('app_prefix');
+if (container) {
+    APPLICATION_PREFIX = container.value;
+}
+
+export var __webpack_public_path__ = APPLICATION_PREFIX + "/static/assets/dist/";
+
+export default {
+    __webpack_public_path__,
+    APPLICATION_PREFIX
+}    

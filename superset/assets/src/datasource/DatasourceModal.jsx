@@ -26,7 +26,7 @@ import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import DatasourceEditor from '../datasource/DatasourceEditor';
 import withToasts from '../messageToasts/enhancers/withToasts';
-
+import { APPLICATION_PREFIX } from "../../src/public-path";
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -163,7 +163,7 @@ class DatasourceModal extends React.PureComponent {
               bsSize="sm"
               bsStyle="default"
               target="_blank"
-              href={this.props.datasource.edit_url}
+              href={APPLICATION_PREFIX + this.props.datasource.edit_url}
             >
               {t('Use Legacy Datasource Editor')}
             </Button>

@@ -45,7 +45,7 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
   }
   const uri = URI(window.location.search);
   const endpoint = isNative ? 'annotation_json' : 'slice_json';
-  return uri.pathname(`/superset/${endpoint}/${slice_id}`)
+  return uri.pathname(uri.prefix+`/superset/${endpoint}/${slice_id}`)
     .search({
       form_data: JSON.stringify(form_data,
         (key, value) => value === null ? undefined : value),
@@ -76,7 +76,7 @@ export function getExploreLongUrl(formData, endpointType, allowOverflow = true, 
   if (endpointType === 'standalone') {
     search.standalone = 'true';
   }
-  const url = uri.directory(directory).search(search).toString();
+  const url = uri.directory(uri.prefix+directory).search(search).toString();
   if (!allowOverflow && url.length > MAX_URL_LENGTH) {
     const minimalFormData = {
       datasource: formData.datasource,
@@ -147,7 +147,7 @@ export function getExploreUrlAndPayload({
       }
     });
   }
-  uri = uri.search(search).directory(directory);
+  uri = uri.search(search).directory(uri.prefix+directory);
   const payload = { ...formData };
 
   return {

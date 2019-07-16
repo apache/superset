@@ -17,12 +17,35 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient, SupersetClientClass } from '@superset-ui/connection';
+import URI from 'urijs';
+import { APPLICATION_PREFIX } from "../../src/public-path";
 
 export default function setupSupersetClient() {
   // The following is needed to mock out SupersetClient requests
   // including CSRF authentication and initialization
   global.FormData = window.FormData; // used by SupersetClient
   fetchMock.get('glob:*superset/csrf_token/*', { csrf_token: '1234' });
+
+  URI.prototype.prefix = APPLICATION_PREFIX;
+  
+  SupersetClientClass.prototype.getUrl = function({
+    host: inputHost,
+    endpoint = '',
+    url,
+  }) {
+    if(endpoint && endpoint.charAt(0) == "/") {
+      endpoint = APPLICATION_PREFIX+endpoint;
+    } else {
+      endpoint = APPLICATION_PREFIX+"/"+endpoint;
+    }
+    if (typeof url === 'string') return url;
+    const host = inputHost || this.host;
+    const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
+
+    return `${this.protocol}//${cleanHost}/${endpoint[0] === '/' ? endpoint.slice(1) : endpoint}`;
+  }
+
+
   SupersetClient.configure({ protocol: 'http', host: 'localhost' }).init();
 }

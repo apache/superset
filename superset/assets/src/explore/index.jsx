@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { __webpack_public_path__ } from '../public-path';
+__webpack_public_path__ = __webpack_public_path__;
 import React from 'react';
 import ReactDOM from 'react-dom';
 import App from './App';

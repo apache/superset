@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from flask import g, redirect
+from flask import g, redirect, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
@@ -104,7 +104,7 @@ appbuilder.add_view_no_menu(SavedQueryView)
 
 appbuilder.add_link(
     __('Saved Queries'),
-    href='/sqllab/my_queries/',
+    href='SqlLab.my_queries',
     icon='fa-save',
     category='SQL Lab')
 
@@ -115,8 +115,6 @@ class SqlLab(BaseSupersetView):
     @has_access
     def my_queries(self):
         """Assigns a list of found users to the given role."""
-        return redirect(
-            '/savedqueryview/list/?_flt_0_user={}'.format(g.user.id))
-
+        return redirect(url_for('SavedQueryView.list') + '?_flt_0_user={}'.format(g.user.id))
 
 appbuilder.add_view_no_menu(SqlLab)
