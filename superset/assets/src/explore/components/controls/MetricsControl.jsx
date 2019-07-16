@@ -71,7 +71,7 @@ function columnsContainAllMetrics(value, nextProps) {
     .filter(metric => metric)
     // find column names
     .map(metric => metric.column ? metric.column.column_name : metric.column_name || metric)
-    .filter(name => name)
+    .filter(name => name && typeof name === 'string')
     .every(name => columnNames.has(name));
 }
 
