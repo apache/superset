@@ -41,11 +41,13 @@ from .helpers import (
 )
 
 
-def load_world_bank_health_n_pop(only_metadata=False):
+def load_world_bank_health_n_pop(only_metadata=False, force=False):
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
     database = utils.get_example_database()
-    if not only_metadata:
+    table_exists = database.has_table_by_name(tbl_name)
+
+    if not only_metadata and (not table_exists or force):
         data = get_example_data("countries.json.gz")
         pdf = pd.read_json(data)
         pdf.columns = [col.replace(".", "_") for col in pdf.columns]

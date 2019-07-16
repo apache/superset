@@ -25,11 +25,12 @@ from superset.utils.core import get_example_database
 from .helpers import get_example_data, TBL
 
 
-def load_bart_lines(only_metadata=False):
+def load_bart_lines(only_metadata=False, force=False):
     tbl_name = "bart_lines"
     database = get_example_database()
+    table_exists = database.has_table_by_name(tbl_name)
 
-    if not only_metadata:
+    if not only_metadata and (not table_exists or force):
         content = get_example_data("bart-lines.json.gz")
         df = pd.read_json(content, encoding="latin-1")
         df["path_json"] = df.path.map(json.dumps)

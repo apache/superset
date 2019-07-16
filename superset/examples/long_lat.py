@@ -33,10 +33,13 @@ from .helpers import (
 )
 
 
-def load_long_lat_data(only_metadata=False):
+def load_long_lat_data(only_metadata=False, force=False):
     """Loading lat/long data from a csv file in the repo"""
+    tbl_name = "long_lat"
     database = utils.get_example_database()
-    if not only_metadata:
+    table_exists = database.has_table_by_name(tbl_name)
+
+    if not only_metadata and (not table_exists or force):
         data = get_example_data("san_francisco.csv.gz", make_bytes=True)
         pdf = pd.read_csv(data, encoding="utf-8")
         start = datetime.datetime.now().replace(
@@ -51,7 +54,7 @@ def load_long_lat_data(only_metadata=False):
         pdf["geohash"] = pdf[["LAT", "LON"]].apply(lambda x: geohash.encode(*x), axis=1)
         pdf["delimited"] = pdf["LAT"].map(str).str.cat(pdf["LON"].map(str), sep=",")
         pdf.to_sql(  # pylint: disable=no-member
-            "long_lat",
+            tbl_name,
             database.get_sqla_engine(),
             if_exists="replace",
             chunksize=500,
@@ -78,9 +81,9 @@ def load_long_lat_data(only_metadata=False):
         print("-" * 80)
 
     print("Creating table reference")
-    obj = db.session.query(TBL).filter_by(table_name="long_lat").first()
+    obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not obj:
-        obj = TBL(table_name="long_lat")
+        obj = TBL(table_name=tbl_name)
     obj.main_dttm_col = "datetime"
     obj.database = database
     db.session.merge(obj)

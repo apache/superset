@@ -36,15 +36,17 @@ from .helpers import (
 )
 
 
-def load_birth_names(only_metadata=False):
+def load_birth_names(only_metadata=False, force=False):
     """Loading birth name dataset from a zip file in the repo"""
+    tbl_name = "birth_names"
     database = get_example_database()
-    # already_loaded = database
-    if not only_metadata:
+    table_exists = database.has_table_by_name(tbl_name)
+
+    if not only_metadata and (not table_exists or force):
         pdf = pd.read_json(get_example_data("birth_names.json.gz"))
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
         pdf.to_sql(
-            "birth_names",
+            tbl_name,
             database.get_sqla_engine(),
             if_exists="replace",
             chunksize=500,
@@ -59,10 +61,10 @@ def load_birth_names(only_metadata=False):
         print("Done loading table!")
         print("-" * 80)
 
-    print("Creating table [birth_names] reference")
-    obj = db.session.query(TBL).filter_by(table_name="birth_names").first()
+    obj = db.session.query(TBL).filter_by(tbl_name=tbl_name).first()
     if not obj:
-        obj = TBL(table_name="birth_names")
+        print(f"Creating table [{tbl_name}] reference")
+        obj = TBL(tbl_name="birth_names")
         db.session.add(obj)
     obj.main_dttm_col = "ds"
     obj.database = database

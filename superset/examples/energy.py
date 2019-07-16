@@ -28,11 +28,13 @@ from superset.utils import core as utils
 from .helpers import get_example_data, merge_slice, misc_dash_slices, Slice, TBL
 
 
-def load_energy(only_metadata=False):
+def load_energy(only_metadata=False, force=False):
     """Loads an energy related dataset to use with sankey and graphs"""
     tbl_name = "energy_usage"
     database = utils.get_example_database()
-    if not only_metadata:
+    table_exists = database.has_table_by_name(tbl_name)
+
+    if not only_metadata and (not table_exists or force):
         data = get_example_data("energy.json.gz")
         pdf = pd.read_json(data)
         pdf.to_sql(

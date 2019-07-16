@@ -35,11 +35,13 @@ from .helpers import (
 )
 
 
-def load_unicode_test_data(only_metadata=False):
+def load_unicode_test_data(only_metadata=False, force=False):
     """Loading unicode test dataset from a csv file in the repo"""
+    tbl_name = "unicode_test"
     database = utils.get_example_database()
+    table_exists = database.has_table_by_name(tbl_name)
 
-    if not only_metadata:
+    if not only_metadata and (not table_exists or force):
         data = get_example_data(
             "unicode_utf8_unixnl_test.csv", is_gzip=False, make_bytes=True
         )
@@ -48,7 +50,7 @@ def load_unicode_test_data(only_metadata=False):
         df["dttm"] = datetime.datetime.now().date()
         df["value"] = [random.randint(1, 100) for _ in range(len(df))]
         df.to_sql(  # pylint: disable=no-member
-            "unicode_test",
+            tbl_name,
             database.get_sqla_engine(),
             if_exists="replace",
             chunksize=500,
@@ -65,9 +67,9 @@ def load_unicode_test_data(only_metadata=False):
         print("-" * 80)
 
     print("Creating table [unicode_test] reference")
-    obj = db.session.query(TBL).filter_by(table_name="unicode_test").first()
+    obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not obj:
-        obj = TBL(table_name="unicode_test")
+        obj = TBL(table_name=tbl_name)
     obj.main_dttm_col = "dttm"
     obj.database = database
     db.session.merge(obj)
