@@ -461,6 +461,8 @@ class DruidTests(SupersetTestCase):
         for metric in metrics:
             self.assertEqual(metric.verbose_name, metric.metric_name)
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
     def test_urls(self):
         cluster = self.get_test_cluster_obj()
         self.assertEquals(
