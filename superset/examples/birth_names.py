@@ -39,6 +39,7 @@ from .helpers import (
 def load_birth_names(only_metadata=False):
     """Loading birth name dataset from a zip file in the repo"""
     database = get_example_database()
+    # already_loaded = database
     if not only_metadata:
         pdf = pd.read_json(get_example_data("birth_names.json.gz"))
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")

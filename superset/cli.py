@@ -26,7 +26,7 @@ from colorama import Fore, Style
 from pathlib2 import Path
 import yaml
 
-from superset import app, appbuilder, data, db, security_manager
+from superset import app, appbuilder, examples, db, security_manager
 from superset.utils import core as utils, dashboard_import_export, dict_import_export
 
 config = app.config
@@ -75,56 +75,56 @@ def load_examples_run(load_test_data, only_metadata=False):
         examples_db = utils.get_example_database()
         print(f"Loading examples metadata and related data into {examples_db}")
 
-    data.load_css_templates()
+    examples.load_css_templates()
 
     print("Loading energy related dataset")
-    data.load_energy(only_metadata)
+    examples.load_energy(only_metadata)
 
     print("Loading [World Bank's Health Nutrition and Population Stats]")
-    data.load_world_bank_health_n_pop(only_metadata)
+    examples.load_world_bank_health_n_pop(only_metadata)
 
     print("Loading [Birth names]")
-    data.load_birth_names(only_metadata)
+    examples.load_birth_names(only_metadata)
 
     print("Loading [Unicode test data]")
-    data.load_unicode_test_data(only_metadata)
+    examples.load_unicode_test_data(only_metadata)
 
     if not load_test_data:
         print("Loading [Random time series data]")
-        data.load_random_time_series_data(only_metadata)
+        examples.load_random_time_series_data(only_metadata)
 
         print("Loading [Random long/lat data]")
-        data.load_long_lat_data(only_metadata)
+        examples.load_long_lat_data(only_metadata)
 
         print("Loading [Country Map data]")
-        data.load_country_map_data(only_metadata)
+        examples.load_country_map_data(only_metadata)
 
         print("Loading [Multiformat time series]")
-        data.load_multiformat_time_series(only_metadata)
+        examples.load_multiformat_time_series(only_metadata)
 
         print("Loading [Paris GeoJson]")
-        data.load_paris_iris_geojson(only_metadata)
+        examples.load_paris_iris_geojson(only_metadata)
 
         print("Loading [San Francisco population polygons]")
-        data.load_sf_population_polygons(only_metadata)
+        examples.load_sf_population_polygons(only_metadata)
 
         print("Loading [Flights data]")
-        data.load_flights(only_metadata)
+        examples.load_flights(only_metadata)
 
         print("Loading [BART lines]")
-        data.load_bart_lines(only_metadata)
+        examples.load_bart_lines(only_metadata)
 
         print("Loading [Multi Line]")
-        data.load_multi_line(only_metadata=True)
+        examples.load_multi_line(only_metadata=True)
 
         print("Loading [Misc Charts] dashboard")
-        data.load_misc_dashboard()
+        examples.load_misc_dashboard()
 
         print("Loading DECK.gl demo")
-        data.load_deck_dash()
+        examples.load_deck_dash()
 
     print("Loading [Tabbed dashboard]")
-    data.load_tabbed_dashboard(only_metadata)
+    examples.load_tabbed_dashboard(only_metadata)
 
 
 @app.cli.command()

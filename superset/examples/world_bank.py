@@ -30,7 +30,7 @@ from superset.utils import core as utils
 from .helpers import (
     config,
     Dash,
-    DATA_FOLDER,
+    EXAMPLES_FOLDER,
     get_example_data,
     get_slice_json,
     merge_slice,
@@ -68,7 +68,7 @@ def load_world_bank_health_n_pop(only_metadata=False):
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
-    tbl.description = utils.readfile(os.path.join(DATA_FOLDER, "countries.md"))
+    tbl.description = utils.readfile(os.path.join(EXAMPLES_FOLDER, "countries.md"))
     tbl.main_dttm_col = "year"
     tbl.database = database
     tbl.filter_select_enabled = True
