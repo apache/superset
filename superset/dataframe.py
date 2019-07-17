@@ -30,7 +30,7 @@ import pandas as pd
 
 try:
     from pandas.core.common import maybe_box_datetimelike
-except:
+except ImportError:
     from pandas.core.common import _maybe_box_datetimelike as maybe_box_datetimelike
 
 
