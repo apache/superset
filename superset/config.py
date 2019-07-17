@@ -617,6 +617,10 @@ TALISMAN_CONFIG = {
     "force_https_permanent": False,
 }
 
+# URI to database storing the example data, points to
+# SQLALCHEMY_DATABASE_URI by default if set to `None`
+SQLALCHEMY_EXAMPLES_URI = None
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful

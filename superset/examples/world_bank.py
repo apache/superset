@@ -30,7 +30,7 @@ from superset.utils import core as utils
 from .helpers import (
     config,
     Dash,
-    DATA_FOLDER,
+    EXAMPLES_FOLDER,
     get_example_data,
     get_slice_json,
     merge_slice,
@@ -41,34 +41,38 @@ from .helpers import (
 )
 
 
-def load_world_bank_health_n_pop():
+def load_world_bank_health_n_pop(only_metadata=False, force=False):
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
-    data = get_example_data("countries.json.gz")
-    pdf = pd.read_json(data)
-    pdf.columns = [col.replace(".", "_") for col in pdf.columns]
-    pdf.year = pd.to_datetime(pdf.year)
-    pdf.to_sql(
-        tbl_name,
-        db.engine,
-        if_exists="replace",
-        chunksize=50,
-        dtype={
-            "year": DateTime(),
-            "country_code": String(3),
-            "country_name": String(255),
-            "region": String(255),
-        },
-        index=False,
-    )
+    database = utils.get_example_database()
+    table_exists = database.has_table_by_name(tbl_name)
+
+    if not only_metadata and (not table_exists or force):
+        data = get_example_data("countries.json.gz")
+        pdf = pd.read_json(data)
+        pdf.columns = [col.replace(".", "_") for col in pdf.columns]
+        pdf.year = pd.to_datetime(pdf.year)
+        pdf.to_sql(
+            tbl_name,
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=50,
+            dtype={
+                "year": DateTime(),
+                "country_code": String(3),
+                "country_name": String(255),
+                "region": String(255),
+            },
+            index=False,
+        )
 
     print("Creating table [wb_health_population] reference")
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
-    tbl.description = utils.readfile(os.path.join(DATA_FOLDER, "countries.md"))
+    tbl.description = utils.readfile(os.path.join(EXAMPLES_FOLDER, "countries.md"))
     tbl.main_dttm_col = "year"
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = database
     tbl.filter_select_enabled = True
 
     metrics = [
@@ -328,6 +332,7 @@ def load_world_bank_health_n_pop():
 
     if not dash:
         dash = Dash()
+    dash.published = True
     js = textwrap.dedent(
         """\
 {
