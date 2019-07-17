@@ -394,6 +394,7 @@ def load_birth_names(only_metadata=False, force=False):
     if not dash:
         dash = Dash()
         db.session.add(dash)
+    dash.published = True
     js = textwrap.dedent(
         # pylint: disable=line-too-long
         """\

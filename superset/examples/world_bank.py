@@ -332,6 +332,7 @@ def load_world_bank_health_n_pop(only_metadata=False, force=False):
 
     if not dash:
         dash = Dash()
+    dash.published = True
     js = textwrap.dedent(
         """\
 {
