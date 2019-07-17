@@ -27,7 +27,13 @@ import logging
 
 import numpy as np
 import pandas as pd
-from pandas.core.common import maybe_box_datetimelike
+
+try:
+    from pandas.core.common import maybe_box_datetimelike
+except:
+    from pandas.core.common import _maybe_box_datetimelike as maybe_box_datetimelike
+
+
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 from superset.utils.core import JS_MAX_INTEGER
