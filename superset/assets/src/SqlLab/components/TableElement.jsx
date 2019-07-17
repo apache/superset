@@ -54,6 +54,10 @@ class TableElement extends React.PureComponent {
     this.setHover = this.setHover.bind(this);
   }
 
+  setHover(hovered) {
+    this.setState({ hovered });
+  }
+
   popSelectStar() {
     const qe = {
       id: shortid.generate(),
@@ -193,7 +197,6 @@ class TableElement extends React.PureComponent {
           </a>
         </div>
         <div className="pull-right">
-          <div>
           {table.isMetadataLoading || table.isExtraMetadataLoading ?
             <Loading
               size={50}
@@ -208,12 +211,11 @@ class TableElement extends React.PureComponent {
           <i
             onClick={(e) => { this.toggleTable(e); }}
             className={(
-              `text-primary pointer m-l-10 ` +
-              `fa fa-lg ` +
+              'text-primary pointer m-l-10 ' +
+              'fa fa-lg ' +
               `fa-angle-${table.expanded ? 'up' : 'down'}`
             )}
           />
-          </div>
         </div>
       </div>
     );
@@ -252,10 +254,6 @@ class TableElement extends React.PureComponent {
       </Collapse>
     );
     return metadata;
-  }
-
-  setHover(hovered) {
-    this.setState({ hovered });
   }
 
   render() {
