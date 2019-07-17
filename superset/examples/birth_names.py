@@ -23,7 +23,7 @@ from sqlalchemy.sql import column
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlMetric, TableColumn
-from superset.utils.core import get_or_create_main_db
+from superset.utils.core import get_example_database
 from .helpers import (
     config,
     Dash,
@@ -36,33 +36,39 @@ from .helpers import (
 )
 
 
-def load_birth_names():
+def load_birth_names(only_metadata=False, force=False):
     """Loading birth name dataset from a zip file in the repo"""
-    data = get_example_data("birth_names.json.gz")
-    pdf = pd.read_json(data)
-    pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
-    pdf.to_sql(
-        "birth_names",
-        db.engine,
-        if_exists="replace",
-        chunksize=500,
-        dtype={
-            "ds": DateTime,
-            "gender": String(16),
-            "state": String(10),
-            "name": String(255),
-        },
-        index=False,
-    )
-    print("Done loading table!")
-    print("-" * 80)
+    # pylint: disable=too-many-locals
+    tbl_name = "birth_names"
+    database = get_example_database()
+    table_exists = database.has_table_by_name(tbl_name)
 
-    print("Creating table [birth_names] reference")
-    obj = db.session.query(TBL).filter_by(table_name="birth_names").first()
+    if not only_metadata and (not table_exists or force):
+        pdf = pd.read_json(get_example_data("birth_names.json.gz"))
+        pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
+        pdf.to_sql(
+            tbl_name,
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            dtype={
+                "ds": DateTime,
+                "gender": String(16),
+                "state": String(10),
+                "name": String(255),
+            },
+            index=False,
+        )
+        print("Done loading table!")
+        print("-" * 80)
+
+    obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not obj:
-        obj = TBL(table_name="birth_names")
+        print(f"Creating table [{tbl_name}] reference")
+        obj = TBL(table_name=tbl_name)
+        db.session.add(obj)
     obj.main_dttm_col = "ds"
-    obj.database = get_or_create_main_db()
+    obj.database = database
     obj.filter_select_enabled = True
 
     if not any(col.column_name == "num_california" for col in obj.columns):
@@ -79,7 +85,6 @@ def load_birth_names():
         col = str(column("num").compile(db.engine))
         obj.metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
 
-    db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
     tbl = obj
@@ -384,10 +389,12 @@ def load_birth_names():
         merge_slice(slc)
 
     print("Creating a dashboard")
-    dash = db.session.query(Dash).filter_by(dashboard_title="Births").first()
+    dash = db.session.query(Dash).filter_by(slug="births").first()
 
     if not dash:
         dash = Dash()
+        db.session.add(dash)
+    dash.published = True
     js = textwrap.dedent(
         # pylint: disable=line-too-long
         """\
@@ -649,5 +656,4 @@ def load_birth_names():
     dash.dashboard_title = "Births"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"
-    db.session.merge(dash)
     db.session.commit()

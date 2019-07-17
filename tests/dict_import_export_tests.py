@@ -63,7 +63,7 @@ class DictImportExportTests(SupersetTestCase):
         params = {DBREF: id, "database_name": database_name}
 
         dict_rep = {
-            "database_id": get_main_database(db.session).id,
+            "database_id": get_main_database().id,
             "table_name": name,
             "schema": schema,
             "id": id,

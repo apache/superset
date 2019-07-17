@@ -31,7 +31,7 @@ ROLE_TABLES_PERM_DATA = {
     "database": [
         {
             "datasource_type": "table",
-            "name": "main",
+            "name": "examples",
             "schema": [{"name": "", "datasources": ["birth_names"]}],
         }
     ],
@@ -42,7 +42,7 @@ ROLE_ALL_PERM_DATA = {
     "database": [
         {
             "datasource_type": "table",
-            "name": "main",
+            "name": "examples",
             "schema": [{"name": "", "datasources": ["birth_names"]}],
         },
         {

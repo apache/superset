@@ -55,18 +55,9 @@ class ConnectorRegistry(object):
         cls, session, datasource_type, datasource_name, schema, database_name
     ):
         datasource_class = ConnectorRegistry.sources[datasource_type]
-        datasources = session.query(datasource_class).all()
-
-        # Filter datasoures that don't have database.
-        db_ds = [
-            d
-            for d in datasources
-            if d.database
-            and d.database.name == database_name
-            and d.name == datasource_name
-            and schema == schema
-        ]
-        return db_ds[0]
+        return datasource_class.get_datasource_by_name(
+            session, datasource_name, schema, database_name
+        )
 
     @classmethod
     def query_datasources_by_permissions(cls, session, database, permissions):

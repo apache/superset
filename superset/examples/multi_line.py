@@ -22,9 +22,9 @@ from .helpers import merge_slice, misc_dash_slices, Slice
 from .world_bank import load_world_bank_health_n_pop
 
 
-def load_multi_line():
-    load_world_bank_health_n_pop()
-    load_birth_names()
+def load_multi_line(only_metadata=False):
+    load_world_bank_health_n_pop(only_metadata)
+    load_birth_names(only_metadata)
     ids = [
         row.id
         for row in db.session.query(Slice).filter(
