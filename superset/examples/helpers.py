@@ -19,9 +19,9 @@
 from io import BytesIO
 import json
 import os
+from urllib import request
 import zlib
 
-from urllib import request
 from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models import core as models
