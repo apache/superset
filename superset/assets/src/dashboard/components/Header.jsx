@@ -26,6 +26,7 @@ import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
+import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
 import { chartPropShape } from '../util/propShapes';
@@ -57,12 +58,14 @@ const propTypes = {
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
   isStarred: PropTypes.bool.isRequired,
+  isPublished: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
   onSave: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
   fetchFaveStar: PropTypes.func.isRequired,
   fetchCharts: PropTypes.func.isRequired,
   saveFaveStar: PropTypes.func.isRequired,
+  savePublished: PropTypes.func.isRequired,
   startPeriodicRender: PropTypes.func.isRequired,
   updateDashboardTitle: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
@@ -272,6 +275,7 @@ class Header extends React.PureComponent {
       onSave,
       updateCss,
       editMode,
+      isPublished,
       builderPaneType,
       dashboardInfo,
       hasUnsavedChanges,
@@ -293,6 +297,15 @@ class Header extends React.PureComponent {
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
           />
+          <span className="publish">
+            <PublishedStatus
+              dashboardId={dashboardInfo.id}
+              isPublished={isPublished}
+              savePublished={this.props.savePublished}
+              canEdit={userCanEdit}
+              canSave={userCanSaveAs}
+            />
+          </span>
           <span className="favstar">
             <FaveStar
               itemId={dashboardInfo.id}

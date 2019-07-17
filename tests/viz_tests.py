@@ -109,7 +109,6 @@ class BaseVizTestCase(SupersetTestCase):
         datasource.get_col = Mock(return_value=mock_dttm_col)
         mock_dttm_col.python_date_format = "epoch_ms"
         result = test_viz.get_df(query_obj)
-        print(result)
         import logging
 
         logging.info(result)

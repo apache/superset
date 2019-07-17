@@ -50,6 +50,8 @@ RUN pip install --upgrade setuptools pip \
     && pip install -r requirements.txt -r requirements-dev.txt \
     && rm -rf /root/.cache/pip
 
+RUN pip install gevent
+
 COPY --chown=superset:superset superset superset
 
 ENV PATH=/home/superset/superset/bin:$PATH \

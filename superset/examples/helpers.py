@@ -38,7 +38,7 @@ TBL = ConnectorRegistry.sources["table"]
 
 config = app.config
 
-DATA_FOLDER = os.path.join(config.get("BASE_DIR"), "data")
+EXAMPLES_FOLDER = os.path.join(config.get("BASE_DIR"), "examples")
 
 misc_dash_slices = set()  # slices assembled in a 'Misc Chart' dashboard
 

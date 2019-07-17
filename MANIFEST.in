@@ -18,7 +18,7 @@ include NOTICE
 include LICENSE.txt
 graft licenses/
 include README.md
-recursive-include superset/data *
+recursive-include superset/examples *
 recursive-include superset/migrations *
 recursive-include superset/static *
 recursive-exclude superset/static/assets/docs *

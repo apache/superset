@@ -521,6 +521,24 @@ into your global default defined in ``CACHE_CONFIG``.
         'CACHE_REDIS_URL': 'redis://localhost:6379/0',
     }
 
+It is also possible to pass a custom cache initialization function in the
+config to handle additional caching use cases. The function must return an
+object that is compatible with the `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ API.
+
+.. code-block:: python
+
+    from custom_caching import CustomCache
+
+    def init_cache(app):
+        """Takes an app instance and returns a custom cache backend"""
+        config = {
+            'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24, # 1 day default (in secs)
+            'CACHE_KEY_PREFIX': 'superset_results',
+        }
+        return CustomCache(app, config)
+
+    CACHE_CONFIG = init_cache
+
 Superset has a Celery task that will periodically warm up the cache based on
 different strategies. To use it, add the following to the `CELERYBEAT_SCHEDULE`
 section in `config.py`:

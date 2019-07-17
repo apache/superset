@@ -31,7 +31,6 @@ import logging
 import math
 import pickle as pkl
 import re
-import traceback
 import uuid
 
 from dateutil import relativedelta as rdelta
@@ -423,7 +422,7 @@ class BaseViz(object):
                 if not self.error_message:
                     self.error_message = "{}".format(e)
                 self.status = utils.QueryStatus.FAILED
-                stacktrace = traceback.format_exc()
+                stacktrace = utils.get_stacktrace()
 
             if (
                 is_loaded
@@ -1747,7 +1746,7 @@ class WorldMapViz(BaseViz):
         return qry
 
     def get_data(self, df):
-        from superset.data import countries
+        from superset.examples import countries
 
         fd = self.form_data
         cols = [fd.get("entity")]

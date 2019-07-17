@@ -128,14 +128,14 @@ class CeleryTestCase(SupersetTestCase):
         return json.loads(resp.data)
 
     def test_run_sync_query_dont_exist(self):
-        main_db = get_main_database(db.session)
+        main_db = get_main_database()
         db_id = main_db.id
         sql_dont_exist = "SELECT name FROM table_dont_exist"
         result1 = self.run_sql(db_id, sql_dont_exist, "1", cta="true")
         self.assertTrue("error" in result1)
 
     def test_run_sync_query_cta(self):
-        main_db = get_main_database(db.session)
+        main_db = get_main_database()
         backend = main_db.backend
         db_id = main_db.id
         tmp_table_name = "tmp_async_22"
@@ -158,7 +158,7 @@ class CeleryTestCase(SupersetTestCase):
             self.assertGreater(len(results["data"]), 0)
 
     def test_run_sync_query_cta_no_data(self):
-        main_db = get_main_database(db.session)
+        main_db = get_main_database()
         db_id = main_db.id
         sql_empty_result = "SELECT * FROM ab_user WHERE id=666"
         result3 = self.run_sql(db_id, sql_empty_result, "3")
@@ -179,7 +179,7 @@ class CeleryTestCase(SupersetTestCase):
         return self.run_sql(db_id, sql)
 
     def test_run_async_query(self):
-        main_db = get_main_database(db.session)
+        main_db = get_main_database()
         db_id = main_db.id
 
         self.drop_table_if_exists("tmp_async_1", main_db)
@@ -212,7 +212,7 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual(True, query.select_as_cta_used)
 
     def test_run_async_query_with_lower_limit(self):
-        main_db = get_main_database(db.session)
+        main_db = get_main_database()
         db_id = main_db.id
         self.drop_table_if_exists("tmp_async_2", main_db)
 

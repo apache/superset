@@ -20,9 +20,9 @@ import unittest
 import pandas
 from sqlalchemy.engine.url import make_url
 
-from superset import app, db
+from superset import app
 from superset.models.core import Database
-from superset.utils.core import get_main_database, QueryStatus
+from superset.utils.core import get_example_database, get_main_database, QueryStatus
 from .base_tests import SupersetTestCase
 
 
@@ -101,7 +101,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertNotEquals(example_user, user_name)
 
     def test_select_star(self):
-        main_db = get_main_database(db.session)
+        main_db = get_example_database()
         table_name = "energy_usage"
         sql = main_db.select_star(table_name, show_cols=False, latest_partition=False)
         expected = textwrap.dedent(
@@ -124,7 +124,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         assert sql.startswith(expected)
 
     def test_single_statement(self):
-        main_db = get_main_database(db.session)
+        main_db = get_main_database()
 
         if main_db.backend == "mysql":
             df = main_db.get_df("SELECT 1", None)
@@ -134,7 +134,7 @@ class DatabaseModelTestCase(SupersetTestCase):
             self.assertEquals(df.iat[0, 0], 1)
 
     def test_multi_statement(self):
-        main_db = get_main_database(db.session)
+        main_db = get_main_database()
 
         if main_db.backend == "mysql":
             df = main_db.get_df("USE superset; SELECT 1", None)
