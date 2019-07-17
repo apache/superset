@@ -942,25 +942,37 @@ def user_label(user: User) -> Optional[str]:
 
 
 def get_or_create_main_db():
-    from superset import conf, db
+    get_main_database()
+
+
+def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
+    from superset import db
     from superset.models import core as models
 
-    logging.info("Creating database reference")
-    dbobj = get_main_database(db.session)
-    if not dbobj:
-        dbobj = models.Database(
-            database_name="main", allow_csv_upload=True, expose_in_sqllab=True
-        )
-    dbobj.set_sqlalchemy_uri(conf.get("SQLALCHEMY_DATABASE_URI"))
-    db.session.add(dbobj)
+    database = (
+        db.session.query(models.Database).filter_by(database_name=database_name).first()
+    )
+    if not database:
+        logging.info(f"Creating database reference for {database_name}")
+        database = models.Database(database_name=database_name, *args, **kwargs)
+        db.session.add(database)
+
+    database.set_sqlalchemy_uri(sqlalchemy_uri)
     db.session.commit()
-    return dbobj
+    return database
 
 
-def get_main_database(session):
-    from superset.models import core as models
+def get_main_database():
+    from superset import conf
 
-    return session.query(models.Database).filter_by(database_name="main").first()
+    return get_or_create_db("main", conf.get("SQLALCHEMY_DATABASE_URI"))
+
+
+def get_example_database():
+    from superset import conf
+
+    db_uri = conf.get("SQLALCHEMY_EXAMPLES_URI") or conf.get("SQLALCHEMY_DATABASE_URI")
+    return get_or_create_db("examples", db_uri)
 
 
 def is_adhoc_metric(metric) -> bool:

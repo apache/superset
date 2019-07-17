@@ -501,6 +501,7 @@ def load_deck_dash():
 
     if not dash:
         dash = Dash()
+    dash.published = True
     js = POSITION_JSON
     pos = json.loads(js)
     update_slice_ids(pos, slices)
