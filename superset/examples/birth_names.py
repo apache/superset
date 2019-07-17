@@ -38,6 +38,7 @@ from .helpers import (
 
 def load_birth_names(only_metadata=False, force=False):
     """Loading birth name dataset from a zip file in the repo"""
+    # pylint: disable=too-many-locals
     tbl_name = "birth_names"
     database = get_example_database()
     table_exists = database.has_table_by_name(tbl_name)
@@ -64,7 +65,7 @@ def load_birth_names(only_metadata=False, force=False):
     obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not obj:
         print(f"Creating table [{tbl_name}] reference")
-        obj = TBL(tbl_name="birth_names")
+        obj = TBL(table_name=tbl_name)
         db.session.add(obj)
     obj.main_dttm_col = "ds"
     obj.database = database
