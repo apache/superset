@@ -732,6 +732,16 @@ class DruidDatasource(Model, BaseDatasource):
             return 6 * 24 * 3600 * 1000  # 6 days
         return 0
 
+    @classmethod
+    def get_datasource_by_name(cls, session, datasource_name, schema, database_name):
+        query = (
+            session.query(cls)
+            .join(DruidCluster)
+            .filter(cls.datasource_name == datasource_name)
+            .filter(DruidCluster.cluster_name == database_name)
+        )
+        return query.first()
+
     # uses https://en.wikipedia.org/wiki/ISO_8601
     # http://druid.io/docs/0.8.0/querying/granularities.html
     # TODO: pass origin from the UI

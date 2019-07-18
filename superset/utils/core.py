@@ -32,6 +32,7 @@ import signal
 import smtplib
 import sys
 from time import struct_time
+import traceback
 from typing import List, NamedTuple, Optional, Tuple
 from urllib.parse import unquote_plus
 import uuid
@@ -41,7 +42,7 @@ import bleach
 import celery
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
-from flask import flash, Flask, g, Markup, render_template
+from flask import current_app, flash, Flask, g, Markup, render_template
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
@@ -774,8 +775,14 @@ def choicify(values):
 
 def setup_cache(app: Flask, cache_config) -> Optional[Cache]:
     """Setup the flask-cache on a flask app"""
-    if cache_config and cache_config.get("CACHE_TYPE") != "null":
-        return Cache(app, config=cache_config)
+    if cache_config:
+        if isinstance(cache_config, dict):
+            if cache_config.get("CACHE_TYPE") != "null":
+                return Cache(app, config=cache_config)
+        else:
+            # Accepts a custom cache initialization function,
+            # returning an object compatible with Flask-Caching API
+            return cache_config(app)
 
     return None
 
@@ -935,25 +942,37 @@ def user_label(user: User) -> Optional[str]:
 
 
 def get_or_create_main_db():
-    from superset import conf, db
+    get_main_database()
+
+
+def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
+    from superset import db
     from superset.models import core as models
 
-    logging.info("Creating database reference")
-    dbobj = get_main_database(db.session)
-    if not dbobj:
-        dbobj = models.Database(
-            database_name="main", allow_csv_upload=True, expose_in_sqllab=True
-        )
-    dbobj.set_sqlalchemy_uri(conf.get("SQLALCHEMY_DATABASE_URI"))
-    db.session.add(dbobj)
+    database = (
+        db.session.query(models.Database).filter_by(database_name=database_name).first()
+    )
+    if not database:
+        logging.info(f"Creating database reference for {database_name}")
+        database = models.Database(database_name=database_name, *args, **kwargs)
+        db.session.add(database)
+
+    database.set_sqlalchemy_uri(sqlalchemy_uri)
     db.session.commit()
-    return dbobj
+    return database
 
 
-def get_main_database(session):
-    from superset.models import core as models
+def get_main_database():
+    from superset import conf
 
-    return session.query(models.Database).filter_by(database_name="main").first()
+    return get_or_create_db("main", conf.get("SQLALCHEMY_DATABASE_URI"))
+
+
+def get_example_database():
+    from superset import conf
+
+    db_uri = conf.get("SQLALCHEMY_EXAMPLES_URI") or conf.get("SQLALCHEMY_DATABASE_URI")
+    return get_or_create_db("examples", db_uri)
 
 
 def is_adhoc_metric(metric) -> bool:
@@ -1185,3 +1204,8 @@ def shortid() -> str:
 class DatasourceName(NamedTuple):
     table: str
     schema: str
+
+
+def get_stacktrace():
+    if current_app.config.get("SHOW_STACKTRACE"):
+        return traceback.format_exc()

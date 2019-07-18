@@ -20,14 +20,18 @@ import unittest
 from unittest.mock import patch
 import uuid
 
+from flask import Flask
+from flask_caching import Cache
 import numpy
 
+from superset import app
 from superset.exceptions import SupersetException
 from superset.utils.core import (
     base_json_conv,
     convert_legacy_filters_into_adhoc,
     datetime_f,
     get_since_until,
+    get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
     JSONEncodedDict,
@@ -37,6 +41,7 @@ from superset.utils.core import (
     parse_human_timedelta,
     parse_js_uri_path_item,
     parse_past_timedelta,
+    setup_cache,
     validate_json,
     zlib_compress,
     zlib_decompress_to_string,
@@ -763,3 +768,48 @@ class UtilsTestCase(unittest.TestCase):
     def test_parse_js_uri_path_items_item_optional(self):
         self.assertIsNone(parse_js_uri_path_item(None))
         self.assertIsNotNone(parse_js_uri_path_item("item"))
+
+    def test_setup_cache_no_config(self):
+        app = Flask(__name__)
+        cache_config = None
+        self.assertIsNone(setup_cache(app, cache_config))
+
+    def test_setup_cache_null_config(self):
+        app = Flask(__name__)
+        cache_config = {"CACHE_TYPE": "null"}
+        self.assertIsNone(setup_cache(app, cache_config))
+
+    def test_setup_cache_standard_config(self):
+        app = Flask(__name__)
+        cache_config = {
+            "CACHE_TYPE": "redis",
+            "CACHE_DEFAULT_TIMEOUT": 60,
+            "CACHE_KEY_PREFIX": "superset_results",
+            "CACHE_REDIS_URL": "redis://localhost:6379/0",
+        }
+        assert isinstance(setup_cache(app, cache_config), Cache) is True
+
+    def test_setup_cache_custom_function(self):
+        app = Flask(__name__)
+        CustomCache = type("CustomCache", (object,), {"__init__": lambda *args: None})
+
+        def init_cache(app):
+            return CustomCache(app, {})
+
+        assert isinstance(setup_cache(app, init_cache), CustomCache) is True
+
+    def test_get_stacktrace(self):
+        with app.app_context():
+            app.config["SHOW_STACKTRACE"] = True
+            try:
+                raise Exception("NONONO!")
+            except Exception:
+                stacktrace = get_stacktrace()
+                self.assertIn("NONONO", stacktrace)
+
+            app.config["SHOW_STACKTRACE"] = False
+            try:
+                raise Exception("NONONO!")
+            except Exception:
+                stacktrace = get_stacktrace()
+                assert stacktrace is None
