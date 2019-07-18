@@ -22,6 +22,7 @@ import superset.models.core as models
 
 
 class DatabaseAsyncApi(ModelRestApi):
+    datamodel = SQLAInterface(models.Database)
     class_permission_name = "DatabaseAsync"
     method_permission_name = {
         "get_list": "list",
@@ -33,7 +34,6 @@ class DatabaseAsyncApi(ModelRestApi):
     }
     resource_name = "databaseasync"
     allow_browser_login = True
-    datamodel = SQLAInterface(models.Database)
 
     list_columns = [
         "id",
