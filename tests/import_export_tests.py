@@ -376,6 +376,10 @@ class ImportExportTests(SupersetTestCase):
         )
 
         expected_position = dash_with_1_slice.position
+        # new slice id (auto-incremental) assigned on insert
+        # id from json is used only for updating position with new id
+        meta = expected_position["DASHBOARD_CHART_TYPE-10006"]["meta"]
+        meta["chartId"] = imported_dash.slices[0].id
         self.assertEquals(expected_position, imported_dash.position)
 
     def test_import_dashboard_2_slices(self):
