@@ -262,14 +262,14 @@ class SqlaTableModelTestCase(SupersetTestCase):
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
-        self.assertNotIn("--COMMENT", sql)
+        self.assertNotIn("-- COMMENT", sql)
 
         def mutator(*args):
-            return "--COMMENT\n" + args[0]
+            return "-- COMMENT\n" + args[0]
 
         app.config["SQL_QUERY_MUTATOR"] = mutator
         sql = tbl.get_query_str(query_obj)
-        self.assertIn("--COMMENT", sql)
+        self.assertIn("-- COMMENT", sql)
 
         app.config["SQL_QUERY_MUTATOR"] = None
 
