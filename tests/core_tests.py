@@ -39,7 +39,6 @@ from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
-from superset.utils.core import get_main_database
 from superset.views.database.views import DatabaseView
 from .base_tests import SupersetTestCase
 from .fixtures.pyodbcRow import Row
