@@ -649,7 +649,7 @@ class SqlaTable(Model, BaseDatasource):
             elif m in metrics_dict:
                 metrics_exprs.append(metrics_dict.get(m).get_sqla_col())
             else:
-                raise Exception(_("Metric '{}' is not valid".format(m)))
+                raise Exception(_("Metric '%(metric)s' does not exist", metric=m))
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
@@ -721,43 +721,46 @@ class SqlaTable(Model, BaseDatasource):
             if not all([flt.get(s) for s in ["col", "op"]]):
                 continue
             col = flt["col"]
+
+            if col not in cols:
+                raise Exception(_("Column '%(column)s' does not exist", column=col))
+
             op = flt["op"]
-            col_obj = cols.get(col)
-            if col_obj:
-                is_list_target = op in ("in", "not in")
-                eq = self.filter_values_handler(
-                    flt.get("val"),
-                    target_column_is_numeric=col_obj.is_num,
-                    is_list_target=is_list_target,
-                )
-                if op in ("in", "not in"):
-                    cond = col_obj.get_sqla_col().in_(eq)
-                    if "<NULL>" in eq:
-                        cond = or_(cond, col_obj.get_sqla_col() == None)  # noqa
-                    if op == "not in":
-                        cond = ~cond
-                    where_clause_and.append(cond)
-                else:
-                    if col_obj.is_num:
-                        eq = utils.string_to_num(flt["val"])
-                    if op == "==":
-                        where_clause_and.append(col_obj.get_sqla_col() == eq)
-                    elif op == "!=":
-                        where_clause_and.append(col_obj.get_sqla_col() != eq)
-                    elif op == ">":
-                        where_clause_and.append(col_obj.get_sqla_col() > eq)
-                    elif op == "<":
-                        where_clause_and.append(col_obj.get_sqla_col() < eq)
-                    elif op == ">=":
-                        where_clause_and.append(col_obj.get_sqla_col() >= eq)
-                    elif op == "<=":
-                        where_clause_and.append(col_obj.get_sqla_col() <= eq)
-                    elif op == "LIKE":
-                        where_clause_and.append(col_obj.get_sqla_col().like(eq))
-                    elif op == "IS NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() == None)  # noqa
-                    elif op == "IS NOT NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() != None)  # noqa
+            col_obj = cols[col]
+            is_list_target = op in ("in", "not in")
+            eq = self.filter_values_handler(
+                flt.get("val"),
+                target_column_is_numeric=col_obj.is_num,
+                is_list_target=is_list_target,
+            )
+            if op in ("in", "not in"):
+                cond = col_obj.get_sqla_col().in_(eq)
+                if "<NULL>" in eq:
+                    cond = or_(cond, col_obj.get_sqla_col() == None)  # noqa
+                if op == "not in":
+                    cond = ~cond
+                where_clause_and.append(cond)
+            else:
+                if col_obj.is_num:
+                    eq = utils.string_to_num(flt["val"])
+                if op == "==":
+                    where_clause_and.append(col_obj.get_sqla_col() == eq)
+                elif op == "!=":
+                    where_clause_and.append(col_obj.get_sqla_col() != eq)
+                elif op == ">":
+                    where_clause_and.append(col_obj.get_sqla_col() > eq)
+                elif op == "<":
+                    where_clause_and.append(col_obj.get_sqla_col() < eq)
+                elif op == ">=":
+                    where_clause_and.append(col_obj.get_sqla_col() >= eq)
+                elif op == "<=":
+                    where_clause_and.append(col_obj.get_sqla_col() <= eq)
+                elif op == "LIKE":
+                    where_clause_and.append(col_obj.get_sqla_col().like(eq))
+                elif op == "IS NULL":
+                    where_clause_and.append(col_obj.get_sqla_col() == None)  # noqa
+                elif op == "IS NOT NULL":
+                    where_clause_and.append(col_obj.get_sqla_col() != None)  # noqa
         if extras:
             where = extras.get("where")
             if where:
@@ -877,7 +880,7 @@ class SqlaTable(Model, BaseDatasource):
             ob = timeseries_limit_metric.get_sqla_col()
         else:
             raise Exception(
-                _("Metric '{}' is not valid".format(timeseries_limit_metric))
+                _("Metric '%(metric)s' does not exist", metric=timeseries_limit_metric)
             )
 
         return ob
