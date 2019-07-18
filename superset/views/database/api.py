@@ -20,34 +20,36 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from superset import appbuilder
 import superset.models.core as models
 
+from .views import DatabaseFilter
 
-# class DatabaseAsyncApi(ModelRestApi):
-#     datamodel = SQLAInterface(models.Database)
-#     class_permission_name = "DatabaseAsync"
-#     method_permission_name = {
-#         "get_list": "list",
-#         "get": "show",
-#         "post": "add",
-#         "put": "edit",
-#         "delete": "delete",
-#         "info": "info"
-#     }
-#     resource_name = "databaseasync"
-#     allow_browser_login = True
-#
-#     list_columns = [
-#         "id",
-#         "database_name",
-#         "expose_in_sqllab",
-#         "allow_ctas",
-#         "force_ctas_schema",
-#         "allow_run_async",
-#         "allow_dml",
-#         "allow_multi_schema_metadata_fetch",
-#         "allow_csv_upload",
-#         "allows_subquery",
-#         "backend",
-#     ]
-#
-#
-# appbuilder.add_api(DatabaseAsyncApi)
+
+class DatabaseAsyncApi(ModelRestApi):
+    datamodel = SQLAInterface(models.Database)
+    class_permission_name = "DatabaseAsync"
+    method_permission_name = {
+        "get_list": "list",
+        "get": "show",
+        "post": "add",
+        "put": "edit",
+        "delete": "delete",
+        "info": "info"
+    }
+    resource_name = "databaseasync"
+    allow_browser_login = True
+    base_filters = [["id", DatabaseFilter, lambda: []]]
+    list_columns = [
+        "id",
+        "database_name",
+        "expose_in_sqllab",
+        "allow_ctas",
+        "force_ctas_schema",
+        "allow_run_async",
+        "allow_dml",
+        "allow_multi_schema_metadata_fetch",
+        "allow_csv_upload",
+        "allows_subquery",
+        "backend",
+    ]
+
+
+appbuilder.add_api(DatabaseAsyncApi)
