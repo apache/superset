@@ -204,6 +204,18 @@ class ImportExportTests(SupersetTestCase):
                 exp_params.pop(k)
         self.assertEquals(exp_params, actual_params)
 
+    def assert_only_exported_slc_fields(self, expected_dash, actual_dash):
+        """ only exported json has this params
+            imported/created dashboard has relationships to other models instead
+        """
+        expected_slices = sorted(expected_dash.slices, key=lambda s: s.slice_name or "")
+        actual_slices = sorted(actual_dash.slices, key=lambda s: s.slice_name or "")
+        for e_slc, a_slc in zip(expected_slices, actual_slices):
+            params = a_slc.params_dict
+            self.assertEqual(e_slc.datasource.name, params["datasource_name"])
+            self.assertEqual(e_slc.datasource.schema, params["schema"])
+            self.assertEqual(e_slc.datasource.database.name, params["database_name"])
+
     def test_export_1_dashboard(self):
         self.login("admin")
         birth_dash = self.get_dash_by_slug("births")
@@ -216,6 +228,7 @@ class ImportExportTests(SupersetTestCase):
         )["dashboards"]
 
         birth_dash = self.get_dash_by_slug("births")
+        self.assert_only_exported_slc_fields(birth_dash, exported_dashboards[0])
         self.assert_dash_equals(birth_dash, exported_dashboards[0])
         self.assertEquals(
             birth_dash.id,
@@ -250,12 +263,14 @@ class ImportExportTests(SupersetTestCase):
         self.assertEquals(2, len(exported_dashboards))
 
         birth_dash = self.get_dash_by_slug("births")
+        self.assert_only_exported_slc_fields(birth_dash, exported_dashboards[0])
         self.assert_dash_equals(birth_dash, exported_dashboards[0])
         self.assertEquals(
             birth_dash.id, json.loads(exported_dashboards[0].json_metadata)["remote_id"]
         )
 
         world_health_dash = self.get_dash_by_slug("world_health")
+        self.assert_only_exported_slc_fields(world_health_dash, exported_dashboards[1])
         self.assert_dash_equals(world_health_dash, exported_dashboards[1])
         self.assertEquals(
             world_health_dash.id,
