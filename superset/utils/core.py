@@ -280,6 +280,10 @@ def decode_dashboards(o):
 
 
 class DashboardEncoder(json.JSONEncoder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sort_keys = True
+
     # pylint: disable=E0202
     def default(self, o):
         try:
@@ -288,7 +292,7 @@ class DashboardEncoder(json.JSONEncoder):
         except Exception:
             if type(o) == datetime:
                 return {"__datetime__": o.replace(microsecond=0).isoformat()}
-            return json.JSONEncoder.default(self, o)
+            return json.JSONEncoder(sort_keys=True).default(self, o)
 
 
 def parse_human_timedelta(s: str) -> timedelta:
