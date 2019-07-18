@@ -26,6 +26,7 @@ import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
+import Loading from '../../components/Loading';
 import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
@@ -313,6 +314,9 @@ class Header extends React.PureComponent {
               saveFaveStar={this.props.saveFaveStar}
               isStarred={this.props.isStarred}
             />
+          </span>
+          <span className="dashboard-loading">
+            {isLoading && <Loading />}
           </span>
         </div>
 
