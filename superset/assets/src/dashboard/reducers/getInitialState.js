@@ -186,8 +186,8 @@ export default function(bootstrapData) {
       slug: dashboard.slug,
       metadata: {
         filter_immune_slice_fields:
-          dashboard.metadata.filter_immune_slice_fields,
-        filter_immune_slices: dashboard.metadata.filter_immune_slices,
+          dashboard.metadata.filter_immune_slice_fields || {},
+        filter_immune_slices: dashboard.metadata.filter_immune_slices || [],
         timed_refresh_immune_slices:
           dashboard.metadata.timed_refresh_immune_slices,
       },
