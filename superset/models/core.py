@@ -617,7 +617,10 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 existing_dashboard = dash
 
         dashboard_to_import.id = None
-        alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
+        # position_json can be empty for dashboards
+        # with charts added from chart-edit page and without re-arranging
+        if dashboard_to_import.position_json:
+            alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
         dashboard_to_import.alter_params(import_time=import_time)
         if new_expanded_slices:
             dashboard_to_import.alter_params(expanded_slices=new_expanded_slices)
@@ -658,37 +661,49 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         for dashboard_id in dashboard_ids:
             # make sure that dashboard_id is an integer
             dashboard_id = int(dashboard_id)
-            copied_dashboard = (
+            dashboard = (
                 db.session.query(Dashboard)
                 .options(subqueryload(Dashboard.slices))
                 .filter_by(id=dashboard_id)
                 .first()
             )
-            make_transient(copied_dashboard)
-            for slc in copied_dashboard.slices:
-                make_transient(slc)
+            # remove ids and relations (like owners, created by, slices, ...)
+            copied_dashboard = dashboard.copy()
+            for slc in dashboard.slices:
                 datasource_ids.add((slc.datasource_id, slc.datasource_type))
+                copied_slc = slc.copy()
+                # save original id into json
+                # we need it to update dashboard's json metadata on import
+                copied_slc.id = slc.id
                 # add extra params for the import
-                slc.alter_params(
+                copied_slc.alter_params(
                     remote_id=slc.id,
                     datasource_name=slc.datasource.name,
                     schema=slc.datasource.schema,
                     database_name=slc.datasource.database.name,
                 )
+                # set slices without creating ORM relations
+                slices = copied_dashboard.__dict__.setdefault("slices", [])
+                slices.append(copied_slc)
             copied_dashboard.alter_params(remote_id=dashboard_id)
             copied_dashboards.append(copied_dashboard)
 
             eager_datasources = []
-            for dashboard_id, dashboard_type in datasource_ids:
+            for datasource_id, datasource_type in datasource_ids:
                 eager_datasource = ConnectorRegistry.get_eager_datasource(
-                    db.session, dashboard_type, dashboard_id
+                    db.session, datasource_type, datasource_id
                 )
-                eager_datasource.alter_params(
+                copied_datasource = eager_datasource.copy()
+                copied_datasource.alter_params(
                     remote_id=eager_datasource.id,
                     database_name=eager_datasource.database.name,
                 )
-                make_transient(eager_datasource)
-                eager_datasources.append(eager_datasource)
+                datasource_class = copied_datasource.__class__
+                for field_name in datasource_class.export_children:
+                    field_val = getattr(eager_datasource, field_name).copy()
+                    # set children without creating ORM relations
+                    copied_datasource.__dict__[field_name] = field_val
+                eager_datasources.append(copied_datasource)
 
         return json.dumps(
             {"dashboards": copied_dashboards, "datasources": eager_datasources},
