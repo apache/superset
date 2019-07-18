@@ -145,8 +145,10 @@ class ImportExportTests(SupersetTestCase):
         self.assertEquals(expected_dash.slug, actual_dash.slug)
         self.assertEquals(expected_dash.dashboard_title, actual_dash.dashboard_title)
         self.assertEquals(len(expected_dash.slices), len(actual_dash.slices))
-        expected_slices = sorted(expected_dash.slices, key=lambda s: s.slice_name or "")
-        actual_slices = sorted(actual_dash.slices, key=lambda s: s.slice_name or "")
+        expected_slices = sorted(
+            expected_dash.slices, key=lambda s: s.slice_name or s.id
+        )
+        actual_slices = sorted(actual_dash.slices, key=lambda s: s.slice_name or s.id)
         for e_slc, a_slc in zip(expected_slices, actual_slices):
             self.assert_slice_equals(e_slc, a_slc)
         if check_position:
