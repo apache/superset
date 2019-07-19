@@ -771,7 +771,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def allows_subquery(self):
-        return self.db_engine_spec.allows_subquery
+        return self.db_engine_spec.allows_subqueries
 
     @property
     def data(self):

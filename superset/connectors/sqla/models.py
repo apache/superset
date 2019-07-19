@@ -351,7 +351,7 @@ class SqlaTable(Model, BaseDatasource):
         """
         label_expected = label or sqla_col.name
         db_engine_spec = self.database.db_engine_spec
-        if db_engine_spec.supports_column_aliases:
+        if db_engine_spec.allows_column_aliases:
             label = db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
         sqla_col._df_label_expected = label_expected
@@ -544,9 +544,8 @@ class SqlaTable(Model, BaseDatasource):
 
     def get_query_str(self, query_obj):
         query_str_ext = self.get_query_str_extended(query_obj)
-        sql = ";\n\n".join(query_str_ext.prequeries)
-        sql += ";\n\n" + query_str_ext.sql
-        return sql
+        all_queries = query_str_ext.prequeries + [query_str_ext.sql]
+        return ";\n\n".join(all_queries)
 
     def get_sqla_table(self):
         tbl = table(self.table_name)
@@ -795,7 +794,7 @@ class SqlaTable(Model, BaseDatasource):
             qry = qry.limit(row_limit)
 
         if is_timeseries and timeseries_limit and groupby and not time_groupby_inline:
-            if self.database.db_engine_spec.inner_joins:
+            if self.database.db_engine_spec.allows_joins:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
