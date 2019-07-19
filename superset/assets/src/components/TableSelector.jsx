@@ -225,12 +225,6 @@ export default class TableSelector extends React.PureComponent {
           'filters:!((col:expose_in_sqllab,opr:eq,value:!t)),' +
           'order_columns:database_name,order_direction:asc)'
         }
-//        dataEndpoint={
-//        '/databaseasync/api/' +
-//                  'read?_flt_0_expose_in_sqllab=1&' +
-//                  '_oc_DatabaseAsync=database_name&' +
-//                  '_od_DatabaseAsync=asc'
-//        }
         onChange={this.onDatabaseChange}
         onAsyncError={() => this.props.handleError(t('Error while fetching database list'))}
         clearable={false}
