@@ -19,8 +19,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import appbuilder
 import superset.models.core as models
-
-from .views import DatabaseFilter
+from superset.views.database.views import DatabaseFilter
 
 
 class DatabaseAsyncApi(ModelRestApi):
@@ -32,7 +31,7 @@ class DatabaseAsyncApi(ModelRestApi):
         "post": "add",
         "put": "edit",
         "delete": "delete",
-        "info": "info"
+        "info": "info",
     }
     resource_name = "databaseasync"
     allow_browser_login = True
