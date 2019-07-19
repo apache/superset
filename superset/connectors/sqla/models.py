@@ -61,10 +61,10 @@ from superset.utils import core as utils, import_datasource
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 
-SqlaQuery = namedtuple(
-    "SqlaQuery", ["sqla_query", "labels_expected", "extra_cache_keys"]
+SqlaQuery = namedtuple("SqlaQuery", ["extra_cache_keys", "labels_expected", "sqla_query", "prequeries"])
+QueryStringExtended = namedtuple(
+    "QueryStringExtended", ["sql", "labels_expected", "prequeries"]
 )
-QueryStringExtended = namedtuple("QueryStringExtended", ["sql", "labels_expected"])
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -532,18 +532,21 @@ class SqlaTable(Model, BaseDatasource):
     def get_template_processor(self, **kwargs):
         return get_template_processor(table=self, database=self.database, **kwargs)
 
-    def get_query_str_extended(self, query_obj):
+    def get_query_str_extended(self, query_obj) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
-        if query_obj["is_prequery"]:
-            query_obj["prequeries"].append(sql)
         sql = self.mutate_query_from_config(sql)
-        return QueryStringExtended(labels_expected=sqlaq.labels_expected, sql=sql)
+        return QueryStringExtended(
+            labels_expected=sqlaq.labels_expected, sql=sql, prequeries=sqlaq.prequeries
+        )
 
     def get_query_str(self, query_obj):
-        return self.get_query_str_extended(query_obj).sql
+        query_str_ext = self.get_query_str_extended(query_obj)
+        sql = ";\n\n".join(query_str_ext.prequeries)
+        sql += ";\n\n" + query_str_ext.sql
+        return sql
 
     def get_sqla_table(self):
         tbl = table(self.table_name)
@@ -606,8 +609,6 @@ class SqlaTable(Model, BaseDatasource):
         extras=None,
         columns=None,
         order_desc=True,
-        prequeries=None,
-        is_prequery=False,
     ):
         """Querying any sqla table from this common interface"""
         template_kwargs = {
@@ -624,6 +625,7 @@ class SqlaTable(Model, BaseDatasource):
         template_kwargs["extra_cache_keys"] = extra_cache_keys
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
+        prequeries: List[str] = []
 
         orderby = orderby or []
 
@@ -844,10 +846,8 @@ class SqlaTable(Model, BaseDatasource):
                         )
                     ]
 
-                # run subquery to get top groups
-                subquery_obj = {
-                    "prequeries": prequeries,
-                    "is_prequery": True,
+                # run prequery to get top groups
+                prequery_obj = {
                     "is_timeseries": False,
                     "row_limit": timeseries_limit,
                     "groupby": groupby,
@@ -861,7 +861,8 @@ class SqlaTable(Model, BaseDatasource):
                     "columns": columns,
                     "order_desc": True,
                 }
-                result = self.query(subquery_obj)
+                result = self.query(prequery_obj)
+                prequeries.append(result.query)
                 dimensions = [
                     c
                     for c in result.df.columns
@@ -873,9 +874,10 @@ class SqlaTable(Model, BaseDatasource):
                 qry = qry.where(top_groups)
 
         return SqlaQuery(
-            sqla_query=qry.select_from(tbl),
-            labels_expected=labels_expected,
             extra_cache_keys=extra_cache_keys,
+            labels_expected=labels_expected,
+            sqla_query=qry.select_from(tbl),
+            prequeries=prequeries,
         )
 
     def _get_timeseries_orderby(self, timeseries_limit_metric, metrics_dict, cols):
@@ -901,7 +903,7 @@ class SqlaTable(Model, BaseDatasource):
 
         return or_(*groups)
 
-    def query(self, query_obj):
+    def query(self, query_obj, prequeries: Optional[List[str]] = None):
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
@@ -929,10 +931,6 @@ class SqlaTable(Model, BaseDatasource):
             db_engine_spec = self.database.db_engine_spec
             error_message = db_engine_spec.extract_error_message(e)
 
-        # if this is a main query with prequeries, combine them together
-        if not query_obj["is_prequery"]:
-            query_obj["prequeries"].append(sql)
-            sql = ";\n\n".join(query_obj["prequeries"])
         sql += ";"
 
         return QueryResult(

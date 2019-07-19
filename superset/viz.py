@@ -320,8 +320,6 @@ class BaseViz(object):
             "extras": extras,
             "timeseries_limit_metric": timeseries_limit_metric,
             "order_desc": order_desc,
-            "prequeries": [],
-            "is_prequery": False,
         }
         return d
 
@@ -1798,11 +1796,11 @@ class FilterBoxViz(BaseViz):
         return None
 
     def run_extra_queries(self):
+        qry = super().query_obj()
         filters = self.form_data.get("filter_configs") or []
+        qry["row_limit"] = self.filter_row_limit
         self.dataframes = {}
         for flt in filters:
-            qry = super().query_obj()
-            qry["row_limit"] = self.filter_row_limit
             col = flt.get("column")
             if not col:
                 raise Exception(
