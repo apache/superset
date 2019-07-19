@@ -195,11 +195,11 @@ class SqlaTableModelTestCase(SupersetTestCase):
         ds_col.expression = None
         ds_col.python_date_format = None
         spec = self.get_database_by_id(tbl.database_id).db_engine_spec
-        if not spec.allow_joins and inner_join:
+        if not spec.allows_joins and inner_join:
             # if the db does not support inner joins, we cannot force it so
             return None
-        old_inner_join = spec.allow_joins
-        spec.allow_joins = inner_join
+        old_inner_join = spec.allows_joins
+        spec.allows_joins = inner_join
         arbitrary_gby = "state || gender || '_test'"
         arbitrary_metric = dict(
             label="arbitrary", expressionType="SQL", sqlExpression="COUNT(1)"
@@ -224,7 +224,7 @@ class SqlaTableModelTestCase(SupersetTestCase):
             self.assertIn("JOIN", sql.upper())
         else:
             self.assertNotIn("JOIN", sql.upper())
-        spec.allow_joins = old_inner_join
+        spec.allows_joins = old_inner_join
         self.assertIsNotNone(qr.df)
         return qr.df
 

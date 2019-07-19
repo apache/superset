@@ -930,8 +930,6 @@ class SqlaTable(Model, BaseDatasource):
             db_engine_spec = self.database.db_engine_spec
             error_message = db_engine_spec.extract_error_message(e)
 
-        sql += ";"
-
         return QueryResult(
             status=status,
             df=df,
