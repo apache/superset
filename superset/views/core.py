@@ -1967,15 +1967,13 @@ class Superset(BaseSupersetView):
         slice_ids = []
         slice_id_to_name = {}
         for value in positions.values():
-            if (
-                isinstance(value, dict)
-                and value.get("meta")
-                and value.get("meta").get("chartId")
-            ):
-                slice_id = value.get("meta").get("chartId")
-                slice_ids.append(slice_id)
-                if "sliceName" in value.get("meta"):
-                    slice_id_to_name[slice_id] = value.get("meta").get("sliceName")
+            if isinstance(value, dict):
+                try:
+                    slice_id = value["meta"]["chartId"]
+                    slice_ids.append(slice_id)
+                    slice_id_to_name[slice_id] = value["meta"]["sliceName"]
+                except KeyError:
+                    pass
 
         session = db.session()
         Slice = models.Slice  # noqa
@@ -1986,12 +1984,14 @@ class Superset(BaseSupersetView):
         # update slice names. this assumes user has permissions to update the slice
         # we allow user set slice name be empty string
         for slc in dashboard.slices:
-            if slc.id in slice_id_to_name:
+            try:
                 new_name = slice_id_to_name[slc.id]
                 if slc.slice_name != new_name:
                     slc.slice_name = new_name
                     session.merge(slc)
                     session.flush()
+            except KeyError:
+                pass
 
         # remove leading and trailing white spaces in the dumped json
         dashboard.position_json = json.dumps(
