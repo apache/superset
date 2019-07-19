@@ -363,3 +363,22 @@ class DatabaseTablesAsync(DatabaseView):
 
 
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
+
+
+class DatabaseAsync(DatabaseView):
+    list_columns = [
+        "id",
+        "database_name",
+        "expose_in_sqllab",
+        "allow_ctas",
+        "force_ctas_schema",
+        "allow_run_async",
+        "allow_dml",
+        "allow_multi_schema_metadata_fetch",
+        "allow_csv_upload",
+        "allows_subquery",
+        "backend",
+    ]
+
+
+appbuilder.add_view_no_menu(DatabaseAsync)
