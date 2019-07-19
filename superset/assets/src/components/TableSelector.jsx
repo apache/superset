@@ -215,7 +215,6 @@ export default class TableSelector extends React.PureComponent {
     );
   }
   renderDatabaseSelect() {
-    console.log
     return this.renderSelectRow(
       <AsyncSelect
         dataEndpoint={
