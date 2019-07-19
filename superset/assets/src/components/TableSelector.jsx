@@ -222,7 +222,7 @@ export default class TableSelector extends React.PureComponent {
           '/api/v1/databaseasync/?q=' +
           '(keys:!(none),' +
           'columns:!(id,database_name,backend),' +
-          'filters:!((col:expose_in_sqllab,opr:eq,value:true)),' +
+          'filters:!((col:expose_in_sqllab,opr:eq,value:!t)),' +
           'order_columns:database_name,order_direction:asc)'
         }
 //        dataEndpoint={
