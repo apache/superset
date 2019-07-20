@@ -18,7 +18,7 @@
 from collections import namedtuple, OrderedDict
 from datetime import datetime
 import logging
-from typing import Optional, Union
+from typing import Any, List, Optional, Union
 
 from flask import escape, Markup
 from flask_appbuilder import Model
@@ -61,7 +61,9 @@ from superset.utils import core as utils, import_datasource
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 
-SqlaQuery = namedtuple("SqlaQuery", ["sqla_query", "labels_expected"])
+SqlaQuery = namedtuple(
+    "SqlaQuery", ["sqla_query", "labels_expected", "extra_cache_keys"]
+)
 QueryStringExtended = namedtuple("QueryStringExtended", ["sql", "labels_expected"])
 
 
@@ -618,6 +620,8 @@ class SqlaTable(Model, BaseDatasource):
             "columns": {col.column_name: col for col in self.columns},
         }
         template_kwargs.update(self.template_params_dict)
+        extra_cache_keys: List[Any] = []
+        template_kwargs["extra_cache_keys"] = extra_cache_keys
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
 
@@ -869,7 +873,9 @@ class SqlaTable(Model, BaseDatasource):
                 qry = qry.where(top_groups)
 
         return SqlaQuery(
-            sqla_query=qry.select_from(tbl), labels_expected=labels_expected
+            sqla_query=qry.select_from(tbl),
+            labels_expected=labels_expected,
+            extra_cache_keys=extra_cache_keys,
         )
 
     def _get_timeseries_orderby(self, timeseries_limit_metric, metrics_dict, cols):
@@ -1057,6 +1063,10 @@ class SqlaTable(Model, BaseDatasource):
     @staticmethod
     def default_query(qry):
         return qry.filter_by(is_sqllab_view=False)
+
+    def get_extra_cache_keys(self, query_obj) -> List[Any]:
+        sqla_query = self.get_sqla_query(**query_obj)
+        return sqla_query.extra_cache_keys
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)

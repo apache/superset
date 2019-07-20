@@ -107,7 +107,7 @@ class QueryObject:
 
     def cache_key(self, **extra):
         """
-        The cache key is made out of the key/values in `query_obj`, plus any
+        The cache key is made out of the key/values from to_dict(), plus any
         other key/values in `extra`
         We remove datetime bounds that are hard values, and replace them with
         the use-provided inputs to bounds, which may be time-relative (as in
