@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict
 from datetime import datetime
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any, List, NamedTuple, Optional, Union
 
 from flask import escape, Markup
 from flask_appbuilder import Model
@@ -45,7 +45,7 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
-from sqlalchemy.sql.expression import Label, TextAsFrom
+from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 import sqlparse
 
 from superset import app, db, security_manager
@@ -61,10 +61,18 @@ from superset.utils import core as utils, import_datasource
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 
-SqlaQuery = namedtuple("SqlaQuery", ["extra_cache_keys", "labels_expected", "sqla_query", "prequeries"])
-QueryStringExtended = namedtuple(
-    "QueryStringExtended", ["sql", "labels_expected", "prequeries"]
-)
+
+class SqlaQuery(NamedTuple):
+    extra_cache_keys: List[Any]
+    labels_expected: List[str]
+    prequeries: List[str]
+    sqla_query: Select
+
+
+class QueryStringExtended(NamedTuple):
+    labels_expected: List[str]
+    prequeries: List[str]
+    sql: str
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -545,7 +553,7 @@ class SqlaTable(Model, BaseDatasource):
     def get_query_str(self, query_obj):
         query_str_ext = self.get_query_str_extended(query_obj)
         all_queries = query_str_ext.prequeries + [query_str_ext.sql]
-        return ";\n\n".join(all_queries)
+        return ";\n\n".join(all_queries) + ";"
 
     def get_sqla_table(self):
         tbl = table(self.table_name)
@@ -902,7 +910,7 @@ class SqlaTable(Model, BaseDatasource):
 
         return or_(*groups)
 
-    def query(self, query_obj, prequeries: Optional[List[str]] = None):
+    def query(self, query_obj):
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
