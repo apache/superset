@@ -44,7 +44,7 @@ class DatabaseModelTestCase(SupersetTestCase):
 
     def test_cache_key_wrapper(self):
         query = "SELECT '{{ cache_key_wrapper('user_1') }}' as user"
-        table = SqlaTable(sql=query, database=get_main_database(db.session))
+        table = SqlaTable(sql=query, database=get_main_database())
         query_obj = {
             "granularity": None,
             "from_dttm": None,
