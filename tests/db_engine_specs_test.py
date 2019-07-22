@@ -175,12 +175,12 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         q2 = "select * from (select * from my_subquery limit 10) where col=1 limit 20"
         q3 = "select * from (select * from my_subquery limit 10);"
         q4 = "select * from (select * from my_subquery limit 10) where col=1 limit 20;"
-        q5 = "select * from mytable limit 10, 20"
+        q5 = "select * from mytable limit 20, 10"
         q6 = "select * from mytable limit 10 offset 20"
         q7 = "select * from mytable limit"
         q8 = "select * from mytable limit 10.0"
         q9 = "select * from mytable limit x"
-        q10 = "select * from mytable limit x, 20"
+        q10 = "select * from mytable limit 20, x"
         q11 = "select * from mytable limit x offset 20"
 
         self.assertEqual(engine_spec_class.get_limit_from_sql(q0), None)

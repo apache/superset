@@ -182,7 +182,7 @@ class ParsedQuery(object):
             _, token = statement.token_next(idx=idx)
             if token:
                 if isinstance(token, IdentifierList):
-                    _, token = token.token_next(idx=-1)
+                    token = token.tokens[-1]
                 if token and token.ttype == sqlparse.tokens.Literal.Number.Integer:
                     return int(token.value)
 
