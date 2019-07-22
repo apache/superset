@@ -395,6 +395,7 @@ dashboard_slices = Table(
     Column("id", Integer, primary_key=True),
     Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
     Column("slice_id", Integer, ForeignKey("slices.id")),
+    UniqueConstraint("dashboard_id", "slice_id"),
 )
 
 dashboard_user = Table(
