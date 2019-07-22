@@ -145,7 +145,6 @@ describe('TableSelector', () => {
     it('should clear table options', () => {
       inst.fetchTables(true);
       expect(wrapper.state().tableOptions).toEqual([]);
-      expect(wrapper.state().filterOptions).toBeNull();
     });
 
     it('should fetch table options', () => {
