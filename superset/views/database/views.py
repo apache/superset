@@ -39,7 +39,7 @@ stats_logger = config.get("STATS_LOGGER")
 
 
 class DatabaseView(
-    SupersetModelView, DeleteMixin, YamlExportMixin, DatabaseMixin
+    DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin
 ):  # noqa
     datamodel = SQLAInterface(models.Database)
 

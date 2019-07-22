@@ -22,7 +22,7 @@ import superset.models.core as models
 from . import DatabaseFilter, DatabaseMixin
 
 
-class DatabaseRestApi(ModelRestApi, DatabaseMixin):
+class DatabaseRestApi(DatabaseMixin, ModelRestApi):
     datamodel = SQLAInterface(models.Database)
 
     class_permission_name = "DatabaseAsync"
@@ -32,7 +32,7 @@ class DatabaseRestApi(ModelRestApi, DatabaseMixin):
         "post": "add",
         "put": "edit",
         "delete": "delete",
-        "info": "info",
+        "info": "list",
     }
     resource_name = "database"
     allow_browser_login = True
