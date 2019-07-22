@@ -19,11 +19,12 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import appbuilder
 import superset.models.core as models
-from superset.views.database.views import DatabaseFilter
+from . import DatabaseFilter, DatabaseMixin
 
 
-class DatabaseAsyncApi(ModelRestApi):
+class DatabaseRestApi(ModelRestApi, DatabaseMixin):
     datamodel = SQLAInterface(models.Database)
+
     class_permission_name = "DatabaseAsync"
     method_permission_name = {
         "get_list": "list",
@@ -33,7 +34,7 @@ class DatabaseAsyncApi(ModelRestApi):
         "delete": "delete",
         "info": "info",
     }
-    resource_name = "databaseasync"
+    resource_name = "database"
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]
     list_columns = [
@@ -51,4 +52,4 @@ class DatabaseAsyncApi(ModelRestApi):
     ]
 
 
-appbuilder.add_api(DatabaseAsyncApi)
+appbuilder.add_api(DatabaseRestApi)

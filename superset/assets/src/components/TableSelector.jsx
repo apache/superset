@@ -218,7 +218,7 @@ export default class TableSelector extends React.PureComponent {
     return this.renderSelectRow(
       <AsyncSelect
         dataEndpoint={
-          '/api/v1/databaseasync/?q=' +
+          '/api/v1/database/?q=' +
           '(keys:!(none),' +
           'columns:!(id,database_name,backend),' +
           'filters:!((col:expose_in_sqllab,opr:eq,value:!t)),' +
