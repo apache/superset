@@ -14,13 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# flake8: noqa I202
 """Unit tests for Superset"""
 from datetime import datetime
 import json
 import unittest
 from unittest.mock import Mock, patch
 
-# noqa I201
 from superset import db, security_manager
 
 try:

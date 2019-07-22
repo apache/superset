@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+# flake8: noqa I202
 """Utility functions used across Superset"""
 from datetime import date, datetime, time, timedelta
 import decimal
@@ -38,7 +39,6 @@ from urllib.parse import unquote_plus
 import uuid
 import zlib
 
-# noqa I201
 import bleach
 import celery
 from dateutil.parser import parse

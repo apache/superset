@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 # pylint: disable=invalid-unary-operand-type
+# flake8: noqa I202
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -25,7 +26,6 @@ import logging
 from multiprocessing.pool import ThreadPool
 import re
 
-# noqa I201
 from dateutil.parser import parse as dparse
 from flask import escape, Markup
 from flask_appbuilder import Model
