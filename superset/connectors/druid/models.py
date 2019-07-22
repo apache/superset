@@ -25,12 +25,14 @@ import logging
 from multiprocessing.pool import ThreadPool
 import re
 
+# noqa I201
 from dateutil.parser import parse as dparse
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import lazy_gettext as _
 import pandas
+
 try:
     from pydruid.client import PyDruid
     from pydruid.utils.aggregators import count

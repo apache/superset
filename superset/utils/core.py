@@ -38,6 +38,7 @@ from urllib.parse import unquote_plus
 import uuid
 import zlib
 
+# noqa I201
 import bleach
 import celery
 from dateutil.parser import parse
@@ -51,6 +52,7 @@ import markdown as md
 import numpy
 import pandas as pd
 import parsedatetime
+
 try:
     from pydruid.utils.having import Having
 except ImportError:

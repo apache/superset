@@ -20,7 +20,9 @@ import json
 import unittest
 from unittest.mock import Mock, patch
 
+# noqa I201
 from superset import db, security_manager
+
 try:
     from superset.connectors.druid.models import (
         DruidCluster,
