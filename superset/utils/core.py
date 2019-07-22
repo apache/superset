@@ -51,6 +51,7 @@ import markdown as md
 import numpy
 import pandas as pd
 import parsedatetime
+
 try:
     from pydruid.utils.having import Having
 except ImportError:
@@ -80,15 +81,17 @@ try:
     class DimSelector(Having):
         def __init__(self, **args):
             # Just a hack to prevent any exceptions
-            Having.__init__(self, type='equalTo', aggregation=None, value=None)
+            Having.__init__(self, type="equalTo", aggregation=None, value=None)
 
             self.having = {
-                'having': {
-                    'type': 'dimSelector',
-                    'dimension': args['dimension'],
-                    'value': args['value'],
-                },
+                "having": {
+                    "type": "dimSelector",
+                    "dimension": args["dimension"],
+                    "value": args["value"],
+                }
             }
+
+
 except NameError:
     pass
 

@@ -31,6 +31,7 @@ from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import lazy_gettext as _
 import pandas
+
 try:
     from pydruid.client import PyDruid
     from pydruid.utils.aggregators import count
@@ -68,14 +69,13 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.exceptions import MetricPermException, SupersetException
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.utils import core as utils, import_datasource
+
 try:
-    from superset.utils.core import (
-        DimSelector, DTTM_ALIAS, flasher,
-    )
+    from superset.utils.core import DimSelector, DTTM_ALIAS, flasher
 except ImportError:
     pass
-DRUID_TZ = conf.get('DRUID_TZ')
-POST_AGG_TYPE = 'postagg'
+DRUID_TZ = conf.get("DRUID_TZ")
+POST_AGG_TYPE = "postagg"
 metadata = Model.metadata  # pylint: disable=no-member
 
 
@@ -84,18 +84,21 @@ try:
     class JavascriptPostAggregator(Postaggregator):
         def __init__(self, name, field_names, function):
             self.post_aggregator = {
-                'type': 'javascript',
-                'fieldNames': field_names,
-                'name': name,
-                'function': function,
+                "type": "javascript",
+                "fieldNames": field_names,
+                "name": name,
+                "function": function,
             }
             self.name = name
 
     class CustomPostAggregator(Postaggregator):
         """A way to allow users to specify completely custom PostAggregators"""
+
         def __init__(self, name, post_aggregator):
             self.name = name
             self.post_aggregator = post_aggregator
+
+
 except NameError:
     pass
 

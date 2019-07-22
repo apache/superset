@@ -44,7 +44,8 @@ def emplace(metrics_dict, metric_name, is_postagg=False):
 # Unit tests that can be run without initializing base tests
 class DruidFuncTestCase(unittest.TestCase):
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_extraction_fn_map(self):
         filters = [{"col": "deviceName", "val": ["iPhone X"], "op": "in"}]
         dimension_spec = {
@@ -89,7 +90,8 @@ class DruidFuncTestCase(unittest.TestCase):
         )
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_extraction_fn_regex(self):
         filters = [{"col": "buildPrefix", "val": ["22B"], "op": "in"}]
         dimension_spec = {
@@ -109,7 +111,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual(dim_ext_fn["expr"], f_ext_fn._expr)
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_ignores_invalid_filter_objects(self):
         filtr = {"col": "col1", "op": "=="}
         filters = [filtr]
@@ -118,7 +121,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertIsNone(DruidDatasource.get_filters(filters, [], column_dict))
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_constructs_filter_in(self):
         filtr = {"col": "A", "op": "in", "val": ["a", "b", "c"]}
         col = DruidColumn(column_name="A")
@@ -130,7 +134,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual(3, len(res.filter["filter"]["fields"]))
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_constructs_filter_not_in(self):
         filtr = {"col": "A", "op": "not in", "val": ["a", "b", "c"]}
         col = DruidColumn(column_name="A")
@@ -145,7 +150,8 @@ class DruidFuncTestCase(unittest.TestCase):
         )
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_constructs_filter_equals(self):
         filtr = {"col": "A", "op": "==", "val": "h"}
         col = DruidColumn(column_name="A")
@@ -156,7 +162,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual("h", res.filter["filter"]["value"])
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_constructs_filter_not_equals(self):
         filtr = {"col": "A", "op": "!=", "val": "h"}
         col = DruidColumn(column_name="A")
@@ -166,7 +173,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual("h", res.filter["filter"]["field"].filter["filter"]["value"])
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_constructs_bounds_filter(self):
         filtr = {"col": "A", "op": ">=", "val": "h"}
         col = DruidColumn(column_name="A")
@@ -188,7 +196,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertTrue(res.filter["filter"]["upperStrict"])
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_constructs_regex_filter(self):
         filtr = {"col": "A", "op": "regex", "val": "[abc]"}
         col = DruidColumn(column_name="A")
@@ -199,7 +208,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual("A", res.filter["filter"]["dimension"])
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_composes_multiple_filters(self):
         filtr1 = {"col": "A", "op": "!=", "val": "y"}
         filtr2 = {"col": "B", "op": "in", "val": ["a", "b", "c"]}
@@ -211,7 +221,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual(2, len(res.filter["filter"]["fields"]))
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_ignores_in_not_in_with_empty_value(self):
         filtr1 = {"col": "A", "op": "in", "val": []}
         filtr2 = {"col": "A", "op": "not in", "val": []}
@@ -221,7 +232,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertIsNone(res)
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_constructs_equals_for_in_not_in_single_value(self):
         filtr = {"col": "A", "op": "in", "val": ["a"]}
         cola = DruidColumn(column_name="A")
@@ -231,7 +243,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual("selector", res.filter["filter"]["type"])
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_handles_arrays_for_string_types(self):
         filtr = {"col": "A", "op": "==", "val": ["a", "b"]}
         col = DruidColumn(column_name="A")
@@ -244,7 +257,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertIsNone(res.filter["filter"]["value"])
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_handles_none_for_string_types(self):
         filtr = {"col": "A", "op": "==", "val": None}
         col = DruidColumn(column_name="A")
@@ -253,7 +267,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertIsNone(res)
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_extracts_values_in_quotes(self):
         filtr = {"col": "A", "op": "in", "val": ['"a"']}
         col = DruidColumn(column_name="A")
@@ -262,7 +277,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual("a", res.filter["filter"]["value"])
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_keeps_trailing_spaces(self):
         filtr = {"col": "A", "op": "in", "val": ["a "]}
         col = DruidColumn(column_name="A")
@@ -271,7 +287,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual("a ", res.filter["filter"]["value"])
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_converts_strings_to_num(self):
         filtr = {"col": "A", "op": "in", "val": ["6"]}
         col = DruidColumn(column_name="A")
@@ -283,7 +300,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual(6, res.filter["filter"]["value"])
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_run_query_no_groupby(self):
         client = Mock()
         from_dttm = Mock()
@@ -331,7 +349,8 @@ class DruidFuncTestCase(unittest.TestCase):
         # restore functions
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_run_query_with_adhoc_metric(self):
         client = Mock()
         from_dttm = Mock()
@@ -387,7 +406,8 @@ class DruidFuncTestCase(unittest.TestCase):
         # restore functions
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_run_query_single_groupby(self):
         client = Mock()
         from_dttm = Mock()
@@ -484,7 +504,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual(spec, client.topn.call_args_list[1][1]["dimension"])
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_run_query_multiple_groupby(self):
         client = Mock()
         from_dttm = Mock()
@@ -531,7 +552,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual(["col1", "col2"], called_args["dimensions"])
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_post_agg_returns_correct_agg_type(self):
         get_post_agg = DruidDatasource.get_post_agg
         # javascript PostAggregators
@@ -601,7 +623,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual(postagg.post_aggregator["stuff"], "more_stuff")
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_find_postaggs_for_returns_postaggs_and_removes(self):
         find_postaggs_for = DruidDatasource.find_postaggs_for
         postagg_names = set(["pa2", "pa3", "pa4", "m1", "m2", "m3", "m4"])
@@ -623,7 +646,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual(0, len(postagg_names))
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_recursive_get_fields(self):
         conf = {
             "type": "quantile",
@@ -663,7 +687,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual(0, len(expected))
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_metrics_and_post_aggs_tree(self):
         metrics = ["A", "B", "m1", "m2"]
         metrics_dict = {}
@@ -699,7 +724,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual(0, len(postaggs))
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_metrics_and_post_aggs(self):
         """
         Test generation of metrics and post-aggregations from an initial list
@@ -809,7 +835,8 @@ class DruidFuncTestCase(unittest.TestCase):
         assert set(post_aggs.keys()) == result_postaggs
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_druid_type_from_adhoc_metric(self):
 
         druid_type = DruidDatasource.druid_type_from_adhoc_metric(
@@ -858,7 +885,8 @@ class DruidFuncTestCase(unittest.TestCase):
         assert druid_type == "hyperUnique"
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_run_query_order_by_metrics(self):
         client = Mock()
         client.query_builder.last_query.query_dict = {"mock": 0}
@@ -992,7 +1020,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual({"div1"}, set(post_aggregations.keys()))
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed('pydruid'), 'pydruid not installed')
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_aggregations(self):
         ds = DruidDatasource(datasource_name="datasource")
         metrics_dict = {
