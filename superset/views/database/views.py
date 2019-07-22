@@ -29,11 +29,7 @@ from superset import app, appbuilder, security_manager
 from superset.connectors.sqla.models import SqlaTable
 import superset.models.core as models
 from superset.utils import core as utils
-from superset.views.base import (
-    DeleteMixin,
-    SupersetModelView,
-    YamlExportMixin,
-)
+from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 from . import DatabaseMixin
 from .forms import CsvToDatabaseForm
 
@@ -43,10 +39,7 @@ stats_logger = config.get("STATS_LOGGER")
 
 
 class DatabaseView(
-    SupersetModelView,
-    DeleteMixin,
-    YamlExportMixin,
-    DatabaseMixin
+    SupersetModelView, DeleteMixin, YamlExportMixin, DatabaseMixin
 ):  # noqa
     datamodel = SQLAInterface(models.Database)
 
