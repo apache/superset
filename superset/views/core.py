@@ -2636,7 +2636,7 @@ class Superset(BaseSupersetView):
         table.columns = cols
         table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
         db.session.commit()
-        return self.json_response(json.dumps({"table_id": table.id}))
+        return json_success(json.dumps({"table_id": table.id}))
 
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
