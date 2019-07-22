@@ -51,7 +51,6 @@ import markdown as md
 import numpy
 import pandas as pd
 import parsedatetime
-
 try:
     from pydruid.utils.having import Having
 except ImportError:

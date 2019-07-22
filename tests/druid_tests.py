@@ -21,7 +21,6 @@ import unittest
 from unittest.mock import Mock, patch
 
 from superset import db, security_manager
-
 try:
     from superset.connectors.druid.models import (
         DruidCluster,
