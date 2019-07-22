@@ -121,19 +121,19 @@ class DeckMulti extends React.PureComponent {
     });
   }
 
-  _onHover({x, y, object}) {
-    this.setState({x, y, hoveredObject: object});
+  _onHover({x, y, object }) {
+    this.setState({x, y, hoveredObject: object });
   }
 
   _renderTooltip() {
-    const {x, y, hoveredObject} = this.state;
+    const { x, y, hoveredObject } = this.state;
 
     if (!hoveredObject) {
       return null;
     }
 
     return (
-      <div className="geo-tooltip" style={{left: x, top: y + 20}}>
+      <div className="geo-tooltip" style={{ left: x, top: y + 20 }}>
         <div>{this.state.selectedItem.place_name}</div>
       </div>
     );
@@ -151,14 +151,14 @@ class DeckMulti extends React.PureComponent {
       getPosition: d => d.center,
       getSize: d => 5,
       getColor: d => [0, 166, 153],
-      onHover: this._onHover.bind(this)
+      onHover: this._onHover.bind(this),
     });
   }
 
   removeMarker() {
     this.setState({
-      selectedItem: null
-    })
+      selectedItem: null,
+    });
   }
 
   render() {
@@ -167,11 +167,11 @@ class DeckMulti extends React.PureComponent {
 
     const layers = Object.values(subSlicesLayers);
     const viewport = this.state.viewport || this.props.viewport;
-    
+
     if (this.state.selectedItem) {
       layers.push(this.generateNewMarkerLayer());
     }
-    
+
     return (
       <>
         <div className="geo-container">
@@ -179,7 +179,7 @@ class DeckMulti extends React.PureComponent {
             mapboxApiAccessToken={payload.data.mapboxApiKey}
             onSelected={this.onSelected.bind(this)}
             viewport={viewport}
-            hideOnSelect={true}
+            hideOnSelect
             pointZoom={15}
             queryParams={queryParams}
           />
