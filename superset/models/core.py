@@ -678,7 +678,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 # add extra params for the import
                 copied_slc.alter_params(
                     remote_id=slc.id,
-                    datasource_name=slc.datasource.name,
+                    datasource_name=slc.datasource.datasource_name,
                     schema=slc.datasource.schema,
                     database_name=slc.datasource.database.name,
                 )
