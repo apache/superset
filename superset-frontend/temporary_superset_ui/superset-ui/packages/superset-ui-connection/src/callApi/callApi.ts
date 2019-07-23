@@ -28,7 +28,11 @@ export default function callApi({
     signal,
   };
 
-  if (method === 'GET' && CACHE_AVAILABLE) {
+  if (
+    method === 'GET' &&
+    CACHE_AVAILABLE &&
+    (self.location && self.location.protocol) === 'https:'
+  ) {
     return caches.open(CACHE_KEY).then(supersetCache =>
       supersetCache
         .match(url)
