@@ -23,7 +23,7 @@ import { SupersetClient } from '@superset-ui/connection';
 import Geocoder from 'react-mapbox-gl-geocoder';
 
 import DeckGLContainer from '../DeckGLContainer';
-import {IconLayer} from '@deck.gl/layers';
+import { IconLayer } from '@deck.gl/layers';
 import { getExploreLongUrl } from '../../../explore/exploreUtils';
 import layerGenerators from '../layers';
 
@@ -48,7 +48,7 @@ const queryParams = {
 };
 
 const ICON_MAPPING = {
-  marker: {x: 0, y: 0, width: 32, height: 32, mask: false}
+  marker: { x: 0, y: 0, width: 32, height: 32, mask: false }
 };
 
 class DeckMulti extends React.PureComponent {
