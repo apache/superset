@@ -25,6 +25,14 @@ class CacheStorage {
       resolve(new Cache(key));
     });
   }
+  delete(key: string): Promise<boolean> {
+    const wasPresent = key in caches;
+    if (wasPresent) {
+      caches[key] = undefined;
+    }
+
+    return Promise.resolve(wasPresent);
+  }
 };
 
 global.caches = new CacheStorage();
