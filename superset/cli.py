@@ -23,6 +23,7 @@ from sys import stdout
 
 import click
 from colorama import Fore, Style
+from flask import g
 from pathlib2 import Path
 import yaml
 
@@ -184,7 +185,13 @@ def refresh_druid(datasource, merge):
     default=False,
     help="recursively search the path for json files",
 )
-def import_dashboards(path, recursive):
+@click.option(
+    "--username",
+    "-u",
+    default=None,
+    help="Specify the user name to assign dashboards to",
+)
+def import_dashboards(path, recursive, username):
     """Import dashboards from JSON"""
     p = Path(path)
     files = []
@@ -194,6 +201,8 @@ def import_dashboards(path, recursive):
         files.extend(p.glob("*.json"))
     elif p.exists() and recursive:
         files.extend(p.rglob("*.json"))
+    if username is not None:
+        g.user = security_manager.find_user(username=username)
     for f in files:
         logging.info("Importing dashboard from file %s", f)
         try:

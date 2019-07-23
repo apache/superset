@@ -254,25 +254,15 @@ def decode_dashboards(o):
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 
     if "__Dashboard__" in o:
-        d = models.Dashboard()
-        d.__dict__.update(o["__Dashboard__"])
-        return d
+        return models.Dashboard(**o["__Dashboard__"])
     elif "__Slice__" in o:
-        d = models.Slice()
-        d.__dict__.update(o["__Slice__"])
-        return d
+        return models.Slice(**o["__Slice__"])
     elif "__TableColumn__" in o:
-        d = TableColumn()
-        d.__dict__.update(o["__TableColumn__"])
-        return d
+        return TableColumn(**o["__TableColumn__"])
     elif "__SqlaTable__" in o:
-        d = SqlaTable()
-        d.__dict__.update(o["__SqlaTable__"])
-        return d
+        return SqlaTable(**o["__SqlaTable__"])
     elif "__SqlMetric__" in o:
-        d = SqlMetric()
-        d.__dict__.update(o["__SqlMetric__"])
-        return d
+        return SqlMetric(**o["__SqlMetric__"])
     elif "__datetime__" in o:
         return datetime.strptime(o["__datetime__"], "%Y-%m-%dT%H:%M:%S")
     else:
