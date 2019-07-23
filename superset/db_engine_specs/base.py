@@ -117,9 +117,9 @@ class BaseEngineSpec(object):
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
-    inner_joins = True
-    allows_subquery = True
-    supports_column_aliases = True
+    allows_joins = True
+    allows_subqueries = True
+    allows_column_aliases = True
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0

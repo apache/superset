@@ -195,11 +195,11 @@ class SqlaTableModelTestCase(SupersetTestCase):
         ds_col.expression = None
         ds_col.python_date_format = None
         spec = self.get_database_by_id(tbl.database_id).db_engine_spec
-        if not spec.inner_joins and inner_join:
+        if not spec.allows_joins and inner_join:
             # if the db does not support inner joins, we cannot force it so
             return None
-        old_inner_join = spec.inner_joins
-        spec.inner_joins = inner_join
+        old_inner_join = spec.allows_joins
+        spec.allows_joins = inner_join
         arbitrary_gby = "state || gender || '_test'"
         arbitrary_metric = dict(
             label="arbitrary", expressionType="SQL", sqlExpression="COUNT(1)"
@@ -209,12 +209,10 @@ class SqlaTableModelTestCase(SupersetTestCase):
             metrics=[arbitrary_metric],
             filter=[],
             is_timeseries=is_timeseries,
-            prequeries=[],
             columns=[],
             granularity="ds",
             from_dttm=None,
             to_dttm=None,
-            is_prequery=False,
             extras=dict(time_grain_sqla="P1Y"),
         )
         qr = tbl.query(query_obj)
@@ -226,7 +224,7 @@ class SqlaTableModelTestCase(SupersetTestCase):
             self.assertIn("JOIN", sql.upper())
         else:
             self.assertNotIn("JOIN", sql.upper())
-        spec.inner_joins = old_inner_join
+        spec.allows_joins = old_inner_join
         self.assertIsNotNone(qr.df)
         return qr.df
 
@@ -258,7 +256,6 @@ class SqlaTableModelTestCase(SupersetTestCase):
             granularity=None,
             from_dttm=None,
             to_dttm=None,
-            is_prequery=False,
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
@@ -285,7 +282,6 @@ class SqlaTableModelTestCase(SupersetTestCase):
             granularity=None,
             from_dttm=None,
             to_dttm=None,
-            is_prequery=False,
             extras={},
         )
 
@@ -306,7 +302,6 @@ class SqlaTableModelTestCase(SupersetTestCase):
             granularity=None,
             from_dttm=None,
             to_dttm=None,
-            is_prequery=False,
             extras={},
         )
 

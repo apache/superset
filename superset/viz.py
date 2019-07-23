@@ -320,8 +320,6 @@ class BaseViz(object):
             "extras": extras,
             "timeseries_limit_metric": timeseries_limit_metric,
             "order_desc": order_desc,
-            "prequeries": [],
-            "is_prequery": False,
         }
         return d
 
