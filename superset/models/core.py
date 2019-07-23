@@ -361,6 +361,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         slc_to_import.alter_params(remote_id=slc_to_import.id, import_time=import_time)
 
         slc_to_import = slc_to_import.copy()
+        slc_to_import.reset_ownership()
         params = slc_to_import.params_dict
         slc_to_import.datasource_id = ConnectorRegistry.get_datasource_by_name(
             session,
@@ -617,7 +618,9 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             ):
                 existing_dashboard = dash
 
+        dashboard_to_import = dashboard_to_import.copy()
         dashboard_to_import.id = None
+        dashboard_to_import.reset_ownership()
         # position_json can be empty for dashboards
         # with charts added from chart-edit page and without re-arranging
         if dashboard_to_import.position_json:
@@ -646,14 +649,10 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             session.flush()
             return existing_dashboard.id
         else:
-            # session.add(dashboard_to_import) causes sqlachemy failures
-            # related to the attached users / slices. Creating new object
-            # allows to avoid conflicts in the sql alchemy state.
-            copied_dash = dashboard_to_import.copy()
-            copied_dash.slices = new_slices
-            session.add(copied_dash)
+            dashboard_to_import.slices = new_slices
+            session.add(dashboard_to_import)
             session.flush()
-            return copied_dash.id
+            return dashboard_to_import.id
 
     @classmethod
     def export_dashboards(cls, dashboard_ids):
