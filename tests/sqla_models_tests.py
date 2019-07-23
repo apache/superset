@@ -52,7 +52,6 @@ class DatabaseModelTestCase(SupersetTestCase):
             "metrics": [],
             "is_timeseries": False,
             "filter": [],
-            "is_prequery": False,
             "extras": {"where": "(user != '{{ cache_key_wrapper('user_2') }}')"},
         }
         extra_cache_keys = table.get_extra_cache_keys(query_obj)

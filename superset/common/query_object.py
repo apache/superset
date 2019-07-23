@@ -48,8 +48,6 @@ class QueryObject:
         timeseries_limit_metric: Optional[Dict] = None,
         order_desc: bool = True,
         extras: Optional[Dict] = None,
-        prequeries: Optional[List[Dict]] = None,
-        is_prequery: bool = False,
         columns: List[str] = None,
         orderby: List[List] = None,
         relative_start: str = app.config.get("DEFAULT_RELATIVE_START_TIME", "today"),
@@ -78,8 +76,6 @@ class QueryObject:
         self.timeseries_limit = timeseries_limit
         self.timeseries_limit_metric = timeseries_limit_metric
         self.order_desc = order_desc
-        self.prequeries = prequeries if prequeries is not None else []
-        self.is_prequery = is_prequery
         self.extras = extras if extras is not None else {}
         self.columns = columns if columns is not None else []
         self.orderby = orderby if orderby is not None else []
@@ -97,8 +93,6 @@ class QueryObject:
             "timeseries_limit": self.timeseries_limit,
             "timeseries_limit_metric": self.timeseries_limit_metric,
             "order_desc": self.order_desc,
-            "prequeries": self.prequeries,
-            "is_prequery": self.is_prequery,
             "extras": self.extras,
             "columns": self.columns,
             "orderby": self.orderby,

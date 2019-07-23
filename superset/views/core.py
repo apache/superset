@@ -1008,12 +1008,7 @@ class Superset(BaseSupersetView):
             logging.exception(e)
             return json_error_response(e)
 
-        if query_obj and query_obj["prequeries"]:
-            query_obj["prequeries"].append(query)
-            query = ";\n\n".join(query_obj["prequeries"])
-        if query:
-            query += ";"
-        else:
+        if not query:
             query = "No query."
 
         return self.json_response(
