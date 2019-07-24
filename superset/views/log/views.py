@@ -27,7 +27,10 @@ class LogModelView(LogMixin, SupersetModelView):
     datamodel = SQLAInterface(models.Log)
 
 
-if not app.config.get("FAB_ADD_SECURITY_VIEWS") is False:
+if (
+    not app.config.get("FAB_ADD_SECURITY_VIEWS") is False
+    or app.config.get("SUPERSET_LOG_VIEW") is False
+):
     appbuilder.add_view(
         LogModelView,
         "Action Log",
