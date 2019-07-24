@@ -23,5 +23,5 @@ from . import annotations  # noqa
 from . import datasource  # noqa
 from . import schedules  # noqa
 from . import tags  # noqa
-from .log import views
-from .log import api
+from .log import views  # noqa
+from .log import api  # noqa
