@@ -14,14 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import base  # noqa
-from . import api  # noqa
-from . import core  # noqa
-from . import sql_lab  # noqa
-from . import dashboard  # noqa
-from . import annotations  # noqa
-from . import datasource  # noqa
-from . import schedules  # noqa
-from . import tags  # noqa
-from .log import views
-from .log import api
+from flask_appbuilder import ModelRestApi
+from flask_appbuilder.models.sqla.interface import SQLAInterface
+
+from superset import appbuilder
+import superset.models.core as models
+from . import LogMixin
+
+
+class LogRestApi(LogMixin, ModelRestApi):
+    datamodel = SQLAInterface(models.Log)
+
+    class_permission_name = "LogModelView"
+    method_permission_name = {
+        "get_list": "list",
+        "get": "show",
+        "post": "add",
+        "put": "edit",
+        "delete": "delete",
+        "info": "list",
+    }
+    resource_name = "log"
+    allow_browser_login = True
+    list_columns = ("user.username", "action", "dttm")
+
+
+appbuilder.add_api(LogRestApi)
