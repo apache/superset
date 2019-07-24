@@ -818,10 +818,6 @@ class UtilsTestCase(unittest.TestCase):
                 assert stacktrace is None
 
     def test_get_or_create_db(self):
-        """
-            GET OR CREATE DB
-        :return:
-        """
         get_or_create_db("test_db", "sqlite:///superset.db")
         database = db.session.query(Database).filter_by(database_name="test_db").one()
         self.assertIsNotNone(database)
@@ -837,9 +833,5 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEqual(database.sqlalchemy_uri, "sqlite:///changed.db")
 
     def test_get_or_create_db_invalid_uri(self):
-        """
-            GET OR CREATE DB
-        :return:
-        """
         with self.assertRaises(ArgumentError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
