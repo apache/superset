@@ -23,15 +23,18 @@ import uuid
 from flask import Flask
 from flask_caching import Cache
 import numpy
+from sqlalchemy.exc import ArgumentError
 
-from superset import app
+from superset import app, db, security_manager
 from superset.exceptions import SupersetException
+from superset.models.core import Database
 from superset.utils.core import (
     base_json_conv,
     convert_legacy_filters_into_adhoc,
     datetime_f,
     get_since_until,
     get_stacktrace,
+    get_or_create_db,
     json_int_dttm_ser,
     json_iso_dttm_ser,
     JSONEncodedDict,
@@ -813,3 +816,28 @@ class UtilsTestCase(unittest.TestCase):
             except Exception:
                 stacktrace = get_stacktrace()
                 assert stacktrace is None
+
+    def test_get_or_create_db(self):
+        """
+            GET OR CREATE DB
+        :return:
+        """
+        get_or_create_db('test_db', 'sqlite:///superset.db')
+        database = db.session.query(Database).filter_by(database_name='test_db').one()
+        self.assertIsNotNone(database)
+        self.assertEqual(database.sqlalchemy_uri, 'sqlite:///superset.db')
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu("datasource_access", database.perm)
+        )
+        # Test change URI
+        get_or_create_db('test_db', 'sqlite:///changed.db')
+        database = db.session.query(Database).filter_by(database_name='test_db').one()
+        self.assertEqual(database.sqlalchemy_uri, 'sqlite:///changed.db')
+
+    def test_get_or_create_db_invalid_uri(self):
+        """
+            GET OR CREATE DB
+        :return:
+        """
+        with self.assertRaises(ArgumentError):
+            get_or_create_db('test_db', 'yoursql:superset.db/()')
