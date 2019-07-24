@@ -2828,7 +2828,7 @@ class Superset(BaseSupersetView):
             return self.dashboard(str(welcome_dashboard_id))
 
         payload = {
-            "user": bootstrap_user_data(),
+            "user": bootstrap_user_data(g.user),
             "common": self.common_bootstrap_payload(),
         }
 
@@ -2846,8 +2846,14 @@ class Superset(BaseSupersetView):
         if not username and g.user:
             username = g.user.username
 
+        user = (
+            db.session.query(ab_models.User).filter_by(username=username).one_or_none()
+        )
+        if not user:
+            abort(404, description=f"User: {username} does not exist.")
+
         payload = {
-            "user": bootstrap_user_data(username, include_perms=True),
+            "user": bootstrap_user_data(user, include_perms=True),
             "common": self.common_bootstrap_payload(),
         }
 
