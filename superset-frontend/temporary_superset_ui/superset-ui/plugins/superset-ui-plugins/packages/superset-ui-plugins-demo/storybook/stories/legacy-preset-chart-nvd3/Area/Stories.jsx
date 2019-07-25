@@ -97,7 +97,7 @@ export default [
             metrics: ['sum__SP_POP_TOTL'],
             richTooltip: true,
             showBrush: 'auto',
-            showControls: false,
+            showControls: true,
             showLegend: true,
             stackedStyle: 'stack',
             vizType: 'area',
