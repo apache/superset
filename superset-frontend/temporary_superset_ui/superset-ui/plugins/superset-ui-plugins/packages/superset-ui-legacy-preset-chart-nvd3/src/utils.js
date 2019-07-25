@@ -362,11 +362,22 @@ export function setAxisShowMaxMin(axis, showminmax) {
 
 export function computeYDomain(data) {
   if (Array.isArray(data) && data.length > 0 && Array.isArray(data[0].values)) {
-    const extents = data.map(row => d3.extent(row.values, v => v.y));
+    const extents = data.filter(d => !d.disabled).map(row => d3.extent(row.values, v => v.y));
     const minOfMin = d3.min(extents, ([min]) => min);
     const maxOfMax = d3.max(extents, ([, max]) => max);
 
     return [minOfMin, maxOfMax];
+  }
+
+  return [0, 1];
+}
+
+export function computeStackedYDomain(data) {
+  if (Array.isArray(data) && data.length > 0 && Array.isArray(data[0].values)) {
+    const series = data.filter(d => !d.disabled).map(d => d.values.map(v => v.y));
+    const stackedValues = series[0].map((_, i) => series.reduce((acc, cur) => acc + cur[i], 0));
+
+    return [Math.min(0, ...stackedValues), Math.max(0, ...stackedValues)];
   }
 
   return [0, 1];
