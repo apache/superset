@@ -86,7 +86,7 @@ export default class FixedOrMetricControl extends React.Component {
           <PopoverSection
             title="Fixed"
             isSelected={type === controlTypes.fixed}
-            onSelect={() => { this.onChange(controlTypes.fixed); }}
+            onSelect={() => { this.setType(controlTypes.fixed); }}
           >
             <TextControl
               isFloat
@@ -98,7 +98,7 @@ export default class FixedOrMetricControl extends React.Component {
           <PopoverSection
             title="Based on a metric"
             isSelected={type === controlTypes.metric}
-            onSelect={() => { this.onChange(controlTypes.metric); }}
+            onSelect={() => { this.setType(controlTypes.metric); }}
           >
             <MetricsControl
               name="metric"
@@ -132,7 +132,7 @@ export default class FixedOrMetricControl extends React.Component {
             {this.state.type === controlTypes.metric &&
               <span>
                 <span style={{ fontWeight: 'normal' }}>metric: </span>
-                <strong>{this.state.metricValue}</strong>
+                <strong>{this.state.metricValue ? this.state.metricValue.label : null }</strong>
               </span>
             }
           </Label>
