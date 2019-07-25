@@ -16,7 +16,99 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getTimeOrNumberFormatter, formatLabel, tryNumify } from '../src/utils';
+import {
+  computeStackedYDomain,
+  computeYDomain,
+  getTimeOrNumberFormatter,
+  formatLabel,
+  tryNumify,
+} from '../src/utils';
+
+const DATA = [
+  {
+    key: ['East Asia & Pacific'],
+    values: [
+      {
+        x: -315619200000.0,
+        y: 1031863394.0,
+      },
+      {
+        x: -283996800000.0,
+        y: 1034767718.0,
+      },
+    ],
+  },
+  {
+    key: ['South Asia'],
+    values: [
+      {
+        x: -315619200000.0,
+        y: 572036107.0,
+      },
+      {
+        x: -283996800000.0,
+        y: 584143236.0,
+      },
+    ],
+  },
+  {
+    key: ['Europe & Central Asia'],
+    values: [
+      {
+        x: -315619200000.0,
+        y: 660881033.0,
+      },
+      {
+        x: -283996800000.0,
+        y: 668526708.0,
+      },
+    ],
+  },
+];
+
+const DATA_WITH_DISABLED_SERIES = [
+  {
+    disabled: true,
+    key: ['East Asia & Pacific'],
+    values: [
+      {
+        x: -315619200000.0,
+        y: 1031863394.0,
+      },
+      {
+        x: -283996800000.0,
+        y: 1034767718.0,
+      },
+    ],
+  },
+  {
+    disabled: true,
+    key: ['South Asia'],
+    values: [
+      {
+        x: -315619200000.0,
+        y: 572036107.0,
+      },
+      {
+        x: -283996800000.0,
+        y: 584143236.0,
+      },
+    ],
+  },
+  {
+    key: ['Europe & Central Asia'],
+    values: [
+      {
+        x: -315619200000.0,
+        y: 660881033.0,
+      },
+      {
+        x: -283996800000.0,
+        y: 668526708.0,
+      },
+    ],
+  },
+];
 
 describe('nvd3/utils', () => {
   describe('getTimeOrNumberFormatter(format)', () => {
@@ -64,6 +156,34 @@ describe('nvd3/utils', () => {
       expect(tryNumify('5')).toBe(5);
       expect(tryNumify('5.1')).toBe(5.1);
       expect(tryNumify('a string')).toBe('a string');
+    });
+  });
+
+  describe('computeYDomain()', () => {
+    it('works with invalid data', () => {
+      expect(computeYDomain('foo')).toEqual([0, 1]);
+    });
+
+    it('works with all series enabled', () => {
+      expect(computeYDomain(DATA)).toEqual([572036107.0, 1034767718.0]);
+    });
+
+    it('works with some series disabled', () => {
+      expect(computeYDomain(DATA_WITH_DISABLED_SERIES)).toEqual([660881033.0, 668526708.0]);
+    });
+  });
+
+  describe('computeStackedYDomain()', () => {
+    it('works with invalid data', () => {
+      expect(computeStackedYDomain('foo')).toEqual([0, 1]);
+    });
+
+    it('works with all series enabled', () => {
+      expect(computeStackedYDomain(DATA)).toEqual([0, 2287437662.0]);
+    });
+
+    it('works with some series disabled', () => {
+      expect(computeStackedYDomain(DATA_WITH_DISABLED_SERIES)).toEqual([0, 668526708.0]);
     });
   });
 });
