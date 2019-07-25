@@ -37,7 +37,7 @@
     "@vx/legend": "^0.0.189",
     "@vx/responsive": "^0.0.189",
     "@vx/scale": "^0.0.189",
-    "@vx/shape": "^0.0.189",
+    "@vx/shape": "^0.0.190",
     "csstype": "^2.6.3",
     "d3-array": "^2.1.0",
     "d3-scale": "^3.0.0",
