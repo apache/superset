@@ -65,6 +65,7 @@ RUN cd superset/assets \
     && npm run build \
     && rm -rf node_modules
 
+COPY contrib/docker/superset_config.py ./superset/superset_config.py
 COPY contrib/docker/docker-init.sh .
 COPY contrib/docker/docker-entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

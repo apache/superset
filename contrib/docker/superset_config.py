@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import os
+import json
 
 
 def get_env_variable(var_name, default=None):
@@ -29,12 +30,20 @@ def get_env_variable(var_name, default=None):
                         .format(var_name)
             raise EnvironmentError(error_msg)
 
-
-POSTGRES_USER = get_env_variable('POSTGRES_USER')
-POSTGRES_PASSWORD = get_env_variable('POSTGRES_PASSWORD')
-POSTGRES_HOST = get_env_variable('POSTGRES_HOST')
-POSTGRES_PORT = get_env_variable('POSTGRES_PORT')
-POSTGRES_DB = get_env_variable('POSTGRES_DB')
+try:
+    # AWS Secrets Manager returns a json string for any key name
+    aws_secrets = json.loads(os.environ["POSTGRES_USER"])
+    POSTGRES_USER = aws_secrets['POSTGRES_USER']
+    POSTGRES_PASSWORD = aws_secrets['POSTGRES_PASSWORD']
+    POSTGRES_HOST = aws_secrets['POSTGRES_HOST']
+    POSTGRES_PORT = int(aws_secrets['POSTGRES_PORT'])
+    POSTGRES_DB = aws_secrets['POSTGRES_DB']
+except json.decoder.JSONDecodeError:
+    POSTGRES_USER = get_env_variable('POSTGRES_USER')
+    POSTGRES_PASSWORD = get_env_variable('POSTGRES_PASSWORD')
+    POSTGRES_HOST = get_env_variable('POSTGRES_HOST')
+    POSTGRES_PORT = int(get_env_variable('POSTGRES_PORT'))
+    POSTGRES_DB = get_env_variable('POSTGRES_DB')
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = 'postgresql://%s:%s@%s:%s/%s' % (POSTGRES_USER,
@@ -43,16 +52,23 @@ SQLALCHEMY_DATABASE_URI = 'postgresql://%s:%s@%s:%s/%s' % (POSTGRES_USER,
                                                            POSTGRES_PORT,
                                                            POSTGRES_DB)
 
-REDIS_HOST = get_env_variable('REDIS_HOST')
-REDIS_PORT = get_env_variable('REDIS_PORT')
+# REDIS_HOST = get_env_variable('REDIS_HOST')
+# REDIS_PORT = get_env_variable('REDIS_PORT')
 
 
-class CeleryConfig(object):
-    BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
-    CELERY_IMPORTS = ('superset.sql_lab', )
-    CELERY_RESULT_BACKEND = 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
-    CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
-    CELERY_TASK_PROTOCOL = 1
+# class CeleryConfig(object):
+#     BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+#     CELERY_IMPORTS = ('superset.sql_lab', )
+#     CELERY_RESULT_BACKEND = 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
+#     CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+#     CELERY_TASK_PROTOCOL = 1
+# CELERY_CONFIG = CeleryConfig
 
 
-CELERY_CONFIG = CeleryConfig
+
+# Allow use behind a load balancer
+ENABLE_PROXY_FIX = True
+
+# Though this is badly named, it is a flask parameter that forces logout after n seconds.
+# A browser close will also log the user out.
+PERMANENT_SESSION_LIFETIME = 60 * 10
