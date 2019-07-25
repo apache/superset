@@ -71,6 +71,22 @@ export default [
             width: 400,
           }}
         />
+        <pre>yAxisBounds=[40000, null] with Legend</pre>
+        <SuperChart
+          chartType="line"
+          chartProps={{
+            datasource: { verboseMap: {} },
+            formData: {
+              richTooltip: true,
+              showLegend: true,
+              vizType: 'line',
+              yAxisBounds: [40000, null],
+            },
+            height: 200,
+            payload: { data },
+            width: 400,
+          }}
+        />
       </div>
     ),
     storyName: 'yAxisBounds',
