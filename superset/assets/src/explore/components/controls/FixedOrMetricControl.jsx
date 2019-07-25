@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Label, Popover, OverlayTrigger, Panel } from 'react-bootstrap';
+import { Label, Panel } from 'react-bootstrap';
 
 import TextControl from './TextControl';
 import MetricsControl from './MetricsControl';
@@ -82,8 +82,8 @@ export default class FixedOrMetricControl extends React.Component {
   toggle() {
     const expanded = !this.state.expanded;
     this.setState({
-      expanded
-    })
+      expanded,
+    });
   }
 
   render() {
@@ -95,7 +95,7 @@ export default class FixedOrMetricControl extends React.Component {
         <Label
           style={{ cursor: 'pointer' }}
           onClick={this.toggle}
-          >
+        >
           {this.state.type === controlTypes.fixed &&
             <span>{this.state.fixedValue}</span>
           }
@@ -107,10 +107,11 @@ export default class FixedOrMetricControl extends React.Component {
           }
         </Label>
         <Panel
-          className="panel-spreaded" 
+          className="panel-spreaded"
           collapsible
-          expanded={this.state.expanded}>
-          <div 
+          expanded={this.state.expanded}
+        >
+          <div
             className="well"
           >
             <PopoverSection
