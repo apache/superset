@@ -16,6 +16,16 @@
 #
 jobs:
   include:
+    - language: java
+      python: 3.6
+      env:
+        - TOXENV=license-check
+        - TRAVIS_CACHE=$HOME/.travis_cache/
+      jdk:
+        - openjdk8
+      install:
+        - sudo pip install --upgrade pip
+        - sudo pip install codecov tox
     - language: python
       python: 3.6
       env: TOXENV=cypress-dashboard
@@ -74,19 +84,7 @@ jobs:
     - language: python
       python: 3.6
       env: TOXENV=pylint
-    - language: java
-      python: 3.6
-      env:
-        - TOXENV=license-check
-        - TRAVIS_CACHE=$HOME/.travis_cache/
-      jdk:
-        - oraclejdk8
-      install:
-        - jdk_switcher use oraclejdk8
 
-install:
-  - pip install --upgrade pip
-  - pip install codecov tox
 script:
   - tox
 after_success:
@@ -102,3 +100,6 @@ addons:
   apt:
     packages:
       - libgconf-2-4
+install:
+  - pip install --upgrade pip
+  - pip install codecov tox
