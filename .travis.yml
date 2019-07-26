@@ -74,7 +74,7 @@ jobs:
     - language: python
       python: 3.6
       env: TOXENV=pylint
-    - language: python
+    - language: java
       python: 3.6
       env:
         - TOXENV=license-check
@@ -98,3 +98,7 @@ cache:
     - ~/.cache
     - ~/.travis_cache/
     - superset/assets/.terser-plugin-cache/
+addons:
+  apt:
+    packages:
+      - libgconf-2-4
