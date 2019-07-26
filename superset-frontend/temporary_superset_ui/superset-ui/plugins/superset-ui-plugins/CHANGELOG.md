@@ -1,4 +1,14 @@
-# [0.0.0-master](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.36...v0.0.0-master) (2019-07-22)
+# [0.0.0-master](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.37...v0.0.0-master) (2019-07-26)
+
+
+
+## [0.10.37](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.36...v0.10.37) (2019-07-26)
+
+
+### Bug Fixes
+
+* disable lint error ([#150](https://github.com/apache-superset/superset-ui-plugins/issues/150)) ([d770a14](https://github.com/apache-superset/superset-ui-plugins/commit/d770a14))
+* single y axis bounds ([#148](https://github.com/apache-superset/superset-ui-plugins/issues/148)) ([49da856](https://github.com/apache-superset/superset-ui-plugins/commit/49da856))
 
 
 
