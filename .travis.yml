@@ -81,7 +81,7 @@ jobs:
         - TRAVIS_CACHE=$HOME/.travis_cache/
       jdk:
         - oraclejdk8
-      before_install:
+      install:
         - jdk_switcher use oraclejdk8
 
 install:
