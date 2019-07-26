@@ -18,14 +18,18 @@
 #}
 {% extends "appbuilder/baselayout.html" %}
 {% set serverRoot =  request.script_root %}
+{% set walkMeEnabled = appbuilder.app.config.get('WALKME_ENABLED') %}
 
   {% block head_css %}
     {{super()}}
     <link rel="icon" type="image/png" href="{{ url_for('static' , filename='assets/images/guavus.ico') }}">
-    <input type="hidden" id="app_prefix" name="app_prefix" value="{{ serverRoot }}">
     {% for entry in get_unloaded_chunks(css_manifest('theme'), loaded_chunks) %}
-      <link rel="stylesheet" type="text/css" href="{{  url_for('static' , filename='assets/dist/'+entry) }}" />
+    <link rel="stylesheet" type="text/css" href="{{  url_for('static' , filename='assets/dist/'+entry) }}" />
     {% endfor %}
+    <input type="hidden" id="app_prefix" name="app_prefix" value="{{ serverRoot }}">
+    {% if walkMeEnabled %}
+    <script type="text/javascript">(function() {var walkme = document.createElement('script'); walkme.type = 'text/javascript'; walkme.async = true; walkme.src = 'https://cdn.walkme.com/users/fe8e118680a14f439c78916022601810/test/walkme_fe8e118680a14f439c78916022601810_https.js'; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(walkme, s); window._walkmeConfig = {smartLoad:true}; })();</script>
+    {% endif %}
   {% endblock %}
 
   {% block head_js %}

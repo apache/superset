@@ -109,6 +109,10 @@ ENABLE_PROXY_FIX = False
 # ------------------------------
 
 APPLICATION_PREFIX = ''
+
+# Use this flag to enable/disable walkme
+WALKME_ENABLED = True
+
 # Uncomment to setup Your App name
 APP_NAME = 'Dashboard Builder'
 

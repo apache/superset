@@ -114,6 +114,8 @@ spec:
           value: "{{ RVF_CACHE_DEFAULT_TIMEOUT }}"
         - name: CACHE_TYPE
           value: "{{ RVF_CACHE_TYPE }}"
+        - name: WALKME_ENABLED
+          value: "{{ RVF_WALKME_ENABLED }}"
         image: {{ superset_docker_image_name }}:{{ superset_image_tag }}
         name: superset
         ports:

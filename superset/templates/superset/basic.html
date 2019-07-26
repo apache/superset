@@ -18,6 +18,7 @@
 #}
 {% import 'appbuilder/general/lib.html' as lib %}
 {% set serverRoot =  request.script_root %}
+{% set walkMeEnabled = appbuilder.app.config.get('WALKME_ENABLED') %}
 <html>
   <head>
     <title>
@@ -107,5 +108,8 @@
         {% endwith %}
       {% endif %}
     {% endblock %}
+    {% if walkMeEnabled %}
+    <script type="text/javascript">(function() {var walkme = document.createElement('script'); walkme.type = 'text/javascript'; walkme.async = true; walkme.src = 'https://cdn.walkme.com/users/fe8e118680a14f439c78916022601810/test/walkme_fe8e118680a14f439c78916022601810_https.js'; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(walkme, s); window._walkmeConfig = {smartLoad:true}; })();</script>
+    {% endif %}
   </body>
 </html>
