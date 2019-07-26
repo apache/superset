@@ -318,6 +318,7 @@ export default function sqlLabReducer(state = {}, action) {
       const databases = {};
       action.databases.forEach((db) => {
         databases[db.id] = db;
+        databases[db.id]['allows_subquery'] = true;
       });
       return Object.assign({}, state, { databases });
     },
