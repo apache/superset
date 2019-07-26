@@ -21,9 +21,9 @@ import _ from 'lodash';
 import PropTypes from 'prop-types';
 import { SupersetClient } from '@superset-ui/connection';
 import Geocoder from 'react-mapbox-gl-geocoder';
+import { IconLayer } from 'deck.gl';
 
 import DeckGLContainer from '../DeckGLContainer';
-import { IconLayer } from '@deck.gl/layers';
 import { getExploreLongUrl } from '../../../explore/exploreUtils';
 import layerGenerators from '../layers';
 
@@ -48,7 +48,13 @@ const queryParams = {
 };
 
 const ICON_MAPPING = {
-  marker: { x: 0, y: 0, width: 32, height: 32, mask: false }
+  marker: {
+    x: 0,
+    y: 0,
+    width: 32,
+    height: 32,
+    mask: false,
+  },
 };
 
 class DeckMulti extends React.PureComponent {
@@ -77,6 +83,10 @@ class DeckMulti extends React.PureComponent {
 
   onSelected(viewport, selectedItem) {
     this.setState({ viewport, selectedItem });
+  }
+
+  onHover({ x, y, object }) {
+    this.setState({ x, y, hoveredObject: object });
   }
 
   loadLayers(formData, payload, viewport) {
@@ -121,11 +131,29 @@ class DeckMulti extends React.PureComponent {
     });
   }
 
-  _onHover({x, y, object }) {
-    this.setState({x, y, hoveredObject: object });
+  removeMarker() {
+    this.setState({
+      selectedItem: null,
+    });
   }
 
-  _renderTooltip() {
+  generateNewMarkerLayer() {
+    return new IconLayer({
+      id: 'icon-layer',
+      data: [this.state.selectedItem],
+      pickable: true,
+      iconAtlas: '/static/assets/images/location-pin.png',
+      iconMapping: ICON_MAPPING,
+      getIcon: () => 'marker',
+      sizeScale: 15,
+      getPosition: d => d.center,
+      getSize: () => 5,
+      getColor: () => [0, 166, 153],
+      onHover: this.onHover.bind(this),
+    });
+  }
+
+  renderTooltip() {
     const { x, y, hoveredObject } = this.state;
 
     if (!hoveredObject) {
@@ -139,7 +167,7 @@ class DeckMulti extends React.PureComponent {
     );
   }
 
-  _renderGeocoder(viewport) {
+  renderGeocoder(viewport) {
     const { formData, payload } = this.props;
     const { selectedItem } = this.state;
 
@@ -159,29 +187,7 @@ class DeckMulti extends React.PureComponent {
         />
         {selectedItem ? <button className="btn btn-primary remove-layer" onClick={this.removeMarker.bind(this)} title="Remove marker">&times;</button> : null}
       </div>
-    )
-  }
-
-  generateNewMarkerLayer() {
-    return new IconLayer({
-      id: 'icon-layer',
-      data: [this.state.selectedItem],
-      pickable: true,
-      iconAtlas: '/static/assets/images/location-pin.png',
-      iconMapping: ICON_MAPPING,
-      getIcon: d => 'marker',
-      sizeScale: 15,
-      getPosition: d => d.center,
-      getSize: d => 5,
-      getColor: d => [0, 166, 153],
-      onHover: this._onHover.bind(this),
-    });
-  }
-
-  removeMarker() {
-    this.setState({
-      selectedItem: null,
-    });
+    );
   }
 
   render() {
@@ -196,9 +202,9 @@ class DeckMulti extends React.PureComponent {
     }
 
     return (
-      <>
-        {this._renderGeocoder(viewport)}
-        {this._renderTooltip()}
+      <div>
+        {this.renderGeocoder(viewport)}
+        {this.renderTooltip()}
         <DeckGLContainer
           mapboxApiAccessToken={payload.data.mapboxApiKey}
           viewport={viewport}
@@ -207,7 +213,7 @@ class DeckMulti extends React.PureComponent {
           mapStyle={formData.mapbox_style}
           setControlValue={setControlValue}
         />
-      </>
+      </div>
     );
   }
 }
