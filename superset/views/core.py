@@ -53,6 +53,7 @@ from superset import (
     db,
     event_logger,
     get_feature_flags,
+    is_feature_enabled,
     results_backend,
     security_manager,
     sql_lab,
@@ -1047,12 +1048,18 @@ class Superset(BaseSupersetView):
         payload = viz_obj.get_payload()
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
+    EXPLORE_JSON_METHODS = ["POST"]
+    if not is_feature_enabled("ENABLE_EXPLORE_JSON_CSRF_PROTECTION"):
+        EXPLORE_JSON_METHODS.append("GET")
+
     @event_logger.log_this
     @api
     @has_access_api
     @handle_api_exception
-    @expose("/explore_json/<datasource_type>/<datasource_id>/", methods=["GET", "POST"])
-    @expose("/explore_json/", methods=["GET", "POST"])
+    @expose(
+        "/explore_json/<datasource_type>/<datasource_id>/", methods=EXPLORE_JSON_METHODS
+    )
+    @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
     @etag_cache(CACHE_DEFAULT_TIMEOUT, check_perms=check_datasource_perms)
     def explore_json(self, datasource_type=None, datasource_id=None):
         """Serves all request that GET or POST form_data
