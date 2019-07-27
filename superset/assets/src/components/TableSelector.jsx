@@ -217,7 +217,6 @@ export default class TableSelector extends React.PureComponent {
         dataEndpoint={
           '/api/v1/database/?q=' +
           '(keys:!(none),' +
-          'columns:!(id,database_name,backend),' +
           'filters:!((col:expose_in_sqllab,opr:eq,value:!t)),' +
           'order_columns:database_name,order_direction:asc)'
         }
