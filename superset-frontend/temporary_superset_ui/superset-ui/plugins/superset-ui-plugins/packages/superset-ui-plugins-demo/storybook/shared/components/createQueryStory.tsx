@@ -1,6 +1,6 @@
 import React from 'react';
 import { text, select } from '@storybook/addon-knobs';
-import { SuperChart, ChartDataProvider, ChartProps } from '@superset-ui/chart';
+import { SuperChart, ChartDataProvider } from '@superset-ui/chart';
 import { SupersetClient } from '@superset-ui/connection';
 import Expandable from './Expandable';
 import VerifyCORS, { renderError } from './VerifyCORS';
@@ -50,17 +50,15 @@ export default function createQueryStory({
                       <>
                         <SuperChart
                           chartType={chartType}
-                          chartProps={
-                            new ChartProps({
-                              formData: payload.formData,
-                              height: Number(height),
-                              // @TODO fix typing
-                              // all vis's now expect objects but api/v1/ returns an array
-                              payload: Array.isArray(payload.queryData)
-                                ? payload.queryData[0]
-                                : payload.queryData,
-                              width: Number(width),
-                            })
+                          width={width}
+                          height={height}
+                          formData={payload.formData}
+                          // @TODO fix typing
+                          // all vis's now expect objects but api/v1/ returns an array
+                          payload={
+                            Array.isArray(payload.queryData)
+                              ? payload.queryData[0]
+                              : payload.queryData
                           }
                         />
                         <br />

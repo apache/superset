@@ -14,15 +14,13 @@ export default [
     renderStory: () => (
       <SuperChart
         chartType="event-flow"
-        chartProps={{
-          formData: {
-            allColumnsX: 'eventName',
-            entity: 'userId',
-            minLeafNodeEventCount: 1,
-          },
-          height: 400,
-          payload: { data },
-          width: 400,
+        width={400}
+        height={400}
+        payload={{ data }}
+        formData={{
+          allColumnsX: 'eventName',
+          entity: 'userId',
+          minLeafNodeEventCount: 1,
         }}
       />
     ),
