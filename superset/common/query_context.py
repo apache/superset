@@ -152,8 +152,13 @@ class QueryContext:
 
     def get_df_payload(self, query_obj, **kwargs):
         """Handles caching around the df paylod retrieval"""
+        extra_cache_keys = self.datasource.get_extra_cache_keys(query_obj)
         cache_key = (
-            query_obj.cache_key(datasource=self.datasource.uid, **kwargs)
+            query_obj.cache_key(
+                datasource=self.datasource.uid,
+                extra_cache_keys=extra_cache_keys,
+                **kwargs
+            )
             if query_obj
             else None
         )

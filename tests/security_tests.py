@@ -98,7 +98,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_cannot_write("UserDBModelView", perm_set)
 
     def assert_can_admin(self, perm_set):
-        self.assert_can_all("DatabaseAsync", perm_set)
+        self.assert_can_read("DatabaseAsync", perm_set)
         self.assert_can_all("DatabaseView", perm_set)
         self.assert_can_all("DruidClusterModelView", perm_set)
         self.assert_can_all("RoleModelView", perm_set)

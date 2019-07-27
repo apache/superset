@@ -320,8 +320,6 @@ class BaseViz(object):
             "extras": extras,
             "timeseries_limit_metric": timeseries_limit_metric,
             "order_desc": order_desc,
-            "prequeries": [],
-            "is_prequery": False,
         }
         return d
 
@@ -364,6 +362,7 @@ class BaseViz(object):
 
         cache_dict["time_range"] = self.form_data.get("time_range")
         cache_dict["datasource"] = self.datasource.uid
+        cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
 

@@ -87,6 +87,8 @@ Superset's Jinja context:
 
 .. autofunction:: superset.jinja_context.filter_values
 
+.. autofunction:: superset.jinja_context.CacheKeyWrapper.cache_key_wrapper
+
 .. autoclass:: superset.jinja_context.PrestoTemplateProcessor
     :members:
 
