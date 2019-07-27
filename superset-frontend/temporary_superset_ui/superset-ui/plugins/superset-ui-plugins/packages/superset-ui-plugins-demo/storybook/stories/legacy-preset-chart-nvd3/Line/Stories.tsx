@@ -1,16 +1,14 @@
 /* eslint-disable no-magic-numbers */
-import * as React from 'react';
+import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
-import data from '../data/legacyData';
-import { LINE_PLUGIN_LEGACY_TYPE } from '../constants';
-import dummyDatasource from '../../../../shared/dummyDatasource';
+import data from './data';
+import dummyDatasource from '../../../shared/dummyDatasource';
 
 export default [
   {
-    renderStory: () => [
+    renderStory: () => (
       <SuperChart
-        key="line1"
-        chartType={LINE_PLUGIN_LEGACY_TYPE}
+        chartType="line"
         width={400}
         height={400}
         datasource={dummyDatasource}
@@ -25,20 +23,25 @@ export default [
           showLegend: true,
           showMarkers: false,
           vizType: 'line',
-          xAxisFormat: '%Y',
+          xAxisFormat: 'smart_date',
           xAxisLabel: '',
           xAxisShowminmax: false,
           xTicksLayout: 'auto',
           yAxisBounds: [null, null],
-          yAxisFormat: '',
+          yAxisFormat: '.3s',
           yAxisLabel: '',
           yAxisShowminmax: false,
           yLogScale: false,
         }}
-      />,
+      />
+    ),
+    storyName: 'Basic',
+    storyPath: 'legacy-|preset-chart-nvd3|LineChartPlugin',
+  },
+  {
+    renderStory: () => (
       <SuperChart
-        key="line2"
-        chartType={LINE_PLUGIN_LEGACY_TYPE}
+        chartType="line"
         width={400}
         height={400}
         datasource={dummyDatasource}
@@ -51,21 +54,21 @@ export default [
           richTooltip: true,
           showBrush: 'auto',
           showLegend: true,
-          showMarkers: false,
+          showMarkers: true,
           vizType: 'line',
-          xAxisFormat: '%Y-%m',
+          xAxisFormat: 'smart_date',
           xAxisLabel: '',
           xAxisShowminmax: false,
           xTicksLayout: 'auto',
           yAxisBounds: [null, null],
-          yAxisFormat: '',
+          yAxisFormat: '.3s',
           yAxisLabel: '',
           yAxisShowminmax: false,
           yLogScale: false,
         }}
-      />,
-    ],
-    storyName: 'Use Legacy API shim',
-    storyPath: 'preset-chart-xy|LineChartPlugin',
+      />
+    ),
+    storyName: 'Markers',
+    storyPath: 'legacy-|preset-chart-nvd3|LineChartPlugin',
   },
 ];

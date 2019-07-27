@@ -1,16 +1,14 @@
 /* eslint-disable no-magic-numbers */
-import * as React from 'react';
+import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
-import data from '../data/legacyData';
-import { SCATTER_PLOT_PLUGIN_LEGACY_TYPE } from '../constants';
-import dummyDatasource from '../../../../shared/dummyDatasource';
+import data from './data';
+import dummyDatasource from '../../../shared/dummyDatasource';
 
 export default [
   {
-    renderStory: () => [
+    renderStory: () => (
       <SuperChart
-        key="scatter-plot1"
-        chartType={SCATTER_PLOT_PLUGIN_LEGACY_TYPE}
+        chartType="bubble"
         width={400}
         height={400}
         datasource={dummyDatasource}
@@ -38,9 +36,9 @@ export default [
           yAxisShowminmax: false,
           yLogScale: false,
         }}
-      />,
-    ],
-    storyName: 'Use Legacy API shim',
-    storyPath: 'preset-chart-xy|ScatterPlotPlugin',
+      />
+    ),
+    storyName: 'Basic',
+    storyPath: 'legacy-|preset-chart-nvd3|BubbleChartPlugin',
   },
 ];
