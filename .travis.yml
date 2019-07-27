@@ -21,10 +21,8 @@ jobs:
       env:
         - TOXENV=license-check
         - TRAVIS_CACHE=$HOME/.travis_cache/
-      addons:
-        apt:
-          packages:
-            - oracle-java8-set-default
+      jdk:
+        - openjdk8
       install:
         - sudo pip install --upgrade pip
         - sudo pip install codecov tox
