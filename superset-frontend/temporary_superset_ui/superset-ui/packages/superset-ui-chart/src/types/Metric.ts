@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-vars */
+/* eslint-disable import/prefer-default-export */
 
 import { Column } from './Column';
 
