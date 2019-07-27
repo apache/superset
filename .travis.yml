@@ -16,13 +16,15 @@
 #
 jobs:
   include:
-    - language: java
+    - language: python
       python: 3.6
       env:
         - TOXENV=license-check
         - TRAVIS_CACHE=$HOME/.travis_cache/
-      jdk:
-        - openjdk8
+      addons:
+        apt:
+          packages:
+            - oracle-java8-set-default
       install:
         - sudo pip install --upgrade pip
         - sudo pip install codecov tox
