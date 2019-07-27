@@ -1120,8 +1120,6 @@ class DruidDatasource(Model, BaseDatasource):
         phase=2,
         client=None,
         order_desc=True,
-        prequeries=None,
-        is_prequery=False,
     ):
         """Runs a query against Druid and returns a dataframe.
         """

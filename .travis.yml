@@ -18,6 +18,18 @@ jobs:
   include:
     - language: python
       python: 3.6
+      env:
+        - TOXENV=license-check
+        - TRAVIS_CACHE=$HOME/.travis_cache/
+      addons:
+        apt:
+          packages:
+            - openjdk-8-jdk
+      install:
+        - sudo pip install --upgrade pip
+        - sudo pip install codecov tox
+    - language: python
+      python: 3.6
       env: TOXENV=cypress-dashboard
       services:
         - redis-server
@@ -66,7 +78,7 @@ jobs:
       python: 3.6
       env: TOXENV=py36-postgres
       services:
-        - postgres
+        - postgresql
         - redis-server
       before_script:
         - psql -U postgres -c "CREATE DATABASE superset;"
@@ -74,19 +86,7 @@ jobs:
     - language: python
       python: 3.6
       env: TOXENV=pylint
-    - language: python
-      python: 3.6
-      env:
-        - TOXENV=license-check
-        - TRAVIS_CACHE=$HOME/.travis_cache/
-      jdk:
-        - oraclejdk8
-      before_install:
-        - jdk_switcher use oraclejdk8
 
-install:
-  - pip install --upgrade pip
-  - pip install codecov tox
 script:
   - tox
 after_success:
@@ -98,3 +98,10 @@ cache:
     - ~/.cache
     - ~/.travis_cache/
     - superset/assets/.terser-plugin-cache/
+addons:
+  apt:
+    packages:
+      - libgconf-2-4
+install:
+  - pip install --upgrade pip
+  - pip install codecov tox
