@@ -170,7 +170,8 @@ describe('ChartClient', () => {
         field1: 'abc',
         field2: 'def',
       });
-      expect(chartClient.loadDatasource('1__table')).resolves.toEqual({
+
+      return expect(chartClient.loadDatasource('1__table')).resolves.toEqual({
         field1: 'abc',
         field2: 'def',
       });
