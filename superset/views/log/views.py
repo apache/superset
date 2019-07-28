@@ -14,14 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import base  # noqa
-from . import api  # noqa
-from . import core  # noqa
-from . import sql_lab  # noqa
-from . import dashboard  # noqa
-from . import annotations  # noqa
-from . import datasource  # noqa
-from . import schedules  # noqa
-from . import tags  # noqa
-from .log import views  # noqa
-from .log import api as log_api  # noqa
+# pylint: disable=C,R,W
+from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import gettext as __
+
+from superset import app, appbuilder
+import superset.models.core as models
+from superset.views.base import SupersetModelView
+from . import LogMixin
+
+
+class LogModelView(LogMixin, SupersetModelView):
+    datamodel = SQLAInterface(models.Log)
+
+
+if (
+    not app.config.get("FAB_ADD_SECURITY_VIEWS") is False
+    or app.config.get("SUPERSET_LOG_VIEW") is False
+):
+    appbuilder.add_view(
+        LogModelView,
+        "Action Log",
+        label=__("Action Log"),
+        category="Security",
+        category_label=__("Security"),
+        icon="fa-list-ol",
+    )
