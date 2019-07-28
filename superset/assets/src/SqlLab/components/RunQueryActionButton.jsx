@@ -62,7 +62,7 @@ export default function RunQueryActionButton(props) {
         {...commonBtnProps}
         onClick={() => props.runQuery(true)}
         key="run-async-btn"
-        tooltip={t('Run query asynchronously')}
+        tooltip={t('Run query asynchronously(Ctrl + ↵)')}
         disabled={!props.sql.trim()}
       >
         <i className="fa fa-table" /> {runBtnText}
