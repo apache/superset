@@ -114,20 +114,22 @@ spec:
           value: "{{ RVF_CACHE_DEFAULT_TIMEOUT }}"
         - name: CACHE_TYPE
           value: "{{ RVF_CACHE_TYPE }}"
+        - name: CONTAINER_PORT
+          value: "{{ SUPERSET_CONTAINER_PORT }}"
+        - name: GUNICORN_PROCESSORS
+          value: "{{ SUPERSET_NPROCESSORS }}"
+        - name: GUNICORN_WORKER_TIMEOUT
+          value: "{{ SUPERSET_SERVER_WORKER_TIMEOUT }}"
+        - name: HIVE_KEYTAB_NAME
+          value: "{{ superset_hive_keytab_name }}"
         - name: WALKME_ENABLED
           value: "{{ RVF_WALKME_ENABLED }}"
         image: {{ superset_docker_image_name }}:{{ superset_image_tag }}
         name: superset
         ports:
         - containerPort: {{ SUPERSET_CONTAINER_PORT }}
-        resources: {}
+        resources: {}     
         volumeMounts:
-         - name: superset-configmap-volume
-           mountPath: /usr/local/bin/auth-kerberized.sh
-           subPath: auth-kerberized.sh
-         - name: superset-configmap-volume
-           mountPath: /usr/local/bin/docker-init.sh
-           subPath: docker-init.sh          
 {% if superset_kerberos_enabled  %} 
          - name: secret-krb5-keytab-volume
            readOnly: true
@@ -149,11 +151,7 @@ spec:
         ports:
         - containerPort: {{ superset_nginx_port }}
       restartPolicy: {{ superset_docker_restart_policy }}
-      volumes:
-        - name: superset-configmap-volume
-          configMap:
-            name: superset-configmap
-            defaultMode: 0755         
+      volumes:        
         - name: superset-nginx-configmap-volume
           configMap:
             name: superset-nginx-configmap

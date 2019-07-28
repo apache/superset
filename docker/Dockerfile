@@ -64,6 +64,10 @@ RUN chown -R ${user}:${user} ./superset
 
 COPY docker-init.sh /usr/local/bin/
 
+COPY auth-kerberized.sh /usr/local/bin/
+
+RUN chmod +x /usr/local/bin/docker-init.sh /usr/local/bin/auth-kerberized.sh
+
 USER ${user}
 
 ENTRYPOINT ["docker-init.sh"]
