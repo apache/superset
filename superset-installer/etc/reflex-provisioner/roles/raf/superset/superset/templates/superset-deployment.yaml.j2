@@ -114,6 +114,10 @@ spec:
           value: "{{ RVF_CACHE_DEFAULT_TIMEOUT }}"
         - name: CACHE_TYPE
           value: "{{ RVF_CACHE_TYPE }}"
+        - name: ENABLE_CORS
+          value: "{{ RVF_ENABLE_CORS }}"
+        - name: CORS_OPTIONS
+          value: "{{ RVF_CORS_OPTIONS }}"
         - name: CONTAINER_PORT
           value: "{{ SUPERSET_CONTAINER_PORT }}"
         - name: GUNICORN_PROCESSORS

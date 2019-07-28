@@ -126,6 +126,7 @@ setup(
         'thrift>=0.9.3',
         'pycrypto==2.6.1',
         'pyjwt==1.7.1',
+        'flask-cors==3.0.3'
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],

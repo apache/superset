@@ -42,6 +42,11 @@ def get_cache_config():
 
     return cache_config
 
+
+# CORS Options
+ENABLE_CORS = boolify(get_env_variable('ENABLE_CORS'))
+CORS_OPTIONS = eval(get_env_variable('CORS_OPTIONS'))
+
 # Application Root configuration
 APPLICATION_PREFIX = get_env_variable('APPLICATION_PREFIX')
 
