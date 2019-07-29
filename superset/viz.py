@@ -2425,7 +2425,7 @@ class DeckPolygon(DeckPathViz):
         fd = self.form_data
         elevation = fd["point_radius_fixed"]["value"]
         type_ = fd["point_radius_fixed"]["type"]
-        d["elevation"] = d.get(elevation) if type_ == "metric" else elevation
+        d["elevation"] = d.get(elevation["label"]) if type_ == "metric" else elevation
         return d
 
 

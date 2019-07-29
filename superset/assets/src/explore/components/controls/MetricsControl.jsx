@@ -245,7 +245,7 @@ export default class MetricsControl extends React.PureComponent {
     const options = [
       ...columns,
       ...aggregates,
-      ...savedMetrics,
+      ...(savedMetrics || []),
     ];
 
     return options.reduce((results, option) => {

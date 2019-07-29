@@ -259,3 +259,14 @@ h2.section-header {
   padding-bottom: 5px;
 }
 
+.panel-spreaded, 
+.panel-spreaded .panel-body {
+  padding: 0;
+  margin: 0;
+}
+
+.panel-spreaded .well {
+  margin-top: 8px;
+  margin-bottom: 0;
+  padding: 8px;
+}
