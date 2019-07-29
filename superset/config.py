@@ -104,6 +104,9 @@ SHOW_STACKTRACE = True
 # Extract and use X-Forwarded-For/X-Forwarded-Proto headers?
 ENABLE_PROXY_FIX = False
 
+# enable chunk encoding
+ENABLE_CHUNK_ENCODING = True
+
 # ------------------------------
 # GLOBALS FOR APP Builder
 # ------------------------------

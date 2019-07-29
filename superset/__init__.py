@@ -192,6 +192,7 @@ for middleware in app.config.get('ADDITIONAL_MIDDLEWARE'):
     app.wsgi_app = middleware(app.wsgi_app)
 
 
+from werkzeug.wrappers import Request
 class PrefixMiddleware(object):
 
     def __init__(self, app, prefix= conf.get('APPLICATION_PREFIX')):
@@ -199,9 +200,10 @@ class PrefixMiddleware(object):
       self.prefix = prefix
 
     def __call__(self, environ, start_response):
-
        # if environ['PATH_INFO'].startswith(self.prefix):
         environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+        request = Request(environ)
+        logging.debug("PrefixMiddleware request form: %s", request.form)
         environ['SCRIPT_NAME'] = self.prefix
         return self.app(environ, start_response)
 

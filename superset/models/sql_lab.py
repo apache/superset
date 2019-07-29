@@ -19,7 +19,7 @@
 from datetime import datetime
 import re
 
-from flask import Markup
+from flask import Markup, url_for
 from flask_appbuilder import Model
 import sqlalchemy as sqla
 from sqlalchemy import (
@@ -161,7 +161,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
     @property
     def pop_tab_link(self):
         return Markup(f"""
-            <a href="/superset/sqllab?savedQueryId={self.id}">
+            <a href="{url_for('Superset.sqllab')}?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>
             </a>
         """)

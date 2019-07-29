@@ -29,6 +29,7 @@ import FilterableTable from '../../components/FilterableTable/FilterableTable';
 import QueryStateLabel from './QueryStateLabel';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from '../../utils/common';
+import { APPLICATION_PREFIX } from '../../public-path'
 
 const propTypes = {
   actions: PropTypes.object,
@@ -129,7 +130,7 @@ export default class ResultSet extends React.PureComponent {
                     actions={this.props.actions}
                   />}
                 {this.props.csv &&
-                  <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
+                  <Button bsSize="small" href={ APPLICATION_PREFIX + '/superset/csv/' + this.props.query.id}>
                     <i className="fa fa-file-text-o" /> {t('.CSV')}
                   </Button>}
 

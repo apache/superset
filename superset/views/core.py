@@ -23,7 +23,6 @@ import re
 import time
 import traceback
 from urllib import parse
-import requests
 
 from flask import (
     abort, flash, g, Markup, redirect, render_template, request, Response, url_for,
@@ -66,7 +65,7 @@ from superset.superset_decorators import redirect_to_target_url
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
-from superset.views.default_slice_metadata import update_slice_metadata
+
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -75,6 +74,7 @@ from .base import (
     SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 from .utils import bootstrap_user_data
+from .add_to_dashboard import add_to_dashboard
 
 
 config = app.config
@@ -272,28 +272,6 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'allow_multi_schema_metadata_fetch': _('Allow Multi Schema Metadata Fetch'),
         'backend': _('Backend'),
     }
-
-    @expose('/create', methods=['POST'])
-    def create(self):
-        try:
-            database_name = request.form.get('database_name')
-            sqlalchemy_uri = request.form.get('sqlalchemy_uri')
-            extra = request.form.get('extra')
-            impersonate_user = eval(request.form.get('impersonate_user'))
-            db_model = models.Database(
-                database_name=database_name,
-                sqlalchemy_uri=sqlalchemy_uri,
-                extra=extra,
-                impersonate_user=impersonate_user
-            )
-            db.session.add(db_model)
-            db.session.commit()
-            logging.info('database connection is created with id = '+str(db_model.id))
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(e)
-
-        return json_success(json.dumps({'database_id': db_model.id}))
 
     def pre_add(self, db):
         self.check_extra(db)
@@ -839,53 +817,11 @@ class Superset(BaseSupersetView):
     @expose('/add_to_dashboard', methods=['POST'])
     def addtodashboard(self):
         try:
-            cookies = 'session='+request.cookies['session']
-            headers = {
-                'content_type': 'multipart/form-data',
-                'cookie':cookies,
-                }
-            req_session = requests.Session()
-            db_response = req_session.post(request.url_root+'databaseview/create',headers = headers,data = request.form)
-
-            new_dashboard = req_session.post(request.url_root+'dashboard/add_new',
-                                             headers = headers,
-                                             data = request.form)
-
-            slices = json.loads(request.form.get('slices'))
-            for _slice in slices:
-                columns = json.dumps([])
-                if 'columns' in _slice:
-                    columns = json.dumps(_slice['columns'])
-                params = {
-                    'database_id':json.loads(db_response.content)['database_id'],
-                    'table_name':_slice['table_name'],
-                    'schema':_slice['schema'],
-                    'columns':columns,
-                    }
-                table_response = req_session.post(request.url_root+'tablemodelview/create' ,headers = headers,data = request.form,params=params)
-                _slice['datasource'] =  json.loads(table_response.content)['table_name']
-
-                _slice = update_slice_metadata(_slice)
-
-                slice_param_data = {
-                  'action':'saveas',
-                  'slice_name':_slice['slice_name'],
-                  'add_to_dash':'existing',
-                  'save_to_dashboard_id':json.loads(new_dashboard.content)['dashboard_id'],
-                  'goto_dash':'false',
-                  'form_data':json.dumps(_slice),
-                }
-
-                slice_response = req_session.post(request.url_root + 'superset/explore/',
-                                                  headers = headers,
-                                                  data = request.form,
-                                                  params = slice_param_data)
-
+            add_to_dashboard(request)
+            return json_success('OK')
         except Exception as e:
             logging.exception(e)
-            return json_error_response(e)
-
-        return json_success(json.dumps(slices))
+            return json_error_response(e)  
 
     @has_access_api
     @expose('/datasources/')
@@ -1089,10 +1025,23 @@ class Superset(BaseSupersetView):
         request_args_data = request.args.get('form_data')
         # Supporting POST
         if post_data:
-            form_data.update(json.loads(post_data))
+            try:
+                form_data.update(json.loads(post_data))
+            except:
+                decoded_post_data = parse.unquote_plus(post_data)
+                logging.debug('Superset.get_form_data(). Decoded post formdata {0}'.format(decoded_post_data))
+                form_data.update(json.loads(decoded_post_data))
+
+
         # request params can overwrite post body
         if request_args_data:
-            form_data.update(json.loads(request_args_data))
+            try:
+                form_data.update(json.loads(request_args_data))
+            except:
+                decoded_request_args_data = parse.unquote_plus(request_args_data)
+                logging.debug('Superset.get_form_data(). Decoded formdata {0}'.format(decoded_request_args_data))
+                form_data.update(json.loads(decoded_request_args_data))
+
 
         url_id = request.args.get('r')
         if url_id:
@@ -2398,7 +2347,7 @@ class Superset(BaseSupersetView):
             SqlMetric(metric_name='count', expression='count(*)'),
         ]
         db.session.commit()
-        return self.json_response(json.dumps({
+        return json_success(json.dumps({
             'table_id': table.id,
         }))
 

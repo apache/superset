@@ -72,10 +72,16 @@ APP_NAME = get_env_variable('APP_NAME')
 
 # LDAP configuration
 AUTH_TYPE = eval(get_env_variable('AUTH_TYPE'))
+AUTH_ROLE_ADMIN = get_env_variable('AUTH_ROLE_ADMIN')
+AUTH_USER_REGISTRATION_ROLE = get_env_variable('AUTH_USER_REGISTRATION_ROLE')
+AUTH_ADMIN_USER_LIST_STR = get_env_variable('AUTH_ADMIN_USER_LIST').strip()
+if AUTH_ADMIN_USER_LIST_STR:
+    AUTH_ADMIN_USER_LIST = AUTH_ADMIN_USER_LIST_STR.split(",")
+else:
+    AUTH_ADMIN_USER_LIST = []
 
 if AUTH_TYPE == AUTH_LDAP:
     AUTH_USER_REGISTRATION = boolify(get_env_variable('AUTH_USER_REGISTRATION'))
-    AUTH_USER_REGISTRATION_ROLE = get_env_variable('AUTH_USER_REGISTRATION_ROLE')
     AUTH_LDAP_USE_TLS = boolify(get_env_variable('AUTH_LDAP_USE_TLS'))
     AUTH_LDAP_SERVER = get_env_variable('AUTH_LDAP_SERVER')
     AUTH_LDAP_BIND_USER = get_env_variable('AUTH_LDAP_BIND_USER')
@@ -88,7 +94,6 @@ if AUTH_TYPE == AUTH_LDAP:
     AUTH_LDAP_EMAIL_FIELD = get_env_variable('AUTH_LDAP_EMAIL_FIELD')
     AUTH_LDAP_APPEND_DOMAIN = get_env_variable('AUTH_LDAP_APPEND_DOMAIN')
     AUTH_LDAP_USERNAME_FORMAT = get_env_variable('AUTH_LDAP_USERNAME_FORMAT')
-    AUTH_ROLE_ADMIN = get_env_variable('AUTH_ROLE_ADMIN')
     AUTH_ROLE_PUBLIC = get_env_variable('AUTH_ROLE_PUBLIC')
     AUTH_LDAP_ALLOW_SELF_SIGNED = boolify(get_env_variable('AUTH_LDAP_ALLOW_SELF_SIGNED'))
     AUTH_LDAP_TLS_CACERTDIR = get_env_variable('AUTH_LDAP_TLS_CACERTDIR')
@@ -96,11 +101,6 @@ if AUTH_TYPE == AUTH_LDAP:
     AUTH_LDAP_TLS_CERTFILE = get_env_variable('AUTH_LDAP_TLS_CERTFILE')
     AUTH_LDAP_TLS_KEYFILE = get_env_variable('AUTH_LDAP_TLS_KEYFILE')
     AUTH_LDAP_SEARCH_FILTER = get_env_variable('AUTH_LDAP_SEARCH_FILTER')
-    AUTH_ADMIN_USER_LIST_STR = get_env_variable('AUTH_ADMIN_USER_LIST').strip()
-    if AUTH_ADMIN_USER_LIST_STR:
-        AUTH_ADMIN_USER_LIST = AUTH_ADMIN_USER_LIST_STR.split(",")
-    else:
-        AUTH_ADMIN_USER_LIST = []
 
 
 POSTGRES_USER = get_env_variable('POSTGRES_USER')
@@ -144,3 +144,11 @@ if not KNOX_SSO_COOKIE_NAME:
 KNOX_SSO_ORIGINALURL  = get_env_variable('KNOX_SSO_ORIGINALURL')
 if not KNOX_SSO_ORIGINALURL:
     KNOX_SSO_ORIGINALURL = 'originalUrl'
+ 
+# expose deployement var for WTF_CSRF_EXEMPT_LIST
+WTF_CSRF_EXEMPT_STR = get_env_variable('WTF_CSRF_EXEMPT_STR').strip()
+if WTF_CSRF_EXEMPT_STR:
+    WTF_CSRF_EXEMPT_LIST = WTF_CSRF_EXEMPT_STR.split(",")
+
+ENABLE_CHUNK_ENCODING =  boolify(get_env_variable('ENABLE_CHUNK_ENCODING',"True"))  
+   

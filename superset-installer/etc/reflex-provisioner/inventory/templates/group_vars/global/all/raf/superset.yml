@@ -90,7 +90,7 @@ superset_krb5_conf_name: "krb5.conf"
 
 # Config Diretory
 superset_config_dir: "{{ role_path }}/../kerberos/files/config"
-superset_kerberos_enabled: false
+superset_kerberos_enabled: true
 
 #LDAP configuration
 superset_certificate_files: []
@@ -129,3 +129,13 @@ RVF_CACHE_TYPE: 'null'
 RVF_ENABLE_CORS: True
 RVF_CORS_OPTIONS: "{}"
 RVF_WALKME_ENABLED: True
+
+# Knox configuration
+RVF_IS_KNOX_SSO_ENABLED: "True"
+RVF_KNOX_SSO_PUBLIC_KEY: ""
+RVF_KNOX_SSO_URL: ""
+RVF_KNOX_SSO_COOKIE_NAME: "hadoop-jwt"
+RVF_KNOX_SSO_ORIGINALURL: "originalUrl"
+RVF_WTF_CSRF_EXEMPT_STR: ""
+RVF_ENABLE_CHUNK_ENCODING: "True"
+RVF_APPLICATION_PREFIX: ""

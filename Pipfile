@@ -111,6 +111,8 @@ python-dotenv = "==0.10.1"
 pycrypto = "==2.6.1"
 pyjwt = "==1.7.1"
 gevent = "==1.4.0"
+werkzeug = "==0.14.1"
+docutils = "==0.14"
 
 
 [dev-packages]

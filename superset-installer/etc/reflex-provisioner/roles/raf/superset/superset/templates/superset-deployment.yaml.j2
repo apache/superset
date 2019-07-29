@@ -49,8 +49,6 @@ spec:
         - name: AUTH_TYPE
           value: "{{ SUPERSET_AUTH_TYPE }}"
 {% if SUPERSET_AUTH_TYPE == 'AUTH_LDAP' %}   
-        - name: AUTH_ROLE_ADMIN
-          value: "{{ SUPERSET_AUTH_ROLE_ADMIN }}"
         - name: AUTH_ROLE_PUBLIC
           value: "{{ SUPERSET_AUTH_ROLE_PUBLIC }}"
         - name: AUTH_USER_REGISTRATION
@@ -99,9 +97,13 @@ spec:
           value: "{{ SUPERSET_AUTH_LDAP_APPEND_DOMAIN }}"
         - name: AUTH_LDAP_USERNAME_FORMAT
           value: "{{ SUPERSET_AUTH_LDAP_USERNAME_FORMAT }}"
+{% endif %}
+        - name: AUTH_USER_REGISTRATION_ROLE
+          value: "{{ SUPERSET_AUTH_USER_REGISTRATION_ROLE }}"
+        - name: AUTH_ROLE_ADMIN
+          value: "{{ SUPERSET_AUTH_ROLE_ADMIN }}"
         - name: AUTH_ADMIN_USER_LIST
-          value: "{{ SUPERSET_ADMIN_USER_LIST }}"
-{% endif %}          
+          value: "{{ SUPERSET_ADMIN_USER_LIST }}"          
         - name: APP_NAME
           value: "{{ RVF_APP_NAME }}"
         - name: HELP_ENABLED
@@ -128,11 +130,28 @@ spec:
           value: "{{ superset_hive_keytab_name }}"
         - name: WALKME_ENABLED
           value: "{{ RVF_WALKME_ENABLED }}"
+        - name: APPLICATION_PREFIX
+          value: "{{ RVF_APPLICATION_PREFIX }}"   
+        - name: IS_KNOX_SSO_ENABLED
+          value: "{{ RVF_IS_KNOX_SSO_ENABLED }}"          
+        - name: KNOX_SSO_PUBLIC_KEY
+          value: "{{ RVF_KNOX_SSO_PUBLIC_KEY }}"
+        - name: KNOX_SSO_URL
+          value: "{{ RVF_KNOX_SSO_URL }}"
+        - name: KNOX_SSO_COOKIE_NAME
+          value: "{{ RVF_KNOX_SSO_COOKIE_NAME }}"
+        - name: KNOX_SSO_ORIGINALURL
+          value: "{{ RVF_KNOX_SSO_ORIGINALURL }}"
+        - name: WTF_CSRF_EXEMPT_STR
+          value: "{{ RVF_WTF_CSRF_EXEMPT_STR }}"
+        - name: ENABLE_CHUNK_ENCODING
+          value: "{{ RVF_ENABLE_CHUNK_ENCODING }}"  
         image: {{ superset_docker_image_name }}:{{ superset_image_tag }}
         name: superset
         ports:
         - containerPort: {{ SUPERSET_CONTAINER_PORT }}
-        resources: {}     
+          hostPort: {{ superset_host_port }}
+        resources: {}
         volumeMounts:
 {% if superset_kerberos_enabled  %} 
          - name: secret-krb5-keytab-volume

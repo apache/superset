@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+<service role="SUPERSETUI" name="supersetui" version="1.8.3">
+    <routes>
+        <route path="/rvf/">
+          <rewrite apply="SUPERSETUI/rvf/inbound/root" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/superset/csrf_token/">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/login">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+         </route>
+        <route path="/rvf/logout">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/welcome">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/testconn">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+        </route>
+        <route path="/rvf/**/table/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query" to="request.url"/>
+        </route>
+        <route path="/rvf/**/tablecolumninlineview/add/?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/sqlmetricinlineview/add/?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/yaml_export/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+        </route>
+        <route path="/rvf/**/refresh/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+	      </route> 
+        <route path="/rvf/superset/add_to_dashboard">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+  	    <route path="/rvf/**/import_dashboards">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/export_dashboards_form?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query2" to="request.url"/>
+        </route>
+        <route path="/rvf/**/fetch_datasource_metadata?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query2" to="request.url"/>
+        </route>
+        <route path="/rvf/**/schemas_access_for_csv_upload?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query2" to="request.url"/>
+        </route>
+        <route path="/rvf/**/add">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/edit/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>  
+        <route path="/rvf/**/show/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route> 
+        <route path="/rvf/**/delete/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/action_post">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route> 
+        <route path="/rvf/**/api/*?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/back">
+          <rewrite apply="SUPERSETUI/rvf/inbound/back" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/form">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/list/">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/list/?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/chart/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/superset/explore/*.png">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/superset/explore/?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/superset/explore/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/explore_json/?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/superset/slice_json/*?form_data=*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query2" to="request.url"/>
+        </route>
+        <route path="/rvf/**/user_slices">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+        </route>    
+        <route path="/rvf/**/dashboard/*/?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/*/dashboard/*/">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/sqllab">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/sqllab?datasourceKey=**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query2" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/sqllab/search">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/sqllab/my_queries/">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/superset/sqllab_viz/">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/superset/sql_json/">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/superset/csv/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/superset/queries/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/savedqueryviewapi/**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/search_queries?">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query2" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/r/shortner/">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/r/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/superset/log/?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+	      <route path="/rvf/superset/*?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/superset/**/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>   
+        <route path="/rvf/static/**/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>    
+   	    <route path="/rvf/kv/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>       
+ 	      <route path="/rvf/datasource/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/users/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/userstatschartview/chart/0?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query2" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/userstatschartview/chart/1?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query2" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/userstatschartview/chart/?**">
+          <rewrite apply="SUPERSETUI/rvf/inbound/query" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/resetmypassword/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route> 
+        <route path="/rvf/**/resetpasswords/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/**/userinfoedit/*">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
+        <route path="/rvf/lang/*/">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+         </route> 
+    </routes>
+    <dispatch classname="org.apache.hadoop.gateway.dispatch.PassAllHeadersDispatch"/>
+</service>

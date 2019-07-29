@@ -28,6 +28,7 @@ import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
 import { areArraysShallowEqual } from '../../reduxUtils';
 import TabStatusIcon from './TabStatusIcon';
+import { APPLICATION_PREFIX } from '../../public-path'
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -52,7 +53,7 @@ let queryCount = 1;
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
-    const sqlLabUrl = '/superset/sqllab';
+    const sqlLabUrl = APPLICATION_PREFIX+'/superset/sqllab';
     this.state = {
       sqlLabUrl,
       queriesArray: [],

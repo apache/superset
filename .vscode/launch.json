@@ -49,7 +49,8 @@
             "args": [
                 "run",
                 "--no-debugger",
-                "--no-reload"
+                "--no-reload",
+                "--host=0.0.0.0"
             ],
             "jinja": true
         },

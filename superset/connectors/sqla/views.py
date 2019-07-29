@@ -25,16 +25,14 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-import simplejson as json
 from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
 from superset.utils import core as utils
 from superset.views.base import (
-    DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,json_error_response, json_success,
+    DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
     ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
-from superset.connectors.sqla.models import TableColumn
 
 logger = logging.getLogger(__name__)
 
@@ -269,39 +267,6 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'modified': _('Modified'),
         'hive_partitions': _('Hive Partitions')
     }
-
-    def get_table_columns(self,columns):
-        table_columns = []
-        for column in columns:
-            table_column = TableColumn()
-            for prop in column:
-                setattr(table_column, prop, column[prop])
-            table_columns.append(table_column)
-        return table_columns
-
-    @expose('/create', methods=['POST'])
-    def create(self):
-        try:
-            database_id = int(request.args.get('database_id'))
-            table_name =  request.args.get('table_name')
-            schema =  request.args.get('schema')
-            database = db.session.query(models.Database).filter_by(id=database_id).one()
-            columns = json.loads(request.args.get('columns'))
-            table_columns = self.get_table_columns(columns)
-            table_model = models.SqlaTable(
-                table_name=table_name,
-                schema=schema,
-                database_id=database_id,
-                database = database,
-                columns= table_columns,
-            )
-            db.session.add(table_model)
-            db.session.commit()
-            logging.info('table is created with id = '+str(table_model.id)+' and linked with database id = '+str(database_id))
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(e)
-        return json_success(json.dumps({'table_name': str(table_model.id)+'__table'}))
 
     def pre_add(self, table):
         with db.session.no_autoflush:

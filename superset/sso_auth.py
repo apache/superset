@@ -7,8 +7,9 @@ from cryptography.x509 import load_pem_x509_certificate
 
 from flask import g, redirect, request
 from flask_login import login_user
-from superset import security_manager
+from superset import security_manager, app
 from . import config
+from urllib import parse
 
 def get_publickey():
     key = config.KNOX_SSO_PUBLIC_KEY
@@ -26,23 +27,47 @@ def get_token_contents(token):
 def _find_user(username, sm):
     """extracted from flask_appbuilder.security.manager.BaseSecurityManager.find_user"""
     user = sm.find_user(username)
+   
+    auth_admin_user_list = sm.auth_admin_user_list
+    auth_role_admin = sm.auth_role_admin
+    auth_user_registration_role = sm.auth_user_registration_role
+    role = sm.find_role(auth_user_registration_role)
+    if auth_admin_user_list and username in auth_admin_user_list:
+        role = sm.find_role(auth_role_admin)
+
+
     if not user:
         user = sm.add_user(
                 username= username,
                 first_name= username,
                 last_name=username,
                 email=username + '@email.notfound',
-                role=sm.find_role("Admin")
+                role=role
             )
+    else:
+        is_role_exists = sm.is_role_exists(role.name,user.roles)
+        if not is_role_exists:
+            user.roles.append(role)
+            sm.update_user(user)
+
     return user
 
 def parse_hadoop_jwt():
-    if(config.IS_KNOX_SSO_ENABLED):
+    if config.IS_KNOX_SSO_ENABLED is True:
         logging.info("Attaching JWT handler")
+        
         jwt_token = request.cookies.get(config.KNOX_SSO_COOKIE_NAME, None)
         logging.debug("Token: %s"%jwt_token)
         
-        sso_login_url = config.KNOX_SSO_URL+"?"+config.KNOX_SSO_ORIGINALURL+"="+request.url
+        #update scheme in url
+        uri = parse.urlparse(request.url)
+        new_uri = uri
+        if 'HTTP_X_FORWARDED_PROTO' in request.environ:
+            new_uri = uri._replace(scheme=request.environ['HTTP_X_FORWARDED_PROTO'])
+        
+        login_url = parse.urlunparse(new_uri)
+        
+        sso_login_url = config.KNOX_SSO_URL+"?"+config.KNOX_SSO_ORIGINALURL+"="+login_url
         logging.debug("SSO LOGIN URL:"+sso_login_url)  
 
         if not jwt_token:
