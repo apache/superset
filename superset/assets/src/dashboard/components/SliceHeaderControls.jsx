@@ -39,12 +39,14 @@ const propTypes = {
   sliceCanEdit: PropTypes.bool,
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,
+  executeRestAction: PropTypes.func,
   exploreChart: PropTypes.func,
   exportCSV: PropTypes.func,
   canExportCSV: PropTypes.bool,
 };
 
 const defaultProps = {
+  executeRestAction: () => ({}),
   forceRefresh: () => ({}),
   toggleExpandSlice: () => ({}),
   exploreChart: () => ({}),
@@ -77,7 +79,10 @@ class SliceHeaderControls extends React.PureComponent {
       this,
       this.props.slice.slice_id,
     );
+    this.restActions = this.props.slice.form_data.rest_actions || [];
 
+    this.renderRestActions = this.renderRestActions.bind(this);
+    this.executeRestAction = this.props.executeRestAction.bind(this);
     this.state = {
       showControls: false,
     };
@@ -127,6 +132,17 @@ class SliceHeaderControls extends React.PureComponent {
     return this.props.canExportCSV ? "export-csv-enabled" : "export-csv-disabled";
   }
 
+  renderRestActions() {
+    const actionItems = []
+    for (const restAction of  this.restActions) {
+      actionItems.push(<MenuItem key={restAction.label} eventKey={restAction} onSelect={this.executeRestAction}>
+          {restAction.label}
+      </MenuItem>);
+    }
+    return actionItems;
+  }
+
+
   render() {
     const { slice, isCached, cachedDttm, updatedDttm } = this.props;
     const cachedWhen = moment.utc(cachedDttm).fromNow();
@@ -174,6 +190,7 @@ class SliceHeaderControls extends React.PureComponent {
               {t('Explore chart')}
             </MenuItem>
           )}
+          {this.renderRestActions()}
         </Dropdown.Menu>
       </Dropdown>
     );

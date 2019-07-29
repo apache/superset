@@ -34,10 +34,12 @@ const propTypes = {
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,
+  executeRestAction: PropTypes.func,
   exploreChart: PropTypes.func,
   exportCSV: PropTypes.func,
   canExportCSV: PropTypes.bool,
   editMode: PropTypes.bool,
+  currentRestAction: PropTypes.object,
   annotationQuery: PropTypes.object,
   annotationError: PropTypes.object,
   sliceName: PropTypes.string,
@@ -56,6 +58,7 @@ const defaultProps = {
   exportCSV: () => ({}),
   editMode: false,
   annotationQuery: {},
+  currentRestAction: {},
   annotationError: {},
   cachedDttm: null,
   updatedDttm: null,
@@ -81,6 +84,8 @@ class SliceHeader extends React.PureComponent {
       updatedDttm,
       toggleExpandSlice,
       forceRefresh,
+      executeRestAction,
+      currentRestAction,
       exploreChart,
       exportCSV,
       canExportCSV,
@@ -130,6 +135,24 @@ class SliceHeader extends React.PureComponent {
               <i className="fa fa-exclamation-circle danger" />
             </TooltipWrapper>
           )}
+          {!!currentRestAction && currentRestAction.status == 'started' && (
+            <TooltipWrapper
+              label="annotations-loading"
+              placement="top"
+              tooltip={`${currentRestAction.action.label} is in progress.`}
+            >
+              <i className="fa fa-refresh warning" />
+            </TooltipWrapper>
+          )}
+          {!!currentRestAction && currentRestAction.status == 'error' && (
+            <TooltipWrapper
+              label="annoation-errors"
+              placement="top"
+              tooltip={`${currentRestAction.action.label} has failed.`}
+            >
+              <i className="fa fa-exclamation-circle danger" />
+            </TooltipWrapper>
+          )}
           {!editMode && (
             <SliceHeaderControls
               slice={slice}
@@ -139,6 +162,7 @@ class SliceHeader extends React.PureComponent {
               updatedDttm={updatedDttm}
               toggleExpandSlice={toggleExpandSlice}
               forceRefresh={forceRefresh}
+              executeRestAction={executeRestAction}
               exploreChart={exploreChart}
               exportCSV={exportCSV}
               canExportCSV={canExportCSV}

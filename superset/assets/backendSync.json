@@ -3165,6 +3165,12 @@
       "description": "Select slices to subscribe",
       "renderTrigger": false
     },
+    "rest_actions": {
+      "type": "HiddenControl",
+      "label": "Rest Actions",
+      "hidden": true,
+      "description": "rest actions"
+    },
     "cache_timeout": {
       "type": "HiddenControl",
       "label": "Cache Timeout (seconds)",

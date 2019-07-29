@@ -23,11 +23,13 @@ import {
   changeFilter as addFilter,
   toggleExpandSlice,
 } from '../actions/dashboardState';
-import { refreshChart } from '../../chart/chartAction';
+import { refreshChart, executeRestAction } from '../../chart/chartAction';
 import * as  saveModalActions from '../../explore/actions/saveModalActions';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import { updateComponents } from '../actions/dashboardLayout';
 import Chart from '../components/gridComponents/Chart';
+import { DASHBOARD_HEADER_ID } from '../util/constants';
+
 
 const EMPTY_FILTERS = {};
 
@@ -36,6 +38,7 @@ function mapStateToProps(
     charts: chartQueries,
     dashboardInfo,
     dashboardState,
+    dashboardLayout: undoableLayout,
     datasources,
     sliceEntities,
   },
@@ -51,6 +54,8 @@ function mapStateToProps(
     sliceId: id,
     publishSubscriberMap,
   })
+
+  const dashboardTitle = ((undoableLayout.present[DASHBOARD_HEADER_ID] || {}).meta || {}).text;
 
   if (formData.show_overlay && formData.hasOwnProperty('extra_filters') && formData['extra_filters'].length > 0) {
     formData.show_overlay = false;
@@ -71,6 +76,7 @@ function mapStateToProps(
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
     dashboardInfo:dashboardInfo,
+    dashboardTitle:dashboardTitle,
   };
 }
 
@@ -80,6 +86,7 @@ function mapDispatchToProps(dispatch) {
     toggleExpandSlice,
     addFilter,
     refreshChart,
+    executeRestAction
   }, saveModalActions );
 
   return bindActionCreators(

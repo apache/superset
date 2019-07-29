@@ -1,0 +1,22 @@
+{
+  "label": "JIRA",
+  "url": "https://guavus-jira.atlassian.net/rest/api/2/issue/",
+  "method": "POST",
+  "data": {
+    "fields": {
+      "project": {
+        "key": "MD"
+      },
+      "summary": "[%dashboard_title%/%chart_title%: %time%] Issue raised using RVF",
+      "description": "*An issue has been raised by following dashboard* \n {quote} Dashboard Name: *%dashboard_title%* \n Chart Name: *%chart_title%* \n The dashboard access link is available [here|%dashboard_url%] \n RVF User: %username%{quote}\n *The chart has following selection at the time of incident*\n {quote}Chart Selection:  %chart_selection%.{quote}\n {code:sql| title=Chart Query}%chart_query%{code}" ,
+      "issuetype": {
+        "name": "Task"
+      }
+    }
+  },
+  "success_message": "Ticket %key% created successfully",
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Basic YXJwaXQuYWdhcndhbEBndWF2dXMuY29tOnZPekFnRWJ3RERRRWhxYjJpZGxlNzNGRg=="
+  }
+}

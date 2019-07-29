@@ -45,6 +45,7 @@ export const linkedSlices = {
   controlSetRows: [
     ['publish_columns'],
     ['linked_slice'],
+    ['rest_actions'],
   ],
 };
 

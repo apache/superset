@@ -2191,7 +2191,12 @@ export const controls = {
     hidden: true,
     description: t('The number of seconds before expiring the cache'),
   },
-
+  rest_actions: {
+    "type": "HiddenControl",
+    "label": "Rest Actions",
+    "hidden": true,
+    "description": "rest actions"
+  },
   url_params: {
     type: 'HiddenControl',
     label: t('URL Parameters'),

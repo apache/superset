@@ -43,7 +43,7 @@ import { isModalSlice } from '../util/publishSubscriberUtil'
 import getPublishSubscriberMap from '../util/getPublishSubscriberMap';
 
 export default function (bootstrapData) {
-  const { user_id, datasources, common, editMode } = bootstrapData;
+  const { user_id,username, datasources, common, editMode } = bootstrapData;
 
   const dashboard = { ...bootstrapData.dashboard_data };
   let filters = {};
@@ -250,6 +250,7 @@ export default function (bootstrapData) {
           dashboard.metadata.timed_refresh_immune_slices,
       },
       userId: user_id,
+      username: username,
       dash_edit_perm: dashboard.dash_edit_perm,
       dash_save_perm: dashboard.dash_save_perm,
       superset_can_explore: dashboard.superset_can_explore,

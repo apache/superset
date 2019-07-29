@@ -30,7 +30,8 @@ export const sections = {
     label: t('Publish & Subscribe'),
     expanded: true,
     controlSetRows: [
-      ['publish_columns']
+      ['publish_columns'],
+      ['rest_actions']
     ],
   },
   colorScheme: {

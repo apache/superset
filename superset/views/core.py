@@ -814,6 +814,16 @@ appbuilder.add_view_no_menu(R)
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
 
+    @expose('/execute_rest_action', methods=['POST'])
+    def execute_rest_action(self):
+        action = json.loads(request.form.get('action'))
+        url = action['url']
+        values = action['data']
+        headers = action['headers']
+        resposne = requests.post(url, json=values, headers=headers)
+        return json_success(resposne.text, resposne.status_code)
+
+
     @expose('/add_to_dashboard', methods=['POST'])
     def addtodashboard(self):
         try:
@@ -2228,9 +2238,14 @@ class Superset(BaseSupersetView):
             'superset_can_explore': superset_can_explore,
             'slice_can_edit': slice_can_edit,
         })
-
+        username = None
+        if g.user.is_anonymous:
+            username = "Anonymous"
+        else:
+            username = g.user.username
         bootstrap_data = {
             'user_id': g.user.get_id(),
+            'username': username,
             'dashboard_data': dashboard_data,
             'datasources': {ds.uid: ds.data for ds in datasources},
             'common': self.common_bootsrap_payload(),

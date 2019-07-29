@@ -163,6 +163,42 @@ export default function chartReducer(charts = {}, action) {
         annotationQuery,
       };
     },
+    [actions.REST_ACTION_STARTED](state) {
+      const restAction = {
+        ...state.restAction,
+        action: action.restAction.action, 
+        status: "started",
+        error: undefined
+        }
+
+      return {
+        ...state,
+        restAction
+      };
+    },
+    [actions.REST_ACTION_SUCCESS](state) {
+      const restAction = {
+        ...state.restAction,
+        status: "success",
+        }
+
+      return {
+        ...state,
+        restAction
+      };
+    },
+    [actions.REST_ACTION_FAILED](state) {
+      let restAction = { ...state.restAction,
+        status: "error",
+        error: !! action.queryResponse ? t('Network error.')
+        : (action.queryResponse.error || action.queryResponse.errors)
+      }
+
+      return {
+        ...state,
+       restAction
+      };
+    },
   };
 
   /* eslint-disable no-param-reassign */
