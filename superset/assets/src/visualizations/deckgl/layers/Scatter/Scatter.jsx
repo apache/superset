@@ -36,7 +36,7 @@ function setTooltipContent(formData) {
         o.object.cat_color && <TooltipRow label={`${t('Category')}: `} value={`${o.object.cat_color}`} />
       }
       {
-        o.object.metric && <TooltipRow label={`${formData.point_radius_fixed.value}: `} value={`${o.object.metric}`} />
+        o.object.metric && <TooltipRow label={`${formData.point_radius_fixed.value.label}: `} value={`${o.object.metric}`} />
       }
     </div>
   );
