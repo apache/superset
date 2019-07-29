@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@data-ui/histogram": "^0.0.79",
+    "@data-ui/histogram": "^0.0.80",
     "@data-ui/theme": "^0.0.78",
     "@vx/legend": "^0.0.189",
     "@vx/responsive": "^0.0.189",
