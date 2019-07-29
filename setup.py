@@ -127,7 +127,7 @@ setup(
         'pydruid==0.5.0',
         'pyhive==0.6.1',
         'pyjwt==1.7.1',
-        'flask-cors==3.0.3'
+        'flask-cors==3.0.3',
         'python-dateutil==2.6.1',
         'python-dotenv==0.10.1',
         'python-editor==1.0.3',
