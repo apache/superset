@@ -1,4 +1,13 @@
-# [0.0.0-master](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.37...v0.0.0-master) (2019-07-26)
+# [0.0.0-master](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.38...v0.0.0-master) (2019-07-29)
+
+
+
+## [0.10.38](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.37...v0.10.38) (2019-07-29)
+
+
+### Bug Fixes
+
+* nvd3 charts break on stateChange dispatch ([#159](https://github.com/apache-superset/superset-ui-plugins/issues/159)) ([bd1245d](https://github.com/apache-superset/superset-ui-plugins/commit/bd1245d))
 
 
 
