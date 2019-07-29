@@ -654,7 +654,9 @@ function nvd3Vis(element, props) {
     applyYAxisBounds();
 
     // Also reapply on each state change to account for enabled/disabled series
-    chart.dispatch.on('stateChange.applyYAxisBounds', applyYAxisBounds);
+    if (chart.dispatch && chart.dispatch.stateChange) {
+      chart.dispatch.on('stateChange.applyYAxisBounds', applyYAxisBounds);
+    }
 
     // align yAxis1 and yAxis2 ticks
     if (isVizTypes(['dual_line', 'line_multi'])) {
