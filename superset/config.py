@@ -204,7 +204,8 @@ LANGUAGES = {
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
 DEFAULT_FEATURE_FLAGS = {
     # Experimental feature introducing a client (browser) cache
-    "CLIENT_CACHE": False
+    "CLIENT_CACHE": False,
+    "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
 }
 
 # A function that receives a dict of all feature flags
