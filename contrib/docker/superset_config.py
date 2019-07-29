@@ -18,6 +18,7 @@ import os
 import json
 
 
+# TODO Not using helpers.py here because this file gets moved at container build time and importing was being lame.
 def get_env_variable(var_name, default=None):
     """Get the environment variable or raise exception."""
     try:
@@ -29,6 +30,7 @@ def get_env_variable(var_name, default=None):
             error_msg = 'The environment variable {} was missing, abort...'\
                         .format(var_name)
             raise EnvironmentError(error_msg)
+
 
 try:
     # AWS Secrets Manager returns a json string for any key name
