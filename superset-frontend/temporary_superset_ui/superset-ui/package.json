@@ -46,7 +46,7 @@
     "fs-extra": "^8.0.1",
     "husky": "^3.0.1",
     "lerna": "^3.2.1",
-    "lint-staged": "^8.0.4",
+    "lint-staged": "^9.2.1",
     "react": "^15 || ^16",
     "yarn": "^1.9.4"
   },
