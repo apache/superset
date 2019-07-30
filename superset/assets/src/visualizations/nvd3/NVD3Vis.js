@@ -265,6 +265,7 @@ function nvd3Vis(element, props) {
   let chart;
   let width = maxWidth;
   let colorKey = 'key';
+  let selection;
 
   function isVizTypes(types) {
     return types.indexOf(vizType) >= 0;
@@ -355,12 +356,31 @@ function nvd3Vis(element, props) {
             }
             const xField = formData.granularitySqla;
             const yField = findYAxisField(yColumn, publishedColumns);
-
+            let xFieldVal;
+            let yFieldVal
+            let xValueChanged = false;
+            let yValueChanged = false;
             if (xField != undefined && e.point) {
-              const xFieldVal = getXAxisFieldVal(xField, e.point.x, columns);
-              onAddFilter(xField, xFieldVal, false, !yField);
+              xFieldVal = getXAxisFieldVal(xField, e.point.x, columns);
+              xValueChanged = selection ? selection['point'].x != e.point.x  : true;
             }
-            if (yField != undefined && e.point) onAddFilter(yField, e.point.y, false, true);
+
+            if (yField != undefined && e.point) {
+              yFieldVal = e.point.y;
+              yValueChanged = selection ? selection['point'].y != yFieldVal  : true;
+            }
+
+            if (yValueChanged) {
+              onAddFilter(xField, xFieldVal, false, false);
+              onAddFilter(yField, yFieldVal, false, true);
+            }
+            else if (xValueChanged) {
+              onAddFilter(yField, yFieldVal, false, false);
+              onAddFilter(xField, xFieldVal, false, true);
+            }
+
+            // set selection
+            selection = {'point': e.point}
           }
         });
         chart.xScale(d3.time.scale.utc());
