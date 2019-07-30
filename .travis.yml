@@ -27,7 +27,7 @@ jobs:
             - openjdk-8-jdk
       install:
         - pip install --upgrade pip
-        - pip install codecov tox
+        - pip install tox
     - language: python
       python: 3.6
       env: TOXENV=cypress-dashboard
