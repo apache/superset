@@ -530,10 +530,10 @@ export function createDatasource(vizOptions) {
       endpoint: '/superset/sqllab_viz/',
       postPayload: { data: vizOptions },
     })
-      .then(({ data }) => {
-        dispatch(createDatasourceSuccess(data));
+      .then(({ json }) => {
+        dispatch(createDatasourceSuccess(json));
 
-        return Promise.resolve(data);
+        return Promise.resolve(json);
       })
       .catch(() => {
         dispatch(createDatasourceFailed(t('An error occurred while creating the data source')));
