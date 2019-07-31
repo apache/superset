@@ -94,6 +94,7 @@
     "deck.gl": "^5.3.4",
     "dnd-core": "^2.6.0",
     "dompurify": "^1.0.3",
+    "fsevents": "^1.2.9",
     "geolib": "^2.0.24",
     "immutable": "^3.8.2",
     "jquery": "3.1.1",
