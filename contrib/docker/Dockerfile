@@ -22,10 +22,19 @@ RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
 
-RUN apt-get update -y
+#RUN apt-get update -y
+
+
+RUN cat /etc/apt/sources.list
+
+RUN mv /etc/apt/sources.list /etc/apt/sources.list.bak && \
+    echo "deb http://mirrors.163.com/debian/ jessie main" >/etc/apt/sources.list && \
+    echo "deb http://mirrors.163.com/debian-security/ jessie/updates main" >>/etc/apt/sources.list
 
 # Install dependencies to fix `curl https support error` and `elaying package configuration warning`
-RUN apt-get install -y apt-transport-https apt-utils
+RUN apt-get update && apt-get -y install apt-transport-https curl apt-utils
+
+#RUN apt-get install -y apt-transport-https apt-utils
 
 # Install superset dependencies
 # https://superset.incubator.apache.org/installation.html#os-dependencies
@@ -41,6 +50,8 @@ RUN apt-get install -y vim less postgresql-client redis-tools
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
     && apt-get install -y nodejs
 
+RUN npm config set registry https://registry.npm.taobao.org
+
 WORKDIR /home/superset
 
 COPY requirements.txt .
@@ -50,6 +61,7 @@ COPY contrib/docker/requirements-extra.txt .
 RUN pip install --upgrade setuptools pip \
     && pip install -r requirements.txt -r requirements-dev.txt -r requirements-extra.txt \
     && rm -rf /root/.cache/pip
+RUN pip install kylinpy
 
 RUN pip install gevent
 
@@ -72,3 +84,4 @@ ENTRYPOINT ["/entrypoint.sh"]
 HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
 
 EXPOSE 8088
+

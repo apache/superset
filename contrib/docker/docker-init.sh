@@ -21,9 +21,11 @@ set -ex
 export FLASK_APP=superset:app
 flask fab create-admin
 
+apt-get install apt-transport-https
+
 # Initialize the database
 superset db upgrade
-
+export SUPERSET_LOAD_EXAMPLES=yes
 if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     # Load some data to play with
     superset load_examples
