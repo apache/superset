@@ -530,8 +530,7 @@ export function createDatasource(vizOptions) {
       endpoint: '/superset/sqllab_viz/',
       postPayload: { data: vizOptions },
     })
-      .then(({ json }) => {
-        const data = JSON.parse(json);
+      .then(({ data }) => {
         dispatch(createDatasourceSuccess(data));
 
         return Promise.resolve(data);

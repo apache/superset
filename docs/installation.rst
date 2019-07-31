@@ -521,6 +521,24 @@ into your global default defined in ``CACHE_CONFIG``.
         'CACHE_REDIS_URL': 'redis://localhost:6379/0',
     }
 
+It is also possible to pass a custom cache initialization function in the
+config to handle additional caching use cases. The function must return an
+object that is compatible with the `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ API.
+
+.. code-block:: python
+
+    from custom_caching import CustomCache
+
+    def init_cache(app):
+        """Takes an app instance and returns a custom cache backend"""
+        config = {
+            'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24, # 1 day default (in secs)
+            'CACHE_KEY_PREFIX': 'superset_results',
+        }
+        return CustomCache(app, config)
+
+    CACHE_CONFIG = init_cache
+
 Superset has a Celery task that will periodically warm up the cache based on
 different strategies. To use it, add the following to the `CELERYBEAT_SCHEDULE`
 section in `config.py`:
@@ -649,7 +667,7 @@ DOMAIN SHARDING
 
 Chrome allows up to 6 open connections per domain at a time. When there are more
 than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
-next available socket. PR (`#5039 <https://github.com/apache/incubator-superset/pull/5039>`) adds domain sharding to Superset,
+next available socket. `PR 5039 <https://github.com/apache/incubator-superset/pull/5039>`_ adds domain sharding to Superset,
 and this feature will be enabled by configuration only (by default Superset
 doesn't allow cross-domain request).
 
@@ -1143,3 +1161,25 @@ Then we can add this two lines to ``superset_config.py``:
 
   from custom_sso_security_manager import CustomSsoSecurityManager
   CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
+
+Feature Flags
+---------------------------
+
+Because of a wide variety of users, Superset has some features that are not enabled by default. For example, some users have stronger security restrictions, while some others may not. So Superset allow users to enable or disable some features by config. For feature owners, you can add optional functionalities in Superset, but will be only affected by a subset of users.
+
+You can enable or disable features with flag from ``superset_config.py``:
+
+.. code-block:: python
+
+     DEFAULT_FEATURE_FLAGS = {
+         'CLIENT_CACHE': False,
+         'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False
+     }
+
+Here is a list of flags and descriptions:
+
+* ENABLE_EXPLORE_JSON_CSRF_PROTECTION
+
+  * For some security concerns, you may need to enforce CSRF protection on all query request to explore_json endpoint. In Superset, we use `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection for all POST requests, but this protection doesn't apply to GET method.
+
+  * When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot make GET request to explore_json. The default value for this feature False (current behavior), explore_json accepts both GET and POST request. See `PR 7935 <https://github.com/apache/incubator-superset/pull/7935>`_ for more details.

@@ -22,8 +22,8 @@ class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
 
     engine = "druid"
-    inner_joins = False
-    allows_subquery = False
+    allows_joins = False
+    allows_subqueries = True
 
     time_grain_functions = {
         None: "{col}",

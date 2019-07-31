@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable camelcase */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
@@ -143,11 +144,32 @@ class Dashboard extends React.PureComponent {
   }
 
   refreshExcept(filterKey) {
-    const immune = this.props.dashboardInfo.metadata.filter_immune_slices || [];
+    const { filters } = this.props.dashboardState || {};
+    const currentFilteredNames =
+      filterKey && filters[filterKey] ? Object.keys(filters[filterKey]) : [];
+    const filter_immune_slices = this.props.dashboardInfo.metadata
+      .filter_immune_slices;
+    const filter_immune_slice_fields = this.props.dashboardInfo.metadata
+      .filter_immune_slice_fields;
 
     this.getAllCharts().forEach(chart => {
-      // filterKey is a string, immune array contains numbers
-      if (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1) {
+      // filterKey is a string, filter_immune_slices array contains numbers
+      if (
+        String(chart.id) === filterKey ||
+        filter_immune_slices.includes(chart.id)
+      ) {
+        return;
+      }
+
+      const filter_immune_slice_fields_names =
+        filter_immune_slice_fields[chart.id] || [];
+      // has filter-able field names
+      if (
+        currentFilteredNames.length === 0 ||
+        currentFilteredNames.some(
+          name => !filter_immune_slice_fields_names.includes(name),
+        )
+      ) {
         this.props.actions.triggerQuery(true, chart.id);
       }
     });

@@ -66,6 +66,24 @@ describe('Dashboard', () => {
   });
 
   describe('refreshExcept', () => {
+    const overrideDashboardState = {
+      ...dashboardState,
+      filters: {
+        1: { region: [] },
+        2: { country_name: ['USA'] },
+        3: { region: [], country_name: ['USA'] },
+      },
+      refresh: true,
+    };
+
+    const overrideDashboardInfo = {
+      ...dashboardInfo,
+      metadata: {
+        ...dashboardInfo.metadata,
+        filter_immune_slice_fields: { [chartQueries[chartId].id]: ['region'] },
+      },
+    };
+
     const overrideCharts = {
       ...chartQueries,
       1001: {
@@ -107,6 +125,32 @@ describe('Dashboard', () => {
       wrapper.instance().refreshExcept();
       spy.restore();
       expect(spy.callCount).toBe(0);
+    });
+
+    it('should not call triggerQuery for filter_immune_slice_fields', () => {
+      const wrapper = setup({
+        dashboardState: overrideDashboardState,
+        dashboardInfo: overrideDashboardInfo,
+      });
+      const spy = sinon.spy(props.actions, 'triggerQuery');
+      wrapper.instance().refreshExcept('1');
+      expect(spy.callCount).toBe(0);
+      spy.restore();
+    });
+
+    it('should call triggerQuery if filter has more filter-able fields', () => {
+      const wrapper = setup({
+        dashboardState: overrideDashboardState,
+        dashboardInfo: overrideDashboardInfo,
+      });
+      const spy = sinon.spy(props.actions, 'triggerQuery');
+
+      // if filter have additional fields besides immune ones,
+      // should apply filter.
+      wrapper.instance().refreshExcept('3');
+      expect(spy.callCount).toBe(1);
+
+      spy.restore();
     });
   });
 

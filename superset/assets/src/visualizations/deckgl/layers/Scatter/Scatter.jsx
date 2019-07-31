@@ -36,13 +36,14 @@ function setTooltipContent(formData) {
         o.object.cat_color && <TooltipRow label={`${t('Category')}: `} value={`${o.object.cat_color}`} />
       }
       {
-        o.object.metric && <TooltipRow label={`${formData.point_radius_fixed.value}: `} value={`${o.object.metric}`} />
+        o.object.metric && <TooltipRow label={`${formData.point_radius_fixed.value.label}: `} value={`${o.object.metric}`} />
       }
     </div>
   );
 }
 
-export function getLayer(fd, payload, onAddFilter, setTooltip) {
+export function getLayer(formData, payload, onAddFilter, setTooltip) {
+  const fd = formData;
   const dataWithRadius = payload.data.features.map((d) => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
     if (fd.multiplier) {

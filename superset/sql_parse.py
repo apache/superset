@@ -182,7 +182,10 @@ class ParsedQuery(object):
             _, token = statement.token_next(idx=idx)
             if token:
                 if isinstance(token, IdentifierList):
-                    _, token = token.token_next(idx=-1)
+                    # In case of "LIMIT <offset>, <limit>", find comma and extract
+                    # first succeeding non-whitespace token
+                    idx, _ = token.token_next_by(m=(sqlparse.tokens.Punctuation, ","))
+                    _, token = token.token_next(idx=idx)
                 if token and token.ttype == sqlparse.tokens.Literal.Number.Integer:
                     return int(token.value)
 

@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict
 from datetime import datetime
 import logging
-from typing import Optional, Union
+from typing import Any, List, NamedTuple, Optional, Union
 
 from flask import escape, Markup
 from flask_appbuilder import Model
@@ -45,7 +45,7 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
-from sqlalchemy.sql.expression import Label, TextAsFrom
+from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 import sqlparse
 
 from superset import app, db, security_manager
@@ -61,8 +61,18 @@ from superset.utils import core as utils, import_datasource
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 
-SqlaQuery = namedtuple("SqlaQuery", ["sqla_query", "labels_expected"])
-QueryStringExtended = namedtuple("QueryStringExtended", ["sql", "labels_expected"])
+
+class SqlaQuery(NamedTuple):
+    extra_cache_keys: List[Any]
+    labels_expected: List[str]
+    prequeries: List[str]
+    sqla_query: Select
+
+
+class QueryStringExtended(NamedTuple):
+    labels_expected: List[str]
+    prequeries: List[str]
+    sql: str
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -349,7 +359,7 @@ class SqlaTable(Model, BaseDatasource):
         """
         label_expected = label or sqla_col.name
         db_engine_spec = self.database.db_engine_spec
-        if db_engine_spec.supports_column_aliases:
+        if db_engine_spec.allows_column_aliases:
             label = db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
         sqla_col._df_label_expected = label_expected
@@ -373,6 +383,21 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def database_name(self):
         return self.database.name
+
+    @classmethod
+    def get_datasource_by_name(cls, session, datasource_name, schema, database_name):
+        schema = schema or None
+        query = (
+            session.query(cls)
+            .join(Database)
+            .filter(cls.table_name == datasource_name)
+            .filter(Database.database_name == database_name)
+        )
+        # Handling schema being '' or None, which is easier to handle
+        # in python than in the SQLA query in a multi-dialect way
+        for tbl in query.all():
+            if schema == (tbl.schema or None):
+                return tbl
 
     @property
     def link(self):
@@ -515,18 +540,20 @@ class SqlaTable(Model, BaseDatasource):
     def get_template_processor(self, **kwargs):
         return get_template_processor(table=self, database=self.database, **kwargs)
 
-    def get_query_str_extended(self, query_obj):
+    def get_query_str_extended(self, query_obj) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
-        if query_obj["is_prequery"]:
-            query_obj["prequeries"].append(sql)
         sql = self.mutate_query_from_config(sql)
-        return QueryStringExtended(labels_expected=sqlaq.labels_expected, sql=sql)
+        return QueryStringExtended(
+            labels_expected=sqlaq.labels_expected, sql=sql, prequeries=sqlaq.prequeries
+        )
 
     def get_query_str(self, query_obj):
-        return self.get_query_str_extended(query_obj).sql
+        query_str_ext = self.get_query_str_extended(query_obj)
+        all_queries = query_str_ext.prequeries + [query_str_ext.sql]
+        return ";\n\n".join(all_queries) + ";"
 
     def get_sqla_table(self):
         tbl = table(self.table_name)
@@ -589,8 +616,6 @@ class SqlaTable(Model, BaseDatasource):
         extras=None,
         columns=None,
         order_desc=True,
-        prequeries=None,
-        is_prequery=False,
     ):
         """Querying any sqla table from this common interface"""
         template_kwargs = {
@@ -603,8 +628,11 @@ class SqlaTable(Model, BaseDatasource):
             "columns": {col.column_name: col for col in self.columns},
         }
         template_kwargs.update(self.template_params_dict)
+        extra_cache_keys: List[Any] = []
+        template_kwargs["extra_cache_keys"] = extra_cache_keys
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
+        prequeries: List[str] = []
 
         orderby = orderby or []
 
@@ -634,7 +662,7 @@ class SqlaTable(Model, BaseDatasource):
             elif m in metrics_dict:
                 metrics_exprs.append(metrics_dict.get(m).get_sqla_col())
             else:
-                raise Exception(_("Metric '{}' is not valid".format(m)))
+                raise Exception(_("Metric '%(metric)s' does not exist", metric=m))
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
@@ -771,7 +799,7 @@ class SqlaTable(Model, BaseDatasource):
             qry = qry.limit(row_limit)
 
         if is_timeseries and timeseries_limit and groupby and not time_groupby_inline:
-            if self.database.db_engine_spec.inner_joins:
+            if self.database.db_engine_spec.allows_joins:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
@@ -822,10 +850,8 @@ class SqlaTable(Model, BaseDatasource):
                         )
                     ]
 
-                # run subquery to get top groups
-                subquery_obj = {
-                    "prequeries": prequeries,
-                    "is_prequery": True,
+                # run prequery to get top groups
+                prequery_obj = {
                     "is_timeseries": False,
                     "row_limit": timeseries_limit,
                     "groupby": groupby,
@@ -839,7 +865,8 @@ class SqlaTable(Model, BaseDatasource):
                     "columns": columns,
                     "order_desc": True,
                 }
-                result = self.query(subquery_obj)
+                result = self.query(prequery_obj)
+                prequeries.append(result.query)
                 dimensions = [
                     c
                     for c in result.df.columns
@@ -851,7 +878,10 @@ class SqlaTable(Model, BaseDatasource):
                 qry = qry.where(top_groups)
 
         return SqlaQuery(
-            sqla_query=qry.select_from(tbl), labels_expected=labels_expected
+            extra_cache_keys=extra_cache_keys,
+            labels_expected=labels_expected,
+            sqla_query=qry.select_from(tbl),
+            prequeries=prequeries,
         )
 
     def _get_timeseries_orderby(self, timeseries_limit_metric, metrics_dict, cols):
@@ -862,7 +892,7 @@ class SqlaTable(Model, BaseDatasource):
             ob = timeseries_limit_metric.get_sqla_col()
         else:
             raise Exception(
-                _("Metric '{}' is not valid".format(timeseries_limit_metric))
+                _("Metric '%(metric)s' does not exist", metric=timeseries_limit_metric)
             )
 
         return ob
@@ -904,12 +934,6 @@ class SqlaTable(Model, BaseDatasource):
             logging.exception(f"Query {sql} on schema {self.schema} failed")
             db_engine_spec = self.database.db_engine_spec
             error_message = db_engine_spec.extract_error_message(e)
-
-        # if this is a main query with prequeries, combine them together
-        if not query_obj["is_prequery"]:
-            query_obj["prequeries"].append(sql)
-            sql = ";\n\n".join(query_obj["prequeries"])
-        sql += ";"
 
         return QueryResult(
             status=status,
@@ -1039,6 +1063,10 @@ class SqlaTable(Model, BaseDatasource):
     @staticmethod
     def default_query(qry):
         return qry.filter_by(is_sqllab_view=False)
+
+    def get_extra_cache_keys(self, query_obj) -> List[Any]:
+        sqla_query = self.get_sqla_query(**query_obj)
+        return sqla_query.extra_cache_keys
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)

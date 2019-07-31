@@ -23,14 +23,13 @@ from superset.models.core import Log
 from superset.models.tags import get_tag, ObjectTypes, TaggedObject, TagTypes
 from superset.tasks.cache import (
     DashboardTagsStrategy,
-    DummyStrategy,
     get_form_data,
     TopNDashboardsStrategy,
 )
 from .base_tests import SupersetTestCase
 
 
-TEST_URL = "http://0.0.0.0:8081/superset/explore_json"
+URL_PREFIX = "0.0.0.0:8081"
 
 
 class CacheWarmUpTests(SupersetTestCase):
@@ -141,61 +140,61 @@ class CacheWarmUpTests(SupersetTestCase):
         }
         self.assertEqual(result, expected)
 
-    def test_dummy_strategy(self):
-        strategy = DummyStrategy()
-        result = sorted(strategy.get_urls())
-        expected = [
-            f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+1%7D",
-            f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+17%7D",
-            f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+18%7D",
-            f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+19%7D",
-            f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+30%7D",
-            f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D",
-            f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+8%7D",
-        ]
-        self.assertEqual(result, expected)
-
     def test_top_n_dashboards_strategy(self):
         # create a top visited dashboard
         db.session.query(Log).delete()
         self.login(username="admin")
+        dash = self.get_dash_by_slug("births")
         for _ in range(10):
-            self.client.get("/superset/dashboard/3/")
+            self.client.get(f"/superset/dashboard/{dash.id}/")
 
         strategy = TopNDashboardsStrategy(1)
         result = sorted(strategy.get_urls())
-        expected = [f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D"]
+        expected = sorted([f"{URL_PREFIX}{slc.url}" for slc in dash.slices])
         self.assertEqual(result, expected)
 
-    def test_dashboard_tags(self):
-        strategy = DashboardTagsStrategy(["tag1"])
+    def reset_tag(self, tag):
+        """Remove associated object from tag, used to reset tests"""
+        if tag.objects:
+            for o in tag.objects:
+                db.session.delete(o)
+            db.session.commit()
 
+    def test_dashboard_tags(self):
+        tag1 = get_tag("tag1", db.session, TagTypes.custom)
+        # delete first to make test idempotent
+        self.reset_tag(tag1)
+
+        strategy = DashboardTagsStrategy(["tag1"])
         result = sorted(strategy.get_urls())
         expected = []
         self.assertEqual(result, expected)
 
-        # tag dashboard 3 with `tag1`
+        # tag dashboard 'births' with `tag1`
         tag1 = get_tag("tag1", db.session, TagTypes.custom)
-        object_id = 3
+        dash = self.get_dash_by_slug("births")
+        tag1_urls = sorted([f"{URL_PREFIX}{slc.url}" for slc in dash.slices])
         tagged_object = TaggedObject(
-            tag_id=tag1.id, object_id=object_id, object_type=ObjectTypes.dashboard
+            tag_id=tag1.id, object_id=dash.id, object_type=ObjectTypes.dashboard
         )
         db.session.add(tagged_object)
         db.session.commit()
 
-        result = sorted(strategy.get_urls())
-        expected = [f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D"]
-        self.assertEqual(result, expected)
+        self.assertEqual(sorted(strategy.get_urls()), tag1_urls)
 
         strategy = DashboardTagsStrategy(["tag2"])
+        tag2 = get_tag("tag2", db.session, TagTypes.custom)
+        self.reset_tag(tag2)
 
         result = sorted(strategy.get_urls())
         expected = []
         self.assertEqual(result, expected)
 
-        # tag chart 30 with `tag2`
-        tag2 = get_tag("tag2", db.session, TagTypes.custom)
-        object_id = 30
+        # tag first slice
+        dash = self.get_dash_by_slug("unicode-test")
+        slc = dash.slices[0]
+        tag2_urls = [f"{URL_PREFIX}{slc.url}"]
+        object_id = slc.id
         tagged_object = TaggedObject(
             tag_id=tag2.id, object_id=object_id, object_type=ObjectTypes.chart
         )
@@ -203,14 +202,10 @@ class CacheWarmUpTests(SupersetTestCase):
         db.session.commit()
 
         result = sorted(strategy.get_urls())
-        expected = [f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+30%7D"]
-        self.assertEqual(result, expected)
+        self.assertEqual(result, tag2_urls)
 
         strategy = DashboardTagsStrategy(["tag1", "tag2"])
 
         result = sorted(strategy.get_urls())
-        expected = [
-            f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+30%7D",
-            f"{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D",
-        ]
+        expected = sorted(tag1_urls + tag2_urls)
         self.assertEqual(result, expected)
