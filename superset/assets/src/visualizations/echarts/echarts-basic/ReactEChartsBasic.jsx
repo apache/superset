@@ -43,7 +43,7 @@ class EChartsBasic extends React.PureComponent {
     this.state ={
       echartsOptions: props.formData.echartsOptions,
       options: this.getOption(props.formData.echartsOptions),
-      editMode: true, //  ¿this.props.explor ???
+      editMode: false, //  ¿this.props.explor ???
       opts: {}
     };
   }
