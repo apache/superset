@@ -2622,7 +2622,8 @@ class Superset(BaseSupersetView):
                     rendered_query,
                     return_results=True,
                     store_results=not query.select_as_cta,
-                    user_name=g.user.username if g.user else None)
+                    user_name=g.user.username if g.user else None,
+                )
 
             payload = json.dumps(
                 apply_display_max_row_limit(data),
@@ -2862,10 +2863,10 @@ class Superset(BaseSupersetView):
         )
 
         d = {
-            'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
-            'common': self.common_bootstrap_payload(),
-            'tab_state_ids': tab_state_ids,
-            'active_tab': active_tab.to_dict(),
+            "defaultDbId": config.get("SQLLAB_DEFAULT_DBID"),
+            "common": self.common_bootstrap_payload(),
+            "tab_state_ids": tab_state_ids,
+            "active_tab": active_tab.to_dict(),
         }
         return self.render_template(
             "superset/basic.html",
