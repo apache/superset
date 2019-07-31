@@ -2,30 +2,21 @@ import { __metadata } from 'tslib';
 
 const TEMPLATES = {
     "Line Chart": {
-        "title": { 
-            "text": "ECharts simple line" 
+        title:{
+          text: "Title",
+          subtext: "And subtitle..."
         },
-        "xAxis":[
-            {
-                "id": "Bottom",
-                "type": "category"
-            },
-            {
-                "id": "Top",
-                "type": ""
-            }
-        ],
-        "yAxis":[
-            {
-                "id": "Left",
-                "type": "category"
-            },
-            {
-                "id": "Right",
-                "type": ""
-            }
-        ],
-        "series":[]
+        Axis: {
+            type: 'category',
+            data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        },
+        yAxis: {
+            type: 'value'
+        },
+        series: [{
+            data: [820, 932, 901, 934, 1290, 1330, 1320],
+            type: 'line'
+        }]
     }
 };
 

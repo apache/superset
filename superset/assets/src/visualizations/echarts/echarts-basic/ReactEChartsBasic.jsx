@@ -3,7 +3,7 @@ import ReactEcharts from 'echarts-for-react';
 import { Tabs, Tab } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import React from "react";
-import { isNumber } from 'util';
+import { isNumber, isObject } from 'util';
 import ErrorBoundary from '../../../components/ErrorBoundary';
 
 class OptionsData{
@@ -41,7 +41,8 @@ class EChartsBasic extends React.PureComponent {
     console.log(props)
     this.echart = null;
     this.state ={
-      options: this.getOption(),
+      echartsOptions: props.formData.echartsOptions,
+      options: this.getOption(props.formData.echartsOptions),
       editMode: true, //  ¿this.props.explor ???
       opts: {}
     };
@@ -58,47 +59,72 @@ class EChartsBasic extends React.PureComponent {
                 metrics,
                 data);
   }
-  getOption() {
-    var data = this.getData();
-    //console.log(this.props, this.state, data);
-    try{
-      var options = JSON.parse(this.props.formData.echartOptionsEditor);
+  parseOptions(data){    
+      var options = JSON.parse(ecOptions);
       options.xAxis && options.xAxis.filter(x => x.dimension)
                     .map(a => a.data = data.dimension(a.dimension));
       options.yAxis && options.yAxis.filter(x => x.dimension)
                     .map(a => a.data = data.dimension(a.dimension));
       options.series.map(a => a.data = data.metric(a.id));
-      this.setState({error: null});
-      //console.log("New options: ", JSON.stringify(options, null, 2));
       return options;
+  }
+  parseCustomOptionsCode(ecOptions, data){
+    return new Function("$data", ecOptions)(data);
+  }
+  parseDefaultOptions(){
+    return {
+          title:{
+            text: "ECharts component",
+            subtext: "Edit settings..."
+          }
+      };
+  }
+  readEchartOptionsEditor(){
+    return this.state.echartsOptions;
+  }
+  getOption(ecOptions) {
+    var data = this.getData();
+    //console.log(this.props, this.state, data);
+    var options = null;
+    try{
+      options = this.parseCustomOptionsCode(ecOptions, data);
+      if(isObject(options)){
+        return options;
+      }
     }catch(ex){
-      this.setState({error: ex});
+      console.error(ex);
     }
+    try{
+      options = this.parseOptions(ecOptions, data);
+      if(isObject(options)){
+        return options;
+      }
+    }catch(ex){
+      console.error(ex);
+    }
+    return this.parseDefaultOptions();
   }
   opsChanged(prevProps){
-    return prevProps.formData.echartOptionsEditor
-            .localeCompare(this.props.formData.echartOptionsEditor) !== 0;
+    if(prevProps.formData.echartsOptions){
+      return prevProps.formData.echartsOptions
+            .localeCompare(this.props.formData.echartsOptions) !== 0;
+    }
+    return !!this.props.formData.echartsOptions;
   }
   componentDidUpdate(prevProps, prevState){
     console.log("ECharts render update");
     if(!this.opsChanged(prevProps))
       return;
       console.log("ECharts render update, ops changed");
-    var options = this.getOption();
-    try{
-      if(!this.state.error){
-        this.setState({options: options, opts: {}});
-      } 
-    }catch(ex){
-      this.state.error = ex;
-    }
+    var options = this.getOption(this.props.formData.echartsOptions);
+    this.setState({options: options, opts: {}});
   }
   renderEChart(){
     this.react_eachart = (<ReactEcharts 
         notMerge={true}
         option={this.state.options} 
         onChartReady={this.onChartReady.bind(this)}
-        opts={this.state.opts}/>);
+        />);
     return this.state.error ? <h2>{this.state.error.message}</h2>:
             this.react_eachart;
   }

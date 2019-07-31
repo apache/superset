@@ -1344,6 +1344,23 @@ export const controls = {
     default: '',
   },
 
+  echarts_options: {
+    type: 'TextAreaControl',
+    label: t('ECharts optiosn'),
+    description: t('Advanced options setup'),
+    mapStateToProps: state => ({
+      language: 'javascript',
+    }),
+    default: "/** Use $data to access dimensions and metrics\n"+
+            " * More info: console.log($data); :)\n"+
+            "var options = " + JSON.stringify({
+                  title:{
+                    text: "ECharts component",
+                    subtext: "Edit settings..."
+                  }
+              }, null, 2) + ";\nreturn options;",
+  },
+
   echart_options_editor:{
     type: 'EChartsOptionsEditorControl',
     label: t('ECharts options: https://echarts.apache.org/en/option.html'),

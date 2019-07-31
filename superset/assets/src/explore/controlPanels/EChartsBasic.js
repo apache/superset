@@ -50,10 +50,10 @@ export default {
       ],
     },
     {
-      label: t('Options'),
+      label: t('EChart Options'),
       expanded: true,
       controlSetRows: [
-        ['echart_options_editor']
+        ['echarts_options']
       ],
     },
   ],

@@ -19,11 +19,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ControlHeader from '../ControlHeader';
-import Checkbox from '../../../components/Checkbox';
 import TextAreaControl from './TextAreaControl';
 import TEMPLATES from './EChartsTemplates';
 import { t } from '@superset-ui/translation';
 import { Button, FormGroup, FormControl } from 'react-bootstrap';
+import { timeSaturday } from 'd3-time';
+import { clearTimeout } from 'timers';
 
 const propTypes = {
   options: PropTypes.string,
@@ -108,14 +109,19 @@ class Series extends React.Component{
 export default class EChartsOptionsEditorControl extends React.Component {
   constructor(props){
     super(props);
+    var options = this.props.options ||
+                  JSON.stringify(TEMPLATES[Object.keys(TEMPLATES)[0]], null, 2);
     this.state = {
       title: "Demo echart",
-      options: JSON.stringify(TEMPLATES[Object.keys(TEMPLATES)[0]], null, 2),
+      options: options,
       xaxis: [{id: "Bottom", type: "category"}, {id: "Top", type: ''}],
       yaxis: [{id: "Left", type: "category"}, {id: "Right", type: ''}],
       dimensions: this.getDimensions(),
-      series: this.getSeries()
+      series: this.getSeries(),
+      simpleMode: false,
+      options_advanced: options
     };
+    this.lastEditorChangeTimeout = null;
   }
   onChange(){
     this.props.onChange(this.state.options);
@@ -194,34 +200,56 @@ export default class EChartsOptionsEditorControl extends React.Component {
         ops.series = this.state.series;
         if(!this.areEqualObjects(ops, orgOps)){
           ops = JSON.stringify(ops, null, 2);
-          this.setState({options: ops}, this.onChange.bind(this));
+          var newState = {options: ops};
+          if(this.state.simpleMode){
+            newState.options_advanced = ops;
+          }
+          this.setState(newState, this.onChange.bind(this));
         }
       }.bind(this));
   }
-  onEditorChange(){
-    
+  onEditorChange(options_advanced){
+    clearTimeout(this.this.lastEditorChangeTimeout);
+    this.lastEditorChangeTimeout = setTimeout(function(){
+      var newState = {options: options_advanced};
+      this.setState(newState, this.onChange.bind(this));
+      this.props.onChange(options_advanced);
+    }.bind(this), 1000);
+  }
+  renderWizard(){
+    return [ (<Axis title={t("X Axis")}
+                  axis={this.state.xaxis}
+                  dimensions={this.state.dimensions}
+                  onChange={this.onXAxisChange.bind(this)}/>),
+              (<Axis title={t("Y Axis")}
+                  axis={this.state.yaxis}
+                  dimensions={this.state.dimensions}
+                  onChange={this.onYAxisChange.bind(this)}/>),
+              (<Series series={this.state.series}
+              onChange={this.onSeriesChange.bind(this)}/>)];
+  }
+  renderAdvanced(){
+    return [(<h3>Advanced Editor</h3>),
+            (<TextAreaControl 
+              onChange={this.onEditorChange.bind(this)} 
+              language="json" 
+              value={this.state.options_advanced} 
+              height={600} />)];
+  }
+  wizardChange(ev){
+    this.setState({simpleMode: ev.target.checked});
   }
   render() {
     //console.log(this.props, this.state);
-    setTimeout(() => this.buildOptions(), 0); // Need better way to catch form changes
+    this.state.simpleMode && 
+      setTimeout(() => this.buildOptions(), 0); // Need better way to catch form changes
     return (
       <FormGroup controlId="echartsOptionsId">
-        <Axis title={t("X Axis")}
-              axis={this.state.xaxis}
-              dimensions={this.state.dimensions}
-              onChange={this.onXAxisChange.bind(this)}/>
-        <Axis title={t("Y Axis")}
-              axis={this.state.yaxis}
-              dimensions={this.state.dimensions}
-              onChange={this.onYAxisChange.bind(this)}/>
-        <Series series={this.state.series}
-              onChange={this.onSeriesChange.bind(this)}/>
-        <h3>Advanced Editor</h3>
-        <TextAreaControl 
-          onChange={this.onEditorChange.bind(this)} 
-          language="json" 
-          value={this.state.options} 
-          height={600} />
+        <h4><input type="checkbox"
+              checked={this.state.simpleMode}
+              onChange={this.wizardChange.bind(this)}/> Use Wizard
+        </h4>
+        {this.state.simpleMode ? this.renderWizard(): this.renderAdvanced()}
       </FormGroup>
     );
   }
