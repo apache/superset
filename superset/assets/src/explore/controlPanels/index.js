@@ -72,6 +72,7 @@ import DeckPath from './DeckPath';
 import DeckPolygon from './DeckPolygon';
 import DeckScatter from './DeckScatter';
 import DeckScreengrid from './DeckScreengrid';
+import EChartsBasic from './EChartsBasic';
 
 export const controlPanelConfigs = extraOverrides({
   area: Area,
@@ -122,6 +123,7 @@ export const controlPanelConfigs = extraOverrides({
   deck_polygon: DeckPolygon,
   deck_scatter: DeckScatter,
   deck_screengrid: DeckScreengrid,
+  echarts_basic: EChartsBasic,
 });
 
 export default controlPanelConfigs;

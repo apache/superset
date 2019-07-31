@@ -1344,6 +1344,18 @@ export const controls = {
     default: '',
   },
 
+  echart_options_editor:{
+    type: 'EChartsOptionsEditorControl',
+    label: t('ECharts options: https://echarts.apache.org/en/option.html'),
+    description: t('ECharts options. You can access data through variable "data"'),
+    mapStateToProps: state => ({
+      controls: state.controls,
+      form_state: state
+    }),
+    default: '',
+    renderTrigger: true
+  },
+
   pandas_aggfunc: {
     type: 'SelectControl',
     label: t('Aggregation function'),
