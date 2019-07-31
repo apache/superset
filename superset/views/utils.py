@@ -19,8 +19,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
-from flask import g, request
-from flask_appbuilder.security.sqla import models as ab_models
+from flask import request
 import simplejson as json
 
 from superset import app, db, viz
@@ -36,12 +35,7 @@ if not app.config.get("ENABLE_JAVASCRIPT_CONTROLS"):
     FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
-def bootstrap_user_data(username=None, include_perms=False):
-    if not username:
-        username = g.user.username
-
-    user = db.session.query(ab_models.User).filter_by(username=username).one()
-
+def bootstrap_user_data(user, include_perms=False):
     payload = {
         "username": user.username,
         "firstName": user.first_name,

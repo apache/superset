@@ -32,7 +32,6 @@ import math
 import os
 import pickle as pkl
 import re
-import traceback
 import uuid
 
 from dateutil import relativedelta as rdelta
@@ -323,8 +322,6 @@ class BaseViz(object):
             "extras": extras,
             "timeseries_limit_metric": timeseries_limit_metric,
             "order_desc": order_desc,
-            "prequeries": [],
-            "is_prequery": False,
         }
         return d
 
@@ -367,6 +364,7 @@ class BaseViz(object):
 
         cache_dict["time_range"] = self.form_data.get("time_range")
         cache_dict["datasource"] = self.datasource.uid
+        cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
 
@@ -425,7 +423,7 @@ class BaseViz(object):
                 if not self.error_message:
                     self.error_message = "{}".format(e)
                 self.status = utils.QueryStatus.FAILED
-                stacktrace = traceback.format_exc()
+                stacktrace = utils.get_stacktrace()
 
             if (
                 is_loaded
@@ -1749,7 +1747,7 @@ class WorldMapViz(BaseViz):
         return qry
 
     def get_data(self, df):
-        from superset.data import countries
+        from superset.examples import countries
 
         fd = self.form_data
         cols = [fd.get("entity")]
@@ -2562,7 +2560,7 @@ class DeckPolygon(DeckPathViz):
         fd = self.form_data
         elevation = fd["point_radius_fixed"]["value"]
         type_ = fd["point_radius_fixed"]["type"]
-        d["elevation"] = d.get(elevation) if type_ == "metric" else elevation
+        d["elevation"] = d.get(elevation["label"]) if type_ == "metric" else elevation
         return d
 
 

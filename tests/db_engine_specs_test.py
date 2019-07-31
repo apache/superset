@@ -39,6 +39,7 @@ from superset.db_engine_specs.pinot import PinotEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.models.core import Database
+from superset.utils.core import get_example_database
 from .base_tests import SupersetTestCase
 
 
@@ -174,12 +175,12 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         q2 = "select * from (select * from my_subquery limit 10) where col=1 limit 20"
         q3 = "select * from (select * from my_subquery limit 10);"
         q4 = "select * from (select * from my_subquery limit 10) where col=1 limit 20;"
-        q5 = "select * from mytable limit 10, 20"
+        q5 = "select * from mytable limit 20, 10"
         q6 = "select * from mytable limit 10 offset 20"
         q7 = "select * from mytable limit"
         q8 = "select * from mytable limit 10.0"
         q9 = "select * from mytable limit x"
-        q10 = "select * from mytable limit x, 20"
+        q10 = "select * from mytable limit 20, x"
         q11 = "select * from mytable limit x offset 20"
 
         self.assertEqual(engine_spec_class.get_limit_from_sql(q0), None)
@@ -925,14 +926,14 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         )  # noqa
 
     def test_column_datatype_to_string(self):
-        main_db = self.get_main_database()
-        sqla_table = main_db.get_table("energy_usage")
-        dialect = main_db.get_dialect()
+        example_db = get_example_database()
+        sqla_table = example_db.get_table("energy_usage")
+        dialect = example_db.get_dialect()
         col_names = [
-            main_db.db_engine_spec.column_datatype_to_string(c.type, dialect)
+            example_db.db_engine_spec.column_datatype_to_string(c.type, dialect)
             for c in sqla_table.columns
         ]
-        if main_db.backend == "postgresql":
+        if example_db.backend == "postgresql":
             expected = ["VARCHAR(255)", "VARCHAR(255)", "DOUBLE PRECISION"]
         else:
             expected = ["VARCHAR(255)", "VARCHAR(255)", "FLOAT"]

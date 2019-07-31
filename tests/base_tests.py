@@ -168,9 +168,6 @@ class SupersetTestCase(unittest.TestCase):
             ):
                 security_manager.del_permission_role(public_role, perm)
 
-    def get_main_database(self):
-        return get_main_database(db.session)
-
     def run_sql(
         self,
         sql,
@@ -182,7 +179,7 @@ class SupersetTestCase(unittest.TestCase):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else "admin"))
-        dbid = self.get_main_database().id
+        dbid = get_main_database().id
         resp = self.get_json_resp(
             "/superset/sql_json/",
             raise_on_error=False,
@@ -202,7 +199,7 @@ class SupersetTestCase(unittest.TestCase):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else "admin"))
-        dbid = self.get_main_database().id
+        dbid = get_main_database().id
         resp = self.get_json_resp(
             "/superset/validate_sql_json/",
             raise_on_error=False,
@@ -223,3 +220,7 @@ class SupersetTestCase(unittest.TestCase):
     def test_feature_flags(self):
         self.assertEquals(is_feature_enabled("foo"), "bar")
         self.assertEquals(is_feature_enabled("super"), "set")
+
+    def get_dash_by_slug(self, dash_slug):
+        sesh = db.session()
+        return sesh.query(models.Dashboard).filter_by(slug=dash_slug).first()

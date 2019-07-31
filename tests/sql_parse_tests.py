@@ -449,13 +449,13 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals({"SalesOrderHeader"}, self.extract_tables(query))
 
     def test_get_query_with_new_limit_comment(self):
-        sql = "SELECT * FROM ab_user --SOME COMMENT"
+        sql = "SELECT * FROM ab_user -- SOME COMMENT"
         parsed = sql_parse.ParsedQuery(sql)
         newsql = parsed.get_query_with_new_limit(1000)
         self.assertEquals(newsql, sql + "\nLIMIT 1000")
 
     def test_get_query_with_new_limit_comment_with_limit(self):
-        sql = "SELECT * FROM ab_user --SOME COMMENT WITH LIMIT 555"
+        sql = "SELECT * FROM ab_user -- SOME COMMENT WITH LIMIT 555"
         parsed = sql_parse.ParsedQuery(sql)
         newsql = parsed.get_query_with_new_limit(1000)
         self.assertEquals(newsql, sql + "\nLIMIT 1000")

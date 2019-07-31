@@ -81,7 +81,7 @@ class TaggedObject(Model, AuditMixinNullable):
     object_id = Column(Integer)
     object_type = Column(Enum(ObjectTypes))
 
-    tag = relationship("Tag")
+    tag = relationship("Tag", backref="objects")
 
 
 def get_tag(name, session, type_):

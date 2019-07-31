@@ -20,8 +20,6 @@ import readResponseBlob from '../../utils/readResponseBlob';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 export default () => describe('save', () => {
-  Cypress.config('chromeWebSecurity', false);
-
   let dashboardId;
   let boxplotChartId;
 

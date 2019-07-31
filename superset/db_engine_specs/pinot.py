@@ -24,9 +24,9 @@ from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 
 class PinotEngineSpec(BaseEngineSpec):
     engine = "pinot"
-    allows_subquery = False
-    inner_joins = False
-    supports_column_aliases = False
+    allows_subqueries = False
+    allows_joins = False
+    allows_column_aliases = False
 
     # Pinot does its own conversion below
     time_grain_functions: Dict[Optional[str], str] = {
