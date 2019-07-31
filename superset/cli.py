@@ -24,10 +24,12 @@ from sys import stdout
 import click
 from colorama import Fore, Style
 from flask import g
+from flask_appbuilder import Model
 from pathlib2 import Path
 import yaml
 
 from superset import app, appbuilder, db, examples, security_manager
+from superset.common.tags import add_favorites, add_owners, add_types
 from superset.utils import core as utils, dashboard_import_export, dict_import_export
 
 config = app.config
@@ -497,3 +499,13 @@ def load_test_users_run():
                 password="general",
             )
         security_manager.get_session.commit()
+
+
+@app.cli.command()
+def sync_tags():
+    """Rebuilds special tags (owner, type, favorited by)."""
+    # pylint: disable=no-member
+    metadata = Model.metadata
+    add_types(db.engine, metadata)
+    add_owners(db.engine, metadata)
+    add_favorites(db.engine, metadata)
