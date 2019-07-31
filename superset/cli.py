@@ -504,7 +504,8 @@ def load_test_users_run():
 @app.cli.command()
 def sync_tags():
     """Rebuilds special tags (owner, type, favorited by)."""
+    # pylint: disable=no-member
     metadata = Model.metadata
-    add_types(db.engine, metadata) 
+    add_types(db.engine, metadata)
     add_owners(db.engine, metadata)
     add_favorites(db.engine, metadata)
