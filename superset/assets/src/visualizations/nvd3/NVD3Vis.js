@@ -340,6 +340,25 @@ function nvd3Vis(element, props) {
         }
         chart.lines.dispatch.on('elementClick', function (e) {
           if (tableFilter) {
+            const hightLightSelection = (seriesIndex, pointIndex, showSelected) => {
+              console.log("HightLightSelection " + showSelected + " for .nv-series-" + seriesIndex + ".nv-point-" + pointIndex);
+              let node = d3.select(chart.container).selectAll('.nv-scatter .nv-groups')
+                .selectAll(".nv-series-" + seriesIndex)
+                .selectAll(".nv-point-" + pointIndex)
+                .node();
+
+              if (showSelected) {
+                node.classList.add("rvf-line-selected-point");
+              } else {
+                node.classList.remove("rvf-line-selected-point");
+              }
+            }
+
+            hightLightSelection(e.seriesIndex, e.pointIndex, true)
+            if (selection) {
+              hightLightSelection(selection.seriesIndex, selection.pointIndex, false)
+            }
+
             const publishedColumns = formData.publishColumns;
             let yColumn;
             let metric;
@@ -360,14 +379,22 @@ function nvd3Vis(element, props) {
             let yFieldVal
             let xValueChanged = false;
             let yValueChanged = false;
-            if (xField != undefined && e.point) {
-              xFieldVal = getXAxisFieldVal(xField, e.point.x, columns);
-              xValueChanged = selection ? selection['point'].x != e.point.x  : true;
-            }
+            const removeSelection = (selection && selection.seriesIndex == e.seriesIndex && selection.pointIndex == e.pointIndex);
 
-            if (yField != undefined && e.point) {
-              yFieldVal = e.point.y;
-              yValueChanged = selection ? selection['point'].y != yFieldVal  : true;
+            if (removeSelection) {
+              xValueChanged = yValueChanged = true;
+              xFieldVal = yFieldVal = null;
+            }
+            else {
+              if (xField != undefined && e.point) {
+                xFieldVal = getXAxisFieldVal(xField, e.point.x, columns)
+                xValueChanged = selection ? selection['point'].x != e.point.x : true;
+              }
+
+              if (yField != undefined && e.point) {
+                yFieldVal = e.point.y;
+                yValueChanged = selection ? selection['point'].y != yFieldVal : true;
+              }
             }
 
             if (yValueChanged) {
@@ -378,9 +405,8 @@ function nvd3Vis(element, props) {
               onAddFilter(yField, yFieldVal, false, false);
               onAddFilter(xField, xFieldVal, false, true);
             }
-
             // set selection
-            selection = {'point': e.point}
+            selection = removeSelection ? null : { 'point': e.point, 'seriesIndex': e.seriesIndex, 'pointIndex': e.pointIndex }
           }
         });
         chart.xScale(d3.time.scale.utc());

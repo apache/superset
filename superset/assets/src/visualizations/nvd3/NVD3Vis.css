@@ -112,3 +112,10 @@ g.time-shift-8 path, line.time-shift-8 {
 g.time-shift-9 path, line.time-shift-9 {
   stroke-dasharray: 5, 5, 1, 5;
 }
+
+.rvf-line-selected-point{
+  stroke-width:15px !important;
+  stroke-opacity:1  !important;
+  fill-opacity:1 !important;
+}
+
