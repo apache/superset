@@ -69,7 +69,7 @@ class EChartsBasic extends React.PureComponent {
       return options;
   }
   parseCustomOptionsCode(ecOptions, data){
-    return new Function("$data", ecOptions)(data);
+    return new Function("$data", "$eChart", ecOptions)(data, this.echart);
   }
   parseDefaultOptions(){
     return {
