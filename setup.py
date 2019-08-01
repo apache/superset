@@ -80,7 +80,7 @@ setup(
         "flask-migrate",
         "flask-wtf",
         "geopy",
-        "gunicorn",  # deprecated
+        "gunicorn<19.9.0",  # deprecated
         "humanize",
         "idna",
         "isodate",
@@ -100,7 +100,7 @@ setup(
         "simplejson>=3.15.0",
         "sqlalchemy>=1.3.5,<2.0",
         "sqlalchemy-utils>=0.33.2",
-        "sqlparse",
+        "sqlparse<0.3",
         "wtforms-json",
     ],
     extras_require={

@@ -29,7 +29,6 @@ psycopg2-binary==2.7.5
 pycodestyle==2.5.0
 pyhive==0.6.1
 pylint==1.9.2
-python-dotenv==0.10.1
 redis==3.2.1
 statsd==3.3.0
 tox==3.11.1
