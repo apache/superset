@@ -303,9 +303,8 @@ export function loadQueryEditor(queryEditor) {
   return { type: LOAD_QUERY_EDITOR, queryEditor };
 }
 
-/*
 export function setTables(tableSchemas) {
-  const tables = tableSchemas.forEach((tableSchema) => {
+  const tables = tableSchemas.map((tableSchema) => {
     const {
       columns,
       selectStar,
@@ -313,7 +312,7 @@ export function setTables(tableSchemas) {
       foreignKeys,
       indexes,
     } = tableSchema.results;
-    const table = {
+    return {
       dbId: tableSchema.database_id,
       queryEditorId: tableSchema.tab_state_id,
       schema: tableSchema.schema,
@@ -329,13 +328,12 @@ export function setTables(tableSchemas) {
       isMetadataLoading: false,
       isExtraMetadataLoading: false,
     };
-    const query = {
-      id: dataPreviewQueryId,
-    };
+    // const query = {
+    //   id: dataPreviewQueryId,
+    // };
   });
   return { type: SET_TABLES, tables };
 }
-*/
 
 export function switchQueryEditor(queryEditor) {
   return function (dispatch) {
@@ -359,12 +357,13 @@ export function switchQueryEditor(queryEditor) {
             },
           };
           dispatch(loadQueryEditor(loadedQueryEditor));
-          // dispatch(setTables(json.table_schemas || []));
+          dispatch(setTables(json.table_schemas || []));
           dispatch(setActiveQueryEditor(loadedQueryEditor));
         })
-        .catch(() =>
-          dispatch(addDangerToast(t('An error occurred while fetching tab state'))),
-        );
+        .catch((e) => {
+          console.log(e);
+          return dispatch(addDangerToast(t('An error occurred while fetching tab state')));
+        });
     } else {
       dispatch(setActiveQueryEditor(queryEditor));
     }

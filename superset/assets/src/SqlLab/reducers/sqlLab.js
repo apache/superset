@@ -29,6 +29,7 @@ import {
   removeFromArr,
   getFromArr,
   addToArr,
+  extendArr,
 } from '../../reduxUtils';
 
 export default function sqlLabReducer(state = {}, action) {
@@ -278,7 +279,7 @@ export default function sqlLabReducer(state = {}, action) {
       return alterInArr(state, 'queryEditors', action.queryEditor, { ...action.queryEditor });
     },
     [actions.SET_TABLES]() {
-      return alterInArr(state, 'tables', action.tables[0], { ...action.tables[0] });
+      return extendArr(state, 'tables', action.tables);
     },
     [actions.SET_ACTIVE_SOUTHPANE_TAB]() {
       return Object.assign({}, state, { activeSouthPaneTab: action.tabId });
