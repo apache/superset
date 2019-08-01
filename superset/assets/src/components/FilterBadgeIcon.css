@@ -16,17 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './variables.less';
-
-@import './builder.less';
-@import './builder-sidepane.less';
-@import './buttons.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-indicator.less';
-@import './filter-indicator-tooltip.less';
-@import './grid.less';
-@import './hover-menu.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+.filter-badge {
+    width: 20px;
+    height: 20px;
+    background-color: #bababa;
+    border-radius: 2px;
+    z-index: 10;
+}
+.filter-badge:hover {
+    cursor: pointer;
+    background-color: #9e9e9e;
+}

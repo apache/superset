@@ -16,17 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './variables.less';
+import React from 'react';
+import PropTypes from 'prop-types';
 
-@import './builder.less';
-@import './builder-sidepane.less';
-@import './buttons.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-indicator.less';
-@import './filter-indicator-tooltip.less';
-@import './grid.less';
-@import './hover-menu.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+import './FilterBadgeIcon.css';
+
+const propTypes = {
+  colorCode: PropTypes.string,
+};
+
+export default function FilterBadgeIcon({ colorCode = '' }) {
+  return (
+    <svg className={`filter-badge ${colorCode}`} width="20" height="20" viewBox="0 0 20 20">
+      <path d="M4 5H16V7H4V5ZM6 9H14V11H6V9ZM12 13H8V15H12V13Z" fill="#fff" />
+    </svg>
+  );
+}
+
+FilterBadgeIcon.propTypes = propTypes;

@@ -19,14 +19,13 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import {
-  changeFilter as addFilter,
-  toggleExpandSlice,
-} from '../actions/dashboardState';
+import { toggleExpandSlice } from '../actions/dashboardState';
 import { updateComponents } from '../actions/dashboardLayout';
+import { changeFilter } from '../actions/dashboardFilters';
 import { addDangerToast } from '../../messageToasts/actions';
 import { refreshChart } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
+import { getActiveFilters } from '../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import Chart from '../components/gridComponents/Chart';
 
@@ -44,7 +43,8 @@ function mapStateToProps(
 ) {
   const { id } = ownProps;
   const chart = chartQueries[id] || {};
-  const { filters, colorScheme, colorNamespace } = dashboardState;
+  const { colorScheme, colorNamespace } = dashboardState;
+  const filters = getActiveFilters();
 
   return {
     chart,
@@ -77,7 +77,7 @@ function mapDispatchToProps(dispatch) {
       updateComponents,
       addDangerToast,
       toggleExpandSlice,
-      addFilter,
+      changeFilter,
       refreshChart,
       logEvent,
     },

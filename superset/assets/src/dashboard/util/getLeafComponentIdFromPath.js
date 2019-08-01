@@ -16,17 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './variables.less';
+import { IN_COMPONENT_ELEMENT_TYPES } from './constants';
 
-@import './builder.less';
-@import './builder-sidepane.less';
-@import './buttons.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-indicator.less';
-@import './filter-indicator-tooltip.less';
-@import './grid.less';
-@import './hover-menu.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+export default function getLeafComponentIdFromPath(directPathToChild = []) {
+  if (directPathToChild.length > 0) {
+    const currentPath = directPathToChild.slice();
+
+    while (currentPath.length) {
+      const componentId = currentPath.pop();
+      const componentType = componentId.split('-')[0];
+
+      if (!IN_COMPONENT_ELEMENT_TYPES.includes(componentType)) {
+        return componentId;
+      }
+    }
+  }
+
+  return null;
+}

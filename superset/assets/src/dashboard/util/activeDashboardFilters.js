@@ -16,34 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import DashboardGrid from '../components/DashboardGrid';
+let activeFilters = {};
 
-import {
-  handleComponentDrop,
-  resizeComponent,
-} from '../actions/dashboardLayout';
-import { setDirectPathToChild } from '../actions/dashboardState';
-
-function mapStateToProps({ dashboardState }) {
-  return {
-    editMode: dashboardState.editMode,
-  };
+export function getActiveFilters() {
+  return activeFilters;
 }
 
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators(
-    {
-      handleComponentDrop,
-      resizeComponent,
-      setDirectPathToChild,
+// non-empty filters from dashboardFilters,
+// this function does not take into account: filter immune or filter scope settings
+export function buildActiveFilters(allDashboardFilters = {}) {
+  activeFilters = Object.values(allDashboardFilters).reduce(
+    (result, filter) => {
+      const { chartId, columns } = filter;
+
+      Object.keys(columns).forEach(key => {
+        if (
+          Array.isArray(columns[key])
+            ? columns[key].length
+            : columns[key] !== undefined
+        ) {
+          /* eslint-disable no-param-reassign */
+          result[chartId] = {
+            ...result[chartId],
+            [key]: columns[key],
+          };
+        }
+      });
+
+      return result;
     },
-    dispatch,
+    {},
   );
 }
-
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(DashboardGrid);

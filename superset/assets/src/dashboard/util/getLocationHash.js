@@ -16,17 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './variables.less';
-
-@import './builder.less';
-@import './builder-sidepane.less';
-@import './buttons.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-indicator.less';
-@import './filter-indicator-tooltip.less';
-@import './grid.less';
-@import './hover-menu.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+export default function getLocationHash() {
+  return (window.location.hash || '#').substring(1);
+}

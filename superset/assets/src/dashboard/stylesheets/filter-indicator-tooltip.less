@@ -16,17 +16,57 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './variables.less';
+#filter-indicator-tooltip {
+  font-size: 15px;
+  text-align: left;
 
-@import './builder.less';
-@import './builder-sidepane.less';
-@import './buttons.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-indicator.less';
-@import './filter-indicator-tooltip.less';
-@import './grid.less';
-@import './hover-menu.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+  > .tooltip-arrow {
+    margin-right: 8px;
+    border-left-color: #484848;
+  }
+
+  > .tooltip-inner {
+    width: 200px;
+    max-width: 200px;
+    border-radius: 4px;
+    margin-right: 8px;
+    padding: 16px 12px;
+    background-color: #484848;
+    text-align: left;
+  }
+}
+
+.tooltip-item {
+  position: relative;
+
+  .filter-content {
+    line-height: 22px;
+    margin-right: 22px;
+    text-align: left;
+
+    label {
+      font-weight: 700;
+      white-space: nowrap;
+    }
+  }
+
+  .filter-edit {
+    position: absolute;
+    top: 4px;
+    right: 0;
+  }
+}
+
+.group-title {
+  margin-bottom: 8px;
+}
+
+.tooltip-group {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    margin-bottom: 8px;
+  }
+}

@@ -16,38 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import DashboardBuilder from '../components/DashboardBuilder';
+import { bindActionCreators } from 'redux';
 
-import {
-  setColorSchemeAndUnsavedChanges,
-  showBuilderPane,
-  setDirectPathToChild,
-} from '../actions/dashboardState';
-import {
-  deleteTopLevelTabs,
-  handleComponentDrop,
-} from '../actions/dashboardLayout';
+import FilterIndicatorsContainer from '../components/FilterIndicatorsContainer';
+import { setDirectPathToChild } from '../actions/dashboardState';
 
-function mapStateToProps({ dashboardLayout: undoableLayout, dashboardState }) {
+function mapStateToProps(
+  { dashboardFilters, dashboardInfo, charts },
+  ownProps,
+) {
+  const chartId = ownProps.chartId;
+  const chartStatus = charts[chartId].chartStatus;
+
   return {
-    dashboardLayout: undoableLayout.present,
-    editMode: dashboardState.editMode,
-    showBuilderPane: dashboardState.showBuilderPane,
-    directPathToChild: dashboardState.directPathToChild,
-    builderPaneType: dashboardState.builderPaneType,
-    colorScheme: dashboardState.colorScheme,
+    dashboardFilters,
+    chartId,
+    chartStatus,
+    filterImmuneSlices: dashboardInfo.metadata.filterImmuneSlices || [],
+    filterImmuneSliceFields:
+      dashboardInfo.metadata.filterImmuneSliceFields || {},
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
-      deleteTopLevelTabs,
-      handleComponentDrop,
-      showBuilderPane,
-      setColorSchemeAndUnsavedChanges,
       setDirectPathToChild,
     },
     dispatch,
@@ -57,4 +51,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(DashboardBuilder);
+)(FilterIndicatorsContainer);

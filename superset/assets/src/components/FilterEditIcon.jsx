@@ -16,17 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './variables.less';
+import React from 'react';
+import PropTypes from 'prop-types';
 
-@import './builder.less';
-@import './builder-sidepane.less';
-@import './buttons.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-indicator.less';
-@import './filter-indicator-tooltip.less';
-@import './grid.less';
-@import './hover-menu.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+import './FilterEditIcon.css';
+
+const propTypes = {
+  clickIconHandler: PropTypes.func,
+};
+
+export default function FilterEditIcon({ clickIconHandler = () => {} }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      onClick={clickIconHandler}
+      className="filter-edit"
+      viewBox="0 0 12 12"
+    >
+      <path d="M11.8049 1.75476C12.0649 2.01472 12.0649 2.43466 11.8049 2.69463L10.5851 3.91446L8.08547 1.4148L9.3053 0.194973C9.56526 -0.064991 9.9852 -0.064991 10.2452 0.194973L11.8049 1.75476ZM0 12V9.50035L7.37231 2.12804L9.87196 4.62769L2.49965 12H0Z" fill="#fff" />
+    </svg>
+  );
+}
+
+FilterEditIcon.propTypes = propTypes;

@@ -16,17 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './variables.less';
+export default function getDirectPathToTabIndex(tabsComponent, tabIndex) {
+  const directPathToFilter = (tabsComponent.parents || []).slice();
+  directPathToFilter.push(tabsComponent.id);
+  directPathToFilter.push(tabsComponent.children[tabIndex]);
 
-@import './builder.less';
-@import './builder-sidepane.less';
-@import './buttons.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-indicator.less';
-@import './filter-indicator-tooltip.less';
-@import './grid.less';
-@import './hover-menu.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+  return directPathToFilter;
+}
