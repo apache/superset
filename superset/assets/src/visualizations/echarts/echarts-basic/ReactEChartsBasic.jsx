@@ -69,7 +69,7 @@ class EChartsBasic extends React.PureComponent {
       return options;
   }
   parseCustomOptionsCode(ecOptions, data){
-    return new Function("$data", "$eChart", ecOptions)(data, this.echart);
+    return new Function("$data", ecOptions)(data);
   }
   parseDefaultOptions(){
     return {
@@ -124,6 +124,7 @@ class EChartsBasic extends React.PureComponent {
         notMerge={true}
         option={this.state.options} 
         onChartReady={this.onChartReady.bind(this)}
+        onEvents={this.state.options.events}
         />);
     return this.state.error ? <h2>{this.state.error.message}</h2>:
             this.react_eachart;
