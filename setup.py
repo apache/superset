@@ -80,7 +80,7 @@ setup(
         "flask-migrate",
         "flask-wtf",
         "geopy",
-        "gunicorn",  # deprecated
+        "gunicorn<19.9.0",  # deprecated
         "humanize",
         "idna",
         "isodate",
