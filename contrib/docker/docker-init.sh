@@ -18,8 +18,15 @@
 set -ex
 
 # Create an admin user (you will be prompted to set username, first and last name before setting a password)
-export FLASK_APP=superset:app
-flask fab create-admin
+
+################## NOTE ##################
+# An environment variable needs to be set
+# `FLASK_APP=superset:app` is typical
+# For AWS ECS Deployments, set this as a
+# task configuration environment variable.
+##########################################
+
+python create-superset-admin.py
 
 # Initialize the database
 superset db upgrade
@@ -31,3 +38,5 @@ fi
 
 # Create default roles and permissions
 superset init
+
+./docker-entrypoint.sh

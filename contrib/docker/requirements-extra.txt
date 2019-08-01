@@ -15,3 +15,4 @@
 # limitations under the License.
 #
 gevent==1.4.0
+boto3

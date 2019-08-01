@@ -65,10 +65,12 @@ RUN cd superset/assets \
     && npm run build \
     && rm -rf node_modules
 
+COPY contrib/docker/create-superset-admin.py ./create-superset-admin.py
+COPY contrib/docker/helpers.py ./helpers.py
 COPY contrib/docker/superset_config.py ./superset/superset_config.py
-COPY contrib/docker/docker-init.sh .
-COPY contrib/docker/docker-entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+COPY contrib/docker/docker-init.sh /docker-init.sh
+COPY contrib/docker/docker-entrypoint.sh ./docker-entrypoint.sh
+ENTRYPOINT ["/docker-init.sh"]
 
 HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
 
