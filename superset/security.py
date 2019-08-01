@@ -31,9 +31,11 @@ from superset.exceptions import SupersetSecurityException
 
 from Crypto.Cipher import AES
 import base64
+import binascii
 
 BS = 16
 SK = b"qw34sd78fh67asb1"
+EXTRA_PADDING = "==="
 
 READ_ONLY_MODEL_VIEWS = {
     'DatabaseAsync',
@@ -185,8 +187,15 @@ class SupersetSecurityManager(SecurityManager):
         return user
 
     def decryptMessage(self, message):
-        if message :
-            _e = base64.b64decode(message)
+       
+        if message:
+            _e = None
+            try:
+                logging.info('IN TRY decryptMessage:: {0}'.format(message))
+                _e = base64.b64decode(message)
+            except binascii.Error as identifier:
+                logging.error('IN EXCEPT decryptMessage:: handling exception binascii.Error:{0}\nNew message with extra padding created is  {1}'.format(identifier, message + EXTRA_PADDING))
+                _e = base64.b64decode(message + EXTRA_PADDING)
             _i = _e[:BS]
             _a = AES.new(SK, AES.MODE_CBC, _i)
             _d = _a.decrypt(_e[BS:]).decode('utf-8')
