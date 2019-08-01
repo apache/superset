@@ -18,6 +18,7 @@
 from contextlib import closing
 from datetime import datetime, timedelta
 import logging
+import os
 import re
 from typing import Dict, List  # noqa: F401
 from urllib import parse
@@ -1678,6 +1679,13 @@ class Superset(BaseSupersetView):
         try:
             db_name = request.json.get("name")
             uri = request.json.get("uri")
+            if request.json.get("password_from_environ"):
+                parts = parse.urlsplit(uri)
+                if parts.password:
+                    pwd = parts.password.format(**os.environ)
+                    netloc = f'{parts.username}:{pwd}@{parts.hostname}:{parts.port}'
+                    parts = parts._replace(netloc=netloc)
+                    uri = parse.urlunsplit(parts)
 
             # if the database already exists in the database, only its safe (password-masked) URI
             # would be shown in the UI and would be passed in the form data.

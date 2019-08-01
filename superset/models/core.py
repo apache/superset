@@ -21,6 +21,7 @@ from copy import copy, deepcopy
 from datetime import datetime
 import json
 import logging
+import os
 import textwrap
 from typing import List
 
@@ -726,6 +727,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     database_name = Column(String(250), unique=True)
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get("SECRET_KEY")))
+    password_from_environ = Column(Boolean, default=False)
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
@@ -1172,6 +1174,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             conn.password = custom_password_store(conn)
         else:
             conn.password = self.password
+        if self.password_from_environ:
+            conn.password = conn.password.format(**os.environ)
         return str(conn)
 
     @property

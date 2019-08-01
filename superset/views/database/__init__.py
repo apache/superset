@@ -62,6 +62,7 @@ class DatabaseMixin:  # noqa
     add_columns = [
         "database_name",
         "sqlalchemy_uri",
+        "password_from_environ",
         "cache_timeout",
         "expose_in_sqllab",
         "allow_run_async",
@@ -103,6 +104,10 @@ class DatabaseMixin:  # noqa
             "database-urls) "
             "for more information on how to structure your URI.",
             True,
+        ),
+        "password_from_environ": _(
+            "Read password from the environment, using the Python "
+            "format notation (eg, 'user:{PASSWORD}@host')."
         ),
         "expose_in_sqllab": _("Expose this DB in SQL Lab"),
         "allow_run_async": _(
