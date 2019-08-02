@@ -60,7 +60,6 @@ polyline==1.4.0
 prison==0.1.2             # via flask-appbuilder
 py==1.8.0                 # via retry
 pycparser==2.19           # via cffi
-pydruid==0.5.6
 pyjwt==1.7.1              # via flask-appbuilder, flask-jwt-extended
 pyrsistent==0.15.4        # via jsonschema
 python-dateutil==2.8.0
@@ -70,7 +69,6 @@ python-geohash==0.8.5
 python3-openid==3.1.0     # via flask-openid
 pytz==2019.2              # via babel, celery, pandas
 pyyaml==5.1.2
-requests==2.22.0
 retry==0.9.2
 selenium==3.141.0
 simplejson==3.16.0
