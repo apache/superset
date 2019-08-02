@@ -19,9 +19,8 @@
 from io import BytesIO
 import json
 import os
+from urllib import request
 import zlib
-
-import requests
 
 from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -70,7 +69,7 @@ def get_slice_json(defaults, **kwargs):
 
 
 def get_example_data(filepath, is_gzip=True, make_bytes=False):
-    content = requests.get(f"{BASE_URL}{filepath}?raw=true").content
+    content = request.urlopen(f"{BASE_URL}{filepath}?raw=true").read()
     if is_gzip:
         content = zlib.decompress(content, zlib.MAX_WBITS | 16)
     if make_bytes:

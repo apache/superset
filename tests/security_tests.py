@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import inspect
+import unittest
 
 from superset import app, appbuilder, security_manager
 from .base_tests import SupersetTestCase
@@ -150,6 +151,9 @@ class RolePermissionTests(SupersetTestCase):
             )
         )
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_is_alpha_only(self):
         self.assertFalse(
             security_manager.is_alpha_only(
@@ -205,11 +209,17 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_cannot_gamma(get_perm_tuples("Gamma"))
         self.assert_cannot_alpha(get_perm_tuples("Alpha"))
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_alpha_permissions(self):
         self.assert_can_gamma(get_perm_tuples("Alpha"))
         self.assert_can_alpha(get_perm_tuples("Alpha"))
         self.assert_cannot_alpha(get_perm_tuples("Alpha"))
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_admin_permissions(self):
         self.assert_can_gamma(get_perm_tuples("Admin"))
         self.assert_can_alpha(get_perm_tuples("Admin"))
