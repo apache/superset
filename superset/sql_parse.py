@@ -205,7 +205,7 @@ class ParsedQuery(object):
         if limit.ttype == sqlparse.tokens.Literal.Number.Integer:
             limit.value = new_limit
         elif limit.is_group:
-            limit.value = "{}, {}".format(next(limit.get_identifiers()), new_limit)
+            limit.value = f"{next(limit.get_identifiers())}, {new_limit}"
 
         str_res = ""
         for i in statement.tokens:
