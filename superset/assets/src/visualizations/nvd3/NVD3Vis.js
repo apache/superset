@@ -271,7 +271,7 @@ function nvd3Vis(element, props) {
     return types.indexOf(vizType) >= 0;
   }
 
-  function findYAxisField(key, publishedColumns) {
+  function findKeyInPublishedColumns(key, publishedColumns) {
 
     return publishedColumns.find((column) => {
       return key == column
@@ -373,8 +373,8 @@ function nvd3Vis(element, props) {
             if (metric && metric.column) {
               yColumn = metric.column.column_name;
             }
-            const xField = formData.granularitySqla;
-            const yField = findYAxisField(yColumn, publishedColumns);
+            const xField = findKeyInPublishedColumns(formData.granularitySqla,publishedColumns);
+            const yField = findKeyInPublishedColumns(yColumn, publishedColumns);
             let xFieldVal;
             let yFieldVal
             let xValueChanged = false;
@@ -382,7 +382,8 @@ function nvd3Vis(element, props) {
             const removeSelection = (selection && selection.seriesIndex == e.seriesIndex && selection.pointIndex == e.pointIndex);
 
             if (removeSelection) {
-              xValueChanged = yValueChanged = true;
+              xValueChanged = (xField != undefined);
+              yValueChanged = (yField != undefined);
               xFieldVal = yFieldVal = null;
             }
             else {
@@ -398,11 +399,13 @@ function nvd3Vis(element, props) {
             }
 
             if (yValueChanged) {
-              onAddFilter(xField, xFieldVal, false, false);
+              if (xField)
+                onAddFilter(xField, xFieldVal, false, false);
               onAddFilter(yField, yFieldVal, false, true);
             }
             else if (xValueChanged) {
-              onAddFilter(yField, yFieldVal, false, false);
+              if (yField)
+                onAddFilter(yField, yFieldVal, false, false);
               onAddFilter(xField, xFieldVal, false, true);
             }
             // set selection
