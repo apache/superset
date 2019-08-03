@@ -69,6 +69,7 @@ import * as v from './validators';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
+import { EChartsTemplates } from './constants';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -1352,13 +1353,8 @@ export const controls = {
       language: 'javascript',
     }),
     default: "/** Use $data to access dimensions and metrics\n"+
-            " * More info: console.log($data); :)\n"+
-            "var options = " + JSON.stringify({
-                  title:{
-                    text: "ECharts component",
-                    subtext: "Edit settings..."
-                  }
-              }, null, 2) + ";\nreturn options;",
+            " * More info: console.log($data); :) */\n"+
+            "var options = " + JSON.stringify(EChartsTemplates["Line Chart"], null, 2) + ";\nreturn options;",
   },
 
   echart_options_editor:{

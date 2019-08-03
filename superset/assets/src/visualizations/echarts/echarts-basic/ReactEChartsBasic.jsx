@@ -5,13 +5,13 @@ import { t } from '@superset-ui/translation';
 import React from "react";
 import { isNumber, isObject } from 'util';
 import ErrorBoundary from '../../../components/ErrorBoundary';
+import { formatNumber } from '@superset-ui/number-format';
+
 
 class OptionsData{
   constructor(dimensions,metrics,data){
     this._dimensions = dimensions;
-    this._metrics = data ? 
-            data.columns.filter(c => dimensions.indexOf(c) === -1)
-            :[];
+    this._metrics = metrics;
     this._data = data;
   }
   values(id, collection){
@@ -24,6 +24,23 @@ class OptionsData{
   }
   metric(id){
     return this.values(id, this._metrics);
+  }
+  stack(id, tpl){
+    id = isNumber(id) ? this._metrics[id]: id;
+    let stack = this._dimensions.slice(1);
+    let data = this._data ? this._data.records:[];
+    let dimensions = this.dimension(1);
+    let stackValues = dimensions.reduce((acc,v) =>{
+      acc[v] = data.filter(r => r[stack] === v).map(r => r[id]);
+      return acc;
+    }, {});
+    return dimensions.map(k => 
+      Object.assign({
+        name: k,
+        type: 'line',
+        stack: stack,
+        data: stackValues[k]
+      }, tpl));
   }
   dimensions(){
     return this._dimensions
@@ -52,7 +69,7 @@ class EChartsBasic extends React.PureComponent {
   }
   getData(){
     var dimensions = this.props.formData.groupby;
-    var metrics = this.props.formData.metrics;
+    var metrics = this.props.formData.metrics.map(m => m.label||m);
     var data = this.props.payload.data;
     return new OptionsData(
                 dimensions,
@@ -69,7 +86,7 @@ class EChartsBasic extends React.PureComponent {
       return options;
   }
   parseCustomOptionsCode(ecOptions, data){
-    return new Function("$data", ecOptions)(data);
+    return new Function("$data", "t", "n", ecOptions)(data, t, formatNumber);
   }
   parseDefaultOptions(){
     return {
@@ -104,12 +121,19 @@ class EChartsBasic extends React.PureComponent {
     }
     return this.parseDefaultOptions();
   }
+  objectEquals(a,b){
+    return JSON.stringify(a).localeCompare(JSON.stringify(b)) === 0;
+  }
   opsChanged(prevProps){
-    if(prevProps.formData.echartsOptions){
-      return prevProps.formData.echartsOptions
-            .localeCompare(this.props.formData.echartsOptions) !== 0;
-    }
-    return !!this.props.formData.echartsOptions;
+    // Check chart options
+    var prevOptions = prevProps.formData.echartsOptions || {};
+    var newOptions = this.props.formData.echartsOptions || {};
+    var prevData = prevProps.payload && prevProps.payload.data.records ?
+      prevProps.payload.data.records: [];
+    var newData = this.props.payload.data && prevProps.payload.data.records ?
+      this.props.payload.data.records: [];
+    return !this.objectEquals(prevOptions, newOptions) ||
+              !this.objectEquals(prevData, newData);
   }
   componentDidUpdate(prevProps, prevState){
     console.log("ECharts render update");

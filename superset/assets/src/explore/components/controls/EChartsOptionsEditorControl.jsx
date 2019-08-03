@@ -20,7 +20,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import ControlHeader from '../ControlHeader';
 import TextAreaControl from './TextAreaControl';
-import TEMPLATES from './EChartsTemplates';
 import { t } from '@superset-ui/translation';
 import { Button, FormGroup, FormControl } from 'react-bootstrap';
 import { timeSaturday } from 'd3-time';
@@ -109,8 +108,7 @@ class Series extends React.Component{
 export default class EChartsOptionsEditorControl extends React.Component {
   constructor(props){
     super(props);
-    var options = this.props.options ||
-                  JSON.stringify(TEMPLATES[Object.keys(TEMPLATES)[0]], null, 2);
+    var options = JSON.stringify({}, null, 2);
     this.state = {
       title: "Demo echart",
       options: options,
