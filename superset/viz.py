@@ -1398,7 +1398,10 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
         fd = self.form_data
         df = self.process_data(df)
         freq = to_offset(fd.get("freq"))
-        freq = type(freq)(freq.n, normalize=True, **freq.kwds)
+        try:
+            freq = type(freq)(freq.n, normalize=True, **freq.kwds)
+        except ValueError:
+            freq = type(freq)(freq.n, **freq.kwds)
         df.index.name = None
         df[DTTM_ALIAS] = df.index.map(freq.rollback)
         df["ranked"] = df[DTTM_ALIAS].rank(method="dense", ascending=False) - 1
