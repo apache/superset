@@ -2399,7 +2399,7 @@ class Superset(BaseSupersetView):
             )
 
         query = db.session.query(Query).filter_by(results_key=key).one()
-        rejected_tables = security_manager.rejected_datasources(
+        rejected_tables = security_manager.rejected_tables(
             query.sql, query.database, query.schema
         )
         if rejected_tables:
@@ -2521,7 +2521,7 @@ class Superset(BaseSupersetView):
         if not mydb:
             json_error_response("Database with id {} is missing.".format(database_id))
 
-        rejected_tables = security_manager.rejected_datasources(sql, mydb, schema)
+        rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
         if rejected_tables:
             return json_error_response(
                 security_manager.get_table_access_error_msg(rejected_tables),
@@ -2645,7 +2645,7 @@ class Superset(BaseSupersetView):
         logging.info("Exporting CSV file [{}]".format(client_id))
         query = db.session.query(Query).filter_by(client_id=client_id).one()
 
-        rejected_tables = security_manager.rejected_datasources(
+        rejected_tables = security_manager.rejected_tables(
             query.sql, query.database, query.schema
         )
         if rejected_tables:
