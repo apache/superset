@@ -195,21 +195,19 @@ class ParsedQuery(object):
         if not self._limit:
             return f"{self.stripped()}\nLIMIT {new_limit}"
         limit_pos = None
-        tokens = self._parsed[0].tokens
+        statement = self._parsed[0]
         # Add all items to before_str until there is a limit
-        for pos, item in enumerate(tokens):
+        for pos, item in enumerate(statement.tokens):
             if item.ttype in Keyword and item.value.lower() == "limit":
                 limit_pos = pos
                 break
-        limit = tokens[limit_pos + 2]
+        _, limit = statement.token_next(idx=limit_pos)
         if limit.ttype == sqlparse.tokens.Literal.Number.Integer:
-            tokens[limit_pos + 2].value = new_limit
+            limit.value = new_limit
         elif limit.is_group:
-            tokens[limit_pos + 2].value = "{}, {}".format(
-                next(limit.get_identifiers()), new_limit
-            )
+            limit.value = f"{next(limit.get_identifiers())}, {new_limit}"
 
         str_res = ""
-        for i in tokens:
+        for i in statement.tokens:
             str_res += str(i.value)
         return str_res
