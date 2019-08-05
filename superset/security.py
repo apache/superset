@@ -41,7 +41,7 @@ from superset.exceptions import SupersetSecurityException
 if TYPE_CHECKING:
     from superset.models.core import Database, BaseDatasource
 
-from superset.utils.core import DatasourceName  # noqa: I202
+from superset.utils.core import DatasourceName  # noqa: E402
 
 
 class SupersetSecurityListWidget(ListWidget):
