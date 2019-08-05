@@ -766,6 +766,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
     def test_presto_extra_table_metadata(self):
         db = mock.Mock()
         db.get_indexes = mock.Mock(return_value=[{"column_names": ["ds", "hour"]}])
+        db.get_extra = mock.Mock(return_value={})
         df = pd.DataFrame({"ds": ["01-01-19"], "hour": [1]})
         db.get_df = mock.Mock(return_value=df)
         result = PrestoEngineSpec.extra_table_metadata(db, "test_table", "test_schema")
@@ -774,6 +775,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
     def test_presto_where_latest_partition(self):
         db = mock.Mock()
         db.get_indexes = mock.Mock(return_value=[{"column_names": ["ds", "hour"]}])
+        db.get_extra = mock.Mock(return_value={})
         df = pd.DataFrame({"ds": ["01-01-19"], "hour": [1]})
         db.get_df = mock.Mock(return_value=df)
         columns = [{"name": "ds"}, {"name": "hour"}]
