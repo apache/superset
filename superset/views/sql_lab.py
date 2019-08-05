@@ -17,7 +17,7 @@
 # pylint: disable=C,R,W
 from typing import Callable
 
-from flask import g, redirect, request
+from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -190,9 +190,9 @@ class TabStateView(BaseSupersetView):
         return json_success(json.dumps(tab_state.to_dict(), default=utils.json_iso_dttm_ser))
 
     @has_access_api
-    @expose('activate/<int:tab_state_id>', methods=['POST'])
+    @expose('<int:tab_state_id>/activate', methods=['POST'])
     def activate(self, tab_state_id):
-        result = (
+        (
             db.session
             .query(TabState)
             .filter_by(user_id=g.user.get_id())
@@ -207,31 +207,40 @@ class TableSchemaView(BaseSupersetView):
     @has_access_api
     @expose('/', methods=['POST'])
     def post(self):
-        payload = json.loads(request.form['table'])
-
+        table = json.loads(request.form['table'])
+        table_schema = TableSchema(
+            tab_state_id=table['queryEditorId'],
+            database_id=table['dbId'],
+            schema=table['schema'],
+            table=table['name'],
+            results=json.dumps(table),
+            expanded=True,
+        )
+        db.session.add(table_schema)
+        db.session.commit()
+        return json_success(json.dumps('OK'))
 
     @has_access_api
-    @expose('/<int:table_schema_id>/expanded', methods=['GET', 'POST'])
-    def expanded(self, table_schema_id):
-        if request.method == 'POST':
-            payload = json.loads(request.form['expanded'])
-            result = (
-                db.session
-                .query(TableSchema)
-                .filter_by(id=table_schema_id)
-                .update({'expanded': payload})
-            )
-            db.session.commit()
-            response = json.dumps({'id': table_schema_id, 'expanded': payload})
-        else:  # GET
-            expanded = (
-                db.session
-                .query(TableSchema.expanded)
-                .filter_by(id=table_schema_id)
-                .first()
-            )
-            response = json.dumps(expanded)
+    @expose('/<int:table_schema_id>', methods=['DELETE'])
+    def delete(self, table_schema_id):
+        db.session.query(TableSchema).filter(
+            TableSchema.id == table_schema_id,
+        ).delete(synchronize_session=False)
+        db.session.commit()
+        return json_success(json.dumps('OK'))
 
+    @has_access_api
+    @expose('/<int:table_schema_id>/expanded', methods=['POST'])
+    def expanded(self, table_schema_id):
+        payload = json.loads(request.form['expanded'])
+        (
+            db.session
+            .query(TableSchema)
+            .filter_by(id=table_schema_id)
+            .update({'expanded': payload})
+        )
+        db.session.commit()
+        response = json.dumps({'id': table_schema_id, 'expanded': payload})
         return json_success(response)
 
 
