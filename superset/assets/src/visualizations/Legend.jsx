@@ -51,7 +51,7 @@ export default class Legend extends React.PureComponent {
 
   }
 
-  formatCatregoryLabel(k) {
+  formatCategoryLabel(k) {
     if (!this.props.format) {
       return k;
     }
@@ -79,7 +79,7 @@ export default class Legend extends React.PureComponent {
             onClick={() => this.props.toggleCategory(k)}
             onDoubleClick={() => this.props.showSingleCategory(k)}
           >
-            <span style={style}>{icon}</span> {this.formatCatregoryLabel(k)}
+            <span style={style}>{icon}</span> {this.formatCategoryLabel(k)}
           </a>
         </li>
       );
