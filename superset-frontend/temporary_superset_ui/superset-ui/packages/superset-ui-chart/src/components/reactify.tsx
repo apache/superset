@@ -53,7 +53,7 @@ export default function reactify<Props extends object>(
     componentWillUnmount() {
       this.container = undefined;
       if (callbacks && callbacks.componentWillUnmount) {
-        callbacks.componentWillUnmount();
+        callbacks.componentWillUnmount.bind(this)();
       }
     }
 
