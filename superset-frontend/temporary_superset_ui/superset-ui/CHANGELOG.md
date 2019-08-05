@@ -1,3 +1,103 @@
+# [0.0.0](https://github.com/apache-superset/superset-ui/compare/v0.11.14...v0.0.0) (2019-08-05)
+
+
+
+## [0.11.14](https://github.com/apache-superset/superset-ui/compare/v0.11.13...v0.11.14) (2019-08-05)
+
+
+### Bug Fixes
+
+* eslint issues ([#198](https://github.com/apache-superset/superset-ui/issues/198)) ([12aeb4a](https://github.com/apache-superset/superset-ui/commit/12aeb4a))
+* **connection:** disable caching when on an insecure connection ([#194](https://github.com/apache-superset/superset-ui/issues/194)) ([ca256cd](https://github.com/apache-superset/superset-ui/commit/ca256cd)), closes [#193](https://github.com/apache-superset/superset-ui/issues/193)
+* clean up unneeded Promise.resolves() ([#185](https://github.com/apache-superset/superset-ui/issues/185)) ([06382a5](https://github.com/apache-superset/superset-ui/commit/06382a5))
+* move eslint disable comment in reactify test ([#184](https://github.com/apache-superset/superset-ui/issues/184)) ([795d2ed](https://github.com/apache-superset/superset-ui/commit/795d2ed))
+
+
+### Features
+
+* allow reactify callbacks to access props ([#200](https://github.com/apache-superset/superset-ui/issues/200)) ([9d6f5c0](https://github.com/apache-superset/superset-ui/commit/9d6f5c0))
+* support locale in number and time format ([#182](https://github.com/apache-superset/superset-ui/issues/182)) ([e1f8773](https://github.com/apache-superset/superset-ui/commit/e1f8773))
+
+
+
+## [0.11.13](https://github.com/apache-superset/superset-ui/compare/v0.11.12...v0.11.13) (2019-06-19)
+
+
+### Bug Fixes
+
+* wrong type for filters field ([#183](https://github.com/apache-superset/superset-ui/issues/183)) ([18ef7d9](https://github.com/apache-superset/superset-ui/commit/18ef7d9))
+
+
+
+## [0.11.12](https://github.com/apache-superset/superset-ui/compare/v0.11.11...v0.11.12) (2019-06-18)
+
+
+### Features
+
+* store reference to container and update bindings ([#180](https://github.com/apache-superset/superset-ui/issues/180)) ([00e9a40](https://github.com/apache-superset/superset-ui/commit/00e9a40))
+
+
+
+## [0.11.11](https://github.com/apache-superset/superset-ui/compare/v0.11.10...v0.11.11) (2019-06-18)
+
+
+### Features
+
+* add error boundary and responsiveness to SuperChart ([#175](https://github.com/apache-superset/superset-ui/issues/175)) ([c17b13d](https://github.com/apache-superset/superset-ui/commit/c17b13d))
+
+
+
+## [0.11.10](https://github.com/apache-superset/superset-ui/compare/v0.11.9...v0.11.10) (2019-06-13)
+
+
+### Features
+
+* add parseLength function to @superset-ui/dimension ([#171](https://github.com/apache-superset/superset-ui/issues/171)) ([c0ef45f](https://github.com/apache-superset/superset-ui/commit/c0ef45f))
+* allow chart plugin to be unregistered ([#168](https://github.com/apache-superset/superset-ui/issues/168)) ([32f8dd3](https://github.com/apache-superset/superset-ui/commit/32f8dd3))
+
+
+
+## [0.11.9](https://github.com/apache-superset/superset-ui/compare/v0.11.8...v0.11.9) (2019-05-25)
+
+
+### Bug Fixes
+
+* remove padding in WithLegend ([2f0a400](https://github.com/apache-superset/superset-ui/commit/2f0a400))
+
+
+
+## [0.11.8](https://github.com/apache-superset/superset-ui/compare/v0.11.7...v0.11.8) (2019-05-23)
+
+
+### Features
+
+* update ChartFormData and QueryObject to support filters. ([#164](https://github.com/apache-superset/superset-ui/issues/164)) ([025d5bc](https://github.com/apache-superset/superset-ui/commit/025d5bc))
+
+
+
+## [0.11.7](https://github.com/apache-superset/superset-ui/compare/v0.11.6...v0.11.7) (2019-05-17)
+
+
+### Features
+
+* improve margin merging ([#159](https://github.com/apache-superset/superset-ui/issues/159)) ([7832747](https://github.com/apache-superset/superset-ui/commit/7832747))
+
+
+
+## [0.11.6](https://github.com/apache-superset/superset-ui/compare/v0.11.5...v0.11.6) (2019-05-16)
+
+
+### Bug Fixes
+
+* lint ([#144](https://github.com/apache-superset/superset-ui/issues/144)) ([bf24316](https://github.com/apache-superset/superset-ui/commit/bf24316))
+
+
+### Features
+
+* add hooks ([#158](https://github.com/apache-superset/superset-ui/issues/158)) ([7b3ab5f](https://github.com/apache-superset/superset-ui/commit/7b3ab5f))
+
+
+
 ## [0.11.12](https://github.com/apache-superset/superset-ui/compare/v0.11.11...v0.11.12) (2019-06-18)
 
 
