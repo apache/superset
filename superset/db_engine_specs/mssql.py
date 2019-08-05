@@ -66,3 +66,14 @@ class MssqlEngineSpec(BaseEngineSpec):
             if regex.match(type_):
                 return sqla_type
         return None
+
+    @classmethod
+    def column_datatype_to_string(cls, sqla_column_type, dialect):
+        datatype = super().column_datatype_to_string(sqla_column_type, dialect)
+        # MSSQL returns long overflowing datatype
+        # as in 'VARCHAR(255) COLLATE SQL_LATIN1_GENERAL_CP1_CI_AS'
+        # and we don't need the verbose collation type
+        str_cutoff = " COLLATE "
+        if str_cutoff in datatype:
+            datatype = datatype.split(str_cutoff)[0]
+        return datatype
