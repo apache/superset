@@ -208,7 +208,7 @@ class ChartRenderer extends React.Component {
           id={`chart-id-${chartId}`}
           className={`${snakeCase(vizType)}`}
           chartType={vizType}
-          chartProps={skipChartRendering ? null : this.prepareChartProps()}
+          chartProps={skipChartRendering ? {} : this.prepareChartProps()}
           onRenderSuccess={this.handleRenderSuccess}
           onRenderFailure={this.handleRenderFailure}
         />
