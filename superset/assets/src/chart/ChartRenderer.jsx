@@ -169,14 +169,12 @@ class ChartRenderer extends React.Component {
       chartId,
     } = this.props;
 
-    const isLoading = chartStatus === 'loading';
-
-    const skipChartRendering = isLoading || !!chartAlert || chartStatus === null;
-    this.renderStartTime = Logger.getTimestamp();
-
-    if (skipChartRendering) {
+    // Skip chart rendering
+    if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
       return null;
     }
+
+    this.renderStartTime = Logger.getTimestamp();
 
     const {
       width,
