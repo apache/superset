@@ -2759,6 +2759,14 @@ class PartitionViz(NVD3TimeSeriesViz):
         return self.nest_values(levels)
 
 
+class EchartsBasicViz(TableViz):
+
+    """Basic ECharts visualization"""
+
+    viz_type = "echarts_basic"
+    verbose_name = _("ECharts basic")
+
+
 viz_types = {
     o.viz_type: o
     for o in globals().values()

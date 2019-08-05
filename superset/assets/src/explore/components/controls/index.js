@@ -41,6 +41,7 @@ import AdhocFilterControl from './AdhocFilterControl';
 import FilterPanel from './FilterPanel';
 import FilterBoxItemControl from './FilterBoxItemControl';
 import withVerification from './withVerification';
+import EChartsOptionsEditorControl from './EChartsOptionsEditorControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -70,5 +71,6 @@ const controlMap = {
   MetricsControlVerifiedOptions: withVerification(MetricsControl, 'metric_name', 'savedMetrics'),
   SelectControlVerifiedOptions: withVerification(SelectControl, 'column_name', 'options'),
   AdhocFilterControlVerifiedOptions: withVerification(AdhocFilterControl, 'column_name', 'columns'),
+  EChartsOptionsEditorControl,
 };
 export default controlMap;

@@ -69,6 +69,7 @@ import * as v from './validators';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
+import { EChartsTemplates } from './constants';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -1342,6 +1343,30 @@ export const controls = {
       language: state.controls && state.controls.markup_type ? state.controls.markup_type.value : 'markdown',
     }),
     default: '',
+  },
+
+  echarts_options: {
+    type: 'TextAreaControl',
+    label: t('ECharts optiosn'),
+    description: t('Advanced options setup'),
+    mapStateToProps: state => ({
+      language: 'javascript',
+    }),
+    default: "/** Use $data to access dimensions and metrics\n"+
+            " * More info: console.log($data); :) */\n"+
+            "var options = " + JSON.stringify(EChartsTemplates["Line Chart"], null, 2) + ";\nreturn options;",
+  },
+
+  echart_options_editor:{
+    type: 'EChartsOptionsEditorControl',
+    label: t('ECharts options: https://echarts.apache.org/en/option.html'),
+    description: t('ECharts options. You can access data through variable "data"'),
+    mapStateToProps: state => ({
+      controls: state.controls,
+      form_state: state
+    }),
+    default: '',
+    renderTrigger: true
   },
 
   pandas_aggfunc: {
