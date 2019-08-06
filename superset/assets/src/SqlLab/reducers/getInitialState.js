@@ -51,8 +51,8 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
         selectedText: null,
         latestQueryId: null,
         autorun: false,
-        dbId: restBootstrapData.active_tab.query.dbId,
-        schema: restBootstrapData.active_tab.query.schema,
+        dbId: restBootstrapData.active_tab.database_id,
+        schema: restBootstrapData.active_tab.schema,
         queryLimit: restBootstrapData.active_tab.queryLimit,
         validationResult: {
           id: null,

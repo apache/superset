@@ -2855,10 +2855,12 @@ class Superset(BaseSupersetView):
             .filter_by(user_id=g.user.get_id())
             .all()
         )
+        # return first active tab, or fallback to another one if no tab is active
         active_tab = (
             db.session
             .query(TabState)
-            .filter_by(user_id=g.user.get_id(), active=True)
+            .filter_by(user_id=g.user.get_id())
+            .order_by(TabState.active.desc())
             .first()
         )
 
