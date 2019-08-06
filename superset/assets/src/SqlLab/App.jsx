@@ -27,7 +27,7 @@ import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 import { initEnhancer } from '../reduxUtils';
 import App from './components/App';
-import emptyQueryResults from './utils/emptyQueryResults';
+import { emptyQueryResults, clearQueryEditors } from './utils/reduxStateToLocalStorageHelper';
 import { BYTES_PER_CHAR, KB_STORAGE } from './constants';
 import setupApp from '../setup/setupApp';
 
@@ -57,6 +57,8 @@ const sqlLabPersistStateConfig = {
           subset[path] = {
             ...state[path],
             queries: emptyQueryResults(state[path].queries),
+            queryEditors: clearQueryEditors(state[path].queryEditors),
+            tables: [],
           };
         }
       });
