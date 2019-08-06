@@ -17,7 +17,7 @@
 # pylint: disable=C,R,W
 from typing import Callable
 
-from flask import g, redirect, request, Response
+from flask import g, redirect, request
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -179,6 +179,44 @@ appbuilder.add_view_no_menu(SavedQueryView)
 class TabStateView(BaseSupersetView):
 
     @has_access_api
+    @expose('/', methods=['POST'])
+    def post(self):
+        query_editor = json.loads(request.form['queryEditor'])
+        query = Query(
+            client_id=utils.shortid()[:10],
+            database_id=query_editor['dbId'],
+            schema=query_editor['schema'],
+            sql=query_editor['sql'],
+        )
+        tab_state = TabState(
+            user_id=g.user.get_id(),
+            label=query_editor['title'],
+            active=True,
+            database_id=query_editor['dbId'],
+            schema=query_editor['schema'],
+            query=query,
+            query_limit=query_editor['queryLimit'],
+        )
+        (
+            db.session
+            .query(TabState)
+            .filter_by(user_id=g.user.get_id())
+            .update({'active': False})
+        )
+        db.session.add(tab_state)
+        db.session.commit()
+        return json_success(json.dumps({'id': tab_state.id}))
+
+    @has_access_api
+    @expose('/<int:tab_state_id>', methods=['DELETE'])
+    def delete(self, tab_state_id):
+        db.session.query(TabState).filter(
+            TabState.id == tab_state_id,
+        ).delete(synchronize_session=False)
+        db.session.commit()
+        return json_success(json.dumps('OK'))
+
+    @has_access_api
     @expose('/<int:tab_state_id>', methods=['GET'])
     def get(self, tab_state_id):
         tab_state = (
@@ -197,6 +235,19 @@ class TabStateView(BaseSupersetView):
             .query(TabState)
             .filter_by(user_id=g.user.get_id())
             .update({'active': TabState.id == tab_state_id})
+        )
+        db.session.commit()
+        return json_success(json.dumps(tab_state_id))
+
+    @has_access_api
+    @expose('<int:tab_state_id>', methods=['PUT'])
+    def put(self, tab_state_id):
+        fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
+        (
+            db.session
+            .query(TabState)
+            .filter_by(id=tab_state_id)
+            .update(fields)
         )
         db.session.commit()
         return json_success(json.dumps(tab_state_id))

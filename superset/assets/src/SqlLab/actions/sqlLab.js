@@ -274,11 +274,20 @@ export function setDatabases(databases) {
 }
 
 export function addQueryEditor(queryEditor) {
-  const newQueryEditor = {
-    ...queryEditor,
-    id: shortid.generate(),
+  return function (dispatch) {
+    return SupersetClient.post({
+      endpoint: '/tabstateview/',
+      postPayload: { queryEditor },
+    })
+      .then(({ json }) => {
+        const newQueryEditor = {
+          ...queryEditor,
+          id: json.id,
+        };
+        dispatch({ type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor });
+      })
+      .catch(() => dispatch(addDangerToast(t('Unable to add a new tab'))));
   };
-  return { type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor };
 }
 
 export function cloneQueryToNewTab(query) {
@@ -290,9 +299,7 @@ export function setActiveQueryEditor(queryEditor) {
     SupersetClient.post({
       endpoint: encodeURI(`/tabstateview/${queryEditor.id}/activate`),
     })
-      .then(() => {
-        dispatch({ type: SET_ACTIVE_QUERY_EDITOR, queryEditor });
-      })
+      .then(() => dispatch({ type: SET_ACTIVE_QUERY_EDITOR, queryEditor }))
       .catch(() =>
         dispatch(addDangerToast(t('An error occurred while setting active tab'))),
       );
@@ -328,9 +335,6 @@ export function setTables(tableSchemas) {
       isMetadataLoading: false,
       isExtraMetadataLoading: false,
     };
-    // const query = {
-    //   id: dataPreviewQueryId,
-    // };
   });
   return { type: SET_TABLES, tables };
 }
@@ -347,8 +351,8 @@ export function switchQueryEditor(queryEditor) {
             loaded: true,
             title: json.label,
             sql: json.query.sql,
-            dbId: json.query.dbId,
-            schema: json.query.schema,
+            dbId: json.database_id,
+            schema: json.schema,
             queryLimit: json.queryLimit,
             validationResult: {
               id: null,
@@ -360,9 +364,9 @@ export function switchQueryEditor(queryEditor) {
           dispatch(setTables(json.table_schemas || []));
           dispatch(setActiveQueryEditor(loadedQueryEditor));
         })
-        .catch(() => {
-          return dispatch(addDangerToast(t('An error occurred while fetching tab state')));
-        });
+        .catch(() =>
+          dispatch(addDangerToast(t('An error occurred while fetching tab state'))),
+        );
     } else {
       dispatch(setActiveQueryEditor(queryEditor));
     }
@@ -374,7 +378,17 @@ export function setActiveSouthPaneTab(tabId) {
 }
 
 export function removeQueryEditor(queryEditor) {
-  return { type: REMOVE_QUERY_EDITOR, queryEditor };
+  return function (dispatch) {
+    SupersetClient.delete({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+    })
+      .then(() =>
+        dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor }),
+      )
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while removing tab'))),
+      );
+  };
 }
 
 export function removeQuery(query) {
@@ -382,11 +396,29 @@ export function removeQuery(query) {
 }
 
 export function queryEditorSetDb(queryEditor, dbId) {
-  return { type: QUERY_EDITOR_SETDB, queryEditor, dbId };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { database_id: dbId },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SETDB, queryEditor, dbId }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab database ID'))),
+      );
+  };
 }
 
 export function queryEditorSetSchema(queryEditor, schema) {
-  return { type: QUERY_EDITOR_SET_SCHEMA, queryEditor, schema };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { schema },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_SCHEMA, queryEditor, schema }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab schema'))),
+      );
+  };
 }
 
 export function queryEditorSetSchemaOptions(queryEditor, options) {
@@ -402,15 +434,34 @@ export function queryEditorSetAutorun(queryEditor, autorun) {
 }
 
 export function queryEditorSetTitle(queryEditor, title) {
-  return { type: QUERY_EDITOR_SET_TITLE, queryEditor, title };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { label: title },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_TITLE, queryEditor, title }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab title'))),
+      );
+  };
 }
 
 export function queryEditorSetSql(queryEditor, sql) {
+  console.log('CALLED');
   return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql };
 }
 
 export function queryEditorSetQueryLimit(queryEditor, queryLimit) {
-  return { type: QUERY_EDITOR_SET_QUERY_LIMIT, queryEditor, queryLimit };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { query_limit: queryLimit },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_QUERY_LIMIT, queryEditor, queryLimit }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab title'))),
+      );
+  };
 }
 
 export function queryEditorSetTemplateParams(queryEditor, templateParams) {
@@ -539,9 +590,7 @@ export function expandTable(table) {
       endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
       postPayload: { expanded: true },
     })
-      .then(() => {
-        dispatch({ type: EXPAND_TABLE, table });
-      })
+      .then(() => dispatch({ type: EXPAND_TABLE, table }))
       .catch(() =>
         dispatch(addDangerToast(t('An error occurred while expanding the table schema'))),
       );
@@ -554,9 +603,7 @@ export function collapseTable(table) {
       endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
       postPayload: { expanded: false },
     })
-      .then(() => {
-        dispatch({ type: COLLAPSE_TABLE, table });
-      })
+      .then(() => dispatch({ type: COLLAPSE_TABLE, table }))
       .catch(() =>
         dispatch(addDangerToast(t('An error occurred while collapsing the table schema'))),
       );
@@ -568,9 +615,7 @@ export function removeTable(table) {
     SupersetClient.delete({
       endpoint: encodeURI(`/tableschemaview/${table.id}`),
     })
-      .then(() => {
-        dispatch({ type: REMOVE_TABLE, table });
-      })
+      .then(() => dispatch({ type: REMOVE_TABLE, table }))
       .catch(() =>
         dispatch(addDangerToast(t('An error occurred while removing the table schema'))),
       );

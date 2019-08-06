@@ -199,6 +199,11 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     label = Column(String(256))
     active = Column(Boolean, default=False)
 
+    # selected DB and schema
+    database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
+    database = relationship('Database', foreign_keys=[database_id])
+    schema = Column(String(256))
+
     # tables that are open in the schema browser and their data previews
     table_schemas = relationship('TableSchema')
 
@@ -213,6 +218,8 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             'user_id': self.user_id,
             'label': self.label,
             'active': self.active,
+            'database_id': self.database_id,
+            'schema': self.schema,
             'table_schemas': [ts.to_dict() for ts in self.table_schemas],
             'query': self.query.to_dict(),
             'query_limit': self.query_limit,
