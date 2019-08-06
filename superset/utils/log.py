@@ -18,7 +18,9 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 import functools
+import inspect
 import json
+import logging
 
 from flask import current_app, g, request
 
@@ -81,6 +83,33 @@ class AbstractEventLogger(ABC):
     @property
     def stats_logger(self):
         return current_app.config.get("STATS_LOGGER")
+
+def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
+    '''
+    Given a value (presumed to be configured value for EVENT_LOGGER in superset config),
+    if that value is a class type this func will return a new instantiate an object using
+    a default constructor. Otherwise, it is assumed to be a logger and returned.
+    The motivation for this method is to gracefully deprecate the ability to configure 
+    EVENT_LOGGER with a class type.
+    '''
+    result : AbstractEventLogger = None 
+    if inspect.isclass(cfg_value):
+        logging.getLogger().warning(
+            """
+            In superset private config, EVENT_LOGGER has been assigned a class object. In order to`
+            accomodate pre-configured instances without a default constructor, assignment of a class
+            is deprecated and may no longer work at some point in the future. Please assign an object 
+            instance of a type that implements superset.utils.log.AbstractEventLogger.
+            """.format(type(cfg_value)))
+        result = cfg_value()
+    else:
+        result = cfg_value
+
+    if not isinstance(result, AbstractEventLogger):
+            raise TypeError('EVENT_LOGGER must be configured with a concrete instance ofsuperset.utils.log.AbstractEventLogger.')
+
+    logging.info("Configured event logger of type {}".format(type(result)))
+    return result
 
 
 class DBEventLogger(AbstractEventLogger):
