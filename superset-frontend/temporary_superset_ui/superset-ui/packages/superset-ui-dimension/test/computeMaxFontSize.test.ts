@@ -1,20 +1,10 @@
 import { computeMaxFontSize } from '../src/index';
-import addDummyFill from './addDummyFill';
+import { addDummyFill, removeDummyFill } from './getBBoxDummyFill';
 
 describe('computeMaxFontSize(input)', () => {
   describe('returns dimension of the given text', () => {
-    let originalFn: () => DOMRect;
-
-    beforeEach(() => {
-      // @ts-ignore - fix jsdom
-      originalFn = SVGElement.prototype.getBBox;
-      addDummyFill();
-    });
-
-    afterEach(() => {
-      // @ts-ignore - fix jsdom
-      SVGElement.prototype.getBBox = originalFn;
-    });
+    beforeEach(addDummyFill);
+    afterEach(removeDummyFill);
 
     it('requires either idealFontSize or maxHeight', () => {
       expect(() =>
