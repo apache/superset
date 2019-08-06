@@ -1,4 +1,9 @@
-# [0.0.0](https://github.com/apache-superset/superset-ui/compare/v0.11.14...v0.0.0) (2019-08-05)
+## [0.11.15](https://github.com/apache-superset/superset-ui/compare/v0.11.14...v0.11.15) (2019-08-06)
+
+
+### Features
+
+* optimize functions for getting text dimension ([#199](https://github.com/apache-superset/superset-ui/issues/199)) ([ad0fa42](https://github.com/apache-superset/superset-ui/commit/ad0fa42))
 
 
 
