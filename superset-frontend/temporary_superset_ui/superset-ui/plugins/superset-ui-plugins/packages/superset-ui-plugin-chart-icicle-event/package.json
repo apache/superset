@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-icicle-event",
-  "version": "0.10.32",
+  "version": "0.10.39",
   "description": "Superset Chart Plugin - Icicle Event",
   "sideEffects": [
     "*.css"
