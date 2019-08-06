@@ -447,8 +447,16 @@ export function queryEditorSetTitle(queryEditor, title) {
 }
 
 export function queryEditorSetSql(queryEditor, sql) {
-  console.log('CALLED');
-  return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}/query`),
+      postPayload: { sql },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_SQL, queryEditor, sql }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab SQL'))),
+      );
+  };
 }
 
 export function queryEditorSetQueryLimit(queryEditor, queryLimit) {

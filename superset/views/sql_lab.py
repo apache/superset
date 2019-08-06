@@ -252,6 +252,25 @@ class TabStateView(BaseSupersetView):
         db.session.commit()
         return json_success(json.dumps(tab_state_id))
 
+    @has_access_api
+    @expose('<int:tab_state_id>/query', methods=['PUT'])
+    def query(self, tab_state_id):
+        fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
+        query_id = (
+            db.session
+            .query(TabState.query_id)
+            .filter_by(id=tab_state_id)
+            .scalar()
+        )
+        (
+            db.session
+            .query(Query)
+            .filter_by(id=query_id)
+            .update(fields)
+        )
+        db.session.commit()
+        return json_success(json.dumps(tab_state_id))
+
 
 class TableSchemaView(BaseSupersetView):
 
