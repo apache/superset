@@ -86,27 +86,31 @@ class AbstractEventLogger(ABC):
 
 def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
     '''
-    Given a value (presumed to be configured value for EVENT_LOGGER in superset config),
-    if that value is a class type this func will return a new instantiate an object using
-    a default constructor. Otherwise, it is assumed to be a logger and returned.
+    This function implements the deprecation of assignment of class objects to EVENT_LOGGER
+    configuration, and validates type of configured loggers.
+
     The motivation for this method is to gracefully deprecate the ability to configure 
-    EVENT_LOGGER with a class type.
+    EVENT_LOGGER with a class type, in favor of preconfigured instances which may have
+    required construction-time injection of proprietary or locally-defined dependencies.
+
+    :param cfg_value: The configured EVENT_LOGGER value to be validated
+    :return: if cfg_value is a class type, will return a new instance created using a
+    default con
     '''
-    result : AbstractEventLogger = None 
+    result : AbstractEventLogger = cfg_value 
     if inspect.isclass(cfg_value):
         logging.getLogger().warning(
             """
-            In superset private config, EVENT_LOGGER has been assigned a class object. In order to`
+            In superset private config, EVENT_LOGGER has been assigned a class object. In order to
             accomodate pre-configured instances without a default constructor, assignment of a class
             is deprecated and may no longer work at some point in the future. Please assign an object 
             instance of a type that implements superset.utils.log.AbstractEventLogger.
             """.format(type(cfg_value)))
         result = cfg_value()
-    else:
-        result = cfg_value
 
+    # Verify that we have a valid logger impl
     if not isinstance(result, AbstractEventLogger):
-            raise TypeError('EVENT_LOGGER must be configured with a concrete instance ofsuperset.utils.log.AbstractEventLogger.')
+        raise TypeError('EVENT_LOGGER must be configured with a concrete instance ofsuperset.utils.log.AbstractEventLogger.')
 
     logging.info("Configured event logger of type {}".format(type(result)))
     return result
