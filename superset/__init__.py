@@ -105,6 +105,7 @@ def get_manifest():
 
 #################################################################
 
+# Setup the cache prior to registering the blueprints.
 cache = setup_cache(app, conf.get("CACHE_CONFIG"))
 tables_cache = setup_cache(app, conf.get("TABLE_NAMES_CACHE_CONFIG"))
 
