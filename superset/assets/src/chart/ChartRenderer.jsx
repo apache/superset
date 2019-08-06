@@ -20,7 +20,7 @@ import dompurify from 'dompurify';
 import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { ChartProps, SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/chart';
 import { Tooltip } from 'react-bootstrap';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
 
@@ -60,7 +60,6 @@ class ChartRenderer extends React.Component {
     super(props);
     this.state = {};
 
-    this.createChartProps = ChartProps.createSelector();
     this.hasQueryResponseChange = false;
 
     this.setTooltip = this.setTooltip.bind(this);
@@ -95,33 +94,6 @@ class ChartRenderer extends React.Component {
 
   setTooltip(tooltip) {
     this.setState({ tooltip });
-  }
-
-  prepareChartProps() {
-    const {
-      width,
-      height,
-      annotationData,
-      datasource,
-      initialValues,
-      formData,
-      queryResponse,
-      setControlValue,
-    } = this.props;
-
-    return this.createChartProps({
-      width,
-      height,
-      annotationData,
-      datasource,
-      filters: initialValues,
-      formData,
-      onAddFilter: this.handleAddFilter,
-      onError: this.handleRenderFailure,
-      payload: queryResponse,
-      setControlValue,
-      setTooltip: this.setTooltip,
-    });
   }
 
   handleAddFilter(col, vals, merge = true, refresh = true) {
@@ -197,10 +169,24 @@ class ChartRenderer extends React.Component {
       chartId,
     } = this.props;
 
-    const isLoading = chartStatus === 'loading';
+    // Skip chart rendering
+    if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
+      return null;
+    }
 
-    const skipChartRendering = isLoading || !!chartAlert || chartStatus === null;
     this.renderStartTime = Logger.getTimestamp();
+
+    const {
+      width,
+      height,
+      annotationData,
+      datasource,
+      initialValues,
+      formData,
+      queryResponse,
+      setControlValue,
+    } = this.props;
+
     return (
       <React.Fragment>
         {this.renderTooltip()}
@@ -208,7 +194,17 @@ class ChartRenderer extends React.Component {
           id={`chart-id-${chartId}`}
           className={`${snakeCase(vizType)}`}
           chartType={vizType}
-          chartProps={skipChartRendering ? null : this.prepareChartProps()}
+          width={width}
+          height={height}
+          annotationData={annotationData}
+          datasource={datasource}
+          filters={initialValues}
+          formData={formData}
+          payload={queryResponse}
+          onAddFilter={this.handleAddFilter}
+          onError={this.handleRenderFailure}
+          setControlValue={setControlValue}
+          setTooltip={this.setTooltip}
           onRenderSuccess={this.handleRenderSuccess}
           onRenderFailure={this.handleRenderFailure}
         />
