@@ -1,17 +1,28 @@
-export const SAMPLE_TEXT = 'dummy text. does not really matter';
+let originalFn: () => DOMRect;
 
-export default function addDummyFill() {
+const textToWidth = {
+  paris: 200,
+  tokyo: 300,
+  beijing: 400,
+};
+
+export const SAMPLE_TEXT = Object.keys(textToWidth);
+
+export function addDummyFill() {
+  // @ts-ignore - fix jsdom
+  originalFn = SVGElement.prototype.getBBox;
+
   // @ts-ignore - fix jsdom
   SVGElement.prototype.getBBox = function getBBox() {
-    let width = 200;
+    let width = textToWidth[this.textContent] || 200;
     let height = 20;
 
     if (this.getAttribute('class') === 'test-class') {
-      width = 100;
+      width /= 2;
     }
 
     if (this.style.fontFamily === 'Lobster') {
-      width = 250;
+      width *= 1.25;
     }
 
     if (this.style.fontSize) {
@@ -44,4 +55,9 @@ export default function addDummyFill() {
       bottom: 0,
     };
   };
+}
+
+export function removeDummyFill() {
+  // @ts-ignore - fix jsdom
+  SVGElement.prototype.getBBox = originalFn;
 }
