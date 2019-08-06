@@ -8,6 +8,7 @@ export default [
   {
     renderStory: () => (
       <SuperChart
+        id="stacked-area-chart"
         chartType="area"
         datasource={dummyDatasource}
         width={400}

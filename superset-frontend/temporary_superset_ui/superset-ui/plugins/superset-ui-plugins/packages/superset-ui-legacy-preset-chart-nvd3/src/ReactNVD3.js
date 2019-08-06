@@ -18,10 +18,15 @@
  */
 import { reactify } from '@superset-ui/chart';
 import Component from './NVD3Vis';
-import { hideTooltips } from './utils';
+import { hideTooltips, removeTooltip } from './utils';
 
 function componentWillUnmount() {
-  hideTooltips(true);
+  const { id } = this.props; // eslint-disable-line babel/no-invalid-this
+  if (id !== null && id !== undefined) {
+    removeTooltip(id);
+  } else {
+    hideTooltips(true);
+  }
 }
 
 export default reactify(Component, { componentWillUnmount });
