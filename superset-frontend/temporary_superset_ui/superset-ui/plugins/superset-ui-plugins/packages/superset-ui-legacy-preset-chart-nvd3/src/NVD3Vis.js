@@ -43,12 +43,14 @@ import {
   generateMultiLineTooltipContent,
   generateRichLineTooltipContent,
   generateTimePivotTooltip,
+  generateTooltipClassName,
   generateAreaChartTooltipContent,
   getMaxLabelSize,
   getTimeOrNumberFormatter,
   hideTooltips,
   tipFactory,
   tryNumify,
+  removeTooltip,
   setAxisShowMaxMin,
   stringifyTimeRange,
   wrapTooltip,
@@ -254,6 +256,10 @@ function nvd3Vis(element, props) {
   const container = element;
   container.innerHTML = '';
   const activeAnnotationLayers = annotationLayers.filter(layer => layer.show);
+  const chartId =
+    container.parentElement && container.parentElement.id !== ''
+      ? container.parentElement.id
+      : null;
 
   let chart;
   let width = maxWidth;
@@ -803,6 +809,18 @@ function nvd3Vis(element, props) {
         data.push(...timeSeriesAnnotations);
       }
 
+      // Uniquely identify tooltips based on chartId so this chart instance only
+      // controls its own tooltips
+      if (chartId) {
+        if (chart && chart.interactiveLayer && chart.interactiveLayer.tooltip) {
+          chart.interactiveLayer.tooltip.classes([generateTooltipClassName(chartId)]);
+        }
+
+        if (chart && chart.tooltip) {
+          chart.tooltip.classes([generateTooltipClassName(chartId)]);
+        }
+      }
+
       // render chart
       svg
         .datum(data)
@@ -1080,7 +1098,11 @@ function nvd3Vis(element, props) {
   // Remove tooltips before rendering chart, if the chart is being re-rendered sometimes
   // there are left over tooltips in the dom,
   // this will clear them before rendering the chart again.
-  hideTooltips(true);
+  if (chartId) {
+    removeTooltip(chartId);
+  } else {
+    hideTooltips(true);
+  }
 
   nv.addGraph(drawGraph);
 }
