@@ -1,4 +1,18 @@
-# [0.0.0-master](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.38...v0.0.0-master) (2019-07-29)
+# [0.0.0-master](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.39...v0.0.0-master) (2019-08-06)
+
+
+
+## [0.10.39](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.38...v0.10.39) (2019-08-06)
+
+
+### Bug Fixes
+
+* only remove tooltips relating to a single vis ([#167](https://github.com/apache-superset/superset-ui-plugins/issues/167)) ([8059485](https://github.com/apache-superset/superset-ui-plugins/commit/8059485))
+
+
+### Features
+
+* file skeleton necessary for icicle chart visualization ([#162](https://github.com/apache-superset/superset-ui-plugins/issues/162)) ([ecd5744](https://github.com/apache-superset/superset-ui-plugins/commit/ecd5744))
 
 
 
