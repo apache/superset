@@ -1069,6 +1069,9 @@ class BigNumberTotalViz(BaseViz):
             raise Exception(_("Pick a metric!"))
         d["metrics"] = [self.form_data.get("metric")]
         self.form_data["metric"] = metric
+
+        # Limiting rows is not required as only one cell is returned
+        d["row_limit"] = None
         return d
 
 
