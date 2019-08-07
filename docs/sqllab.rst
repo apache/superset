@@ -56,7 +56,7 @@ Templating with Jinja
 
     SELECT *
     FROM some_table
-    WHERE partition_key = '{{ presto.latest_partition('some_table') }}'
+    WHERE partition_key = '{{ presto.first_latest_partition('some_table') }}'
 
 Templating unleashes the power and capabilities of a
 programming language within your SQL code.
