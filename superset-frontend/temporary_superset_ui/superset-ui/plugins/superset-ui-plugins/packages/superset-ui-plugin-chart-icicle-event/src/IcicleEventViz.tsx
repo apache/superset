@@ -17,7 +17,12 @@
  * under the License.
  */
 import React, { PureComponent } from 'react';
+import memoizeOne from 'memoize-one';
 import { IcicleEventNode } from '../types/IcicleEventNode';
+import IcicleEventChart from './IcicleEventChart';
+import { createPartitionAndLayout } from './utils/IcicleEventTreeHelpers';
+
+const memoizedCreatePartitionAndLayout = memoizeOne(createPartitionAndLayout);
 
 interface Props {
   className?: string;
@@ -32,8 +37,26 @@ interface Props {
 
 export default class IcicleEventViz extends PureComponent<Props> {
   render() {
-    // TODO: create d3 partition & layout w/ memoization & pass into chart here
+    const { data, isVertical, width, height, rounding, transitionDuration } = this.props;
 
-    return <div>Icicle Event Chart Component</div>;
+    // Memoized to prevent the creation of a new tree with every render
+    const root = memoizedCreatePartitionAndLayout(
+      data,
+      isVertical ? width : height,
+      isVertical ? height : width,
+    );
+
+    return (
+      <div>
+        <IcicleEventChart
+          d3TreeRoot={root}
+          width={width}
+          height={height}
+          isVertical={isVertical}
+          rounding={rounding}
+          transitionDuration={transitionDuration}
+        />
+      </div>
+    );
   }
 }

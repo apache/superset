@@ -31,10 +31,13 @@
   "dependencies": {
     "@types/d3": "^5.7.2",
     "@types/d3-hierarchy": "^1.1.6",
-    "d3": "^5.9.7",
+    "@types/d3-selection": "^1.4.1",
+    "@types/memoize-one": "^4.1.1",
     "d3-array": "^2.2.0",
     "d3-hierarchy": "^1.1.8",
+    "d3-selection": "^1.4.0",
     "lodash": "^4.17.11",
+    "memoize-one": "^5.0.5",
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {

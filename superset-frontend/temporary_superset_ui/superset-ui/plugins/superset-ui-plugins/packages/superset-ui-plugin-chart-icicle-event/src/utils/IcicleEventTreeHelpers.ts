@@ -17,7 +17,12 @@
  * under the License.
  */
 import { max as d3Max } from 'd3-array';
-import { HierarchyRectangularNode } from 'd3-hierarchy';
+import {
+  HierarchyNode,
+  HierarchyRectangularNode,
+  hierarchy as d3Hierarchy,
+  partition as d3Partition,
+} from 'd3-hierarchy';
 import { IcicleEventNode } from '../../types/IcicleEventNode';
 
 export function findDepth(node: IcicleEventNode, depth: number = 0): number {
@@ -31,12 +36,24 @@ export function findDepth(node: IcicleEventNode, depth: number = 0): number {
 }
 
 export function hierarchySort(
-  a: HierarchyRectangularNode<IcicleEventNode>,
-  b: HierarchyRectangularNode<IcicleEventNode>,
+  a: HierarchyNode<IcicleEventNode>,
+  b: HierarchyNode<IcicleEventNode>,
 ): number {
   if (a && a.value && b && b.value) {
     return b.value - a.value || b.height - a.height;
   }
 
   return 0;
+}
+
+export function createPartitionAndLayout(
+  data: IcicleEventNode,
+  width: number,
+  height: number,
+): HierarchyRectangularNode<IcicleEventNode> {
+  const root = d3Hierarchy(data).sort(hierarchySort);
+  const createLayout = d3Partition<IcicleEventNode>().size([width, height]);
+  const layout = createLayout(root);
+
+  return layout;
 }
