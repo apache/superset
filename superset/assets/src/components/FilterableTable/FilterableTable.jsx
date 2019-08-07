@@ -257,6 +257,23 @@ export default class FilterableTable extends PureComponent {
     );
   }
 
+  sortResults(sortBy, descending) {
+    return function (a, b) {
+      if (a[sortBy] === b[sortBy]) {
+        // equal items sort equally
+        return 0;
+      } else if (a[sortBy] === null) {
+        // nulls sort after anything else
+        return 1;
+      } else if (b[sortBy] === null) {
+        return -1;
+      } else if (descending) {
+        return a[sortBy] < b[sortBy] ? 1 : -1;
+      }
+      return a[sortBy] < b[sortBy] ? -1 : 1;
+    };
+  }
+
   renderTableHeader({ dataKey, label, sortBy, sortDirection }) {
     const className = this.props.expandedColumns.indexOf(label) > -1
       ? 'header-style-disabled'
@@ -373,26 +390,6 @@ export default class FilterableTable extends PureComponent {
       return this.addJsonModal(cellNode, jsonObject, cellData);
     }
     return cellNode;
-  }
-
-  sortResults(sortBy, descending) {
-    return function (a, b) {
-      // equal items sort equally
-      if (a[sortBy] === b[sortBy]) {
-        return 0;
-      }
-      // nulls sort after anything else
-      else if (a[sortBy] === null) {
-        return 1;
-      }
-      else if (b[sortBy] === null) {
-        return -1;
-      }
-      else if (descending) {
-        return a[sortBy] < b[sortBy] ? 1 : -1;
-      }
-      return a[sortBy] < b[sortBy] ? -1 : 1;
-    };
   }
 
   renderTable() {
