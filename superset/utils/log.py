@@ -84,8 +84,9 @@ class AbstractEventLogger(ABC):
     def stats_logger(self):
         return current_app.config.get("STATS_LOGGER")
 
+
 def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
-    '''
+    """
     This function implements the deprecation of assignment of class objects to EVENT_LOGGER
     configuration, and validates type of configured loggers.
 
@@ -96,8 +97,8 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
     :param cfg_value: The configured EVENT_LOGGER value to be validated
     :return: if cfg_value is a class type, will return a new instance created using a
     default con
-    '''
-    result : AbstractEventLogger = cfg_value 
+    """
+    result: AbstractEventLogger = cfg_value
     if inspect.isclass(cfg_value):
         logging.getLogger().warning(
             """
@@ -105,12 +106,15 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
             accomodate pre-configured instances without a default constructor, assignment of a class
             is deprecated and may no longer work at some point in the future. Please assign an object 
             instance of a type that implements superset.utils.log.AbstractEventLogger.
-            """.format(type(cfg_value)))
+            """
+        )
         result = cfg_value()
 
     # Verify that we have a valid logger impl
     if not isinstance(result, AbstractEventLogger):
-        raise TypeError('EVENT_LOGGER must be configured with a concrete instance ofsuperset.utils.log.AbstractEventLogger.')
+        raise TypeError(
+            "EVENT_LOGGER must be configured with a concrete instance ofsuperset.utils.log.AbstractEventLogger."
+        )
 
     logging.info("Configured event logger of type {}".format(type(result)))
     return result

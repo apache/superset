@@ -221,7 +221,10 @@ _feature_flags = app.config.get("DEFAULT_FEATURE_FLAGS") or {}
 _feature_flags.update(app.config.get("FEATURE_FLAGS") or {})
 
 # Event Logger
-event_logger = get_event_logger_from_cfg_value(app.config.get("EVENT_LOGGER", DBEventLogger()))
+event_logger = get_event_logger_from_cfg_value(
+    app.config.get("EVENT_LOGGER", DBEventLogger())
+)
+
 
 def get_feature_flags():
     GET_FEATURE_FLAGS_FUNC = app.config.get("GET_FEATURE_FLAGS_FUNC")
