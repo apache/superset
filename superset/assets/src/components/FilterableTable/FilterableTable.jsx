@@ -121,6 +121,7 @@ export default class FilterableTable extends PureComponent {
     this.renderGrid = this.renderGrid.bind(this);
     this.renderTableCell = this.renderTableCell.bind(this);
     this.renderTableHeader = this.renderTableHeader.bind(this);
+    this.sortResults = this.sortResults.bind(this);
     this.renderTable = this.renderTable.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
@@ -173,13 +174,19 @@ export default class FilterableTable extends PureComponent {
   }
 
   getCellContent({ cellData, columnKey }) {
-    const content = String(cellData);
+    let content = String(cellData);
     const firstCharacter = content.substring(0, 1);
     let truncated;
     if (firstCharacter === '[') {
       truncated = '[…]';
     } else if (firstCharacter === '{') {
       truncated = '{…}';
+    } else if (cellData === null) {
+      content = (
+        <i className="null-cell-render">
+          NULL
+        </i>
+      );
     } else {
       truncated = '';
     }
@@ -194,7 +201,7 @@ export default class FilterableTable extends PureComponent {
         if (['string', 'number'].indexOf(typeof (val)) >= 0) {
           newRow[k] = val;
         } else {
-          newRow[k] = JSONbig.stringify(val);
+          newRow[k] = val === null ? null : JSONbig.stringify(val);
         }
       }
       return newRow;
@@ -368,6 +375,26 @@ export default class FilterableTable extends PureComponent {
     return cellNode;
   }
 
+  sortResults(sortBy, descending) {
+    return function (a, b) {
+      // equal items sort equally
+      if (a[sortBy] === b[sortBy]) {
+        return 0;
+      }
+      // nulls sort after anything else
+      else if (a[sortBy] === null) {
+        return 1;
+      }
+      else if (b[sortBy] === null) {
+        return -1;
+      }
+      else if (descending) {
+        return a[sortBy] < b[sortBy] ? 1 : -1;
+      }
+      return a[sortBy] < b[sortBy] ? -1 : 1;
+    };
+  }
+
   renderTable() {
     const { sortBy, sortDirection } = this.state;
     const {
@@ -386,8 +413,7 @@ export default class FilterableTable extends PureComponent {
     // sort list
     if (sortBy) {
       sortedAndFilteredList = sortedAndFilteredList
-      .sortBy(item => item[sortBy])
-      .update(list => sortDirection === SortDirection.DESC ? list.reverse() : list);
+      .sort(this.sortResults(sortBy, sortDirection === SortDirection.DESC));
     }
 
     let { height } = this.props;
