@@ -19,7 +19,6 @@ from datetime import datetime, timedelta
 import json
 import unittest
 
-from flask_appbuilder.security.sqla import models as ab_models
 import prison
 
 from superset import db, security_manager
@@ -85,16 +84,10 @@ class SqlLabTests(SupersetTestCase):
 
     def test_sql_json_has_access(self):
         main_db = get_main_database()
-        security_manager.add_permission_view_menu("database_access", main_db.perm)
-        db.session.commit()
-        main_db_permission_view = (
-            db.session.query(ab_models.PermissionView)
-            .join(ab_models.ViewMenu)
-            .join(ab_models.Permission)
-            .filter(ab_models.ViewMenu.name == "[main].(id:1)")
-            .filter(ab_models.Permission.name == "database_access")
-            .first()
+        main_db_permission_view = security_manager.add_permission_view_menu(
+            "database_access", main_db.perm
         )
+
         astronaut = security_manager.add_role("Astronaut")
         security_manager.add_permission_role(astronaut, main_db_permission_view)
         # Astronaut role is Gamma + sqllab +  main db permissions
@@ -160,11 +153,13 @@ class SqlLabTests(SupersetTestCase):
     def test_search_query_on_db_id(self):
         self.run_some_queries()
         self.login("admin")
+        main_dbid = get_main_database().id
+
         # Test search queries on database Id
-        data = self.get_json_resp("/superset/search_queries?database_id=1")
+        data = self.get_json_resp(f"/superset/search_queries?database_id={main_dbid}")
         self.assertEquals(3, len(data))
         db_ids = [k["dbId"] for k in data]
-        self.assertEquals([1, 1, 1], db_ids)
+        self.assertEquals([main_dbid for i in range(3)], db_ids)
 
         resp = self.get_resp("/superset/search_queries?database_id=-1")
         data = json.loads(resp)
@@ -281,7 +276,7 @@ class SqlLabTests(SupersetTestCase):
 
     def test_df_conversion_tuple(self):
         cols = ["string_col", "int_col", "list_col", "float_col"]
-        data = [(u"Text", 111, [123], 1.0)]
+        data = [("Text", 111, [123], 1.0)]
         cdf = SupersetDataFrame(data, cols, BaseEngineSpec)
 
         self.assertEquals(len(data), cdf.size)

@@ -28,7 +28,7 @@ from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.core import Database
-from superset.utils.core import get_main_database
+from superset.utils.core import get_example_database, get_main_database
 
 BASE_DIR = app.config.get("BASE_DIR")
 
@@ -168,6 +168,14 @@ class SupersetTestCase(unittest.TestCase):
             ):
                 security_manager.del_permission_role(public_role, perm)
 
+    def _get_database_by_name(self, database_name="main"):
+        if database_name == "main":
+            return get_main_database()
+        elif database_name == "examples":
+            return get_example_database()
+        else:
+            raise ValueError("Database doesn't exist")
+
     def run_sql(
         self,
         sql,
@@ -175,11 +183,12 @@ class SupersetTestCase(unittest.TestCase):
         user_name=None,
         raise_on_error=False,
         query_limit=None,
+        database_name="main",
     ):
         if user_name:
             self.logout()
-            self.login(username=(user_name if user_name else "admin"))
-        dbid = get_main_database().id
+            self.login(username=(user_name or "admin"))
+        dbid = self._get_database_by_name(database_name).id
         resp = self.get_json_resp(
             "/superset/sql_json/",
             raise_on_error=False,
@@ -195,11 +204,18 @@ class SupersetTestCase(unittest.TestCase):
             raise Exception("run_sql failed")
         return resp
 
-    def validate_sql(self, sql, client_id=None, user_name=None, raise_on_error=False):
+    def validate_sql(
+        self,
+        sql,
+        client_id=None,
+        user_name=None,
+        raise_on_error=False,
+        database_name="main",
+    ):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else "admin"))
-        dbid = get_main_database().id
+        dbid = self._get_database_by_name(database_name).id
         resp = self.get_json_resp(
             "/superset/validate_sql_json/",
             raise_on_error=False,
