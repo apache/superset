@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 FROM python:3.6-stretch
 
 RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
