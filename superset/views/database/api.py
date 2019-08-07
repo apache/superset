@@ -50,6 +50,8 @@ class DatabaseRestApi(DatabaseMixin, ModelRestApi):
         "allows_subquery",
         "backend",
     ]
+    # Removes the local limit for the page size
+    max_page_size = -1
 
 
 appbuilder.add_api(DatabaseRestApi)
