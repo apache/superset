@@ -17,7 +17,26 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/chart';
+import { findDepth } from './utils/IcicleEventTreeHelpers';
 
 export default function transformProps(chartProps: ChartProps) {
-  return {};
+  const { formData, payload, width } = chartProps;
+  // Need to double check if actually part of formData
+  const { color, isVertical, rounding, transitionDuration } = formData;
+  const { data } = payload;
+
+  const chartPropsHeight = chartProps.height;
+  const rectHeight = 30;
+  const heightFromTreeDepth = findDepth(data) * rectHeight;
+  const height = chartPropsHeight > heightFromTreeDepth ? chartPropsHeight : heightFromTreeDepth;
+
+  return {
+    color,
+    data,
+    height,
+    isVertical,
+    rounding,
+    transitionDuration,
+    width,
+  };
 }
