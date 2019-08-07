@@ -415,11 +415,11 @@ class SqlLabTests(SupersetTestCase):
             "page": 0,
             "page_size": -1,
         }
-        expected_results = ['examples', 'fake_db_100', 'main']
+        expected_results = ["examples", "fake_db_100", "main"]
         url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
         data = self.get_json_resp(url)
         for i, expected_result in enumerate(expected_results):
-            self.assertEquals(expected_result, data["result"][i]['database_name'])
+            self.assertEquals(expected_result, data["result"][i]["database_name"])
 
 
 if __name__ == "__main__":
