@@ -12,6 +12,8 @@ from flask import (
     abort, flash, g, Markup, redirect, render_template, request, session, Response, url_for,
 )
 from flask_appbuilder import expose, SimpleFormView
+from flask import request
+from flask_login import current_user
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -317,6 +319,33 @@ class DatabaseAsync(DatabaseView):
 
 appbuilder.add_view_no_menu(DatabaseAsync)
 
+@app.route('/versions/<tenant>', methods=['GET'])
+def get_version(tenant):
+    if not current_user.is_authenticated:
+        return Response(json.dumps({ 'code': 401, 'message': 'Login required' }), status=401)
+    if not tenant is None:
+        try:
+            record = db.session.query(models.Version).filter_by(tenant_id=tenant)
+            if record.count() > 0:
+                ver = record.one()
+                return Response(json.dumps({ 'tenant': ver.tenant_id, 'version': ver.version }), status=200)
+            else:
+                return Response(json.dumps({ 'code': 404, 'message': 'Version not available for ' + tenant }), status=404)
+        except Exception as e:
+            return json_error_response(e)
+
+@app.route('/versions', methods=['GET'])
+def get_all_versions():
+    if not current_user.is_authenticated:
+        return Response(json.dumps({ 'code': 401, 'message': 'Login required' }), status=401)
+    all_versions_coll = []
+    try:
+        all_versions = db.session.query(models.Version).order_by(models.Version.tenant_id)
+        for ver in all_versions:
+            all_versions_coll.append({ 'id': ver.id, 'tenant': ver.tenant_id, 'version': ver.version })
+        return Response(json.dumps(all_versions_coll), status=200)
+    except Exception as e:
+        return json_error_response(e)
 
 class CsvToDatabaseView(SimpleFormView):
     form = CsvToDatabaseForm

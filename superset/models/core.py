@@ -362,6 +362,14 @@ dashboard_user = Table(
     Column('dashboard_id', Integer, ForeignKey('dashboards.id')),
 )
 
+class Version(Model):
+
+    """The versions object!"""
+
+    __tablename__ = 'versions'
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(String(255))
+    version = Column(String(255))
 
 class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
