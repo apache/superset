@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask import current_app
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
@@ -52,6 +53,22 @@ class DatabaseRestApi(DatabaseMixin, ModelRestApi):
     ]
     # Removes the local limit for the page size
     max_page_size = -1
+
+    def _sanitize_page_args(self, page, page_size):
+        _page = page or 0
+        _page_size = page_size or self.page_size
+        max_page_size = self.max_page_size or current_app.config.get(
+            "FAB_API_MAX_PAGE_SIZE"
+        )
+        # Accept special -1 to uncap the page size
+        if max_page_size == -1:
+            if _page_size == -1:
+                return None, None
+            else:
+                return _page, _page_size
+        if _page_size > max_page_size or _page_size < 1:
+            _page_size = max_page_size
+        return _page, _page_size
 
 
 appbuilder.add_api(DatabaseRestApi)
