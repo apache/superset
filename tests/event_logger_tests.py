@@ -18,7 +18,6 @@ import logging
 import unittest
 
 from superset.utils.log import (
-    AbstractEventLogger,
     DBEventLogger,
     get_event_logger_from_cfg_value,
 )
@@ -36,7 +35,7 @@ class TestEventLogger(unittest.TestCase):
         res = None
 
         # print warning if a class is assigned to EVENT_LOGGER
-        with self.assertLogs(level="WARNING") as l:
+        with self.assertLogs(level="WARNING"):
             res = get_event_logger_from_cfg_value(DBEventLogger)
 
         # class is instantiated and returned
@@ -44,5 +43,5 @@ class TestEventLogger(unittest.TestCase):
 
     def test_raises_typerror_if_not_abc_impl(self):
         # test that assignment of non AbstractEventLogger derived type raises TypeError
-        with self.assertRaises(TypeError) as f:
+        with self.assertRaises(TypeError):
             get_event_logger_from_cfg_value(logging.getLogger())
