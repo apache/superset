@@ -17,7 +17,6 @@
 # pylint: disable=C,R,W
 """Package's main module!"""
 from copy import deepcopy
-import inspect
 import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
