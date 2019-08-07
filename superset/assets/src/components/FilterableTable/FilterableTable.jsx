@@ -174,19 +174,20 @@ export default class FilterableTable extends PureComponent {
   }
 
   getCellContent({ cellData, columnKey }) {
-    let content = String(cellData);
+    if (cellData === null) {
+      return (
+        <i className="null-cell">
+          NULL
+        </i>
+      );
+    }
+    const content = String(cellData);
     const firstCharacter = content.substring(0, 1);
     let truncated;
     if (firstCharacter === '[') {
       truncated = '[…]';
     } else if (firstCharacter === '{') {
       truncated = '{…}';
-    } else if (cellData === null) {
-      content = (
-        <i className="null-cell-render">
-          NULL
-        </i>
-      );
     } else {
       truncated = '';
     }
@@ -258,7 +259,7 @@ export default class FilterableTable extends PureComponent {
   }
 
   sortResults(sortBy, descending) {
-    return function (a, b) {
+    return (a, b) => {
       if (a[sortBy] === b[sortBy]) {
         // equal items sort equally
         return 0;
