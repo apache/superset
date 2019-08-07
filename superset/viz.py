@@ -42,7 +42,6 @@ from markdown import markdown
 import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import DateOffset
 import polyline
 import simplejson as json
 
@@ -1402,7 +1401,10 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
         fd = self.form_data
         df = self.process_data(df)
         freq = to_offset(fd.get("freq"))
-        freq = DateOffset(normalize=True, **freq.kwds)
+        try:
+            freq = type(freq)(freq.n, normalize=True, **freq.kwds)
+        except ValueError:
+            freq = type(freq)(freq.n, **freq.kwds)
         df.index.name = None
         df[DTTM_ALIAS] = df.index.map(freq.rollback)
         df["ranked"] = df[DTTM_ALIAS].rank(method="dense", ascending=False) - 1
