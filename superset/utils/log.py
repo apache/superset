@@ -99,7 +99,7 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
     :return: if cfg_value is a class type, will return a new instance created using a
     default con
     """
-    result: Any = None
+    result: Any = cfg_value
     if inspect.isclass(cfg_value):
         logging.getLogger().warning(
             """
@@ -112,8 +112,6 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
 
         event_logger_type = cast(Type, cfg_value)
         result = event_logger_type()
-    else:
-        result = cast(AbstractEventLogger, cfg_value)
 
     # Verify that we have a valid logger impl
     if not isinstance(result, AbstractEventLogger):
