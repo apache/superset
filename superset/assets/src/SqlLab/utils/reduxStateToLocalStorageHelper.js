@@ -18,7 +18,19 @@
  */
 import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../constants';
 
-export default function emptyQueryResults(queries) {
+const PERSISTENT_QUERY_EDITOR_KEYS = new Set([
+  'autorun',
+  'dbId',
+  'id',
+  'latestQueryId',
+  'queryLimit',
+  'selectedText',
+  'sql',
+  'templateParams',
+  'title',
+]);
+
+export function emptyQueryResults(queries) {
   return Object.keys(queries)
     .reduce((accu, key) => {
       const { startDttm, results } = queries[key];
@@ -34,4 +46,17 @@ export default function emptyQueryResults(queries) {
       };
       return updatedQueries;
     }, {});
+}
+
+export function clearQueryEditors(queryEditors) {
+  return queryEditors
+    .map(editor =>
+    // only return selected keys
+    Object.keys(editor)
+      .filter(key => PERSISTENT_QUERY_EDITOR_KEYS.has(key))
+      .reduce((accumulator, key) => ({
+        ...accumulator,
+        [key]: editor[key],
+      }), {}),
+    );
 }

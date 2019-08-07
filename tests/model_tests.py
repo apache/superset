@@ -27,6 +27,9 @@ from .base_tests import SupersetTestCase
 
 
 class DatabaseModelTestCase(SupersetTestCase):
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("requests"), "requests not installed"
+    )
     def test_database_schema_presto(self):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
         model = Database(sqlalchemy_uri=sqlalchemy_uri)
