@@ -17,10 +17,7 @@
 import logging
 import unittest
 
-from superset.utils.log import (
-    DBEventLogger,
-    get_event_logger_from_cfg_value,
-)
+from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
 
 class TestEventLogger(unittest.TestCase):
