@@ -20,6 +20,7 @@ import json
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
+import prison
 
 from superset import db, security_manager
 from superset.dataframe import SupersetDataFrame
@@ -402,6 +403,36 @@ class SqlLabTests(SupersetTestCase):
         )
 
         session.commit()
+
+    def test_api_database(self):
+        self.login("admin")
+
+        arguments = {
+            "keys": [],
+            "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
+            "order_column": "database_name",
+            "order_direction": "asc",
+            "page": 0,
+            "page_size": -1,
+        }
+        expected_results = [
+            {
+                "allow_csv_upload": False,
+                "allow_ctas": False,
+                "allow_dml": False,
+                "allow_multi_schema_metadata_fetch": False,
+                "allow_run_async": False,
+                "allows_subquery": "True",
+                "backend": "postgresql",
+                "database_name": "main",
+                "expose_in_sqllab": True,
+                "force_ctas_schema": None,
+                "id": 1,
+            }
+        ]
+        url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
+        data = self.get_json_resp(url)
+        self.assertEquals(expected_results, data["result"])
 
 
 if __name__ == "__main__":
