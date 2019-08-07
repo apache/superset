@@ -179,6 +179,13 @@ export const defaultQueryEditor = {
   selectedText: null,
   sql: 'SELECT *\nFROM\nWHERE',
   title: 'Untitled Query',
+  schemaOptions: [
+    {
+      value: 'main',
+      label: 'main',
+      title: 'main',
+    },
+  ],
 };
 export const queries = [
   {
