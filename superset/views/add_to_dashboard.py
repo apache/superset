@@ -37,11 +37,7 @@ def create_table(args):
     db.session.add(table_model)
     db.session.commit()
     logging.info('table is created with id = '+str(table_model.id)+' and linked with database id = '+str(database_id))
-    return {
-        'id' : table_model.id,
-        'type' : table_model.type,
-        'name' : table_model.name
-    }
+    return table_model
 
     
 def add_slice_to_dashboard(request,args, datasource_type=None, datasource_id=None):
@@ -93,12 +89,7 @@ def add_slice_to_dashboard(request,args, datasource_type=None, datasource_id=Non
     }
 
 
-def add_to_dashboard(request):
-    # create database  connection
-    database_name = request.form.get('database_name')
-    sqlalchemy_uri = request.form.get('sqlalchemy_uri')
-    extra = request.form.get('extra')
-    impersonate_user = eval(request.form.get('impersonate_user'))
+def create_database(database_name,sqlalchemy_uri,extra,impersonate_user):
     db_model = models.Database(
         database_name=database_name,
         sqlalchemy_uri=sqlalchemy_uri,
@@ -109,7 +100,15 @@ def add_to_dashboard(request):
     db.session.commit()
     database_id = db_model.id 
     logging.info('database connection is created with id = '+str(database_id))
-    
+    return database_id
+
+def add_to_dashboard(request):
+    # create database  connection
+    database_name = request.form.get('database_name')
+    sqlalchemy_uri = request.form.get('sqlalchemy_uri')
+    extra = request.form.get('extra')
+    impersonate_user = eval(request.form.get('impersonate_user'))
+    database_id = create_database(database_name,sqlalchemy_uri,extra,impersonate_user)    
 
     # create dashboard
     dash_model = models.Dashboard(

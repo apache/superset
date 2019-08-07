@@ -249,6 +249,7 @@ class RolePermissionTests(SupersetTestCase):
             ['Superset', 'welcome'],
             ['Superset', 'addtodashboard'],
             ['Superset', 'execute_rest_action'],
+            ['Superset', 'replicate_dashboard'],
             ['TableModelView', 'create'],
             ['DatabaseView', 'create'],
             ['Dashboard', 'addnew'],

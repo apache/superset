@@ -563,15 +563,16 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         # override the dashboard
         existing_dashboard = None
         existing_slug = None  
-        for dash in session.query(Dashboard).all():
-            # if ('remote_id' in dash.params_dict and
-            #         dash.params_dict['remote_id'] ==
-            #         dashboard_to_import.id):
-            #     existing_dashboard = dash
-            if (dash.slug == dashboard_to_import.slug):
-                existing_slug = True
-                logging.info('Dashboard with same slug exists. Dashboard id {} Dashboard title: {}'.format(
-                    dash.id, dash.dashboard_title))
+        if dashboard_to_import.slug is not None:
+            for dash in session.query(Dashboard).all():
+                # if ('remote_id' in dash.params_dict and
+                #         dash.params_dict['remote_id'] ==
+                #         dashboard_to_import.id):
+                #     existing_dashboard = dash
+                if (dash.slug == dashboard_to_import.slug):
+                    existing_slug = True
+                    logging.info('Dashboard with same slug exists. Dashboard id {} Dashboard title: {}'.format(
+                        dash.id, dash.dashboard_title))
         if existing_slug:
             flash(u'Dashboard with same slug exists. Update the slug and reimport', 'danger')
             session.rollback()
@@ -580,7 +581,6 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         if dashboard_to_import.position_json is not None:
             alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
 
-        alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
         dashboard_to_import.alter_params(import_time=import_time)
         if new_expanded_slices:
             dashboard_to_import.alter_params(

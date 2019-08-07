@@ -62,6 +62,10 @@
           <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
           <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
         </route>
+        <route path="/rvf/superset/replicate_dashboard">
+          <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
+          <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
+        </route>
         <route path="/rvf/superset/execute_rest_action">
           <rewrite apply="SUPERSETUI/rvf/inbound/path-noslash" to="request.url"/>
           <rewrite apply="SUPERSETUI/rvf/outbound/headers" to="response.headers"/>
