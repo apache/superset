@@ -21,6 +21,7 @@ import functools
 import inspect
 import json
 import logging
+import textwrap
 from typing import Any, cast, Type
 
 from flask import current_app, g, request
@@ -101,13 +102,15 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
     """
     result: Any = cfg_value
     if inspect.isclass(cfg_value):
-        logging.getLogger().warning(
-            """
-            In superset private config, EVENT_LOGGER has been assigned a class object. In order to
-            accomodate pre-configured instances without a default constructor, assignment of a class
-            is deprecated and may no longer work at some point in the future. Please assign an object
-            instance of a type that implements superset.utils.log.AbstractEventLogger.
-            """
+        logging.warning(
+            textwrap.dedent(
+                """
+                In superset private config, EVENT_LOGGER has been assigned a class object. In order to
+                accomodate pre-configured instances without a default constructor, assignment of a class
+                is deprecated and may no longer work at some point in the future. Please assign an object
+                instance of a type that implements superset.utils.log.AbstractEventLogger.
+                """
+            )
         )
 
         event_logger_type = cast(Type, cfg_value)
@@ -116,10 +119,10 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
     # Verify that we have a valid logger impl
     if not isinstance(result, AbstractEventLogger):
         raise TypeError(
-            "EVENT_LOGGER must be configured with a concrete instance ofsuperset.utils.log.AbstractEventLogger."
+            "EVENT_LOGGER must be configured with a concrete instance of superset.utils.log.AbstractEventLogger."
         )
 
-    logging.info("Configured event logger of type {}".format(type(result)))
+    logging.info(f"Configured event logger of type {type(result)}")
     return cast(AbstractEventLogger, result)
 
 
