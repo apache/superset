@@ -151,8 +151,8 @@ export function onSave() {
 }
 
 export const SET_REFRESH_FREQUENCY = 'SET_REFRESH_FREQUENCY';
-export function setRefreshFrequency(refreshFrequency) {
-  return { type: SET_REFRESH_FREQUENCY, refreshFrequency };
+export function setRefreshFrequency(refreshFrequency, isPersistent = false) {
+  return { type: SET_REFRESH_FREQUENCY, refreshFrequency, isPersistent };
 }
 
 export function saveDashboardRequestSuccess() {

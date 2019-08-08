@@ -169,7 +169,7 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         refreshFrequency: action.refreshFrequency,
-        hasUnsavedChanges: true,
+        hasUnsavedChanges: action.isPersistent,
       };
     },
   };
