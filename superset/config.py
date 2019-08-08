@@ -23,7 +23,9 @@ at the end of this file.
 """
 from collections import OrderedDict
 import imp
+import importlib.util
 import json
+import logging
 import os
 import sys
 
@@ -622,29 +624,29 @@ TALISMAN_CONFIG = {
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
 SQLALCHEMY_EXAMPLES_URI = None
 
-try:
-    if CONFIG_PATH_ENV_VAR in os.environ:
-        # Explicitly import config module that is not in pythonpath; useful
-        # for case where app is being executed via pex.
-        print(
-            "Loaded your LOCAL configuration at [{}]".format(
-                os.environ[CONFIG_PATH_ENV_VAR]
-            )
-        )
+if CONFIG_PATH_ENV_VAR in os.environ:
+    # Explicitly import config module that is not necessarily in pythonpath; useful
+    # for case where app is being executed via pex.
+    try:
+        cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
         module = sys.modules[__name__]
-        override_conf = imp.load_source(
-            "superset_config", os.environ[CONFIG_PATH_ENV_VAR]
-        )
+        override_conf = imp.load_source("superset_config", cfg_path)
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
 
-    else:
-        from superset_config import *  # noqa
-        import superset_config
-
-        print(
-            "Loaded your LOCAL configuration at [{}]".format(superset_config.__file__)
+        print(f"Loaded your LOCAL configuration at [{cfg_path}]")
+    except Exception:
+        logging.exception(
+            f"Failed to import config for {CONFIG_PATH_ENV_VAR}={cfg_path}"
         )
-except ImportError:
-    pass
+        raise
+elif importlib.util.find_spec("superset_config"):
+    try:
+        from superset_config import *  # noqa pylint: disable=import-error
+        import superset_config  # noqa pylint: disable=import-error
+
+        print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
+    except Exception:
+        logging.exception("Found but failed to import local superset_config")
+        raise
