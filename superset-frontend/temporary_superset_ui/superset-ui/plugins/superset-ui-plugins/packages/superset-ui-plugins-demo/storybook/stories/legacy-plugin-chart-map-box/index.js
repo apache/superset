@@ -1,8 +1,10 @@
-import MapBoxChartPlugin from '../../../../superset-ui-legacy-plugin-chart-map-box';
-import Stories from './Stories';
+// Disable temporarily
 
-new MapBoxChartPlugin().configure({ key: 'map-box' }).register();
+// import MapBoxChartPlugin from '../../../../superset-ui-legacy-plugin-chart-map-box';
+// import Stories from './Stories';
 
-export default {
-  examples: [...Stories],
-};
+// new MapBoxChartPlugin().configure({ key: 'map-box' }).register();
+
+// export default {
+//   examples: [...Stories],
+// };
