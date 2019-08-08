@@ -52,6 +52,10 @@ Don't forget to reload the page to take the new frontend into account though.
 It is also possible to run Superset in non-development mode: in the `docker-compose.yml` file remove
 the volumes needed for development and change the variable `SUPERSET_ENV` to `production`.
 
+### Alternate
+It is also possible to use the Dockerfile to build an image. This is useful for Kubernetes, ECS, etc where you will want
+to pull an image from a registry. See `docker-entrypoint.sh` for details on how the container can be set up in a production environment
+
 ## Resource Constraints
 
 If you are attempting to build on a Mac and it exits with 137 you need to increase your docker resources.

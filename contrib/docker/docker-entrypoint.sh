@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -17,22 +17,26 @@
 #
 set -ex
 
-if [ "$#" -ne 0 ]; then
-    exec "$@"
-elif [ "$SUPERSET_ENV" = "development" ]; then
-    celery worker --app=superset.sql_lab:celery_app --pool=gevent -Ofair &
-    # needed by superset runserver
-    (cd superset/assets/ && npm ci)
-    (cd superset/assets/ && npm run dev) &
-    FLASK_ENV=development FLASK_APP=superset:app flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
-elif [ "$SUPERSET_ENV" = "production" ]; then
-    celery worker --app=superset.sql_lab:celery_app --pool=gevent -Ofair &
-    gunicorn --bind  0.0.0.0:8088 \
-        --workers $((2 * $(getconf _NPROCESSORS_ONLN) + 1)) \
-        --timeout 60 \
-        --limit-request-line 0 \
-        --limit-request-field_size 0 \
-        superset:app
-else
-    superset --help
+# Create an admin user (you will be prompted to set username, first and last name before setting a password)
+
+################## NOTE ##################
+# An environment variable needs to be set
+# `FLASK_APP=superset:app` is typical
+##########################################
+
+
+# Removes the need to run the container locally against a prod db
+python create-superset-admin.py
+
+# Initialize the database
+superset db upgrade
+
+if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
+    # Load some data to play with
+    superset load_examples
 fi
+
+# Create default roles and permissions
+superset init
+
+./docker-init.sh

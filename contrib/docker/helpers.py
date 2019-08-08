@@ -5,13 +5,44 @@ import json
 from botocore.exceptions import ClientError
 
 
-def get_secret(secret_name, region_name):
+def get_secret(secrets_provider, secret_key, *args, **kwargs):
+    """
+    This abstraction allows you to implement secrets however you'd like. AWS SecretsManager is set up as an example and
+    further work can be done to add implementations for various other popular secrets managers.
+    :param secrets_provider: Specify the provider who is hosting your secrets. If not provided, you must add args of the
+    environment variables that represent your secrets (see args below)
+    :param secret_key: For most managers, a single key can represent and object. If this assumption is incorrect,
+    further refactor may be necessary.
+    :param args: If you are not using a provider and prefer to just specify secrets in environment variables, you can
+    specify the environment variable keys as args, which will be returned as a key:value object with the value
+    :param kwargs: Used primarily for provider specifics i.e. aws_region
+    :return:
+    """
+    if secrets_provider.lower() == "aws":
+        aws_region = get_env_variable("AWS_REGION")
+        return get_aws_secret(secret_name=secret_key, region_name=aws_region)
+    elif secrets_provider.lower() == "vault":
+        # TODO Implementation
+        pass
+    elif secrets_provider.lower() == "gcp":
+        # TODO Implementation
+        pass
+    else:
+        secret = None
+        for arg in args:
+            secret[arg] = get_env_variable(arg)
+        return secret
+
+
+def get_aws_secret(secret_name, region_name):
     """
     :param secret_name: the secret to retrieve from SecretsManager
     :param region_name: aws region
     :return: Dict object of the secret
-    :notes: Use env vars for credentials. Specifically, export your aws-cli profile for best results
-    export AWS_DEFAULT_PROFILE=blah
+    :notes: Use env vars via docker.env when running locally for credentials. This allows credentials to be picked up
+    silently by boto3 and allows an ECS or EC2 instance to use an execution role policy to access api resources.
+    `AWS_ACCESS_KEY_ID=XXXXXXX`
+    `AWS_SECRET_ACCESS_KEY=XXXXXXXX`
     """
     # Use env vars so that we never have to type a credential for aws
     # Create a Secrets Manager client

@@ -14,38 +14,37 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import os
-import json
+from contrib.docker import helpers
+
+superset_env = helpers.get_env_variable("SUPERSET_ENV")
+is_production = superset_env == "production"
 
 
-# TODO Not using helpers.py here because this file gets moved at container build time and importing was being lame.
-def get_env_variable(var_name, default=None):
-    """Get the environment variable or raise exception."""
-    try:
-        return os.environ[var_name]
-    except KeyError:
-        if default is not None:
-            return default
-        else:
-            error_msg = 'The environment variable {} was missing, abort...'\
-                        .format(var_name)
-            raise EnvironmentError(error_msg)
-
-
+#######
+#
+# SUPERSET_DB_USER_SECRET env variable will grab credentials from the secrets provider of your choice.
+# SECRETS_PROVIDER is necessary to specify which provider to use
+# You will probably want to make some modifications
+#
+#######
 try:
-    # AWS Secrets Manager returns a json string for any key name
-    aws_secrets = json.loads(os.environ["POSTGRES_USER"])
-    POSTGRES_USER = aws_secrets['POSTGRES_USER']
-    POSTGRES_PASSWORD = aws_secrets['POSTGRES_PASSWORD']
-    POSTGRES_HOST = aws_secrets['POSTGRES_HOST']
-    POSTGRES_PORT = int(aws_secrets['POSTGRES_PORT'])
-    POSTGRES_DB = aws_secrets['POSTGRES_DB']
-except json.decoder.JSONDecodeError:
-    POSTGRES_USER = get_env_variable('POSTGRES_USER')
-    POSTGRES_PASSWORD = get_env_variable('POSTGRES_PASSWORD')
-    POSTGRES_HOST = get_env_variable('POSTGRES_HOST')
-    POSTGRES_PORT = int(get_env_variable('POSTGRES_PORT'))
-    POSTGRES_DB = get_env_variable('POSTGRES_DB')
+    secret_key = helpers.get_env_variable("SUPERSET_DB_USER_SECRET")
+    secrets_provider = helpers.get_env_variable("SECRETS_PROVIDER")
+
+    secrets = helpers.get_secret(secrets_provider=secrets_provider, secret_key=secret_key)
+
+    # It is sometimes necessary to use different connection details if for example you are behind a jumphost/bastion
+    POSTGRES_HOST = secrets['POSTGRES_HOST'] if is_production else helpers.get_env_variable("POSTGRES_HOST")
+    POSTGRES_USER = secrets['POSTGRES_USER']
+    POSTGRES_PASSWORD = secrets['POSTGRES_PASSWORD']
+    POSTGRES_PORT = int(secrets['POSTGRES_PORT'])
+    POSTGRES_DB = secrets['POSTGRES_DB']
+except Exception:  # Just being broad as a fallback
+    POSTGRES_USER = helpers.get_env_variable('POSTGRES_USER')
+    POSTGRES_PASSWORD = helpers.get_env_variable('POSTGRES_PASSWORD')
+    POSTGRES_HOST = helpers.get_env_variable('POSTGRES_HOST')
+    POSTGRES_PORT = int(helpers.get_env_variable('POSTGRES_PORT'))
+    POSTGRES_DB = helpers.get_env_variable('POSTGRES_DB')
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = 'postgresql://%s:%s@%s:%s/%s' % (POSTGRES_USER,
@@ -54,9 +53,21 @@ SQLALCHEMY_DATABASE_URI = 'postgresql://%s:%s@%s:%s/%s' % (POSTGRES_USER,
                                                            POSTGRES_PORT,
                                                            POSTGRES_DB)
 
-# REDIS_HOST = get_env_variable('REDIS_HOST')
-# REDIS_PORT = get_env_variable('REDIS_PORT')
+#######
+#
+# Redis Details if you want to utilize Redis
+#
+#######
 
+# REDIS_HOST = helpers.get_env_variable('REDIS_HOST')
+# REDIS_PORT = helpers.get_env_variable('REDIS_PORT')
+
+
+#######
+#
+# Uncomment to utilize Celery (which does rely on redis at this point)
+#
+#######
 
 # class CeleryConfig(object):
 #     BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
@@ -67,10 +78,19 @@ SQLALCHEMY_DATABASE_URI = 'postgresql://%s:%s@%s:%s/%s' % (POSTGRES_USER,
 # CELERY_CONFIG = CeleryConfig
 
 
+#######
+#
+# Allow use behind a load balancer This will often be set but comment out if not needed.
+#
+#######
 
-# Allow use behind a load balancer
 ENABLE_PROXY_FIX = True
 
-# Though this is badly named, it is a flask parameter that forces logout after n seconds.
+#######
+#
+# This is a flask parameter that forces logout after n seconds.
 # A browser close will also log the user out.
+#
+#######
+
 PERMANENT_SESSION_LIFETIME = 60 * 10
