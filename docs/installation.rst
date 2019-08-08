@@ -647,6 +647,18 @@ Note that you can run the ``superset refresh_druid`` command to refresh the
 metadata from your Druid cluster(s)
 
 
+Presto
+------
+
+By default Superset assumes the most recent version of Presto is being used when
+querying the datasource. If you're using an older version of presto, you can configure
+it in the ``extra`` parameter::
+
+    {
+        "version": "0.123"
+    }
+
+
 CORS
 ----
 
@@ -1042,7 +1054,7 @@ your environment. See `CONTRIBUTING.md#setup-local-environment-for-development <
 Blueprints
 ----------
 
-`Blueprints are Flask's reusable apps <http://flask.pocoo.org/docs/0.12/blueprints/>`_.
+`Blueprints are Flask's reusable apps <https://flask.palletsprojects.com/en/1.0.x/tutorial/views/>`_.
 Superset allows you to specify an array of Blueprints
 in your ``superset_config`` module. Here's
 an example of how this can work with a simple Blueprint. By doing

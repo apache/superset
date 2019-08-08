@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=C,R,W
 # pylint: disable=invalid-unary-operand-type
-# flake8: noqa I202
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime, timedelta
