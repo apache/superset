@@ -176,7 +176,7 @@ export default class FilterableTable extends PureComponent {
   getCellContent({ cellData, columnKey }) {
     if (cellData === null) {
       return (
-        <i className="null-cell">
+        <i className="text-muted">
           NULL
         </i>
       );
