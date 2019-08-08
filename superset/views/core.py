@@ -1377,11 +1377,12 @@ class Superset(BaseSupersetView):
     def explore(self, datasource_type=None, datasource_id=None):
         user_id = g.user.get_id() if g.user else None
         form_data, slc = self.get_form_data(use_slice_data=True)
-
+        if datasource_id is None and form_data.get('datasource', None) is None:
+          return  redirect(url_for('Superset.welcome'))
         datasource_id, datasource_type = self.datasource_info(
             datasource_id, datasource_type, form_data)
 
-        error_redirect = '/chart/list/'
+        error_redirect = 'Chart.list'
         datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session)
         if not datasource:
