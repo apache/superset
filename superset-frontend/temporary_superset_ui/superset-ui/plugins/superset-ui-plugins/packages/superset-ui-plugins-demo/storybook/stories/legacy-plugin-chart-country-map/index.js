@@ -1,8 +1,10 @@
-import CountryMapChartPlugin from '../../../../superset-ui-legacy-plugin-chart-country-map';
-import Stories from './Stories';
+// Disable temporarily
 
-new CountryMapChartPlugin().configure({ key: 'country-map' }).register();
+// import CountryMapChartPlugin from '../../../../superset-ui-legacy-plugin-chart-country-map';
+// import Stories from './Stories';
 
-export default {
-  examples: [...Stories],
-};
+// new CountryMapChartPlugin().configure({ key: 'country-map' }).register();
+
+// export default {
+//   examples: [...Stories],
+// };

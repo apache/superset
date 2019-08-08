@@ -1,5 +1,5 @@
-import { LineChartPlugin as LegacyLineChartPlugin } from '../../../../../superset-ui-preset-chart-xy/src/legacy';
-import { LineChartPlugin } from '../../../../../superset-ui-preset-chart-xy/src';
+import { LineChartPlugin as LegacyLineChartPlugin } from '../../../../../superset-ui-preset-chart-xy/esm/legacy';
+import { LineChartPlugin } from '../../../../../superset-ui-preset-chart-xy';
 import BasicStories from './stories/basic';
 import FlushStories from './stories/flush';
 import QueryStories from './stories/query';
