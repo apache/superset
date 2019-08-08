@@ -648,5 +648,5 @@ elif importlib.util.find_spec("superset_config"):
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
-        logging.exception("Failed to import local superset_config")
+        logging.exception("Found but failed to import local superset_config")
         raise
