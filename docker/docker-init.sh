@@ -13,6 +13,7 @@ set -ex
   gunicorn --bind  0.0.0.0:$CONTAINER_PORT \
       --workers $((2 * $GUNICORN_PROCESSORS + 1)) \
       -k gevent \
+      --keep-alive $GUNICORN_WORKER_KEEP_ALIVE \
       --timeout $GUNICORN_WORKER_TIMEOUT \
       --limit-request-line 0 \
       --limit-request-field_size 0 \

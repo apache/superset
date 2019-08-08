@@ -77,11 +77,11 @@ if (isDevMode) {
   plugins.push(new webpack.HotModuleReplacementPlugin());
 } else {
   // text loading (webpack 4+)
-  plugins.push(new MiniCssExtractPlugin({
-    filename: '[name].[chunkhash].entry.css',
-    chunkFilename: '[name].[chunkhash].chunk.css',
-  }));
-  plugins.push(new OptimizeCSSAssetsPlugin());
+  // plugins.push(new MiniCssExtractPlugin({
+  //   filename: '[name].[chunkhash].entry.css',
+  //   chunkFilename: '[name].[chunkhash].chunk.css',
+  // }));
+  // plugins.push(new OptimizeCSSAssetsPlugin());
 }
 
 const output = {
@@ -182,7 +182,8 @@ const config = {
         test: /\.css$/,
         include: APP_DIR,
         use: [
-          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+          // isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+          'style-loader',
           'css-loader',
         ],
       },
@@ -190,7 +191,8 @@ const config = {
         test: /\.less$/,
         include: APP_DIR,
         use: [
-          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+          // isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+          'style-loader',
           'css-loader',
           'less-loader',
         ],
