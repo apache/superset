@@ -643,8 +643,8 @@ if CONFIG_PATH_ENV_VAR in os.environ:
         raise
 elif importlib.util.find_spec("superset_config"):
     try:
-        from superset_config import *  # noqa
-        import superset_config  # noqa
+        from superset_config import *  # noqa pylint: disable=import-error
+        import superset_config  # noqa pylint: disable=import-error
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
