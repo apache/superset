@@ -31,6 +31,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     selectedText: null,
     latestQueryId: null,
     autorun: false,
+    templateParams: null,
     dbId: defaultDbId,
     queryLimit: restBootstrapData.common.conf.DEFAULT_SQLLAB_LIMIT,
     validationResult: {
@@ -50,7 +51,8 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
         sql: restBootstrapData.active_tab.query.sql,
         selectedText: null,
         latestQueryId: null,
-        autorun: false,
+        autorun: restBootstrapData.active_tab.autorun,
+        templateParams: restBootstrapData.active_tab.template_params,
         dbId: restBootstrapData.active_tab.database_id,
         schema: restBootstrapData.active_tab.schema,
         queryLimit: restBootstrapData.active_tab.queryLimit,

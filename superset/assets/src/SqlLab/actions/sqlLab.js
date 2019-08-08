@@ -351,7 +351,11 @@ export function switchQueryEditor(queryEditor) {
             loaded: true,
             title: json.label,
             sql: json.query.sql,
+            selectedText: null,
+            latestQueryId: null,
+            autorun: json.autorun,
             dbId: json.database_id,
+            templateParams: json.template_params,
             schema: json.schema,
             queryLimit: json.queryLimit,
             validationResult: {
@@ -430,7 +434,16 @@ export function queryEditorSetTableOptions(queryEditor, options) {
 }
 
 export function queryEditorSetAutorun(queryEditor, autorun) {
-  return { type: QUERY_EDITOR_SET_AUTORUN, queryEditor, autorun };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { autorun },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_AUTORUN, queryEditor, autorun }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab autorun'))),
+      );
+  };
 }
 
 export function queryEditorSetTitle(queryEditor, title) {
@@ -473,7 +486,16 @@ export function queryEditorSetQueryLimit(queryEditor, queryLimit) {
 }
 
 export function queryEditorSetTemplateParams(queryEditor, templateParams) {
-  return { type: QUERY_EDITOR_SET_TEMPLATE_PARAMS, queryEditor, templateParams };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { template_params: templateParams },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_TEMPLATE_PARAMS, queryEditor, templateParams }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab template parameters'))),
+      );
+  };
 }
 
 export function queryEditorSetSelectedText(queryEditor, sql) {
