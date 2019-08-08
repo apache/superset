@@ -1,4 +1,6 @@
 const path = require('path');
+const TerserPlugin = require('terser-webpack-plugin');
+const webpack = require('webpack');
 
 const BABEL_TYPESCRIPT_OPTIONS = {
   presets: [
@@ -7,6 +9,7 @@ const BABEL_TYPESCRIPT_OPTIONS = {
     '@babel/preset-typescript',
   ],
   plugins: [
+    'lodash',
     '@babel/plugin-proposal-object-rest-spread',
     '@babel/plugin-proposal-class-properties',
     '@babel/plugin-syntax-dynamic-import',
@@ -20,6 +23,16 @@ const SIBLING_PACKAGES_PATH_REGEXP = new RegExp(
 module.exports = async ({ config }) => {
   config.resolve = config.resolve || {};
   config.resolve.extensions = ['.tsx', '.ts', '.jsx', '.js'];
+  config.resolve.alias = {
+    ...config.resolve.alias,
+    d3$: path.resolve(__dirname, '../../../node_modules/d3/d3.min.js'),
+    nvd3$: path.resolve(__dirname, '../../../node_modules/nvd3/build/nv.d3.min.js'),
+    'datatables.net$': path.resolve(__dirname, '../../../node_modules/datatables.net/js/jquery.dataTables.min.js'),
+  }
+
+  config.plugins.push(new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/));
+  // Avoid parsing large libraries to speed up build
+  config.module.noParse = /jquery|moment/;
 
   // To enable live debugging of other packages when referring to `src`
   config.module.rules.push({
@@ -41,6 +54,7 @@ module.exports = async ({ config }) => {
   });
 
   config.module.rules.push({
+    include: path.resolve(__dirname, '../storybook'),
     exclude: /node_modules/,
     test: /\.tsx?$/,
     use: [{
@@ -48,6 +62,22 @@ module.exports = async ({ config }) => {
       options: BABEL_TYPESCRIPT_OPTIONS,
     }],
   });
+
+  config.optimization = config.optimization || {};
+  config.optimization.splitChunks = {
+    chunks: 'async'
+  };
+  config.optimization.minimizer = [
+    new TerserPlugin({
+      parallel: true,
+      extractComments: true,
+    }),
+  ];
+
+  if (process.env.RUNNING_CONTEXT === 'netlify') {
+    config.devtool = false;
+    config.cache = false;
+  }
 
   return config;
 };
