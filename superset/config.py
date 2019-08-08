@@ -635,20 +635,18 @@ if CONFIG_PATH_ENV_VAR in os.environ:
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
 
-        print("Loaded your LOCAL configuration at [{}]".format(cfg_path))
+        print(f"Loaded your LOCAL configuration at [{cfg_path}]")
     except Exception:
         logging.exception(
-            "Failed to import config for {}={}".format(CONFIG_PATH_ENV_VAR, cfg_path)
+            f"Failed to import config for {CONFIG_PATH_ENV_VAR}={cfg_path}"
         )
         raise
 elif importlib.util.find_spec("superset_config"):
     try:
         from superset_config import *  # noqa
-        import superset_config
+        import superset_config  # noqa
 
-        print(
-            "Loaded your LOCAL configuration at [{}]".format(superset_config.__file__)
-        )
+        print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
-        logging.exception("Failed to import local superset_confg")
+        logging.exception("Failed to import local superset_config")
         raise
