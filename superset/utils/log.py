@@ -18,7 +18,11 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 import functools
+import inspect
 import json
+import logging
+import textwrap
+from typing import Any, cast, Type
 
 from flask import current_app, g, request
 
@@ -81,6 +85,45 @@ class AbstractEventLogger(ABC):
     @property
     def stats_logger(self):
         return current_app.config.get("STATS_LOGGER")
+
+
+def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
+    """
+    This function implements the deprecation of assignment of class objects to EVENT_LOGGER
+    configuration, and validates type of configured loggers.
+
+    The motivation for this method is to gracefully deprecate the ability to configure
+    EVENT_LOGGER with a class type, in favor of preconfigured instances which may have
+    required construction-time injection of proprietary or locally-defined dependencies.
+
+    :param cfg_value: The configured EVENT_LOGGER value to be validated
+    :return: if cfg_value is a class type, will return a new instance created using a
+    default con
+    """
+    result: Any = cfg_value
+    if inspect.isclass(cfg_value):
+        logging.warning(
+            textwrap.dedent(
+                """
+                In superset private config, EVENT_LOGGER has been assigned a class object. In order to
+                accomodate pre-configured instances without a default constructor, assignment of a class
+                is deprecated and may no longer work at some point in the future. Please assign an object
+                instance of a type that implements superset.utils.log.AbstractEventLogger.
+                """
+            )
+        )
+
+        event_logger_type = cast(Type, cfg_value)
+        result = event_logger_type()
+
+    # Verify that we have a valid logger impl
+    if not isinstance(result, AbstractEventLogger):
+        raise TypeError(
+            "EVENT_LOGGER must be configured with a concrete instance of superset.utils.log.AbstractEventLogger."
+        )
+
+    logging.info(f"Configured event logger of type {type(result)}")
+    return cast(AbstractEventLogger, result)
 
 
 class DBEventLogger(AbstractEventLogger):

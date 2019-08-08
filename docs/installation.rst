@@ -738,9 +738,9 @@ Example of a simple JSON to Stdout class::
                 print(json.dumps(log))
 
 
-Then on Superset's config reference the class you want to use::
+Then on Superset's config pass an instance of the logger type you want to use.
 
-    EVENT_LOGGER = JSONStdOutEventLogger
+    EVENT_LOGGER = JSONStdOutEventLogger()
 
 
 Upgrading
