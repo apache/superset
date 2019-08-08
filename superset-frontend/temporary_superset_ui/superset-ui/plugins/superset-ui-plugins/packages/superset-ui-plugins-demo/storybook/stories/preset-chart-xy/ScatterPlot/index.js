@@ -1,5 +1,5 @@
-import { ScatterPlotPlugin as LegacyScatterPlotPlugin } from '../../../../../superset-ui-preset-chart-xy/src/legacy';
-import { ScatterPlotPlugin } from '../../../../../superset-ui-preset-chart-xy/src';
+import { ScatterPlotPlugin as LegacyScatterPlotPlugin } from '../../../../../superset-ui-preset-chart-xy/esm/legacy';
+import { ScatterPlotPlugin } from '../../../../../superset-ui-preset-chart-xy';
 import BasicStories from './stories/basic';
 import BubbleStories from './stories/bubble';
 import LegacyStories from './stories/legacy';
