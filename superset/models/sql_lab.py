@@ -200,12 +200,12 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     active = Column(Boolean, default=False)
 
     # selected DB and schema
-    database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
+    database_id = Column(Integer, ForeignKey('dbs.id'))
     database = relationship('Database', foreign_keys=[database_id])
     schema = Column(String(256))
 
     # tables that are open in the schema browser and their data previews
-    table_schemas = relationship('TableSchema')
+    table_schemas = relationship('TableSchema', cascade='all,delete', backref='tab_state')
 
     # the query in the textarea, and results (if any)
     query_id = Column(Integer, ForeignKey('query.id'))

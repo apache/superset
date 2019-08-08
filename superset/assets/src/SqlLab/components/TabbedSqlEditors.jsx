@@ -102,6 +102,8 @@ class TabbedSqlEditors extends React.PureComponent {
         this.props.actions.addQueryEditor(newQueryEditor);
       }
       this.popNewTab();
+    } else if (this.props.queryEditors.length === 0) {
+        this.newQueryEditor();
     }
   }
   componentWillReceiveProps(nextProps) {
@@ -152,12 +154,14 @@ class TabbedSqlEditors extends React.PureComponent {
   newQueryEditor() {
     queryCount++;
     const activeQueryEditor = this.activeQueryEditor();
+    const firstDbId = Math.min(
+      ...Object.values(this.props.databases).map(database => database.id));
     const qe = {
       title: t('Untitled Query %s', queryCount),
       dbId:
         activeQueryEditor && activeQueryEditor.dbId
           ? activeQueryEditor.dbId
-          : this.props.defaultDbId,
+          : (this.props.defaultDbId || firstDbId),
       schema: activeQueryEditor ? activeQueryEditor.schema : null,
       autorun: false,
       sql: 'SELECT ...',
@@ -187,6 +191,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
+      console.log(qe, this.activeQueryEditor());
       const isSelected = qe.id === this.activeQueryEditor().id;
 
       let latestQuery;

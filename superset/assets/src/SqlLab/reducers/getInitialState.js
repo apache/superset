@@ -24,7 +24,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   const queryEditors = [];
 
   const defaultQueryEditor = {
-    id: shortid.generate(),
+    id: null,
     loaded: true,
     title: t('Untitled Query'),
     sql: 'SELECT *\nFROM\nWHERE',
@@ -72,13 +72,9 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     queryEditors.push(queryEditor);
   });
 
-  const activeQueryEditorId = restBootstrapData.active_tab
-    ? restBootstrapData.active_tab.id
-    : defaultQueryEditor.id;
-
-  if (queryEditors.length === 0) {
-    queryEditors.push(defaultQueryEditor);
-  }
+  const tabHistory = restBootstrapData.active_tab
+    ? [restBootstrapData.active_tab.id]
+    : [];
 
   const tables = [];
   if (restBootstrapData.active_tab) {
@@ -112,11 +108,11 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     sqlLab: {
       activeSouthPaneTab: 'Results',
       alerts: [],
-      databases: {},
+      databases: restBootstrapData.databases,
       offline: false,
       queries: {},  // XXX
       queryEditors,
-      tabHistory: [activeQueryEditorId],
+      tabHistory,
       tables,
       queriesLastUpdate: Date.now(),
     },

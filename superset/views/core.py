@@ -107,6 +107,20 @@ stats_logger = config.get("STATS_LOGGER")
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
 
+DATABASE_KEYS = [
+    'allow_csv_upload',
+    'allow_ctas',
+    'allow_dml',
+    'allow_multi_schema_metadata_fetch',
+    'allow_run_async',
+    'allows_subquery',
+    'backend',
+    'database_name',
+    'expose_in_sqllab',
+    'force_ctas_schema',
+    'id',
+]
+
 
 ALL_DATASOURCE_ACCESS_ERR = __(
     "This endpoint requires the `all_datasource_access` permission"
@@ -2863,12 +2877,19 @@ class Superset(BaseSupersetView):
             .order_by(TabState.active.desc())
             .first()
         )
-
+        databases = {
+            database.id: {
+                k: v for k, v in database.to_json().items()
+                if k in DATABASE_KEYS
+            }
+            for database in db.session.query(models.Database).all()
+        }
         d = {
             "defaultDbId": config.get("SQLLAB_DEFAULT_DBID"),
             "common": self.common_bootstrap_payload(),
             "tab_state_ids": tab_state_ids,
-            "active_tab": active_tab.to_dict(),
+            "active_tab": active_tab.to_dict() if active_tab else None,
+            "databases": databases,
         }
         return self.render_template(
             "superset/basic.html",
