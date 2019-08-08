@@ -1,0 +1,456 @@
+
+.container-fluid {
+  padding-right: 24px;
+  padding-left: 24px;
+}
+
+.dashboard-header {
+background-color: #f1f1ec !important;
+height: 72px;
+padding: 0 24px;
+}
+
+.grid-container{
+background-color:#3C4858 !important;
+margin: 0px;
+}
+
+/* chart */
+
+.nvd3 .nv-axis line {
+  stroke: #AAADA4 !important;
+  opacity: 0.2;
+}
+
+.nvd3 text {
+  font: 400 12px Arial,sans-serif;
+  opacity: 1;
+  fill: #FFFFFF !important;
+}
+
+.nvd3 .nv-axis path {
+  stroke: #FFFFFF !important;
+  opacity: 0.6;
+}
+
+/* dropdown */
+
+.Select-control {
+background-color:#3C4858 !important;
+border-color: rgba(170, 173, 164, 0.2) !important;
+border-radius: 5px;
+color: white !important;
+height: 30px;
+outline: none;
+width: 100%;
+}
+.Select-placeholder{
+color: white !important;
+}
+.Select.is-searchable.is-focused:not(.is-open) > .Select-control{
+background-color: #3C4858 !important;
+color: white !important;
+border-color: rgba(170, 173, 164, 0.2) !important;
+}
+.Select.has-value.is-clearable.Select--single > .Select-control .Select-value{
+color: white !important;
+background-image: none !important;
+}
+
+.Select--single>.Select-control .Select-value {
+  background-image: none !important;
+}
+
+.Select.has-value.Select--single>.Select-control .Select-value .Select-value-label {
+  color: white !important;
+}
+.Select.is-searchable.is-open > .Select-control{
+background-color: #3C4858 !important;
+color: white !important;
+border-color: rgba(170, 173, 164, 0.2) !important;
+}
+.Select.is-focused:not(.is-open) > .Select-control{
+background-color: #3C4858 !important;
+color: white !important;
+border-color: rgba(170, 173, 164, 0.2) !important;
+}
+.Select.has-value.Select--single > .Select-control .Select-value .Select-value-
+label,.Select.has-value.is-pseudo-focused.Select--single > .Select-control .Select-
+value .Select-value-label {
+color: white !important;
+}
+
+.Select.has-value.is-pseudo-focused.Select--single>.Select-control .Select-value .Select-value-label, .Select.has-value.Select--single>.Select-control .Select-value .Select-value-label {
+  color: white !important;
+}
+
+.Select-menu-outer {
+color: white !important;
+background-color: #3C4858 !important;
+border-color: rgba(170, 173, 164, 0.2) !important;
+font-size: 14px;
+}
+.Select-menu-outer .VirtualizedSelectFocusedOption{
+color: white !important;
+background-color: #273444 !important;
+}
+.Select-menu-outer .VirtualizedSelectSelectedOption{
+color: white !important;
+background-color:#273444 !important;
+}
+
+.Select--single>.Select-control .Select-value, .Select-placeholder {
+  font-size: 14px;
+}
+
+.Select--multi .Select-value-label {
+color: white !important;
+background-color: #273444 !important;
+}
+.Select--multi .Select-value{
+color: white !important;
+background-color: #3C4858 !important;
+}
+
+.Select-menu-outer .VirtualizedSelectOption {
+border-bottom-color: rgba(170, 173, 164, 0.2) !important;
+border-bottom-style: solid;
+border-bottom-width: 1px;
+background-image: none !important;
+
+}
+
+/* app */
+
+body {
+  background-color: #1F2d3D !important;;
+  font-size: 16px;
+  color: #FFFFFF !important;
+}
+
+.nav-tabs {
+font-size: 24px;
+}
+
+.navbar-default {
+  background-color: #3C4858 !important;
+}
+.navbar-default-template {
+  background-color: #3C4858 !important;
+}
+
+.footer-right  .footer-right-label {
+    color: white !important;
+
+}
+
+.footer-left .footer-left-label {
+  color: white !important;
+
+}
+
+.caret {
+  color: white !important;
+}
+
+.caret:hover {
+  color: white !important;
+}
+
+
+ .header-divider-line {
+     background-color: rgba(white, 0.6) !important;
+}
+
+.navbar-inverse .navbar-brand {
+  color: white !important;
+  font-size: 24px;
+}
+
+.navbar-inverse .navbar-nav > li > a {
+  color: white !important;
+}
+
+.navbar-inverse .navbar-brand:hover, .navbar-inverse .navbar-brand:focus {
+  color: white !important;
+}
+
+.navbar-inverse .navbar-nav > li > a:hover, .navbar-inverse .navbar-nav > li > a:focus, .navbar-inverse .navbar-nav > li.active > a {
+  background-color: #00A699 !important;
+  color: white !important;
+}
+
+.navbar-inverse .navbar-nav > .open > a, .navbar-inverse .navbar-nav > .open > a:hover, .navbar-inverse .navbar-nav > .open > a:focus {
+  background-color: #00A699 !important;
+  color: white !important;
+}
+
+.navbar-inverse {
+
+
+  background-color: #3C4858 !important;
+  border: 3px solid #3C4858 !important;
+  font-size: 16px;
+}
+
+.panel {
+
+  background-color: #3C4858 !important;;
+}
+
+.fave-unfave-icon .fa-star-o, .fave-unfave-icon .fa-star, .fave-unfave-icon .fa-star-o:hover, .fave-unfave-icon .fa-star:hover, .fave-unfave-icon .fa-star-o:active, .fave-unfave-icon .fa-star:active {
+  color: white !important;
+}
+
+.nav-tabs {
+  font-size: 16px;
+  color: white !important;
+  border: none;
+}
+
+.nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {
+  background-color: #273444 !important;
+  font-weight: bold;
+  border: none;
+  font-size: 16px;
+  color: white !important;
+}
+
+.tab-pane {
+  background-color:  #273444 !important;
+}
+
+.form-control {
+  background-color:#3C4858 !important;
+  color: rgba(white, 0.6) !important;
+}
+
+input.form-control {
+background-color: #3C4858 !important;
+color: rgba(white, 0.6) !important;
+}
+
+.panel-primary .panel-title {
+  color: white !important;
+}
+
+.dashboard-component-chart-holder {
+  color: white !important;
+   background-color: #273444 !important;
+      padding: 12px 24px 12px 24px;
+ }
+
+ .dashboard-header {
+  color: white !important;
+  background-color: #273444 !important;
+}
+
+.dashboard-component-header {
+  color: white !important;
+}
+
+.dashboard .chart-header .dropdown-menu li a:hover, .dashboard .dashboard-header .dropdown-menu li a:hover, .dashboard .chart-header .dropdown-menu li a:focus, .dashboard .dashboard-header .dropdown-menu li a:focus {
+  background-color: #00A699 !important;
+}
+
+.dropdown-menu {
+   color: white !important;
+    background-color: #3C4858 !important;
+}
+
+.dropdown-menu > li > a {
+  color: white !important;
+}
+
+.dashboard .chart-header .dropdown-menu li a, .dashboard .dashboard-header .dropdown-menu li a {
+ color: white !important;
+}
+
+/* tooltip */
+
+.nvtooltip {
+  background: #3C4858 !important;
+  border: 1px solid #b3b3b3 !important;
+  border-radius: 5px !important;
+  }
+
+
+/* table */
+
+.table-striped>tbody>tr:nth-of-type(even) {
+   background-color: #3C4858 !important;
+   height: 36px;
+}
+
+.table-striped>tbody>tr:nth-of-type(odd) {
+  background-color: #3C4858 !important;
+  height: 36px;
+}
+
+.table .table {
+  background-color: #3C4858 !important;
+}
+
+.table-hover>tbody>tr:hover, .table>tbody>tr.active>td, .table>tbody>tr.active>th, .table>tbody>tr>td.active, .table>tbody>tr>th.active, .table>tfoot>tr.active>td, .table>tfoot>tr.active>th, .table>tfoot>tr>td.active, .table>tfoot>tr>th.active, .table>thead>tr.active>td, .table>thead>tr.active>th, .table>thead>tr>td.active, .table>thead>tr>th.active {
+  background-color: #3C4858 !important;
+}
+
+.table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th, .table>thead>tr>td, .table>thead>tr>th {
+  padding: 8px;
+  line-height: 1.42857143;
+  vertical-align: top;
+  border-top: 1px solid rgba(170, 173, 164, 0.2) !important;
+}
+
+.table>thead>tr>th {
+  vertical-align: bottom;
+  border-bottom: 2px solid rgba(170, 173, 164, 0.2) !important;
+}
+
+table.dataTable.table-condensed>thead>tr>th {
+  padding-right: 20px;
+  padding-bottom: 10px;
+}
+
+.table-condensed>tbody>tr>td, .table-condensed>tbody>tr>th, .table-condensed>tfoot>tr>td, .table-condensed>tfoot>tr>th, .table-condensed>thead>tr>td, .table-condensed>thead>tr>th {
+  padding: 7px;
+}
+
+.table-hover>tbody>tr:hover{
+  background-color: #273444 !important;
+}
+
+.selected-row {
+  background-color: #273444 !important;
+  color: black !important;
+}
+
+/* Button */
+
+.btn-default {
+  color: white !important;
+  background-color: #3C4858 !important;
+  border-color: rgba(170, 173, 164, 0.2) !important;
+
+}
+
+.btn-default:hover {
+   background-color: #00A699;
+   color: white !important;
+ }
+
+.btn.btn-primary {
+  background: #3C4858 !important;
+  border-color: rgba(170, 173, 164, 0.2) !important;
+  color: #fff !important;
+}
+
+.btn.btn-primary:hover {
+  background-color: #00A699 !important;
+  border: 1px solid rgba(170, 173, 164, 0.2) !important;
+}
+
+
+.popover-content {
+  padding: 9px 14px;
+  background-color: #1F2d3D !important;
+  color: white !important;
+}
+
+.checkbox, .form-group, .radio {
+  margin-bottom: 10px;
+  padding: 5px;
+}
+
+.label-default {
+  background-color: #3C4858 !important;
+  font-size: 14px;
+  border: 1px solid rgba(170, 173, 164, 0.2) !important;
+}
+
+.form-control, output {
+  display: block;
+  font-size: 14px;
+  line-height: 1.42857143;
+  color: white !important;
+}
+
+
+.dashboard-builder-sidepane .slider-container {
+
+  background-colour: #3C4858 !important;
+  color: white !important;
+}
+
+.new-component {
+ background: #3C4858 !important;
+
+}
+
+.new-component:not(.static):hover {
+  background: #273444 !important;
+}
+
+.nvd3 .nv-point-paths path {
+  stroke-width: 5;
+}
+
+.dashboard-builder-sidepane .dashboard-builder-sidepane-header {
+background-colour: #3C4858 !important;
+}
+
+.dashboard-builder-sidepane .slider-container .slide-content {
+  background-color: #3C4858 !important;
+}
+
+.nv-group {
+  stroke-width :2 !important;
+}
+
+.dashboard-builder-sidepane .trigger {
+  color: white !important;
+}
+.grid-content>div:not(:only-child):not(:last-child):not(.empty-droptarget) {
+  margin-bottom: 0px;
+}
+
+.table {
+  margin-bottom: 0px;
+}
+
+.dashboard-builder-sidepane .chart-card-container .chart-card:hover {
+  background-color: #273444 !important;
+}
+
+/* popup */
+
+.modal .close, .popover {
+  color: white !important;
+}
+
+.modal-content {
+  background-color: #3C4858 !important;
+
+}
+
+.modal .modal-body {
+  padding: 0 24px 29px;
+}
+
+.ControlHeader {
+  display: none;
+}
+
+
+.filter_box {
+  padding-top: 10px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+  padding-bottom: 0px !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+.leaflet-container .leaflet-control-attribution {
+  display: none;
+}
