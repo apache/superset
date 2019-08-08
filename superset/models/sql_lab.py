@@ -212,6 +212,10 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     query = relationship('Query')
     query_limit = Column(Integer)
 
+    # other properties
+    autorun = Column(Boolean, default=False)
+    template_params = Column(Text)
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -223,6 +227,8 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             'table_schemas': [ts.to_dict() for ts in self.table_schemas],
             'query': self.query.to_dict(),
             'query_limit': self.query_limit,
+            'autorun': self.autorun,
+            'template_params': self.template_params,
         }
 
 
