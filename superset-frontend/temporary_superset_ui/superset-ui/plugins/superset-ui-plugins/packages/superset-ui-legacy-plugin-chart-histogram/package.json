@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@data-ui/histogram": "^0.0.80",
-    "@data-ui/theme": "^0.0.78",
+    "@data-ui/theme": "^0.0.80",
     "@vx/legend": "^0.0.189",
     "@vx/responsive": "^0.0.189",
     "@vx/scale": "^0.0.190",
