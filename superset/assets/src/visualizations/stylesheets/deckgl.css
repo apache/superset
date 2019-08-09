@@ -16,7 +16,74 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- .deckgl-tooltip > div {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+.deckgl-tooltip > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.deck_multi {
+  position: relative;
+}
+
+.geo-container {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 9999;
+}
+
+.react-geocoder {
+  margin-right: 8px;
+}
+
+.react-geocoder-results	{
+  background-color: white;
+  box-shadow: 0 5px 5px 3px rgba(0,0,0, .25);
+  padding: 8px;
+  width: auto;
+}
+
+.react-geocoder-item {
+  padding: 4px 8px;
+}
+
+.react-geocoder-item:hover {
+  cursor: pointer;
+  background-color: #00A699;
+  color: white;
+}
+
+.remove-layer {
+  font-size: 16px;
+  left: 192px;
+  padding: 2px 8px;
+  position: absolute;
+  top: 0;
+}
+
+.geo-tooltip {
+  background-color: #fff;
+  border-radius: 2px;
+  box-shadow: 0 5px 5px 3px rgba(0,0,0, .25);
+  color: #000;
+  font-size: 12px;
+  margin-left: -100px;
+  padding: 4px 8px;
+  pointer-events: none;
+  position: absolute;
+  text-align: center;
+  width: 200px;
+  z-index: 9999;
+}
+
+.geo-tooltip::after {
+  border-color: transparent transparent #000 transparent;
+  border-style: solid;
+  border-width: 0 5px 5px 5px;
+  display: block;
+  margin-left: -5px;
+  margin-top: -5px;
+  height: 0;
+  width: 0;
+}

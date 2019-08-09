@@ -23,6 +23,7 @@ import { SupersetClient } from '@superset-ui/connection';
 import Geocoder from 'react-mapbox-gl-geocoder';
 
 import DeckGLContainer from '../DeckGLContainer';
+import {IconLayer} from '@deck.gl/layers';
 import { getExploreLongUrl } from '../../../explore/exploreUtils';
 import layerGenerators from '../layers';
 
@@ -35,6 +36,7 @@ const propTypes = {
   setTooltip: PropTypes.func,
   onSelect: PropTypes.func,
 };
+
 const defaultProps = {
   onAddFilter() {},
   setTooltip() {},
@@ -43,6 +45,10 @@ const defaultProps = {
 
 const queryParams = {
   country: 'us',
+};
+
+const ICON_MAPPING = {
+  marker: {x: 0, y: 0, width: 32, height: 32, mask: false}
 };
 
 class DeckMulti extends React.PureComponent {
@@ -69,9 +75,8 @@ class DeckMulti extends React.PureComponent {
     this.setState({ viewport });
   }
 
-  onSelected(viewport, item) {
-    this.setState({ viewport });
-    console.log('Selected: ', item)
+  onSelected(viewport, selectedItem) {
+    this.setState({ viewport, selectedItem });
   }
 
   loadLayers(formData, payload, viewport) {
@@ -116,21 +121,71 @@ class DeckMulti extends React.PureComponent {
     });
   }
 
+  _onHover({x, y, object}) {
+    this.setState({x, y, hoveredObject: object});
+  }
+
+  _renderTooltip() {
+    const {x, y, hoveredObject} = this.state;
+
+    if (!hoveredObject) {
+      return null;
+    }
+
+    return (
+      <div className="geo-tooltip" style={{left: x, top: y + 20}}>
+        <div>{this.state.selectedItem.place_name}</div>
+      </div>
+    );
+  }
+
+  generateNewMarkerLayer() {
+    return new IconLayer({
+      id: 'icon-layer',
+      data: [this.state.selectedItem],
+      pickable: true,
+      iconAtlas: '/static/assets/images/location-pin.png',
+      iconMapping: ICON_MAPPING,
+      getIcon: d => 'marker',
+      sizeScale: 15,
+      getPosition: d => d.center,
+      getSize: d => 5,
+      getColor: d => [0, 166, 153],
+      onHover: this._onHover.bind(this)
+    });
+  }
+
+  removeMarker() {
+    this.setState({
+      selectedItem: null
+    })
+  }
+
   render() {
     const { payload, formData, setControlValue } = this.props;
     const { subSlicesLayers } = this.state;
 
     const layers = Object.values(subSlicesLayers);
-
+    const viewport = this.state.viewport || this.props.viewport;
+    
+    if (this.state.selectedItem) {
+      layers.push(this.generateNewMarkerLayer());
+    }
+    
     return (
       <>
-        <Geocoder
-          mapboxApiAccessToken={payload.data.mapboxApiKey}
-          onSelected={this.onSelected.bind(this)}
-          viewport={viewport}
-          hideOnSelect
-          queryParams={queryParams}
-        />
+        <div className="geo-container">
+          <Geocoder
+            mapboxApiAccessToken={payload.data.mapboxApiKey}
+            onSelected={this.onSelected.bind(this)}
+            viewport={viewport}
+            hideOnSelect={true}
+            pointZoom={15}
+            queryParams={queryParams}
+          />
+          {this.state.selectedItem ? <button className="btn btn-primary remove-layer" onClick={this.removeMarker.bind(this)} title="Remove marker">&times;</button> : null}
+        </div>
+        {this._renderTooltip()}
         <DeckGLContainer
           mapboxApiAccessToken={payload.data.mapboxApiKey}
           viewport={viewport}
