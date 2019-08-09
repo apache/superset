@@ -26,7 +26,7 @@ export default {
       expanded: true,
       controlSetRows: [
         ['mapbox_style', 'viewport'],
-        ['deck_slices', null],
+        ['deck_slices', 'show_geocoder'],
       ],
     },
     {

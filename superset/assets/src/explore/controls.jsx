@@ -2406,5 +2406,47 @@ export const controls = {
     description: t('Whether to normalize the histogram'),
     default: false,
   },
+
+  x_intercept: {
+    ...metric,
+    label: t('X-Intercept Line'),
+    description: t('Display X-intercept (vertical) line based on supplied metric'),
+    default: null,
+  },
+
+  y_intercept: {
+    ...metric,
+    label: t('Y-intercept Line'),
+    description: t('Display Y-intercept (horizontal) line based on supplied metric'),
+    default: null,
+  },
+
+  show_bubble_labels: {
+    type: 'CheckboxControl',
+    label: t('Show Series Labels'),
+    default: false,
+    description: t('Whether to display bubble series label'),
+    renderTrigger: true,
+  },
+
+  bubble_labels_filter: {
+    type: 'SelectControl',
+    multi: true,
+    // freeForm: true,
+    label: t('Label Filter'),
+    choices: formatSelectOptions([]),
+    description: t('List of labels to display if Show Labels is enabled'),
+    renderTrigger: true,
+    freeForm: true,
+  },
+
+  show_geocoder: {
+    type: 'CheckboxControl',
+    renderTrigger: true,
+    label: t('Show Geocoder'),
+    description: t('Show/hide Mapbox Geocoder'),
+    default: false,
+  },
+
 };
 export default controls;

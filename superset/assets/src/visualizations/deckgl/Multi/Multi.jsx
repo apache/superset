@@ -139,6 +139,29 @@ class DeckMulti extends React.PureComponent {
     );
   }
 
+  _renderGeocoder(viewport) {
+    const { formData, payload } = this.props;
+    const { selectedItem } = this.state;
+
+    if (!formData.show_geocoder) {
+      return false;
+    }
+
+    return (
+      <div className="geo-container">
+        <Geocoder
+          mapboxApiAccessToken={payload.data.mapboxApiKey}
+          onSelected={this.onSelected.bind(this)}
+          viewport={viewport}
+          hideOnSelect
+          pointZoom={15}
+          queryParams={queryParams}
+        />
+        {selectedItem ? <button className="btn btn-primary remove-layer" onClick={this.removeMarker.bind(this)} title="Remove marker">&times;</button> : null}
+      </div>
+    )
+  }
+
   generateNewMarkerLayer() {
     return new IconLayer({
       id: 'icon-layer',
@@ -174,17 +197,7 @@ class DeckMulti extends React.PureComponent {
 
     return (
       <>
-        <div className="geo-container">
-          <Geocoder
-            mapboxApiAccessToken={payload.data.mapboxApiKey}
-            onSelected={this.onSelected.bind(this)}
-            viewport={viewport}
-            hideOnSelect
-            pointZoom={15}
-            queryParams={queryParams}
-          />
-          {this.state.selectedItem ? <button className="btn btn-primary remove-layer" onClick={this.removeMarker.bind(this)} title="Remove marker">&times;</button> : null}
-        </div>
+        {this._renderGeocoder(viewport)}
         {this._renderTooltip()}
         <DeckGLContainer
           mapboxApiAccessToken={payload.data.mapboxApiKey}
