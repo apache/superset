@@ -134,7 +134,16 @@ export function startQuery(query) {
 }
 
 export function querySuccess(query, results) {
-  return { type: QUERY_SUCCESS, query, results };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${results.query.sqlEditorId}`),
+      postPayload: { query_id: results.query_id },
+    })
+      .then(() => dispatch({ type: QUERY_SUCCESS, query, results }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while updating tab query'))),
+      );
+  };
 }
 
 export function queryFailed(query, msg, link) {
