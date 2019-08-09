@@ -34,7 +34,7 @@
     "@types/d3-selection": "^1.3.4",
     "d3-array": "^2.0.2",
     "d3-cloud": "^1.2.5",
-    "d3-scale": "^2.1.2",
+    "d3-scale": "^3.0.1",
     "d3-selection": "^1.3.2",
     "prop-types": "^15.6.2"
   },
