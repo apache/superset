@@ -428,9 +428,9 @@ SQLLAB_DEFAULT_DBID = None
 # by celery.
 SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 
-# An instantiated derivative of werkzeug.contrib.cache.BaseCache, used to store
-# the results of queries. If set to a falsy value Superset will fall back to
-# using the base class (`werkzeug.contrib.cache.BaseCache`).
+# An instantiated derivative of werkzeug.contrib.cache.BaseCache
+# if enabled, it can be used to store the results of long-running queries
+# in SQL Lab by using the "Run Async" button/feature
 RESULTS_BACKEND = None
 
 # The S3 bucket where you want to store your external hive tables created

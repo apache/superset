@@ -2884,12 +2884,17 @@ class Superset(BaseSupersetView):
             }
             for database in db.session.query(models.Database).all()
         }
+        queries = {
+            query.client_id: {k: v for k, v in query.to_json().items()}
+            for query in db.session.query(Query).all()
+        }
         d = {
             "defaultDbId": config.get("SQLLAB_DEFAULT_DBID"),
             "common": self.common_bootstrap_payload(),
             "tab_state_ids": tab_state_ids,
             "active_tab": active_tab.to_dict() if active_tab else None,
             "databases": databases,
+            "queries": queries,
         }
         return self.render_template(
             "superset/basic.html",

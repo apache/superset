@@ -112,7 +112,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       alerts: [],
       databases: restBootstrapData.databases,
       offline: false,
-      queries: {},  // XXX
+      queries: restBootstrapData.queries,
       queryEditors,
       tabHistory,
       tables,
