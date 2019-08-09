@@ -29,7 +29,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@data-ui/theme": "^0.0.78",
+    "@data-ui/theme": "^0.0.80",
     "@data-ui/xy-chart": "^0.0.80",
     "@types/d3-scale": "^2.1.1",
     "@vx/axis": "^0.0.190",
