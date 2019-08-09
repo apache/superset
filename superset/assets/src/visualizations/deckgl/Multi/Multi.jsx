@@ -20,6 +20,7 @@ import React from 'react';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import { SupersetClient } from '@superset-ui/connection';
+import Geocoder from 'react-mapbox-gl-geocoder';
 
 import DeckGLContainer from '../DeckGLContainer';
 import { getExploreLongUrl } from '../../../explore/exploreUtils';
@@ -38,6 +39,10 @@ const defaultProps = {
   onAddFilter() {},
   setTooltip() {},
   onSelect() {},
+};
+
+const queryParams = {
+  country: 'us',
 };
 
 class DeckMulti extends React.PureComponent {
@@ -62,6 +67,11 @@ class DeckMulti extends React.PureComponent {
 
   onViewportChange(viewport) {
     this.setState({ viewport });
+  }
+
+  onSelected(viewport, item) {
+    this.setState({ viewport });
+    console.log('Selected: ', item)
   }
 
   loadLayers(formData, payload, viewport) {
@@ -113,14 +123,23 @@ class DeckMulti extends React.PureComponent {
     const layers = Object.values(subSlicesLayers);
 
     return (
-      <DeckGLContainer
-        mapboxApiAccessToken={payload.data.mapboxApiKey}
-        viewport={this.state.viewport || this.props.viewport}
-        onViewportChange={this.onViewportChange}
-        layers={layers}
-        mapStyle={formData.mapbox_style}
-        setControlValue={setControlValue}
-      />
+      <>
+        <Geocoder
+          mapboxApiAccessToken={payload.data.mapboxApiKey}
+          onSelected={this.onSelected.bind(this)}
+          viewport={viewport}
+          hideOnSelect
+          queryParams={queryParams}
+        />
+        <DeckGLContainer
+          mapboxApiAccessToken={payload.data.mapboxApiKey}
+          viewport={viewport}
+          onViewportChange={this.onViewportChange}
+          layers={layers}
+          mapStyle={formData.mapbox_style}
+          setControlValue={setControlValue}
+        />
+      </>
     );
   }
 }
