@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { format } from 'd3-format';
+import { formatNumber } from '@superset-ui/number-format';
 
 import './Legend.css';
 
@@ -47,7 +47,7 @@ export default class Legend extends React.PureComponent {
     }
 
     const numValue = parseFloat(value);
-    return format(this.props.format)(numValue);
+    return formatNumber(this.props.format, numValue);
 
   }
 
