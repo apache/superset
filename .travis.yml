@@ -83,6 +83,11 @@ jobs:
         - redis-server
     - language: python
       python: 3.6
+      env: TOXENV=py36-pip
+      services:
+        - redis-server
+    - language: python
+      python: 3.6
       env: TOXENV=py36-postgres
       services:
         - postgresql
