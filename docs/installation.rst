@@ -738,9 +738,9 @@ Example of a simple JSON to Stdout class::
                 print(json.dumps(log))
 
 
-Then on Superset's config reference the class you want to use::
+Then on Superset's config pass an instance of the logger type you want to use.
 
-    EVENT_LOGGER = JSONStdOutEventLogger
+    EVENT_LOGGER = JSONStdOutEventLogger()
 
 
 Upgrading
@@ -1054,7 +1054,7 @@ your environment. See `CONTRIBUTING.md#setup-local-environment-for-development <
 Blueprints
 ----------
 
-`Blueprints are Flask's reusable apps <http://flask.pocoo.org/docs/0.12/blueprints/>`_.
+`Blueprints are Flask's reusable apps <https://flask.palletsprojects.com/en/1.0.x/tutorial/views/>`_.
 Superset allows you to specify an array of Blueprints
 in your ``superset_config`` module. Here's
 an example of how this can work with a simple Blueprint. By doing

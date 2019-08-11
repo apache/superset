@@ -121,6 +121,7 @@ export default class FilterableTable extends PureComponent {
     this.renderGrid = this.renderGrid.bind(this);
     this.renderTableCell = this.renderTableCell.bind(this);
     this.renderTableHeader = this.renderTableHeader.bind(this);
+    this.sortResults = this.sortResults.bind(this);
     this.renderTable = this.renderTable.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
@@ -173,6 +174,13 @@ export default class FilterableTable extends PureComponent {
   }
 
   getCellContent({ cellData, columnKey }) {
+    if (cellData === null) {
+      return (
+        <i className="text-muted">
+          NULL
+        </i>
+      );
+    }
     const content = String(cellData);
     const firstCharacter = content.substring(0, 1);
     let truncated;
@@ -194,7 +202,7 @@ export default class FilterableTable extends PureComponent {
         if (['string', 'number'].indexOf(typeof (val)) >= 0) {
           newRow[k] = val;
         } else {
-          newRow[k] = JSONbig.stringify(val);
+          newRow[k] = val === null ? null : JSONbig.stringify(val);
         }
       }
       return newRow;
@@ -248,6 +256,23 @@ export default class FilterableTable extends PureComponent {
         triggerNode={node}
       />
     );
+  }
+
+  sortResults(sortBy, descending) {
+    return (a, b) => {
+      if (a[sortBy] === b[sortBy]) {
+        // equal items sort equally
+        return 0;
+      } else if (a[sortBy] === null) {
+        // nulls sort after anything else
+        return 1;
+      } else if (b[sortBy] === null) {
+        return -1;
+      } else if (descending) {
+        return a[sortBy] < b[sortBy] ? 1 : -1;
+      }
+      return a[sortBy] < b[sortBy] ? -1 : 1;
+    };
   }
 
   renderTableHeader({ dataKey, label, sortBy, sortDirection }) {
@@ -386,8 +411,7 @@ export default class FilterableTable extends PureComponent {
     // sort list
     if (sortBy) {
       sortedAndFilteredList = sortedAndFilteredList
-      .sortBy(item => item[sortBy])
-      .update(list => sortDirection === SortDirection.DESC ? list.reverse() : list);
+      .sort(this.sortResults(sortBy, sortDirection === SortDirection.DESC));
     }
 
     let { height } = this.props;
