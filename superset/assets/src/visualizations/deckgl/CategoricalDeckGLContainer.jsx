@@ -237,6 +237,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
             toggleCategory={this.toggleCategory}
             showSingleCategory={this.showSingleCategory}
             position={this.props.formData.legend_position}
+            format={this.props.formData.legend_format}
           />
         </AnimatableDeckGLContainer>
       </div>
