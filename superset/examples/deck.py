@@ -353,7 +353,7 @@ def load_deck_dash():
             "expressionType": "SIMPLE",
             "fromFormData": True,
             "hasCustomLabel": True,
-            "label": "Total Population",
+            "label": "Population",
             "optionName": "metric_t2v4qbfiz1_w6qgpx4h2p",
             "sqlExpression": None,
         },
@@ -381,13 +381,22 @@ def load_deck_dash():
         "filled": True,
         "stroked": False,
         "extruded": True,
-        "point_radius_scale": 100,
+        "point_radius_fixed": {
+            "type": "metric",
+            "value": {
+                "aggregate": None,
+                "column": None,
+                "expressionType": "SQL",
+                "fromFormData": None,
+                "hasCustomLabel": None,
+                "label": "Density",
+                "optionName": "metric_c5rvwrzoo86_293h6yrv2ic",
+                "sqlExpression": "SUM(population)/SUM(area)/10",
+            },
+        },
         "multiplier": 1,
         "js_columns": ["population", "area"],
-        "js_data_mutator": "data => data.map(d => ({\n"
-        "    ...d,\n"
-        "    elevation: d.extraProps.population/d.extraProps.area/10,\n"
-        "}));",
+        "js_data_mutator": "",
         "js_tooltip": "",
         "js_onclick_href": "",
         "legend_format": ".1s",
