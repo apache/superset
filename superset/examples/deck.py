@@ -358,6 +358,7 @@ def load_deck_dash():
             "sqlExpression": None,
         },
         "line_type": "json",
+        "linear_color_scheme": "oranges",
         "mapbox_style": "mapbox://styles/mapbox/light-v9",
         "viewport": {
             "longitude": -122.43388541747726,
@@ -381,6 +382,7 @@ def load_deck_dash():
         "filled": True,
         "stroked": False,
         "extruded": True,
+        "multiplier": 0.1,
         "point_radius_fixed": {
             "type": "metric",
             "value": {
@@ -394,8 +396,7 @@ def load_deck_dash():
                 "sqlExpression": "SUM(population)/SUM(area)",
             },
         },
-        "multiplier": 0.1,
-        "js_columns": ["population", "area"],
+        "js_columns": [],
         "js_data_mutator": "",
         "js_tooltip": "",
         "js_onclick_href": "",
