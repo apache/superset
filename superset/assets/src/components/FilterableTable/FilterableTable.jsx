@@ -29,17 +29,13 @@ import {
   SortIndicator,
   Table,
 } from 'react-virtualized';
-import { getTextDimension } from '@superset-ui/dimension';
+import { getMultipleTextDimensions } from '@superset-ui/dimension';
 import { t } from '@superset-ui/translation';
 
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
 import ModalTrigger from '../ModalTrigger';
 import TooltipWrapper from '../TooltipWrapper';
-
-function getTextWidth(text, font = '12px Roboto') {
-  return getTextDimension({ text, style: { font } }).width;
-}
 
 function safeJsonObjectParse(data) {
   // First perform a cheap proxy to avoid calling JSON.parse on data that is clearly not a
@@ -159,17 +155,27 @@ export default class FilterableTable extends PureComponent {
   getWidthsForColumns() {
     const PADDING = 40; // accounts for cell padding and width of sorting icon
     const widthsByColumnKey = {};
-    this.props.orderedColumnKeys.forEach((key) => {
-      const colWidths = this.list
-        // get width for each value for a key
-        .map(d => getTextWidth(
-          this.getCellContent({ cellData: d[key], columnKey: key })) + PADDING,
-        )
-        // add width of column key to end of list
-        .push(getTextWidth(key) + PADDING);
-      // set max width as value for key
-      widthsByColumnKey[key] = Math.max(...colWidths);
+    const cellContent = [].concat(...this.props.orderedColumnKeys.map(key =>
+      this.list
+        .map(data => this.getCellContent({ cellData: data[key], columnKey: key }))
+        .push(key)
+        .toJS(),
+    ));
+
+    const colWidths = getMultipleTextDimensions(
+      {
+        className: 'cell-text-for-measuring',
+        texts: cellContent,
+      },
+    ).map(dimension => dimension.width);
+
+    this.props.orderedColumnKeys.forEach((key, index) => {
+      widthsByColumnKey[key] = Math.max(...colWidths.slice(
+        index * (this.list.size + 1),
+        (index + 1) * (this.list.size + 1),
+      )) + PADDING;
     });
+
     return widthsByColumnKey;
   }
 
@@ -411,7 +417,7 @@ export default class FilterableTable extends PureComponent {
     // sort list
     if (sortBy) {
       sortedAndFilteredList = sortedAndFilteredList
-      .sort(this.sortResults(sortBy, sortDirection === SortDirection.DESC));
+        .sort(this.sortResults(sortBy, sortDirection === SortDirection.DESC));
     }
 
     let { height } = this.props;
