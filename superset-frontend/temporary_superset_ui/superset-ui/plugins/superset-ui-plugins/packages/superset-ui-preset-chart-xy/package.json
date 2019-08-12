@@ -34,7 +34,7 @@
     "@types/d3-scale": "^2.1.1",
     "@vx/axis": "^0.0.190",
     "@vx/group": "^0.0.190",
-    "@vx/legend": "^0.0.189",
+    "@vx/legend": "^0.0.190",
     "@vx/responsive": "^0.0.189",
     "@vx/scale": "^0.0.190",
     "@vx/shape": "^0.0.190",
