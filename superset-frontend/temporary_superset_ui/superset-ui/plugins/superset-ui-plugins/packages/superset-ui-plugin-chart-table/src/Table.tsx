@@ -2,7 +2,7 @@ import React from 'react';
 import DataTable from '@airbnb/lunar/lib/components/DataTable';
 import Text from '@airbnb/lunar/lib/components/Text';
 import Input from '@airbnb/lunar/lib/components/Input';
-import withStyles, { css, WithStylesProps } from '@airbnb/lunar/lib/composers/withStyles';
+import withStyles, { WithStylesProps } from '@airbnb/lunar/lib/composers/withStyles';
 import { Renderers, ParentRow, ColumnMetadata } from '@airbnb/lunar/lib/components/DataTable/types';
 import { getRenderer, ColumnType, heightType, Cell } from './renderer';
 
@@ -140,6 +140,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
 
   render() {
     const {
+      cx,
       data,
       columns,
       alignPositiveNegative,
@@ -176,8 +177,8 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     return (
       <>
         {includeSearch && (
-          <div {...css(styles.searchBar)}>
-            <div {...css(styles.searchBox)}>
+          <div className={cx(styles.searchBar)}>
+            <div className={cx(styles.searchBox)}>
               <Input
                 name="search"
                 label=""
