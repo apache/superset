@@ -17,7 +17,7 @@
 # pylint: disable=C,R,W
 from typing import Callable
 
-from flask import g, redirect, request
+from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -178,6 +178,15 @@ appbuilder.add_view_no_menu(SavedQueryView)
 
 class TabStateView(BaseSupersetView):
 
+
+    def _get_owner_id(self, tab_state_id):
+        return (
+            db.session
+            .query(TabState.user_id)
+            .filter_by(id=tab_state_id)
+            .scalar()
+        )
+
     @has_access_api
     @expose('/', methods=['POST'])
     def post(self):
@@ -242,6 +251,9 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose('<int:tab_state_id>', methods=['PUT'])
     def put(self, tab_state_id):
+        if self._get_owner_id(tab_state_id) != g.user.get_id():
+            return Response(status=403)
+
         fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
         (
             db.session
@@ -255,6 +267,9 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose('<int:tab_state_id>/query', methods=['PUT'])
     def query(self, tab_state_id):
+        if self._get_owner_id(tab_state_id) != g.user.get_id():
+            return Response(status=403)
+
         fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
         query_id = (
             db.session
