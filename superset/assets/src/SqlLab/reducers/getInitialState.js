@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 
@@ -44,13 +43,14 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   restBootstrapData.tab_state_ids.forEach(({ id, label }) => {
     let queryEditor;
     if (restBootstrapData.active_tab && restBootstrapData.active_tab.id === id) {
+      // id is cast to string for backwards compatibility
       queryEditor = {
-        id: restBootstrapData.active_tab.id,
+        id: id.toString(),
         loaded: true,
         title: restBootstrapData.active_tab.label,
         sql: restBootstrapData.active_tab.query.sql,
         selectedText: null,
-        latestQueryId: null,
+        latestQueryId: restBootstrapData.active_tab.query.id,
         autorun: restBootstrapData.active_tab.autorun,
         templateParams: restBootstrapData.active_tab.template_params,
         dbId: restBootstrapData.active_tab.database_id,
@@ -66,7 +66,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       // dummy state, actual state will be loaded on tab switch
       queryEditor = {
         ...defaultQueryEditor,
-        id,
+        id: id.toString(),
         loaded: false,
         title: label,
       };
@@ -75,7 +75,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   });
 
   const tabHistory = restBootstrapData.active_tab
-    ? [restBootstrapData.active_tab.id]
+    ? [restBootstrapData.active_tab.id.toString()]
     : [];
 
   const tables = [];
@@ -90,7 +90,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       } = tableSchema.results;
       const table = {
         dbId: tableSchema.database_id,
-        queryEditorId: tableSchema.tab_state_id,
+        queryEditorId: tableSchema.tab_state_id.toString(),
         schema: tableSchema.schema,
         name: tableSchema.table,
         expanded: tableSchema.expanded,

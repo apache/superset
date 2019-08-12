@@ -376,6 +376,9 @@ export function switchQueryEditor(queryEditor) {
           dispatch(loadQueryEditor(loadedQueryEditor));
           dispatch(setTables(json.table_schemas || []));
           dispatch(setActiveQueryEditor(loadedQueryEditor));
+          if (json.query.resultsKey) {
+            dispatch(fetchQueryResults(json.query));
+          }
         })
         .catch(() =>
           dispatch(addDangerToast(t('An error occurred while fetching tab state'))),
