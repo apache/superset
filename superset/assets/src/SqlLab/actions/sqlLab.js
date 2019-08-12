@@ -356,12 +356,12 @@ export function switchQueryEditor(queryEditor) {
       })
         .then(({ json }) => {
           const loadedQueryEditor = {
-            id: json.id,
+            id: json.id.toString(),
             loaded: true,
             title: json.label,
             sql: json.query.sql,
             selectedText: null,
-            latestQueryId: null,
+            latestQueryId: json.query.id,
             autorun: json.autorun,
             dbId: json.database_id,
             templateParams: json.template_params,
