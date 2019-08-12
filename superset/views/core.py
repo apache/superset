@@ -134,18 +134,6 @@ if not config.get("ENABLE_JAVASCRIPT_CONTROLS"):
     FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
-def jsify(key):
-    out = []
-    prev = None
-    for c in key:
-        if prev == '_':
-            out.append(c.upper())
-        elif c != '_':
-            out.append(c)
-        prev = c
-    return ''.join(out)
-
-
 def get_database_access_error_msg(database_name):
     return __(
         "This view requires the database %(name)s or "
@@ -2897,7 +2885,7 @@ class Superset(BaseSupersetView):
             for database in db.session.query(models.Database).all()
         }
         queries = {
-            query.client_id: {jsify(k): v for k, v in query.to_json().items()}
+            query.client_id: {k: v for k, v in query.to_dict().items()}
             for query in db.session.query(Query).all()
         }
         d = {
