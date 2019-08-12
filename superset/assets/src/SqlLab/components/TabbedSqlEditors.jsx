@@ -103,7 +103,13 @@ class TabbedSqlEditors extends React.PureComponent {
       }
       this.popNewTab();
     } else if (this.props.queryEditors.length === 0) {
-        this.newQueryEditor();
+      this.newQueryEditor();
+    } else {
+      const qe = this.activeQueryEditor();
+      const latestQuery = this.props.queries[qe.latestQueryId];
+      if (latestQuery) {
+        this.props.actions.fetchQueryResults(latestQuery);
+      }
     }
   }
   componentWillReceiveProps(nextProps) {
