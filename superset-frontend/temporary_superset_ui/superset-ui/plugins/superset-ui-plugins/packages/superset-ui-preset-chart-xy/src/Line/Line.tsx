@@ -30,9 +30,7 @@ export interface TooltipProps {
   allSeries: Series[];
   datum: SeriesValue;
   series: {
-    [key: string]: {
-      y: number;
-    };
+    [key: string]: SeriesValue;
   };
   theme: typeof chartTheme;
 }
@@ -215,9 +213,7 @@ export default class LineChart extends PureComponent<Props> {
         }: {
           datum: SeriesValue;
           series: {
-            [key: string]: {
-              y: number;
-            };
+            [key: string]: SeriesValue;
           };
         }) => (
           <TooltipRenderer
