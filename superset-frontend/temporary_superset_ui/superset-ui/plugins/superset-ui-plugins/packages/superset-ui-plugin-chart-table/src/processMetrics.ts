@@ -18,5 +18,5 @@ export default function processMetrics({
 
   return processedMetrics
     .concat(processedPercentMetrics)
-    .filter(m => typeof records[0][m as string] === 'number');
+    .filter(m => typeof records[0][m] === 'number');
 }
