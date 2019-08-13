@@ -24,12 +24,13 @@ import uuid
 from celery.exceptions import SoftTimeLimitExceeded
 from contextlib2 import contextmanager
 from flask_babel import lazy_gettext as _
+import msgpack
 import simplejson as json
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
-from superset import app, dataframe, db, results_backend, security_manager
+from superset import app, dataframe, db, results_backend, results_backend_use_msgpack, security_manager
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
 from superset.tasks.celery_app import app as celery_app
@@ -224,6 +225,16 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
     return dataframe.SupersetDataFrame(data, cursor_description, db_engine_spec)
 
 
+def _serialize_payload(payload, use_msgpack=False):
+    logging.debug('Serializing to msgpack: {}'.format(use_msgpack))
+    if use_msgpack:
+        return msgpack.dumps(payload, default=json_iso_dttm_ser, use_bin_type=True)
+    else:
+        return json.dumps(
+            payload, default=json_iso_dttm_ser, ignore_nan=True
+        )
+
+
 def execute_sql_statements(
     ctask,
     query_id,
@@ -322,13 +333,11 @@ def execute_sql_statements(
         key = str(uuid.uuid4())
         logging.info(f"Storing results in results backend, key: {key}")
         with stats_timing("sqllab.query.results_backend_write", stats_logger):
-            json_payload = json.dumps(
-                payload, default=json_iso_dttm_ser, ignore_nan=True
-            )
+            serialized_payload = _serialize_payload(payload, results_backend_use_msgpack)
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
                 cache_timeout = config.get("CACHE_DEFAULT_TIMEOUT", 0)
-            results_backend.set(key, zlib_compress(json_payload), cache_timeout)
+            results_backend.set(key, zlib_compress(serialized_payload), cache_timeout)
         query.results_key = key
 
     query.status = QueryStatus.SUCCESS

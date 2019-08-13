@@ -85,6 +85,7 @@ setup(
         "idna",
         "isodate",
         "markdown>=3.0",
+        "msgpack>=0.6.1",
         "pandas>=0.24.2, <0.25.0",
         "parsedatetime",
         "pathlib2",

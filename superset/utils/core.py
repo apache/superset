@@ -803,7 +803,7 @@ def zlib_compress(data):
     return zlib.compress(data)
 
 
-def zlib_decompress_to_string(blob):
+def zlib_decompress_to_string(blob, decode=True):
     """
     Decompress things to a string in a py2/3 safe fashion
     >>> json_str = '{"test": 1}'
@@ -817,7 +817,7 @@ def zlib_decompress_to_string(blob):
             decompressed = zlib.decompress(blob)
         else:
             decompressed = zlib.decompress(bytes(blob, "utf-8"))
-        return decompressed.decode("utf-8")
+        return decompressed.decode("utf-8") if decode else decompressed
     return zlib.decompress(blob)
 
 
