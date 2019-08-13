@@ -9,31 +9,27 @@ export default [
     renderStory: () => (
       <SuperChart
         chartType="table2-legacy"
-        chartProps={{
-          datasource: {
-            columnFormats: {},
-            verboseMap: {
-              name: 'name',
-              sum__num: 'sum__num',
-            },
+        key="table1"
+        datasource={{
+          columnFormats: {},
+          verboseMap: {
+            name: 'name',
+            sum__num: 'sum__num',
           },
-          filters: {},
-          formData: {
-            alignPn: false,
-            colorPn: true,
-            includeSearch: false,
-            metrics: ['sum__num', 'trend'],
-            orderDesc: true,
-            pageLength: 0,
-            percentMetrics: ['sum__num'],
-            tableFilter: false,
-            tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
-            timeseriesLimitMetric: 'trend',
-          },
-          height: 400,
-          payload: { data: dataLegacy },
-          width: 400,
         }}
+        formData={{
+          alignPn: false,
+          colorPn: true,
+          includeSearch: false,
+          metrics: ['sum__num', 'trend'],
+          orderDesc: true,
+          pageLength: 0,
+          percentMetrics: ['sum__num'],
+          tableFilter: false,
+          tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
+          timeseriesLimitMetric: 'trend',
+        }}
+        payload={{ data: dataLegacy }}
       />
     ),
     storyName: 'Legacy',
@@ -43,31 +39,27 @@ export default [
     renderStory: () => (
       <SuperChart
         chartType="table2-legacy"
-        chartProps={{
-          datasource: {
-            columnFormats: {},
-            verboseMap: {
-              name: 'name',
-              sum__num: 'sum__num',
-            },
+        key="table2"
+        datasource={{
+          columnFormats: {},
+          verboseMap: {
+            name: 'name',
+            sum__num: 'sum__num',
           },
-          filters: {},
-          formData: {
-            alignPn: true,
-            colorPn: true,
-            includeSearch: true,
-            metrics: ['sum__num', 'trend'],
-            orderDesc: true,
-            pageLength: 0,
-            percentMetrics: [],
-            tableFilter: true,
-            tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
-            timeseriesLimitMetric: null,
-          },
-          height: 400,
-          payload: { data: dataLegacy },
-          width: 400,
         }}
+        formData={{
+          alignPn: false,
+          colorPn: true,
+          includeSearch: true,
+          metrics: ['sum__num', 'trend'],
+          orderDesc: true,
+          pageLength: 0,
+          percentMetrics: [],
+          tableFilter: true,
+          tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
+          timeseriesLimitMetric: 'trend',
+        }}
+        payload={{ data: dataLegacy }}
       />
     ),
     storyName: 'Legacy-TableFilter',
@@ -77,31 +69,27 @@ export default [
     renderStory: () => (
       <SuperChart
         chartType="table2"
-        chartProps={{
-          datasource: {
-            columnFormats: {},
-            verboseMap: {
-              name: 'name',
-              sum__num: 'sum__num',
-            },
+        key="table3"
+        datasource={{
+          columnFormats: {},
+          verboseMap: {
+            name: 'name',
+            sum__num: 'sum__num',
           },
-          filters: {},
-          formData: {
-            alignPn: false,
-            colorPn: true,
-            includeSearch: true,
-            metrics: ['sum__num', 'trend'],
-            orderDesc: true,
-            pageLength: 0,
-            percentMetrics: ['sum__num'],
-            tableFilter: true,
-            tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
-            timeseriesLimitMetric: null,
-          },
-          height: 400,
-          payload: { data },
-          width: 400,
         }}
+        formData={{
+          alignPn: true,
+          colorPn: true,
+          includeSearch: true,
+          metrics: ['sum__num'],
+          orderDesc: true,
+          pageLength: 0,
+          percentMetrics: ['sum__num'],
+          tableFilter: true,
+          tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
+          timeseriesLimitMetric: null,
+        }}
+        payload={{ data }}
       />
     ),
     storyName: 'TableFilter',
