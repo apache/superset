@@ -629,9 +629,7 @@ class TimeTableViz(BaseViz):
         if fd.get("groupby"):
             values = self.metric_labels[0]
             columns = fd.get("groupby")
-        pt = df.pivot_table(
-            index=DTTM_ALIAS, columns=columns, values=values, dropna=False
-        )
+        pt = df.pivot_table(index=DTTM_ALIAS, columns=columns, values=values)
         pt.index = pt.index.map(str)
         pt = pt.sort_index()
         return dict(
@@ -697,7 +695,6 @@ class PivotTableViz(BaseViz):
             values=[utils.get_metric_name(m) for m in self.form_data.get("metrics")],
             aggfunc=aggfunc,
             margins=self.form_data.get("pivot_margins"),
-            dropna=False,
         )
         # Display metrics side by side with each column
         if self.form_data.get("combine_metric"):
@@ -1151,14 +1148,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 values=self.metric_labels,
                 fill_value=0,
                 aggfunc=sum,
-                dropna=False,
             )
         else:
             df = df.pivot_table(
-                index=DTTM_ALIAS,
-                columns=fd.get("groupby"),
-                values=self.metric_labels,
-                dropna=False,
+                index=DTTM_ALIAS, columns=fd.get("groupby"), values=self.metric_labels
             )
 
         rule = fd.get("resample_rule")
@@ -1369,7 +1362,7 @@ class NVD3DualLineViz(NVD3Viz):
 
         metric = utils.get_metric_name(fd.get("metric"))
         metric_2 = utils.get_metric_name(fd.get("metric_2"))
-        df = df.pivot_table(index=DTTM_ALIAS, values=[metric, metric_2], dropna=False)
+        df = df.pivot_table(index=DTTM_ALIAS, values=[metric, metric_2])
 
         chart_data = self.to_series(df)
         return chart_data
@@ -1421,7 +1414,6 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
             index=DTTM_ALIAS,
             columns="series",
             values=utils.get_metric_name(fd.get("metric")),
-            dropna=False,
         )
         chart_data = self.to_series(df)
         for serie in chart_data:
@@ -1457,7 +1449,7 @@ class DistributionPieViz(NVD3Viz):
 
     def get_data(self, df):
         metric = self.metric_labels[0]
-        df = df.pivot_table(index=self.groupby, values=[metric], dropna=False)
+        df = df.pivot_table(index=self.groupby, values=[metric])
         df.sort_values(by=metric, ascending=False, inplace=True)
         df = df.reset_index()
         df.columns = ["x", "y"]
@@ -1545,9 +1537,7 @@ class DistributionBarViz(DistributionPieViz):
         row = df.groupby(self.groupby).sum()[metrics[0]].copy()
         row.sort_values(ascending=False, inplace=True)
         columns = fd.get("columns") or []
-        pt = df.pivot_table(
-            index=self.groupby, columns=columns, values=metrics, dropna=False
-        )
+        pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
         if fd.get("contribution"):
             pt = pt.T
             pt = (pt / pt.sum()).T
