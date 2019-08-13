@@ -1,5 +1,4 @@
-import buildQueryObject from '../../src/query/buildQueryObject';
-import { QueryObject } from '../../src';
+import { buildQueryObject, QueryObject } from '../src';
 
 describe('queryObjectBuilder', () => {
   let query: QueryObject;

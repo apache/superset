@@ -1,5 +1,5 @@
-import { ColumnType } from '../../src/types/Column';
-import convertMetric, { LABEL_MAX_LENGTH } from '../../src/query/convertMetric';
+import { ColumnType, convertMetric } from '../src';
+import { LABEL_MAX_LENGTH } from '../src/convertMetric';
 
 describe('convertMetric', () => {
   it('should handle string metric name', () => {

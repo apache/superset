@@ -6,19 +6,18 @@ import {
   Json,
   SupersetClientClass,
 } from '@superset-ui/connection';
+import { QueryFormData, Datasource } from '@superset-ui/query';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
-import { AnnotationLayerMetadata } from '../types/Annotation';
-import { ChartFormData } from '../types/ChartFormData';
 import { QueryData } from '../models/ChartProps';
-import { Datasource } from '../types/Datasource';
+import { AnnotationLayerMetadata } from '../types/Annotation';
 
 // This expands to Partial<All> & (union of all possible single-property types)
 type AtLeastOne<All, Each = { [K in keyof All]: Pick<All, K> }> = Partial<All> & Each[keyof Each];
 
 export type SliceIdAndOrFormData = AtLeastOne<{
   sliceId: number;
-  formData: Partial<ChartFormData>;
+  formData: Partial<QueryFormData>;
 }>;
 
 interface AnnotationData {
@@ -28,7 +27,7 @@ interface AnnotationData {
 export interface ChartData {
   annotationData: AnnotationData;
   datasource: object;
-  formData: ChartFormData;
+  formData: QueryFormData;
   queryData: QueryData;
 }
 
@@ -47,7 +46,7 @@ export default class ChartClient {
   loadFormData(
     input: SliceIdAndOrFormData,
     options?: Partial<RequestConfig>,
-  ): Promise<ChartFormData> {
+  ): Promise<QueryFormData> {
     /* If sliceId is provided, use it to fetch stored formData from API */
     if ('sliceId' in input) {
       const promise = this.client
@@ -62,7 +61,7 @@ export default class ChartClient {
        * If formData is also specified, override API result
        * with user-specified formData
        */
-      return promise.then((dbFormData: ChartFormData) => ({
+      return promise.then((dbFormData: QueryFormData) => ({
         ...dbFormData,
         ...input.formData,
       }));
@@ -70,11 +69,11 @@ export default class ChartClient {
 
     /* If sliceId is not provided, returned formData wrapped in a Promise */
     return input.formData
-      ? Promise.resolve(input.formData as ChartFormData)
+      ? Promise.resolve(input.formData as QueryFormData)
       : Promise.reject(new Error('At least one of sliceId or formData must be specified'));
   }
 
-  async loadQueryData(formData: ChartFormData, options?: Partial<RequestConfig>): Promise<object> {
+  async loadQueryData(formData: QueryFormData, options?: Partial<RequestConfig>): Promise<object> {
     const { viz_type: visType } = formData;
     const metaDataRegistry = getChartMetadataRegistry();
     const buildQueryRegistry = getChartBuildQueryRegistry();
@@ -132,17 +131,23 @@ export default class ChartClient {
   }
 
   loadChartData(input: SliceIdAndOrFormData): Promise<ChartData> {
-    return this.loadFormData(input).then(formData =>
-      Promise.all([
-        this.loadAnnotations(formData.annotation_layers),
-        this.loadDatasource(formData.datasource),
-        this.loadQueryData(formData),
-      ]).then(([annotationData, datasource, queryData]) => ({
-        annotationData,
-        datasource,
-        formData,
-        queryData,
-      })),
+    return this.loadFormData(input).then(
+      (
+        formData: QueryFormData & {
+          // eslint-disable-next-line camelcase
+          annotation_layers?: AnnotationLayerMetadata[];
+        },
+      ) =>
+        Promise.all([
+          this.loadAnnotations(formData.annotation_layers),
+          this.loadDatasource(formData.datasource),
+          this.loadQueryData(formData),
+        ]).then(([annotationData, datasource, queryData]) => ({
+          annotationData,
+          datasource,
+          formData,
+          queryData,
+        })),
     );
   }
 }

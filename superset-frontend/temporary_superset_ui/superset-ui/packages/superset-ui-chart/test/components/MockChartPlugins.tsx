@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChartMetadata, ChartPlugin, ChartFormData } from '../../src';
+import { ChartMetadata, ChartPlugin, QueryFormData } from '../../src';
 
 const DIMENSION_STYLE = {
   fontSize: 36,
@@ -52,7 +52,7 @@ export const ChartKeys = {
   BUGGY: 'buggy-chart',
 };
 
-export class DiligentChartPlugin extends ChartPlugin<ChartFormData> {
+export class DiligentChartPlugin extends ChartPlugin<QueryFormData> {
   constructor() {
     super({
       metadata: new ChartMetadata({
@@ -65,7 +65,7 @@ export class DiligentChartPlugin extends ChartPlugin<ChartFormData> {
   }
 }
 
-export class LazyChartPlugin extends ChartPlugin<ChartFormData> {
+export class LazyChartPlugin extends ChartPlugin<QueryFormData> {
   constructor() {
     super({
       metadata: new ChartMetadata({
@@ -80,7 +80,7 @@ export class LazyChartPlugin extends ChartPlugin<ChartFormData> {
   }
 }
 
-export class SlowChartPlugin extends ChartPlugin<ChartFormData> {
+export class SlowChartPlugin extends ChartPlugin<QueryFormData> {
   constructor() {
     super({
       metadata: new ChartMetadata({
@@ -98,7 +98,7 @@ export class SlowChartPlugin extends ChartPlugin<ChartFormData> {
   }
 }
 
-export class BuggyChartPlugin extends ChartPlugin<ChartFormData> {
+export class BuggyChartPlugin extends ChartPlugin<QueryFormData> {
   constructor() {
     super({
       metadata: new ChartMetadata({

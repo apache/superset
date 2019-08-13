@@ -43,6 +43,7 @@
     "@superset-ui/connection": "^0.11.0",
     "@superset-ui/core": "^0.11.0",
     "@superset-ui/dimension": "^0.11.10",
+    "@superset-ui/query": "^0.11.10",
     "react": "^15 || ^16"
   }
 }

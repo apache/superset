@@ -1,11 +1,11 @@
 import { FunctionComponent, ComponentType } from 'react';
 import { isRequired, Plugin } from '@superset-ui/core';
+import { QueryFormData } from '@superset-ui/query';
 import ChartMetadata from './ChartMetadata';
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
-import { ChartFormData } from '../types/ChartFormData';
 import { BuildQueryFunction, TransformProps } from '../types/TransformFunction';
 
 const IDENTITY = (x: any) => x;
@@ -15,7 +15,7 @@ export type PromiseOrValueLoader<T> = () => PromiseOrValue<T>;
 export type ChartType = ComponentType<any> | FunctionComponent<any>;
 type ValueOrModuleWithValue<T> = T | { default: T };
 
-interface ChartPluginConfig<T extends ChartFormData> {
+interface ChartPluginConfig<T extends QueryFormData> {
   metadata: ChartMetadata;
   /** Use buildQuery for immediate value. For lazy-loading, use loadBuildQuery. */
   buildQuery?: BuildQueryFunction<T>;
@@ -47,7 +47,7 @@ function sanitizeLoader<T>(
   };
 }
 
-export default class ChartPlugin<T extends ChartFormData = ChartFormData> extends Plugin {
+export default class ChartPlugin<T extends QueryFormData = QueryFormData> extends Plugin {
   metadata: ChartMetadata;
   loadBuildQuery?: PromiseOrValueLoader<BuildQueryFunction<T>>;
   loadTransformProps: PromiseOrValueLoader<TransformProps>;

@@ -1,4 +1,4 @@
-import { DatasourceKey } from '../../src';
+import { DatasourceKey } from '../src';
 
 describe('DatasourceKey', () => {
   const tableKey = '5__table';

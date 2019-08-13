@@ -1,4 +1,4 @@
-import processFilters from '../../src/query/processFilters';
+import processFilters from '../src/processFilters';
 
 describe('processFilters', () => {
   it('should handle non-array adhoc_filters', () => {
