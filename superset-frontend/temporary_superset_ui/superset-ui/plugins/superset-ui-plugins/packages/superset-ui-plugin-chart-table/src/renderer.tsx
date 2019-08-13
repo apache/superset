@@ -46,8 +46,8 @@ export const getRenderer = ({
   isSelected: (cell: Cell) => boolean;
   handleCellSelected: (cell: Cell) => any;
 }) => (props: RendererProps) => {
-  const { key } = props;
-  const value = props.row.rowData.data[key];
+  const { keyName } = props;
+  const value = props.row.rowData.data[keyName];
   const isMetric = column.type === 'metric';
   let Parent;
 
@@ -68,7 +68,8 @@ export const getRenderer = ({
     const color = colorPositiveNegative && value < 0 ? NEGATIVE_COLOR : POSITIVE_COLOR;
     Parent = ({ children }: { children: React.ReactNode }) => {
       const boxStyle: CSSProperties = {
-        backgroundColor: enableFilter && isSelected({ key, value }) ? SELECTION_COLOR : undefined,
+        backgroundColor:
+          enableFilter && isSelected({ key: keyName, value }) ? SELECTION_COLOR : undefined,
         margin: '0px -16px',
       };
       const boxContainerStyle: CSSProperties = {
@@ -105,7 +106,7 @@ export const getRenderer = ({
   return (
     <div
       onClick={handleCellSelected({
-        key,
+        key: keyName,
         value,
       })}
     >
