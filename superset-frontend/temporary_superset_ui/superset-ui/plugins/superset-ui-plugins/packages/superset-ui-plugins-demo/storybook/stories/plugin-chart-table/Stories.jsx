@@ -51,7 +51,7 @@ export default [
           alignPn: false,
           colorPn: true,
           includeSearch: true,
-          metrics: ['sum__num', 'trend'],
+          metrics: ['sum__num'],
           orderDesc: true,
           pageLength: 0,
           percentMetrics: [],

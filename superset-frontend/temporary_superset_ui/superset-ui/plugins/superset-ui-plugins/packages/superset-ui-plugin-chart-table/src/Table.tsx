@@ -195,6 +195,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
         )}
         <DataTable
           data={dataToRender}
+          keys={dataToRender && dataToRender.length > 0 ? Object.keys(dataToRender[0].data) : []}
           columnMetadata={columnMetadata}
           zebra
           rowHeight={heightType}

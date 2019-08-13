@@ -25,6 +25,12 @@ export type Cell = {
   value: any;
 };
 
+const numberStyle: CSSProperties = {
+  marginLeft: 'auto',
+  marginRight: '4px',
+  zIndex: 10,
+};
+
 export const getRenderer = ({
   column,
   alignPositiveNegative,
@@ -81,12 +87,6 @@ export const getRenderer = ({
         left: `${left}%`,
         position: 'absolute',
         width: `${width}%`,
-      };
-
-      const numberStyle: CSSProperties = {
-        marginLeft: 'auto',
-        marginRight: '4px',
-        zIndex: 10,
       };
 
       return (
