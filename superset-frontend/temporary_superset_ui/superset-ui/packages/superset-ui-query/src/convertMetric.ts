@@ -1,6 +1,6 @@
-import { ChartFormDataMetric } from '../types/ChartFormData';
-import { QueryObjectMetric } from '../types/Query';
-import { AdhocMetric } from '../types/Metric';
+import { QueryFormDataMetric } from './types/QueryFormData';
+import { QueryObjectMetric } from './types/Query';
+import { AdhocMetric } from './types/Metric';
 
 export const LABEL_MAX_LENGTH = 43;
 
@@ -17,7 +17,7 @@ function getDefaultLabel(metric: AdhocMetric) {
     : `${label.substring(0, LABEL_MAX_LENGTH - 3)}...`;
 }
 
-export default function convertMetric(metric: ChartFormDataMetric): QueryObjectMetric {
+export default function convertMetric(metric: QueryFormDataMetric): QueryObjectMetric {
   let formattedMetric;
   if (typeof metric === 'string') {
     formattedMetric = {

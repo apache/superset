@@ -1,9 +1,9 @@
-import { ChartFormData } from '../types/ChartFormData';
-import { QueryObjectMetric } from '../types/Query';
-import { MetricKey } from '../types/Metric';
+import { QueryFormData } from './types/QueryFormData';
+import { QueryObjectMetric } from './types/Query';
+import { MetricKey } from './types/Metric';
 import convertMetric from './convertMetric';
 
-export default function processMetrics(formData: ChartFormData) {
+export default function processMetrics(formData: QueryFormData) {
   // Use Array to maintain insertion order
   // for metrics that are order sensitive
   const metrics: QueryObjectMetric[] = [];
