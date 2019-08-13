@@ -251,7 +251,7 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose('<int:tab_state_id>', methods=['PUT'])
     def put(self, tab_state_id):
-        if self._get_owner_id(tab_state_id) != g.user.get_id():
+        if self._get_owner_id(tab_state_id) != int(g.user.get_id()):
             return Response(status=403)
 
         fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
@@ -267,7 +267,7 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose('<int:tab_state_id>/query', methods=['PUT'])
     def query(self, tab_state_id):
-        if self._get_owner_id(tab_state_id) != g.user.get_id():
+        if self._get_owner_id(tab_state_id) != int(g.user.get_id()):
             return Response(status=403)
 
         fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
@@ -303,7 +303,7 @@ class TableSchemaView(BaseSupersetView):
         )
         db.session.add(table_schema)
         db.session.commit()
-        return json_success(json.dumps('OK'))
+        return json_success(json.dumps({'id': table_schema.id}))
 
     @has_access_api
     @expose('/<int:table_schema_id>', methods=['DELETE'])

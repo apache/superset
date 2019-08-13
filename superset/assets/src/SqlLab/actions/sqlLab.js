@@ -134,6 +134,11 @@ export function startQuery(query) {
 }
 
 export function querySuccess(query, results) {
+  // table preview queries have `sqlEditorId` set to the string 'null'
+  if (results.query.sqlEditorId === 'null') {
+    return { type: QUERY_SUCCESS, query, results };
+  }
+
   return function (dispatch) {
     SupersetClient.put({
       endpoint: encodeURI(`/tabstateview/${results.query.sqlEditorId}`),
@@ -327,6 +332,7 @@ export function setTables(tableSchemas) {
       primaryKey,
       foreignKeys,
       indexes,
+      dataPreviewQueryId,
     } = tableSchema.results;
     return {
       dbId: tableSchema.database_id,
@@ -335,7 +341,7 @@ export function setTables(tableSchemas) {
       name: tableSchema.table,
       expanded: tableSchema.expanded,
       id: tableSchema.id,
-      dataPreviewQueryId: null,
+      dataPreviewQueryId,
       columns,
       selectStar,
       primaryKey,
@@ -537,6 +543,7 @@ function getTableMetadata(table, query, dispatch) {
         ...json,
         expanded: true,
         isMetadataLoading: false,
+        dataPreviewQueryId: dataPreviewQuery.id,
       };
       Promise.all([
         dispatch(mergeTable(newTable, dataPreviewQuery)), // Merge table to tables in state
@@ -599,7 +606,11 @@ export function addTable(query, tableName, schemaName) {
         SupersetClient.post({
           endpoint: encodeURI('/tableschemaview/'),
           postPayload: { table: { ...newTable, ...json } },
-        }),
+        })
+          .then(({ response }) => dispatch(mergeTable({ ...table, id: response.id })))
+          .catch(() =>
+            dispatch(addDangerToast(t('An error occurred while fetching table metadata'))),
+          ),
       );
   };
 }
