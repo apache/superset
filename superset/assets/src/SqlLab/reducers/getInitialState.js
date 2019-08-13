@@ -87,6 +87,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
         primaryKey,
         foreignKeys,
         indexes,
+        dataPreviewQueryId,
       } = tableSchema.results;
       const table = {
         dbId: tableSchema.database_id,
@@ -95,7 +96,9 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
         name: tableSchema.table,
         expanded: tableSchema.expanded,
         id: tableSchema.id,
-        dataPreviewQueryId: null,
+        isMetadataLoading: false,
+        isExtraMetadataLoading: false,
+        dataPreviewQueryId,
         columns,
         selectStar,
         primaryKey,

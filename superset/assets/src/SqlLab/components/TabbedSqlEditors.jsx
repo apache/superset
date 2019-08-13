@@ -128,7 +128,7 @@ class TabbedSqlEditors extends React.PureComponent {
     nextProps.tables.forEach((table) => {
       const queryId = table.dataPreviewQueryId;
       if (queryId && nextProps.queries[queryId] && table.queryEditorId === nextActiveQeId) {
-        dataPreviewQueries.push(nextProps.queries[queryId]);
+        dataPreviewQueries.push({ ...nextProps.queries[queryId], tableName: table.name });
       }
     });
     if (!areArraysShallowEqual(dataPreviewQueries, this.state.dataPreviewQueries)) {
