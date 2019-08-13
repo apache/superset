@@ -607,7 +607,9 @@ export function addTable(query, tableName, schemaName) {
           endpoint: encodeURI('/tableschemaview/'),
           postPayload: { table: { ...newTable, ...json } },
         })
-          .then(({ response }) => dispatch(mergeTable({ ...table, id: response.id })))
+          .then(({ json: resultJson }) =>
+            dispatch(mergeTable({ ...table, id: resultJson.id })),
+          )
           .catch(() =>
             dispatch(addDangerToast(t('An error occurred while fetching table metadata'))),
           ),
