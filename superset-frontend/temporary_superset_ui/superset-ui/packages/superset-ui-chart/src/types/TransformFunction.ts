@@ -1,6 +1,5 @@
-import { ChartFormData } from './ChartFormData';
+import { QueryFormData, QueryContext } from '@superset-ui/query';
 import ChartProps from '../models/ChartProps';
-import { QueryContext } from './Query';
 
 export interface PlainProps {
   [key: string]: any;
@@ -12,4 +11,4 @@ export type PreTransformProps = TransformFunction<ChartProps, ChartProps>;
 export type TransformProps = TransformFunction<ChartProps>;
 export type PostTransformProps = TransformFunction;
 
-export type BuildQueryFunction<T extends ChartFormData> = (formData: T) => QueryContext;
+export type BuildQueryFunction<T extends QueryFormData> = (formData: T) => QueryContext;

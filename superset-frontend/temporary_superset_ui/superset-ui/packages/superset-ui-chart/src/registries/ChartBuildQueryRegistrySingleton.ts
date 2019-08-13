@@ -1,7 +1,7 @@
 import { Registry, makeSingleton, OverwritePolicy } from '@superset-ui/core';
-import { QueryContext } from '../types/Query';
+import { QueryContext } from '@superset-ui/query';
 
-// Ideally this would be <T extends ChartFormData>
+// Ideally this would be <T extends QueryFormData>
 type BuildQuery = (formData: any) => QueryContext;
 
 class ChartBuildQueryRegistry extends Registry<BuildQuery> {

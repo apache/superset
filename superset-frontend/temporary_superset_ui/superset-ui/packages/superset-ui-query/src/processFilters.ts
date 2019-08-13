@@ -1,10 +1,10 @@
-import { ChartFormData } from '../types/ChartFormData';
-import { QueryObjectFilterClause } from '../types/Query';
-import { isSimpleAdhocFilter } from '../types/Filter';
+import { QueryFormData } from './types/QueryFormData';
+import { QueryObjectFilterClause } from './types/Query';
+import { isSimpleAdhocFilter } from './types/Filter';
 import convertFilter from './convertFilter';
 
 /** Logic formerly in viz.py's process_query_filters */
-export default function processFilters(formData: ChartFormData) {
+export default function processFilters(formData: QueryFormData) {
   // TODO: Implement
   // utils.convert_legacy_filters_into_adhoc(self.form_data)
 
