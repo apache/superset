@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 
 import getInitialState from './getInitialState';
@@ -45,7 +44,6 @@ export default function sqlLabReducer(state = {}, action) {
         qe => qe.id === state.tabHistory[state.tabHistory.length - 1],
       );
       const qe = {
-        id: shortid.generate(),
         title: t('Copy of %s', progenitor.title),
         dbId: action.query.dbId ? action.query.dbId : null,
         schema: action.query.schema ? action.query.schema : null,
@@ -100,7 +98,6 @@ export default function sqlLabReducer(state = {}, action) {
         }
         return alterInArr(state, 'tables', existingTable, at);
       }
-      at.id = shortid.generate();
       // for new table, associate Id of query for data preview
       at.dataPreviewQueryId = null;
       let newState = addToArr(state, 'tables', at);
