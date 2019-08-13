@@ -1,4 +1,4 @@
-import convertFilter from '../../src/query/convertFilter';
+import { convertFilter } from '../src';
 
 describe('convertFilter', () => {
   it('should handle unary filter', () => {

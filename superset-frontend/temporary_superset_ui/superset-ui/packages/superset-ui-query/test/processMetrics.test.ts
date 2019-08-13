@@ -1,5 +1,5 @@
-import { ColumnType } from '../../src/types/Column';
-import processMetrics from '../../src/query/processMetrics';
+import { ColumnType } from '../src';
+import processMetrics from '../src/processMetrics';
 
 describe('processMetrics', () => {
   const formData = {

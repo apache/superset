@@ -2,18 +2,17 @@
 /* eslint-disable import/prefer-default-export */
 // FormData uses snake_cased keys.
 import { MetricKey, AdhocMetric } from './Metric';
-import { AnnotationLayerMetadata } from './Annotation';
 import { TimeRange } from './Time';
 import { AdhocFilter } from './Filter';
 
-export type ChartFormDataMetric = string | AdhocMetric;
+export type QueryFormDataMetric = string | AdhocMetric;
 
 // Define mapped type separately to work around a limitation of TypeScript
 // https://github.com/Microsoft/TypeScript/issues/13573
 // The Metrics in formData is either a string or a proper metric. It will be
 // unified into a proper Metric type during buildQuery (see `/query/Metrics.ts`).
-export type ChartFormDataMetrics = Partial<
-  Record<MetricKey, ChartFormDataMetric | ChartFormDataMetric[]>
+export type QueryFormDataMetrics = Partial<
+  Record<MetricKey, QueryFormDataMetric | QueryFormDataMetric[]>
 >;
 
 // Type signature for formData shared by all viz types
@@ -46,11 +45,9 @@ export type BaseFormData = {
   /** limit number of row in the results */
   row_limit?: number;
   /** The metric used to order timeseries for limiting */
-  timeseries_limit_metric?: ChartFormDataMetric;
-
-  annotation_layers?: AnnotationLayerMetadata[];
+  timeseries_limit_metric?: QueryFormDataMetric;
 } & TimeRange &
-  ChartFormDataMetrics;
+  QueryFormDataMetrics;
 
 // FormData is either sqla-based or druid-based
 export type SqlaFormData = {
@@ -65,16 +62,16 @@ export type DruidFormData = {
   druid_time_origin?: string;
 } & BaseFormData;
 
-export type ChartFormData = SqlaFormData | DruidFormData;
+export type QueryFormData = SqlaFormData | DruidFormData;
 
 //---------------------------------------------------
 // Type guards
 //---------------------------------------------------
 
-export function isDruidFormData(formData: ChartFormData): formData is DruidFormData {
+export function isDruidFormData(formData: QueryFormData): formData is DruidFormData {
   return 'granularity' in formData;
 }
 
-export function isSqlaFormData(formData: ChartFormData): formData is SqlaFormData {
+export function isSqlaFormData(formData: QueryFormData): formData is SqlaFormData {
   return 'granularity_sqla' in formData;
 }

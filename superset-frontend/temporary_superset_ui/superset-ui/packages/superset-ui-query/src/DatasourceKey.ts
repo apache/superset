@@ -1,4 +1,4 @@
-import { DatasourceType } from '../types/Datasource';
+import { DatasourceType } from './types/Datasource';
 
 export default class DatasourceKey {
   readonly id: number;

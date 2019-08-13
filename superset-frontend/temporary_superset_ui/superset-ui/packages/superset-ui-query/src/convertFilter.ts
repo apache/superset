@@ -1,5 +1,5 @@
-import { SimpleAdhocFilter, isBinaryAdhocFilter, isUnaryAdhocFilter } from '../types/Filter';
-import { QueryObjectFilterClause } from '../types/Query';
+import { SimpleAdhocFilter, isBinaryAdhocFilter, isUnaryAdhocFilter } from './types/Filter';
+import { QueryObjectFilterClause } from './types/Query';
 
 export default function convertFilter(filter: SimpleAdhocFilter): QueryObjectFilterClause {
   const { subject } = filter;
