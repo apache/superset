@@ -1,4 +1,18 @@
-# [0.0.0-master](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.39...v0.0.0-master) (2019-08-06)
+## [0.10.41](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.40...v0.10.41) (2019-08-13)
+
+
+### Features
+
+* update type for line chart series ([#175](https://github.com/apache-superset/superset-ui-plugins/issues/175)) ([c920d55](https://github.com/apache-superset/superset-ui-plugins/commit/c920d55))
+
+
+
+## [0.10.40](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.39...v0.10.40) (2019-08-08)
+
+
+### Features
+
+* add basic functionality for icicle chart to display static data ([#165](https://github.com/apache-superset/superset-ui-plugins/issues/165)) ([895758b](https://github.com/apache-superset/superset-ui-plugins/commit/895758b))
 
 
 
