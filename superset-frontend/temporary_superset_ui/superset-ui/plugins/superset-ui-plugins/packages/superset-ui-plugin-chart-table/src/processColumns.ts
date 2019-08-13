@@ -70,7 +70,7 @@ export default function processColumns({
 
     // Handle verbose names for percents
     if (!label) {
-      if (key[0] === '%') {
+      if (key.length > 0 && key[0] === '%') {
         const cleanedKey = key.substring(1);
         label = `% ${verboseMap[cleanedKey] || cleanedKey}`;
         formatFunction = formatPercent;
