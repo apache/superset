@@ -31,9 +31,9 @@
     "react": "^16.8.6"
   },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.10.0",
-    "@superset-ui/number-format": "^0.10.0",
-    "@superset-ui/time-format": "^0.10.0",
-    "@superset-ui/translation": "^0.10.0"
+    "@superset-ui/chart": "^0.11.14",
+    "@superset-ui/number-format": "^0.11.14",
+    "@superset-ui/time-format": "^0.11.14",
+    "@superset-ui/translation": "^0.11.9"
   }
 }
