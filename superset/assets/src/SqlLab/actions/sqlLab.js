@@ -296,7 +296,7 @@ export function addQueryEditor(queryEditor) {
       .then(({ json }) => {
         const newQueryEditor = {
           ...queryEditor,
-          id: json.id,
+          id: json.id.toString(),
         };
         dispatch({ type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor });
       })
@@ -336,7 +336,7 @@ export function setTables(tableSchemas) {
     } = tableSchema.results;
     return {
       dbId: tableSchema.database_id,
-      queryEditorId: tableSchema.tab_state_id,
+      queryEditorId: tableSchema.tab_state_id.toString(),
       schema: tableSchema.schema,
       name: tableSchema.table,
       expanded: tableSchema.expanded,
