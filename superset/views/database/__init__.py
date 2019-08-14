@@ -35,7 +35,28 @@ def sqlalchemy_uri_validator(
     uri: str, exception: Type[ValidationError] = ValidationError
 ) -> None:
     """
-        Check if user has submitted a valid SQLAlchemy URI
+        Check if a user has submitted a valid SQLAlchemy URI
+
+        Optional extra validation arguments, example:
+
+        SUPERSET_SUPPORTED_DB_DRIVERS = ["postgresql", "mysql"]
+
+        SUPERSET_ENFORCE_DB_ARGUMENTS = {
+            "mysql": [
+                {
+                    "ssl": True,
+                }
+            ]
+            "postgresql" : [
+                {
+                    "sslmode": "allow",
+                }
+                {
+                    "sslmode": "verify-ca",
+                    "sslrootcert": "/etc/ssl/certs/ca-certificates.crt",
+                }
+            ]
+        }
     """
     try:
         url = make_url(uri.strip())
@@ -49,9 +70,12 @@ def sqlalchemy_uri_validator(
     # Check for enforced URI arguments
     enforce_db_arguments = current_app.config.get("SUPERSET_ENFORCE_DB_ARGUMENTS", None)
     if enforce_db_arguments:
-        for db_argument in enforce_db_arguments:
-            if db_argument not in url.query:
-                raise exception(_(f"Missing enforced argument: {db_argument}"))
+        possible_arguments = enforce_db_arguments.get(url.drivername)
+        if possible_arguments:
+            for possible_argument in possible_arguments:
+                if url.query == possible_argument:
+                    return
+            raise exception(_(f"Missing enforced argument(s)"))
 
 
 class DatabaseFilter(SupersetFilter):
