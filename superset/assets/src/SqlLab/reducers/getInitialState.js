@@ -115,7 +115,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   if (localStorage.getItem('redux') && JSON.parse(localStorage.getItem('redux')).sqlLab) {
     const sqlLab = JSON.parse(localStorage.getItem('redux')).sqlLab;
 
-    if (sqlLab.queryEditors.length === 0 && sqlLab.tables.length === 0) {
+    if (sqlLab.queryEditors.length === 0) {
       // migration was successful
       localStorage.removeItem('redux');
     } else {
