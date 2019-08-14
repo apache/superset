@@ -75,7 +75,7 @@ def sqlalchemy_uri_validator(
             for possible_argument in possible_arguments:
                 if url.query == possible_argument:
                     return
-            raise exception(_(f"Missing enforced argument(s)"))
+            raise exception(_("Missing enforced argument(s)"))
 
 
 class DatabaseFilter(SupersetFilter):
