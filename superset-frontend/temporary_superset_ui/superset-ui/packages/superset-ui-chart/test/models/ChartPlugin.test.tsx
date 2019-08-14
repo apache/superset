@@ -10,6 +10,7 @@ import {
   getChartComponentRegistry,
   getChartTransformPropsRegistry,
   getChartBuildQueryRegistry,
+  getChartControlPanelRegistry,
 } from '../../src';
 
 describe('ChartPlugin', () => {
@@ -24,6 +25,8 @@ describe('ChartPlugin', () => {
     datasource: { id: 1, type: DatasourceType.Table },
     queries: [{ granularity: 'day' }],
   });
+
+  const controlPanel = { abc: 1 };
 
   it('exists', () => {
     expect(ChartPlugin).toBeDefined();
@@ -131,6 +134,23 @@ describe('ChartPlugin', () => {
         expect(fn(PROPS)).toEqual({ field2: 2 });
       });
     });
+    describe('controlPanel', () => {
+      it('takes controlPanel from input', () => {
+        const plugin = new ChartPlugin({
+          metadata,
+          Chart: FakeChart,
+          controlPanel,
+        });
+        expect(plugin.controlPanel).toBe(controlPanel);
+      });
+      it('defaults to empty object', () => {
+        const plugin = new ChartPlugin({
+          metadata,
+          Chart: FakeChart,
+        });
+        expect(plugin.controlPanel).toEqual({});
+      });
+    });
   });
 
   describe('.register()', () => {
@@ -141,6 +161,7 @@ describe('ChartPlugin', () => {
         metadata,
         Chart: FakeChart,
         buildQuery,
+        controlPanel,
       });
     });
 
@@ -154,6 +175,7 @@ describe('ChartPlugin', () => {
       expect(getChartComponentRegistry().get('cd')).toBe(FakeChart);
       expect(getChartTransformPropsRegistry().has('cd')).toEqual(true);
       expect(getChartBuildQueryRegistry().get('cd')).toBe(buildQuery);
+      expect(getChartControlPanelRegistry().get('cd')).toBe(controlPanel);
     });
     it('does not register buildQuery when it is not specified in the ChartPlugin', () => {
       new ChartPlugin({
@@ -177,6 +199,7 @@ describe('ChartPlugin', () => {
         metadata,
         Chart: FakeChart,
         buildQuery,
+        controlPanel,
       });
     });
 
@@ -190,11 +213,13 @@ describe('ChartPlugin', () => {
       expect(getChartComponentRegistry().get('def')).toBe(FakeChart);
       expect(getChartTransformPropsRegistry().has('def')).toEqual(true);
       expect(getChartBuildQueryRegistry().get('def')).toBe(buildQuery);
+      expect(getChartControlPanelRegistry().get('def')).toBe(controlPanel);
       plugin.unregister();
-      expect(getChartMetadataRegistry().has('def')).toEqual(false);
-      expect(getChartComponentRegistry().has('def')).toEqual(false);
-      expect(getChartTransformPropsRegistry().has('def')).toEqual(false);
-      expect(getChartBuildQueryRegistry().has('def')).toEqual(false);
+      expect(getChartMetadataRegistry().has('def')).toBeFalsy();
+      expect(getChartComponentRegistry().has('def')).toBeFalsy();
+      expect(getChartTransformPropsRegistry().has('def')).toBeFalsy();
+      expect(getChartBuildQueryRegistry().has('def')).toBeFalsy();
+      expect(getChartControlPanelRegistry().has('def')).toBeFalsy();
     });
     it('returns itself', () => {
       expect(plugin.configure({ key: 'xyz' }).unregister()).toBe(plugin);
