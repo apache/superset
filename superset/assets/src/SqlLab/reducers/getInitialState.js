@@ -20,6 +20,12 @@ import { t } from '@superset-ui/translation';
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 
 export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
+  /* Before YYYY-MM-DD the state of SQL Lab was stored in the browser's local
+   * storage. This section migrates the data from the client to the backend,
+   * allowing users to transition transparently to the new system where state
+   * is stored on the server-side.
+   */
+  console.log(localStorage.getItem('sqlLab'));
   const queryEditors = [];
 
   const defaultQueryEditor = {

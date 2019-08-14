@@ -176,6 +176,7 @@ class TabbedSqlEditors extends React.PureComponent {
     this.props.actions.addQueryEditor(qe);
   }
   handleSelect(key) {
+    console.log(key);
     if (key === 'add_tab') {
       this.newQueryEditor();
     } else {
