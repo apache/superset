@@ -68,6 +68,13 @@ class TabbedSqlEditors extends React.PureComponent {
     this.removeAllOtherQueryEditors = this.removeAllOtherQueryEditors.bind(this);
   }
   componentDidMount() {
+    // migrate query editor and associated tables state to server
+    const localStorageTables = this.props.tables.filter(table => table.inLocalStorage);
+    this.props.queryEditors.filter(qe => qe.inLocalStorage).forEach((qe) => {
+      const tables = localStorageTables.filter(table => table.queryEditorId === qe.id);
+      this.props.actions.migrateLocalStorage(qe, tables);
+    });
+
     const query = URI(window.location).search(true);
     // Popping a new tab based on the querystring
     if (query.id || query.sql || query.savedQueryId || query.datasourceKey) {

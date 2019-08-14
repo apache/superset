@@ -281,6 +281,40 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.SET_ACTIVE_SOUTHPANE_TAB]() {
       return Object.assign({}, state, { activeSouthPaneTab: action.tabId });
     },
+    [actions.MIGRATE_QUERY_EDITOR]() {
+      // remove migrated query editor from localStorage
+      const sqlLab = JSON.parse(localStorage.getItem('redux')).sqlLab;
+      sqlLab.queryEditors = sqlLab.queryEditors.filter(qe => qe.id !== action.oldQueryEditor.id);
+      localStorage.setItem('redux', JSON.stringify({ sqlLab }));
+
+      // replace localStorage query editor with the server backed one
+      return addToArr(
+        removeFromArr(
+          state,
+          'queryEditors',
+          action.oldQueryEditor,
+        ),
+        'queryEditors',
+        action.newQueryEditor,
+      );
+    },
+    [actions.MIGRATE_TABLE]() {
+      // remove migrated table from localStorage
+      const sqlLab = JSON.parse(localStorage.getItem('redux')).sqlLab;
+      sqlLab.tables = sqlLab.tables.filter(table => table.id !== action.oldTable.id);
+      localStorage.setItem('redux', JSON.stringify({ sqlLab }));
+
+      // replace localStorage table with the server backed one
+      return addToArr(
+        removeFromArr(
+          state,
+          'tables',
+          action.oldTable,
+        ),
+        'tables',
+        action.newTable,
+      );
+    },
     [actions.QUERY_EDITOR_SETDB]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { dbId: action.dbId });
     },
