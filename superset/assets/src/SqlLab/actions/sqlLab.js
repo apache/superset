@@ -298,7 +298,7 @@ export function migrateLocalStorage(queryEditor, tables) {
       .then(({ json }) => {
         const newQueryEditor = {
           ...queryEditor,
-          id: json.id.toString(),
+          id: json.id,
         };
         dispatch({ type: MIGRATE_QUERY_EDITOR, oldQueryEditor: queryEditor, newQueryEditor });
         tables.forEach(table =>
@@ -329,7 +329,7 @@ export function addQueryEditor(queryEditor) {
       .then(({ json }) => {
         const newQueryEditor = {
           ...queryEditor,
-          id: json.id.toString(),
+          id: json.id,
         };
         dispatch({ type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor });
       })
@@ -369,7 +369,7 @@ export function setTables(tableSchemas) {
     } = tableSchema.results;
     return {
       dbId: tableSchema.database_id,
-      queryEditorId: tableSchema.tab_state_id.toString(),
+      queryEditorId: tableSchema.tab_state_id,
       schema: tableSchema.schema,
       name: tableSchema.table,
       expanded: tableSchema.expanded,
@@ -395,7 +395,7 @@ export function switchQueryEditor(queryEditor) {
       })
         .then(({ json }) => {
           const loadedQueryEditor = {
-            id: json.id.toString(),
+            id: json.id,
             loaded: true,
             title: json.label,
             sql: json.query.sql,
