@@ -966,7 +966,9 @@ class BubbleViz(NVD3Viz):
         self.series = form_data.get("series") or self.entity
         d["row_limit"] = form_data.get("limit")
 
-        d["metrics"] = list(set([self.z_metric, self.x_metric, self.y_metric]))
+        d["metrics"] = [self.z_metric, self.x_metric, self.y_metric]
+        if len(set(self.metric_labels)) < 3:
+            raise Exception(_("Please use 3 different metric labels"))
         if not all(d["metrics"] + [self.entity]):
             raise Exception(_("Pick a metric for x, y and size"))
         return d
