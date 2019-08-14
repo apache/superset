@@ -54,6 +54,8 @@ const propTypes = {
 const defaultProps = {
   onChange: () => {},
   clearable: true,
+  savedMetrics: [],
+  columns: [],
 };
 
 function isDictionaryForAdhocMetric(value) {
