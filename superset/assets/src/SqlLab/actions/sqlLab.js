@@ -304,13 +304,12 @@ export function migrateLocalStorage(queryEditor, tables) {
         tables.forEach(table =>
           SupersetClient.post({
             endpoint: encodeURI('/tableschemaview/'),
-            postPayload: { table },
+            postPayload: { table: { ...table, queryEditorId: newQueryEditor.id } },
           })
             .then(({ json: resultJson }) => {
               const newTable = {
                 ...table,
                 id: resultJson.id,
-                queryEditorId: newQueryEditor.id,
               };
               dispatch({ type: MIGRATE_TABLE, oldTable: table, newTable });
             }),
