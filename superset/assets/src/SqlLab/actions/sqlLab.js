@@ -51,6 +51,8 @@ export const QUERY_EDITOR_SET_QUERY_LIMIT = 'QUERY_EDITOR_SET_QUERY_LIMIT';
 export const QUERY_EDITOR_SET_TEMPLATE_PARAMS = 'QUERY_EDITOR_SET_TEMPLATE_PARAMS';
 export const QUERY_EDITOR_SET_SELECTED_TEXT = 'QUERY_EDITOR_SET_SELECTED_TEXT';
 export const QUERY_EDITOR_PERSIST_HEIGHT = 'QUERY_EDITOR_PERSIST_HEIGHT';
+export const MIGRATE_QUERY_EDITOR = 'MIGRATE_QUERY_EDITOR';
+export const MIGRATE_TABLE = 'MIGRATE_TABLE';
 
 export const SET_DATABASES = 'SET_DATABASES';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
@@ -285,6 +287,37 @@ export function postStopQuery(query) {
 
 export function setDatabases(databases) {
   return { type: SET_DATABASES, databases };
+}
+
+export function migrateLocalStorage(queryEditor, tables) {
+  return function (dispatch) {
+    return SupersetClient.post({
+      endpoint: '/tabstateview/',
+      postPayload: { queryEditor },
+    })
+      .then(({ json }) => {
+        const newQueryEditor = {
+          ...queryEditor,
+          id: json.id.toString(),
+        };
+        dispatch({ type: MIGRATE_QUERY_EDITOR, oldQueryEditor: queryEditor, newQueryEditor });
+        tables.forEach(table =>
+          SupersetClient.post({
+            endpoint: encodeURI('/tableschemaview/'),
+            postPayload: { table },
+          })
+            .then(({ json: resultJson }) => {
+              const newTable = {
+                ...table,
+                id: resultJson.id,
+                queryEditorId: newQueryEditor.id,
+              };
+              dispatch({ type: MIGRATE_TABLE, oldTable: table, newTable });
+            }),
+        );
+      })
+      .catch(() => dispatch(addDangerToast(t('Unable to add a new tab'))));
+  };
 }
 
 export function addQueryEditor(queryEditor) {
