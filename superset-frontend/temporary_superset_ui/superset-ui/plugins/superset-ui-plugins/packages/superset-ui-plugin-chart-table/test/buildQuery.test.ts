@@ -16,7 +16,7 @@ describe('TableVis buildQuery', () => {
   it('should build groupby with series in form data', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
-    expect(query.metrics[0].label).toEqual('a');
+    expect(query.metrics![0].label).toEqual('a');
     expect(query.groupby).toHaveLength(0);
   });
 });
