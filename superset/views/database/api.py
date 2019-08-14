@@ -52,7 +52,7 @@ class DatabaseRestApi(DatabaseMixin, ModelRestApi):
     ]
     # Removes the local limit for the page size
     max_page_size = -1
-    validators_columns = {'sqlalchemy_uri': sqlalchemy_uri_validator}
+    validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
 
 
 appbuilder.add_api(DatabaseRestApi)
