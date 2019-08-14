@@ -205,7 +205,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
-      const isSelected = qe.id === this.activeQueryEditor().id;
+      const isSelected = this.activeQueryEditor() && this.activeQueryEditor().id === qe.id;
 
       let latestQuery;
       if (qe.latestQueryId) {
