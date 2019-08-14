@@ -11,6 +11,9 @@ export {
   default as getChartBuildQueryRegistry,
 } from './registries/ChartBuildQueryRegistrySingleton';
 export { default as getChartComponentRegistry } from './registries/ChartComponentRegistrySingleton';
+export {
+  default as getChartControlPanelRegistry,
+} from './registries/ChartControlPanelRegistrySingleton';
 export { default as getChartMetadataRegistry } from './registries/ChartMetadataRegistrySingleton';
 export {
   default as getChartTransformPropsRegistry,
