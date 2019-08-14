@@ -2862,7 +2862,7 @@ class Superset(BaseSupersetView):
     def sqllab(self):
         """SQL Editor"""
 
-        # Send list of tab state ids, together with full payload for active tab
+        # send list of tab state ids
         tab_state_ids = (
             db.session
             .query(TabState.id, TabState.label)
@@ -2884,9 +2884,15 @@ class Superset(BaseSupersetView):
             }
             for database in db.session.query(models.Database).all()
         }
+        user_queries = (
+            db.session
+            .query(Query)
+            .filter_by(user_id=g.user.get_id())
+            .all()
+        )
         queries = {
             query.client_id: {k: v for k, v in query.to_dict().items()}
-            for query in db.session.query(Query).all()
+            for query in user_queries
         }
         d = {
             "defaultDbId": config.get("SQLLAB_DEFAULT_DBID"),
