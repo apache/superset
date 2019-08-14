@@ -1,0 +1,35 @@
+{
+  "name": "@superset-ui/encodeable",
+  "version": "0.0.0",
+  "description": "Superset UI encodeable",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": ["superset"],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "private": true,
+  "dependencies": {
+    "vega": "^5.4.0",
+    "vega-lite": "^3.4.0"
+  },
+  "peerDependencies": {
+    "@superset-ui/time-format": "^0.11.14",
+    "@superset-ui/number-format": "^0.11.14"
+  }
+}
