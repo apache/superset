@@ -6,7 +6,7 @@ jest.mock('resize-observer-polyfill');
 // @ts-ignore
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import ErrorBoundary from 'react-error-boundary';
-import { ChartProps, SuperChart } from '../../src';
+import { SuperChart } from '../../src';
 import RealSuperChart from '../../src/components/SuperChart';
 import { ChartKeys, DiligentChartPlugin, BuggyChartPlugin } from './MockChartPlugins';
 import promiseTimeout from './promiseTimeout';
@@ -97,47 +97,15 @@ describe('SuperChart', () => {
     });
   });
 
-  describe('supports multiple way of specifying chartProps', () => {
-    it('chartProps is instanceof ChartProps', () => {
-      const wrapper = mount(
-        <SuperChart
-          chartType={ChartKeys.DILIGENT}
-          chartProps={new ChartProps({ width: 20, height: 20 })}
-        />,
-      );
+  it('passes the props to renderer correctly', () => {
+    const wrapper = mount(
+      <SuperChart chartType={ChartKeys.DILIGENT} width={101} height={118} formData={{ abc: 1 }} />,
+    );
 
-      return promiseTimeout(() => {
-        const renderedWrapper = wrapper.render();
-        expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
-        expectDimension(renderedWrapper, 20, 20);
-      });
-    });
-    it('chartProps is ChartPropsConfig', () => {
-      const wrapper = mount(
-        <SuperChart chartType={ChartKeys.DILIGENT} chartProps={{ width: 201, height: 202 }} />,
-      );
-
-      return promiseTimeout(() => {
-        const renderedWrapper = wrapper.render();
-        expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
-        expectDimension(renderedWrapper, 201, 202);
-      });
-    });
-    it('fields of chartProps are listed as props of SuperChart', () => {
-      const wrapper = mount(
-        <SuperChart
-          chartType={ChartKeys.DILIGENT}
-          width={101}
-          height={118}
-          formData={{ abc: 1 }}
-        />,
-      );
-
-      return promiseTimeout(() => {
-        const renderedWrapper = wrapper.render();
-        expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
-        expectDimension(renderedWrapper, 101, 118);
-      });
+    return promiseTimeout(() => {
+      const renderedWrapper = wrapper.render();
+      expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
+      expectDimension(renderedWrapper, 101, 118);
     });
   });
 
@@ -189,33 +157,6 @@ describe('SuperChart', () => {
     });
     it('works when width and height are not specified', () => {
       const wrapper = mount(<SuperChart chartType={ChartKeys.DILIGENT} debounceTime={1} />);
-      triggerResizeObserver();
-
-      return promiseTimeout(() => {
-        const renderedWrapper = wrapper.render();
-        expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
-        expectDimension(renderedWrapper, 300, 400);
-      }, 100);
-    });
-    it('works when width and height are inside chartProps', () => {
-      const wrapper = mount(
-        <SuperChart
-          chartType={ChartKeys.DILIGENT}
-          debounceTime={1}
-          chartProps={{ width: 123, height: 456 }}
-        />,
-      );
-
-      return promiseTimeout(() => {
-        const renderedWrapper = wrapper.render();
-        expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
-        expectDimension(renderedWrapper, 123, 456);
-      }, 100);
-    });
-    it('works when there is chartProps but still no width and height', () => {
-      const wrapper = mount(
-        <SuperChart chartType={ChartKeys.DILIGENT} debounceTime={1} chartProps={{}} />,
-      );
       triggerResizeObserver();
 
       return promiseTimeout(() => {
