@@ -42,9 +42,8 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   restBootstrapData.tab_state_ids.forEach(({ id, label }) => {
     let queryEditor;
     if (restBootstrapData.active_tab && restBootstrapData.active_tab.id === id) {
-      // id is cast to string for backwards compatibility
       queryEditor = {
-        id: id.toString(),
+        id,
         loaded: true,
         title: restBootstrapData.active_tab.label,
         sql: restBootstrapData.active_tab.query.sql,
@@ -65,7 +64,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       // dummy state, actual state will be loaded on tab switch
       queryEditor = {
         ...defaultQueryEditor,
-        id: id.toString(),
+        id,
         loaded: false,
         title: label,
       };
@@ -74,7 +73,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   });
 
   const tabHistory = restBootstrapData.active_tab
-    ? [restBootstrapData.active_tab.id.toString()]
+    ? [restBootstrapData.active_tab.id]
     : [];
 
   const tables = [];
@@ -90,7 +89,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       } = tableSchema.results;
       const table = {
         dbId: tableSchema.database_id,
-        queryEditorId: tableSchema.tab_state_id.toString(),
+        queryEditorId: tableSchema.tab_state_id,
         schema: tableSchema.schema,
         name: tableSchema.table,
         expanded: tableSchema.expanded,
@@ -120,6 +119,8 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       // migration was successful
       localStorage.removeItem('redux');
     } else {
+      // add query editors and tables to state with a special flag so they can
+      // be migrated
       sqlLab.queryEditors.forEach(qe => queryEditors.push({ ...qe, inLocalStorage: true }));
       sqlLab.tables.forEach(table => tables.push({ ...table, inLocalStorage: true }));
     }
