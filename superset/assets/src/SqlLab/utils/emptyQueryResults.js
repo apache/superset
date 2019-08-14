@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../constants';
-
 export default function emptyQueryResults(queries) {
   return Object.keys(queries)
     .reduce((accu, key) => {
-      const { startDttm, results } = queries[key];
+      const { results } = queries[key];
       const query = {
         ...queries[key],
-        results: Date.now() - startDttm > LOCALSTORAGE_MAX_QUERY_AGE_MS ?
-          {} : results,
+        results,
       };
 
       const updatedQueries = {
