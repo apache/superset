@@ -16,15 +16,42 @@
 # under the License.
 # pylint: disable=C,R,W
 import inspect
+from typing import Type
 
-from flask import Markup
+from flask import current_app, Markup
 from flask_babel import lazy_gettext as _
+from marshmallow import ValidationError
 from sqlalchemy import MetaData
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import ArgumentError
 
 from superset import security_manager
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
 from superset.views.base import SupersetFilter
+
+
+def sqlalchemy_uri_validator(
+    uri: str, exception: Type[ValidationError] = ValidationError
+) -> None:
+    """
+        Check if user has submitted a valid SQLAlchemy URI
+    """
+    try:
+        url = make_url(uri.strip())
+    except ArgumentError:
+        raise exception(_("Invalid connnection string could not parse rfc1738 URL"))
+    # Check if defined supported db drivers
+    supported_db_drivers = current_app.config.get("SUPERSET_SUPPORTED_DB_DRIVERS", None)
+    if supported_db_drivers:
+        if url.drivername not in supported_db_drivers:
+            raise exception(_(f"Unsupported DB driver: {url.drivername}"))
+    # Check for enforced URI arguments
+    enforce_db_arguments = current_app.config.get("SUPERSET_ENFORCE_DB_ARGUMENTS", None)
+    if enforce_db_arguments:
+        for db_argument in enforce_db_arguments:
+            if db_argument not in url.query:
+                raise exception(_(f"Missing enforced argument: {db_argument}"))
 
 
 class DatabaseFilter(SupersetFilter):
