@@ -2402,7 +2402,7 @@ class Superset(BaseSupersetView):
         if query is None:
             return json_error_response(
                 "Data could not be retrieved. You may want to re-run the query.",
-                status=410,
+                status=404,
             )
 
         rejected_tables = security_manager.rejected_tables(
