@@ -312,6 +312,7 @@ export function migrateLocalStorage(queryEditor, tables) {
                 id: resultJson.id,
               };
               dispatch({ type: MIGRATE_TABLE, oldTable: table, newTable });
+              dispatch(runQuery(this.props.queries[table.dataPreviewQueryId]));
             }),
         );
       })
