@@ -5,10 +5,16 @@ import ChartMetadata from './ChartMetadata';
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
+import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
 import { BuildQueryFunction, TransformProps } from '../types/TransformFunction';
+import { ChartControlPanel } from './ChartControlPanel';
 
-const IDENTITY = (x: any) => x;
+function IDENTITY<T>(x: T) {
+  return x;
+}
+
+const EMPTY = {};
 
 export type PromiseOrValue<T> = Promise<T> | T;
 export type PromiseOrValueLoader<T> = () => PromiseOrValue<T>;
@@ -29,6 +35,8 @@ interface ChartPluginConfig<T extends QueryFormData> {
   Chart?: ChartType;
   /** Use loadChart for dynamic import (lazy-loading) */
   loadChart?: PromiseOrValueLoader<ValueOrModuleWithValue<ChartType>>;
+  /** Control panel configuration object */
+  controlPanel?: ChartControlPanel;
 }
 
 /**
@@ -48,6 +56,7 @@ function sanitizeLoader<T>(
 }
 
 export default class ChartPlugin<T extends QueryFormData = QueryFormData> extends Plugin {
+  controlPanel: ChartControlPanel;
   metadata: ChartMetadata;
   loadBuildQuery?: PromiseOrValueLoader<BuildQueryFunction<T>>;
   loadTransformProps: PromiseOrValueLoader<TransformProps>;
@@ -63,7 +72,9 @@ export default class ChartPlugin<T extends QueryFormData = QueryFormData> extend
       loadTransformProps,
       Chart,
       loadChart,
+      controlPanel = EMPTY,
     } = config;
+    this.controlPanel = controlPanel;
     this.metadata = metadata;
     this.loadBuildQuery =
       (loadBuildQuery && sanitizeLoader(loadBuildQuery)) ||
@@ -84,6 +95,7 @@ export default class ChartPlugin<T extends QueryFormData = QueryFormData> extend
     const { key = isRequired('config.key') } = this.config;
     getChartMetadataRegistry().registerValue(key, this.metadata);
     getChartComponentRegistry().registerLoader(key, this.loadChart);
+    getChartControlPanelRegistry().registerValue(key, this.controlPanel);
     getChartTransformPropsRegistry().registerLoader(key, this.loadTransformProps);
     if (this.loadBuildQuery) {
       getChartBuildQueryRegistry().registerLoader(key, this.loadBuildQuery);
@@ -96,6 +108,7 @@ export default class ChartPlugin<T extends QueryFormData = QueryFormData> extend
     const { key = isRequired('config.key') } = this.config;
     getChartMetadataRegistry().remove(key);
     getChartComponentRegistry().remove(key);
+    getChartControlPanelRegistry().remove(key);
     getChartTransformPropsRegistry().remove(key);
     getChartBuildQueryRegistry().remove(key);
 
