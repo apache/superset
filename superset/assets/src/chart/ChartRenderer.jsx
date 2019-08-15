@@ -191,6 +191,7 @@ class ChartRenderer extends React.Component {
       <React.Fragment>
         {this.renderTooltip()}
         <SuperChart
+          disableErrorBoundary
           id={`chart-id-${chartId}`}
           className={`${snakeCase(vizType)}`}
           chartType={vizType}
