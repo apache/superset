@@ -70,9 +70,13 @@ class TabbedSqlEditors extends React.PureComponent {
   componentDidMount() {
     // migrate query editor and associated tables state to server
     const localStorageTables = this.props.tables.filter(table => table.inLocalStorage);
+    const localStorageQueries = Object.values(this.props.queries)
+      .filter(query => query.inLocalStorage)
+      .reduce((obj, query) => ({ ...obj, [query.id]: query }), {});
+
     this.props.queryEditors.filter(qe => qe.inLocalStorage).forEach((qe) => {
       const tables = localStorageTables.filter(table => table.queryEditorId === qe.id);
-      this.props.actions.migrateLocalStorage(qe, tables);
+      this.props.actions.migrateLocalStorage(qe, tables, localStorageQueries);
     });
 
     const query = URI(window.location).search(true);
