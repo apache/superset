@@ -106,6 +106,25 @@ function addPreamble(entry) {
   return PREAMBLE.concat([path.join(APP_DIR, entry)]);
 }
 
+const useTypeScript = [
+  { loader: 'cache-loader' },
+  {
+    loader: 'thread-loader',
+    options: {
+        // there should be 1 cpu for the fork-ts-checker-webpack-plugin
+      workers: os.cpus().length - 1,
+    },
+  },
+  {
+    loader: 'ts-loader',
+    options: {
+      // transpile only in happyPack mode
+      // type checking is done via fork-ts-checker-webpack-plugin
+      happyPackMode: true,
+    },
+  },
+];
+
 const config = {
   node: {
     fs: 'empty',
@@ -155,30 +174,21 @@ const config = {
       },
       {
         test: /\.tsx?$/,
-        use: [
-          { loader: 'cache-loader' },
-          {
-            loader: 'thread-loader',
-            options: {
-                // there should be 1 cpu for the fork-ts-checker-webpack-plugin
-              workers: os.cpus().length - 1,
-            },
-          },
-          {
-            loader: 'ts-loader',
-            options: {
-              // transpile only in happyPack mode
-              // type checking is done via fork-ts-checker-webpack-plugin
-              happyPackMode: true,
-            },
-          },
-        ],
+        exclude: /node_modules/,
+        use: useTypeScript,
       },
       {
         test: /\.jsx?$/,
         exclude: /node_modules/,
         include: APP_DIR,
         loader: 'babel-loader',
+      },
+      {
+        // handle symlinked modules
+        // for debugging @superset-ui packages via npm link
+        test: /\.tsx?$/,
+        include: /node_modules\/[@]superset[-]ui.+\/src/,
+        use: useTypeScript,
       },
       {
         // handle symlinked modules
