@@ -289,7 +289,7 @@ export function setDatabases(databases) {
   return { type: SET_DATABASES, databases };
 }
 
-export function migrateLocalStorage(queryEditor, tables) {
+export function migrateLocalStorage(queryEditor, tables, queries) {
   return function (dispatch) {
     return SupersetClient.post({
       endpoint: '/tabstateview/',
@@ -312,7 +312,7 @@ export function migrateLocalStorage(queryEditor, tables) {
                 id: resultJson.id,
               };
               dispatch({ type: MIGRATE_TABLE, oldTable: table, newTable });
-              dispatch(runQuery(this.props.queries[table.dataPreviewQueryId]));
+              dispatch(runQuery(queries[table.dataPreviewQueryId]));
             }),
         );
       })

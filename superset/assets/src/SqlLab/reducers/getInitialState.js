@@ -107,6 +107,8 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     });
   }
 
+  const { databases, queries } = restBootstrapData;
+
   /* Before YYYY-MM-DD the state of SQL Lab was stored in the browser's local
    * storage. This section migrates the data from the client to the backend,
    * allowing users to transition transparently to the new system where state
@@ -123,6 +125,9 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       // be migrated
       sqlLab.queryEditors.forEach(qe => queryEditors.push({ ...qe, inLocalStorage: true }));
       sqlLab.tables.forEach(table => tables.push({ ...table, inLocalStorage: true }));
+      Object.values(sqlLab.queries).forEach((query) => {
+        queries[query.id] = { ...query, inLocalStorage: true };
+      });
     }
   }
 
@@ -130,9 +135,9 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     sqlLab: {
       activeSouthPaneTab: 'Results',
       alerts: [],
-      databases: restBootstrapData.databases,
+      databases,
       offline: false,
-      queries: restBootstrapData.queries,
+      queries,
       queryEditors,
       tabHistory,
       tables,
