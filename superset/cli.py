@@ -432,16 +432,13 @@ def load_test_users_run():
 
         sm = security_manager
 
-        main_db = utils.get_main_database()
         examples_db = utils.get_example_database()
 
-        main_pv = sm.add_permission_view_menu("database_access", main_db.perm)
         examples_pv = sm.add_permission_view_menu("database_access", examples_db.perm)
 
         sm.sync_role_definitions()
         gamma_sqllab_role = sm.add_role("gamma_sqllab")
         sm.add_permission_role(gamma_sqllab_role, examples_pv)
-        sm.add_permission_role(gamma_sqllab_role, main_pv)
 
         for role in ["Gamma", "sql_lab"]:
             for perm in sm.find_role(role).permissions:

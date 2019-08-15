@@ -17,7 +17,6 @@
 """Unit tests for Sql Lab"""
 from datetime import datetime, timedelta
 import json
-import unittest
 
 import prison
 
@@ -25,8 +24,12 @@ from superset import db, security_manager
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
-from superset.utils.core import datetime_to_epoch, get_main_database
+from superset.utils.core import datetime_to_epoch, get_example_database
 from .base_tests import SupersetTestCase
+
+QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
+QUERY_2 = "SELECT * FROM NO_TABLE"
+QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 
 
 class SqlLabTests(SupersetTestCase):
@@ -38,17 +41,9 @@ class SqlLabTests(SupersetTestCase):
     def run_some_queries(self):
         db.session.query(Query).delete()
         db.session.commit()
-        self.run_sql(
-            "SELECT * FROM ab_user", client_id="client_id_1", user_name="admin"
-        )
-        self.run_sql(
-            "SELECT * FROM NO_TABLE", client_id="client_id_3", user_name="admin"
-        )
-        self.run_sql(
-            "SELECT * FROM ab_permission",
-            client_id="client_id_2",
-            user_name="gamma_sqllab",
-        )
+        self.run_sql(QUERY_1, client_id="client_id_1", user_name="admin")
+        self.run_sql(QUERY_2, client_id="client_id_3", user_name="admin")
+        self.run_sql(QUERY_3, client_id="client_id_2", user_name="gamma_sqllab")
         self.logout()
 
     def tearDown(self):
@@ -70,8 +65,8 @@ class SqlLabTests(SupersetTestCase):
         self.login("admin")
 
         multi_sql = """
-        SELECT first_name FROM ab_user;
-        SELECT first_name FROM ab_user;
+        SELECT * FROM birth_names LIMIT 1;
+        SELECT * FROM birth_names LIMIT 2;
         """
         data = self.run_sql(multi_sql, "2234")
         self.assertLess(0, len(data["data"]))
@@ -79,18 +74,18 @@ class SqlLabTests(SupersetTestCase):
     def test_explain(self):
         self.login("admin")
 
-        data = self.run_sql("EXPLAIN SELECT * FROM ab_user", "1")
+        data = self.run_sql("EXPLAIN SELECT * FROM birth_names", "1")
         self.assertLess(0, len(data["data"]))
 
     def test_sql_json_has_access(self):
-        main_db = get_main_database()
-        main_db_permission_view = security_manager.add_permission_view_menu(
-            "database_access", main_db.perm
+        examples_db = get_example_database()
+        examples_db_permission_view = security_manager.add_permission_view_menu(
+            "database_access", examples_db.perm
         )
 
         astronaut = security_manager.add_role("Astronaut")
-        security_manager.add_permission_role(astronaut, main_db_permission_view)
-        # Astronaut role is Gamma + sqllab +  main db permissions
+        security_manager.add_permission_role(astronaut, examples_db_permission_view)
+        # Astronaut role is Gamma + sqllab + db permissions
         for perm in security_manager.find_role("Gamma").permissions:
             security_manager.add_permission_role(astronaut, perm)
         for perm in security_manager.find_role("sql_lab").permissions:
@@ -106,7 +101,7 @@ class SqlLabTests(SupersetTestCase):
                 astronaut,
                 password="general",
             )
-        data = self.run_sql("SELECT * FROM ab_user", "3", user_name="gagarin")
+        data = self.run_sql(QUERY_1, "3", user_name="gagarin")
         db.session.query(Query).delete()
         db.session.commit()
         self.assertLess(0, len(data["data"]))
@@ -125,8 +120,8 @@ class SqlLabTests(SupersetTestCase):
         self.assertEquals(2, len(data))
 
         # Run 2 more queries
-        self.run_sql("SELECT * FROM ab_user LIMIT 1", client_id="client_id_4")
-        self.run_sql("SELECT * FROM ab_user LIMIT 2", client_id="client_id_5")
+        self.run_sql("SELECT * FROM birth_names LIMIT 1", client_id="client_id_4")
+        self.run_sql("SELECT * FROM birth_names LIMIT 2", client_id="client_id_5")
         self.login("admin")
         data = self.get_json_resp("/superset/queries/0")
         self.assertEquals(4, len(data))
@@ -134,7 +129,7 @@ class SqlLabTests(SupersetTestCase):
         now = datetime.now() + timedelta(days=1)
         query = (
             db.session.query(Query)
-            .filter_by(sql="SELECT * FROM ab_user LIMIT 1")
+            .filter_by(sql="SELECT * FROM birth_names LIMIT 1")
             .first()
         )
         query.changed_on = now
@@ -153,13 +148,15 @@ class SqlLabTests(SupersetTestCase):
     def test_search_query_on_db_id(self):
         self.run_some_queries()
         self.login("admin")
-        main_dbid = get_main_database().id
+        examples_dbid = get_example_database().id
 
         # Test search queries on database Id
-        data = self.get_json_resp(f"/superset/search_queries?database_id={main_dbid}")
+        data = self.get_json_resp(
+            f"/superset/search_queries?database_id={examples_dbid}"
+        )
         self.assertEquals(3, len(data))
         db_ids = [k["dbId"] for k in data]
-        self.assertEquals([main_dbid for i in range(3)], db_ids)
+        self.assertEquals([examples_dbid for i in range(3)], db_ids)
 
         resp = self.get_resp("/superset/search_queries?database_id=-1")
         data = json.loads(resp)
@@ -200,10 +197,10 @@ class SqlLabTests(SupersetTestCase):
     def test_search_query_on_text(self):
         self.run_some_queries()
         self.login("admin")
-        url = "/superset/search_queries?search_text=permission"
+        url = "/superset/search_queries?search_text=birth"
         data = self.get_json_resp(url)
-        self.assertEquals(1, len(data))
-        self.assertIn("permission", data[0]["sql"])
+        self.assertEquals(2, len(data))
+        self.assertIn("birth", data[0]["sql"])
 
     def test_search_query_on_time(self):
         self.run_some_queries()
@@ -291,6 +288,7 @@ class SqlLabTests(SupersetTestCase):
         self.assertEquals(len(cols), len(cdf.columns))
 
     def test_sqllab_viz(self):
+        examples_dbid = get_example_database().id
         payload = {
             "chartType": "dist_bar",
             "datasourceName": "test_viz_flow_table",
@@ -311,11 +309,10 @@ class SqlLabTests(SupersetTestCase):
                 },
             ],
             "sql": """\
-                SELECT viz_type, count(1) as ccount
-                FROM slices
-                WHERE viz_type LIKE '%a%'
-                GROUP BY viz_type""",
-            "dbId": 1,
+                SELECT *
+                FROM birth_names
+                LIMIT 10""",
+            "dbId": examples_dbid,
         }
         data = {"data": json.dumps(payload)}
         resp = self.get_json_resp("/superset/sqllab_viz/", data=data)
@@ -401,6 +398,7 @@ class SqlLabTests(SupersetTestCase):
 
     def test_api_database(self):
         self.login("admin")
+        self.create_fake_db()
 
         arguments = {
             "keys": [],
@@ -410,12 +408,8 @@ class SqlLabTests(SupersetTestCase):
             "page": 0,
             "page_size": -1,
         }
-        expected_results = ["examples", "fake_db_100", "main"]
         url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
-        data = self.get_json_resp(url)
-        for i, expected_result in enumerate(expected_results):
-            self.assertEquals(expected_result, data["result"][i]["database_name"])
-
-
-if __name__ == "__main__":
-    unittest.main()
+        self.assertEquals(
+            {"examples", "fake_db_100"},
+            {r.get("database_name") for r in self.get_json_resp(url)["result"]},
+        )

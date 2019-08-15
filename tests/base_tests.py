@@ -183,7 +183,7 @@ class SupersetTestCase(unittest.TestCase):
         user_name=None,
         raise_on_error=False,
         query_limit=None,
-        database_name="main",
+        database_name="examples",
     ):
         if user_name:
             self.logout()
@@ -204,13 +204,30 @@ class SupersetTestCase(unittest.TestCase):
             raise Exception("run_sql failed")
         return resp
 
+    def create_fake_db(self):
+        self.login(username="admin")
+        database_name = "fake_db_100"
+        db_id = 100
+        extra = """{
+            "schemas_allowed_for_csv_upload":
+            ["this_schema_is_allowed", "this_schema_is_allowed_too"]
+        }"""
+
+        return self.get_or_create(
+            cls=models.Database,
+            criteria={"database_name": database_name},
+            session=db.session,
+            id=db_id,
+            extra=extra,
+        )
+
     def validate_sql(
         self,
         sql,
         client_id=None,
         user_name=None,
         raise_on_error=False,
-        database_name="main",
+        database_name="examples",
     ):
         if user_name:
             self.logout()

@@ -746,24 +746,11 @@ class CoreTests(SupersetTestCase):
     def test_schemas_access_for_csv_upload_endpoint(
         self, mock_all_datasource_access, mock_database_access, mock_schemas_accessible
     ):
+        self.login(username="admin")
+        dbobj = self.create_fake_db()
         mock_all_datasource_access.return_value = False
         mock_database_access.return_value = False
         mock_schemas_accessible.return_value = ["this_schema_is_allowed_too"]
-        database_name = "fake_db_100"
-        db_id = 100
-        extra = """{
-            "schemas_allowed_for_csv_upload":
-            ["this_schema_is_allowed", "this_schema_is_allowed_too"]
-        }"""
-
-        self.login(username="admin")
-        dbobj = self.get_or_create(
-            cls=models.Database,
-            criteria={"database_name": database_name},
-            session=db.session,
-            id=db_id,
-            extra=extra,
-        )
         data = self.get_json_resp(
             url="/superset/schemas_access_for_csv_upload?db_id={db_id}".format(
                 db_id=dbobj.id
