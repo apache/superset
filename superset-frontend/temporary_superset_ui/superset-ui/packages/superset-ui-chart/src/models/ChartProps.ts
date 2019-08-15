@@ -9,59 +9,74 @@ type SnakeCaseDatasource = PlainObject;
 type CamelCaseFormData = PlainObject;
 type SnakeCaseFormData = PlainObject;
 export type QueryData = PlainObject;
-type Filters = PlainObject;
+/** Initial values for the visualizations, currently used by only filter_box and table */
+type InitialValues = PlainObject;
 type ChartPropsSelector = (c: ChartPropsConfig) => ChartProps;
 
+/** Optional field for event handlers, renderers */
+type Hooks = {
+  /** handle adding filters  */
+  onAddFilter?: HandlerFunction;
+  /** handle errors  */
+  onError?: HandlerFunction;
+  /** use the vis as control to update state */
+  setControlValue?: HandlerFunction;
+  /** handle tooltip */
+  setTooltip?: HandlerFunction;
+  [key: string]: any;
+};
+
+/**
+ * Preferred format for ChartProps config
+ */
 export interface ChartPropsConfig {
   annotationData?: AnnotationData;
+  /** Datasource metadata */
   datasource?: SnakeCaseDatasource;
-  filters?: Filters;
+  /**
+   * Formerly called "filters", which was misleading because it is actually
+   * initial values of the filter_box and table vis
+   */
+  initialValues?: InitialValues;
+  /** Main configuration of the chart */
   formData?: SnakeCaseFormData;
+  /** Chart height */
   height?: number;
-  hooks?: PlainObject;
-  onAddFilter?: HandlerFunction;
-  onError?: HandlerFunction;
-  payload?: QueryData;
-  setControlValue?: HandlerFunction;
-  setTooltip?: HandlerFunction;
+  /** Programmatic overrides such as event handlers, renderers */
+  hooks?: Hooks;
+  /** Formerly called "payload" */
+  queryData?: QueryData;
+  /** Chart width */
   width?: number;
 }
-
-function NOOP() {}
 
 const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 600;
 
-export default class ChartProps {
+export default class ChartProps<
+  FormDataType extends CamelCaseFormData | SnakeCaseFormData = CamelCaseFormData
+> {
   static createSelector: () => ChartPropsSelector;
 
   annotationData: AnnotationData;
   datasource: CamelCaseDatasource;
   rawDatasource: SnakeCaseDatasource;
-  filters: Filters;
+  initialValues: InitialValues;
   formData: CamelCaseFormData;
-  rawFormData: SnakeCaseFormData;
+  rawFormData: SnakeCaseFormData | CamelCaseFormData;
   height: number;
-  hooks: PlainObject;
-  onAddFilter: HandlerFunction;
-  onError: HandlerFunction;
-  payload: QueryData;
-  setControlValue: HandlerFunction;
-  setTooltip: HandlerFunction;
+  hooks: Hooks;
+  queryData: QueryData;
   width: number;
 
   constructor(config: ChartPropsConfig = {}) {
     const {
       annotationData = {},
       datasource = {},
-      filters = {},
-      formData = {},
+      formData = {} as FormDataType,
       hooks = {},
-      onAddFilter = NOOP,
-      onError = NOOP,
-      payload = {},
-      setControlValue = NOOP,
-      setTooltip = NOOP,
+      initialValues = [],
+      queryData = [],
       width = DEFAULT_WIDTH,
       height = DEFAULT_HEIGHT,
     } = config;
@@ -70,15 +85,11 @@ export default class ChartProps {
     this.annotationData = annotationData;
     this.datasource = convertKeysToCamelCase(datasource);
     this.rawDatasource = datasource;
-    this.filters = filters;
     this.formData = convertKeysToCamelCase(formData);
-    this.hooks = hooks;
     this.rawFormData = formData;
-    this.onAddFilter = onAddFilter;
-    this.onError = onError;
-    this.payload = payload;
-    this.setControlValue = setControlValue;
-    this.setTooltip = setTooltip;
+    this.hooks = hooks;
+    this.initialValues = initialValues;
+    this.queryData = queryData;
   }
 }
 
@@ -86,42 +97,21 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
   return createSelector(
     (input: ChartPropsConfig) => input.annotationData,
     input => input.datasource,
-    input => input.filters,
     input => input.formData,
     input => input.height,
     input => input.hooks,
-    input => input.onAddFilter,
-    input => input.onError,
-    input => input.payload,
-    input => input.setControlValue,
-    input => input.setTooltip,
+    input => input.initialValues,
+    input => input.queryData,
     input => input.width,
-    (
-      annotationData,
-      datasource,
-      filters,
-      formData,
-      height,
-      hooks,
-      onAddFilter,
-      onError,
-      payload,
-      setControlValue,
-      setTooltip,
-      width,
-    ) =>
+    (annotationData, datasource, formData, height, hooks, initialValues, queryData, width) =>
       new ChartProps({
         annotationData,
         datasource,
-        filters,
         formData,
         height,
         hooks,
-        onAddFilter,
-        onError,
-        payload,
-        setControlValue,
-        setTooltip,
+        initialValues,
+        queryData,
         width,
       }),
   );
