@@ -8,7 +8,7 @@ const RAW_DATASOURCE = {
   another_field: 2,
 };
 
-const PAYLOAD = {};
+const QUERY_DATA = {};
 
 describe('ChartProps', () => {
   it('exists', () => {
@@ -20,23 +20,9 @@ describe('ChartProps', () => {
         width: 800,
         height: 600,
         formData: RAW_FORM_DATA,
-        payload: PAYLOAD,
+        queryData: QUERY_DATA,
       });
       expect(props).toBeInstanceOf(ChartProps);
-    });
-    it('sets all handlers to NOOP by default', () => {
-      const props = new ChartProps({
-        width: 800,
-        height: 600,
-        formData: RAW_FORM_DATA,
-        payload: PAYLOAD,
-      });
-      expect(() => {
-        props.onAddFilter();
-        props.onError();
-        props.setControlValue();
-        props.setTooltip();
-      }).not.toThrow();
     });
     it('processes formData and datasource to convert field names to camelCase', () => {
       const props = new ChartProps({
@@ -44,7 +30,7 @@ describe('ChartProps', () => {
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
-        payload: PAYLOAD,
+        queryData: QUERY_DATA,
       });
       expect(props.formData.someField).toEqual(1);
       expect(props.datasource.anotherField).toEqual(2);
@@ -63,14 +49,14 @@ describe('ChartProps', () => {
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
-        payload: PAYLOAD,
+        queryData: QUERY_DATA,
       });
       const props2 = selector({
         width: 800,
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
-        payload: PAYLOAD,
+        queryData: QUERY_DATA,
       });
       expect(props1).toBe(props2);
     });
@@ -80,21 +66,21 @@ describe('ChartProps', () => {
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
-        payload: PAYLOAD,
+        queryData: QUERY_DATA,
       });
       const props2 = selector({
         width: 800,
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: { new_field: 3 },
-        payload: PAYLOAD,
+        queryData: QUERY_DATA,
       });
       const props3 = selector({
         width: 800,
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
-        payload: PAYLOAD,
+        queryData: QUERY_DATA,
       });
       expect(props1).not.toBe(props2);
       expect(props1).not.toBe(props3);
