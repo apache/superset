@@ -91,13 +91,13 @@ describe('SuperChartCore', () => {
     });
     it('uses preTransformProps when specified', () => {
       const chartPropsWithPayload = new ChartProps({
-        payload: { message: 'hulk' },
+        queryData: { message: 'hulk' },
       });
       const wrapper = shallow(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
           preTransformProps={() => chartPropsWithPayload}
-          overrideTransformProps={props => props.payload}
+          overrideTransformProps={props => props.queryData}
         />,
       );
 
