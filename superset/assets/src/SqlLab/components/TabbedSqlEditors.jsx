@@ -126,7 +126,7 @@ class TabbedSqlEditors extends React.PureComponent {
     const nextActiveQeId = nextProps.tabHistory[nextProps.tabHistory.length - 1];
     const queriesArray = [];
     for (const id in nextProps.queries) {
-      if (nextProps.queries[id].sqlEditorId === nextActiveQeId) {
+      if (nextProps.queries[id].sqlEditorId === nextActiveQeId.toString()) {
         queriesArray.push(nextProps.queries[id]);
       }
     }
