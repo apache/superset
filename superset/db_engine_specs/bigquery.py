@@ -70,14 +70,15 @@ class BigQueryEngineSpec(BaseEngineSpec):
         return data
 
     @staticmethod
-    def mutate_label(label):
+    def mutate_label(label: str) -> str:
         """
         BigQuery field_name should start with a letter or underscore and contain only
         alphanumeric characters. Labels that start with a number are prefixed with an
         underscore. Any unsupported characters are replaced with underscores and an
         md5 hash is added to the end of the label to avoid possible collisions.
-        :param str label: the original label which might include unsupported characters
-        :return: String that is supported by the database
+
+        :param label: expected expression label/alias
+        :return: conditionally mutated label supported by BigQuery
         """
         label_hashed = "_" + hashlib.md5(label.encode("utf-8")).hexdigest()
 
@@ -93,10 +94,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
         return label_mutated
 
     @classmethod
-    def truncate_label(cls, label):
+    def truncate_label(cls, label: str) -> str:
         """BigQuery requires column names start with either a letter or
         underscore. To make sure this is always the case, an underscore is prefixed
-        to the truncated label.
+        to the md5 hash of the original label.
+
+        :param label: expected expression label
+        :return: truncated label
         """
         return "_" + hashlib.md5(label.encode("utf-8")).hexdigest()
 

@@ -16,8 +16,10 @@
 # under the License.
 # pylint: disable=C,R,W
 import re
+from typing import Optional
 
-from sqlalchemy.types import String, UnicodeText
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
@@ -61,14 +63,16 @@ class MssqlEngineSpec(BaseEngineSpec):
     ]
 
     @classmethod
-    def get_sqla_column_type(cls, type_):
+    def get_sqla_column_type(cls, type_: str) -> Optional[TypeEngine]:
         for sqla_type, regex in cls.column_types:
             if regex.match(type_):
                 return sqla_type
         return None
 
     @classmethod
-    def column_datatype_to_string(cls, sqla_column_type, dialect):
+    def column_datatype_to_string(
+        cls, sqla_column_type: TypeEngine, dialect: Dialect
+    ) -> str:
         datatype = super().column_datatype_to_string(sqla_column_type, dialect)
         # MSSQL returns long overflowing datatype
         # as in 'VARCHAR(255) COLLATE SQL_LATIN1_GENERAL_CP1_CI_AS'

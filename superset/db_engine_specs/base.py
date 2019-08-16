@@ -19,18 +19,20 @@ from collections import namedtuple
 import hashlib
 import os
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas as pd
 from sqlalchemy import column, DateTime, select
 from sqlalchemy.engine import create_engine
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy.types import TypeEngine
 import sqlparse
 from werkzeug.utils import secure_filename
 
@@ -45,7 +47,7 @@ config = app.config
 QueryStatus = utils.QueryStatus
 config = app.config
 
-builtin_time_grains = {
+builtin_time_grains: Dict[Optional[str], str] = {
     None: "Time Column",
     "PT1S": "second",
     "PT1M": "minute",
@@ -87,7 +89,7 @@ class TimestampExpression(ColumnClause):
 
 
 @compiles(TimestampExpression)
-def compile_timegrain_expression(element: TimestampExpression, compiler, **kw):
+def compile_timegrain_expression(element: TimestampExpression, compiler, **kw) -> str:
     return element.name.replace("{col}", compiler.process(element.col, **kw))
 
 
@@ -156,7 +158,7 @@ class BaseEngineSpec(object):
 
     @classmethod
     def get_time_grains(cls):
-        blacklist = config.get("TIME_GRAIN_BLACKLIST", [])
+        blacklist: List[str] = config.get("TIME_GRAIN_BLACKLIST", [])
         grains = builtin_time_grains.copy()
         grains.update(config.get("TIME_GRAIN_ADDONS", {}))
         grain_functions = cls.time_grain_functions.copy()
@@ -493,14 +495,17 @@ class BaseEngineSpec(object):
         cursor.execute(query)
 
     @classmethod
-    def make_label_compatible(cls, label):
+    def make_label_compatible(cls, label: str) -> Union[str, quoted_name]:
         """
-        Conditionally mutate and/or quote a sql column/expression label. If
+        Conditionally mutate and/or quote a sqlalchemy expression label. If
         force_column_alias_quotes is set to True, return the label as a
         sqlalchemy.sql.elements.quoted_name object to ensure that the select query
         and query results have same case. Otherwise return the mutated label as a
         regular string. If maxmimum supported column name length is exceeded,
         generate a truncated label by calling truncate_label().
+
+        :param label: expected expression label/alias
+        :return: conditionally mutated label supported by the db engine
         """
         label_mutated = cls.mutate_label(label)
         if (
@@ -513,16 +518,19 @@ class BaseEngineSpec(object):
         return label_mutated
 
     @classmethod
-    def get_sqla_column_type(cls, type_):
+    def get_sqla_column_type(cls, type_: str) -> Optional[TypeEngine]:
         """
         Return a sqlalchemy native column type that corresponds to the column type
         defined in the data source (optional). Needs to be overridden if column requires
         special handling (see MSSQL for example of NCHAR/NVARCHAR handling).
+
+        :param type_: column type returned by inspector
+        :return: sqlalchemy column type
         """
         return None
 
     @staticmethod
-    def mutate_label(label):
+    def mutate_label(label: str) -> str:
         """
         Most engines support mixed case aliases that can include numbers
         and special characters, like commas, parentheses etc. For engines that
@@ -531,15 +539,21 @@ class BaseEngineSpec(object):
         limitations. Mutated labels should be deterministic (input label A always
         yields output label X) and unique (input labels A and B don't yield the same
         output label X).
+
+        :param label: expected expression label/alias
+        :return: conditionally mutated label supported by the db engine
         """
         return label
 
     @classmethod
-    def truncate_label(cls, label):
+    def truncate_label(cls, label: str) -> str:
         """
         In the case that a label exceeds the max length supported by the engine,
         this method is used to construct a deterministic and unique label based on
-        an md5 hash.
+        an md5 hash of the original label.
+
+        :param label: expected expression label
+        :return: truncated label
         """
         label = hashlib.md5(label.encode("utf-8")).hexdigest()
         # truncate hash if it exceeds max length
@@ -548,5 +562,15 @@ class BaseEngineSpec(object):
         return label
 
     @classmethod
-    def column_datatype_to_string(cls, sqla_column_type, dialect):
+    def column_datatype_to_string(
+        cls, sqla_column_type: TypeEngine, dialect: Dialect
+    ) -> str:
+        """
+        Convert sqlalchemy column type to string representation. Can be overridden to remove
+        unnecessary details, especially collation info (see mysql, mssql).
+
+        :param sqla_column_type: sqlalchemy column type
+        :param dialect: sqlalchemy dialect
+        :return: compiled column type
+        """
         return sqla_column_type.compile(dialect=dialect).upper()

@@ -18,6 +18,9 @@
 from typing import Dict
 from urllib import parse
 
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.types import TypeEngine
+
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
@@ -92,7 +95,9 @@ class MySQLEngineSpec(BaseEngineSpec):
         return message
 
     @classmethod
-    def column_datatype_to_string(cls, sqla_column_type, dialect):
+    def column_datatype_to_string(
+        cls, sqla_column_type: TypeEngine, dialect: Dialect
+    ) -> str:
         datatype = super().column_datatype_to_string(sqla_column_type, dialect)
         # MySQL dialect started returning long overflowing datatype
         # as in 'VARCHAR(255) COLLATE UTF8MB4_GENERAL_CI'
