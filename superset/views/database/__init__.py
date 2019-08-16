@@ -210,12 +210,7 @@ class DatabaseMixin:  # noqa
         "backend": _("Backend"),
     }
 
-    def pre_add(self, db):
-        pre_add_func = current_app.config.get(
-            "SUPERSET_DATABASE_PRE_ADD_HOOK_FUNC", None
-        )
-        if pre_add_func and callable(pre_add_func):
-            pre_add_func(db)
+    def _pre_add_update(self, db):
         self.check_extra(db)
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.add_permission_view_menu("database_access", db.perm)
@@ -225,13 +220,21 @@ class DatabaseMixin:  # noqa
                 "schema_access", security_manager.get_schema_perm(db, schema)
             )
 
+    def pre_add(self, db):
+        pre_add_func = current_app.config.get(
+            "SUPERSET_DATABASE_PRE_ADD_HOOK_FUNC", None
+        )
+        if pre_add_func and callable(pre_add_func):
+            pre_add_func(db)
+        self._pre_add_update(db)
+
     def pre_update(self, db):
         pre_edit_func = current_app.config.get(
             "SUPERSET_DATABASE_PRE_EDIT_HOOK_FUNC", None
         )
         if pre_edit_func and callable(pre_edit_func):
             pre_edit_func(db)
-        self.pre_add(db)
+        self._pre_add_update(db)
 
     def pre_delete(self, obj):
         if obj.tables:
