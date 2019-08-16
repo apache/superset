@@ -35,47 +35,17 @@ def sqlalchemy_uri_validator(
     uri: str, exception: Type[ValidationError] = ValidationError
 ) -> None:
     """
-        Check if a user has submitted a valid SQLAlchemy URI
-
-        Optional extra validation arguments, example:
-
-        SUPERSET_SUPPORTED_DB_DRIVERS = ["postgresql", "mysql"]
-
-        SUPERSET_ENFORCE_DB_ARGUMENTS = {
-            "mysql": [
-                {
-                    "ssl": True,
-                }
-            ]
-            "postgresql" : [
-                {
-                    "sslmode": "allow",
-                }
-                {
-                    "sslmode": "verify-ca",
-                    "sslrootcert": "/etc/ssl/certs/ca-certificates.crt",
-                }
-            ]
-        }
+    Check if a user has submitted a valid SQLAlchemy URI
     """
     try:
         url = make_url(uri.strip())
     except ArgumentError:
         raise exception(_("Invalid connnection string could not parse rfc1738 URL"))
-    # Check if defined supported db drivers
-    supported_db_drivers = current_app.config.get("SUPERSET_SUPPORTED_DB_DRIVERS", None)
-    if supported_db_drivers:
-        if url.drivername not in supported_db_drivers:
-            raise exception(_(f"Unsupported DB driver: {url.drivername}"))
-    # Check for enforced URI arguments
-    enforce_db_arguments = current_app.config.get("SUPERSET_ENFORCE_DB_ARGUMENTS", None)
-    if enforce_db_arguments:
-        possible_arguments = enforce_db_arguments.get(url.drivername)
-        if possible_arguments:
-            for possible_argument in possible_arguments:
-                if url.query == possible_argument:
-                    return
-            raise exception(_("Missing enforced argument(s)"))
+    custom_validator_func = current_app.config.get(
+        "SUPERSET_DATABASE_URI_CUSTOM_VALIDATOR_FUNC", None
+    )
+    if custom_validator_func and callable(custom_validator_func):
+        return custom_validator_func(url, exception)
 
 
 class DatabaseFilter(SupersetFilter):
@@ -241,6 +211,11 @@ class DatabaseMixin:  # noqa
     }
 
     def pre_add(self, db):
+        pre_add_func = current_app.config.get(
+            "SUPERSET_DATABASE_PRE_ADD_HOOK_FUNC", None
+        )
+        if pre_add_func and callable(pre_add_func):
+            pre_add_func(db)
         self.check_extra(db)
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.add_permission_view_menu("database_access", db.perm)
@@ -251,6 +226,11 @@ class DatabaseMixin:  # noqa
             )
 
     def pre_update(self, db):
+        pre_edit_func = current_app.config.get(
+            "SUPERSET_DATABASE_PRE_EDIT_HOOK_FUNC", None
+        )
+        if pre_edit_func and callable(pre_edit_func):
+            pre_edit_func(db)
         self.pre_add(db)
 
     def pre_delete(self, obj):
