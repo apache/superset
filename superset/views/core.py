@@ -42,6 +42,7 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import msgpack
 import pandas as pd
+import pyarrow as pa
 import simplejson as json
 from sqlalchemy import and_, or_, select
 from werkzeug.routing import BaseConverter
@@ -51,6 +52,7 @@ from superset import (
     appbuilder,
     cache,
     conf,
+    dataframe,
     db,
     event_logger,
     get_feature_flags,
@@ -78,7 +80,7 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
-from superset.utils.decorators import etag_cache
+from superset.utils.decorators import etag_cache, stats_timing
 from .base import (
     api,
     BaseSupersetView,
@@ -188,12 +190,34 @@ def check_slice_perms(self, slice_id):
     security_manager.assert_datasource_permission(viz_obj.datasource)
 
 
-def _deserialize_payload(payload, use_msgpack=False):
-    logging.debug('Deserializing from msgpack: {}'.format(use_msgpack))
+def _deserialize_results_payload(payload, query, use_msgpack=False):
+    logging.debug(f"Deserializing from msgpack: {use_msgpack}")
     if use_msgpack:
-        return msgpack.loads(payload, raw=False)
+        with stats_timing("sqllab.query.results_backend_msgpack_deserialize", stats_logger):
+            payload = msgpack.loads(payload, raw=False)
+
+        with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
+            df = pa.deserialize(payload["data"])
+
+        # TODO: optimize this, perhaps via df.to_dict, then traversing
+        payload["data"] = dataframe.SupersetDataFrame.format_data(df) or []
+
+        db_engine_spec = query.database.db_engine_spec
+        all_columns, data, expanded_columns = db_engine_spec.expand_data(
+            payload["selected_columns"], payload["data"]
+        )
+        payload.update(
+            {
+                "data": data,
+                "columns": all_columns,
+                "expanded_columns": expanded_columns,
+            }
+        )
+
+        return payload
     else:
-        return json.loads(payload)
+        with stats_timing("sqllab.query.results_backend_json_deserialize", stats_logger):
+            return json.loads(payload)
 
 
 class SliceFilter(SupersetFilter):
@@ -2392,6 +2416,7 @@ class Superset(BaseSupersetView):
     @expose("/results/<key>/")
     @event_logger.log_this
     def results(self, key):
+        # with PyCallGraph(output=GraphvizOutput()):
         """Serves a key off of the results backend"""
         if not results_backend:
             return json_error_response("Results backend isn't configured")
@@ -2421,7 +2446,7 @@ class Superset(BaseSupersetView):
             )
 
         payload = utils.zlib_decompress_to_string(blob, decode=not results_backend_use_msgpack)
-        obj = _deserialize_payload(payload, results_backend_use_msgpack)
+        obj = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
 
         return json_success(
             json.dumps(
@@ -2674,7 +2699,7 @@ class Superset(BaseSupersetView):
         if blob:
             logging.info("Decompressing")
             payload = utils.zlib_decompress_to_string(blob, decode=not results_backend_use_msgpack)
-            obj = _deserialize_payload(payload, results_backend_use_msgpack)
+            obj = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
             columns = [c["name"] for c in obj["columns"]]
             df = pd.DataFrame.from_records(obj["data"], columns=columns)
             logging.info("Using pandas to convert to CSV")

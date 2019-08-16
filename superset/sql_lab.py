@@ -18,13 +18,16 @@
 from contextlib import closing
 from datetime import datetime
 import logging
+from sys import getsizeof
 from time import sleep
 import uuid
 
 from celery.exceptions import SoftTimeLimitExceeded
 from contextlib2 import contextmanager
 from flask_babel import lazy_gettext as _
+# TODO: make these conditional imports
 import msgpack
+import pyarrow as pa
 import simplejson as json
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
@@ -312,10 +315,17 @@ def execute_sql_statements(
     query.end_time = now_as_float()
 
     selected_columns = cdf.columns or []
-    data = cdf.data or []
-    all_columns, data, expanded_columns = db_engine_spec.expand_data(
-        selected_columns, data
-    )
+
+    if results_backend_use_msgpack:
+        with stats_timing("sqllab.query.results_backend_pa_serialization", stats_logger):
+            data = pa.default_serialization_context().serialize(cdf.raw_df).to_buffer().to_pybytes()
+        # expand when loading data from results backend
+        all_columns, expanded_columns = (selected_columns, [])
+    else:
+        data = cdf.data or []
+        all_columns, data, expanded_columns = db_engine_spec.expand_data(
+            selected_columns, data
+        )
 
     payload.update(
         {
@@ -333,11 +343,16 @@ def execute_sql_statements(
         key = str(uuid.uuid4())
         logging.info(f"Storing results in results backend, key: {key}")
         with stats_timing("sqllab.query.results_backend_write", stats_logger):
-            serialized_payload = _serialize_payload(payload, results_backend_use_msgpack)
+            with stats_timing("sqllab.query.results_backend_write_serialization", stats_logger):
+                serialized_payload = _serialize_payload(payload, results_backend_use_msgpack)
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
                 cache_timeout = config.get("CACHE_DEFAULT_TIMEOUT", 0)
-            results_backend.set(key, zlib_compress(serialized_payload), cache_timeout)
+
+            compressed = zlib_compress(serialized_payload)
+            logging.debug(f"*** serialized payload size: {getsizeof(serialized_payload)}")
+            logging.debug(f"*** compressed payload size: {getsizeof(compressed)}")
+            results_backend.set(key, compressed, cache_timeout)
         query.results_key = key
 
     query.status = QueryStatus.SUCCESS
