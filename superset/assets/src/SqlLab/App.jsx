@@ -58,7 +58,6 @@ const sqlLabPersistStateConfig = {
             ...state[path],
             queries: emptyQueryResults(state[path].queries),
             queryEditors: clearQueryEditors(state[path].queryEditors),
-            tables: [],
           };
         }
       });
