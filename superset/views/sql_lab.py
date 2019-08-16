@@ -194,7 +194,7 @@ class TabStateView(BaseSupersetView):
         query = Query(
             client_id=utils.shortid()[:10],
             database_id=query_editor['dbId'],
-            schema=query_editor['schema'],
+            schema=query_editor.get('schema'),
             sql=query_editor['sql'],
         )
         tab_state = TabState(
@@ -202,7 +202,7 @@ class TabStateView(BaseSupersetView):
             label=query_editor['title'],
             active=True,
             database_id=query_editor['dbId'],
-            schema=query_editor['schema'],
+            schema=query_editor.get('schema'),
             query=query,
             query_limit=query_editor['queryLimit'],
         )
