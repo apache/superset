@@ -750,7 +750,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         :return: list of all columns(selected columns and their nested fields),
                  expanded data set, listed of nested fields
         """
-        if not is_feature_enabled('PRESTO_EXPAND_DATA'):
+        if not is_feature_enabled("PRESTO_EXPAND_DATA"):
             return columns, data, []
 
         all_columns: List[dict] = []
