@@ -18,13 +18,17 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { formatNumber } from '@superset-ui/number-format';
 
 import './Legend.css';
+
+const categoryDelimiter = ' - ';
 
 const propTypes = {
   categories: PropTypes.object,
   toggleCategory: PropTypes.func,
   showSingleCategory: PropTypes.func,
+  format: PropTypes.string,
   position: PropTypes.oneOf([null, 'tl', 'tr', 'bl', 'br']),
 };
 
@@ -32,10 +36,34 @@ const defaultProps = {
   categories: {},
   toggleCategory: () => {},
   showSingleCategory: () => {},
+  format: null,
   position: 'tr',
 };
 
 export default class Legend extends React.PureComponent {
+  format(value) {
+    if (!this.props.format) {
+      return value;
+    }
+
+    const numValue = parseFloat(value);
+    return formatNumber(this.props.format, numValue);
+
+  }
+
+  formatCategoryLabel(k) {
+    if (!this.props.format) {
+      return k;
+    }
+
+    if (k.includes(categoryDelimiter)) {
+      const values = k.split(categoryDelimiter);
+      return this.format(values[0]) + categoryDelimiter + this.format(values[1]);
+    }
+
+    return this.format(k);
+  }
+
   render() {
     if (Object.keys(this.props.categories).length === 0 || this.props.position === null) {
       return null;
@@ -51,7 +79,7 @@ export default class Legend extends React.PureComponent {
             onClick={() => this.props.toggleCategory(k)}
             onDoubleClick={() => this.props.showSingleCategory(k)}
           >
-            <span style={style}>{icon}</span> {k}
+            <span style={style}>{icon}</span> {this.formatCategoryLabel(k)}
           </a>
         </li>
       );

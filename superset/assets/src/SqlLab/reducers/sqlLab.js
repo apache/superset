@@ -311,7 +311,8 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.QUERY_EDITOR_PERSIST_HEIGHT]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, {
-        height: action.currentHeight,
+        northPercent: action.northPercent,
+        southPercent: action.southPercent,
       });
     },
     [actions.SET_DATABASES]() {

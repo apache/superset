@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-# flake8: noqa I202
 """Utility functions used across Superset"""
 from datetime import date, datetime, time, timedelta
 import decimal
@@ -908,9 +907,7 @@ def merge_extra_filters(form_data: dict):
                         if isinstance(existing_filters[filter_key], list):
                             # Add filters for unequal lists
                             # order doesn't matter
-                            if sorted(existing_filters[filter_key]) != sorted(
-                                filtr["val"]
-                            ):
+                            if set(existing_filters[filter_key]) != set(filtr["val"]):
                                 form_data["adhoc_filters"].append(to_adhoc(filtr))
                         else:
                             form_data["adhoc_filters"].append(to_adhoc(filtr))

@@ -109,6 +109,7 @@ class SliceHeader extends React.PureComponent {
                 : '')
             }
             canEdit={editMode}
+            emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
           />
