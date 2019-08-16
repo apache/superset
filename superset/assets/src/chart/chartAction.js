@@ -112,6 +112,10 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
       }),
       {},
     );
+
+    const has_extra_filters = (formData == null) ? false  : formData.extra_filters && formData.extra_filters.length > 0;
+    sliceFormData['extra_filters'] = has_extra_filters ? fd['extra_filters'] : undefined;
+
     const isNative = annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE;
     const url = getAnnotationJsonUrl(annotation.value, sliceFormData, isNative);
     const controller = new AbortController();
