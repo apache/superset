@@ -276,6 +276,7 @@ class DeckGLPolygon extends React.Component {
           <Legend
             categories={buckets}
             position={formData.legend_position}
+            format={formData.legend_format}
           />}
         </AnimatableDeckGLContainer>
       </div>

@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 from collections import OrderedDict
+from distutils.version import StrictVersion
 import logging
 import re
 import textwrap
@@ -29,6 +30,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql.expression import ColumnClause
 
+from superset import is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
@@ -748,6 +750,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         :return: list of all columns(selected columns and their nested fields),
                  expanded data set, listed of nested fields
         """
+        if not is_feature_enabled("PRESTO_EXPAND_DATA"):
+            return columns, data, []
+
         all_columns: List[dict] = []
         # Get the list of all columns (selected fields and their nested fields)
         for column in columns:
@@ -797,7 +802,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         full_table_name = table_name
         if schema_name and "." not in table_name:
             full_table_name = "{}.{}".format(schema_name, table_name)
-        pql = cls._partition_query(full_table_name)
+        pql = cls._partition_query(full_table_name, database)
         col_names, latest_parts = cls.latest_partition(
             table_name, schema_name, database, show_first=True
         )
@@ -872,7 +877,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         return utils.error_msg_from_exception(e)
 
     @classmethod
-    def _partition_query(cls, table_name, limit=0, order_by=None, filters=None):
+    def _partition_query(
+        cls, table_name, database, limit=0, order_by=None, filters=None
+    ):
         """Returns a partition query
 
         :param table_name: the name of the table to get partitions from
@@ -900,10 +907,20 @@ class PrestoEngineSpec(BaseEngineSpec):
                 l.append(f"{field} = '{value}'")
             where_clause = "WHERE " + " AND ".join(l)
 
+        presto_version = database.get_extra().get("version")
+
+        # Partition select syntax changed in v0.199, so check here.
+        # Default to the new syntax if version is unset.
+        partition_select_clause = (
+            f'SELECT * FROM "{table_name}$partitions"'
+            if not presto_version
+            or StrictVersion(presto_version) >= StrictVersion("0.199")
+            else f"SHOW PARTITIONS FROM {table_name}"
+        )
+
         sql = textwrap.dedent(
             f"""\
-            SELECT * FROM "{table_name}$partitions"
-
+            {partition_select_clause}
             {where_clause}
             {order_by_clause}
             {limit_clause}
@@ -965,7 +982,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             )
         column_names = indexes[0]["column_names"]
         part_fields = [(column_name, True) for column_name in column_names]
-        sql = cls._partition_query(table_name, 1, part_fields)
+        sql = cls._partition_query(table_name, database, 1, part_fields)
         df = database.get_df(sql, schema)
         return column_names, cls._latest_partition_from_df(df)
 
@@ -1012,7 +1029,9 @@ class PrestoEngineSpec(BaseEngineSpec):
             if field not in kwargs.keys():
                 field_to_return = field
 
-        sql = cls._partition_query(table_name, 1, [(field_to_return, True)], kwargs)
+        sql = cls._partition_query(
+            table_name, database, 1, [(field_to_return, True)], kwargs
+        )
         df = database.get_df(sql, schema)
         if df.empty:
             return ""

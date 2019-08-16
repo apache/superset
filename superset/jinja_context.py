@@ -240,7 +240,25 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
             schema, table_name = table_name.split(".")
         return table_name, schema
 
-    def latest_partition(self, table_name: str):
+    def first_latest_partition(self, table_name: str) -> str:
+        """
+        Gets the first value in the array of all latest partitions
+
+        :param table_name: table name in the format `schema.table`
+        :return: the first (or only) value in the latest partition array
+        :raises IndexError: If no partition exists
+        """
+
+        return self.latest_partitions(table_name)[0]
+
+    def latest_partitions(self, table_name: str) -> List[str]:
+        """
+        Gets the array of all latest partitions
+
+        :param table_name: table name in the format `schema.table`
+        :return: the latest partition array
+        """
+
         table_name, schema = self._schema_table(table_name, self.schema)
         return self.database.db_engine_spec.latest_partition(
             table_name, schema, self.database
@@ -251,6 +269,8 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
         return self.database.db_engine_spec.latest_sub_partition(
             table_name=table_name, schema=schema, database=self.database, **kwargs
         )
+
+    latest_partition = first_latest_partition
 
 
 class HiveTemplateProcessor(PrestoTemplateProcessor):

@@ -647,6 +647,18 @@ Note that you can run the ``superset refresh_druid`` command to refresh the
 metadata from your Druid cluster(s)
 
 
+Presto
+------
+
+By default Superset assumes the most recent version of Presto is being used when
+querying the datasource. If you're using an older version of presto, you can configure
+it in the ``extra`` parameter::
+
+    {
+        "version": "0.123"
+    }
+
+
 CORS
 ----
 
@@ -726,9 +738,9 @@ Example of a simple JSON to Stdout class::
                 print(json.dumps(log))
 
 
-Then on Superset's config reference the class you want to use::
+Then on Superset's config pass an instance of the logger type you want to use.
 
-    EVENT_LOGGER = JSONStdOutEventLogger
+    EVENT_LOGGER = JSONStdOutEventLogger()
 
 
 Upgrading
@@ -1042,7 +1054,7 @@ your environment. See `CONTRIBUTING.md#setup-local-environment-for-development <
 Blueprints
 ----------
 
-`Blueprints are Flask's reusable apps <http://flask.pocoo.org/docs/0.12/blueprints/>`_.
+`Blueprints are Flask's reusable apps <https://flask.palletsprojects.com/en/1.0.x/tutorial/views/>`_.
 Superset allows you to specify an array of Blueprints
 in your ``superset_config`` module. Here's
 an example of how this can work with a simple Blueprint. By doing
@@ -1173,7 +1185,8 @@ You can enable or disable features with flag from ``superset_config.py``:
 
      DEFAULT_FEATURE_FLAGS = {
          'CLIENT_CACHE': False,
-         'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False
+         'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False,
+         'PRESTO_EXPAND_DATA': False,
      }
 
 Here is a list of flags and descriptions:
@@ -1183,3 +1196,7 @@ Here is a list of flags and descriptions:
   * For some security concerns, you may need to enforce CSRF protection on all query request to explore_json endpoint. In Superset, we use `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection for all POST requests, but this protection doesn't apply to GET method.
 
   * When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot make GET request to explore_json. The default value for this feature False (current behavior), explore_json accepts both GET and POST request. See `PR 7935 <https://github.com/apache/incubator-superset/pull/7935>`_ for more details.
+
+* PRESTO_EXPAND_DATA
+
+  * When this feature is enabled, nested types in Presto will be expanded into extra columns and/or arrays. This is experimental, and doesn't work with all nested types.

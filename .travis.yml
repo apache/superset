@@ -19,6 +19,13 @@ jobs:
     - language: python
       python: 3.6
       env:
+        - TOXENV=fossa
+      install:
+        - pip install --upgrade pip
+        - pip install tox
+    - language: python
+      python: 3.6
+      env:
         - TOXENV=license-check
         - TRAVIS_CACHE=$HOME/.travis_cache/
       addons:

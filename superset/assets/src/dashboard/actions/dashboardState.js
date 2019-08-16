@@ -64,7 +64,7 @@ export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(id) {
   return function fetchFaveStarThunk(dispatch) {
     return SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${id}/count`,
+      endpoint: `${FAVESTAR_BASE_URL}/${id}/count/`,
     })
       .then(({ json }) => {
         if (json.count > 0) dispatch(toggleFaveStar(true));
@@ -151,8 +151,8 @@ export function onSave() {
 }
 
 export const SET_REFRESH_FREQUENCY = 'SET_REFRESH_FREQUENCY';
-export function setRefreshFrequency(refreshFrequency) {
-  return { type: SET_REFRESH_FREQUENCY, refreshFrequency };
+export function setRefreshFrequency(refreshFrequency, isPersistent = false) {
+  return { type: SET_REFRESH_FREQUENCY, refreshFrequency, isPersistent };
 }
 
 export function saveDashboardRequestSuccess() {
