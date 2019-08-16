@@ -315,6 +315,15 @@ export default function sqlLabReducer(state = {}, action) {
         action.newTable,
       );
     },
+    [actions.MIGRATE_TAB_HISTORY]() {
+      // remove migrated tab from localStorage tabHistory
+      const sqlLab = JSON.parse(localStorage.getItem('redux')).sqlLab;
+      sqlLab.tabHistory = sqlLab.tabHistory.filter(tabId => tabId !== action.oldId);
+      // localStorage.setItem('redux', JSON.stringify({ sqlLab }));
+      const tabHistory = state.tabHistory.filter(tabId => tabId !== action.oldId);
+      tabHistory.push(action.newId);
+      return Object.assign({}, state, { tabHistory });
+    },
     [actions.QUERY_EDITOR_SETDB]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { dbId: action.dbId });
     },

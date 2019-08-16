@@ -132,9 +132,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       Object.values(sqlLab.queries).forEach((query) => {
         queries[query.id] = { ...query, inLocalStorage: true };
       });
-      if (tabHistory.length === 0) {
-        tabHistory.push(sqlLab.queryEditors[0].id);
-      }
+      tabHistory.push(...sqlLab.tabHistory);
     }
   }
 

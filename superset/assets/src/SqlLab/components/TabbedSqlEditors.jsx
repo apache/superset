@@ -73,7 +73,6 @@ class TabbedSqlEditors extends React.PureComponent {
     const localStorageQueries = Object.values(this.props.queries)
       .filter(query => query.inLocalStorage)
       .reduce((obj, query) => ({ ...obj, [query.id]: query }), {});
-
     this.props.queryEditors.filter(qe => qe.inLocalStorage).forEach((qe) => {
       const tables = localStorageTables.filter(table => table.queryEditorId === qe.id);
       this.props.actions.migrateLocalStorage(qe, tables, localStorageQueries);
@@ -160,13 +159,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   activeQueryEditor() {
     const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
-    for (let i = 0; i < this.props.queryEditors.length; i++) {
-      const qe = this.props.queryEditors[i];
-      if (qe.id === qeid) {
-        return qe;
-      }
-    }
-    return null;
+    return this.props.queryEditors.find(qe => qe.id === qeid) || null;
   }
   newQueryEditor() {
     queryCount++;
