@@ -195,16 +195,16 @@ class TabStateView(BaseSupersetView):
             client_id=utils.shortid()[:10],
             database_id=query_editor['dbId'],
             schema=query_editor.get('schema'),
-            sql=query_editor['sql'],
+            sql=query_editor.get('sql', 'SELECT ...'),
         )
         tab_state = TabState(
             user_id=g.user.get_id(),
-            label=query_editor['title'],
+            label=query_editor.get('title', 'Untitled Query'),
             active=True,
             database_id=query_editor['dbId'],
             schema=query_editor.get('schema'),
             query=query,
-            query_limit=query_editor['queryLimit'],
+            query_limit=query_editor.get('queryLimit'),
         )
         (
             db.session
