@@ -123,7 +123,11 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     } else {
       // add query editors and tables to state with a special flag so they can
       // be migrated
-      sqlLab.queryEditors.forEach(qe => queryEditors.push({ ...qe, inLocalStorage: true }));
+      sqlLab.queryEditors.forEach(qe => queryEditors.push({
+        ...qe,
+        inLocalStorage: true,
+        loaded: true,
+      }));
       sqlLab.tables.forEach(table => tables.push({ ...table, inLocalStorage: true }));
       Object.values(sqlLab.queries).forEach((query) => {
         queries[query.id] = { ...query, inLocalStorage: true };
