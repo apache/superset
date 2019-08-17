@@ -77,7 +77,7 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
-from superset.models.sql_lab import Query
+from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators import get_validator_by_name
@@ -116,6 +116,20 @@ SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"
 stats_logger = config["STATS_LOGGER"]
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
+
+DATABASE_KEYS = [
+    "allow_csv_upload",
+    "allow_ctas",
+    "allow_dml",
+    "allow_multi_schema_metadata_fetch",
+    "allow_run_async",
+    "allows_subquery",
+    "backend",
+    "database_name",
+    "expose_in_sqllab",
+    "force_ctas_schema",
+    "id",
+]
 
 
 ALL_DATASOURCE_ACCESS_ERR = __(
@@ -2644,12 +2658,17 @@ class Superset(BaseSupersetView):
         try:
             timeout = config["SQLLAB_TIMEOUT"]
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
+            store_results = (
+                is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE")
+                and not query.select_as_cta
+            )
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
                     query.id,
                     rendered_query,
                     return_results=True,
+                    store_results=store_results,
                     user_name=g.user.username if g.user else None,
                     expand_data=expand_data,
                 )
@@ -2997,9 +3016,38 @@ class Superset(BaseSupersetView):
     @expose("/sqllab")
     def sqllab(self):
         """SQL Editor"""
+
+        # send list of tab state ids
+        tab_state_ids = (
+            db.session.query(TabState.id, TabState.label)
+            .filter_by(user_id=g.user.get_id())
+            .all()
+        )
+        # return first active tab, or fallback to another one if no tab is active
+        active_tab = (
+            db.session.query(TabState)
+            .filter_by(user_id=g.user.get_id())
+            .order_by(TabState.active.desc())
+            .first()
+        )
+        databases = {
+            database.id: {
+                k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
+            }
+            for database in db.session.query(models.Database).all()
+        }
+        user_queries = db.session.query(Query).filter_by(user_id=g.user.get_id()).all()
+        queries = {
+            query.client_id: {k: v for k, v in query.to_dict().items()}
+            for query in user_queries
+        }
         d = {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
             "common": self.common_bootstrap_payload(),
+            "tab_state_ids": tab_state_ids,
+            "active_tab": active_tab.to_dict() if active_tab else None,
+            "databases": databases,
+            "queries": queries,
         }
         return self.render_template(
             "superset/basic.html",

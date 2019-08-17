@@ -70,6 +70,16 @@ class TabbedSqlEditors extends React.PureComponent {
     this.duplicateQueryEditor = this.duplicateQueryEditor.bind(this);
   }
   componentDidMount() {
+    // migrate query editor and associated tables state to server
+    const localStorageTables = this.props.tables.filter(table => table.inLocalStorage);
+    const localStorageQueries = Object.values(this.props.queries)
+      .filter(query => query.inLocalStorage)
+      .reduce((obj, query) => ({ ...obj, [query.id]: query }), {});
+    this.props.queryEditors.filter(qe => qe.inLocalStorage).forEach((qe) => {
+      const tables = localStorageTables.filter(table => table.queryEditorId === qe.id);
+      this.props.actions.migrateLocalStorage(qe, tables, localStorageQueries);
+    });
+
     const query = URI(window.location).search(true);
     // Popping a new tab based on the querystring
     if (query.id || query.sql || query.savedQueryId || query.datasourceKey) {
@@ -104,6 +114,14 @@ class TabbedSqlEditors extends React.PureComponent {
         this.props.actions.addQueryEditor(newQueryEditor);
       }
       this.popNewTab();
+    } else if (this.props.queryEditors.length === 0) {
+      this.newQueryEditor();
+    } else {
+      const qe = this.activeQueryEditor();
+      const latestQuery = this.props.queries[qe.latestQueryId];
+      if (latestQuery) {
+        this.props.actions.fetchQueryResults(latestQuery);
+      }
     }
   }
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -122,7 +140,7 @@ class TabbedSqlEditors extends React.PureComponent {
     nextProps.tables.forEach((table) => {
       const queryId = table.dataPreviewQueryId;
       if (queryId && nextProps.queries[queryId] && table.queryEditorId === nextActiveQeId) {
-        dataPreviewQueries.push(nextProps.queries[queryId]);
+        dataPreviewQueries.push({ ...nextProps.queries[queryId], tableName: table.name });
       }
     });
     if (!areArraysShallowEqual(dataPreviewQueries, this.state.dataPreviewQueries)) {
@@ -143,37 +161,35 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   activeQueryEditor() {
     const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
-    for (let i = 0; i < this.props.queryEditors.length; i++) {
-      const qe = this.props.queryEditors[i];
-      if (qe.id === qeid) {
-        return qe;
-      }
-    }
-    return null;
+    return this.props.queryEditors.find(qe => qe.id === qeid) || null;
   }
   newQueryEditor() {
     queryCount++;
     const activeQueryEditor = this.activeQueryEditor();
+    const firstDbId = Math.min(
+      ...Object.values(this.props.databases).map(database => database.id));
     const qe = {
       title: t('Untitled Query %s', queryCount),
       dbId:
         activeQueryEditor && activeQueryEditor.dbId
           ? activeQueryEditor.dbId
-          : this.props.defaultDbId,
+          : (this.props.defaultDbId || firstDbId),
       schema: activeQueryEditor ? activeQueryEditor.schema : null,
       autorun: false,
-      sql: `${t(
-        '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.',
-      )}\n\nSELECT ...`,
+      sql: 'SELECT ...',
       queryLimit: this.props.defaultQueryLimit,
     };
     this.props.actions.addQueryEditor(qe);
   }
-  handleSelect(key) {
+  handleSelect(key, event) {
     if (key === 'add_tab') {
       this.newQueryEditor();
-    } else {
-      this.props.actions.setActiveQueryEditor({ id: key });
+    // ignore events from the 'Close tab' menu item
+    } else if (event.target.getAttribute('role') !== 'menuitem') {
+      const queryEditor = this.props.queryEditors.filter(qe => qe.id === key).shift();
+      if (queryEditor) {
+        this.props.actions.switchQueryEditor(queryEditor);
+      }
     }
   }
   removeQueryEditor(qe) {
@@ -191,7 +207,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
-      const isSelected = qe.id === this.activeQueryEditor().id;
+      const isSelected = this.activeQueryEditor() && this.activeQueryEditor().id === qe.id;
 
       let latestQuery;
       if (qe.latestQueryId) {

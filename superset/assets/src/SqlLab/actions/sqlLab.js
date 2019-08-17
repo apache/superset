@@ -55,9 +55,14 @@ export const QUERY_EDITOR_SET_QUERY_LIMIT = 'QUERY_EDITOR_SET_QUERY_LIMIT';
 export const QUERY_EDITOR_SET_TEMPLATE_PARAMS = 'QUERY_EDITOR_SET_TEMPLATE_PARAMS';
 export const QUERY_EDITOR_SET_SELECTED_TEXT = 'QUERY_EDITOR_SET_SELECTED_TEXT';
 export const QUERY_EDITOR_PERSIST_HEIGHT = 'QUERY_EDITOR_PERSIST_HEIGHT';
+export const MIGRATE_QUERY_EDITOR = 'MIGRATE_QUERY_EDITOR';
+export const MIGRATE_TAB_HISTORY = 'MIGRATE_TAB_HISTORY';
+export const MIGRATE_TABLE = 'MIGRATE_TABLE';
 
 export const SET_DATABASES = 'SET_DATABASES';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
+export const LOAD_QUERY_EDITOR = 'LOAD_QUERY_EDITOR';
+export const SET_TABLES = 'SET_TABLES';
 export const SET_ACTIVE_SOUTHPANE_TAB = 'SET_ACTIVE_SOUTHPANE_TAB';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
 export const SET_USER_OFFLINE = 'SET_USER_OFFLINE';
@@ -201,7 +206,21 @@ export function startQuery(query) {
 }
 
 export function querySuccess(query, results) {
-  return { type: QUERY_SUCCESS, query, results };
+  // table preview queries have `sqlEditorId` set to the string 'null'
+  if (results.query.sqlEditorId === 'null') {
+    return { type: QUERY_SUCCESS, query, results };
+  }
+
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${results.query.sqlEditorId}`),
+      postPayload: { query_id: results.query_id },
+    })
+      .then(() => dispatch({ type: QUERY_SUCCESS, query, results }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while updating tab query'))),
+      );
+  };
 }
 
 export function queryFailed(query, msg, link) {
@@ -341,12 +360,53 @@ export function setDatabases(databases) {
   return { type: SET_DATABASES, databases };
 }
 
-export function addQueryEditor(queryEditor) {
-  const newQueryEditor = {
-    ...queryEditor,
-    id: shortid.generate(),
+export function migrateLocalStorage(queryEditor, tables, queries) {
+  return function (dispatch) {
+    return SupersetClient.post({
+      endpoint: '/tabstateview/',
+      postPayload: { queryEditor },
+    })
+      .then(({ json }) => {
+        const newQueryEditor = {
+          ...queryEditor,
+          id: json.id,
+        };
+        dispatch({ type: MIGRATE_QUERY_EDITOR, oldQueryEditor: queryEditor, newQueryEditor });
+        dispatch({ type: MIGRATE_TAB_HISTORY, oldId: queryEditor.id, newId: newQueryEditor.id });
+        tables.forEach(table =>
+          SupersetClient.post({
+            endpoint: encodeURI('/tableschemaview/'),
+            postPayload: { table: { ...table, queryEditorId: newQueryEditor.id } },
+          })
+            .then(({ json: resultJson }) => {
+              const newTable = {
+                ...table,
+                id: resultJson.id,
+              };
+              dispatch({ type: MIGRATE_TABLE, oldTable: table, newTable });
+              dispatch(runQuery(queries[table.dataPreviewQueryId]));
+            }),
+        );
+      })
+      .catch(() => dispatch(addDangerToast(t('Unable to add a new tab'))));
   };
-  return { type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor };
+}
+
+export function addQueryEditor(queryEditor) {
+  return function (dispatch) {
+    return SupersetClient.post({
+      endpoint: '/tabstateview/',
+      postPayload: { queryEditor },
+    })
+      .then(({ json }) => {
+        const newQueryEditor = {
+          ...queryEditor,
+          id: json.id,
+        };
+        dispatch({ type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor });
+      })
+      .catch(() => dispatch(addDangerToast(t('Unable to add a new tab'))));
+  };
 }
 
 export function cloneQueryToNewTab(query) {
@@ -354,7 +414,90 @@ export function cloneQueryToNewTab(query) {
 }
 
 export function setActiveQueryEditor(queryEditor) {
-  return { type: SET_ACTIVE_QUERY_EDITOR, queryEditor };
+  return function (dispatch) {
+    SupersetClient.post({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}/activate`),
+    })
+      .then(() => dispatch({ type: SET_ACTIVE_QUERY_EDITOR, queryEditor }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting active tab'))),
+      );
+  };
+}
+
+export function loadQueryEditor(queryEditor) {
+  return { type: LOAD_QUERY_EDITOR, queryEditor };
+}
+
+export function setTables(tableSchemas) {
+  const tables = tableSchemas.map((tableSchema) => {
+    const {
+      columns,
+      selectStar,
+      primaryKey,
+      foreignKeys,
+      indexes,
+      dataPreviewQueryId,
+    } = tableSchema.results;
+    return {
+      dbId: tableSchema.database_id,
+      queryEditorId: tableSchema.tab_state_id,
+      schema: tableSchema.schema,
+      name: tableSchema.table,
+      expanded: tableSchema.expanded,
+      id: tableSchema.id,
+      dataPreviewQueryId,
+      columns,
+      selectStar,
+      primaryKey,
+      foreignKeys,
+      indexes,
+      isMetadataLoading: false,
+      isExtraMetadataLoading: false,
+    };
+  });
+  return { type: SET_TABLES, tables };
+}
+
+export function switchQueryEditor(queryEditor) {
+  return function (dispatch) {
+    if (!queryEditor.loaded) {
+      SupersetClient.get({
+        endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      })
+        .then(({ json }) => {
+          const loadedQueryEditor = {
+            id: json.id,
+            loaded: true,
+            title: json.label,
+            sql: json.query.sql,
+            selectedText: null,
+            latestQueryId: json.query.id,
+            autorun: json.autorun,
+            dbId: json.database_id,
+            templateParams: json.template_params,
+            schema: json.schema,
+            queryLimit: json.queryLimit,
+            validationResult: {
+              id: null,
+              errors: [],
+              completed: false,
+            },
+          };
+          dispatch(loadQueryEditor(loadedQueryEditor));
+          dispatch(setTables(json.table_schemas || []));
+          dispatch(setActiveQueryEditor(loadedQueryEditor));
+          if (json.query.resultsKey) {
+            dispatch(fetchQueryResults(json.query));
+          }
+        })
+        .catch(() =>
+          dispatch(addDangerToast(t('An error occurred while fetching tab state'))),
+        );
+    } else {
+      dispatch(setActiveQueryEditor(queryEditor));
+    }
+  };
 }
 
 export function setActiveSouthPaneTab(tabId) {
@@ -362,7 +505,17 @@ export function setActiveSouthPaneTab(tabId) {
 }
 
 export function removeQueryEditor(queryEditor) {
-  return { type: REMOVE_QUERY_EDITOR, queryEditor };
+  return function (dispatch) {
+    SupersetClient.delete({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+    })
+      .then(() =>
+        dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor }),
+      )
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while removing tab'))),
+      );
+  };
 }
 
 export function removeQuery(query) {
@@ -370,11 +523,29 @@ export function removeQuery(query) {
 }
 
 export function queryEditorSetDb(queryEditor, dbId) {
-  return { type: QUERY_EDITOR_SETDB, queryEditor, dbId };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { database_id: dbId },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SETDB, queryEditor, dbId }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab database ID'))),
+      );
+  };
 }
 
 export function queryEditorSetSchema(queryEditor, schema) {
-  return { type: QUERY_EDITOR_SET_SCHEMA, queryEditor, schema };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { schema },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_SCHEMA, queryEditor, schema }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab schema'))),
+      );
+  };
 }
 
 export function queryEditorSetSchemaOptions(queryEditor, options) {
@@ -386,23 +557,68 @@ export function queryEditorSetTableOptions(queryEditor, options) {
 }
 
 export function queryEditorSetAutorun(queryEditor, autorun) {
-  return { type: QUERY_EDITOR_SET_AUTORUN, queryEditor, autorun };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { autorun },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_AUTORUN, queryEditor, autorun }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab autorun'))),
+      );
+  };
 }
 
 export function queryEditorSetTitle(queryEditor, title) {
-  return { type: QUERY_EDITOR_SET_TITLE, queryEditor, title };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { label: title },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_TITLE, queryEditor, title }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab title'))),
+      );
+  };
 }
 
 export function queryEditorSetSql(queryEditor, sql) {
-  return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}/query`),
+      postPayload: { sql },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_SQL, queryEditor, sql }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab SQL'))),
+      );
+  };
 }
 
 export function queryEditorSetQueryLimit(queryEditor, queryLimit) {
-  return { type: QUERY_EDITOR_SET_QUERY_LIMIT, queryEditor, queryLimit };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { query_limit: queryLimit },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_QUERY_LIMIT, queryEditor, queryLimit }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab title'))),
+      );
+  };
 }
 
 export function queryEditorSetTemplateParams(queryEditor, templateParams) {
-  return { type: QUERY_EDITOR_SET_TEMPLATE_PARAMS, queryEditor, templateParams };
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+      postPayload: { template_params: templateParams },
+    })
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_TEMPLATE_PARAMS, queryEditor, templateParams }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while setting tab template parameters'))),
+      );
+  };
 }
 
 export function queryEditorSetSelectedText(queryEditor, sql) {
@@ -411,6 +627,63 @@ export function queryEditorSetSelectedText(queryEditor, sql) {
 
 export function mergeTable(table, query) {
   return { type: MERGE_TABLE, table, query };
+}
+
+function getTableMetadata(table, query, dispatch) {
+  return SupersetClient.get({ endpoint: encodeURI(`/superset/table/${query.dbId}/` +
+          `${encodeURIComponent(table.name)}/${encodeURIComponent(table.schema)}/`) })
+    .then(({ json }) => {
+      const dataPreviewQuery = {
+        id: shortid.generate(),
+        dbId: query.dbId,
+        sql: json.selectStar,
+        tableName: table.name,
+        sqlEditorId: null,
+        tab: '',
+        runAsync: false,
+        ctas: false,
+      };
+      const newTable = {
+        ...table,
+        ...json,
+        expanded: true,
+        isMetadataLoading: false,
+        dataPreviewQueryId: dataPreviewQuery.id,
+      };
+      Promise.all([
+        dispatch(mergeTable(newTable, dataPreviewQuery)), // Merge table to tables in state
+        dispatch(runQuery(dataPreviewQuery)), // Run query to get preview data for table
+      ]);
+      return newTable;
+    })
+    .catch(() =>
+      Promise.all([
+        dispatch(
+          mergeTable({
+            ...table,
+            isMetadataLoading: false,
+          }),
+        ),
+        dispatch(addDangerToast(t('An error occurred while fetching table metadata'))),
+      ]),
+    );
+}
+
+function getTableExtendedMetadata(table, query, dispatch) {
+  return SupersetClient.get({
+    endpoint: encodeURI(`/superset/extra_table_metadata/${query.dbId}/` +
+        `${encodeURIComponent(table.name)}/${encodeURIComponent(table.schema)}/`),
+  })
+    .then(({ json }) => {
+      dispatch(mergeTable({ ...table, ...json, isExtraMetadataLoading: false }));
+      return json;
+    })
+    .catch(() =>
+      Promise.all([
+        dispatch(mergeTable({ ...table, isExtraMetadataLoading: false })),
+        dispatch(addDangerToast(t('An error occurred while fetching table metadata'))),
+      ]),
+    );
 }
 
 export function addTable(query, tableName, schemaName) {
@@ -430,55 +703,21 @@ export function addTable(query, tableName, schemaName) {
       }),
     );
 
-    SupersetClient.get({ endpoint: encodeURI(`/superset/table/${query.dbId}/` +
-            `${encodeURIComponent(tableName)}/${encodeURIComponent(schemaName)}/`) })
-      .then(({ json }) => {
-        const dataPreviewQuery = {
-          id: shortid.generate(),
-          dbId: query.dbId,
-          sql: json.selectStar,
-          tableName,
-          sqlEditorId: null,
-          tab: '',
-          runAsync: false,
-          ctas: false,
-        };
-        const newTable = {
-          ...table,
-          ...json,
-          expanded: true,
-          isMetadataLoading: false,
-        };
-
-        return Promise.all([
-          dispatch(mergeTable(newTable, dataPreviewQuery)), // Merge table to tables in state
-          dispatch(runQuery(dataPreviewQuery)), // Run query to get preview data for table
-        ]);
-      })
-      .catch(() =>
-        Promise.all([
-          dispatch(
-            mergeTable({
-              ...table,
-              isMetadataLoading: false,
-            }),
+    Promise.all([
+      getTableMetadata(table, query, dispatch),
+      getTableExtendedMetadata(table, query, dispatch),
+    ])
+      .then(([newTable, json]) =>
+        SupersetClient.post({
+          endpoint: encodeURI('/tableschemaview/'),
+          postPayload: { table: { ...newTable, ...json } },
+        })
+          .then(({ json: resultJson }) =>
+            dispatch(mergeTable({ ...table, id: resultJson.id })),
+          )
+          .catch(() =>
+            dispatch(addDangerToast(t('An error occurred while fetching table metadata'))),
           ),
-          dispatch(addDangerToast(t('An error occurred while fetching table metadata'))),
-        ]),
-      );
-
-    SupersetClient.get({
-      endpoint: encodeURI(`/superset/extra_table_metadata/${query.dbId}/` +
-          `${encodeURIComponent(tableName)}/${encodeURIComponent(schemaName)}/`),
-    })
-      .then(({ json }) =>
-        dispatch(mergeTable({ ...table, ...json, isExtraMetadataLoading: false })),
-      )
-      .catch(() =>
-        Promise.all([
-          dispatch(mergeTable({ ...table, isExtraMetadataLoading: false })),
-          dispatch(addDangerToast(t('An error occurred while fetching table metadata'))),
-        ]),
       );
   };
 }
@@ -506,15 +745,41 @@ export function reFetchQueryResults(query) {
 }
 
 export function expandTable(table) {
-  return { type: EXPAND_TABLE, table };
+  return function (dispatch) {
+    SupersetClient.post({
+      endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
+      postPayload: { expanded: true },
+    })
+      .then(() => dispatch({ type: EXPAND_TABLE, table }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while expanding the table schema'))),
+      );
+  };
 }
 
 export function collapseTable(table) {
-  return { type: COLLAPSE_TABLE, table };
+  return function (dispatch) {
+    SupersetClient.post({
+      endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
+      postPayload: { expanded: false },
+    })
+      .then(() => dispatch({ type: COLLAPSE_TABLE, table }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while collapsing the table schema'))),
+      );
+  };
 }
 
 export function removeTable(table) {
-  return { type: REMOVE_TABLE, table };
+  return function (dispatch) {
+    SupersetClient.delete({
+      endpoint: encodeURI(`/tableschemaview/${table.id}`),
+    })
+      .then(() => dispatch({ type: REMOVE_TABLE, table }))
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while removing the table schema'))),
+      );
+  };
 }
 
 export function refreshQueries(alteredQueries) {
