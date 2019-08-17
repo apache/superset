@@ -113,13 +113,10 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
       {},
     );
 
-    const hasExtraFilters = false;
-
-    if(fd !== null){
-        hasExtraFilters = fd.extra_filters && fd.extra_filters.length > 0;
+    if (fd !== null) {
+        const hasExtraFilters = fd.extra_filters && fd.extra_filters.length > 0;
+        sliceFormData.extra_filters = hasExtraFilters ? fd.extra_filters : undefined;
     }
-
-    sliceFormData.extra_filters = hasExtraFilters ? fd.extra_filters : undefined;
 
     const isNative = annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE;
     const url = getAnnotationJsonUrl(annotation.value, sliceFormData, isNative);
