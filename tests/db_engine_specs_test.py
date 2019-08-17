@@ -614,6 +614,9 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         }
         self.assertEqual(array_col_hierarchy, expected_array_col_hierarchy)
 
+    @mock.patch.dict(
+        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+    )
     def test_presto_expand_data_with_simple_structural_columns(self):
         cols = [
             {"name": "row_column", "type": "ROW(NESTED_OBJ VARCHAR)"},
@@ -644,6 +647,9 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEqual(actual_data, expected_data)
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
+    @mock.patch.dict(
+        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+    )
     def test_presto_expand_data_with_complex_row_columns(self):
         cols = [
             {
@@ -684,6 +690,9 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEqual(actual_data, expected_data)
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
+    @mock.patch.dict(
+        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+    )
     def test_presto_expand_data_with_complex_array_columns(self):
         cols = [
             {"name": "int_column", "type": "BIGINT"},

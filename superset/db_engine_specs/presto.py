@@ -30,6 +30,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql.expression import ColumnClause
 
+from superset import is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
@@ -749,6 +750,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         :return: list of all columns(selected columns and their nested fields),
                  expanded data set, listed of nested fields
         """
+        if not is_feature_enabled("PRESTO_EXPAND_DATA"):
+            return columns, data, []
+
         all_columns: List[dict] = []
         # Get the list of all columns (selected fields and their nested fields)
         for column in columns:

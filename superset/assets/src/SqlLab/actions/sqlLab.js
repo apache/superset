@@ -455,8 +455,8 @@ export function setUserOffline(offline) {
   return { type: SET_USER_OFFLINE, offline };
 }
 
-export function persistEditorHeight(queryEditor, currentHeight) {
-  return { type: QUERY_EDITOR_PERSIST_HEIGHT, queryEditor, currentHeight };
+export function persistEditorHeight(queryEditor, northPercent, southPercent) {
+  return { type: QUERY_EDITOR_PERSIST_HEIGHT, queryEditor, northPercent, southPercent };
 }
 
 export function popStoredQuery(urlId) {
