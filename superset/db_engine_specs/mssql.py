@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+from datetime import datetime
 import re
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import String, TypeEngine, UnicodeText
@@ -47,12 +48,12 @@ class MssqlEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type, dttm):
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
         return "CONVERT(DATETIME, '{}', 126)".format(dttm.isoformat())
 
     @classmethod
-    def fetch_data(cls, cursor, limit):
-        data = super(MssqlEngineSpec, cls).fetch_data(cursor, limit)
+    def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
+        data = super().fetch_data(cursor, limit)
         if data and type(data[0]).__name__ == "Row":
             data = [[elem for elem in r] for r in data]
         return data

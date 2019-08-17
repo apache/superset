@@ -23,11 +23,11 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
     max_column_name_length = 127
 
     @staticmethod
-    def mutate_label(label: str) -> str:
+    def _mutate_label(label: str) -> str:
         """
         Redshift only supports lowercase column names and aliases.
 
-        :param label: expected expression label/alias
-        :return: conditionally mutated label supported by the db engine
+        :param label: Expected expression label
+        :return: Conditionally mutated label
         """
         return label.lower()

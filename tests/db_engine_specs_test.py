@@ -26,9 +26,9 @@ from sqlalchemy.types import String, UnicodeText
 
 from superset.db_engine_specs import engines
 from superset.db_engine_specs.base import (
+    _create_time_grains_tuple,
     BaseEngineSpec,
     builtin_time_grains,
-    create_time_grains_tuple,
 )
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
@@ -318,7 +318,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         blacklist = ["PT1M"]
         time_grains = {"PT1S": "second", "PT1M": "minute"}
         time_grain_functions = {"PT1S": "{col}", "PT1M": "{col}"}
-        time_grains = create_time_grains_tuple(
+        time_grains = _create_time_grains_tuple(
             time_grains, time_grain_functions, blacklist
         )
         self.assertEqual(1, len(time_grains))
