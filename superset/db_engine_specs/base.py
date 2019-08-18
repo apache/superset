@@ -179,6 +179,12 @@ class BaseEngineSpec:
 
     @classmethod
     def get_time_grains(cls) -> Tuple[TimeGrain, ...]:
+        """
+        Generate a tuple of time grains based on time grains provided by the engine
+        and any potential additional or blacklisted grains in the config file.
+
+        :return: All time grains supported by the engine
+        """
         blacklist: List[str] = config.get("TIME_GRAIN_BLACKLIST", [])
         supported_grains = builtin_time_grains.copy()
         supported_grains.update(config.get("TIME_GRAIN_ADDONS", {}))
@@ -203,6 +209,12 @@ class BaseEngineSpec:
 
     @classmethod
     def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
+        """
+
+        :param cursor: Cursor instance
+        :param limit: Maximum number of rows to be returned by the cursor
+        :return: Result of query
+        """
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         if cls.limit_method == LimitMethod.FETCH_MANY:
@@ -213,6 +225,15 @@ class BaseEngineSpec:
     def expand_data(
         cls, columns: List[dict], data: List[dict]
     ) -> Tuple[List[dict], List[dict], List[dict]]:
+        """
+        Some engines support expanding nested fields. See implementation in Presto
+        spec for details.
+
+        :param columns: columns selected in the query
+        :param data: original data set
+        :return: list of all columns(selected columns and their nested fields),
+                 expanded data set, listed of nested fields
+        """
         return columns, data, []
 
     @classmethod
@@ -262,13 +283,27 @@ class BaseEngineSpec:
     def extra_table_metadata(
         cls, database, table_name: str, schema_name: str
     ) -> Dict[str, Any]:
-        """Returns engine-specific table metadata"""
+        """
+        Returns engine-specific table metadata
+
+        :param database: Database instance
+        :param table_name: Table name
+        :param schema_name: Schema name
+        :return: Engine-specific table metadata
+        """
         # TODO: Fix circular import caused by importing Database
         return {}
 
     @classmethod
     def apply_limit_to_sql(cls, sql: str, limit: int, database) -> str:
-        """Alters the SQL statement to apply a LIMIT clause"""
+        """
+        Alters the SQL statement to apply a LIMIT clause
+
+        :param sql: SQL query
+        :param limit: Maximum number of rows to be returned by the query
+        :param database: Database instance
+        :return: SQL query with limit clause
+        """
         # TODO: Fix circular import caused by importing Database
         if cls.limit_method == LimitMethod.WRAP_SQL:
             sql = sql.strip("\t\n ;")
@@ -285,6 +320,12 @@ class BaseEngineSpec:
 
     @classmethod
     def get_limit_from_sql(cls, sql: str) -> int:
+        """
+        Extract limit from SQL query
+
+        :param sql: SQL query
+        :return: Value of limit clause in query
+        """
         parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.limit
 
