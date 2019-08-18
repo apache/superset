@@ -352,7 +352,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             show_cols,
             indent,
             latest_partition,
-            cols or [],
+            cols,
         )
 
     @classmethod
