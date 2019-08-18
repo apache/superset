@@ -395,6 +395,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         return configuration
 
     @staticmethod
-    def execute(cursor, query: str, async_: bool = False, **kwargs):
+    def execute(cursor, query: str, async_: bool = False):
         kwargs = {"async": async_}
         cursor.execute(query, **kwargs)

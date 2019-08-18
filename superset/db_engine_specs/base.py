@@ -681,7 +681,7 @@ class BaseEngineSpec:
         """
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
-        cursor.execute(query, **kwargs)
+        cursor.execute(query)
 
     @classmethod
     def make_label_compatible(cls, label: str) -> Union[str, quoted_name]:
