@@ -369,15 +369,15 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def get_configuration_for_impersonation(
-        cls, uri, impersonate_user: bool, username: str
-    ):
+        cls, uri: str, impersonate_user: bool, username: str
+    ) -> Dict[str, str]:
         """
         Return a configuration dictionary that can be merged with other configs
         that can set the correct properties for impersonating users
         :param uri: URI string
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
-        :return: Dictionary with configs required for impersonation
+        :return: Configs required for impersonation
         """
         configuration = {}
         url = make_url(uri)
@@ -395,6 +395,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         return configuration
 
     @staticmethod
-    def execute(cursor, query, async_=False):
+    def execute(cursor, query: str, async_: bool = False, **kwargs):
         kwargs = {"async": async_}
         cursor.execute(query, **kwargs)

@@ -613,7 +613,7 @@ class BaseEngineSpec:
         :param indent: Add indentation to query
         :param latest_partition: Only query latest partition
         :param cols: Columns to include in query
-        :return:
+        :return: SQL query
         """
         fields = "*"
         cols = cols or []
@@ -656,23 +656,32 @@ class BaseEngineSpec:
 
     @classmethod
     def get_configuration_for_impersonation(
-        cls, uri, impersonate_user: bool, username: str
-    ):
+        cls, uri: str, impersonate_user: bool, username: str
+    ) -> Dict[str, str]:
         """
         Return a configuration dictionary that can be merged with other configs
         that can set the correct properties for impersonating users
-        :param uri: URI string
+
+        :param uri: URI
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
-        :return: Dictionary with configs required for impersonation
+        :return: Configs required for impersonation
         """
         return {}
 
     @classmethod
-    def execute(cls, cursor, query: Select, **kwargs):
+    def execute(cls, cursor, query: str, **kwargs):
+        """
+        Execute a SQL query
+
+        :param cursor: Cursor instance
+        :param query: Query to execute
+        :param kwargs: kwargs to be passed to cursor.execute()
+        :return:
+        """
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
-        cursor.execute(query)
+        cursor.execute(query, **kwargs)
 
     @classmethod
     def make_label_compatible(cls, label: str) -> Union[str, quoted_name]:
