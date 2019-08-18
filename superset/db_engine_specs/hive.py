@@ -20,7 +20,7 @@ import logging
 import os
 import re
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
 from sqlalchemy import Column
@@ -341,7 +341,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: List[dict] = [],
+        cols: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         return BaseEngineSpec.select_star(
             database,
@@ -352,7 +352,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             show_cols,
             indent,
             latest_partition,
-            cols,
+            cols or [],
         )
 
     @classmethod

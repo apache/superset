@@ -331,6 +331,13 @@ class BaseEngineSpec:
 
     @classmethod
     def get_query_with_new_limit(cls, sql: str, limit: int) -> str:
+        """
+        Create a query based on original query but with new limit clause
+
+        :param sql: SQL query
+        :param limit: New limit to insert/replace into query
+        :return: Query with new limit
+        """
         parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.get_query_with_new_limit(limit)
 
@@ -505,7 +512,7 @@ class BaseEngineSpec:
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> List[str]:
         """
-        Get all schemas from an Inspector instance.
+        Get all schemas from database
 
         :param inspector: SqlAlchemy inspector
         :return: All schemas in the database
@@ -514,13 +521,27 @@ class BaseEngineSpec:
 
     @classmethod
     def get_table_names(cls, inspector: Inspector, schema: Optional[str]) -> List[str]:
+        """
+        Get all tables from schema
+
+        :param inspector: SqlAlchemy inspector
+        :param schema: Schema to inspect. If omitted, uses default schema for database
+        :return: All tables in schema
+        """
         tables = inspector.get_table_names(schema)
         if schema and cls.try_remove_schema_from_table_name:
             tables = [re.sub(f"^{schema}\\.", "", table) for table in tables]
         return sorted(tables)
 
     @classmethod
-    def get_view_names(cls, inspector: Inspector, schema: str) -> List[str]:
+    def get_view_names(cls, inspector: Inspector, schema: Optional[str]) -> List[str]:
+        """
+        Get all views from schema
+
+        :param inspector: SqlAlchemy inspector
+        :param schema: Schema name. If omitted, uses default schema for database
+        :return: All views in schema
+        """
         views = inspector.get_view_names(schema)
         if schema and cls.try_remove_schema_from_table_name:
             views = [re.sub(f"^{schema}\\.", "", view) for view in views]
@@ -528,8 +549,16 @@ class BaseEngineSpec:
 
     @classmethod
     def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str
+        cls, inspector: Inspector, table_name: str, schema: Optional[str]
     ) -> List[Dict[str, Any]]:
+        """
+        Get all columns from a given schema and table
+
+        :param inspector: SqlAlchemy Inspector instance
+        :param table_name: Table name
+        :param schema: Schema name. If omitted, uses default schema for database
+        :return: All columns in table
+        """
         return inspector.get_columns(table_name, schema)
 
     @classmethod
@@ -570,19 +599,20 @@ class BaseEngineSpec:
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: Optional[List] = None,
-    ):
+        cols: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
         """
+        Generate a "SELECT * from [schema.]table_name" query with appropriate limit.
 
         :param database: Database instance
         :param table_name: Table name
-        :param engine: SqlaEngine
-        :param schema:
-        :param limit:
-        :param show_cols:
-        :param indent:
-        :param latest_partition:
-        :param cols:
+        :param engine: SqlALchemy Engine instance
+        :param schema: Schema
+        :param limit: limit to impose on query
+        :param show_cols: Show columns in query; otherwise use "*"
+        :param indent: Add indentation to query
+        :param latest_partition: Only query latest partition
+        :param cols: Columns to include in query
         :return:
         """
         fields = "*"

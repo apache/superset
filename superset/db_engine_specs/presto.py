@@ -345,7 +345,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: Optional[List[dict]] = None,
+        cols: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         """
         Include selecting properties of row objects. We cannot easily break arrays into
