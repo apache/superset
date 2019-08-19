@@ -106,7 +106,7 @@ class CoreTests(SupersetTestCase):
 
     def test_api_v1_query_endpoint(self):
         self.login(username="admin")
-        slc = self.get_slice("Name Cloud", db.session)
+        slc = self.get_slice("Girl Name Cloud", db.session)
         form_data = slc.form_data
         data = json.dumps(
             {
@@ -279,6 +279,7 @@ class CoreTests(SupersetTestCase):
             ]
         for name, method, url in urls:
             logging.info(f"[{name}]/[{method}]: {url}")
+            print(f"[{name}]/[{method}]: {url}")
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
 
@@ -702,8 +703,19 @@ class CoreTests(SupersetTestCase):
         slc = self.get_slice("Girls", db.session)
         json_endpoint = "/superset/explore_json/"
         form_data = slc.form_data
-        form_data.update({"filters": [{"col": "state", "op": "in", "val": ["N/A"]}]})
-
+        form_data.update(
+            {
+                "adhoc_filters": [
+                    {
+                        "clause": "WHERE",
+                        "comparator": "NA",
+                        "expressionType": "SIMPLE",
+                        "operator": "==",
+                        "subject": "gender",
+                    }
+                ]
+            }
+        )
         data = self.get_json_resp(json_endpoint, {"form_data": json.dumps(form_data)})
         self.assertEqual(data["status"], utils.QueryStatus.SUCCESS)
         self.assertEqual(data["error"], "No data")
@@ -718,15 +730,6 @@ class CoreTests(SupersetTestCase):
             "/superset/explore_json/", {"form_data": json.dumps(form_data)}
         )
         self.assertEqual(data["status"], utils.QueryStatus.FAILED)
-
-    def test_slice_payload_viz_markdown(self):
-        self.login(username="admin")
-        slc = self.get_slice("Title", db.session)
-
-        url = slc.get_explore_url(base_url="/superset/explore_json")
-        data = self.get_json_resp(url)
-        self.assertEqual(data["status"], None)
-        self.assertEqual(data["error"], None)
 
     def test_slice_payload_no_datasource(self):
         self.login(username="admin")
