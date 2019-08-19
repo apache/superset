@@ -846,6 +846,12 @@ look something like:
     RESULTS_BACKEND = RedisCache(
         host='localhost', port=6379, key_prefix='superset_results')
 
+For performance gains, `MessagePack <https://github.com/msgpack/msgpack-python>`_
+and `PyArrow <https://arrow.apache.org/docs/python/>`_ can be used for results
+serialization, by setting ``RESULTS_BACKEND_USE_MSGPACK = True`` in your
+configuration. Please clear your existing results cache store when enabling
+this feature in an existing environment.
+
 **Important notes**
 
 * It is important that all the worker nodes and web servers in
