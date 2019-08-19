@@ -25,7 +25,6 @@ import uuid
 from celery.exceptions import SoftTimeLimitExceeded
 from contextlib2 import contextmanager
 from flask_babel import lazy_gettext as _
-# TODO: make these conditional imports
 import msgpack
 import pyarrow as pa
 import simplejson as json
@@ -33,7 +32,14 @@ import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
-from superset import app, dataframe, db, results_backend, results_backend_use_msgpack, security_manager
+from superset import (
+    app,
+    dataframe,
+    db,
+    results_backend,
+    results_backend_use_msgpack,
+    security_manager,
+)
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
 from superset.tasks.celery_app import app as celery_app
@@ -229,13 +235,35 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
 
 
 def _serialize_payload(payload, use_msgpack=False):
-    logging.debug('Serializing to msgpack: {}'.format(use_msgpack))
+    logging.debug("Serializing to msgpack: {}".format(use_msgpack))
     if use_msgpack:
         return msgpack.dumps(payload, default=json_iso_dttm_ser, use_bin_type=True)
     else:
-        return json.dumps(
-            payload, default=json_iso_dttm_ser, ignore_nan=True
+        return json.dumps(payload, default=json_iso_dttm_ser, ignore_nan=True)
+
+
+def _serialize_and_expand_data(cdf, db_engine_spec, use_msgpack=False):
+    selected_columns = cdf.columns or []
+
+    if use_msgpack:
+        with stats_timing(
+            "sqllab.query.results_backend_pa_serialization", stats_logger
+        ):
+            data = (
+                pa.default_serialization_context()
+                .serialize(cdf.raw_df)
+                .to_buffer()
+                .to_pybytes()
+            )
+        # expand when loading data from results backend
+        all_columns, expanded_columns = (selected_columns, [])
+    else:
+        data = cdf.data or []
+        all_columns, data, expanded_columns = db_engine_spec.expand_data(
+            selected_columns, data
         )
+
+    return (data, selected_columns, all_columns, expanded_columns)
 
 
 def execute_sql_statements(
@@ -314,18 +342,9 @@ def execute_sql_statements(
         )
     query.end_time = now_as_float()
 
-    selected_columns = cdf.columns or []
-
-    if results_backend_use_msgpack:
-        with stats_timing("sqllab.query.results_backend_pa_serialization", stats_logger):
-            data = pa.default_serialization_context().serialize(cdf.raw_df).to_buffer().to_pybytes()
-        # expand when loading data from results backend
-        all_columns, expanded_columns = (selected_columns, [])
-    else:
-        data = cdf.data or []
-        all_columns, data, expanded_columns = db_engine_spec.expand_data(
-            selected_columns, data
-        )
+    data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
+        cdf, db_engine_spec, results_backend_use_msgpack
+    )
 
     payload.update(
         {
@@ -343,14 +362,20 @@ def execute_sql_statements(
         key = str(uuid.uuid4())
         logging.info(f"Storing results in results backend, key: {key}")
         with stats_timing("sqllab.query.results_backend_write", stats_logger):
-            with stats_timing("sqllab.query.results_backend_write_serialization", stats_logger):
-                serialized_payload = _serialize_payload(payload, results_backend_use_msgpack)
+            with stats_timing(
+                "sqllab.query.results_backend_write_serialization", stats_logger
+            ):
+                serialized_payload = _serialize_payload(
+                    payload, results_backend_use_msgpack
+                )
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
                 cache_timeout = config.get("CACHE_DEFAULT_TIMEOUT", 0)
 
             compressed = zlib_compress(serialized_payload)
-            logging.debug(f"*** serialized payload size: {getsizeof(serialized_payload)}")
+            logging.debug(
+                f"*** serialized payload size: {getsizeof(serialized_payload)}"
+            )
             logging.debug(f"*** compressed payload size: {getsizeof(compressed)}")
             results_backend.set(key, compressed, cache_timeout)
         query.results_key = key

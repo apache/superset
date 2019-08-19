@@ -193,7 +193,9 @@ def check_slice_perms(self, slice_id):
 def _deserialize_results_payload(payload, query, use_msgpack=False):
     logging.debug(f"Deserializing from msgpack: {use_msgpack}")
     if use_msgpack:
-        with stats_timing("sqllab.query.results_backend_msgpack_deserialize", stats_logger):
+        with stats_timing(
+            "sqllab.query.results_backend_msgpack_deserialize", stats_logger
+        ):
             payload = msgpack.loads(payload, raw=False)
 
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
@@ -207,16 +209,14 @@ def _deserialize_results_payload(payload, query, use_msgpack=False):
             payload["selected_columns"], payload["data"]
         )
         payload.update(
-            {
-                "data": data,
-                "columns": all_columns,
-                "expanded_columns": expanded_columns,
-            }
+            {"data": data, "columns": all_columns, "expanded_columns": expanded_columns}
         )
 
         return payload
     else:
-        with stats_timing("sqllab.query.results_backend_json_deserialize", stats_logger):
+        with stats_timing(
+            "sqllab.query.results_backend_json_deserialize", stats_logger
+        ):
             return json.loads(payload)
 
 
@@ -2416,7 +2416,6 @@ class Superset(BaseSupersetView):
     @expose("/results/<key>/")
     @event_logger.log_this
     def results(self, key):
-        # with PyCallGraph(output=GraphvizOutput()):
         """Serves a key off of the results backend"""
         if not results_backend:
             return json_error_response("Results backend isn't configured")
@@ -2445,7 +2444,9 @@ class Superset(BaseSupersetView):
                 status=403,
             )
 
-        payload = utils.zlib_decompress_to_string(blob, decode=not results_backend_use_msgpack)
+        payload = utils.zlib_decompress_to_string(
+            blob, decode=not results_backend_use_msgpack
+        )
         obj = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
 
         return json_success(
@@ -2698,8 +2699,12 @@ class Superset(BaseSupersetView):
             blob = results_backend.get(query.results_key)
         if blob:
             logging.info("Decompressing")
-            payload = utils.zlib_decompress_to_string(blob, decode=not results_backend_use_msgpack)
-            obj = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
+            payload = utils.zlib_decompress_to_string(
+                blob, decode=not results_backend_use_msgpack
+            )
+            obj = _deserialize_results_payload(
+                payload, query, results_backend_use_msgpack
+            )
             columns = [c["name"] for c in obj["columns"]]
             df = pd.DataFrame.from_records(obj["data"], columns=columns)
             logging.info("Using pandas to convert to CSV")
