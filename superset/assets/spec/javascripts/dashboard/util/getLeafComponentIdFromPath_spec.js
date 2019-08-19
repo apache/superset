@@ -16,17 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sliceId } from './mockChartQueries';
-import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
+import getLeafComponentIdFromPath from '../../../../src/dashboard/util/getLeafComponentIdFromPath';
+import { filterId } from '../fixtures/mockSliceEntities';
+import { dashboardFilters } from '../fixtures/mockDashboardFilters';
 
-export default {
-  sliceIds: [sliceId],
-  expandedSlices: {},
-  editMode: false,
-  builderPaneType: BUILDER_PANE_TYPE.NONE,
-  hasUnsavedChanges: false,
-  maxUndoHistoryExceeded: false,
-  isStarred: true,
-  isPublished: true,
-  css: '',
-};
+describe('getLeafComponentIdFromPath', () => {
+  const path = dashboardFilters[filterId].directPathToFilter;
+  const leaf = path.slice().pop();
+
+  it('should return component id', () => {
+    expect(getLeafComponentIdFromPath(path)).toBe(leaf);
+  });
+
+  it('should not return label component', () => {
+    const updatedPath = dashboardFilters[filterId].directPathToFilter.concat(
+      'LABEL-test123',
+    );
+    expect(getLeafComponentIdFromPath(updatedPath)).toBe(leaf);
+  });
+});

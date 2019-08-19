@@ -16,17 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sliceId } from './mockChartQueries';
-import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
+import { filterId } from './mockSliceEntities';
 
-export default {
-  sliceIds: [sliceId],
-  expandedSlices: {},
-  editMode: false,
-  builderPaneType: BUILDER_PANE_TYPE.NONE,
-  hasUnsavedChanges: false,
-  maxUndoHistoryExceeded: false,
-  isStarred: true,
-  isPublished: true,
-  css: '',
+export const emptyFilters = {};
+
+export const dashboardFilters = {
+  [filterId]: {
+    chartId: filterId,
+    componentId: 'CHART-rwDfbGqeEn',
+    directPathToFilter: [
+      'ROOT_ID',
+      'TABS-VPEX_c476g',
+      'TAB-PMJyKM1yB',
+      'TABS-YdylzDMTMQ',
+      'TAB-O9AaU9FT0',
+      'ROW-l6PrlhwSjh',
+      'CHART-rwDfbGqeEn',
+    ],
+    scope: 'ROOT_ID',
+    isDateFilter: false,
+    isInstantFilter: true,
+    columns: {
+      region: ['a', 'b'],
+    },
+    labels: {
+      region: 'region',
+    },
+  },
 };

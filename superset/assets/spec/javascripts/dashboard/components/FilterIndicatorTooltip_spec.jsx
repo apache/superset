@@ -16,17 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sliceId } from './mockChartQueries';
-import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
+import React from 'react';
+import { shallow } from 'enzyme';
 
-export default {
-  sliceIds: [sliceId],
-  expandedSlices: {},
-  editMode: false,
-  builderPaneType: BUILDER_PANE_TYPE.NONE,
-  hasUnsavedChanges: false,
-  maxUndoHistoryExceeded: false,
-  isStarred: true,
-  isPublished: true,
-  css: '',
-};
+import FilterIndicatorTooltip from '../../../../src/dashboard/components/FilterIndicatorTooltip';
+
+describe('FilterIndicatorTooltip', () => {
+  const label = 'region';
+  const mockedProps = {
+    colorCode: 'badge-1',
+    label,
+    values: [],
+    clickIconHandler: jest.fn(),
+  };
+
+  function setup(overrideProps) {
+    return shallow(
+      <FilterIndicatorTooltip {...mockedProps} {...overrideProps} />,
+    );
+  }
+
+  it('should show label', () => {
+    const wrapper = setup();
+    expect(wrapper.find(`[htmlFor="filter-tooltip-${label}"]`)).toHaveLength(1);
+  });
+});
