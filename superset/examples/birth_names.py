@@ -48,6 +48,26 @@ def gen_filter(subject, comparator, operator="=="):
     }
 
 
+def load_data(tbl_name, database):
+    pdf = pd.read_json(get_example_data("birth_names.json.gz"))
+    pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
+    pdf.to_sql(
+        tbl_name,
+        database.get_sqla_engine(),
+        if_exists="replace",
+        chunksize=500,
+        dtype={
+            "ds": DateTime,
+            "gender": String(16),
+            "state": String(10),
+            "name": String(255),
+        },
+        index=False,
+    )
+    print("Done loading table!")
+    print("-" * 80)
+
+
 def load_birth_names(only_metadata=False, force=False):
     """Loading birth name dataset from a zip file in the repo"""
     # pylint: disable=too-many-locals
@@ -56,23 +76,7 @@ def load_birth_names(only_metadata=False, force=False):
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        pdf = pd.read_json(get_example_data("birth_names.json.gz"))
-        pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
-        pdf.to_sql(
-            tbl_name,
-            database.get_sqla_engine(),
-            if_exists="replace",
-            chunksize=500,
-            dtype={
-                "ds": DateTime,
-                "gender": String(16),
-                "state": String(10),
-                "name": String(255),
-            },
-            index=False,
-        )
-        print("Done loading table!")
-        print("-" * 80)
+        load_data(tbl_name, database)
 
     obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not obj:
