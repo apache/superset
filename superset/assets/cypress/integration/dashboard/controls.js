@@ -74,7 +74,7 @@ export default () => describe('top-level controls', () => {
     cy.contains('Force refresh dashboard').parent().not('have.class', 'disabled');
   });
 
-  it('should allow dashboard level force refresh', () => {
+  it.skip('should allow dashboard level force refresh', () => {
     // when charts are not start loading, for example, under a secondary tab,
     // should allow force refresh
     cy.get('#save-dash-split-button').trigger('click');

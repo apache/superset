@@ -21,7 +21,7 @@ import json
 import logging
 import re
 
-from flask import escape, Markup
+from flask import escape, g, Markup
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 import humanize
@@ -244,7 +244,7 @@ class ImportMixin(object):
                         )
                         for child in getattr(self, c)
                     ],
-                    key=lambda k: sorted(k.items()),
+                    key=lambda k: sorted(str(k.items())),
                 )
 
         return dict_rep
@@ -264,6 +264,19 @@ class ImportMixin(object):
         d = self.params_dict
         d.update(kwargs)
         self.params = json.dumps(d)
+
+    def reset_ownership(self):
+        """ object will belong to the user the current user """
+        # make sure the object doesn't have relations to a user
+        # it will be filled by appbuilder on save
+        self.created_by = None
+        self.changed_by = None
+        # flask global context might not exist (in cli or tests for example)
+        try:
+            if g.user:
+                self.owners = [g.user]
+        except Exception:
+            self.owners = []
 
     @property
     def params_dict(self):

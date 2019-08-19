@@ -54,6 +54,8 @@ const propTypes = {
 const defaultProps = {
   onChange: () => {},
   clearable: true,
+  savedMetrics: [],
+  columns: [],
 };
 
 function isDictionaryForAdhocMetric(value) {
@@ -62,7 +64,7 @@ function isDictionaryForAdhocMetric(value) {
 
 function columnsContainAllMetrics(value, nextProps) {
   const columnNames = new Set(
-    [...nextProps.columns, ...nextProps.savedMetrics]
+    [...(nextProps.columns || []), ...(nextProps.savedMetrics || [])]
     // eslint-disable-next-line camelcase
       .map(({ column_name, metric_name }) => (column_name || metric_name)),
   );
@@ -71,7 +73,7 @@ function columnsContainAllMetrics(value, nextProps) {
     .filter(metric => metric)
     // find column names
     .map(metric => metric.column ? metric.column.column_name : metric.column_name || metric)
-    .filter(name => name)
+    .filter(name => name && typeof name === 'string')
     .every(name => columnNames.has(name));
 }
 
@@ -243,9 +245,9 @@ export default class MetricsControl extends React.PureComponent {
       Object.keys(AGGREGATES).map(aggregate => ({ aggregate_name: aggregate })) :
       [];
     const options = [
-      ...columns,
+      ...(columns || []),
       ...aggregates,
-      ...savedMetrics,
+      ...(savedMetrics || []),
     ];
 
     return options.reduce((results, option) => {

@@ -36,6 +36,7 @@ from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
 from superset.utils.core import pessimistic_connection_handling, setup_cache
+from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
 wtforms_json.init()
 
@@ -104,6 +105,10 @@ def get_manifest():
 
 #################################################################
 
+# Setup the cache prior to registering the blueprints.
+cache = setup_cache(app, conf.get("CACHE_CONFIG"))
+tables_cache = setup_cache(app, conf.get("TABLE_NAMES_CACHE_CONFIG"))
+
 for bp in conf.get("BLUEPRINTS"):
     try:
         print("Registering blueprint: '{}'".format(bp.name))
@@ -132,9 +137,6 @@ if conf.get("WTF_CSRF_ENABLED"):
         csrf.exempt(ex)
 
 pessimistic_connection_handling(db.engine)
-
-cache = setup_cache(app, conf.get("CACHE_CONFIG"))
-tables_cache = setup_cache(app, conf.get("TABLE_NAMES_CACHE_CONFIG"))
 
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
@@ -216,6 +218,11 @@ results_backend = app.config.get("RESULTS_BACKEND")
 # Merge user defined feature flags with default feature flags
 _feature_flags = app.config.get("DEFAULT_FEATURE_FLAGS") or {}
 _feature_flags.update(app.config.get("FEATURE_FLAGS") or {})
+
+# Event Logger
+event_logger = get_event_logger_from_cfg_value(
+    app.config.get("EVENT_LOGGER", DBEventLogger())
+)
 
 
 def get_feature_flags():

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import inspect
+import unittest
 
 from superset import app, appbuilder, security_manager
 from .base_tests import SupersetTestCase
@@ -98,7 +99,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_cannot_write("UserDBModelView", perm_set)
 
     def assert_can_admin(self, perm_set):
-        self.assert_can_all("DatabaseAsync", perm_set)
+        self.assert_can_read("DatabaseAsync", perm_set)
         self.assert_can_all("DatabaseView", perm_set)
         self.assert_can_all("DruidClusterModelView", perm_set)
         self.assert_can_all("RoleModelView", perm_set)
@@ -112,12 +113,12 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_is_admin_only(self):
         self.assertFalse(
-            security_manager.is_admin_only(
+            security_manager._is_admin_only(
                 security_manager.find_permission_view_menu("can_show", "TableModelView")
             )
         )
         self.assertFalse(
-            security_manager.is_admin_only(
+            security_manager._is_admin_only(
                 security_manager.find_permission_view_menu(
                     "all_datasource_access", "all_datasource_access"
                 )
@@ -125,68 +126,71 @@ class RolePermissionTests(SupersetTestCase):
         )
 
         self.assertTrue(
-            security_manager.is_admin_only(
+            security_manager._is_admin_only(
                 security_manager.find_permission_view_menu("can_delete", "DatabaseView")
             )
         )
         if app.config.get("ENABLE_ACCESS_REQUEST"):
             self.assertTrue(
-                security_manager.is_admin_only(
+                security_manager._is_admin_only(
                     security_manager.find_permission_view_menu(
                         "can_show", "AccessRequestsModelView"
                     )
                 )
             )
         self.assertTrue(
-            security_manager.is_admin_only(
+            security_manager._is_admin_only(
                 security_manager.find_permission_view_menu(
                     "can_edit", "UserDBModelView"
                 )
             )
         )
         self.assertTrue(
-            security_manager.is_admin_only(
+            security_manager._is_admin_only(
                 security_manager.find_permission_view_menu("can_approve", "Superset")
             )
         )
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_is_alpha_only(self):
         self.assertFalse(
-            security_manager.is_alpha_only(
+            security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu("can_show", "TableModelView")
             )
         )
 
         self.assertTrue(
-            security_manager.is_alpha_only(
+            security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu(
                     "muldelete", "TableModelView"
                 )
             )
         )
         self.assertTrue(
-            security_manager.is_alpha_only(
+            security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu(
                     "all_datasource_access", "all_datasource_access"
                 )
             )
         )
         self.assertTrue(
-            security_manager.is_alpha_only(
+            security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu(
                     "can_edit", "SqlMetricInlineView"
                 )
             )
         )
         self.assertTrue(
-            security_manager.is_alpha_only(
+            security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu(
                     "can_delete", "DruidMetricInlineView"
                 )
             )
         )
         self.assertTrue(
-            security_manager.is_alpha_only(
+            security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu(
                     "all_database_access", "all_database_access"
                 )
@@ -195,7 +199,7 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_is_gamma_pvm(self):
         self.assertTrue(
-            security_manager.is_gamma_pvm(
+            security_manager._is_gamma_pvm(
                 security_manager.find_permission_view_menu("can_show", "TableModelView")
             )
         )
@@ -205,11 +209,17 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_cannot_gamma(get_perm_tuples("Gamma"))
         self.assert_cannot_alpha(get_perm_tuples("Alpha"))
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_alpha_permissions(self):
         self.assert_can_gamma(get_perm_tuples("Alpha"))
         self.assert_can_alpha(get_perm_tuples("Alpha"))
         self.assert_cannot_alpha(get_perm_tuples("Alpha"))
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_admin_permissions(self):
         self.assert_can_gamma(get_perm_tuples("Admin"))
         self.assert_can_alpha(get_perm_tuples("Admin"))

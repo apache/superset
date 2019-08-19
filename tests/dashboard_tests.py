@@ -246,7 +246,9 @@ class DashboardTests(SupersetTestCase):
             .first()
         )
         existing_slice = (
-            db.session.query(models.Slice).filter_by(slice_name="Name Cloud").first()
+            db.session.query(models.Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .first()
         )
         data = {
             "slice_ids": [new_slice.data["slice_id"], existing_slice.data["slice_id"]]
@@ -301,6 +303,14 @@ class DashboardTests(SupersetTestCase):
 
     def test_public_user_dashboard_access(self):
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+
+        # Make the births dash published so it can be seen
+        births_dash = db.session.query(models.Dashboard).filter_by(slug="births").one()
+        births_dash.published = True
+
+        db.session.merge(births_dash)
+        db.session.commit()
+
         # Try access before adding appropriate permissions.
         self.revoke_public_access_to_table(table)
         self.logout()
@@ -379,15 +389,115 @@ class DashboardTests(SupersetTestCase):
         resp = self.get_resp("/dashboard/list/")
         self.assertNotIn("/superset/dashboard/empty_dashboard/", resp)
 
-        dash = (
-            db.session.query(models.Dashboard).filter_by(slug="empty_dashboard").first()
+    def test_users_can_view_published_dashboard(self):
+        table = db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
+        # get a slice from the allowed table
+        slice = (
+            db.session.query(models.Slice).filter_by(slice_name="Energy Sankey").one()
         )
-        dash.owners = [gamma_user]
-        db.session.merge(dash)
+
+        self.grant_public_access_to_table(table)
+
+        # Create a published and hidden dashboard and add them to the database
+        published_dash = models.Dashboard()
+        published_dash.dashboard_title = "Published Dashboard"
+        published_dash.slug = "published_dash"
+        published_dash.slices = [slice]
+        published_dash.published = True
+
+        hidden_dash = models.Dashboard()
+        hidden_dash.dashboard_title = "Hidden Dashboard"
+        hidden_dash.slug = "hidden_dash"
+        hidden_dash.slices = [slice]
+        hidden_dash.published = False
+
+        db.session.merge(published_dash)
+        db.session.merge(hidden_dash)
         db.session.commit()
 
         resp = self.get_resp("/dashboard/list/")
-        self.assertIn("/superset/dashboard/empty_dashboard/", resp)
+        self.assertNotIn("/superset/dashboard/hidden_dash/", resp)
+        self.assertIn("/superset/dashboard/published_dash/", resp)
+
+    def test_users_can_view_own_dashboard(self):
+        user = security_manager.find_user("gamma")
+
+        # Create one dashboard I own and another that I don't
+        dash = models.Dashboard()
+        dash.dashboard_title = "My Dashboard"
+        dash.slug = "my_dash"
+        dash.owners = [user]
+        dash.slices = []
+
+        hidden_dash = models.Dashboard()
+        hidden_dash.dashboard_title = "Not My Dashboard"
+        hidden_dash.slug = "not_my_dash"
+        hidden_dash.slices = []
+        hidden_dash.owners = []
+
+        db.session.merge(dash)
+        db.session.merge(hidden_dash)
+        db.session.commit()
+
+        self.login(user.username)
+
+        resp = self.get_resp("/dashboard/list/")
+        self.assertIn("/superset/dashboard/my_dash/", resp)
+        self.assertNotIn("/superset/dashboard/not_my_dash/", resp)
+
+    def test_users_can_view_favorited_dashboards(self):
+        user = security_manager.find_user("gamma")
+
+        favorite_dash = models.Dashboard()
+        favorite_dash.dashboard_title = "My Favorite Dashboard"
+        favorite_dash.slug = "my_favorite_dash"
+
+        regular_dash = models.Dashboard()
+        regular_dash.dashboard_title = "A Plain Ol Dashboard"
+        regular_dash.slug = "regular_dash"
+
+        db.session.merge(favorite_dash)
+        db.session.merge(regular_dash)
+        db.session.commit()
+
+        dash = (
+            db.session.query(models.Dashboard)
+            .filter_by(slug="my_favorite_dash")
+            .first()
+        )
+
+        favorites = models.FavStar()
+        favorites.obj_id = dash.id
+        favorites.class_name = "Dashboard"
+        favorites.user_id = user.id
+
+        db.session.merge(favorites)
+        db.session.commit()
+
+        self.login(user.username)
+
+        resp = self.get_resp("/dashboard/list/")
+        self.assertIn("/superset/dashboard/my_favorite_dash/", resp)
+
+    def test_user_can_not_view_unpublished_dash(self):
+        admin_user = security_manager.find_user("admin")
+        gamma_user = security_manager.find_user("gamma")
+        slug = "admin_owned_unpublished_dash"
+
+        # Create a dashboard owned by admin and unpublished
+        dash = models.Dashboard()
+        dash.dashboard_title = "My Dashboard"
+        dash.slug = slug
+        dash.owners = [admin_user]
+        dash.slices = []
+        dash.published = False
+        db.session.merge(dash)
+        db.session.commit()
+
+        # list dashboards as a gamma user
+        self.login(gamma_user.username)
+        resp = self.get_resp("/dashboard/list/")
+        self.assertNotIn(f"/superset/dashboard/{slug}/", resp)
 
 
 if __name__ == "__main__":

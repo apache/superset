@@ -20,13 +20,16 @@ import unittest
 import pandas
 from sqlalchemy.engine.url import make_url
 
-from superset import app, db
+from superset import app
 from superset.models.core import Database
-from superset.utils.core import get_main_database, QueryStatus
+from superset.utils.core import get_example_database, get_main_database, QueryStatus
 from .base_tests import SupersetTestCase
 
 
 class DatabaseModelTestCase(SupersetTestCase):
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("requests"), "requests not installed"
+    )
     def test_database_schema_presto(self):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
         model = Database(sqlalchemy_uri=sqlalchemy_uri)
@@ -101,7 +104,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertNotEquals(example_user, user_name)
 
     def test_select_star(self):
-        main_db = get_main_database(db.session)
+        main_db = get_example_database()
         table_name = "energy_usage"
         sql = main_db.select_star(table_name, show_cols=False, latest_partition=False)
         expected = textwrap.dedent(
@@ -124,7 +127,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         assert sql.startswith(expected)
 
     def test_single_statement(self):
-        main_db = get_main_database(db.session)
+        main_db = get_main_database()
 
         if main_db.backend == "mysql":
             df = main_db.get_df("SELECT 1", None)
@@ -134,7 +137,7 @@ class DatabaseModelTestCase(SupersetTestCase):
             self.assertEquals(df.iat[0, 0], 1)
 
     def test_multi_statement(self):
-        main_db = get_main_database(db.session)
+        main_db = get_main_database()
 
         if main_db.backend == "mysql":
             df = main_db.get_df("USE superset; SELECT 1", None)
@@ -195,11 +198,11 @@ class SqlaTableModelTestCase(SupersetTestCase):
         ds_col.expression = None
         ds_col.python_date_format = None
         spec = self.get_database_by_id(tbl.database_id).db_engine_spec
-        if not spec.inner_joins and inner_join:
+        if not spec.allows_joins and inner_join:
             # if the db does not support inner joins, we cannot force it so
             return None
-        old_inner_join = spec.inner_joins
-        spec.inner_joins = inner_join
+        old_inner_join = spec.allows_joins
+        spec.allows_joins = inner_join
         arbitrary_gby = "state || gender || '_test'"
         arbitrary_metric = dict(
             label="arbitrary", expressionType="SQL", sqlExpression="COUNT(1)"
@@ -209,12 +212,10 @@ class SqlaTableModelTestCase(SupersetTestCase):
             metrics=[arbitrary_metric],
             filter=[],
             is_timeseries=is_timeseries,
-            prequeries=[],
             columns=[],
             granularity="ds",
             from_dttm=None,
             to_dttm=None,
-            is_prequery=False,
             extras=dict(time_grain_sqla="P1Y"),
         )
         qr = tbl.query(query_obj)
@@ -226,7 +227,7 @@ class SqlaTableModelTestCase(SupersetTestCase):
             self.assertIn("JOIN", sql.upper())
         else:
             self.assertNotIn("JOIN", sql.upper())
-        spec.inner_joins = old_inner_join
+        spec.allows_joins = old_inner_join
         self.assertIsNotNone(qr.df)
         return qr.df
 
@@ -258,17 +259,36 @@ class SqlaTableModelTestCase(SupersetTestCase):
             granularity=None,
             from_dttm=None,
             to_dttm=None,
-            is_prequery=False,
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
-        self.assertNotIn("--COMMENT", sql)
+        self.assertNotIn("-- COMMENT", sql)
 
         def mutator(*args):
-            return "--COMMENT\n" + args[0]
+            return "-- COMMENT\n" + args[0]
 
         app.config["SQL_QUERY_MUTATOR"] = mutator
         sql = tbl.get_query_str(query_obj)
-        self.assertIn("--COMMENT", sql)
+        self.assertIn("-- COMMENT", sql)
 
         app.config["SQL_QUERY_MUTATOR"] = None
+
+    def test_query_with_non_existent_metrics(self):
+        tbl = self.get_table_by_name("birth_names")
+
+        query_obj = dict(
+            groupby=[],
+            metrics=["invalid"],
+            filter=[],
+            is_timeseries=False,
+            columns=["name"],
+            granularity=None,
+            from_dttm=None,
+            to_dttm=None,
+            extras={},
+        )
+
+        with self.assertRaises(Exception) as context:
+            tbl.get_query_str(query_obj)
+
+        self.assertTrue("Metric 'invalid' does not exist", context.exception)

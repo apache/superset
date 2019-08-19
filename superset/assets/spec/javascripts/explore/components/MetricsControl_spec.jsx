@@ -333,5 +333,47 @@ describe('MetricsControl', () => {
         'SUM(',
       )).toBe(true);
     });
+
+    it('Removes metrics if savedMetrics changes', () => {
+      const { props, wrapper, onChange } = setup({
+        value: [
+          {
+            expressionType: EXPRESSION_TYPES.SIMPLE,
+            column: { type: 'double', column_name: 'value' },
+            aggregate: AGGREGATES.SUM,
+            label: 'SUM(value)',
+            optionName: 'blahblahblah',
+          },
+        ],
+      });
+      expect(wrapper.state('value')).toHaveLength(1);
+
+      wrapper.setProps({ ...props, columns: [] });
+      expect(onChange.lastCall.args).toEqual([[]]);
+    });
+
+    it('Does not remove custom sql metric if savedMetrics changes', () => {
+      const { props, wrapper, onChange } = setup({
+        value: [
+          {
+            expressionType: EXPRESSION_TYPES.SQL,
+            sqlExpression: 'COUNT(*)',
+            label: 'old label',
+            hasCustomLabel: true,
+          },
+        ],
+      });
+      expect(wrapper.state('value')).toHaveLength(1);
+
+      wrapper.setProps({ ...props, columns: [] });
+      expect(onChange.calledOnce).toEqual(false);
+    });
+    it('Does not fail if no columns or savedMetrics are passed', () => {
+      const { wrapper } = setup({
+        savedMetrics: null,
+        columns: null,
+      });
+      expect(wrapper.exists('.metrics-select')).toEqual(true);
+    });
   });
 });

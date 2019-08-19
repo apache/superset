@@ -54,3 +54,7 @@ class SupersetTemplateException(SupersetException):
 
 class SpatialException(SupersetException):
     pass
+
+
+class DatabaseNotFound(SupersetException):
+    status = 400

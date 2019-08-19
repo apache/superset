@@ -38,11 +38,6 @@ const defaultProps = {
 
 
 class AnchorLink extends React.PureComponent {
-  constructor(props) {
-    super(props);
-
-    this.handleClickAnchorLink = this.handleClickAnchorLink.bind(this);
-  }
 
   componentDidMount() {
     const hash = this.getLocationHash();
@@ -65,17 +60,12 @@ class AnchorLink extends React.PureComponent {
     return (window.location.hash || '').substring(1);
   }
 
-  handleClickAnchorLink(ev) {
-    ev.stopPropagation();
-  }
-
   render() {
     const { anchorLinkId, filters, showShortLinkButton, placement } = this.props;
     return (
       <span
         className="anchor-link-container"
         id={anchorLinkId}
-        onClick={this.handleClickAnchorLink}
       >
         {showShortLinkButton &&
         <URLShortLinkButton

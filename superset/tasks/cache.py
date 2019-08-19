@@ -18,12 +18,10 @@
 
 import json
 import logging
-import urllib.parse
+from urllib import request
+from urllib.error import URLError
 
 from celery.utils.log import get_task_logger
-from flask import url_for
-import requests
-from requests.exceptions import RequestException
 from sqlalchemy import and_, func
 
 from superset import app, db
@@ -75,13 +73,13 @@ def get_form_data(chart_id, dashboard=None):
     return form_data
 
 
-def get_url(params):
+def get_url(chart):
     """Return external URL for warming up a given chart/table cache."""
-    baseurl = "http://{SUPERSET_WEBSERVER_ADDRESS}:{SUPERSET_WEBSERVER_PORT}/".format(
-        **app.config
-    )
     with app.test_request_context():
-        return urllib.parse.urljoin(baseurl, url_for("Superset.explore_json", **params))
+        baseurl = "{SUPERSET_WEBSERVER_ADDRESS}:{SUPERSET_WEBSERVER_PORT}".format(
+            **app.config
+        )
+        return f"{baseurl}{chart.url}"
 
 
 class Strategy:
@@ -136,7 +134,7 @@ class DummyStrategy(Strategy):
         session = db.create_scoped_session()
         charts = session.query(Slice).all()
 
-        return [get_url({"form_data": get_form_data(chart.id)}) for chart in charts]
+        return [get_url(chart) for chart in charts]
 
 
 class TopNDashboardsStrategy(Strategy):
@@ -180,7 +178,7 @@ class TopNDashboardsStrategy(Strategy):
         dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
         for dashboard in dashboards:
             for chart in dashboard.slices:
-                urls.append(get_url({"form_data": get_form_data(chart.id, dashboard)}))
+                urls.append(get_url(chart))
 
         return urls
 
@@ -229,7 +227,7 @@ class DashboardTagsStrategy(Strategy):
         tagged_dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids))
         for dashboard in tagged_dashboards:
             for chart in dashboard.slices:
-                urls.append(get_url({"form_data": get_form_data(chart.id, dashboard)}))
+                urls.append(get_url(chart))
 
         # add charts that are tagged
         tagged_objects = (
@@ -245,7 +243,7 @@ class DashboardTagsStrategy(Strategy):
         chart_ids = [tagged_object.object_id for tagged_object in tagged_objects]
         tagged_charts = session.query(Slice).filter(Slice.id.in_(chart_ids))
         for chart in tagged_charts:
-            urls.append(get_url({"form_data": get_form_data(chart.id)}))
+            urls.append(get_url(chart))
 
         return urls
 
@@ -284,9 +282,9 @@ def cache_warmup(strategy_name, *args, **kwargs):
     for url in strategy.get_urls():
         try:
             logger.info(f"Fetching {url}")
-            requests.get(url)
+            request.urlopen(url)
             results["success"].append(url)
-        except RequestException:
+        except URLError:
             logger.exception("Error warming up cache!")
             results["errors"].append(url)
 

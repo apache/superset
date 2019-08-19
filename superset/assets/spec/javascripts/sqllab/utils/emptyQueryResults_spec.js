@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import emptyQueryResults from '../../../../src/SqlLab/utils/emptyQueryResults';
+import { emptyQueryResults, clearQueryEditors } from '../../../../src/SqlLab/utils/reduxStateToLocalStorageHelper';
 import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../../../../src/SqlLab/constants';
-import { queries } from '../fixtures';
+import { queries, defaultQueryEditor } from '../fixtures';
 
-describe('emptyQueryResults', () => {
+describe('reduxStateToLocalStorageHelper', () => {
   const queriesObj = {};
   beforeEach(() => {
     queries.forEach((q) => {
@@ -38,5 +38,13 @@ describe('emptyQueryResults', () => {
     const emptiedQuery = emptyQueryResults(queriesObj);
     expect(emptiedQuery[id].startDttm).toBe(startDttm);
     expect(emptiedQuery[id].results).toEqual({});
+  });
+
+  it('should only return selected keys for query editor', () => {
+    const queryEditors = [defaultQueryEditor];
+    expect(Object.keys(queryEditors[0])).toContain('schemaOptions');
+
+    const clearedQueryEditors = clearQueryEditors(queryEditors);
+    expect(Object.keys(clearedQueryEditors)[0]).not.toContain('schemaOptions');
   });
 });

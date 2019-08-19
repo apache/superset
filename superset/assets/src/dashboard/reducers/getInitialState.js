@@ -186,8 +186,8 @@ export default function(bootstrapData) {
       slug: dashboard.slug,
       metadata: {
         filter_immune_slice_fields:
-          dashboard.metadata.filter_immune_slice_fields,
-        filter_immune_slices: dashboard.metadata.filter_immune_slices,
+          dashboard.metadata.filter_immune_slice_fields || {},
+        filter_immune_slices: dashboard.metadata.filter_immune_slices || [],
         timed_refresh_immune_slices:
           dashboard.metadata.timed_refresh_immune_slices,
       },
@@ -217,6 +217,7 @@ export default function(bootstrapData) {
       colorNamespace: dashboard.metadata.color_namespace,
       colorScheme: dashboard.metadata.color_scheme,
       editMode: dashboard.dash_edit_perm && editMode,
+      isPublished: dashboard.published,
       builderPaneType:
         dashboard.dash_edit_perm && editMode
           ? BUILDER_PANE_TYPE.ADD_COMPONENTS

@@ -56,7 +56,7 @@ Templating with Jinja
 
     SELECT *
     FROM some_table
-    WHERE partition_key = '{{ presto.latest_partition('some_table') }}'
+    WHERE partition_key = '{{ presto.first_latest_partition('some_table') }}'
 
 Templating unleashes the power and capabilities of a
 programming language within your SQL code.
@@ -79,12 +79,21 @@ Superset's Jinja context:
 
 `Jinja's builtin filters <http://jinja.pocoo.org/docs/dev/templates/>`_ can be also be applied where needed.
 
-.. autoclass:: superset.jinja_context.PrestoTemplateProcessor
-    :members:
+.. autofunction:: superset.jinja_context.current_user_id
+
+.. autofunction:: superset.jinja_context.current_username
 
 .. autofunction:: superset.jinja_context.url_param
 
 .. autofunction:: superset.jinja_context.filter_values
+
+.. autofunction:: superset.jinja_context.CacheKeyWrapper.cache_key_wrapper
+
+.. autoclass:: superset.jinja_context.PrestoTemplateProcessor
+    :members:
+
+.. autoclass:: superset.jinja_context.HiveTemplateProcessor
+    :members:
 
 Extending macros
 ''''''''''''''''

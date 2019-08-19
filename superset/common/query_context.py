@@ -18,7 +18,6 @@
 from datetime import datetime, timedelta
 import logging
 import pickle as pkl
-import traceback
 from typing import Dict, List
 
 import numpy as np
@@ -153,8 +152,13 @@ class QueryContext:
 
     def get_df_payload(self, query_obj, **kwargs):
         """Handles caching around the df paylod retrieval"""
+        extra_cache_keys = self.datasource.get_extra_cache_keys(query_obj)
         cache_key = (
-            query_obj.cache_key(datasource=self.datasource.uid, **kwargs)
+            query_obj.cache_key(
+                datasource=self.datasource.uid,
+                extra_cache_keys=extra_cache_keys,
+                **kwargs
+            )
             if query_obj
             else None
         )
@@ -199,7 +203,7 @@ class QueryContext:
                 if not error_message:
                     error_message = "{}".format(e)
                 status = utils.QueryStatus.FAILED
-                stacktrace = traceback.format_exc()
+                stacktrace = utils.get_stacktrace()
 
             if is_loaded and cache_key and cache and status != utils.QueryStatus.FAILED:
                 try:

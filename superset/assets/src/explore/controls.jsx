@@ -171,6 +171,7 @@ const metric = {
   ...metrics,
   multi: false,
   label: t('Metric'),
+  description: t('Metric'),
   default: props => mainMetric(props.savedMetrics),
 };
 
@@ -301,6 +302,16 @@ export const controls = {
       ['bl', 'Bottom left'],
       ['br', 'Bottom right'],
     ],
+    renderTrigger: true,
+  },
+
+  legend_format: {
+    label: t('Legend Format'),
+    description: t('Choose the format for legend values'),
+    type: 'SelectControl',
+    clearable: false,
+    default: D3_FORMAT_OPTIONS[0],
+    choices: D3_FORMAT_OPTIONS,
     renderTrigger: true,
   },
 
@@ -559,6 +570,7 @@ export const controls = {
       'Egypt',
       'France',
       'Germany',
+      'India',
       'Italy',
       'Japan',
       'Morocco',
@@ -932,26 +944,17 @@ export const controls = {
     freeForm: true,
     label: t('Rule'),
     default: null,
-    choices: formatSelectOptions(['', '1T', '1H', '1D', '7D', '1M', '1AS']),
+    choices: formatSelectOptions(['1T', '1H', '1D', '7D', '1M', '1AS']),
     description: t('Pandas resample rule'),
   },
 
-  resample_how: {
+  resample_method: {
     type: 'SelectControl',
     freeForm: true,
-    label: t('How'),
+    label: t('Method'),
     default: null,
-    choices: formatSelectOptions(['', 'mean', 'sum', 'median']),
-    description: t('Pandas resample how'),
-  },
-
-  resample_fillmethod: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Fill Method'),
-    default: null,
-    choices: formatSelectOptions(['', 'ffill', 'bfill']),
-    description: t('Pandas resample fill method'),
+    choices: formatSelectOptions(['asfreq', 'bfill', 'ffill', 'median', 'mean', 'sum']),
+    description: t('Pandas resample method'),
   },
 
   time_range: {

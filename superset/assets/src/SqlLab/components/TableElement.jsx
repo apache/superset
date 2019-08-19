@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
+import { ButtonGroup, Collapse, Fade, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 
@@ -46,7 +46,16 @@ class TableElement extends React.PureComponent {
     this.state = {
       sortColumns: false,
       expanded: true,
+      hovered: false,
     };
+    this.removeFromStore = this.removeFromStore.bind(this);
+    this.toggleSortColumns = this.toggleSortColumns.bind(this);
+    this.removeTable = this.removeTable.bind(this);
+    this.setHover = this.setHover.bind(this);
+  }
+
+  setHover(hovered) {
+    this.setState({ hovered });
   }
 
   popSelectStar() {
@@ -140,13 +149,13 @@ class TableElement extends React.PureComponent {
       );
     }
     return (
-      <ButtonGroup className="ws-el-controls pull-right">
+      <ButtonGroup className="ws-el-controls">
         {keyLink}
         <Link
           className={
             `fa fa-sort-${!this.state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
             'pull-left sort-cols m-l-2'}
-          onClick={this.toggleSortColumns.bind(this)}
+          onClick={this.toggleSortColumns}
           tooltip={
             !this.state.sortColumns ?
             t('Sort columns alphabetically') :
@@ -165,7 +174,7 @@ class TableElement extends React.PureComponent {
         }
         <Link
           className="fa fa-times table-remove pull-left m-l-2"
-          onClick={this.removeTable.bind(this)}
+          onClick={this.removeTable}
           tooltip={t('Remove table preview')}
           href="#"
         />
@@ -179,13 +188,12 @@ class TableElement extends React.PureComponent {
         <div className="pull-left">
           <a
             href="#"
-            className="table-name"
+            className="table-name text-bigger"
             onClick={(e) => { this.toggleTable(e); }}
           >
-            <small className="m-r-5">
-              <i className={`fa fa-${table.expanded ? 'minus' : 'plus'}-square-o`} />
-            </small>
-            <strong>`{table.name}`</strong>
+            <strong>
+              {table.name}
+            </strong>
           </a>
         </div>
         <div className="pull-right">
@@ -196,8 +204,18 @@ class TableElement extends React.PureComponent {
               className="margin-zero"
             />
             :
-            this.renderControls()
+            <Fade in={this.state.hovered}>
+              {this.renderControls()}
+            </Fade>
           }
+          <i
+            onClick={(e) => { this.toggleTable(e); }}
+            className={(
+              'text-primary pointer m-l-10 ' +
+              'fa fa-lg ' +
+              `fa-angle-${table.expanded ? 'up' : 'down'}`
+            )}
+          />
         </div>
       </div>
     );
@@ -243,9 +261,13 @@ class TableElement extends React.PureComponent {
       <Collapse
         in={this.state.expanded}
         timeout={this.props.timeout}
-        onExited={this.removeFromStore.bind(this)}
+        onExited={this.removeFromStore}
       >
-        <div className="TableElement table-schema m-b-10">
+        <div
+          className="TableElement table-schema m-b-10"
+          onMouseEnter={() => this.setHover(true)}
+          onMouseLeave={() => this.setHover(false)}
+        >
           {this.renderHeader()}
           <div>
             {this.renderBody()}

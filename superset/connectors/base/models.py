@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 import json
+from typing import Any, List
 
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
@@ -73,9 +74,9 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         )
 
     # placeholder for a relationship to a derivative of BaseColumn
-    columns = []
+    columns: List[Any] = []
     # placeholder for a relationship to a derivative of BaseMetric
-    metrics = []
+    metrics: List[Any] = []
 
     @property
     def uid(self):
@@ -329,6 +330,12 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             obj.get("columns"), self.columns, self.column_class, "column_name"
         )
 
+    def get_extra_cache_keys(self, query_obj) -> List[Any]:
+        """ If a datasource needs to provide additional keys for calculation of
+        cache keys, those can be provided via this method
+        """
+        return []
+
 
 class BaseColumn(AuditMixinNullable, ImportMixin):
     """Interface for column"""
@@ -346,7 +353,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     is_dttm = None
 
     # [optional] Set this to support import/export functionality
-    export_fields = []
+    export_fields: List[Any] = []
 
     def __repr__(self):
         return self.column_name
@@ -394,7 +401,6 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
             "groupby",
             "is_dttm",
             "type",
-            "database_expression",
             "python_date_format",
         )
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}

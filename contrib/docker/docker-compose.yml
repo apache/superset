@@ -20,7 +20,7 @@ services:
     image: redis:3.2
     restart: unless-stopped
     ports:
-      - 6379:6379
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis:/data
 
@@ -32,7 +32,7 @@ services:
       POSTGRES_PASSWORD: superset
       POSTGRES_USER: superset
     ports:
-      - 5432:5432
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres:/var/lib/postgresql/data
 
@@ -52,6 +52,7 @@ services:
       # If using production, comment development volume below
       #SUPERSET_ENV: production
       SUPERSET_ENV: development
+    user: root:root
     ports:
       - 8088:8088
     depends_on:
