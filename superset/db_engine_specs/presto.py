@@ -959,14 +959,15 @@ class PrestoEngineSpec(BaseEngineSpec):
         return query
 
     @classmethod
-    def _latest_partition_from_df(cls, df):
+    def _latest_partition_from_df(cls, df) -> Optional[Tuple[str, ...]]:
         if not df.empty:
             return df.to_records(index=False)[0].item()
+        return None
 
     @classmethod
     def latest_partition(
         cls, table_name: str, schema: str, database, show_first: bool = False
-    ) -> Tuple[List[str], Optional[List[str]]]:
+    ) -> Tuple[List[str], Optional[Tuple[str, ...]]]:
         """Returns col name and the latest (max) partition value for a table
 
         :param table_name: the name of the table
@@ -978,7 +979,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         :type show_first: bool
 
         >>> latest_partition('foo_table')
-        (['ds'], ['2018-01-01'])
+        (['ds'], ('2018-01-01',))
         """
         indexes = database.get_indexes(table_name, schema)
         if len(indexes[0]["column_names"]) < 1:
