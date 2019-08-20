@@ -28,7 +28,7 @@ from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.core import Database
-from superset.utils.core import get_example_database, get_main_database
+from superset.utils.core import get_example_database
 
 BASE_DIR = app.config.get("BASE_DIR")
 
@@ -169,9 +169,7 @@ class SupersetTestCase(unittest.TestCase):
                 security_manager.del_permission_role(public_role, perm)
 
     def _get_database_by_name(self, database_name="main"):
-        if database_name == "main":
-            return get_main_database()
-        elif database_name == "examples":
+        if database_name == "examples":
             return get_example_database()
         else:
             raise ValueError("Database doesn't exist")
