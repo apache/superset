@@ -1,4 +1,4 @@
-[tool.apache-superset]
+[tool.poetry]
 name = "apache-superset"
 version = "0.1.0"
 description = "A modern, enterprise-ready business intelligence web application"
@@ -13,10 +13,21 @@ readme = 'README.md'  # Markdown files are supported
 
 repository = "https://github.com/apache/incubator-superset"
 homepage = "https://superset.apache.org/"
+packages = [
+    { include = "NOTICE" },
+    { include = "LICENSE.txt" },
+    { include = "README.md" },
+    { include = "superset/examples" },
+    { include = "superset/migrations" },
+    { include = "superset/static" },
+    { include = "superset/static/assets/src/visualizations/CountryMap/" },
+    { include = "superset/templates" },
+    { include = "superset/translations" },
+]
 
 keywords = ["superset"]
 
-[tool.apache-superset.dependencies]
+[tool.poetry.dependencies]
 python = "~3.6"  # Compatible python versions must be declared here
 toml = "^0.9"
 # Dependencies with extras
@@ -57,11 +68,31 @@ sqlparse = { version = "^0.3" }
 wtforms-json = { version = "^0" }
 
 # Optional dependencies (extras)
-pendulum = { version = "^1.4", optional = true }
+pybigquery = { version = "^0.4.10", optional = true }
+pandas_gbq = { version = "^0.10.0", optional = true }
+flask-cors = { version = "^2", optional = true }
+gsheetsdb = { version = "^0.1.9", optional = true }
+pyhive = { version = "^0.6.1", optional = true }
+tableschema = { version = "^1.6", optional = true }
+thrift = { version = "^0.11", optional = true }
+mysqlclient= { version = "1.4.2.post1", optional = true }
+psycopg2-binary = { version = "2.7.5", optional = true }
+pydruid = { version = "^0.5.2", optional = true }
+requests = { version = "2.22.0", optional = true }
 
-[tool.apache-superset.dev-dependencies]
+[tool.poetry.extras]
+bigquery = ["pybigquery", "pandas_gbq"]
+cors = ["flask-cors"]
+gsheets = ["gsheetsdb"]
+hive = ["pyhive[hive]", "tableschema", "thrift"]
+mysql = ["mysqlclient"]
+postgres = ["psycopg2-binary"]
+presto = ["pyhive[presto]"]
+druid = ["pydruid", "requests"]
+
+[tool.poetry.dev-dependencies]
 pytest = "^3.0"
 pytest-cov = "^2.4"
 
-[tool.apache-superset.scripts]
+[tool.poetry.scripts]
 my-script = 'my_package:main'
