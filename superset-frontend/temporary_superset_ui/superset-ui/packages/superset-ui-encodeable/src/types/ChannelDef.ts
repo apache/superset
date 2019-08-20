@@ -1,11 +1,9 @@
-import { TimeFormatter } from '@superset-ui/time-format';
-import { NumberFormatter } from '@superset-ui/number-format';
 import { ValueDef, Value, Type } from './VegaLite';
 import { WithScale } from './Scale';
 import { WithXAxis, WithYAxis, WithAxis } from './Axis';
 import { WithLegend } from './Legend';
 
-export type Formatter = NumberFormatter | TimeFormatter | ((d: any) => string);
+export type Formatter = (d: any) => string;
 
 export interface FieldDef {
   field: string;
