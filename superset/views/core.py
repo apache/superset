@@ -77,6 +77,7 @@ from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache
+from superset.utils.event_logger import SupersetEvent
 from .base import (
     api,
     BaseSupersetView,
@@ -525,7 +526,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         ids = "".join("&id={}".format(d.id) for d in items)
         return redirect("/dashboard/export_dashboards_form?{}".format(ids[1:]))
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @has_access
     @expose("/export_dashboards_form")
     def download_dashboards(self):
@@ -611,7 +612,7 @@ class KV(BaseSupersetView):
 
     """Used for storing and retrieving key value pairs"""
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @has_access_api
     @expose("/store/", methods=["POST"])
     def store(self):
@@ -624,7 +625,7 @@ class KV(BaseSupersetView):
             return json_error_response(e)
         return Response(json.dumps({"id": obj.id}), status=200)
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @has_access_api
     @expose("/<key_id>/", methods=["GET"])
     def get_value(self, key_id):
@@ -643,7 +644,7 @@ class R(BaseSupersetView):
 
     """used for short urls"""
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @expose("/<url_id>")
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
@@ -658,7 +659,7 @@ class R(BaseSupersetView):
             flash("URL to nowhere...", "danger")
             return redirect("/")
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @has_access_api
     @expose("/shortner/", methods=["POST"])
     def shortner(self):
@@ -740,7 +741,7 @@ class Superset(BaseSupersetView):
             {"granted": granted_perms, "requested": list(db_ds_names)}, status=201
         )
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @has_access
     @expose("/request_access/")
     def request_access(self):
@@ -785,7 +786,7 @@ class Superset(BaseSupersetView):
             datasource_names=", ".join([o.name for o in datasources]),
         )
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @has_access
     @expose("/approve")
     def approve(self):
@@ -1018,7 +1019,7 @@ class Superset(BaseSupersetView):
         payload = viz_obj.get_payload()
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @api
     @has_access_api
     @expose("/slice_json/<slice_id>")
@@ -1035,7 +1036,7 @@ class Superset(BaseSupersetView):
         )
         return self.generate_json(viz_obj)
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @api
     @has_access_api
     @expose("/annotation_json/<layer_id>")
@@ -1052,7 +1053,7 @@ class Superset(BaseSupersetView):
     if not is_feature_enabled("ENABLE_EXPLORE_JSON_CSRF_PROTECTION"):
         EXPLORE_JSON_METHODS.append("GET")
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @api
     @has_access_api
     @handle_api_exception
@@ -1097,7 +1098,7 @@ class Superset(BaseSupersetView):
             viz_obj, csv=csv, query=query, results=results, samples=samples
         )
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @has_access
     @expose("/import_dashboards", methods=["GET", "POST"])
     def import_dashboards(self):
@@ -1127,7 +1128,7 @@ class Superset(BaseSupersetView):
             return redirect("/dashboard/list/")
         return self.render_template("superset/import_dashboards.html")
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @has_access
     @expose("/explorev2/<datasource_type>/<datasource_id>/")
     def explorev2(self, datasource_type, datasource_id):
@@ -1141,7 +1142,7 @@ class Superset(BaseSupersetView):
             )
         )
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
@@ -2128,7 +2129,7 @@ class Superset(BaseSupersetView):
         edit_mode = request.args.get("edit") == "true"
 
         # Hack to log the dashboard_id properly, even when getting a slug
-        @event_logger.log_this
+        @event_logger.log_requests
         def dashboard(**kwargs):  # noqa
             pass
 
@@ -2171,14 +2172,14 @@ class Superset(BaseSupersetView):
         )
 
     @api
-    @event_logger.log_this
+    @event_logger.log_requests
     @expose("/log/", methods=["POST"])
     def log(self):
         return Response(status=200)
 
     @has_access
     @expose("/sync_druid/", methods=["POST"])
-    @event_logger.log_this
+    @event_logger.log_requests
     def sync_druid_source(self):
         """Syncs the druid datasource in main db with the provided config.
 
@@ -2234,7 +2235,7 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/sqllab_viz/", methods=["POST"])
-    @event_logger.log_this
+    @event_logger.log_requests
     def sqllab_viz(self):
         SqlaTable = ConnectorRegistry.sources["table"]
         data = json.loads(request.form.get("data"))
@@ -2271,7 +2272,7 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
-    @event_logger.log_this
+    @event_logger.log_requests
     def table(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
@@ -2335,7 +2336,7 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/extra_table_metadata/<database_id>/<table_name>/<schema>/")
-    @event_logger.log_this
+    @event_logger.log_requests
     def extra_table_metadata(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
@@ -2346,7 +2347,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/select_star/<database_id>/<table_name>")
     @expose("/select_star/<database_id>/<table_name>/<schema>")
-    @event_logger.log_this
+    @event_logger.log_requests
     def select_star(self, database_id, table_name, schema=None):
         mydb = db.session.query(models.Database).filter_by(id=database_id).first()
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
@@ -2361,7 +2362,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/cached_key/<key>/")
-    @event_logger.log_this
+    @event_logger.log_requests
     def cached_key(self, key):
         """Returns a key from the cache"""
         resp = cache.get(key)
@@ -2371,7 +2372,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/cache_key_exist/<key>/")
-    @event_logger.log_this
+    @event_logger.log_requests
     def cache_key_exist(self, key):
         """Returns if a key from cache exist"""
         key_exist = True if cache.get(key) else False
@@ -2380,7 +2381,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/results/<key>/")
-    @event_logger.log_this
+    @event_logger.log_requests
     def results(self, key):
         """Serves a key off of the results backend"""
         if not results_backend:
@@ -2423,7 +2424,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/stop_query/", methods=["POST"])
-    @event_logger.log_this
+    @event_logger.log_requests
     def stop_query(self):
         client_id = request.form.get("client_id")
         try:
@@ -2436,7 +2437,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/validate_sql_json/", methods=["POST", "GET"])
-    @event_logger.log_this
+    @event_logger.log_requests
     def validate_sql_json(self):
         """Validates that arbitrary sql is acceptable for the given database.
         Returns a list of error/warning annotations as json.
@@ -2499,7 +2500,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/sql_json/", methods=["POST", "GET"])
-    @event_logger.log_this
+    @event_logger.log_requests
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
         async_ = request.form.get("runAsync") == "true"
@@ -2639,7 +2640,7 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/csv/<client_id>")
-    @event_logger.log_this
+    @event_logger.log_requests
     def csv(self, client_id):
         """Download the query results as csv."""
         logging.info("Exporting CSV file [{}]".format(client_id))
@@ -2661,6 +2662,7 @@ class Superset(BaseSupersetView):
                 "Fetching CSV from results backend " "[{}]".format(query.results_key)
             )
             blob = results_backend.get(query.results_key)
+
         if blob:
             logging.info("Decompressing")
             json_payload = utils.zlib_decompress_to_string(blob)
@@ -2675,18 +2677,30 @@ class Superset(BaseSupersetView):
             df = query.database.get_df(sql, query.schema)
             # TODO(bkyryliuk): add compression=gzip for big files.
             csv = df.to_csv(index=False, **config.get("CSV_EXPORT"))
+
         response = Response(csv, mimetype="text/csv")
         response.headers[
             "Content-Disposition"
         ] = f"attachment; filename={query.name}.csv"
-        logging.info("Ready to return response")
+        event_logger.log_event(
+            SupersetEvent(
+                "csv_export",
+                {
+                    "client_id": "client_id",
+                    "row_count": len(df.index),
+                    "database": query.database,
+                    "schema": query.schema,
+                    "sql": query.sql,
+                },
+            )
+        )
         return response
 
     @api
     @handle_api_exception
     @has_access
     @expose("/fetch_datasource_metadata")
-    @event_logger.log_this
+    @event_logger.log_requests
     def fetch_datasource_metadata(self):
         datasource_id, datasource_type = request.args.get("datasourceKey").split("__")
         datasource = ConnectorRegistry.get_datasource(
@@ -2728,7 +2742,7 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/search_queries")
-    @event_logger.log_this
+    @event_logger.log_requests
     def search_queries(self) -> Response:
         """
         Search for previously run sqllab queries. Used for Sqllab Query Search

@@ -19,7 +19,6 @@
 from copy import deepcopy
 import json
 import logging
-from logging.handlers import TimedRotatingFileHandler
 import os
 
 from flask import Flask, redirect
@@ -36,7 +35,7 @@ from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
 from superset.utils.core import pessimistic_connection_handling, setup_cache
-from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.utils.event_logger import DBEventLogger, get_event_logger_from_cfg_value
 
 wtforms_json.init()
 
@@ -117,17 +116,6 @@ for bp in conf.get("BLUEPRINTS"):
         print("blueprint registration failed")
         logging.exception(e)
 
-if conf.get("SILENCE_FAB"):
-    logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
-
-if app.debug:
-    app.logger.setLevel(logging.DEBUG)  # pylint: disable=no-member
-else:
-    # In production mode, add log handler to sys.stderr.
-    app.logger.addHandler(logging.StreamHandler())  # pylint: disable=no-member
-    app.logger.setLevel(logging.INFO)  # pylint: disable=no-member
-logging.getLogger("pyhive.presto").setLevel(logging.INFO)
-
 db = SQLA(app)
 
 if conf.get("WTF_CSRF_ENABLED"):
@@ -140,19 +128,7 @@ pessimistic_connection_handling(db.engine)
 
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
-# Logging configuration
-logging.basicConfig(format=app.config.get("LOG_FORMAT"))
-logging.getLogger().setLevel(app.config.get("LOG_LEVEL"))
-
-if app.config.get("ENABLE_TIME_ROTATE"):
-    logging.getLogger().setLevel(app.config.get("TIME_ROTATE_LOG_LEVEL"))
-    handler = TimedRotatingFileHandler(
-        app.config.get("FILENAME"),
-        when=app.config.get("ROLLOVER"),
-        interval=app.config.get("INTERVAL"),
-        backupCount=app.config.get("BACKUP_COUNT"),
-    )
-    logging.getLogger().addHandler(handler)
+app.config.get("LOGGING_CONFIGURATOR").configure_logging(app.config, app.debug)
 
 if app.config.get("ENABLE_CORS"):
     from flask_cors import CORS

@@ -52,13 +52,21 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import EncryptedType
 import sqlparse
 
-from superset import app, db, db_engine_specs, is_feature_enabled, security_manager
+from superset import (
+    app,
+    db,
+    db_engine_specs,
+    event_logger,
+    is_feature_enabled,
+    security_manager,
+)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import cache as cache_util, core as utils
+from superset.utils.event_logger import SupersetEvent
 from superset.viz import viz_types
 from urllib import parse  # noqa
 
@@ -926,6 +934,18 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             return False
 
         def _log_query(sql):
+            event_logger.log_event(
+                SupersetEvent(
+                    "query",
+                    {
+                        "database_uri": engine.url,
+                        "sql": sql,
+                        "schema": schema,
+                        "username": username,
+                        "originating_module": __name__,
+                    },
+                )
+            )
             if log_query:
                 log_query(engine.url, sql, schema, username, __name__, security_manager)
 

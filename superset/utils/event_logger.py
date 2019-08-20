@@ -22,17 +22,77 @@ import inspect
 import json
 import logging
 import textwrap
-from typing import Any, cast, Type
+import time
+from typing import Any, cast, List, Type
 
-from flask import current_app, g, request
+from flask import current_app, g, request, Response
+
+SUPERSET_EVENT_LOGGER_NAME = "superset_events"
+
+
+class SupersetEvent(object):
+    """
+    This class encapsulates the logic for marshalling events to and from
+    log records. It is intended for use internally by AbstractEventLogger impls
+    as well as within custom handlers that want to respond to events as they
+    are logged.
+    """
+
+    def __init__(self, event_type_name: str, event_data: dict) -> None:
+        self.type_name = event_type_name
+        self.timestamp = time.time()
+        self.data = event_data
+
+    def to_log_extra(self) -> dict:
+        """
+        Returns a dict suitable for adding to a log record via "extra" param on logger
+        """
+        return {
+            "superset_event": {
+                "type_name": self.type_name,
+                "timestamp": self.timestamp,
+                "data": self.data,
+            }
+        }
+
+    def to_log_msg(self):
+        return f"event_type_name: {self.type_name}, event_data: {repr(self.data)}"
+
+    @classmethod
+    def from_log_record(cls, log_record: logging.LogRecord) -> "SupersetEvent":
+        ev = log_record.superset_event
+        return SupersetEvent(ev["type_name"], ev["data"])
 
 
 class AbstractEventLogger(ABC):
+    def __init__(self, ignored_event_type_names: List[str] = None) -> None:
+        """
+        Initializes common event logger data.
+
+        :param ignored_event_type_names: list of event type names to disregard/silence
+        """
+        self.ignored_event_type_names = ignored_event_type_names or []
+
+    def log_event(self, ev: SupersetEvent) -> None:
+        """
+        Sends the given event to the 'superset_event_logger' logger with a formatted
+        message, and also includes the event data itself as extra data on the message
+        so that custom logging.Handler implementations may take action on particular
+        event types.
+
+        :param ev: the event to be logged
+        """
+        if ev.type_name in self.ignored_event_type_names:
+            return
+
+        logger = logging.getLogger(SUPERSET_EVENT_LOGGER_NAME)
+        logger.info(ev.to_log_msg(), extra=ev.to_log_extra())
+
     @abstractmethod
     def log(self, user_id, action, *args, **kwargs):
         pass
 
-    def log_this(self, f):
+    def log_requests(self, f):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
             user_id = None
@@ -68,6 +128,22 @@ class AbstractEventLogger(ABC):
                 records = [d]
 
             referrer = request.referrer[:1000] if request.referrer else None
+            status_code = value.status_code if type(value) is Response else 0
+
+            self.log_event(
+                SupersetEvent(
+                    "endpoint_invocation",
+                    {
+                        "endpoint_name": f.__name__,
+                        "path": request.path,
+                        "request_params": repr(request_params),
+                        "referrer": referrer,
+                        "user_id": user_id,
+                        "response_type": type(value),
+                        "status_code": status_code,
+                    },
+                )
+            )
 
             self.log(
                 user_id,
@@ -127,6 +203,9 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
 
 
 class DBEventLogger(AbstractEventLogger):
+    def __init__(self, ignored_event_type_names=None):
+        super().__init__(ignored_event_type_names)
+
     def log(self, user_id, action, *args, **kwargs):
         from superset.models.core import Log
 
@@ -142,6 +221,8 @@ class DBEventLogger(AbstractEventLogger):
                 json_string = json.dumps(record)
             except Exception:
                 json_string = None
+
+            # persist to DB
             log = Log(
                 action=action,
                 json=json_string,

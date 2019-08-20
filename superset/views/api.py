@@ -29,7 +29,7 @@ from .base import api, BaseSupersetView, handle_api_exception
 
 
 class Api(BaseSupersetView):
-    @event_logger.log_this
+    @event_logger.log_requests
     @api
     @handle_api_exception
     @has_access_api
@@ -47,7 +47,7 @@ class Api(BaseSupersetView):
             payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
         )
 
-    @event_logger.log_this
+    @event_logger.log_requests
     @api
     @handle_api_exception
     @has_access_api

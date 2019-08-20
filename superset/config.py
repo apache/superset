@@ -1,8 +1,7 @@
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
+# regarding copyright ownership.  The ASF licenses this file # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
 #
@@ -34,6 +33,7 @@ from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
 from superset.stats_logger import DummyStatsLogger
+from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -317,8 +317,9 @@ ADDITIONAL_MIDDLEWARE = []
 # 1) https://docs.python-guide.org/writing/logging/
 # 2) https://docs.python.org/2/library/logging.config.html
 
-# Console Log Settings
+LOGGING_CONFIGURATOR = DefaultLoggingConfigurator()
 
+# Console Log Settings
 LOG_FORMAT = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
 LOG_LEVEL = "DEBUG"
 
