@@ -23,14 +23,16 @@ import json
 import logging
 import textwrap
 import time
-from typing import Any, cast, List, Type
+from typing import Any, cast, List, Optional, Type
 
 from flask import current_app, g, request, Response
 
 SUPERSET_EVENT_LOGGER_NAME = "superset_events"
 
+logger = logging.getLogger(__name__)
 
-class SupersetEvent(object):
+
+class SupersetEvent:
     """
     This class encapsulates the logic for marshalling events to and from
     log records. It is intended for use internally by AbstractEventLogger impls
@@ -59,9 +61,14 @@ class SupersetEvent(object):
         return f"event_type_name: {self.type_name}, event_data: {repr(self.data)}"
 
     @classmethod
-    def from_log_record(cls, log_record: logging.LogRecord) -> "SupersetEvent":
-        ev = log_record.superset_event
-        return SupersetEvent(ev["type_name"], ev["data"])
+    def from_log_record(
+        cls, log_record: logging.LogRecord
+    ) -> Optional["SupersetEvent"]:
+        try:
+            ev = log_record.superset_event  # noqa: T484
+            return SupersetEvent(ev["type_name"], ev["data"])
+        except AttributeError:
+            return None
 
 
 class AbstractEventLogger(ABC):

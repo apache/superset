@@ -14,20 +14,19 @@
 # kind, either express or implied.  see the license for the
 # specific language governing permissions and limitations
 # under the license.
-import importlib
 import logging
 import unittest
 from unittest.mock import MagicMock
 
-from superset.utils.event_logger import SupersetEvent, SUPERSET_EVENT_LOGGER_NAME
+from superset.utils.event_logger import SUPERSET_EVENT_LOGGER_NAME, SupersetEvent
 from superset.utils.logging_configurator import LoggingConfigurator
 
 
 class TestLoggingConfigurator(unittest.TestCase):
     def reset_logging(self):
         # work around all of the import side-effects in superset
-        logging.shutdown()
-        importlib.reload(logging)
+        logging.root.manager.loggerDict = {}
+        logging.root.handlers = []
 
     def test_configurator_adding_handler(self):
         class MyEventHandler(logging.Handler):
@@ -36,6 +35,9 @@ class TestLoggingConfigurator(unittest.TestCase):
                 self.received_event = False
 
             def handle(self, record):
+                logging.info(
+                    f"record to event: {SupersetEvent.from_log_record(record)}"
+                )
                 self.received_event = SupersetEvent.from_log_record(record) is not None
 
         class MyConfigurator(LoggingConfigurator):
@@ -53,4 +55,8 @@ class TestLoggingConfigurator(unittest.TestCase):
         cfg = MyConfigurator(handler)
         cfg.configure_logging(MagicMock(), True)
 
+        ev = SupersetEvent("test_event", {"foo": "bar"})
+        logging.getLogger(SUPERSET_EVENT_LOGGER_NAME).info(
+            "testing", extra=ev.to_log_extra()
+        )
         self.assertTrue(handler.received_event)
