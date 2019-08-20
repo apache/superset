@@ -360,16 +360,25 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         expected_results = [("column_name", "BOOLEAN")]
         self.verify_presto_column(presto_column, expected_results)
 
+    @mock.patch.dict(
+        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+    )
     def test_presto_get_simple_row_column(self):
         presto_column = ("column_name", "row(nested_obj double)", "")
         expected_results = [("column_name", "ROW"), ("column_name.nested_obj", "FLOAT")]
         self.verify_presto_column(presto_column, expected_results)
 
+    @mock.patch.dict(
+        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+    )
     def test_presto_get_simple_row_column_with_name_containing_whitespace(self):
         presto_column = ("column name", "row(nested_obj double)", "")
         expected_results = [("column name", "ROW"), ("column name.nested_obj", "FLOAT")]
         self.verify_presto_column(presto_column, expected_results)
 
+    @mock.patch.dict(
+        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+    )
     def test_presto_get_simple_row_column_with_tricky_nested_field_name(self):
         presto_column = ("column_name", 'row("Field Name(Tricky, Name)" double)', "")
         expected_results = [
