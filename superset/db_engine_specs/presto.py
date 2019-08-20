@@ -24,7 +24,7 @@ import time
 from typing import List, Set, Tuple
 from urllib import parse
 
-from sqlalchemy import Column, literal_column, types
+from sqlalchemy import Column, literal_column
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
@@ -231,7 +231,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         for column in columns:
             try:
                 # parse column if it is a row or array
-                if "array" in column.Type or "row" in column.Type:
+                if is_feature_enabled("PRESTO_EXPAND_DATA") and (
+                    "array" in column.Type or "row" in column.Type
+                ):
                     structural_column_index = len(result)
                     cls._parse_structural_column(column.Column, column.Type, result)
                     result[structural_column_index]["nullable"] = getattr(
@@ -247,7 +249,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                         column.Type, column.Column
                     )
                 )
-                column_type = types.NullType
+                column_type = "OTHER"
             column_info = cls._create_column_info(column.Column, column_type)
             column_info["nullable"] = getattr(column, "Null", True)
             column_info["default"] = None
@@ -352,7 +354,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         to an array's contents.
         """
         presto_cols = cols
-        if show_cols:
+        if is_feature_enabled("PRESTO_EXPAND_DATA") and show_cols:
             dot_regex = r"\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
             presto_cols = [
                 col for col in presto_cols if not re.search(dot_regex, col["name"])
