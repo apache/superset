@@ -62,7 +62,10 @@ describe('async actions', () => {
 
   describe('fetchQueryResults', () => {
     const fetchQueryEndpoint = 'glob:*/superset/results/*';
-    fetchMock.get(fetchQueryEndpoint, '{ "data": ' + mockBigNumber + ' }');
+    fetchMock.get(
+      fetchQueryEndpoint,
+      JSON.stringify({ data: mockBigNumber, query: { sqlEditorId: 'dfsadfs' } }),
+    );
 
     const makeRequest = () => {
       const actionThunk = actions.fetchQueryResults(query);
@@ -92,11 +95,15 @@ describe('async actions', () => {
         expect(dispatch.getCall(1).lastArg.results.data.toString()).toBe(mockBigNumber);
       }));
 
-    it('calls querySuccess on fetch success', () =>
-      makeRequest().then(() => {
+    it('calls querySuccess on fetch success', () => {
+      const updateTabStateViewEndpoint = 'glob:*/tabstateview/*';
+      fetchMock.put(updateTabStateViewEndpoint, 'OK');
+      return makeRequest().then(() => {
         expect(dispatch.callCount).toBe(2);
+        console.log(dispatch.getCall(1).args[0]);
         expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_SUCCESS);
-      }));
+      });
+    });
 
     it('calls queryFailed on fetch error', () => {
       expect.assertions(2);

@@ -253,7 +253,14 @@ export function fetchQueryResults(query, displayLimit) {
     })
       .then(({ text = '{}' }) => {
         const bigIntJson = JSONbig.parse(text);
-        dispatch(querySuccess(query, bigIntJson));
+        return SupersetClient.put({
+          endpoint: encodeURI(`/tabstateview/${bigIntJson.query.sqlEditorId}`),
+          postPayload: { query_id: bigIntJson.query_id },
+        })
+          .then(() => dispatch({ type: QUERY_SUCCESS, query, bigIntJson }))
+          .catch(() =>
+            dispatch(addDangerToast(t('An error occurred while updating tab query'))),
+          );
       })
       .catch(response =>
         getClientErrorObject(response).then((error) => {
