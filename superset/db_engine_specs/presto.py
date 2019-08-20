@@ -249,7 +249,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                         column.Type, column.Column
                     )
                 )
-                column_type = types.NullType
+                column_type = 'OTHER'
             column_info = cls._create_column_info(column.Column, column_type)
             column_info["nullable"] = getattr(column, "Null", True)
             column_info["default"] = None

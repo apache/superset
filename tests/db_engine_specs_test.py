@@ -387,11 +387,17 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         ]
         self.verify_presto_column(presto_column, expected_results)
 
+    @mock.patch.dict(
+        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+    )
     def test_presto_get_simple_array_column(self):
         presto_column = ("column_name", "array(double)", "")
         expected_results = [("column_name", "ARRAY")]
         self.verify_presto_column(presto_column, expected_results)
 
+    @mock.patch.dict(
+        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+    )
     def test_presto_get_row_within_array_within_row_column(self):
         presto_column = (
             "column_name",
@@ -406,6 +412,9 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         ]
         self.verify_presto_column(presto_column, expected_results)
 
+    @mock.patch.dict(
+        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+    )
     def test_presto_get_array_within_row_within_array_column(self):
         presto_column = (
             "column_name",
