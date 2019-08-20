@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 from datetime import datetime
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from sqlalchemy.dialects.postgresql.base import PGInspector
 
@@ -63,7 +63,9 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     try_remove_schema_from_table_name = False
 
     @classmethod
-    def get_table_names(cls, inspector: PGInspector, schema: str) -> List[str]:
+    def get_table_names(
+        cls, inspector: PGInspector, schema: Optional[str]
+    ) -> List[str]:
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))

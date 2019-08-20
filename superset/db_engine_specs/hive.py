@@ -292,7 +292,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str
+        cls, inspector: Inspector, table_name: str, schema: Optional[str]
     ) -> List[Dict[str, Any]]:
         return inspector.get_columns(table_name, schema)
 

@@ -60,7 +60,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def get_view_names(cls, inspector: Inspector, schema: str) -> List[str]:
+    def get_view_names(cls, inspector: Inspector, schema: Optional[str]) -> List[str]:
         """Returns an empty list
 
         get_table_names() function returns all table names and view names,
@@ -216,7 +216,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str
+        cls, inspector: Inspector, table_name: str, schema: Optional[str]
     ) -> List[Dict[str, Any]]:
         """
         Get columns from a Presto data source. This includes handling row and
@@ -966,7 +966,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def latest_partition(
         cls, table_name: str, schema: str, database, show_first: bool = False
-    ) -> Tuple[str, str]:
+    ) -> Tuple[List[str], Optional[List[str]]]:
         """Returns col name and the latest (max) partition value for a table
 
         :param table_name: the name of the table
@@ -978,7 +978,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         :type show_first: bool
 
         >>> latest_partition('foo_table')
-        ('ds', '2018-01-01')
+        (['ds'], ['2018-01-01'])
         """
         indexes = database.get_indexes(table_name, schema)
         if len(indexes[0]["column_names"]) < 1:
