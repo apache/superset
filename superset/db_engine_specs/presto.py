@@ -198,7 +198,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _show_columns(
-        cls, inspector: Inspector, table_name: str, schema: str
+        cls, inspector: Inspector, table_name: str, schema: Optional[str]
     ) -> List[RowProxy]:
         """
         Show presto column names
@@ -810,6 +810,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         col_names, latest_parts = cls.latest_partition(
             table_name, schema_name, database, show_first=True
         )
+        latest_parts = latest_parts or tuple([None] * len(col_names))
         return {
             "partitions": {
                 "cols": cols,
@@ -959,7 +960,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return query
 
     @classmethod
-    def _latest_partition_from_df(cls, df) -> Optional[Tuple[str, ...]]:
+    def _latest_partition_from_df(cls, df):
         if not df.empty:
             return df.to_records(index=False)[0].item()
         return None
@@ -967,7 +968,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def latest_partition(
         cls, table_name: str, schema: str, database, show_first: bool = False
-    ) -> Tuple[List[str], Optional[Tuple[str, ...]]]:
+    ):
         """Returns col name and the latest (max) partition value for a table
 
         :param table_name: the name of the table
