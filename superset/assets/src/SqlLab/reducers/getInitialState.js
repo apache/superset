@@ -48,7 +48,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     let queryEditor;
     if (restBootstrapData.active_tab && restBootstrapData.active_tab.id === id) {
       queryEditor = {
-        id,
+        id: id.toString(),
         loaded: true,
         title: restBootstrapData.active_tab.label,
         sql: restBootstrapData.active_tab.query.sql,
@@ -69,7 +69,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       // dummy state, actual state will be loaded on tab switch
       queryEditor = {
         ...defaultQueryEditor,
-        id,
+        id: id.toString(),
         loaded: false,
         title: label,
       };
@@ -78,7 +78,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   });
 
   const tabHistory = restBootstrapData.active_tab
-    ? [restBootstrapData.active_tab.id]
+    ? [restBootstrapData.active_tab.id.toString()]
     : [];
 
   const tables = [];

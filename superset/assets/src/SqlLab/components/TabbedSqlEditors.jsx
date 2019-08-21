@@ -23,6 +23,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
 import { t } from '@superset-ui/translation';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
@@ -71,14 +72,16 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   componentDidMount() {
     // migrate query editor and associated tables state to server
-    const localStorageTables = this.props.tables.filter(table => table.inLocalStorage);
-    const localStorageQueries = Object.values(this.props.queries)
-      .filter(query => query.inLocalStorage)
-      .reduce((obj, query) => ({ ...obj, [query.id]: query }), {});
-    this.props.queryEditors.filter(qe => qe.inLocalStorage).forEach((qe) => {
-      const tables = localStorageTables.filter(table => table.queryEditorId === qe.id);
-      this.props.actions.migrateLocalStorage(qe, tables, localStorageQueries);
-    });
+    if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
+      const localStorageTables = this.props.tables.filter(table => table.inLocalStorage);
+      const localStorageQueries = Object.values(this.props.queries)
+        .filter(query => query.inLocalStorage)
+        .reduce((obj, query) => ({ ...obj, [query.id]: query }), {});
+      this.props.queryEditors.filter(qe => qe.inLocalStorage).forEach((qe) => {
+        const tables = localStorageTables.filter(table => table.queryEditorId === qe.id);
+        this.props.actions.migrateLocalStorage(qe, tables, localStorageQueries);
+      });
+    }
 
     const query = URI(window.location).search(true);
     // Popping a new tab based on the querystring
