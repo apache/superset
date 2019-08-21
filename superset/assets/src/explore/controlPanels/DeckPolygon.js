@@ -74,6 +74,11 @@ export default {
     },
     line_type: {
       label: t('Polygon Encoding'),
+      description: t('The encoding format of the polygons. Each row should contain either a valid Polyline string, valid GeoJSON polygon/multipolygon object, or JSON.array(N) of [longitude, latitude] points'),
+      choices: [
+        ['polyline', 'Polyline'],
+        ['json', 'JSON/GeoJSON'],
+      ],
     },
     point_radius_fixed: {
       label: t('Elevation'),
