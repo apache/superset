@@ -44,8 +44,8 @@ export function validateControl(control) {
   return control;
 }
 
-function isControlObject(controlKey) {
-  return !(controlKey in controls);
+function isGlobalControl(controlKey) {
+  return controlKey in controls;
 }
 
 export function getControlConfig(controlKey, vizType) {
@@ -54,7 +54,7 @@ export function getControlConfig(controlKey, vizType) {
   const vizConf = controlPanelConfigs[vizType] || {};
   const controlOverrides = vizConf.controlOverrides || {};
 
-  if (isControlObject(controlKey)) {
+  if (!isGlobalControl(controlKey)) {
     for (const section of vizConf.controlPanelSections) {
       for (const controlArr of section.controlSetRows) {
         for (const control of controlArr) {
@@ -131,7 +131,7 @@ export function getControlState(controlKey, vizType, state, value) {
   return validateControl(controlState);
 }
 
-export function getControlsStateHelper(vizType, datasourceType, state, formData) {
+export function getAllControlsStateFromFormDataKeys(vizType, datasourceType, state, formData) {
   const controlsState = {};
   sectionsToRender(vizType, datasourceType).forEach(
     section => section.controlSetRows.forEach(
@@ -140,7 +140,7 @@ export function getControlsStateHelper(vizType, datasourceType, state, formData)
           controlsState[field] = getControlState(field, vizType, state, formData[field]);
         } else if (field != null && typeof field === 'object') {
           if (field.config && field.name) {
-              controlsState[field.name] = { ...field.config };
+            controlsState[field.name] = { ...field.config };
           }
         }
       }),

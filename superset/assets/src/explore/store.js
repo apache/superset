@@ -18,7 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import {
-  getControlsStateHelper,
+  getAllControlsStateFromFormDataKeys,
   getFormDataFromControls,
 } from './controlUtils';
 import controls from './controls';
@@ -49,7 +49,7 @@ export function getControlsState(state, inputFormData) {
 
   handleDeprecatedControls(formData);
 
-  const controlsState = getControlsStateHelper(vizType, state.datasource.type, state, formData);
+  const controlsState = getAllControlsStateFromFormDataKeys(vizType, state.datasource.type, state, formData);
 
   const viz = controlPanelConfigs[vizType] || {};
   if (viz.onInit) {
@@ -63,7 +63,7 @@ export function applyDefaultFormData(inputFormData) {
   const datasourceType = inputFormData.datasource.split('__')[1];
   const vizType = inputFormData.viz_type;
   const controlsState =
-    getControlsStateHelper(vizType, datasourceType, null, Object.assign({}, inputFormData));
+    getAllControlsStateFromFormDataKeys(vizType, datasourceType, null, Object.assign({}, inputFormData));
   const formData = {};
 
   Object.keys(controlsState).forEach((controlName) => {
