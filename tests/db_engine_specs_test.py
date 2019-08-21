@@ -974,5 +974,5 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         limit = 10
         result_mssql = MssqlEngineSpec.apply_limit_to_sql(cte_query, limit, database)
         result_mysql = MySQLEngineSpec.apply_limit_to_sql(cte_query, limit, database)
-        self.assertEqual(cte_query, result_mssql)
-        self.assertEqual(cte_query + "\nLIMIT 10", result_mysql)
+        self.assertEqual(result_mssql, cte_query)
+        self.assertEqual(result_mysql, cte_query + "\nLIMIT 10")
