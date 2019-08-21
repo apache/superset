@@ -78,6 +78,7 @@ export default {
       choices: [
         ['polyline', 'Polyline'],
         ['json', 'JSON/GeoJSON'],
+        ['geohash', 'geohash (square)'],
       ],
     },
     point_radius_fixed: {
