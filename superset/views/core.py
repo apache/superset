@@ -19,7 +19,7 @@ from contextlib import closing
 from datetime import datetime, timedelta
 import logging
 import re
-from typing import Dict, List  # noqa: F401
+from typing import Dict, List, Optional, Union  # noqa: F401
 from urllib import parse
 
 from flask import (
@@ -190,34 +190,36 @@ def check_slice_perms(self, slice_id):
     security_manager.assert_datasource_permission(viz_obj.datasource)
 
 
-def _deserialize_results_payload(payload, query, use_msgpack=False):
+def _deserialize_results_payload(
+    payload: Union[bytes, str], query, use_msgpack: Optional[bool] = False
+) -> dict:
     logging.debug(f"Deserializing from msgpack: {use_msgpack}")
     if use_msgpack:
         with stats_timing(
             "sqllab.query.results_backend_msgpack_deserialize", stats_logger
         ):
-            payload = msgpack.loads(payload, raw=False)
+            ds_payload = msgpack.loads(payload, raw=False)
 
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
-            df = pa.deserialize(payload["data"])
+            df = pa.deserialize(ds_payload["data"])
 
         # TODO: optimize this, perhaps via df.to_dict, then traversing
-        payload["data"] = dataframe.SupersetDataFrame.format_data(df) or []
+        ds_payload["data"] = dataframe.SupersetDataFrame.format_data(df) or []
 
         db_engine_spec = query.database.db_engine_spec
         all_columns, data, expanded_columns = db_engine_spec.expand_data(
-            payload["selected_columns"], payload["data"]
+            ds_payload["selected_columns"], ds_payload["data"]
         )
-        payload.update(
+        ds_payload.update(
             {"data": data, "columns": all_columns, "expanded_columns": expanded_columns}
         )
 
-        return payload
+        return ds_payload
     else:
         with stats_timing(
             "sqllab.query.results_backend_json_deserialize", stats_logger
         ):
-            return json.loads(payload)
+            return json.loads(payload)  # noqa
 
 
 class SliceFilter(SupersetFilter):
@@ -2444,9 +2446,7 @@ class Superset(BaseSupersetView):
                 status=403,
             )
 
-        payload = utils.zlib_decompress_to_string(
-            blob, decode=not results_backend_use_msgpack
-        )
+        payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
         obj = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
 
         return json_success(
@@ -2699,7 +2699,7 @@ class Superset(BaseSupersetView):
             blob = results_backend.get(query.results_key)
         if blob:
             logging.info("Decompressing")
-            payload = utils.zlib_decompress_to_string(
+            payload = utils.zlib_decompress(
                 blob, decode=not results_backend_use_msgpack
             )
             obj = _deserialize_results_payload(

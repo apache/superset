@@ -20,6 +20,7 @@ from datetime import datetime
 import logging
 from sys import getsizeof
 from time import sleep
+from typing import Optional, Tuple, Union
 import uuid
 
 from celery.exceptions import SoftTimeLimitExceeded
@@ -34,12 +35,13 @@ from sqlalchemy.pool import NullPool
 
 from superset import (
     app,
-    dataframe,
     db,
     results_backend,
     results_backend_use_msgpack,
     security_manager,
 )
+from superset.dataframe import SupersetDataFrame
+from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
 from superset.tasks.celery_app import app as celery_app
@@ -231,19 +233,26 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
 
     logging.debug("Fetching cursor description")
     cursor_description = cursor.description
-    return dataframe.SupersetDataFrame(data, cursor_description, db_engine_spec)
+    return SupersetDataFrame(data, cursor_description, db_engine_spec)
 
 
-def _serialize_payload(payload, use_msgpack=False):
-    logging.debug("Serializing to msgpack: {}".format(use_msgpack))
+def _serialize_payload(
+    payload: dict, use_msgpack: Optional[bool] = False
+) -> Union[bytes, str]:
+    logging.debug(f"Serializing to msgpack: {use_msgpack}")
     if use_msgpack:
         return msgpack.dumps(payload, default=json_iso_dttm_ser, use_bin_type=True)
     else:
         return json.dumps(payload, default=json_iso_dttm_ser, ignore_nan=True)
 
 
-def _serialize_and_expand_data(cdf, db_engine_spec, use_msgpack=False):
-    selected_columns = cdf.columns or []
+def _serialize_and_expand_data(
+    cdf: SupersetDataFrame,
+    db_engine_spec: BaseEngineSpec,
+    use_msgpack: Optional[bool] = False,
+) -> Tuple[Union[bytes, str], list, list, list]:
+    selected_columns: list = cdf.columns or []
+    expanded_columns: list
 
     if use_msgpack:
         with stats_timing(

@@ -47,7 +47,7 @@ from superset.utils.core import (
     setup_cache,
     validate_json,
     zlib_compress,
-    zlib_decompress_to_string,
+    zlib_decompress,
 )
 
 
@@ -140,7 +140,7 @@ class UtilsTestCase(unittest.TestCase):
     def test_zlib_compression(self):
         json_str = '{"test": 1}'
         blob = zlib_compress(json_str)
-        got_str = zlib_decompress_to_string(blob)
+        got_str = zlib_decompress(blob)
         self.assertEquals(json_str, got_str)
 
     @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
