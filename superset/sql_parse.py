@@ -45,6 +45,7 @@ class ParsedQuery(object):
 
     @property
     def tables(self) -> Set[str]:
+        """Get a set of tables referenced by the query."""
         return self._table_names
 
     @property
@@ -54,7 +55,7 @@ class ParsedQuery(object):
     def is_select(self) -> bool:
         return self._parsed[0].get_type() == "SELECT"
 
-    def is_cte(self):
+    def is_cte(self) -> bool:
         return self.stripped().upper().startswith("WITH")
 
     def is_explain(self) -> bool:
@@ -65,10 +66,20 @@ class ParsedQuery(object):
         return self.is_select() or self.is_explain()
 
     def stripped(self) -> str:
+        """
+        Generate a query where all spaces, tabs, line changes and colons have
+        been removed.
+
+        :return: Stripped query
+        """
         return self.sql.strip(" \t\n;")
 
     def get_statements(self) -> List[str]:
-        """Returns a list of SQL statements as strings, stripped"""
+        """
+        Returns a list of SQL statements as strings, stripped.
+
+        :return: List of SQL statements
+        """
         statements = []
         for statement in self._parsed:
             if statement:
