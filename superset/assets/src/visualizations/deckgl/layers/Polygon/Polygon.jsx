@@ -20,14 +20,12 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import { PolygonLayer } from 'deck.gl';
 
 import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import Legend from '../../../Legend';
 import TooltipRow from '../../TooltipRow';
 import { getBuckets, getBreakPointColorScaler } from '../../utils';
-
 import { commonLayerProps, fitViewport } from '../common';
 import { getPlaySliderParams } from '../../../../modules/time';
 import sandboxedEval from '../../../../modules/sandbox';
@@ -48,13 +46,13 @@ function flattenPolygons(data) {
       const points = feature.polygon.coordinates;
       switch (polygonType) {
         case POLYGON_TYPES.single:
-            newData.push({ ...feature, polygon: points });
+          newData.push({ ...feature, polygon: points[0] });
           break;
         case POLYGON_TYPES.multi:
-            points.forEach((polygonPoints) => {
-              newData.push({ ...feature, polygon: polygonPoints });
-            });
-            break;
+          points.forEach((polygonPoints) => {
+            newData.push({ ...feature, polygon: polygonPoints[0] });
+          });
+          break;
         default:
       }
     }
@@ -63,7 +61,7 @@ function flattenPolygons(data) {
 }
 
 function getPoints(features) {
-  return flattenPolygons(features).map(d => d.polygon.flat()).flat();
+  return flattenPolygons(features).map(d => d.polygon).flat();
 }
 
 function getElevation(d, colorScaler) {
