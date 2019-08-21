@@ -51,6 +51,28 @@ export const getRenderer = ({
   const isMetric = column.type === 'metric';
   let Parent;
 
+  const boxStyle: CSSProperties = {
+    backgroundColor:
+      enableFilter && isSelected({ key: keyName, value }) ? SELECTION_COLOR : undefined,
+    cursor: isMetric ? 'default' : 'pointer',
+    margin: '0px -16px',
+  };
+
+  const boxContainerStyle: CSSProperties = {
+    alignItems: 'center',
+    display: 'flex',
+    height: HEIGHT_TO_PX[heightType],
+    margin: '0px 16px',
+    position: 'relative',
+    textAlign: isMetric ? 'right' : 'left',
+  };
+
+  const FullCellBackgroundWrapper = ({ children }: { children: React.ReactNode }) => (
+    <div style={boxStyle}>
+      <div style={boxContainerStyle}>{children}</div>
+    </div>
+  );
+
   if (isMetric) {
     let left = 0;
     let width = 0;
@@ -66,21 +88,8 @@ export const getRenderer = ({
       width = Math.round((Math.abs(value) / tot) * 100);
     }
     const color = colorPositiveNegative && value < 0 ? NEGATIVE_COLOR : POSITIVE_COLOR;
-    Parent = ({ children }: { children: React.ReactNode }) => {
-      const boxStyle: CSSProperties = {
-        backgroundColor:
-          enableFilter && isSelected({ key: keyName, value }) ? SELECTION_COLOR : undefined,
-        margin: '0px -16px',
-      };
-      const boxContainerStyle: CSSProperties = {
-        alignItems: 'center',
-        display: 'flex',
-        height: HEIGHT_TO_PX[heightType],
-        margin: '0px 16px',
-        position: 'relative',
-        textAlign: isMetric ? 'right' : 'left',
-      };
 
+    Parent = ({ children }: { children: React.ReactNode }) => {
       const barStyle: CSSProperties = {
         background: color,
         borderRadius: 3,
@@ -91,24 +100,28 @@ export const getRenderer = ({
       };
 
       return (
-        <div style={boxStyle}>
-          <div style={boxContainerStyle}>
-            <div style={barStyle} />
-            <div style={numberStyle}>{children}</div>
-          </div>
-        </div>
+        <FullCellBackgroundWrapper>
+          <div style={barStyle} />
+          <div style={numberStyle}>{children}</div>
+        </FullCellBackgroundWrapper>
       );
     };
   } else {
-    Parent = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+    Parent = ({ children }: { children: React.ReactNode }) => (
+      <FullCellBackgroundWrapper>{children}</FullCellBackgroundWrapper>
+    );
   }
 
   return (
     <div
-      onClick={handleCellSelected({
-        key: keyName,
-        value,
-      })}
+      onClick={
+        isMetric
+          ? null
+          : handleCellSelected({
+              key: keyName,
+              value,
+            })
+      }
     >
       <Parent>{column.format ? column.format(value) : value}</Parent>
     </div>

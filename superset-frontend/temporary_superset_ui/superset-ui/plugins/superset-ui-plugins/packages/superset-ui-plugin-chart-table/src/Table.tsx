@@ -32,6 +32,8 @@ const defaultProps = {
   onRemoveFilter: NOOP,
 };
 
+const SEARCH_BAR_HEIGHT = 40;
+
 export type TableProps = Props & Readonly<typeof defaultProps>;
 
 type InternalTableProps = TableProps & WithStylesProps;
@@ -174,8 +176,10 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
       }
     });
 
+    const tableHeight = includeSearch ? height - SEARCH_BAR_HEIGHT : height;
+
     return (
-      <>
+      <div className={cx(styles.container)}>
         {includeSearch && (
           <div className={cx(styles.searchBar)}>
             <div className={cx(styles.searchBox)}>
@@ -200,14 +204,17 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
           zebra
           rowHeight={heightType}
           renderers={renderers}
-          height={height}
+          height={tableHeight}
         />
-      </>
+      </div>
     );
   }
 }
 
 export default withStyles(({ unit }) => ({
+  container: {
+    display: 'grid',
+  },
   searchBar: {
     alignItems: 'baseline',
     display: 'flex',
