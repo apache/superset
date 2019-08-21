@@ -22,6 +22,7 @@ import transformProps from './transformProps';
 import createMetadata from '../createMetadata';
 
 Core.initialize({ name: 'superset-datatable' });
+
 const { aesthetic } = Core;
 aesthetic.globals = {};
 
