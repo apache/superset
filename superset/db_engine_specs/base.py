@@ -143,6 +143,7 @@ class BaseEngineSpec:
     allows_joins = True
     allows_subqueries = True
     allows_column_aliases = True
+    allows_limit_syntax = True
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
@@ -305,16 +306,16 @@ class BaseEngineSpec:
         :return: SQL query with limit clause
         """
         # TODO: Fix circular import caused by importing Database
-        if cls.limit_method == LimitMethod.WRAP_SQL:
+        parsed_query = sql_parse.ParsedQuery(sql)
+        if cls.limit_method == LimitMethod.WRAP_SQL and not parsed_query.is_cte():
             sql = sql.strip("\t\n ;")
             qry = (
                 select("*")
                 .select_from(TextAsFrom(text(sql), ["*"]).alias("inner_qry"))
                 .limit(limit)
             )
-            return database.compile_sqla_query(qry)
-        elif LimitMethod.FORCE_LIMIT:
-            parsed_query = sql_parse.ParsedQuery(sql)
+            sql = database.compile_sqla_query(qry)
+        elif cls.limit_method == LimitMethod.FORCE_LIMIT:
             sql = parsed_query.get_query_with_new_limit(limit)
         return sql
 

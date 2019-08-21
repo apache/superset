@@ -54,6 +54,9 @@ class ParsedQuery(object):
     def is_select(self) -> bool:
         return self._parsed[0].get_type() == "SELECT"
 
+    def is_cte(self):
+        return self.stripped().upper().startswith("WITH")
+
     def is_explain(self) -> bool:
         return self.stripped().upper().startswith("EXPLAIN")
 
