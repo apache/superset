@@ -148,9 +148,9 @@ class ParsedQuery(object):
 
     def __extract_from_token(self, token: Token):
         """
-        Extract table names from token
+        Populate self._table_names from token
 
-        :param token: Token to be processed
+        :param token: instance of Token or child class, e.g. TokenList, to be processed
         """
         if not hasattr(token, "tokens"):
             return
