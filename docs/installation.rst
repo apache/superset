@@ -847,10 +847,10 @@ look something like:
         host='localhost', port=6379, key_prefix='superset_results')
 
 For performance gains, `MessagePack <https://github.com/msgpack/msgpack-python>`_
-and `PyArrow <https://arrow.apache.org/docs/python/>`_ can be used for results
-serialization, by setting ``RESULTS_BACKEND_USE_MSGPACK = True`` in your
-configuration. Please clear your existing results cache store when enabling
-this feature in an existing environment.
+and `PyArrow <https://arrow.apache.org/docs/python/>`_ are now used for results
+serialization. This can be disabled by setting ``RESULTS_BACKEND_USE_MSGPACK = False``
+in your configuration, should any issues arise. Please clear your existing results
+cache store when upgrading an existing environment.
 
 **Important notes**
 
