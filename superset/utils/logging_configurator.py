@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# noqa: T484
 import abc
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -23,6 +22,7 @@ import flask.app
 import flask.config
 
 
+# pylint: disable=too-few-public-methods
 class LoggingConfigurator(abc.ABC):
     @abc.abstractmethod
     def configure_logging(
@@ -58,9 +58,9 @@ class DefaultLoggingConfigurator(LoggingConfigurator):
             logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)  # noqa: T484
 
         if app_config.get("ENABLE_TIME_ROTATE"):
-            logging.getLogger().setLevel(
+            logging.getLogger().setLevel(  # noqa: T484
                 app_config.get("TIME_ROTATE_LOG_LEVEL")
-            )  # noqa: T484
+            )
             handler = TimedRotatingFileHandler(  # noqa: T484
                 app_config.get("FILENAME"),
                 when=app_config.get("ROLLOVER"),
