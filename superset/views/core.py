@@ -3023,7 +3023,6 @@ class Superset(BaseSupersetView):
             .filter_by(user_id=g.user.get_id())
             .all()
         )
-        print('FOUND', tab_state_ids)
         # return first active tab, or fallback to another one if no tab is active
         active_tab = (
             db.session.query(TabState)

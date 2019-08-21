@@ -266,7 +266,7 @@ export function fetchQueryResults(query, displayLimit) {
           : Promise.resolve();
 
         return sync
-          .then(() => dispatch({ type: QUERY_SUCCESS, query, bigIntJson }))
+          .then(() => dispatch({ type: QUERY_SUCCESS, query, results: bigIntJson }))
           .catch(() =>
             dispatch(addDangerToast(t('An error occurred while updating tab query'))),
           );

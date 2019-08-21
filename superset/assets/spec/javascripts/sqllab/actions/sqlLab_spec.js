@@ -100,7 +100,6 @@ describe('async actions', () => {
       fetchMock.put(updateTabStateViewEndpoint, 'OK');
       return makeRequest().then(() => {
         expect(dispatch.callCount).toBe(2);
-        console.log(dispatch.getCall(1).args[0]);
         expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_SUCCESS);
       });
     });
