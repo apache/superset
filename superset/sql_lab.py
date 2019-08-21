@@ -343,7 +343,7 @@ def execute_sql_statements(
     query.end_time = now_as_float()
 
     data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
-        cdf, db_engine_spec, results_backend_use_msgpack
+        cdf, db_engine_spec, store_results and results_backend_use_msgpack
     )
 
     payload.update(
