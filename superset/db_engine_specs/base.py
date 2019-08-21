@@ -143,7 +143,6 @@ class BaseEngineSpec:
     allows_joins = True
     allows_subqueries = True
     allows_column_aliases = True
-    allows_limit_syntax = True
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
