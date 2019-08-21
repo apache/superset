@@ -156,6 +156,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     messageToasts: getToastsFromPyFlashMessages(
       (restBootstrapData.common || {}).flash_messages || [],
     ),
+    localStorageUsageInKilobytes: 0,
     common: {
       flash_messages: restBootstrapData.common.flash_messages,
       conf: restBootstrapData.common.conf,

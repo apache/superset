@@ -122,7 +122,7 @@ class TabbedSqlEditors extends React.PureComponent {
     } else {
       const qe = this.activeQueryEditor();
       const latestQuery = this.props.queries[qe.latestQueryId];
-      if (latestQuery) {
+      if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && latestQuery) {
         this.props.actions.fetchQueryResults(latestQuery);
       }
     }
@@ -171,6 +171,11 @@ class TabbedSqlEditors extends React.PureComponent {
     const activeQueryEditor = this.activeQueryEditor();
     const firstDbId = Math.min(
       ...Object.values(this.props.databases).map(database => database.id));
+    const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? ''
+      : `${t(
+          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.',    
+        )}\n\n`;
     const qe = {
       title: t('Untitled Query %s', queryCount),
       dbId:
@@ -179,7 +184,7 @@ class TabbedSqlEditors extends React.PureComponent {
           : (this.props.defaultDbId || firstDbId),
       schema: activeQueryEditor ? activeQueryEditor.schema : null,
       autorun: false,
-      sql: 'SELECT ...',
+      sql: `${warning}SELECT ...`,
       queryLimit: this.props.defaultQueryLimit,
     };
     this.props.actions.addQueryEditor(qe);
