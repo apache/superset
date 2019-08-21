@@ -33,9 +33,37 @@ import { getPlaySliderParams } from '../../../../modules/time';
 import sandboxedEval from '../../../../modules/sandbox';
 
 const DOUBLE_CLICK_TRESHOLD = 250;  // milliseconds
+const POLYGON_TYPES = {
+  multi: 'MultiPolygon',
+  single: 'Polygon',
+};
+
+function flattenPolygons(data) {
+  const newData = [];
+  let hasExtendedPolygons = false;
+  data.forEach((feature) => {
+    const polygonType = feature.polygon.type;
+    if (polygonType) {
+      hasExtendedPolygons = true;
+      const points = feature.polygon.coordinates;
+      switch (polygonType) {
+        case POLYGON_TYPES.single:
+            newData.push({ ...feature, polygon: points });
+          break;
+        case POLYGON_TYPES.multi:
+            points.forEach((polygonPoints) => {
+              newData.push({ ...feature, polygon: polygonPoints });
+            });
+            break;
+        default:
+      }
+    }
+  });
+  return hasExtendedPolygons ? newData : data;
+}
 
 function getPoints(features) {
-  return features.map(d => d.polygon).flat();
+  return flattenPolygons(features).map(d => d.polygon.flat()).flat();
 }
 
 function getElevation(d, colorScaler) {
@@ -78,6 +106,8 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, selected, o
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
+
+  data = flattenPolygons(data);
 
   const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
   const accessor = d => d[metricLabel];
