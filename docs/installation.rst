@@ -379,11 +379,11 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://``                                  |
 +------------------+---------------------------------------+-------------------------------------------------+
-| IBM Db2          | ``pip install ibm_db_sa``             | ``db2+ibm_db://``                               |
+| IBM Db2*         | ``pip install ibm_db_sa``             | ``db2+ibm_db://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
 | MySQL            | ``pip install mysqlclient``           | ``mysql://``                                    |
 +------------------+---------------------------------------+-------------------------------------------------+
-| Oracle           | ``pip install cx_Oracle``             | ``oracle://``                                   |
+| Oracle*          | ``pip install cx_Oracle``             | ``oracle://``                                   |
 +------------------+---------------------------------------+-------------------------------------------------+
 | PostgreSQL       | ``pip install psycopg2``              | ``postgresql+psycopg2://``                      |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -393,13 +393,16 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | SQLite           |                                       | ``sqlite://``                                   |
 +------------------+---------------------------------------+-------------------------------------------------+
-| SQL Server       | ``pip install pymssql``               | ``mssql://``                                    |
+| SQL Server*      | ``pip install pymssql``               | ``mssql://``                                    |
 +------------------+---------------------------------------+-------------------------------------------------+
-| Teradata         | ``pip install sqlalchemy-teradata``   | ``teradata://``                                 |
+| Teradata*        | ``pip install sqlalchemy-teradata``   | ``teradata://``                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Vertica          | ``pip install                         |  ``vertica+vertica_python://``                  |
 |                  | sqlalchemy-vertica-python``           |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
+
+* Databases that don't support ANSI SQL standard LIMIT syntax will not automatically
+limit CTE queries.
 
 Note that many other databases are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling

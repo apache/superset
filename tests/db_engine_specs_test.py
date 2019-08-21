@@ -967,3 +967,12 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         else:
             expected = ["VARCHAR(255)", "VARCHAR(255)", "FLOAT"]
         self.assertEquals(col_names, expected)
+
+    def test_cte_query(self):
+        database = get_example_database()
+        cte_query = "WITH t AS (SELECT 1 a) SELECT * FROM t"
+        limit = 10
+        result_mssql = MssqlEngineSpec.apply_limit_to_sql(cte_query, limit, database)
+        result_mysql = MySQLEngineSpec.apply_limit_to_sql(cte_query, limit, database)
+        self.assertEqual(cte_query, result_mssql)
+        self.assertEqual(cte_query + "\nLIMIT 10", result_mysql)
