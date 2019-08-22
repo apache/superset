@@ -45,7 +45,7 @@ ul.select2-results div.filter_box{
     border-color: transparent;
 }
 .filter_box {
-    padding: 10px;
+    padding: 10px 0;
     overflow: visible !important;
 }
 .filter_box:hover {
@@ -53,4 +53,18 @@ ul.select2-results div.filter_box{
 }
 .m-b-5 {
     margin-bottom: 5px;
+}
+.filter-container {
+    display: flex;
+}
+.filter-container label {
+    display: flex;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+.filter-container .filter-badge-container {
+    width: 30px;
+}
+.filter-container .filter-badge-container + div {
+    width: 100%;
 }
