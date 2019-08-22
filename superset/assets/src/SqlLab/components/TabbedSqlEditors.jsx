@@ -174,7 +174,7 @@ class TabbedSqlEditors extends React.PureComponent {
     const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? ''
       : `${t(
-          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.',    
+          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.',
         )}\n\n`;
     const qe = {
       title: t('Untitled Query %s', queryCount),
