@@ -70,5 +70,7 @@ const controlMap = {
   MetricsControlVerifiedOptions: withVerification(MetricsControl, 'metric_name', 'savedMetrics'),
   SelectControlVerifiedOptions: withVerification(SelectControl, 'column_name', 'options'),
   AdhocFilterControlVerifiedOptions: withVerification(AdhocFilterControl, 'column_name', 'columns'),
+  StepsControl,
+  FilterControl,
 };
 export default controlMap;

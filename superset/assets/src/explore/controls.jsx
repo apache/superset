@@ -2035,6 +2035,39 @@ export const controls = {
     tabOverride: 'data',
   },
 
+  funnel_steps: {
+    type: 'StepsControl',
+    label: '',
+    default: [],
+    description: 'Steps',
+    renderTrigger: false,
+    tabOverride: 'data',
+    mapStateToProps: (state) => {
+      const datasource = state.datasource;
+      return {
+        columns: datasource ? datasource.columns : [],
+        savedMetrics: datasource ? datasource.metrics : [],
+        datasourceType: datasource && datasource.type,
+        datasource: state.datasource,
+      };
+    },
+  },
+
+  step_label: {
+    type: 'TextControl',
+    label: t('Label'),
+    renderTrigger: true,
+    default: '',
+  },
+
+  formatter: {
+    type: 'CheckboxControl',
+    label: t('Enable Formatter'),
+    renderTrigger: true,
+    default: true,
+    description: t('This enable formatter for the values for steps'),
+  },
+
   adhoc_filters: {
     type: 'AdhocFilterControl',
     label: t('Filters'),
@@ -2049,7 +2082,26 @@ export const controls = {
   },
 
   filters: {
-    type: 'FilterPanel',
+    type: 'FilterControl',
+    label: '',
+    default: [],
+    description: '',
+    renderTrigger: false,
+    mapStateToProps: state => ({
+      datasource: state.datasource,
+    }),
+  },
+
+  having_filters: {
+    type: 'FilterControl',
+    label: '',
+    default: [],
+    description: '',
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.metrics_combo
+        .concat(state.datasource.filterable_cols) : [],
+      datasource: state.datasource,
+    }),
   },
 
   slice_id: {

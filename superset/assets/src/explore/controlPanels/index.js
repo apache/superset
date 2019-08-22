@@ -40,6 +40,7 @@ import DistBar from './DistBar';
 import DualLine from './DualLine';
 import EventFlow from './EventFlow';
 import FilterBox from './FilterBox';
+import Funnel from './Funnel';
 import Heatmap from './Heatmap';
 import Histogram from './Histogram';
 import Horizon from './Horizon';
@@ -90,6 +91,7 @@ export const controlPanelConfigs = extraOverrides({
   dual_line: DualLine,
   event_flow: EventFlow,
   filter_box: FilterBox,
+  funnel: Funnel,
   heatmap: Heatmap,
   histogram: Histogram,
   horizon: Horizon,

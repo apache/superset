@@ -1048,34 +1048,94 @@ class TimeSeriesVizTestCase(SupersetTestCase):
         ]
         self.assertEqual(expected, viz_data)
 
-    def test_process_data_resample(self):
+class FunnelVizTestCase(SupersetTestCase):
+
+    def test_query_obj(self):
         datasource = self.get_datasource_mock()
+        form_data = {
+            'datasource': '1__druid', 'viz_type': 'funnel', 'url_params': {}, 'time_range': 'Last 7 years',
+             'x_axis_label': '', 'y_axis_label': '', 'funnel_steps': {'queries': [{'id': 0}, {'id': 1}],
+                                                                      'selectedValues': {'0': {'metric': 'count'},
+                                                                                         '1': {'metric': 'count',
+                                                                                               'adhoc_filters': [{
+                                                                                                                     'expressionType': 'SIMPLE',
+                                                                                                                     'subject': 'channel',
+                                                                                                                     'operator': '==',
+                                                                                                                     'comparator': '#en.wikipedia',
+                                                                                                                     'clause': 'WHERE',
+                                                                                                                     'sqlExpression': None,
+                                                                                                                     'fromFormData': True,
+                                                                                                                     'filterOptionName': 'filter_1ksvjxtyl9h_ox1jwk7j0e'}]}}},
+             'metrics': ['count'], 'adhoc_filters': [
+                {'expressionType': 'SIMPLE', 'subject': 'channel', 'operator': '==', 'comparator': '#en.wikipedia',
+                 'clause': 'WHERE', 'sqlExpression': None, 'fromFormData': True,
+                 'filterOptionName': 'filter_1ksvjxtyl9h_ox1jwk7j0e'}], 'where': '', 'having': '', 'having_filters': [],
+             'filters': [{'col': 'cityName', 'op': '==', 'val': 'London'}]
 
-        df = pd.DataFrame(
-            {
-                "__timestamp": pd.to_datetime(
-                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
-                ),
-                "y": [1.0, 2.0, 5.0, 7.0],
-            }
-        )
+        }
+        raw = {}
+        raw['__timestamp'] = [
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+        ]
 
-        self.assertEqual(
-            viz.NVD3TimeSeriesViz(
-                datasource,
-                {"metrics": ["y"], "resample_method": "sum", "resample_rule": "1D"},
-            )
-            .process_data(df)["y"]
-            .tolist(),
-            [1.0, 2.0, 0.0, 0.0, 5.0, 0.0, 7.0],
-        )
+        df = pd.DataFrame(raw)
 
-        np.testing.assert_equal(
-            viz.NVD3TimeSeriesViz(
-                datasource,
-                {"metrics": ["y"], "resample_method": "asfreq", "resample_rule": "1D"},
-            )
-            .process_data(df)["y"]
-            .tolist(),
-            [1.0, 2.0, np.nan, np.nan, 5.0, np.nan, 7.0],
-        )
+        test_viz = viz.FunnelViz(datasource, form_data)
+        viz_data = {}
+        viz_data = test_viz.query_obj()
+        expected = {'0': {'granularity': None, 'from_dttm': datetime(2012, 5, 29, 0, 0),
+                   'to_dttm': datetime(2019, 5, 29, 0, 0), 'is_timeseries': False, 'groupby': [],
+                   'metrics': ['count'], 'row_limit': 5000,
+                   'filter': [{'col': 'cityName', 'op': '==', 'val': 'London'}], 'timeseries_limit': 0,
+                   'extras': {'where': '', 'having': '', 'having_druid': [], 'time_grain_sqla': '',
+                              'druid_time_origin': ''}, 'timeseries_limit_metric': None, 'order_desc': True,
+                   'prequeries': [], 'is_prequery': False},
+             '1': {'granularity': None, 'from_dttm': datetime(2012, 5, 29, 0, 0),
+                   'to_dttm': datetime(2019, 5, 29, 0, 0), 'is_timeseries': False, 'groupby': [],
+                   'metrics': ['count'], 'row_limit': 5000,
+                   'filter': [{'col': 'channel', 'op': '==', 'val': '#en.wikipedia'},
+                              {'col': 'cityName', 'op': '==', 'val': 'London'}], 'timeseries_limit': 0,
+                   'extras': {'where': '', 'having': '', 'having_druid': [], 'time_grain_sqla': '',
+                              'druid_time_origin': ''}, 'timeseries_limit_metric': None, 'order_desc': True,
+                   'prequeries': [], 'is_prequery': False}}
+
+        self.assertEqual(expected, viz_data)
+
+    def test_get_data(self):
+        datasource = self.get_datasource_mock()
+        form_data = {
+            'datasource': '1__druid', 'viz_type': 'funnel', 'url_params': {}, 'time_range': 'Last 7 years',
+             'x_axis_label': '', 'y_axis_label': '', 'funnel_steps': {'queries': [{'id': 0}, {'id': 1}],
+                                                                      'selectedValues': {'0': {'metric': 'count'},
+                                                                                         '1': {'metric': 'count',
+                                                                                               'adhoc_filters': [{
+                                                                                                                     'expressionType': 'SIMPLE',
+                                                                                                                     'subject': 'channel',
+                                                                                                                     'operator': '==',
+                                                                                                                     'comparator': '#en.wikipedia',
+                                                                                                                     'clause': 'WHERE',
+                                                                                                                     'sqlExpression': None,
+                                                                                                                     'fromFormData': True,
+                                                                                                                     'filterOptionName': 'filter_1ksvjxtyl9h_ox1jwk7j0e'}]}}},
+             'metrics': ['count'], 'adhoc_filters': [
+                {'expressionType': 'SIMPLE', 'subject': 'channel', 'operator': '==', 'comparator': '#en.wikipedia',
+                 'clause': 'WHERE', 'sqlExpression': None, 'fromFormData': True,
+                 'filterOptionName': 'filter_1ksvjxtyl9h_ox1jwk7j0e'}], 'where': '', 'having': '', 'having_filters': [],
+             'filters': [{'col': 'cityName', 'op': '==', 'val': 'London'}]
+
+        }
+        raw = {}
+        raw['__timestamp'] = [
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+        ]
+
+        df = pd.DataFrame(raw)
+
+        test_viz = viz.FunnelViz(datasource, form_data)
+        viz_data = [{'count': 26, 'count_1': 26}]
+        expected = [
+            {'count': 26, 'count_1': 26}
+        ]
+        self.assertEqual(expected, viz_data)

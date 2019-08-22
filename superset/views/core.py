@@ -101,6 +101,11 @@ from .utils import (
     get_viz,
 )
 
+from urllib.parse import urlparse
+from onelogin.saml2.auth import OneLogin_Saml2_Auth
+from flask_login import login_user
+
+
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
 stats_logger = config.get("STATS_LOGGER")
@@ -972,25 +977,55 @@ class Superset(BaseSupersetView):
 
     def get_query_string_response(self, viz_obj):
         query = None
+
+        funnel_query = ""
+        isfunnel = False
         try:
             query_obj = viz_obj.query_obj()
+            if viz_obj.viz_type == "funnel":
+                isfunnel = True
+
             if query_obj:
-                query = viz_obj.datasource.get_query_str(query_obj)
+                if isfunnel:
+                    i = 0
+                    while True:
+                        if query_obj.get(str(i)):
+                            funnel_query += viz_obj.datasource.get_query_str(query_obj[str(i)]) + '\n\n'
+                        else:
+                            break
+                        i += 1
+                else:
+                    query = viz_obj.datasource.get_query_str(query_obj)
         except Exception as e:
             logging.exception(e)
             return json_error_response(e)
 
-        if not query:
-            query = "No query."
+        if query_obj and query_obj.get('prequeries'):
+            query_obj['prequeries'].append(query)
+            query = ';\n\n'.join(query_obj['prequeries'])
 
-        return self.json_response(
-            {"query": query, "language": viz_obj.datasource.query_language}
-        )
+        if query:
+            query += ';'
+        else:
+            query = 'No query.'
+
+        if isfunnel:
+            query = funnel_query
+
+        return self.json_response({
+            'query': query,
+            'language': viz_obj.datasource.query_language,
+        })
 
     def get_raw_results(self, viz_obj):
-        return self.json_response(
-            {"data": viz_obj.get_df_payload()["df"].to_dict("records")}
-        )
+        if viz_obj.viz_type == 'funnel':
+            result_data = viz_obj.get_data(None)
+        else:
+            result_data = viz_obj.get_df().to_dict('records')
+
+        return self.json_response({
+            'data': result_data
+        })
 
     def get_samples(self, viz_obj):
         return self.json_response({"data": viz_obj.get_samples()})
@@ -3006,6 +3041,3 @@ def panoramix(url):
 @app.route('/<regex("caravel\/.*"):url>')
 def caravel(url):
     return redirect(request.full_path.replace("caravel", "superset"))
-
-
-# ---------------------------------------------------------------------

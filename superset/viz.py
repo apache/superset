@@ -72,7 +72,6 @@ METRIC_KEYS = [
     "size",
 ]
 
-
 class BaseViz(object):
 
     """All visualizations derive this base class"""
@@ -121,6 +120,7 @@ class BaseViz(object):
         # OrderedDict
         self.metric_dict = OrderedDict()
         fd = self.form_data
+
         for mkey in METRIC_KEYS:
             val = fd.get(mkey)
             if val:
@@ -133,6 +133,18 @@ class BaseViz(object):
         # Cast to list needed to return serializable object in py3
         self.all_metrics = list(self.metric_dict.values())
         self.metric_labels = list(self.metric_dict.keys())
+
+    def get_metric_label(self, metric):
+        if isinstance(metric, str):
+            return metric
+
+        if isinstance(metric, dict):
+            metric = metric.get('label')
+
+        if self.datasource.type == 'table':
+            db_engine_spec = self.datasource.database.db_engine_spec
+            metric = db_engine_spec.mutate_expression_label(metric)
+        return metric
 
     @staticmethod
     def handle_js_int_overflow(data):
@@ -191,8 +203,9 @@ class BaseViz(object):
         self.error_msg = ""
 
         timestamp_format = None
-        if self.datasource.type == "table":
-            dttm_col = self.datasource.get_col(query_obj["granularity"])
+
+        if self.datasource.type == 'table':
+            dttm_col = self.datasource.get_col(query_obj['granularity'])
             if dttm_col:
                 timestamp_format = dttm_col.python_date_format
 
@@ -259,7 +272,8 @@ class BaseViz(object):
         """Building a query object"""
         form_data = self.form_data
         self.process_query_filters()
-        gb = form_data.get("groupby") or []
+        self.process_metrics()
+        gb = form_data.get('groupby') or []
         metrics = self.all_metrics or []
         columns = form_data.get("columns") or []
         groupby = []
@@ -321,6 +335,7 @@ class BaseViz(object):
             "timeseries_limit_metric": timeseries_limit_metric,
             "order_desc": order_desc,
         }
+
         return d
 
     @property
@@ -409,6 +424,23 @@ class BaseViz(object):
                         "Error reading cache: " + utils.error_msg_from_exception(e)
                     )
                 logging.info("Serving from cache")
+
+        if query_obj:
+            if '0' in query_obj.keys():
+                logging.debug("__pay_load_1__");
+                return {
+                    'cache_key': self._any_cache_key,
+                    'cached_dttm': self._any_cached_dttm,
+                    'cache_timeout': self.cache_timeout,
+                    'df': df,
+                    'error': self.error_message,
+                    'form_data': self.form_data,
+                    'is_cached': self._any_cache_key is not None,
+                    'query': self.query,
+                    'status': self.status,
+                    'stacktrace': stacktrace,
+                    'rowcount': len(df.index) if df is not None else 0,
+                }
 
         if query_obj and not is_loaded:
             try:
@@ -499,106 +531,134 @@ class BaseViz(object):
         return json.dumps(self.data)
 
 
-class TableViz(BaseViz):
+class FunnelViz(BaseViz):
+    """A multi filter, multi-choice filter box to make dashboards interactive"""
 
-    """A basic html table that is sortable and searchable"""
-
-    viz_type = "table"
-    verbose_name = _("Table View")
-    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
+    viz_type = 'funnel'
+    verbose_name = _('Funnel')
     is_timeseries = False
-    enforce_numerical_metrics = False
+    credits = 'a <a href="https://github.com/AmericanExpress">Superset</a> original'
+    cache_type = 'get_data'
+    filter_row_limit = 1000
 
-    def should_be_timeseries(self):
-        fd = self.form_data
-        # TODO handle datasource-type-specific code in datasource
-        conditions_met = (fd.get("granularity") and fd.get("granularity") != "all") or (
-            fd.get("granularity_sqla") and fd.get("time_grain_sqla")
-        )
-        if fd.get("include_time") and not conditions_met:
-            raise Exception(
-                _("Pick a granularity in the Time section or " "uncheck 'Include Time'")
-            )
-        return fd.get("include_time")
+    def get_samples(self):
+        query_obj_array = self.query_obj()
+        step_count = len(self.form_data['funnel_steps']['queries'])
+
+        for index in range(0, step_count):
+            query_obj = query_obj_array[str(index)]
+            query_obj.update({
+                'groupby': [],
+                'metrics': [],
+                'row_limit': 1000,
+                'columns': [o.column_name for o in self.datasource.columns],
+            })
+
+            df = self.get_df(query_obj)
+
+        return df.to_dict(orient='records')
 
     def query_obj(self):
-        d = super().query_obj()
+
         fd = self.form_data
 
-        if fd.get("all_columns") and (fd.get("groupby") or fd.get("metrics")):
-            raise Exception(
-                _(
-                    "Choose either fields to [Group By] and [Metrics] or "
-                    "[Columns], not both"
-                )
-            )
+        if not fd.get('funnel_steps'):
+            raise Exception(_('Add at least one Step'))
 
-        sort_by = fd.get("timeseries_limit_metric")
-        if fd.get("all_columns"):
-            d["columns"] = fd.get("all_columns")
-            d["groupby"] = []
-            order_by_cols = fd.get("order_by_cols") or []
-            d["orderby"] = [json.loads(t) for t in order_by_cols]
-        elif sort_by:
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(d["metrics"]):
-                d["metrics"] += [sort_by]
-            d["orderby"] = [(sort_by, not fd.get("order_desc", True))]
+        if isinstance(fd.get('funnel_steps'), list):
+            raise Exception(_('No selected values'))
 
-        # Add all percent metrics that are not already in the list
-        if "percent_metrics" in fd:
-            d["metrics"] = d["metrics"] + list(
-                filter(lambda m: m not in d["metrics"], fd["percent_metrics"] or [])
-            )
+        sel_values = fd['funnel_steps']['selectedValues']
 
-        d["is_timeseries"] = self.should_be_timeseries()
-        return d
+        step_count = len(fd['funnel_steps']['queries'])
+
+        filter_store = []
+        if fd.get('filters'):
+            filter_store = fd['filters']
+
+        result_query = {}
+        for i in range(0, step_count):
+            index = str(fd['funnel_steps']['queries'][i]['id'])
+
+            fd['metrics'] = []
+            fd['adhoc_filters'] = []
+            fd['filters'] = []
+
+            fd['metrics'].append(sel_values[index]['metric'])
+            if sel_values[index].get('adhoc_filters'):
+                fd['adhoc_filters'] = sel_values[index]['adhoc_filters']
+
+            qry = super(FunnelViz, self).query_obj()
+
+            if filter_store:
+                for ifilter in filter_store:
+                    qry['filter'].append(ifilter)
+
+            result_query[str(i)] = qry
+
+        # backup absolute filter
+        fd['filters'] = filter_store
+        return result_query
 
     def get_data(self, df):
+
         fd = self.form_data
-        if not self.should_be_timeseries() and df is not None and DTTM_ALIAS in df:
-            del df[DTTM_ALIAS]
+        if not fd.get('funnel_steps'):
+            raise Exception(_('Add at least one Step'))
 
-        # Sum up and compute percentages for all percent metrics
-        percent_metrics = fd.get("percent_metrics") or []
-        percent_metrics = [utils.get_metric_name(m) for m in percent_metrics]
+        if isinstance(fd.get('funnel_steps'), list):
+            raise Exception(_('No selected values'))
 
-        if len(percent_metrics):
-            percent_metrics = list(filter(lambda m: m in df, percent_metrics))
-            metric_sums = {
-                m: reduce(lambda a, b: a + b, df[m]) for m in percent_metrics
-            }
-            metric_percents = {
-                m: list(
-                    map(
-                        lambda a: None if metric_sums[m] == 0 else a / metric_sums[m],
-                        df[m],
-                    )
-                )
-                for m in percent_metrics
-            }
-            for m in percent_metrics:
-                m_name = "%" + m
-                df[m_name] = pd.Series(metric_percents[m], name=m_name)
-            # Remove metrics that are not in the main metrics list
-            metrics = fd.get("metrics") or []
-            metrics = [utils.get_metric_name(m) for m in metrics]
-            for m in filter(
-                lambda m: m not in metrics and m in df.columns, percent_metrics
-            ):
-                del df[m]
+        sel_values = fd['funnel_steps']['selectedValues']
+        step_count = len(fd['funnel_steps']['queries'])
 
-        data = self.handle_js_int_overflow(
-            dict(records=df.to_dict(orient="records"), columns=list(df.columns))
-        )
+        ddd = {}
+        d = []
 
-        return data
+        if step_count == 0:
+            raise Exception(_('Add at least one Step'))
 
-    def json_dumps(self, obj, sort_keys=False):
-        return json.dumps(
-            obj, default=utils.json_iso_dttm_ser, sort_keys=sort_keys, ignore_nan=True
-        )
+        filter_store = []
+        if fd.get('filters'):
+            filter_store = fd['filters']
 
+        for i in range(0, step_count):
+            index = str(fd['funnel_steps']['queries'][i]['id'])
+            fd['metrics'] = []
+            fd['adhoc_filters'] = []
+            fd['filters'] = []
+            if sel_values[index]['metric']==[]:
+                raise Exception(_('Must add metric on each step'))
+            fd['metrics'].append(sel_values[index]['metric'])
+            if sel_values[index].get('adhoc_filters'):
+                fd['adhoc_filters'] = sel_values[index]['adhoc_filters']
+
+            qry = super(FunnelViz, self).query_obj()
+
+            if filter_store:
+                for filter in filter_store:
+                    qry['filter'].append(filter)
+
+
+            dfd = self.get_df_payload(query_obj=qry).get('df')
+
+            dd = dfd.to_dict(orient='records')
+
+            for key in dd[0]:
+                d_key = key
+                i = 1
+                if key in ddd.keys():
+                    while True:
+                        if not key + "_" + str(i) in ddd.keys(): break
+                        else: i += 1
+                    d_key += ("_" + str(i))
+                ddd[d_key] = dd[0][key]
+
+        d.append(ddd)
+
+        # back up absolute filter
+        fd['filters'] = filter_store
+        return d
 
 class TimeTableViz(BaseViz):
 

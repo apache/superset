@@ -1169,6 +1169,7 @@ class DruidDatasource(Model, BaseDatasource):
         # the dimensions list with dimensionSpecs expanded
         dimensions = self.get_dimensions(groupby, columns_dict)
         extras = extras or {}
+
         qry = dict(
             datasource=self.datasource_name,
             dimensions=dimensions,

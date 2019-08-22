@@ -193,6 +193,7 @@
     "jsdom": "9.12.0",
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
+    "luma.gl": "5.3.1",
     "mini-css-extract-plugin": "^0.4.0",
     "minimist": "^1.2.0",
     "optimize-css-assets-webpack-plugin": "^5.0.1",
