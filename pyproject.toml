@@ -119,4 +119,4 @@ statsd = { version = "3.3.0" }
 tox = { version = "3.11.1" }
 
 [tool.poetry.scripts]
-superset = 'superset.bin.superset'
+superset = 'superset.bin.superset:cli'
