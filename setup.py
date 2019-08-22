@@ -63,7 +63,11 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    scripts=["superset/bin/superset"],
+    entry_points={
+        'console_scripts': [
+            "superset = superset.bin.superset:cli"
+        ]
+    },
     install_requires=[
         "bleach>=3.0.2, <4.0.0",
         "celery>=4.3.0, <5.0.0",
