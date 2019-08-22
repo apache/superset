@@ -15,9 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
-from sqlalchemy.sql.expression import ColumnClause
+from sqlalchemy.sql.expression import ColumnClause, ColumnElement
 
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 
@@ -60,7 +60,9 @@ class PinotEngineSpec(BaseEngineSpec):
         return TimestampExpression(time_expr, col)
 
     @classmethod
-    def make_select_compatible(cls, groupby_exprs, select_exprs):
+    def make_select_compatible(
+        cls, groupby_exprs: Dict[str, ColumnElement], select_exprs: List[ColumnElement]
+    ) -> List[ColumnElement]:
         # Pinot does not want the group by expr's to appear in the select clause
         select_sans_groupby = []
         # We want identity and not equality, so doing the filtering manually

@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+from datetime import datetime
 import logging
 import os
 import re
 import time
-from typing import List
+from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
 from sqlalchemy import Column
@@ -85,7 +86,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return BaseEngineSpec.get_all_datasource_names(db, datasource_type)
 
     @classmethod
-    def fetch_data(cls, cursor, limit):
+    def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
         import pyhive
         from TCLIService import ttypes
 
@@ -179,7 +180,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         engine.execute(sql)
 
     @classmethod
-    def convert_dttm(cls, target_type, dttm):
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
         tt = target_type.upper()
         if tt == "DATE":
             return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
@@ -291,8 +292,8 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str
-    ) -> List[dict]:
+        cls, inspector: Inspector, table_name: str, schema: Optional[str]
+    ) -> List[Dict[str, Any]]:
         return inspector.get_columns(table_name, schema)
 
     @classmethod
@@ -332,7 +333,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def select_star(
         cls,
-        my_db,
+        database,
         table_name: str,
         engine: Engine,
         schema: str = None,
@@ -340,10 +341,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: List[dict] = [],
+        cols: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         return BaseEngineSpec.select_star(
-            my_db,
+            database,
             table_name,
             engine,
             schema,
@@ -355,11 +356,11 @@ class HiveEngineSpec(PrestoEngineSpec):
         )
 
     @classmethod
-    def modify_url_for_impersonation(cls, url, impersonate_user, username):
+    def modify_url_for_impersonation(cls, url, impersonate_user: bool, username: str):
         """
         Modify the SQL Alchemy URL object with the user to impersonate if applicable.
         :param url: SQLAlchemy URL object
-        :param impersonate_user: Bool indicating if impersonation is enabled
+        :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
         # Do nothing in the URL object since instead this should modify
@@ -367,14 +368,16 @@ class HiveEngineSpec(PrestoEngineSpec):
         pass
 
     @classmethod
-    def get_configuration_for_impersonation(cls, uri, impersonate_user, username):
+    def get_configuration_for_impersonation(
+        cls, uri: str, impersonate_user: bool, username: str
+    ) -> Dict[str, str]:
         """
         Return a configuration dictionary that can be merged with other configs
         that can set the correct properties for impersonating users
         :param uri: URI string
-        :param impersonate_user: Bool indicating if impersonation is enabled
+        :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
-        :return: Dictionary with configs required for impersonation
+        :return: Configs required for impersonation
         """
         configuration = {}
         url = make_url(uri)
@@ -392,6 +395,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         return configuration
 
     @staticmethod
-    def execute(cursor, query, async_=False):
+    def execute(cursor, query: str, async_: bool = False):
         kwargs = {"async": async_}
         cursor.execute(query, **kwargs)
