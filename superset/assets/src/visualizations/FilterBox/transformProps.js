@@ -26,6 +26,7 @@ export default function transformProps(chartProps) {
     rawDatasource,
   } = chartProps;
   const {
+    sliceId,
     dateFilter,
     instantFiltering,
     showDruidTimeGranularity,
@@ -43,6 +44,7 @@ export default function transformProps(chartProps) {
   }));
 
   return {
+    chartId: sliceId,
     datasource: rawDatasource,
     filtersFields,
     filtersChoices: payload.data,
