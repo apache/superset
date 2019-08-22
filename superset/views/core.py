@@ -2685,7 +2685,17 @@ class Superset(BaseSupersetView):
         response.headers[
             "Content-Disposition"
         ] = f"attachment; filename={query.name}.csv"
-        logging.info("Ready to return response")
+        event_info = {
+            "event_type": "csv_export",
+            "client_id": client_id,
+            "row_count": len(df.index),
+            "database": query.database,
+            "schema": query.schema,
+            "sql": query.sql,
+        }
+        logging.info(
+            f"CSV exported: {repr(event_info)}", extra={"superset_event": event_info}
+        )
         return response
 
     @api
