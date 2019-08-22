@@ -54,9 +54,6 @@ class DefaultLoggingConfigurator(LoggingConfigurator):
         logging.basicConfig(format=app_config.get("LOG_FORMAT"))  # noqa: T484
         logging.getLogger().setLevel(app_config.get("LOG_LEVEL"))  # noqa: T484
 
-        if app_config.get("SILENCE_FAB"):
-            logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)  # noqa: T484
-
         if app_config.get("ENABLE_TIME_ROTATE"):
             logging.getLogger().setLevel(
                 app_config.get("TIME_ROTATE_LOG_LEVEL")
