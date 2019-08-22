@@ -40,7 +40,13 @@ def sqlalchemy_uri_validator(
     try:
         url = make_url(uri.strip())
     except ArgumentError:
-        raise exception(_("Invalid connnection string could not parse rfc1738 URL"))
+        raise exception(
+            _(
+                "Invalid connnection string, a valid string follows: "
+                " 'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
+                " <p>Example:'postgresql://user:password@your-postgres-db/database'</p>"
+            )
+        )
     custom_validator_func = current_app.config.get(
         "SUPERSET_DATABASE_URI_CUSTOM_VALIDATOR_FUNC", None
     )
