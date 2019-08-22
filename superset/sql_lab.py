@@ -256,6 +256,7 @@ def execute_sql_statements(
     logging.info("Set query to 'running'")
     query.status = QueryStatus.RUNNING
     query.start_running_time = now_as_float()
+    session.commit()
 
     engine = database.get_sqla_engine(
         schema=query.schema,
@@ -269,7 +270,12 @@ def execute_sql_statements(
         with closing(conn.cursor()) as cursor:
             statement_count = len(statements)
             for i, statement in enumerate(statements):
-                # TODO CHECK IF STOPPED
+                # Check if stopped
+                query = get_query(query_id, session)
+                if query.status == QueryStatus.STOPPED:
+                    return
+
+                # Run statement
                 msg = f"Running statement {i+1} out of {statement_count}"
                 logging.info(msg)
                 query.set_extra_json_key("progress", msg)
@@ -278,7 +284,6 @@ def execute_sql_statements(
                     cdf = execute_sql_statement(
                         statement, query, user_name, session, cursor
                     )
-                    msg = f"Running statement {i+1} out of {statement_count}"
                 except Exception as e:
                     msg = str(e)
                     if statement_count > 1:
