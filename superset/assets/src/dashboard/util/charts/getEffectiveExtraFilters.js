@@ -21,7 +21,7 @@ export default function getEffectiveExtraFilters({
   filters,
   sliceId,
 }) {
-  const immuneSlices = dashboardMetadata.filter_immune_slices || [];
+  const immuneSlices = dashboardMetadata.filterImmuneSlices || [];
 
   if (sliceId && immuneSlices.includes(sliceId)) {
     // The slice is immune to dashboard filters
@@ -33,10 +33,10 @@ export default function getEffectiveExtraFilters({
   let immuneToFields = [];
   if (
     sliceId &&
-    dashboardMetadata.filter_immune_slice_fields &&
-    dashboardMetadata.filter_immune_slice_fields[sliceId]
+    dashboardMetadata.filterImmuneSliceFields &&
+    dashboardMetadata.filterImmuneSliceFields[sliceId]
   ) {
-    immuneToFields = dashboardMetadata.filter_immune_slice_fields[sliceId];
+    immuneToFields = dashboardMetadata.filterImmuneSliceFields[sliceId];
   }
 
   Object.keys(filters).forEach(filteringSliceId => {
