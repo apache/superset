@@ -28,15 +28,7 @@ readme = 'README.md'  # Markdown files are supported
 repository = "https://github.com/apache/incubator-superset"
 homepage = "https://superset.apache.org/"
 packages = [
-    { include = "NOTICE" },
-    { include = "LICENSE.txt" },
-    { include = "README.md" },
-    { include = "superset/examples" },
-    { include = "superset/migrations" },
-    { include = "superset/static" },
-    { include = "superset/static/assets/src/visualizations/CountryMap/" },
-    { include = "superset/templates" },
-    { include = "superset/translations" },
+     { include = "superset" }
 ]
 
 keywords = ["superset"]
