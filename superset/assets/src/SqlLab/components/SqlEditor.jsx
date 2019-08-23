@@ -483,6 +483,7 @@ class SqlEditor extends React.PureComponent {
         direction="horizontal"
         minSize={SQL_EDITOR_MIN_SIZE}
         gutterSize={SQL_EDITOR_HORIZONTAL_GUTTER_WIDTH}
+        snapOffset={0}
       >
         {this.leftBar()}
         {this.queryPane()}
