@@ -1,3 +1,26 @@
+# [0.12.0](https://github.com/apache-superset/superset-ui/compare/v0.11.15...v0.12.0) (2019-08-23)
+
+
+### Features
+
+* add control panel support to chart plugin ([#203](https://github.com/apache-superset/superset-ui/issues/203)) ([920d389](https://github.com/apache-superset/superset-ui/commit/920d389))
+* add functions for parsing formatters from encoding ([#205](https://github.com/apache-superset/superset-ui/issues/205)) ([8906aa0](https://github.com/apache-superset/superset-ui/commit/8906aa0))
+* Add types and type guards for encodeable ([#201](https://github.com/apache-superset/superset-ui/issues/201)) ([6cff25f](https://github.com/apache-superset/superset-ui/commit/6cff25f))
+
+
+### BREAKING CHANGES
+
+* **chart:** deprecate old SuperChart API that accepts chartProps ([#202](https://github.com/apache-superset/superset-ui/issues/202)) ([af877c6](https://github.com/apache-superset/superset-ui/commit/af877c6))
+
+  * No longer accept `chartProps` as a single prop in `<SuperChart>`. Developers must specify each field in chartProps individually.
+
+* **chart:** split superset-ui/query from superset-ui/chart ([#178](https://github.com/apache-superset/superset-ui/issues/178)) ([630d3e5](https://github.com/apache-superset/superset-ui/commit/630d3e5))
+
+  * some api and types are removed from `@superset-ui/chart` and moved to `/query`
+
+* **chart:** remove and rename fields in ChartProps ([#174](https://github.com/apache-superset/superset-ui/issues/174)) ([b53b839](https://github.com/apache-superset/superset-ui/commit/b53b839))
+
+
 ## [0.11.15](https://github.com/apache-superset/superset-ui/compare/v0.11.14...v0.11.15) (2019-08-06)
 
 
