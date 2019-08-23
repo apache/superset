@@ -40,7 +40,7 @@ const propTypes = {
   isComponentVisible: PropTypes.bool,
 
   // from redux
-  chart: PropTypes.shape(chartPropShape).isRequired,
+  chart: chartPropShape.isRequired,
   formData: PropTypes.object.isRequired,
   datasource: PropTypes.object.isRequired,
   slice: slicePropShape.isRequired,
@@ -50,7 +50,7 @@ const propTypes = {
   refreshChart: PropTypes.func.isRequired,
   logEvent: PropTypes.func.isRequired,
   toggleExpandSlice: PropTypes.func.isRequired,
-  addFilter: PropTypes.func.isRequired,
+  changeFilter: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   isExpanded: PropTypes.bool.isRequired,
   isCached: PropTypes.bool,
@@ -72,6 +72,7 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
   prop => prop !== 'width' && prop !== 'height',
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
+const DEFAULT_HEADER_HEIGHT = 22;
 
 class Chart extends React.Component {
   constructor(props) {
@@ -81,7 +82,7 @@ class Chart extends React.Component {
       height: props.height,
     };
 
-    this.addFilter = this.addFilter.bind(this);
+    this.changeFilter = this.changeFilter.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
@@ -142,7 +143,9 @@ class Chart extends React.Component {
   }
 
   getHeaderHeight() {
-    return (this.headerRef && this.headerRef.offsetHeight) || 30;
+    return (
+      (this.headerRef && this.headerRef.offsetHeight) || DEFAULT_HEADER_HEIGHT
+    );
   }
 
   setDescriptionRef(ref) {
@@ -158,15 +161,12 @@ class Chart extends React.Component {
     this.setState(() => ({ width, height }));
   }
 
-  addFilter(...[col, vals, merge, refresh]) {
+  changeFilter(newSelectedValues = {}) {
     this.props.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
       id: this.props.chart.id,
-      column: col,
-      value_count: Array.isArray(vals) ? vals.length : (vals && 1) || 0,
-      merge,
-      refresh,
+      columns: Object.keys(newSelectedValues),
     });
-    this.props.addFilter(this.props.chart, col, vals, merge, refresh);
+    this.props.changeFilter(this.props.chart.id, newSelectedValues);
   }
 
   exploreChart() {
@@ -277,7 +277,7 @@ class Chart extends React.Component {
           <ChartContainer
             width={width}
             height={this.getChartHeight()}
-            addFilter={this.addFilter}
+            addFilter={this.changeFilter}
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}
             chartId={id}

@@ -56,9 +56,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return uri
 
     @classmethod
-    def epoch_to_dttm(cls):
+    def epoch_to_dttm(cls) -> str:
         return "DATEADD(S, {col}, '1970-01-01')"
 
     @classmethod
-    def epoch_ms_to_dttm(cls):
+    def epoch_ms_to_dttm(cls) -> str:
         return "DATEADD(MS, {col}, '1970-01-01')"
