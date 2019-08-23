@@ -219,9 +219,7 @@ class QueryContext:
                     )
 
                     stats_logger.incr("set_cache_key")
-                    cache.set(
-                        cache_key, cache_value=cache_binary, timeout=self.cache_timeout
-                    )
+                    cache.set(cache_key, cache_binary, timeout=self.cache_timeout)
                 except Exception as e:
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
