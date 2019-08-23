@@ -950,10 +950,10 @@ class PrestoEngineSpec(BaseEngineSpec):
             )
         except Exception:
             # table is not partitioned
-            return False
+            return None
 
         if values is None:
-            return False
+            return None
 
         column_names = {column.get("name") for column in columns or []}
         for col_name, value in zip(col_names, values):
@@ -962,7 +962,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return query
 
     @classmethod
-    def _latest_partition_from_df(cls, df):
+    def _latest_partition_from_df(cls, df) -> Optional[List[str]]:
         if not df.empty:
             return df.to_records(index=False)[0].item()
         return None
