@@ -824,7 +824,8 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
-        logging.info("Polling the cursor for progress")
+        query_id = query.id
+        logging.info(f"Query {query_id}: Polling the cursor for progress")
         polled = cursor.poll()
         # poll returns dict -- JSON status information or ``None``
         # if the query is done
@@ -834,7 +835,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             # Update the object and wait for the kill signal.
             stats = polled.get("stats", {})
 
-            query = session.query(type(query)).filter_by(id=query.id).one()
+            query = session.query(type(query)).filter_by(id=query_id).one()
             if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
                 cursor.cancel()
                 break
@@ -851,14 +852,14 @@ class PrestoEngineSpec(BaseEngineSpec):
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
                     logging.info(
-                        "Query progress: {} / {} "
-                        "splits".format(completed_splits, total_splits)
+                        "Query {} progress: {} / {} "
+                        "splits".format(query_id, completed_splits, total_splits)
                     )
                     if progress > query.progress:
                         query.progress = progress
                     session.commit()
             time.sleep(1)
-            logging.info("Polling the cursor for progress")
+            logging.info(f"Query {query_id}: Polling the cursor for progress")
             polled = cursor.poll()
 
     @classmethod
