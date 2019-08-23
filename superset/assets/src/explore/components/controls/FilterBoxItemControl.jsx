@@ -36,6 +36,7 @@ const propTypes = {
   column: PropTypes.string,
   metric: PropTypes.string,
   defaultValue: PropTypes.string,
+  limit: PropTypes.number,
 };
 
 const defaultProps = {
@@ -43,6 +44,7 @@ const defaultProps = {
   asc: true,
   clearable: true,
   multiple: true,
+  limit: 1000,
 };
 
 const STYLE_WIDTH = { width: 350 };
@@ -50,8 +52,8 @@ const STYLE_WIDTH = { width: 350 };
 export default class FilterBoxItemControl extends React.Component {
   constructor(props) {
     super(props);
-    const { column, metric, asc, clearable, multiple, defaultValue } = props;
-    const state = { column, metric, asc, clearable, multiple, defaultValue };
+    const { column, metric, asc, clearable, multiple, defaultValue, limit } = props;
+    const state = { column, metric, asc, clearable, multiple, defaultValue, limit };
     this.state = state;
     this.onChange = this.onChange.bind(this);
     this.onControlChange = this.onControlChange.bind(this);
@@ -156,6 +158,17 @@ export default class FilterBoxItemControl extends React.Component {
             <CheckboxControl
               value={!this.state.clearable}
               onChange={v => this.onControlChange('clearable', !v)}
+            />
+          }
+        />
+        <FormRow
+          label={t('Limit')}
+          tooltip={t('Limit number of results.')}
+          control={
+            <TextControl
+              value={this.state.limit}
+              name="limit"
+              onChange={v => this.onControlChange('limit', v)}
             />
           }
         />

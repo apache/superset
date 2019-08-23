@@ -1789,7 +1789,6 @@ class FilterBoxViz(BaseViz):
     is_timeseries = False
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     cache_type = "get_data"
-    filter_row_limit = 1000
 
     def query_obj(self):
         return None
@@ -1797,7 +1796,6 @@ class FilterBoxViz(BaseViz):
     def run_extra_queries(self):
         qry = super().query_obj()
         filters = self.form_data.get("filter_configs") or []
-        qry["row_limit"] = self.filter_row_limit
         self.dataframes = {}
         for flt in filters:
             col = flt.get("column")
@@ -1808,6 +1806,7 @@ class FilterBoxViz(BaseViz):
             qry["groupby"] = [col]
             metric = flt.get("metric")
             qry["metrics"] = [metric] if metric else []
+            qry["row_limit"] = flt.get("limit")
             df = self.get_df_payload(query_obj=qry).get("df")
             self.dataframes[col] = df
 
