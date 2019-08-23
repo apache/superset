@@ -321,6 +321,22 @@ class SqlEditor extends React.PureComponent {
       </Split>
     );
   }
+  leftBar() {
+    return (
+      <CSSTransition
+        classNames="schemaPane"
+        in={!this.props.hideLeftBar}
+        timeout={300}
+      >
+        <SqlEditorLeftBar
+          database={this.props.database}
+          queryEditor={this.props.queryEditor}
+          tables={this.props.tables}
+          actions={this.props.actions}
+        />
+      </CSSTransition>
+    );
+  }
   renderEditorBottomBar(hotkeys) {
     let ctasControls;
     if (this.props.database && this.props.database.allow_ctas) {
@@ -456,22 +472,6 @@ class SqlEditor extends React.PureComponent {
           }
         </div>
       </div>
-    );
-  }
-  leftBar() {
-    return (
-      <CSSTransition
-        classNames="schemaPane"
-        in={!this.props.hideLeftBar}
-        timeout={300}
-      >
-        <SqlEditorLeftBar
-          database={this.props.database}
-          queryEditor={this.props.queryEditor}
-          tables={this.props.tables}
-          actions={this.props.actions}
-        />
-      </CSSTransition>
     );
   }
   render() {
