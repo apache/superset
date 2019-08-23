@@ -131,7 +131,7 @@ export function getControlState(controlKey, vizType, state, value) {
   return validateControl(controlState);
 }
 
-export function getAllControlsStateFromFormDataKeys(vizType, datasourceType, state, formData) {
+export function getAllControlsState(vizType, datasourceType, state, formData) {
   const controlsState = {};
   sectionsToRender(vizType, datasourceType).forEach(
     section => section.controlSetRows.forEach(

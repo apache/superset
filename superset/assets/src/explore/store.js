@@ -18,7 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import {
-  getAllControlsStateFromFormDataKeys,
+  getAllControlsState as getAllControlsState,
   getFormDataFromControls,
 } from './controlUtils';
 import controls from './controls';
@@ -49,7 +49,7 @@ export function getControlsState(state, inputFormData) {
 
   handleDeprecatedControls(formData);
 
-  const controlsState = getAllControlsStateFromFormDataKeys(
+  const controlsState = getAllControlsState(
     vizType,
     state.datasource.type,
     state,
@@ -68,11 +68,11 @@ export function applyDefaultFormData(inputFormData) {
   const datasourceType = inputFormData.datasource.split('__')[1];
   const vizType = inputFormData.viz_type;
   const controlsState =
-    getAllControlsStateFromFormDataKeys(
+    getAllControlsState(
       vizType,
       datasourceType,
       null,
-      Object.assign({}, inputFormData),
+      { ...inputFormData },
     );
   const formData = {};
 
