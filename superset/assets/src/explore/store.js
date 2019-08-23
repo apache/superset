@@ -18,7 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import {
-  getAllControlsState as getAllControlsState,
+  getAllControlsState,
   getFormDataFromControls,
 } from './controlUtils';
 import controls from './controls';
