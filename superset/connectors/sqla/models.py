@@ -18,7 +18,7 @@
 from collections import OrderedDict
 from datetime import datetime
 import logging
-from typing import Any, List, NamedTuple, Optional, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 from flask import escape, Markup
 from flask_appbuilder import Model
@@ -1064,7 +1064,7 @@ class SqlaTable(Model, BaseDatasource):
     def default_query(qry):
         return qry.filter_by(is_sqllab_view=False)
 
-    def get_extra_cache_keys(self, query_obj) -> List[Any]:
+    def get_extra_cache_keys(self, query_obj: Dict) -> List[Any]:
         sqla_query = self.get_sqla_query(**query_obj)
         return sqla_query.extra_cache_keys
 

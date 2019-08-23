@@ -119,7 +119,7 @@ class QueryContext:
     def get_data(self, df):
         return df.to_dict(orient="records")
 
-    def get_single_payload(self, query_obj):
+    def get_single_payload(self, query_obj: QueryObject):
         """Returns a payload of metadata and data"""
         payload = self.get_df_payload(query_obj)
         df = payload.get("df")
@@ -134,8 +134,8 @@ class QueryContext:
         return payload
 
     def get_payload(self):
-        """Get all the paylaods from the arrays"""
-        return [self.get_single_payload(query_ojbect) for query_ojbect in self.queries]
+        """Get all the payloads from the arrays"""
+        return [self.get_single_payload(query_object) for query_object in self.queries]
 
     @property
     def cache_timeout(self):
@@ -150,9 +150,9 @@ class QueryContext:
             return self.datasource.database.cache_timeout
         return config.get("CACHE_DEFAULT_TIMEOUT")
 
-    def get_df_payload(self, query_obj, **kwargs):
+    def get_df_payload(self, query_obj: QueryObject, **kwargs):
         """Handles caching around the df paylod retrieval"""
-        extra_cache_keys = self.datasource.get_extra_cache_keys(query_obj)
+        extra_cache_keys = self.datasource.get_extra_cache_keys(query_obj.to_dict())
         cache_key = (
             query_obj.cache_key(
                 datasource=self.datasource.uid,
