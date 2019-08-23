@@ -82,7 +82,6 @@ setup(
         "geopy",
         "gunicorn<19.9.0",  # deprecated
         "humanize",
-        "idna",
         "isodate",
         "markdown>=3.0",
         "pandas>=0.24.2, <0.25.0",

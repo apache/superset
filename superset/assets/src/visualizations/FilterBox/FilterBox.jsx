@@ -29,6 +29,9 @@ import Control from '../../explore/components/Control';
 import controls from '../../explore/controls';
 import OnPasteSelect from '../../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
+import { getFilterColorKey, getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
+import FilterBadgeIcon from '../../components/FilterBadgeIcon';
+
 import './FilterBox.css';
 
 // maps control names to their key in extra_filters
@@ -40,9 +43,13 @@ const TIME_FILTER_MAP = {
   granularity: '__granularity',
 };
 
-const TIME_RANGE = '__time_range';
+export const TIME_RANGE = '__time_range';
+export const FILTER_LABELS = {
+  [TIME_RANGE]: 'Time range',
+};
 
 const propTypes = {
+  chartId: PropTypes.number.isRequired,
   origSelectedValues: PropTypes.object,
   datasource: PropTypes.object.isRequired,
   instantFiltering: PropTypes.bool,
@@ -79,6 +86,7 @@ class FilterBox extends React.Component {
     super(props);
     this.state = {
       selectedValues: props.origSelectedValues,
+      // this flag is used by non-instant filter, to make the apply button enabled/disabled
       hasChanged: false,
     };
     this.changeFilter = this.changeFilter.bind(this);
@@ -100,14 +108,9 @@ class FilterBox extends React.Component {
 
   clickApply() {
     const { selectedValues } = this.state;
-    Object.keys(selectedValues).forEach((fltr, i, arr) => {
-      let refresh = false;
-      if (i === arr.length - 1) {
-        refresh = true;
-      }
-      this.props.onChange(fltr, selectedValues[fltr], false, refresh);
+    this.setState({ hasChanged: false }, () => {
+      this.props.onChange(selectedValues, false);
     });
-    this.setState({ hasChanged: false });
   }
 
   changeFilter(filter, options) {
@@ -122,23 +125,29 @@ class FilterBox extends React.Component {
         vals = options;
       }
     }
-    const selectedValues = Object.assign({}, this.state.selectedValues);
-    selectedValues[fltr] = vals;
-    this.setState({ selectedValues, hasChanged: true });
-    if (this.props.instantFiltering) {
-      this.props.onChange(fltr, vals, false, true);
-    }
+    const selectedValues = {
+      ...this.state.selectedValues,
+      [fltr]: vals,
+    };
+
+    this.setState({ selectedValues, hasChanged: true }, () => {
+      if (this.props.instantFiltering) {
+        this.props.onChange({ [fltr]: vals }, false);
+      }
+    });
   }
 
   renderDateFilter() {
-    const { showDateFilter } = this.props;
+    const { showDateFilter, chartId } = this.props;
+    const label = t(FILTER_LABELS[TIME_RANGE]);
     if (showDateFilter) {
       return (
         <div className="row space-1">
-          <div className="col-lg-12 col-xs-12">
+          <div className="col-lg-12 col-xs-12 filter-container">
+            {this.renderFilterBadge(chartId, TIME_RANGE, label)}
             <DateFilterControl
               name={TIME_RANGE}
-              label={t('Time range')}
+              label={label}
               description={t('Select start and end date')}
               onChange={(...args) => { this.changeFilter(TIME_RANGE, ...args); }}
               value={this.state.selectedValues[TIME_RANGE] || 'No filter'}
@@ -255,17 +264,33 @@ class FilterBox extends React.Component {
   }
 
   renderFilters() {
-
-    const { filtersFields } = this.props;
+    const { filtersFields, chartId } = this.props;
     return filtersFields.map((filterConfig) => {
       const { label, key } = filterConfig;
       return (
-        <div key={key} className="m-b-5">
-          {label}
-          {this.renderSelect(filterConfig)}
+        <div key={key} className="m-b-5 filter-container">
+          {this.renderFilterBadge(chartId, key, label)}
+          <div>
+            <label htmlFor={`LABEL-${key}`}>{label}</label>
+            {this.renderSelect(filterConfig)}
+          </div>
         </div>
       );
     });
+  }
+
+  renderFilterBadge(chartId, column) {
+    const colorKey = getFilterColorKey(chartId, column);
+    const filterColorMap = getFilterColorMap();
+    const colorCode = filterColorMap[colorKey];
+
+    return (
+      <div className="filter-badge-container">
+        <FilterBadgeIcon
+          colorCode={colorCode}
+        />
+      </div>
+    );
   }
 
   render() {

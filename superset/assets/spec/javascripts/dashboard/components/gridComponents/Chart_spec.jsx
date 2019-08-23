@@ -25,17 +25,14 @@ import SliceHeader from '../../../../../src/dashboard/components/SliceHeader';
 import ChartContainer from '../../../../../src/chart/ChartContainer';
 
 import mockDatasource from '../../../../fixtures/mockDatasource';
-import {
-  sliceEntitiesForChart as sliceEntities,
-  sliceId,
-} from '../../fixtures/mockSliceEntities';
+import { sliceEntitiesForChart as sliceEntities } from '../../fixtures/mockSliceEntities';
 import chartQueries, {
   sliceId as queryId,
 } from '../../fixtures/mockChartQueries';
 
 describe('Chart', () => {
   const props = {
-    id: sliceId,
+    id: queryId,
     width: 100,
     height: 100,
     updateSliceName() {},
@@ -43,12 +40,12 @@ describe('Chart', () => {
     // from redux
     chart: chartQueries[queryId],
     formData: chartQueries[queryId].formData,
-    datasource: mockDatasource[sliceEntities.slices[sliceId].datasource],
+    datasource: mockDatasource[sliceEntities.slices[queryId].datasource],
     slice: {
-      ...sliceEntities.slices[sliceId],
+      ...sliceEntities.slices[queryId],
       description_markeddown: 'markdown',
     },
-    sliceName: sliceEntities.slices[sliceId].slice_name,
+    sliceName: sliceEntities.slices[queryId].slice_name,
     timeout: 60,
     filters: {},
     refreshChart() {},
@@ -92,10 +89,10 @@ describe('Chart', () => {
     expect(refreshChart.callCount).toBe(1);
   });
 
-  it('should call addFilter when ChartContainer calls addFilter', () => {
-    const addFilter = sinon.spy();
-    const wrapper = setup({ addFilter });
-    wrapper.instance().addFilter();
-    expect(addFilter.callCount).toBe(1);
+  it('should call changeFilter when ChartContainer calls changeFilter', () => {
+    const changeFilter = sinon.spy();
+    const wrapper = setup({ changeFilter });
+    wrapper.instance().changeFilter();
+    expect(changeFilter.callCount).toBe(1);
   });
 });

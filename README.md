@@ -207,6 +207,7 @@ the world know they are using Superset. Join our growing community!
  1. [VIPKID](https://www.vipkid.com.cn/)
  1. [WeSure](https://www.wesure.cn/)
  1. [Windsor.ai](https://www.windsor.ai/)
+ 1. [WP-Semantix](https://wpsemantix.com/)
  1. [Yahoo!](https://yahoo.com/)
  1. [Zaihang](http://www.zaih.com/)
  1. [Zalando](https://www.zalando.com)
