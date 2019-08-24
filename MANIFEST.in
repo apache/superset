@@ -22,6 +22,7 @@ recursive-include superset/examples *
 recursive-include superset/migrations *
 
 # Whitelist anything that needs to be added to the static bundle
+recursive-exclude superset/static *
 recursive-include superset/static/assets/branding *
 recursive-include superset/static/assets/dist *
 recursive-include superset/static/assets/images *
