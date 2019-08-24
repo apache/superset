@@ -39,7 +39,7 @@ const BUILD_DIR = path.resolve(__dirname, './dist');
 const {
   mode = 'development',
   devserverPort = 9000,
-  supersetPort = 8088,
+  supersetPort = 5000,
   measure = false,
   analyzeBundle = false,
 } = parsedArgs;
@@ -248,7 +248,7 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
-  devtool: isDevMode ? 'cheap-module-eval-source-map' : false,
+  devtool: isDevMode ? 'cheap-source-map' : false,
   devServer: {
     historyApiFallback: true,
     hot: true,

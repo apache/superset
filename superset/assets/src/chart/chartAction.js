@@ -29,6 +29,8 @@ import { logEvent } from '../logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import { allowCrossDomain } from '../utils/hostNamesConfig';
+import URI from 'urijs';
+import 'url-search-params-polyfill';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -172,7 +174,7 @@ export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
 }
 
-export function exploreJSON(formData, force = false, timeout = 60, key, method) {
+export function exploreJSON(formData, force = false, timeout = 60, key, method, urlParams) {
   return (dispatch) => {
     const { url, payload } = getExploreUrlAndPayload({
       formData,
@@ -180,6 +182,7 @@ export function exploreJSON(formData, force = false, timeout = 60, key, method) 
       force,
       allowDomainSharding: true,
       method,
+      requestParams: urlParams
     });
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
@@ -280,7 +283,14 @@ export function postChartFormData(formData, force = false, timeout = 60, key) {
    * This will post the form data to the endpoint, returning a new chart.
    *
    */
-  return exploreJSON(formData, force, timeout, key, 'POST');
+  let search = URI(window.location.href).search()
+  let searchParams = new URLSearchParams(search)
+  let urlParams = {}
+  for(let item of searchParams.entries()) {
+    urlParams[item[0]] = item[1]
+  }
+  console.log('cccccccccc', urlParams)
+  return exploreJSON(formData, force, timeout, key, 'POST', urlParams);
 }
 
 export function redirectSQLLab(formData) {

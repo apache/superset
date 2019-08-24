@@ -144,6 +144,7 @@
     "shortid": "^2.2.6",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
+    "url-search-params-polyfill": "^7.0.0",
     "viewport-mercator-project": "^6.1.1"
   },
   "devDependencies": {
@@ -214,8 +215,11 @@
     "webpack": "^4.19.0",
     "webpack-assets-manifest": "^3.0.1",
     "webpack-bundle-analyzer": "^3.4.1",
-    "webpack-cli": "^3.1.1",
+    "webpack-cli": "^3.3.7",
     "webpack-dev-server": "^3.1.14",
     "webpack-sources": "^1.1.0"
+  },
+  "optionalDependencies": {
+    "fsevents": "*"
   }
 }

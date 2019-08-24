@@ -95,7 +95,7 @@ export function getExploreUrlAndPayload({
   curUrl = null,
   requestParams = {},
   allowDomainSharding = false,
-  method = 'POST',
+  method = 'POST'
 }) {
   if (!formData.datasource) {
     return null;

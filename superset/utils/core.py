@@ -575,19 +575,21 @@ class timeout:
         raise SupersetTimeoutException(self.error_message)
 
     def __enter__(self):
-        try:
-            signal.signal(signal.SIGALRM, self.handle_timeout)
-            signal.alarm(self.seconds)
-        except ValueError as e:
-            logging.warning("timeout can't be used in the current context")
-            logging.exception(e)
+        # try:
+        #     signal.signal(signal.SIGALRM, self.handle_timeout)
+        #     signal.alarm(self.seconds)
+        # except ValueError as e:
+        #     logging.warning("timeout can't be used in the current context")
+        #     logging.exception(e)
+        pass;
 
     def __exit__(self, type, value, traceback):
-        try:
-            signal.alarm(0)
-        except ValueError as e:
-            logging.warning("timeout can't be used in the current context")
-            logging.exception(e)
+        # try:
+        #     signal.alarm(0)
+        # except ValueError as e:
+        #     logging.warning("timeout can't be used in the current context")
+        #     logging.exception(e)
+        pass;
 
 
 def pessimistic_connection_handling(some_engine):

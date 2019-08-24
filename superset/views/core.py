@@ -1078,7 +1078,7 @@ class Superset(BaseSupersetView):
         force = request.args.get("force") == "true"
 
         form_data = get_form_data()[0]
-
+        utils.merge_request_params(form_data, request.args)
         try:
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
@@ -1093,9 +1093,10 @@ class Superset(BaseSupersetView):
             force=force,
         )
 
-        return self.generate_json(
+        rv = self.generate_json(
             viz_obj, csv=csv, query=query, results=results, samples=samples
         )
+        return rv
 
     @event_logger.log_this
     @has_access
@@ -2629,7 +2630,6 @@ class Superset(BaseSupersetView):
                     return_results=True,
                     user_name=g.user.username if g.user else None,
                 )
-
             payload = json.dumps(
                 apply_display_max_row_limit(data),
                 default=utils.pessimistic_json_iso_dttm_ser,
