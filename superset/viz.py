@@ -1486,7 +1486,9 @@ class HistogramViz(BaseViz):
             keys = (keys,)
 
         # removing undesirable characters
-        labels = [re.sub(r"\W+", r"_", k) if isinstance(k, str) else str(k) for k in keys]
+        labels = [
+            re.sub(r"\W+", r"_", k) if isinstance(k, str) else str(k) for k in keys
+        ]
 
         if len(self.columns) > 0 or not self.groupby:
             # Only show numeric column in label if there are many
