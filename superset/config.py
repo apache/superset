@@ -48,9 +48,9 @@ else:
 # Superset specific config
 # ---------------------------------------------------------
 PACKAGE_DIR = os.path.join(BASE_DIR, "static", "assets")
-PACKAGE_FILE = os.path.join(PACKAGE_DIR, "package.json")
-with open(PACKAGE_FILE) as package_file:
-    VERSION_STRING = json.load(package_file)["version"]
+VERSION_INFO_FILE = os.path.join(PACKAGE_DIR, "version_info.json")
+with open(VERSION_INFO_FILE) as version_info_file:
+    VERSION_STRING = json.load(version_info_file)["version"]
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
