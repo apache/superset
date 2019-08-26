@@ -67,11 +67,6 @@ export type QueryObject = {
 
   /** If set, will group by timestamp */
   is_timeseries?: boolean;
-
-  /** TODO: Doc */
-  is_prequery?: boolean;
-  /** TODO: Doc */
-  prequeries?: string[];
 } & TimeRange;
 
 export interface QueryContext {
