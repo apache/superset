@@ -17,12 +17,12 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { width, formData, payload } = chartProps;
+  const { width, formData, queryData } = chartProps;
   const { horizonColorScale, seriesHeight } = formData;
 
   return {
     colorScale: horizonColorScale,
-    data: payload.data,
+    data: queryData.data,
     seriesHeight: parseInt(seriesHeight, 10),
     width,
   };

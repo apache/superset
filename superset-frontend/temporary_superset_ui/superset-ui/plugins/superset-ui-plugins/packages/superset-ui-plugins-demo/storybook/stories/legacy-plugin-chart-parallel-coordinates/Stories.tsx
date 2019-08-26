@@ -10,7 +10,7 @@ export default [
         chartType="parallel-coordinates"
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           includeSeries: false,
           linearColorScheme: 'schemeRdYlBu',

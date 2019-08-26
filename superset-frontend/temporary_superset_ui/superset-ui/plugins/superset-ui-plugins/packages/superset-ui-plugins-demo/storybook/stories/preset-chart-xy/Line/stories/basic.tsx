@@ -58,7 +58,7 @@ export default [
           },
         }}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         width={400}
       />,
     ],

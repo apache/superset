@@ -21,7 +21,7 @@ type Props = {
   tableFilter: boolean;
 };
 
-function NOOP(_key: string, _value: number[]) {}
+const NOOP = () => {};
 
 const defaultProps = {
   alignPositiveNegative: false,

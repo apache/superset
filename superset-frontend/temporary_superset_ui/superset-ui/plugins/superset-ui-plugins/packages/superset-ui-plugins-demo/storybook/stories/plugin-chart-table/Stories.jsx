@@ -29,7 +29,7 @@ export default [
           tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
           timeseriesLimitMetric: 'trend',
         }}
-        payload={{ data: dataLegacy }}
+        queryData={{ data: dataLegacy }}
       />
     ),
     storyName: 'Legacy',
@@ -59,7 +59,7 @@ export default [
           tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
           timeseriesLimitMetric: 'trend',
         }}
-        payload={{ data: dataLegacy }}
+        queryData={{ data: dataLegacy }}
       />
     ),
     storyName: 'Legacy-TableFilter',
@@ -89,7 +89,7 @@ export default [
           tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
           timeseriesLimitMetric: null,
         }}
-        payload={{ data }}
+        queryData={{ data }}
       />
     ),
     storyName: 'TableFilter',

@@ -16,7 +16,7 @@ export default [
         chartType="event-flow"
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           allColumnsX: 'eventName',
           entity: 'userId',

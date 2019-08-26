@@ -1,9 +1,9 @@
 /* eslint-disable camelcase */
-import { ChartFormData, ChartFormDataMetric } from '@superset-ui/chart';
+import { QueryFormData, QueryFormDataMetric } from '@superset-ui/query';
 
-type TableFormData = ChartFormData & {
+type TableFormData = QueryFormData & {
   all_columns: string[];
-  percent_metrics: ChartFormDataMetric[];
+  percent_metrics: QueryFormDataMetric[];
   include_time: boolean;
   order_by_cols: string[];
 };

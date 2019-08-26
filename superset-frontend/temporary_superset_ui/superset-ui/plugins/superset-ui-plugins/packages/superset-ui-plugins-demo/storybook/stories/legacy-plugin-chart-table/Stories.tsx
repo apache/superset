@@ -19,7 +19,7 @@ export default [
           },
         }}
         filters={{}}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           alignPn: false,
           colorPn: false,

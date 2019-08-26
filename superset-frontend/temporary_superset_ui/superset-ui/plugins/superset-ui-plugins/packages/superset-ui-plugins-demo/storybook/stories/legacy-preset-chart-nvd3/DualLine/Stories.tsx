@@ -17,7 +17,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           colorScheme: 'd3Category10',
           vizType: 'dual_line',
@@ -38,7 +38,7 @@ export default [
           width={400}
           height={400}
           datasource={dummyDatasource}
-          payload={{ data }}
+          queryData={{ data }}
           formData={{
             colorScheme: 'd3Category10',
             vizType: 'dual_line',
@@ -52,7 +52,7 @@ export default [
           width={400}
           height={400}
           datasource={dummyDatasource}
-          payload={{ data: reverseData }}
+          queryData={{ data: reverseData }}
           formData={{
             colorScheme: 'd3Category10',
             vizType: 'dual_line',
