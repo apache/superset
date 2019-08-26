@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-horizon",
-  "version": "0.10.41",
+  "version": "0.11.0",
   "description": "Superset Legacy Chart - Horizon",
   "sideEffects": [
     "*.css"
