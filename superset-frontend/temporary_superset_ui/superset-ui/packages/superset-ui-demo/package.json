@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/demo",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "description": "Storybook for Superset UI ✨",
   "private": true,
   "main": "index.js",
@@ -44,7 +44,7 @@
     "@superset-ui/legacy-preset-chart-big-number": "^0.10.0",
     "@superset-ui/number-format": "^0.12.1",
     "@superset-ui/plugin-chart-word-cloud": "^0.10.0",
-    "@superset-ui/query": "^0.12.0",
+    "@superset-ui/query": "^0.12.2",
     "@superset-ui/time-format": "^0.12.1",
     "@types/storybook__addon-knobs": "^5.0.0",
     "bootstrap": "^4.3.1",
