@@ -18,7 +18,7 @@
  */
 /* eslint-disable sort-keys */
 export default function transformProps(chartProps) {
-  const { width, height, formData, payload } = chartProps;
+  const { width, height, formData, queryData } = chartProps;
   const {
     includeSeries,
     linearColorScheme,
@@ -31,7 +31,7 @@ export default function transformProps(chartProps) {
   return {
     width,
     height,
-    data: payload.data,
+    data: queryData.data,
     includeSeries,
     linearColorScheme,
     metrics: metrics.map(m => m.label || m),

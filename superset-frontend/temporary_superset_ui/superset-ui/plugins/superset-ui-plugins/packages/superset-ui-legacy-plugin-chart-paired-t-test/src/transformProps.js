@@ -17,12 +17,12 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { formData, payload } = chartProps;
+  const { formData, queryData } = chartProps;
   const { groupby, liftvaluePrecision, metrics, pvaluePrecision, significanceLevel } = formData;
 
   return {
     alpha: significanceLevel,
-    data: payload.data,
+    data: queryData.data,
     groups: groupby,
     liftValPrec: parseInt(liftvaluePrecision, 10),
     metrics,

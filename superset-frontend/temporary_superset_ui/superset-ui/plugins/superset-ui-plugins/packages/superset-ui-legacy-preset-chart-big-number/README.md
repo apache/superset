@@ -33,13 +33,11 @@ Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/
 ```js
 <SuperChart
   chartType="big-number"
-  chartProps={{
-    width: 600,
-    height: 600,
-    formData: {...},
-    payload: {
-      data: {...},
-    },
+  width={600}
+  height={600}
+  formData={...}
+  queryData={{
+    data: {...},
   }}
 />
 ```

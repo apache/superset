@@ -6,7 +6,7 @@ import data from './data';
 export default [
   {
     renderStory: () => (
-      <SuperChart chartType="force-directed" width={400} height={400} payload={{ data }} />
+      <SuperChart chartType="force-directed" width={400} height={400} queryData={{ data }} />
     ),
     storyName: 'Basic',
     storyPath: 'legacy-|plugin-chart-force-directed|ForceDirectedChartPlugin',

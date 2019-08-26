@@ -18,7 +18,7 @@ export default [
         width={400}
         height={400}
         datasource={datasource}
-        payload={{
+        queryData={{
           data: {
             columns: [['sum__num', 'other'], ['sum__num', 'All']],
             html:
@@ -41,7 +41,7 @@ export default [
         width={400}
         height={400}
         datasource={datasource}
-        payload={{
+        queryData={{
           data: {
             columns: [['sum__num', 'other'], ['sum__num', 'All']],
             html:

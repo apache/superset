@@ -14,7 +14,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           bottomMargin: 'auto',
           colorScheme: 'd3Category10',
@@ -42,7 +42,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           bottomMargin: 'auto',
           colorScheme: 'd3Category10',

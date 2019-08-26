@@ -12,7 +12,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           annotationData: {},
           bottomMargin: 'auto',

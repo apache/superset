@@ -50,7 +50,7 @@ function PivotTable(element, props) {
   const container = element;
   const $container = $(element);
 
-  // payload data is a string of html with a single table element
+  // queryData data is a string of html with a single table element
   container.innerHTML = html;
 
   const cols = Array.isArray(columns[0]) ? columns.map(col => col[0]) : columns;

@@ -1,4 +1,4 @@
-import { ChartFormDataMetric, AdhocMetric } from '@superset-ui/chart';
+import { QueryFormDataMetric, AdhocMetric } from '@superset-ui/query';
 import { PlainObject } from './types';
 
 export default function processData({
@@ -7,7 +7,7 @@ export default function processData({
   records,
   metrics,
 }: {
-  timeseriesLimitMetric: ChartFormDataMetric;
+  timeseriesLimitMetric: QueryFormDataMetric;
   orderDesc: boolean;
   records: PlainObject[];
   metrics: string[];

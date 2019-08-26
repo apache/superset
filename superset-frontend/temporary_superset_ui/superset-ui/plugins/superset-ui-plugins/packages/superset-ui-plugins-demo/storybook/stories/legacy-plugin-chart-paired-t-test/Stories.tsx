@@ -10,7 +10,7 @@ export default [
         chartType="paired-t-test"
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           groupby: ['name'],
           liftvaluePrecision: 4,

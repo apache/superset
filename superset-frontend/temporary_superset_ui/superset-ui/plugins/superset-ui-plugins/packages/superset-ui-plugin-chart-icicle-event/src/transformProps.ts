@@ -20,10 +20,10 @@ import { ChartProps } from '@superset-ui/chart';
 import { findDepth } from './utils/IcicleEventTreeHelpers';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { formData, payload, width } = chartProps;
+  const { formData, queryData, width } = chartProps;
   // Need to double check if actually part of formData
   const { color, isVertical, rounding, transitionDuration } = formData;
-  const { data } = payload;
+  const { data } = queryData;
 
   const chartPropsHeight = chartProps.height;
   const rectHeight = 30;

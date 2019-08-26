@@ -23,13 +23,11 @@ Then use it via `SuperChart`. A link to Storybook for the Icicle Event Chart wil
 ```js
 <SuperChart
   chartType="icicle"
-  chartProps={{
-    width: 600,
-    height: 600,
-    formData: {...},
-    payload: {
-      data: {...},
-    },
+  width={600}
+  height={600}
+  formData={...}
+  queryData={{
+    data: {...},
   }}
 />
 ```

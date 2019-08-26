@@ -10,7 +10,7 @@ interface DataRow {
 }
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, payload } = chartProps;
+  const { width, height, formData, queryData } = chartProps;
   const {
     colorScheme,
     entity,
@@ -31,7 +31,7 @@ export default function transformProps(chartProps: ChartProps) {
     // yAxisShowminmax,
     // yLogScale,
   } = formData;
-  const data = payload.data as DataRow[];
+  const data = queryData.data as DataRow[];
 
   return {
     data: flatMap(

@@ -24,7 +24,7 @@ import { renderTooltipFactory } from './BigNumber';
 const TIME_COLUMN = '__timestamp';
 
 export default function transformProps(chartProps) {
-  const { width, height, formData, payload } = chartProps;
+  const { width, height, formData, queryData } = chartProps;
   const {
     colorPicker,
     compareLag: compareLagInput,
@@ -38,7 +38,7 @@ export default function transformProps(chartProps) {
     vizType,
     yAxisFormat,
   } = formData;
-  const { data } = payload;
+  const { data } = queryData;
 
   let mainColor;
   if (colorPicker) {

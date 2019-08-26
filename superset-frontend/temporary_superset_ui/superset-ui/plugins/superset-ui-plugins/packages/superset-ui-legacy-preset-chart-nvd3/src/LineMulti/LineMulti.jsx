@@ -55,12 +55,12 @@ function getJson(url) {
  * Show multiple line charts
  *
  * This visualization works by fetching the data from each of the saved
- * charts, building the payload data and passing it along to nvd3Vis.
+ * charts, building the queryData data and passing it along to nvd3Vis.
  */
 class LineMulti extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { payload: [] };
+    this.state = { queryData: [] };
   }
 
   componentDidMount() {
@@ -72,8 +72,8 @@ class LineMulti extends React.Component {
   }
 
   loadData(props) {
-    const { formData, payload } = props;
-    const { slices } = payload.data;
+    const { formData, queryData } = props;
+    const { slices } = queryData.data;
     const {
       extraFilters,
       filters,
@@ -83,7 +83,7 @@ class LineMulti extends React.Component {
       timeRange,
     } = formData;
 
-    this.setState({ payload: [] });
+    this.setState({ queryData: [] });
 
     // fetch data from all the charts
     const subslices = [
@@ -112,26 +112,26 @@ class LineMulti extends React.Component {
     });
 
     Promise.all(promises).then(data => {
-      const payloadCopy = { ...payload };
-      payloadCopy.data = [].concat(...data);
+      const queryDataCopy = { ...queryData };
+      queryDataCopy.data = [].concat(...data);
 
       // add null values at the edges to fix multiChart bug when series with
       // different x values use different y axes
       if (lineCharts.length && lineCharts2.length) {
         let minX = Infinity;
         let maxX = -Infinity;
-        payloadCopy.data.forEach(datum => {
+        queryDataCopy.data.forEach(datum => {
           minX = Math.min(minX, ...datum.values.map(v => v.x));
           maxX = Math.max(maxX, ...datum.values.map(v => v.x));
         });
         // add null values at the edges
-        payloadCopy.data.forEach(datum => {
+        queryDataCopy.data.forEach(datum => {
           datum.values.push({ x: minX, y: null });
           datum.values.push({ x: maxX, y: null });
         });
       }
 
-      this.setState({ payload: payloadCopy });
+      this.setState({ queryData: queryDataCopy });
     });
   }
 
@@ -145,7 +145,7 @@ class LineMulti extends React.Component {
       onAddFilter,
       onError,
     } = this.props;
-    const { payload } = this.state;
+    const { queryData } = this.state;
 
     return (
       <ReactNVD3
@@ -157,7 +157,7 @@ class LineMulti extends React.Component {
           formData,
           onError,
           onAddFilter,
-          payload,
+          queryData,
         })}
       />
     );

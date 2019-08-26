@@ -10,7 +10,7 @@ export default [
         chartType="map-box"
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           allColumnsX: 'LON',
           allColumnsY: 'LAT',

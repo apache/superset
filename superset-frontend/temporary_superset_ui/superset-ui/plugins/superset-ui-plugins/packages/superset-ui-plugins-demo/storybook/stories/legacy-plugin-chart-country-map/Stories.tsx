@@ -12,7 +12,7 @@ export default [
         chartType="country-map"
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           linearColorScheme: 'schemeRdYlBu',
           numberFormat: '.3s',

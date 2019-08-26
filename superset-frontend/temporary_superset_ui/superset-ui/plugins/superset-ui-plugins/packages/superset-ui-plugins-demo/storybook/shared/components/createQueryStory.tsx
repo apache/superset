@@ -55,7 +55,7 @@ export default function createQueryStory({
                           formData={payload.formData}
                           // @TODO fix typing
                           // all vis's now expect objects but api/v1/ returns an array
-                          payload={
+                          queryData={
                             Array.isArray(payload.queryData)
                               ? payload.queryData[0]
                               : payload.queryData

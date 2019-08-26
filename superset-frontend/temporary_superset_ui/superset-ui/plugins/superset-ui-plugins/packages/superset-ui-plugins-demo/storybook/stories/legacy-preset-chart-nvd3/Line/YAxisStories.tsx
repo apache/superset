@@ -15,7 +15,7 @@ export default [
           width={400}
           height={200}
           datasource={dummyDatasource}
-          payload={{ data }}
+          queryData={{ data }}
           formData={{
             richTooltip: true,
             showLegend: false,
@@ -28,7 +28,7 @@ export default [
           width={400}
           height={200}
           datasource={dummyDatasource}
-          payload={{ data }}
+          queryData={{ data }}
           formData={{
             richTooltip: true,
             showLegend: false,
@@ -42,7 +42,7 @@ export default [
           width={400}
           height={200}
           datasource={dummyDatasource}
-          payload={{ data }}
+          queryData={{ data }}
           formData={{
             richTooltip: true,
             showLegend: false,
@@ -56,7 +56,7 @@ export default [
           width={400}
           height={200}
           datasource={dummyDatasource}
-          payload={{ data }}
+          queryData={{ data }}
           formData={{
             richTooltip: true,
             showLegend: false,
@@ -70,7 +70,7 @@ export default [
           width={400}
           height={200}
           datasource={dummyDatasource}
-          payload={{ data }}
+          queryData={{ data }}
           formData={{
             richTooltip: true,
             showLegend: true,

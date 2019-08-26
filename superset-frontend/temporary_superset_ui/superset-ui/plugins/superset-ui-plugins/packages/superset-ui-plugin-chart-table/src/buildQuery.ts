@@ -1,5 +1,9 @@
-import { buildQueryContext, ChartFormDataMetric, QueryObjectMetric } from '@superset-ui/chart';
-import convertMetric from '@superset-ui/chart/lib/query/convertMetric';
+import {
+  buildQueryContext,
+  convertMetric,
+  QueryFormDataMetric,
+  QueryObjectMetric,
+} from '@superset-ui/query';
 import TableFormData from './TableFormData';
 
 export default function buildQuery(formData: TableFormData) {
@@ -14,7 +18,7 @@ export default function buildQuery(formData: TableFormData) {
       columns = [...formData.all_columns];
       const orderByColumns = formData.order_by_cols || [];
       orderByColumns.forEach(columnOrder => {
-        const parsedColumnOrder: [ChartFormDataMetric, boolean] = JSON.parse(columnOrder);
+        const parsedColumnOrder: [QueryFormDataMetric, boolean] = JSON.parse(columnOrder);
         orderby.push([convertMetric(parsedColumnOrder[0]), parsedColumnOrder[1]]);
       });
       groupby = [];

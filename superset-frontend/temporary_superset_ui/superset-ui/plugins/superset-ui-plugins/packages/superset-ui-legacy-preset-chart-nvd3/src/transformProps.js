@@ -20,17 +20,12 @@
 import isTruthy from './utils/isTruthy';
 import { formatLabel } from './utils';
 
+const NOOP = () => {};
+
 export default function transformProps(chartProps) {
-  const {
-    width,
-    height,
-    annotationData,
-    datasource,
-    formData,
-    onError,
-    onAddFilter,
-    payload,
-  } = chartProps;
+  const { width, height, annotationData, datasource, formData, hooks, queryData } = chartProps;
+
+  const { onAddFilter = NOOP, onError = NOOP } = hooks;
 
   const {
     annotationLayers,
@@ -76,7 +71,7 @@ export default function transformProps(chartProps) {
     yLogScale,
   } = formData;
 
-  const rawData = payload.data || [];
+  const rawData = queryData.data || [];
   const data = Array.isArray(rawData)
     ? rawData.map(row => ({
         ...row,

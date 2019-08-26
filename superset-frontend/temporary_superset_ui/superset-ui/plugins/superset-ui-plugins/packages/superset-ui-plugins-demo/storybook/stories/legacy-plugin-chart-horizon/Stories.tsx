@@ -10,7 +10,7 @@ export default [
         chartType="horizon"
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           horizonColorScale: 'series',
           seriesHeight: '25',
