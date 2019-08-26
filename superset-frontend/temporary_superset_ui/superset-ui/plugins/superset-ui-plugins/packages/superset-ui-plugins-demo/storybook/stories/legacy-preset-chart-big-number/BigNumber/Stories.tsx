@@ -10,7 +10,7 @@ export default [
         chartType="big-number"
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           colorPicker: {
             r: 0,

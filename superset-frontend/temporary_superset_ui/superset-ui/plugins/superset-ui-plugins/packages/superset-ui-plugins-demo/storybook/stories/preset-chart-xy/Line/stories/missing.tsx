@@ -19,7 +19,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        payload={{ data: missingData }}
+        queryData={{ data: missingData }}
         formData={{
           encoding: {
             x: {

@@ -29,7 +29,7 @@ export default [
           yAxisFormat: '.3s',
           yscaleInterval: '1',
         }}
-        payload={{
+        queryData={{
           data: {
             records: data,
             extents: [0.1, 24.9],
@@ -65,7 +65,7 @@ export default [
           yAxisFormat: '.3s',
           yscaleInterval: '1',
         }}
-        payload={{
+        queryData={{
           data: {
             records: [
               ...data,

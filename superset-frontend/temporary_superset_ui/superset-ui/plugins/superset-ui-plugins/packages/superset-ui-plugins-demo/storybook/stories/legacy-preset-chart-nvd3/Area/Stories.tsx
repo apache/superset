@@ -13,7 +13,7 @@ export default [
         datasource={dummyDatasource}
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           bottomMargin: 'auto',
           colorScheme: 'd3Category10',
@@ -47,7 +47,7 @@ export default [
         datasource={dummyDatasource}
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           bottomMargin: 'auto',
           colorCcheme: 'd3Category10',
@@ -81,7 +81,7 @@ export default [
         datasource={dummyDatasource}
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           bottomMargin: 'auto',
           colorCcheme: 'd3Category10',
@@ -115,7 +115,7 @@ export default [
         datasource={dummyDatasource}
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           bottomMargin: 'auto',
           colorCcheme: 'd3Category10',
@@ -149,7 +149,7 @@ export default [
         datasource={dummyDatasource}
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           bottomMargin: 'auto',
           colorCcheme: 'd3Category10',

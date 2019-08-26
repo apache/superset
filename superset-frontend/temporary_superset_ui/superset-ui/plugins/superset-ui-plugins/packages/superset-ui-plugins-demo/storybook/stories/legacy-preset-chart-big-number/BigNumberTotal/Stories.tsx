@@ -10,7 +10,7 @@ export default [
         chartType="big-number-total"
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           metric: 'sum__num',
           subheader: 'total female participants',

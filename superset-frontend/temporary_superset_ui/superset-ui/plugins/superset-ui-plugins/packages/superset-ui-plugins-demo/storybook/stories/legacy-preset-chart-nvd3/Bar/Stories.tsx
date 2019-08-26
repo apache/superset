@@ -12,7 +12,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           bottomMargin: 'auto',
           colorScheme: 'd3Category10',
@@ -47,7 +47,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           bottomMargin: 'auto',
           colorCcheme: 'd3Category10',
@@ -82,7 +82,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        payload={{
+        queryData={{
           data: data.map((group, i) => ({
             ...group,
             values: group.values.map(pair => ({ ...pair, y: (i % 2 === 0 ? 1 : -1) * pair.y })),
@@ -122,7 +122,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           barStacked: true,
           bottomMargin: 'auto',

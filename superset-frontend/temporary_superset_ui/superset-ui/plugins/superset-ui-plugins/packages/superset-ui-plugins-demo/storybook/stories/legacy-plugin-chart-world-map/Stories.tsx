@@ -10,7 +10,7 @@ export default [
         chartType="world-map"
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           maxBubbleSize: '25',
           showBubbles: true,

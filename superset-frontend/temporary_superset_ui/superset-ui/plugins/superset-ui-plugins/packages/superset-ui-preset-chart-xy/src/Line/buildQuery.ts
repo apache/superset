@@ -1,4 +1,4 @@
-import { buildQueryContext } from '@superset-ui/chart';
+import { buildQueryContext } from '@superset-ui/query';
 import ChartFormData from './ChartFormData';
 import Encoder from './Encoder';
 

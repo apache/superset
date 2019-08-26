@@ -19,7 +19,7 @@ export default [
         width={400}
         height={200}
         datasource={dummyDatasource}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           encoding: {
             x: {
@@ -73,7 +73,7 @@ export default [
         width={400}
         height={200}
         datasource={dummyDatasource}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           encoding: {
             x: {

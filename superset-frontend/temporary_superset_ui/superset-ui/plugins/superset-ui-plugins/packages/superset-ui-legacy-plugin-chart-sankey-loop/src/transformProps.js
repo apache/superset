@@ -18,13 +18,13 @@
  */
 /* eslint-disable sort-keys */
 export default function transformProps(chartProps) {
-  const { width, height, formData, payload, margin } = chartProps;
+  const { width, height, formData, queryData, margin } = chartProps;
   const { colorScheme } = formData;
 
   return {
     width,
     height,
-    data: payload.data,
+    data: queryData.data,
     colorScheme,
     margin,
   };
