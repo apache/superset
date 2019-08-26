@@ -28,7 +28,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.sql.expression import ColumnClause
+from sqlalchemy.sql.expression import ColumnClause, Select
 from werkzeug.utils import secure_filename
 
 from superset import app, conf
@@ -297,19 +297,29 @@ class HiveEngineSpec(PrestoEngineSpec):
         return inspector.get_columns(table_name, schema)
 
     @classmethod
-    def where_latest_partition(cls, table_name, schema, database, qry, columns=None):
+    def where_latest_partition(
+        cls,
+        table_name: str,
+        schema: Optional[str],
+        database,
+        qry: Select,
+        columns: Optional[List] = None,
+    ) -> Optional[Select]:
         try:
-            col_name, value = cls.latest_partition(
+            col_names, values = cls.latest_partition(
                 table_name, schema, database, show_first=True
             )
         except Exception:
             # table is not partitioned
-            return False
-        if value is not None:
-            for c in columns:
-                if c.get("name") == col_name:
-                    return qry.where(Column(col_name) == value)
-        return False
+            return None
+        if values is not None and columns is not None:
+            for col_name, value in zip(col_names, values):
+                for c in columns:
+                    if c.get("name") == col_name:
+                        qry = qry.where(Column(col_name) == value)
+
+            return qry
+        return None
 
     @classmethod
     def _get_fields(cls, cols: List[dict]) -> List[ColumnClause]:
@@ -321,10 +331,11 @@ class HiveEngineSpec(PrestoEngineSpec):
         pass
 
     @classmethod
-    def _latest_partition_from_df(cls, df):
+    def _latest_partition_from_df(cls, df) -> Optional[List[str]]:
         """Hive partitions look like ds={partition name}"""
         if not df.empty:
-            return df.ix[:, 0].max().split("=")[1]
+            return [df.ix[:, 0].max().split("=")[1]]
+        return None
 
     @classmethod
     def _partition_query(cls, table_name, limit=0, order_by=None, filters=None):
@@ -343,7 +354,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         latest_partition: bool = True,
         cols: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
-        return BaseEngineSpec.select_star(
+        return super(  # pylint: disable=bad-super-call
+            PrestoEngineSpec, cls
+        ).select_star(
             database,
             table_name,
             engine,
