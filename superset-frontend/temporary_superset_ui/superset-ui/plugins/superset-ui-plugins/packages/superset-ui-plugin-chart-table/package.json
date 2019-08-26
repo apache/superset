@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-table",
-  "version": "0.10.46",
+  "version": "0.11.0",
   "description": "Superset Chart - Table",
   "sideEffects": false,
   "main": "lib/index.js",
