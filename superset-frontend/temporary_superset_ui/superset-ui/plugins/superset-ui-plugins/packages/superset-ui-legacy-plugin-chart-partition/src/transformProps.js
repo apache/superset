@@ -18,7 +18,7 @@
  */
 /* eslint-disable sort-keys */
 export default function transformProps(chartProps) {
-  const { width, height, datasource, formData, payload } = chartProps;
+  const { width, height, datasource, formData, queryData } = chartProps;
   const {
     colorScheme,
     dateTimeFormat,
@@ -37,7 +37,7 @@ export default function transformProps(chartProps) {
   return {
     width,
     height,
-    data: payload.data,
+    data: queryData.data,
     colorScheme,
     dateTimeFormat,
     equalDateSize,

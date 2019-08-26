@@ -21,11 +21,11 @@ import { ChartProps } from '@superset-ui/chart';
 import { RawBoxPlotDataRow, BoxPlotDataRow } from '../types';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, datasource = {}, formData, payload } = chartProps;
+  const { width, height, datasource = {}, formData, queryData } = chartProps;
   const { verboseMap = {} } = datasource;
   const { colorScheme, groupby, metrics } = formData;
 
-  const data = (payload.data as RawBoxPlotDataRow[]).map(({ label, values }) => ({
+  const data = (queryData.data as RawBoxPlotDataRow[]).map(({ label, values }) => ({
     label,
     min: values.whisker_low,
     max: values.whisker_high,

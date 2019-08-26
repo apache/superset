@@ -17,9 +17,9 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { height, payload, formData } = chartProps;
+  const { height, queryData, formData } = chartProps;
   const { vizType } = formData;
-  const { theme_css: cssFiles, html } = payload.data;
+  const { theme_css: cssFiles, html } = queryData.data;
 
   return {
     cssFiles,

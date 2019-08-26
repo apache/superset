@@ -10,7 +10,7 @@ export default [
         chartType="v2-box-plot"
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           encoding: {
             x: {
@@ -56,7 +56,7 @@ export default [
         chartType="v2-box-plot"
         width={400}
         height={400}
-        payload={{ data }}
+        queryData={{ data }}
         formData={{
           encoding: {
             y: {

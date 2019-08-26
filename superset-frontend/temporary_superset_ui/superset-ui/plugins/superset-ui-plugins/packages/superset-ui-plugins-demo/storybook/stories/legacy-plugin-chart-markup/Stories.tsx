@@ -8,7 +8,7 @@ export default [
         chartType="markup"
         width={400}
         height={400}
-        payload={{
+        queryData={{
           data: {
             html:
               '<div><b>hello</b> <i>world</i><div><img src="https://avatars3.githubusercontent.com/u/42724554?s=200&v=4" style="width: 80px" />',

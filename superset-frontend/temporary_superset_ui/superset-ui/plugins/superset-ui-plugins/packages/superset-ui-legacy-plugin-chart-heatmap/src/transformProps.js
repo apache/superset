@@ -18,7 +18,7 @@
  */
 /* eslint-disable sort-keys */
 export default function transformProps(chartProps) {
-  const { width, height, formData, payload } = chartProps;
+  const { width, height, formData, queryData } = chartProps;
   const {
     bottomMargin,
     canvasImageRendering,
@@ -42,7 +42,7 @@ export default function transformProps(chartProps) {
   return {
     width,
     height,
-    data: payload.data,
+    data: queryData.data,
     bottomMargin,
     canvasImageRendering,
     colorScheme: linearColorScheme,
