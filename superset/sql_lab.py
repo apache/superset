@@ -79,9 +79,9 @@ def get_query(query_id, session, retry_count=5):
             query = session.query(Query).filter_by(id=query_id).one()
         except Exception:
             attempt += 1
-            logging.error("Query with id `{}` could not be retrieved".format(query_id))
+            logging.error(f"Query with id `{query_id}` could not be retrieved")
             stats_logger.incr("error_attempting_orm_query_" + str(attempt))
-            logging.error("Sleeping for a sec before retrying...")
+            logging.error(f"Query {query_id}: Sleeping for a sec before retrying...")
             sleep(1)
     if not query:
         stats_logger.incr("error_failed_at_getting_orm_query")
@@ -144,7 +144,7 @@ def get_sql_results(
                 start_time=start_time,
             )
         except Exception as e:
-            logging.exception(e)
+            logging.exception(f"Query {query_id}: {e}")
             stats_logger.incr("error_sqllab_unhandled")
             query = get_query(query_id, session)
             return handle_query_error(str(e), query, session)
@@ -152,6 +152,7 @@ def get_sql_results(
 
 def execute_sql_statement(sql_statement, query, user_name, session, cursor):
     """Executes a single SQL statement"""
+    query_id = query.id
     database = query.database
     db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(sql_statement)
@@ -200,26 +201,30 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
             )
         query.executed_sql = sql
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
-            logging.info("Running query: \n{}".format(sql))
+            logging.info(f"Query {query_id}: Running query: \n{sql}")
             db_engine_spec.execute(cursor, sql, async_=True)
-            logging.info("Handling cursor")
+            logging.info(f"Query {query_id}: Handling cursor")
             db_engine_spec.handle_cursor(cursor, query, session)
 
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
-            logging.debug("Fetching data for query object: {}".format(query.to_dict()))
+            logging.debug(
+                "Query {}: Fetching data for query object: {}".format(
+                    query_id, query.to_dict()
+                )
+            )
             data = db_engine_spec.fetch_data(cursor, query.limit)
 
     except SoftTimeLimitExceeded as e:
-        logging.exception(e)
+        logging.exception(f"Query {query_id}: {e}")
         raise SqlLabTimeoutException(
             "SQL Lab timeout. This environment's policy is to kill queries "
             "after {} seconds.".format(SQLLAB_TIMEOUT)
         )
     except Exception as e:
-        logging.exception(e)
+        logging.exception(f"Query {query_id}: {e}")
         raise SqlLabException(db_engine_spec.extract_error_message(e))
 
-    logging.debug("Fetching cursor description")
+    logging.debug(f"Query {query_id}: Fetching cursor description")
     cursor_description = cursor.description
     return dataframe.SupersetDataFrame(data, cursor_description, db_engine_spec)
 
@@ -251,9 +256,9 @@ def execute_sql_statements(
     # Breaking down into multiple statements
     parsed_query = ParsedQuery(rendered_query)
     statements = parsed_query.get_statements()
-    logging.info(f"Executing {len(statements)} statement(s)")
+    logging.info(f"Query {query_id}: Executing {len(statements)} statement(s)")
 
-    logging.info("Set query to 'running'")
+    logging.info(f"Query {query_id}: Set query to 'running'")
     query.status = QueryStatus.RUNNING
     query.start_running_time = now_as_float()
     session.commit()
@@ -277,7 +282,7 @@ def execute_sql_statements(
 
                 # Run statement
                 msg = f"Running statement {i+1} out of {statement_count}"
-                logging.info(msg)
+                logging.info(f"Query {query_id}: {msg}")
                 query.set_extra_json_key("progress", msg)
                 session.commit()
                 try:
@@ -325,7 +330,9 @@ def execute_sql_statements(
 
     if store_results:
         key = str(uuid.uuid4())
-        logging.info(f"Storing results in results backend, key: {key}")
+        logging.info(
+            f"Query {query_id}: Storing results in results backend, key: {key}"
+        )
         with stats_timing("sqllab.query.results_backend_write", stats_logger):
             json_payload = json.dumps(
                 payload, default=json_iso_dttm_ser, ignore_nan=True
