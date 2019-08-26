@@ -16,16 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/chart';
-
 const NOOP = () => {};
 
-export default function transformProps(chartProps: ChartProps) {
+export default function transformProps(chartProps) {
   const {
     datasource,
-    initialValues,
     formData,
     hooks,
+    initialValues,
     queryData,
     rawDatasource,
   } = chartProps;
@@ -42,7 +40,7 @@ export default function transformProps(chartProps: ChartProps) {
   const { verboseMap } = datasource;
   const filterConfigs = formData.filterConfigs || [];
 
-  const filtersFields = filterConfigs.map((flt: {[key: string]: any}) => ({
+  const filtersFields = filterConfigs.map(flt => ({
     ...flt,
     key: flt.column,
     label: flt.label || verboseMap[flt.column] || flt.column,
@@ -51,8 +49,8 @@ export default function transformProps(chartProps: ChartProps) {
   return {
     chartId: sliceId,
     datasource: rawDatasource,
-    filtersFields,
     filtersChoices: queryData.data,
+    filtersFields,
     instantFiltering,
     onChange: onAddFilter,
     origSelectedValues: initialValues || {},

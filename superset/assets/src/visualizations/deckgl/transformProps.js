@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/chart';
-
 const NOOP = () => {};
 
-export default function transformProps(chartProps: ChartProps) {
+export default function transformProps(chartProps) {
   const {
     width,
     height,
