@@ -30,6 +30,6 @@
     "d3-format": "^1.3.2"
   },
   "peerDependencies": {
-    "@superset-ui/core": "^0.11.0"
+    "@superset-ui/core": "^0.12.0"
   }
 }
