@@ -87,8 +87,8 @@ class SqlEditor extends React.PureComponent {
     this.state = {
       autorun: props.queryEditor.autorun,
       ctas: '',
-      northPercent: INITIAL_NORTH_PERCENT,
-      southPercent: INITIAL_SOUTH_PERCENT,
+      northPercent: props.queryEditor.northPercent || INITIAL_NORTH_PERCENT,
+      southPercent: props.queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
       sql: props.queryEditor.sql,
     };
     this.sqlEditorRef = React.createRef();
@@ -143,7 +143,7 @@ class SqlEditor extends React.PureComponent {
 
     if (this.northPaneRef.current && this.northPaneRef.current.clientHeight) {
       this.props.actions.persistEditorHeight(this.props.queryEditor,
-        this.northPaneRef.current.clientHeight);
+        northPercent, southPercent);
     }
   }
   onSqlChanged(sql) {

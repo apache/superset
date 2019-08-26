@@ -15,7 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+from datetime import datetime
 from typing import List
+
+from sqlalchemy.engine.reflection import Inspector
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
@@ -38,7 +41,7 @@ class SqliteEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def epoch_to_dttm(cls):
+    def epoch_to_dttm(cls) -> str:
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
@@ -69,13 +72,13 @@ class SqliteEngineSpec(BaseEngineSpec):
             raise Exception(f"Unsupported datasource_type: {datasource_type}")
 
     @classmethod
-    def convert_dttm(cls, target_type, dttm):
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
         iso = dttm.isoformat().replace("T", " ")
         if "." not in iso:
             iso += ".000000"
         return "'{}'".format(iso)
 
     @classmethod
-    def get_table_names(cls, inspector, schema):
+    def get_table_names(cls, inspector: Inspector, schema: str) -> List[str]:
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())

@@ -301,6 +301,7 @@ class UtilsTestCase(unittest.TestCase):
             "extra_filters": [
                 {"col": "a", "op": "in", "val": "someval"},
                 {"col": "B", "op": "==", "val": ["c1", "c2"]},
+                {"col": "c", "op": "in", "val": ["c1", 1, None]},
             ],
             "adhoc_filters": [
                 {
@@ -316,6 +317,13 @@ class UtilsTestCase(unittest.TestCase):
                     "expressionType": "SIMPLE",
                     "operator": "==",
                     "subject": "B",
+                },
+                {
+                    "clause": "WHERE",
+                    "comparator": ["c1", 1, None],
+                    "expressionType": "SIMPLE",
+                    "operator": "in",
+                    "subject": "c",
                 },
             ],
         }
@@ -334,6 +342,13 @@ class UtilsTestCase(unittest.TestCase):
                     "expressionType": "SIMPLE",
                     "operator": "==",
                     "subject": "B",
+                },
+                {
+                    "clause": "WHERE",
+                    "comparator": ["c1", 1, None],
+                    "expressionType": "SIMPLE",
+                    "operator": "in",
+                    "subject": "c",
                 },
             ]
         }

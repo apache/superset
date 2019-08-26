@@ -20,6 +20,7 @@ import { combineReducers } from 'redux';
 
 import charts from '../../chart/chartReducer';
 import dashboardState from './dashboardState';
+import dashboardFilters from './dashboardFilters';
 import datasources from './datasources';
 import sliceEntities from './sliceEntities';
 import dashboardLayout from '../reducers/undoableDashboardLayout';
@@ -32,6 +33,7 @@ export default combineReducers({
   charts,
   datasources,
   dashboardInfo,
+  dashboardFilters,
   dashboardState,
   dashboardLayout,
   impressionId,

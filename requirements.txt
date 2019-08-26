@@ -38,7 +38,6 @@ geographiclib==1.49       # via geopy
 geopy==1.20.0
 gunicorn==19.8.1
 humanize==0.5.1
-idna==2.8
 isodate==0.6.0
 itsdangerous==1.1.0       # via flask
 jinja2==2.10.1            # via flask, flask-babel

@@ -23,6 +23,7 @@ import { connect } from 'react-redux';
 
 import ComponentLookup from '../components/gridComponents';
 import getDetailedComponentWidth from '../util/getDetailedComponentWidth';
+import { getActiveFilters } from '../util/activeDashboardFilters';
 import { componentShape } from '../util/propShapes';
 import { COLUMN_TYPE, ROW_TYPE } from '../util/componentTypes';
 
@@ -32,7 +33,7 @@ import {
   updateComponents,
   handleComponentDrop,
 } from '../actions/dashboardLayout';
-
+import { setDirectPathToChild } from '../actions/dashboardState';
 import { logEvent } from '../../logger/actions';
 
 const propTypes = {
@@ -62,7 +63,7 @@ function mapStateToProps(
     component,
     parentComponent: dashboardLayout[parentId],
     editMode: dashboardState.editMode,
-    filters: dashboardState.filters,
+    filters: getActiveFilters(),
     directPathToChild: dashboardState.directPathToChild,
   };
 
@@ -91,6 +92,7 @@ function mapDispatchToProps(dispatch) {
       deleteComponent,
       updateComponents,
       handleComponentDrop,
+      setDirectPathToChild,
       logEvent,
     },
     dispatch,
