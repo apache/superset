@@ -2572,8 +2572,8 @@ class Superset(BaseSupersetView):
             )
         except Exception as e:
             return json_error_response(
-                "Template rendering failed: {}".format(
-                    utils.error_msg_from_exception(e)
+                "Query {}: Template rendering failed: {}".format(
+                    query_id, utils.error_msg_from_exception(e)
                 )
             )
 
@@ -2583,7 +2583,7 @@ class Superset(BaseSupersetView):
 
         # Async request.
         if async_:
-            logging.info("Running query on a Celery worker")
+            logging.info(f"Query {query_id}: Running query on a Celery worker")
             # Ignore the celery future object and the request may time out.
             try:
                 sql_lab.get_sql_results.delay(
@@ -2595,7 +2595,7 @@ class Superset(BaseSupersetView):
                     start_time=now_as_float(),
                 )
             except Exception as e:
-                logging.exception(e)
+                logging.exception(f"Query {query_id}: {e}")
                 msg = _(
                     "Failed to start remote query on a worker. "
                     "Tell your administrator to verify the availability of "
@@ -2637,7 +2637,7 @@ class Superset(BaseSupersetView):
                 encoding=None,
             )
         except Exception as e:
-            logging.exception(e)
+            logging.exception(f"Query {query_id}: {e}")
             return json_error_response("{}".format(e))
         if data.get("status") == QueryStatus.FAILED:
             return json_error_response(payload=data)
