@@ -1,3 +1,26 @@
+## [0.12.2](https://github.com/apache-superset/superset-ui/compare/v0.12.1...v0.12.2) (2019-08-26)
+
+
+### Bug Fixes
+
+* remove is_prequery and prequeries ([#208](https://github.com/apache-superset/superset-ui/issues/208)) ([ddaf104](https://github.com/apache-superset/superset-ui/commit/ddaf104))
+
+
+
+## [0.12.1](https://github.com/apache-superset/superset-ui/compare/v0.12.0...v0.12.1) (2019-08-26)
+
+
+### Bug Fixes
+
+* peerDependencies version ([#210](https://github.com/apache-superset/superset-ui/issues/210)) ([4d79dff](https://github.com/apache-superset/superset-ui/commit/4d79dff))
+
+
+### Features
+
+* add duration formatter ([#209](https://github.com/apache-superset/superset-ui/issues/209)) ([dcf89a2](https://github.com/apache-superset/superset-ui/commit/dcf89a2))
+
+
+
 # [0.12.0](https://github.com/apache-superset/superset-ui/compare/v0.11.15...v0.12.0) (2019-08-23)
 
 
