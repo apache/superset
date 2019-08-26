@@ -253,8 +253,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         last_log_line = 0
         tracking_url = None
         job_id = None
+        query_id = query.id
         while polled.operationState in unfinished_states:
-            query = session.query(type(query)).filter_by(id=query.id).one()
+            query = session.query(type(query)).filter_by(id=query_id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
                 break
@@ -263,7 +264,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             if log:
                 log_lines = log.splitlines()
                 progress = cls.progress(log_lines)
-                logging.info("Progress total: {}".format(progress))
+                logging.info(f"Query {query_id}: Progress total: {progress}")
                 needs_commit = False
                 if progress > query.progress:
                     query.progress = progress
@@ -272,18 +273,22 @@ class HiveEngineSpec(PrestoEngineSpec):
                     tracking_url = cls.get_tracking_url(log_lines)
                     if tracking_url:
                         job_id = tracking_url.split("/")[-2]
-                        logging.info("Found the tracking url: {}".format(tracking_url))
+                        logging.info(
+                            f"Query {query_id}: Found the tracking url: {tracking_url}"
+                        )
                         tracking_url = tracking_url_trans(tracking_url)
-                        logging.info("Transformation applied: {}".format(tracking_url))
+                        logging.info(
+                            f"Query {query_id}: Transformation applied: {tracking_url}"
+                        )
                         query.tracking_url = tracking_url
-                        logging.info("Job id: {}".format(job_id))
+                        logging.info(f"Query {query_id}: Job id: {job_id}")
                         needs_commit = True
                 if job_id and len(log_lines) > last_log_line:
                     # Wait for job id before logging things out
                     # this allows for prefixing all log lines and becoming
                     # searchable in something like Kibana
                     for l in log_lines[last_log_line:]:
-                        logging.info("[{}] {}".format(job_id, l))
+                        logging.info(f"Query {query_id}: [{job_id}] {l}")
                     last_log_line = len(log_lines)
                 if needs_commit:
                     session.commit()
