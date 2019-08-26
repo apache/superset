@@ -1,5 +1,6 @@
 import {
   createD3NumberFormatter,
+  createDurationFormatter,
   createSiAtMostNDigitFormatter,
   formatNumber,
   getNumberFormatter,
@@ -13,6 +14,7 @@ describe('index', () => {
   it('exports modules', () => {
     [
       createD3NumberFormatter,
+      createDurationFormatter,
       createSiAtMostNDigitFormatter,
       formatNumber,
       getNumberFormatter,
