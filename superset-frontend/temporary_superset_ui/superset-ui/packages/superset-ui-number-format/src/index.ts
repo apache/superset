@@ -8,6 +8,7 @@ export {
 } from './NumberFormatterRegistrySingleton';
 
 export { default as createD3NumberFormatter } from './factories/createD3NumberFormatter';
+export { default as createDurationFormatter } from './factories/createDurationFormatter';
 export {
   default as createSiAtMostNDigitFormatter,
 } from './factories/createSiAtMostNDigitFormatter';
