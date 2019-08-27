@@ -16,6 +16,7 @@
 # under the License.
 [tool.poetry]
 name = "apache-superset"
+# TODO How to load from package.json
 version = "0.1.1"
 description = "A modern, enterprise-ready business intelligence web application"
 
@@ -27,6 +28,44 @@ readme = 'README.md'  # Markdown files are supported
 
 repository = "https://github.com/apache/incubator-superset"
 homepage = "https://superset.apache.org/"
+
+#include NOTICE
+#include LICENSE.txt
+#graft licenses/
+#include README.md
+#recursive-include superset/examples *
+#recursive-include superset/migrations *
+#
+## Whitelist anything that needs to be added to the static bundle
+#recursive-exclude superset/static *
+#recursive-include superset/static/assets/branding *
+#recursive-include superset/static/assets/dist *
+#recursive-include superset/static/assets/images *
+#recursive-exclude superset/static/images/viz_thumbnails_large *
+#recursive-include superset/static/assets/stylesheets *
+#
+#recursive-include superset/templates *
+#recursive-include superset/translations *
+#recursive-exclude tests *
+
+exclude = [
+    "superset/assets/*",
+    "superset/assets/.*",
+    "superset/assets/**/.*",
+    "superset/assets/[!(branding),!(dist*)]*/**",
+]
+
+include = [
+    "NOTICE",
+    "LICENSE.txt",
+    "README.md",
+    "licenses/**",
+    "superset/examples/**",
+    "superset/migrations/**",
+    "superset/templates/**",
+    "superset/translations/**",
+]
+
 packages = [
      { include = "superset" }
 ]
