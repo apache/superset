@@ -66,12 +66,10 @@ Start with Docker
 If you know docker, then you're lucky, we have shortcut road for you to
 initialize development environment: ::
 
-    git clone https://github.com/apache/incubator-superset/
-    cd incubator-superset/contrib/docker
-    # prefix with SUPERSET_LOAD_EXAMPLES=yes to load examples:
-    docker-compose run --rm superset ./docker-init.sh
-    # you can run this command everytime you need to start superset now:
-    docker-compose up
+    # Download and start container
+    docker run --detach --name superset amancevice/superset
+    # Database Initialization, will prompt you to create admin user
+    docker exec -it superset superset-init
 
 After several minutes for superset initialization to finish, you can open
 a browser and view `http://localhost:8088` to start your journey.
