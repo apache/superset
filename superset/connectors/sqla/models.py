@@ -18,6 +18,7 @@
 from collections import OrderedDict
 from datetime import datetime
 import logging
+import re
 from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 from flask import escape, Markup
@@ -1064,9 +1065,36 @@ class SqlaTable(Model, BaseDatasource):
     def default_query(qry):
         return qry.filter_by(is_sqllab_view=False)
 
+    def has_extra_cache_keys(self, query_obj: Dict) -> bool:
+        """
+        Detects the presence of calls to cache_key_wrapper in items in query_obj that can
+        be templated.
+
+        :param query_obj: query object to analyze
+        :return: True if at least one item calls cache_key_wrapper, otherwise False
+        """
+        regex = re.compile(r"\{\{.*cache_key_wrapper\(.*\).*\}\}")
+        templatable_statements: List[str] = []
+        if self.sql:
+            templatable_statements.append(self.sql)
+        if self.fetch_values_predicate:
+            templatable_statements.append(self.fetch_values_predicate)
+        extras = query_obj.get("extras", {})
+        if "where" in extras:
+            templatable_statements.append(extras["where"])
+        if "having" in extras:
+            templatable_statements.append(extras["having"])
+        for statement in templatable_statements:
+            if regex.search(statement):
+                return True
+        return False
+
     def get_extra_cache_keys(self, query_obj: Dict) -> List[Any]:
-        sqla_query = self.get_sqla_query(**query_obj)
-        return sqla_query.extra_cache_keys
+        if self.has_extra_cache_keys(query_obj):
+            sqla_query = self.get_sqla_query(**query_obj)
+            extra_cache_keys = sqla_query.extra_cache_keys
+            return extra_cache_keys
+        return []
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
