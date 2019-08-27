@@ -19,9 +19,15 @@
 /* eslint no-unused-expressions: 0 */
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
+import configureMockStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import shortid from 'shortid';
 
 import * as actions from '../../../../src/SqlLab/actions/sqlLab';
-import { query } from '../fixtures';
+import { defaultQueryEditor, query } from '../fixtures';
+
+const middlewares = [thunk];
+const mockStore = configureMockStore(middlewares);
 
 describe('async actions', () => {
   const mockBigNumber = '9223372036854775807';
@@ -40,17 +46,16 @@ describe('async actions', () => {
 
     it('posts to the correct url', () => {
       expect.assertions(1);
-      const thunk = actions.saveQuery(query);
 
-      return thunk((/* mockDispatch */) => ({})).then(() => {
+      const store = mockStore({});
+      return store.dispatch(actions.saveQuery(query)).then(() => {
         expect(fetchMock.calls(saveQueryEndpoint)).toHaveLength(1);
       });
     });
 
     it('posts the correct query object', () => {
-      const thunk = actions.saveQuery(query);
-
-      return thunk((/* mockDispatch */) => ({})).then(() => {
+      const store = mockStore({});
+      return store.dispatch(actions.saveQuery(query)).then(() => {
         const call = fetchMock.calls(saveQueryEndpoint)[0];
         const formData = call[1].body;
         Object.keys(query).forEach((key) => {
@@ -152,12 +157,15 @@ describe('async actions', () => {
       }));
 
     it('calls querySuccess on fetch success', () => {
-      expect.assertions(3);
+      expect.assertions(1);
 
-      return makeRequest().then(() => {
-        expect(dispatch.callCount).toBe(2);
-        expect(dispatch.getCall(0).args[0].type).toBe(actions.START_QUERY);
-        expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_SUCCESS);
+      const store = mockStore({});
+      const expectedActionTypes = [
+        actions.START_QUERY,
+        actions.QUERY_SUCCESS,
+      ];
+      return store.dispatch(actions.runQuery(query)).then(() => {
+        expect(store.getActions().map(a => a.type)).toEqual(expectedActionTypes);
       });
     });
 
@@ -209,6 +217,64 @@ describe('async actions', () => {
       return makeRequest().then(() => {
         const call = fetchMock.calls(stopQueryEndpoint)[0];
         expect(call[1].body.get('client_id')).toBe(query.id);
+      });
+    });
+  });
+
+  describe('cloneQueryToNewTab', () => {
+    it('creates new query editor', () => {
+      expect.assertions(1);
+
+      const id = 'id';
+      const state = {
+        tabHistory: [id],
+        queryEditors: [{ id, title: 'Dummy query editor' }],
+      };
+      const store = mockStore(state);
+      const expected = {
+        type: actions.ADD_QUERY_EDITOR,
+        queryEditor: {
+          title: 'Copy of Dummy query editor',
+          dbId: 1,
+          schema: null,
+          autorun: true,
+          sql: 'SELECT * FROM something',
+          queryLimit: undefined,
+          maxRow: undefined,
+        },
+      };
+      expect(store.dispatch(actions.cloneQueryToNewTab(query))).toEqual(expected);
+    });
+  });
+
+  describe('addQueryEditor', () => {
+    let stub;
+    beforeEach(() => {
+      stub = sinon.stub(shortid, 'generate').returns('abcd');
+    });
+    afterEach(() => {
+      stub.restore();
+    });
+
+    it('creates new query editor', () => {
+      expect.assertions(1);
+
+      const store = mockStore({});
+      const expectedActions = [{
+        type: actions.ADD_QUERY_EDITOR,
+        queryEditor: {
+          id: 'abcd',
+          autorun: false,
+          dbId: null,
+          latestQueryId: null,
+          selectedText: null,
+          sql: 'SELECT *\nFROM\nWHERE',
+          title: 'Untitled Query',
+          schemaOptions: [{ value: 'main', label: 'main', title: 'main' }],
+        },
+      }];
+      return store.dispatch(actions.addQueryEditor(defaultQueryEditor)).then(() => {
+        expect(store.getActions()).toEqual(expectedActions);
       });
     });
   });

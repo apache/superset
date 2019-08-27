@@ -207,8 +207,9 @@ export function startQuery(query) {
 }
 
 export function querySuccess(query, results) {
-  // table preview queries have `sqlEditorId` set to the string 'null'
-  if (results.query.sqlEditorId === 'null') {
+  // table preview queries have `sqlEditorId` set to the string 'null'; those
+  // shouldn't be synced to the tab state view
+  if (results.query && results.query.sqlEditorId === 'null') {
     return { type: QUERY_SUCCESS, query, results };
   }
 
@@ -424,7 +425,20 @@ export function addQueryEditor(queryEditor) {
 }
 
 export function cloneQueryToNewTab(query) {
-  return { type: CLONE_QUERY_TO_NEW_TAB, query };
+  return function (dispatch, getState) {
+    const { queryEditors, tabHistory } = getState();
+    const progenitor = queryEditors.find(qe => qe.id === tabHistory[tabHistory.length - 1]);
+    const queryEditor = {
+      title: t('Copy of %s', progenitor.title),
+      dbId: query.dbId ? query.dbId : null,
+      schema: query.schema ? query.schema : null,
+      autorun: true,
+      sql: query.sql,
+      queryLimit: query.queryLimit,
+      maxRow: query.maxRow,
+    };
+    return dispatch({ type: ADD_QUERY_EDITOR, queryEditor });
+  };
 }
 
 export function setActiveQueryEditor(queryEditor) {

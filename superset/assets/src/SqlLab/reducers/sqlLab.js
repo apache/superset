@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-
 import getInitialState from './getInitialState';
 import * as actions from '../actions/sqlLab';
 import { now } from '../../modules/dates';
@@ -66,7 +64,6 @@ export default function sqlLabReducer(state = {}, action) {
         queryLimit: action.query.queryLimit,
         maxRow: action.query.maxRow,
       };
-
       return sqlLabReducer(state, actions.addQueryEditor(qe));
     },
     [actions.REMOVE_QUERY_EDITOR]() {
