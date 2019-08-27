@@ -111,13 +111,7 @@ SHOW_STACKTRACE = True
 
 # Extract and use X-Forwarded-For/X-Forwarded-Proto headers?
 ENABLE_PROXY_FIX = False
-PROXY_FIX_CONFIG = {
-    "x_for": 1,
-    "x_proto": 0,
-    "x_host": 1,
-    "x_port": 0,
-    "x_prefix": 0,
-}
+PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
 
 # ------------------------------
 # GLOBALS FOR APP Builder
