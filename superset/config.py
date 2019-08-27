@@ -34,6 +34,7 @@ from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
 from superset.stats_logger import DummyStatsLogger
+from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -317,6 +318,9 @@ ADDITIONAL_MIDDLEWARE = []
 
 # 1) https://docs.python-guide.org/writing/logging/
 # 2) https://docs.python.org/2/library/logging.config.html
+
+# Default configurator will consume the LOG_* settings below
+LOGGING_CONFIGURATOR = DefaultLoggingConfigurator()
 
 # Console Log Settings
 
