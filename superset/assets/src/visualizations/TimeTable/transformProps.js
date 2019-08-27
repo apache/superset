@@ -17,14 +17,14 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { height, datasource, formData, payload } = chartProps;
+  const { height, datasource, formData, queryData } = chartProps;
   const {
     columnCollection = [],
     groupby,
     metrics,
     url,
   } = formData;
-  const { records, columns } = payload.data;
+  const { records, columns } = queryData.data;
   const isGroupBy = groupby.length > 0;
 
   // When there is a "group by",
