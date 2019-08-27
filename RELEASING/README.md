@@ -61,12 +61,6 @@ Now let's craft a source release
     # Let's create a git tag
     git tag -f ${VERSION}
 
-    # [WARNING!] This command wipes everything in your repo that is
-    # gitignored in preparation for the source release.
-    # You may want to check that there's nothing your care about here first.
-    # Alternatively you could clone the repo into another location as in
-    # git clone git@github.com:apache/incubator-superset.git superset-releases
-    git clean -fxd
     # Create the target folder
     mkdir -p ~/svn/superset_dev/${VERSION}/
     git archive \

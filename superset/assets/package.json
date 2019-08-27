@@ -189,7 +189,6 @@
     "fetch-mock": "^7.0.0-alpha.6",
     "file-loader": "^1.1.11",
     "fork-ts-checker-webpack-plugin": "^0.4.9",
-    "fsevents": "^2.0.7",
     "ignore-styles": "^5.0.1",
     "imports-loader": "^0.7.1",
     "jest": "^24.8.0",
@@ -221,5 +220,8 @@
     "webpack-cli": "^3.1.1",
     "webpack-dev-server": "^3.1.14",
     "webpack-sources": "^1.1.0"
+  },
+  "optionalDependencies": {
+    "fsevents": "^2.0.7"
   }
 }
