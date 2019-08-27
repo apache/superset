@@ -104,7 +104,8 @@ class SqlEditor extends React.PureComponent {
     this.runQuery = this.runQuery.bind(this);
     this.stopQuery = this.stopQuery.bind(this);
     this.onSqlChanged = this.onSqlChanged.bind(this);
-    this.setQueryEditorSql = debounce(
+    this.setQueryEditorSql = this.setQueryEditorSql.bind(this);
+    this.setQueryEditorSqlWithDebounce = debounce(
       this.setQueryEditorSql.bind(this),
       SET_QUERY_EDITOR_SQL_MS,
     );
@@ -155,7 +156,7 @@ class SqlEditor extends React.PureComponent {
   }
   onSqlChanged(sql) {
     this.setState({ sql });
-    this.setQueryEditorSql(sql);
+    this.setQueryEditorSqlWithDebounce(sql);
     // Request server-side validation of the query text
     if (this.canValidateQuery()) {
       // NB. requestValidation is debounced
