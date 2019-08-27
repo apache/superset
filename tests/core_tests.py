@@ -39,6 +39,7 @@ from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
+from superset.views import core as views
 from superset.views.database.views import DatabaseView
 from .base_tests import SupersetTestCase
 from .fixtures.pyodbcRow import Row
@@ -775,6 +776,98 @@ class CoreTests(SupersetTestCase):
         examples_db = utils.get_example_database()
         resp = self.get_resp(f"/superset/select_star/{examples_db.id}/birth_names")
         self.assertIn("gender", resp)
+
+    def test_results_default_deserialization(self):
+        use_new_deserialization = False
+        data = [("a", 4, 4.0, "2019-08-18T16:39:16.660000")]
+        cursor_descr = (
+            ("a", "string"),
+            ("b", "int"),
+            ("c", "float"),
+            ("d", "datetime"),
+        )
+        db_engine_spec = BaseEngineSpec()
+        cdf = dataframe.SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        query = {
+            "database_id": 1,
+            "sql": "SELECT * FROM birth_names LIMIT 100",
+            "status": utils.QueryStatus.PENDING,
+        }
+        serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
+            cdf, db_engine_spec, use_new_deserialization
+        )
+        payload = {
+            "query_id": 1,
+            "status": utils.QueryStatus.SUCCESS,
+            "state": utils.QueryStatus.SUCCESS,
+            "data": serialized_data,
+            "columns": all_columns,
+            "selected_columns": selected_columns,
+            "expanded_columns": expanded_columns,
+            "query": query,
+        }
+
+        serialized_payload = sql_lab._serialize_payload(
+            payload, use_new_deserialization
+        )
+        self.assertIsInstance(serialized_payload, str)
+
+        query_mock = mock.Mock()
+        deserialized_payload = views._deserialize_results_payload(
+            serialized_payload, query_mock, use_new_deserialization
+        )
+
+        self.assertDictEqual(deserialized_payload, payload)
+        query_mock.assert_not_called()
+
+    def test_results_msgpack_deserialization(self):
+        use_new_deserialization = True
+        data = [("a", 4, 4.0, "2019-08-18T16:39:16.660000")]
+        cursor_descr = (
+            ("a", "string"),
+            ("b", "int"),
+            ("c", "float"),
+            ("d", "datetime"),
+        )
+        db_engine_spec = BaseEngineSpec()
+        cdf = dataframe.SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        query = {
+            "database_id": 1,
+            "sql": "SELECT * FROM birth_names LIMIT 100",
+            "status": utils.QueryStatus.PENDING,
+        }
+        serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
+            cdf, db_engine_spec, use_new_deserialization
+        )
+        payload = {
+            "query_id": 1,
+            "status": utils.QueryStatus.SUCCESS,
+            "state": utils.QueryStatus.SUCCESS,
+            "data": serialized_data,
+            "columns": all_columns,
+            "selected_columns": selected_columns,
+            "expanded_columns": expanded_columns,
+            "query": query,
+        }
+
+        serialized_payload = sql_lab._serialize_payload(
+            payload, use_new_deserialization
+        )
+        self.assertIsInstance(serialized_payload, bytes)
+
+        with mock.patch.object(
+            db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
+        ) as expand_data:
+            query_mock = mock.Mock()
+            query_mock.database.db_engine_spec.expand_data = expand_data
+
+            deserialized_payload = views._deserialize_results_payload(
+                serialized_payload, query_mock, use_new_deserialization
+            )
+            payload["data"] = dataframe.SupersetDataFrame.format_data(cdf.raw_df)
+
+            self.assertDictEqual(deserialized_payload, payload)
+            expand_data.assert_called_once()
 
 
 if __name__ == "__main__":

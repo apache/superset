@@ -23,6 +23,12 @@ assists people when migrating to a new version.
 
 ## Next Version
 
+* [8069](https://github.com/apache/incubator-superset/pull/8069): introduces
+[MessagePack](https://github.com/msgpack/msgpack-python) and
+[PyArrow](https://arrow.apache.org/docs/python/) for async query results
+backend serialization. To disable set `RESULTS_BACKEND_USE_MSGPACK = False`
+in your configuration.
+
 * [7848](https://github.com/apache/incubator-superset/pull/7848): If you are 
 running redis with celery, celery bump to 4.3.0 requires redis-py upgrade to
 3.2.0 or later.

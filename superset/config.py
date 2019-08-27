@@ -440,6 +440,12 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 # in SQL Lab by using the "Run Async" button/feature
 RESULTS_BACKEND = None
 
+# Use PyArrow and MessagePack for async query results serialization,
+# rather than JSON. This feature requires additional testing from the
+# community before it is fully adopted, so this config option is provided
+# in order to disable should breaking issues be discovered.
+RESULTS_BACKEND_USE_MSGPACK = True
+
 # The S3 bucket where you want to store your external hive tables created
 # from CSV files. For example, 'companyname-superset'
 CSV_TO_HIVE_UPLOAD_S3_BUCKET = None

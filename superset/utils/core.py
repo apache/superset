@@ -33,7 +33,7 @@ import smtplib
 import sys
 from time import struct_time
 import traceback
-from typing import List, NamedTuple, Optional, Tuple
+from typing import List, NamedTuple, Optional, Tuple, Union
 from urllib.parse import unquote_plus
 import uuid
 import zlib
@@ -803,12 +803,12 @@ def zlib_compress(data):
     return zlib.compress(data)
 
 
-def zlib_decompress_to_string(blob):
+def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, str]:
     """
     Decompress things to a string in a py2/3 safe fashion
     >>> json_str = '{"test": 1}'
     >>> blob = zlib_compress(json_str)
-    >>> got_str = zlib_decompress_to_string(blob)
+    >>> got_str = zlib_decompress(blob)
     >>> got_str == json_str
     True
     """
@@ -817,7 +817,7 @@ def zlib_decompress_to_string(blob):
             decompressed = zlib.decompress(blob)
         else:
             decompressed = zlib.decompress(bytes(blob, "utf-8"))
-        return decompressed.decode("utf-8")
+        return decompressed.decode("utf-8") if decode else decompressed
     return zlib.decompress(blob)
 
 
