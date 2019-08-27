@@ -193,6 +193,7 @@ with app.app_context():
 security_manager = appbuilder.sm
 
 results_backend = app.config.get("RESULTS_BACKEND")
+results_backend_use_msgpack = app.config.get("RESULTS_BACKEND_USE_MSGPACK")
 
 # Merge user defined feature flags with default feature flags
 _feature_flags = app.config.get("DEFAULT_FEATURE_FLAGS") or {}
