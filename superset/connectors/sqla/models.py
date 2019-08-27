@@ -1075,11 +1075,15 @@ class SqlaTable(Model, BaseDatasource):
         """
         regex = re.compile(r"\{\{.*cache_key_wrapper\(.*\).*\}\}")
         templatable_statements: List[str] = []
-        templatable_statements.append(self.sql)
-        templatable_statements.append(self.fetch_values_predicate)
+        if self.sql:
+            templatable_statements.append(self.sql)
+        if self.fetch_values_predicate:
+            templatable_statements.append(self.fetch_values_predicate)
         extras = query_obj.get("extras", {})
-        templatable_statements.append(extras.get("where", ""))
-        templatable_statements.append(extras.get("having", ""))
+        if "where" in extras:
+            templatable_statements.append(extras["where"])
+        if "having" in extras:
+            templatable_statements.append(extras["having"])
         for statement in templatable_statements:
             if regex.search(statement):
                 return True
