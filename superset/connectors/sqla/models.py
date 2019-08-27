@@ -1090,11 +1090,11 @@ class SqlaTable(Model, BaseDatasource):
         return False
 
     def get_extra_cache_keys(self, query_obj: Dict) -> List[Any]:
-        extra_cache_keys = []
         if self.has_extra_cache_keys(query_obj):
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys = sqla_query.extra_cache_keys
-        return extra_cache_keys
+            return extra_cache_keys
+        return []
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
