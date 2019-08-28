@@ -51,8 +51,12 @@ homepage = "https://superset.apache.org/"
 exclude = [
     "superset/assets/*",
     "superset/assets/.*",
+    "superset/assets/**/*",
     "superset/assets/**/.*",
-    "superset/assets/[!(branding),!(dist*)]*/**",
+    "superset/assets/**/.*/*",
+    "superset/assets/**/.*/**/*",
+    "superset/assets/**/.*/**/.*",
+    "tests/**"
 ]
 
 include = [
@@ -64,6 +68,11 @@ include = [
     "superset/migrations/**",
     "superset/templates/**",
     "superset/translations/**",
+    "superset/assets/branding/**",
+    "superset/assets/dist/**",
+    "superset/assets/images/**",
+    "superset/static/images/viz_thumbnails_large/**",
+    "superset/assets/stylesheets/**",
 ]
 
 packages = [
