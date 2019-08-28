@@ -16,14 +16,15 @@
 # under the License.
 # pylint: disable=C,R,W
 import json
-from typing import Any, List
+from typing import Any, Dict, List, Optional
 
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import foreign, relationship
+from sqlalchemy.orm import foreign, Query, relationship
 
 from superset.models.core import Slice
-from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.utils import core as utils
 
 
@@ -59,9 +60,9 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     params = Column(String(1000))
     perm = Column(String(1000))
 
-    sql = None
-    owners = None
-    update_from_object_fields = None
+    sql: Optional[str] = None
+    owners: List[User]
+    update_from_object_fields: List[str]
 
     @declared_attr
     def slices(self):
@@ -79,20 +80,20 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     metrics: List[Any] = []
 
     @property
-    def uid(self):
+    def uid(self) -> str:
         """Unique id across datasource types"""
         return f"{self.id}__{self.type}"
 
     @property
-    def column_names(self):
+    def column_names(self) -> List[str]:
         return sorted([c.column_name for c in self.columns], key=lambda x: x or "")
 
     @property
-    def columns_types(self):
+    def columns_types(self) -> Dict:
         return {c.column_name: c.type for c in self.columns}
 
     @property
-    def main_dttm_col(self):
+    def main_dttm_col(self) -> str:
         return "timestamp"
 
     @property
@@ -100,47 +101,47 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         raise NotImplementedError()
 
     @property
-    def connection(self):
+    def connection(self) -> Optional[str]:
         """String representing the context of the Datasource"""
         return None
 
     @property
-    def schema(self):
+    def schema(self) -> Optional[str]:
         """String representing the schema of the Datasource (if it applies)"""
         return None
 
     @property
-    def filterable_column_names(self):
+    def filterable_column_names(self) -> List[str]:
         return sorted([c.column_name for c in self.columns if c.filterable])
 
     @property
-    def dttm_cols(self):
+    def dttm_cols(self) -> List:
         return []
 
     @property
-    def url(self):
+    def url(self) -> str:
         return "/{}/edit/{}".format(self.baselink, self.id)
 
     @property
-    def explore_url(self):
+    def explore_url(self) -> str:
         if self.default_endpoint:
             return self.default_endpoint
         else:
             return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
 
     @property
-    def column_formats(self):
+    def column_formats(self) -> Dict[str, Optional[str]]:
         return {m.metric_name: m.d3format for m in self.metrics if m.d3format}
 
-    def add_missing_metrics(self, metrics):
-        exisiting_metrics = {m.metric_name for m in self.metrics}
+    def add_missing_metrics(self, metrics: List["BaseMetric"]) -> None:
+        existing_metrics = {m.metric_name for m in self.metrics}
         for metric in metrics:
-            if metric.metric_name not in exisiting_metrics:
+            if metric.metric_name not in existing_metrics:
                 metric.table_id = self.id
-                self.metrics += [metric]
+                self.metrics.append(metric)
 
     @property
-    def short_data(self):
+    def short_data(self) -> Dict[str, Any]:
         """Data representation of the datasource sent to the frontend"""
         return {
             "edit_url": self.url,
@@ -158,7 +159,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         pass
 
     @property
-    def data(self):
+    def data(self) -> Dict[str, Any]:
         """Data representation of the datasource sent to the frontend"""
         order_by_choices = []
         # self.column_names return sorted column_names
@@ -239,14 +240,14 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         """Returns column information from the external system"""
         raise NotImplementedError()
 
-    def get_query_str(self, query_obj):
+    def get_query_str(self, query_obj) -> str:
         """Returns a query as a string
 
         This is used to be displayed to the user so that she/he can
         understand what is taking place behind the scene"""
         raise NotImplementedError()
 
-    def query(self, query_obj):
+    def query(self, query_obj) -> QueryResult:
         """Executes the query and returns a dataframe
 
         query_obj is a dictionary representing Superset's query interface.
@@ -254,7 +255,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         """
         raise NotImplementedError()
 
-    def values_for_column(self, column_name, limit=10000):
+    def values_for_column(self, column_name: str, limit: int = 10000) -> List:
         """Given a column, returns an iterable of distinct values
 
         This is used to populate the dropdown showing a list of
@@ -262,13 +263,14 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         raise NotImplementedError()
 
     @staticmethod
-    def default_query(qry):
+    def default_query(qry) -> Query:
         return qry
 
-    def get_column(self, column_name):
+    def get_column(self, column_name: str) -> Optional["BaseColumn"]:
         for col in self.columns:
             if col.column_name == column_name:
                 return col
+        return None
 
     def get_fk_many_from_list(self, object_list, fkmany, fkmany_class, key_attr):
         """Update ORM one-to-many list from object list
@@ -276,10 +278,9 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         Used for syncing metrics and columns using the same code"""
 
         object_dict = {o.get(key_attr): o for o in object_list}
-        object_keys = [o.get(key_attr) for o in object_list]
 
         # delete fks that have been removed
-        fkmany = [o for o in fkmany if getattr(o, key_attr) in object_keys]
+        fkmany = [o for o in fkmany if getattr(o, key_attr) in object_dict]
 
         # sync existing fks
         for fk in fkmany:
@@ -303,7 +304,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         fkmany += new_fks
         return fkmany
 
-    def update_from_object(self, obj):
+    def update_from_object(self, obj) -> None:
         """Update datasource from a data structure
 
         The UI's table editor crafts a complex data structure that
@@ -330,7 +331,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             obj.get("columns"), self.columns, self.column_class, "column_name"
         )
 
-    def get_extra_cache_keys(self, query_obj) -> List[Any]:
+    def get_extra_cache_keys(self, query_obj: Dict) -> List[Any]:
         """ If a datasource needs to provide additional keys for calculation of
         cache keys, those can be provided via this method
         """
@@ -374,23 +375,23 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     str_types = ("VARCHAR", "STRING", "CHAR")
 
     @property
-    def is_num(self):
-        return self.type and any([t in self.type.upper() for t in self.num_types])
+    def is_num(self) -> bool:
+        return self.type and any(map(lambda t: t in self.type.upper(), self.num_types))
 
     @property
-    def is_time(self):
-        return self.type and any([t in self.type.upper() for t in self.date_types])
+    def is_time(self) -> bool:
+        return self.type and any(map(lambda t: t in self.type.upper(), self.date_types))
 
     @property
-    def is_string(self):
-        return self.type and any([t in self.type.upper() for t in self.str_types])
+    def is_string(self) -> bool:
+        return self.type and any(map(lambda t: t in self.type.upper(), self.str_types))
 
     @property
     def expression(self):
         raise NotImplementedError()
 
     @property
-    def data(self):
+    def data(self) -> Dict[str, Any]:
         attrs = (
             "id",
             "column_name",
@@ -443,7 +444,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
         raise NotImplementedError()
 
     @property
-    def data(self):
+    def data(self) -> Dict[str, Any]:
         attrs = (
             "id",
             "metric_name",
