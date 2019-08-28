@@ -1,4 +1,4 @@
-import createFormatterFromFieldTypeAndFormat from '../../src/parsers/createFormatterFromFieldTypeAndFormat';
+import createFormatterFromFieldTypeAndFormat from '../../../src/parsers/format/createFormatterFromFieldTypeAndFormat';
 
 describe('createFormatterFromFieldTypeAndFormat(type, format)', () => {
   it('handles quantitative field type', () => {

@@ -1,4 +1,4 @@
-import fallbackFormatter from '../../src/parsers/fallbackFormatter';
+import fallbackFormatter from '../../../src/parsers/format/fallbackFormatter';
 
 describe('fallbackFormatter(v: any)', () => {
   it('handles primitive types', () => {
