@@ -34,8 +34,8 @@ describe('getFormDataWithExtraFilters', () => {
       },
     },
     dashboardMetadata: {
-      filter_immune_slices: [],
-      filter_immune_slice_fields: {},
+      filterImmuneSlices: [],
+      filterImmuneSliceFields: {},
     },
     filters: {
       filterId: {
@@ -65,7 +65,7 @@ describe('getFormDataWithExtraFilters', () => {
     const result = getFormDataWithExtraFilters({
       ...mockArgs,
       dashboardMetadata: {
-        filter_immune_slices: [chartId],
+        filterImmuneSlices: [chartId],
       },
     });
     expect(result.extra_filters).toHaveLength(0);
@@ -75,7 +75,7 @@ describe('getFormDataWithExtraFilters', () => {
     const result = getFormDataWithExtraFilters({
       ...mockArgs,
       dashboardMetadata: {
-        filter_immune_slice_fields: {
+        filterImmuneSliceFields: {
           [chartId]: ['region'],
         },
       },

@@ -82,9 +82,9 @@ setup(
         "geopy",
         "gunicorn<19.9.0",  # deprecated
         "humanize",
-        "idna",
         "isodate",
         "markdown>=3.0",
+        "msgpack>=0.6.1, <0.7.0",
         "pandas>=0.24.2, <0.25.0",
         "parsedatetime",
         "pathlib2",
@@ -92,6 +92,7 @@ setup(
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
+        "pyarrow>=0.14.1, <0.15.0",
         "pyyaml>=5.1",
         "retry>=0.9.2",
         "selenium>=3.141.0",

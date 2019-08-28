@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/translation';
 import {
   getControlConfig,
   getControlState,
-  getControlKeys,
   applyMapStateToPropsToControl,
 } from '../../../src/explore/controlUtils';
 
@@ -42,6 +42,7 @@ describe('controlUtils', () => {
       expect(spatialControl.type).toEqual('SpatialControl');
       expect(spatialControl.validators).toHaveLength(1);
     });
+
     it('overrides according to vizType', () => {
       let control = getControlConfig('metric', 'line');
       expect(control.type).toEqual('MetricsControl');
@@ -52,39 +53,20 @@ describe('controlUtils', () => {
       expect(control.type).toEqual('MetricsControl');
       expect(control.validators).toHaveLength(0);
     });
-  });
 
-  describe('getControlKeys', () => {
-
-    window.featureFlags = {
-      SCOPED_FILTER: false,
-    };
-
-    it('gets only strings, even when React components are in conf', () => {
-      const keys = getControlKeys('filter_box');
-      expect(keys.every(k => typeof k === 'string')).toEqual(true);
-      expect(keys).toHaveLength(16);
-    });
-    it('gets the right set of controlKeys for filter_box', () => {
-      const keys = getControlKeys('filter_box');
-      expect(keys.sort()).toEqual([
-        'adhoc_filters',
-        'cache_timeout',
-        'datasource',
-        'date_filter',
-        'druid_time_origin',
-        'filter_configs',
-        'granularity',
-        'instant_filtering',
-        'show_druid_time_granularity',
-        'show_druid_time_origin',
-        'show_sqla_time_column',
-        'show_sqla_time_granularity',
-        'slice_id',
-        'time_range',
-        'url_params',
-        'viz_type',
-      ]);
+    it('returns correct control config when control config is defined ' +
+      'in the control panel definition', () => {
+        const roseAreaProportionControlConfig = getControlConfig('rose_area_proportion', 'rose');
+        expect(roseAreaProportionControlConfig).toEqual({
+          type: 'CheckboxControl',
+          label: t('Use Area Proportions'),
+          description: t(
+            'Check if the Rose Chart should use segment area instead of ' +
+            'segment radius for proportioning',
+          ),
+          default: false,
+          renderTrigger: true,
+      });
     });
   });
 
@@ -104,7 +86,6 @@ describe('controlUtils', () => {
   });
 
   describe('getControlState', () => {
-
     it('to be function free', () => {
       const control = getControlState('all_columns', 'table', state, ['a']);
       expect(control.mapStateToProps).toBe(undefined);
@@ -149,16 +130,12 @@ describe('controlUtils', () => {
       const control = getControlState('metrics', 'table', stateWithCount);
       expect(control.default).toEqual(['count']);
     });
-
   });
 
   describe('validateControl', () => {
-
     it('validates the control, returns an error if empty', () => {
       const control = getControlState('metric', 'table', state, null);
       expect(control.validationErrors).toEqual(['cannot be empty']);
     });
-
   });
-
 });

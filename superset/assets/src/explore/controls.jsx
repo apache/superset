@@ -1496,7 +1496,7 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: (
-      'Whether to apply filters as they change, or wait for' +
+      'Whether to apply filters as they change, or wait for ' +
       'users to hit an [Apply] button'
     ),
   },
@@ -2154,17 +2154,6 @@ export const controls = {
     label: t('Time Series Columns'),
     validators: [v.nonEmpty],
     controlName: 'TimeSeriesColumnControl',
-  },
-
-  rose_area_proportion: {
-    type: 'CheckboxControl',
-    label: t('Use Area Proportions'),
-    description: t(
-      'Check if the Rose Chart should use segment area instead of ' +
-      'segment radius for proportioning',
-    ),
-    default: false,
-    renderTrigger: true,
   },
 
   time_series_option: {

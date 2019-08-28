@@ -229,7 +229,7 @@ div.Workspace {
     }
 }
 
-.SqlEditor {
+.SqlEditor, .SqlEditor-expanded {
     display: flex;
     flex-direction: row;
     height: 100%;
@@ -241,14 +241,11 @@ div.Workspace {
     }
 
     .schemaPane {
-        flex: 0 0 300px;
-        max-width: 300px;
         transition: transform .3s ease-in-out;
     }
 
     .queryPane {
         flex: 1 1 auto;
-        padding-left: 10px;
     }
 
     .schemaPane-enter-done, .schemaPane-exit {
@@ -273,18 +270,28 @@ div.Workspace {
     .schemaPane-exit-done + .queryPane {
         margin-left: 0;
     }
-
-    .gutter {
-        border-top: 1px solid #ccc;
-        border-bottom: 1px solid #ccc;
-        width: 3%;
-        margin: 3px 47%;
-    }
-
-    .gutter.gutter-vertical {
-        cursor: row-resize;
-    }
 }
+
+.SqlEditor .gutter-horizontal {
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    height: 40px;
+    cursor: col-resize;
+    margin-right: 10px;
+}
+
+.SqlEditor-expanded .gutter-horizontal {
+    display: none;
+}
+
+.queryPane .gutter-vertical {
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    width: 3%;
+    margin: 3px 47%;
+    cursor: row-resize;
+}
+
 
 .SqlEditorLeftBar {
     height: 100%;
