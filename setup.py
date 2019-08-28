@@ -112,6 +112,7 @@ setup(
         "postgres": ["psycopg2-binary==2.7.5"],
         "presto": ["pyhive[presto]>=0.4.0"],
     },
+    python_requires="~=3.6",
     author="Apache Software Foundation",
     author_email="dev@superset.incubator.apache.org",
     url="https://superset.apache.org/",
