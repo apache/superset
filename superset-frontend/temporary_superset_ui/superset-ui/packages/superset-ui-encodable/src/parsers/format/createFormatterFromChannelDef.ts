@@ -1,5 +1,5 @@
-import { ChannelDef } from '../types/ChannelDef';
-import { isTypedFieldDef } from '../typeGuards/ChannelDef';
+import { ChannelDef } from '../../types/ChannelDef';
+import { isTypedFieldDef } from '../../typeGuards/ChannelDef';
 import fallbackFormatter from './fallbackFormatter';
 import createFormatterFromFieldTypeAndFormat from './createFormatterFromFieldTypeAndFormat';
 

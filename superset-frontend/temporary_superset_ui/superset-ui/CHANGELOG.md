@@ -28,7 +28,7 @@
 
 * add control panel support to chart plugin ([#203](https://github.com/apache-superset/superset-ui/issues/203)) ([920d389](https://github.com/apache-superset/superset-ui/commit/920d389))
 * add functions for parsing formatters from encoding ([#205](https://github.com/apache-superset/superset-ui/issues/205)) ([8906aa0](https://github.com/apache-superset/superset-ui/commit/8906aa0))
-* Add types and type guards for encodeable ([#201](https://github.com/apache-superset/superset-ui/issues/201)) ([6cff25f](https://github.com/apache-superset/superset-ui/commit/6cff25f))
+* Add types and type guards for encodable ([#201](https://github.com/apache-superset/superset-ui/issues/201)) ([6cff25f](https://github.com/apache-superset/superset-ui/commit/6cff25f))
 
 
 ### BREAKING CHANGES

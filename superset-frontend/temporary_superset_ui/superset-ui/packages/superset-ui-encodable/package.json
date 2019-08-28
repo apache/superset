@@ -1,7 +1,7 @@
 {
-  "name": "@superset-ui/encodeable",
+  "name": "@superset-ui/encodable",
   "version": "0.12.1",
-  "description": "Superset UI encodeable",
+  "description": "Superset UI encodable",
   "sideEffects": false,
   "main": "lib/index.js",
   "module": "esm/index.js",
