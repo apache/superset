@@ -88,6 +88,9 @@ const D3_FORMAT_OPTIONS = [
   [',.3f', ',.3f (12345.432 => 12,345.432)'],
   ['+,', '+, (12345.432 => +12,345.432)'],
   ['$,.2f', '$,.2f (12345.432 => $12,345.43)'],
+  ['DURATION_MS', 'Duration in ms (66000 => 1m 6s)'],
+  ['DURATION_SEC', 'Duration in sec (66 => 1m 6s)'],
+  ['DURATION_MIN', 'Duration in min (66 => 1h 6 min)'],
 ];
 
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
