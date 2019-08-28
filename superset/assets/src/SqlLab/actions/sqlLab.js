@@ -207,14 +207,11 @@ export function startQuery(query) {
 }
 
 export function querySuccess(query, results) {
-  // table preview queries have `sqlEditorId` set to the string 'null'; those
-  // shouldn't be synced to the tab state view
-  if (results.query && results.query.sqlEditorId === 'null') {
-    return { type: QUERY_SUCCESS, query, results };
-  }
-
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    // table preview queries have `sqlEditorId` set to the string 'null'; those
+    // shouldn't be synced to the tab state view since they're not the main query
+    const isDataPreview = results.query && results.query.sqlEditorId === 'null';
+    const sync = (!isDataPreview && isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE))
       ? SupersetClient.put({
           endpoint: encodeURI(`/tabstateview/${results.query.sqlEditorId}`),
           postPayload: { query_id: results.query_id },
@@ -345,9 +342,7 @@ export function validateQuery(query) {
       postPayload,
       stringify: false,
     })
-      .then(({ json }) => {
-        dispatch(queryValidationReturned(query, json));
-      })
+      .then(({ json }) => dispatch(queryValidationReturned(query, json)))
       .catch(response =>
         getClientErrorObject(response).then((error) => {
           let message = error.error || error.statusText || t('Unknown error');
@@ -387,7 +382,7 @@ export function migrateLocalStorage(queryEditor, tables, queries) {
         };
         dispatch({ type: MIGRATE_QUERY_EDITOR, oldQueryEditor: queryEditor, newQueryEditor });
         dispatch({ type: MIGRATE_TAB_HISTORY, oldId: queryEditor.id, newId: newQueryEditor.id });
-        tables.forEach(table =>
+        return Promise.all(tables.map(table =>
           SupersetClient.post({
             endpoint: encodeURI('/tableschemaview/'),
             postPayload: { table: { ...table, queryEditorId: newQueryEditor.id } },
@@ -397,10 +392,12 @@ export function migrateLocalStorage(queryEditor, tables, queries) {
                 ...table,
                 id: resultJson.id,
               };
-              dispatch({ type: MIGRATE_TABLE, oldTable: table, newTable });
-              dispatch(runQuery(queries[table.dataPreviewQueryId]));
+              return Promise.all([
+                dispatch({ type: MIGRATE_TABLE, oldTable: table, newTable }),
+                dispatch(runQuery(queries[table.dataPreviewQueryId])),
+              ]);
             }),
-        );
+        ));
       })
       .catch(() => dispatch(addDangerToast(t('Unable to add a new tab'))));
   };
@@ -418,7 +415,7 @@ export function addQueryEditor(queryEditor) {
           ...queryEditor,
           id: json.id.toString(),
         };
-        dispatch({ type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor });
+        return dispatch({ type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor });
       })
       .catch(() => dispatch(addDangerToast(t('Unable to add a new tab'))));
   };
@@ -763,7 +760,7 @@ export function addTable(query, tableName, schemaName) {
       }),
     );
 
-    Promise.all([
+    return Promise.all([
       getTableMetadata(table, query, dispatch),
       getTableExtendedMetadata(table, query, dispatch),
     ])
