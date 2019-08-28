@@ -30,13 +30,17 @@ export default function updateTextNode(
     textNode.setAttribute('class', className || '');
   }
 
-  // clear style
-  STYLE_FIELDS.forEach((field: keyof TextStyle) => {
-    textNode.style[field] = null;
-  });
+  // Clear style
+  // Note: multi-word property names are hyphenated and not camel-cased.
+  textNode.style.removeProperty('font');
+  textNode.style.removeProperty('font-weight');
+  textNode.style.removeProperty('font-style');
+  textNode.style.removeProperty('font-size');
+  textNode.style.removeProperty('font-family');
+  textNode.style.removeProperty('letter-spacing');
 
-  // apply new style
-  // Note that the font field will auto-populate other font fields when applicable.
+  // Apply new style
+  // Note: the font field will auto-populate other font fields when applicable.
   STYLE_FIELDS.filter(
     (field: keyof TextStyle) => typeof style[field] !== 'undefined' && style[field] !== null,
   ).forEach((field: keyof TextStyle) => {
