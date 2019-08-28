@@ -1,4 +1,4 @@
-import createFormatterFromChannelDef from '../../src/parsers/createFormatterFromChannelDef';
+import createFormatterFromChannelDef from '../../../src/parsers/format/createFormatterFromChannelDef';
 
 describe('createFormatterFromChannelDef(type, format)', () => {
   it('handles when format is defined', () => {
