@@ -48,7 +48,7 @@ export interface CombinedScaleConfig<Output extends Value = Value>
   /**
    * name of the color scheme.
    * vega-lite also support SchemeParams object
-   * but encodeable only accepts string at the moment
+   * but encodable only accepts string at the moment
    */
   scheme?: string;
   /**
