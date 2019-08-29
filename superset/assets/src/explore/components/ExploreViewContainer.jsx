@@ -103,7 +103,7 @@ class ExploreViewContainer extends React.Component {
     }
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.controls.viz_type.value !== this.props.controls.viz_type.value) {
       this.props.actions.resetControls();
     }

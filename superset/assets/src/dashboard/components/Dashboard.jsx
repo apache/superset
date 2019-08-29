@@ -89,7 +89,7 @@ class Dashboard extends React.PureComponent {
     this.props.actions.logEvent(LOG_ACTIONS_MOUNT_DASHBOARD);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const currentChartIds = getChartIdsFromLayout(this.props.layout);
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
 

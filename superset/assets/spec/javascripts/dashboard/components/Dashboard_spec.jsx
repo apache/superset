@@ -160,7 +160,7 @@ describe('Dashboard', () => {
     it('should call addSliceToDashboard if a new slice is added to the layout', () => {
       const wrapper = setup();
       const spy = sinon.spy(props.actions, 'addSliceToDashboard');
-      wrapper.instance().componentWillReceiveProps({
+      wrapper.instance().UNSAFE_componentWillReceiveProps({
         ...props,
         layout: layoutWithExtraChart,
       });
@@ -174,7 +174,7 @@ describe('Dashboard', () => {
       const nextLayout = { ...layoutWithExtraChart };
       delete nextLayout[1001];
 
-      wrapper.instance().componentWillReceiveProps({
+      wrapper.instance().UNSAFE_componentWillReceiveProps({
         ...props,
         layout: nextLayout,
       });
