@@ -246,7 +246,9 @@ class DashboardTests(SupersetTestCase):
             .first()
         )
         existing_slice = (
-            db.session.query(models.Slice).filter_by(slice_name="Name Cloud").first()
+            db.session.query(models.Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .first()
         )
         data = {
             "slice_ids": [new_slice.data["slice_id"], existing_slice.data["slice_id"]]

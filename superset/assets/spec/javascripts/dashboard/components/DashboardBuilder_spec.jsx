@@ -72,7 +72,7 @@ describe('DashboardBuilder', () => {
     setColorSchemeAndUnsavedChanges() {},
     colorScheme: undefined,
     handleComponentDrop() {},
-    toggleBuilderPane() {},
+    setDirectPathToChild: sinon.spy(),
   };
 
   function setup(overrideProps, useProvider = false, store = mockStore) {
@@ -176,7 +176,7 @@ describe('DashboardBuilder', () => {
     expect(wrapper.find(BuilderComponentPane)).toHaveLength(1);
   });
 
-  it('should change tabs if a top-level Tab is clicked', () => {
+  it('should change redux state if a top-level Tab is clicked', () => {
     const wrapper = setup(
       { dashboardLayout: layoutWithTabs },
       true,
@@ -190,6 +190,6 @@ describe('DashboardBuilder', () => {
       .at(1)
       .simulate('click');
 
-    expect(wrapper.find(TabContainer).prop('activeKey')).toBe(1);
+    expect(props.setDirectPathToChild.callCount).toBe(1);
   });
 });

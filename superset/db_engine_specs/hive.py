@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+from datetime import datetime
 import logging
 import os
 import re
 import time
-from typing import List
+from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
 from sqlalchemy import Column
@@ -27,7 +28,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.sql.expression import ColumnClause
+from sqlalchemy.sql.expression import ColumnClause, Select
 from werkzeug.utils import secure_filename
 
 from superset import app, conf
@@ -85,7 +86,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return BaseEngineSpec.get_all_datasource_names(db, datasource_type)
 
     @classmethod
-    def fetch_data(cls, cursor, limit):
+    def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
         import pyhive
         from TCLIService import ttypes
 
@@ -179,7 +180,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         engine.execute(sql)
 
     @classmethod
-    def convert_dttm(cls, target_type, dttm):
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
         tt = target_type.upper()
         if tt == "DATE":
             return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
@@ -252,8 +253,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         last_log_line = 0
         tracking_url = None
         job_id = None
+        query_id = query.id
         while polled.operationState in unfinished_states:
-            query = session.query(type(query)).filter_by(id=query.id).one()
+            query = session.query(type(query)).filter_by(id=query_id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
                 break
@@ -262,7 +264,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             if log:
                 log_lines = log.splitlines()
                 progress = cls.progress(log_lines)
-                logging.info("Progress total: {}".format(progress))
+                logging.info(f"Query {query_id}: Progress total: {progress}")
                 needs_commit = False
                 if progress > query.progress:
                     query.progress = progress
@@ -271,18 +273,22 @@ class HiveEngineSpec(PrestoEngineSpec):
                     tracking_url = cls.get_tracking_url(log_lines)
                     if tracking_url:
                         job_id = tracking_url.split("/")[-2]
-                        logging.info("Found the tracking url: {}".format(tracking_url))
+                        logging.info(
+                            f"Query {query_id}: Found the tracking url: {tracking_url}"
+                        )
                         tracking_url = tracking_url_trans(tracking_url)
-                        logging.info("Transformation applied: {}".format(tracking_url))
+                        logging.info(
+                            f"Query {query_id}: Transformation applied: {tracking_url}"
+                        )
                         query.tracking_url = tracking_url
-                        logging.info("Job id: {}".format(job_id))
+                        logging.info(f"Query {query_id}: Job id: {job_id}")
                         needs_commit = True
                 if job_id and len(log_lines) > last_log_line:
                     # Wait for job id before logging things out
                     # this allows for prefixing all log lines and becoming
                     # searchable in something like Kibana
                     for l in log_lines[last_log_line:]:
-                        logging.info("[{}] {}".format(job_id, l))
+                        logging.info(f"Query {query_id}: [{job_id}] {l}")
                     last_log_line = len(log_lines)
                 if needs_commit:
                     session.commit()
@@ -291,24 +297,34 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str
-    ) -> List[dict]:
+        cls, inspector: Inspector, table_name: str, schema: Optional[str]
+    ) -> List[Dict[str, Any]]:
         return inspector.get_columns(table_name, schema)
 
     @classmethod
-    def where_latest_partition(cls, table_name, schema, database, qry, columns=None):
+    def where_latest_partition(
+        cls,
+        table_name: str,
+        schema: Optional[str],
+        database,
+        qry: Select,
+        columns: Optional[List] = None,
+    ) -> Optional[Select]:
         try:
-            col_name, value = cls.latest_partition(
+            col_names, values = cls.latest_partition(
                 table_name, schema, database, show_first=True
             )
         except Exception:
             # table is not partitioned
-            return False
-        if value is not None:
-            for c in columns:
-                if c.get("name") == col_name:
-                    return qry.where(Column(col_name) == value)
-        return False
+            return None
+        if values is not None and columns is not None:
+            for col_name, value in zip(col_names, values):
+                for c in columns:
+                    if c.get("name") == col_name:
+                        qry = qry.where(Column(col_name) == value)
+
+            return qry
+        return None
 
     @classmethod
     def _get_fields(cls, cols: List[dict]) -> List[ColumnClause]:
@@ -320,10 +336,11 @@ class HiveEngineSpec(PrestoEngineSpec):
         pass
 
     @classmethod
-    def _latest_partition_from_df(cls, df):
+    def _latest_partition_from_df(cls, df) -> Optional[List[str]]:
         """Hive partitions look like ds={partition name}"""
         if not df.empty:
-            return df.ix[:, 0].max().split("=")[1]
+            return [df.ix[:, 0].max().split("=")[1]]
+        return None
 
     @classmethod
     def _partition_query(cls, table_name, limit=0, order_by=None, filters=None):
@@ -332,7 +349,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def select_star(
         cls,
-        my_db,
+        database,
         table_name: str,
         engine: Engine,
         schema: str = None,
@@ -340,10 +357,12 @@ class HiveEngineSpec(PrestoEngineSpec):
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: List[dict] = [],
+        cols: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
-        return BaseEngineSpec.select_star(
-            my_db,
+        return super(  # pylint: disable=bad-super-call
+            PrestoEngineSpec, cls
+        ).select_star(
+            database,
             table_name,
             engine,
             schema,
@@ -355,11 +374,11 @@ class HiveEngineSpec(PrestoEngineSpec):
         )
 
     @classmethod
-    def modify_url_for_impersonation(cls, url, impersonate_user, username):
+    def modify_url_for_impersonation(cls, url, impersonate_user: bool, username: str):
         """
         Modify the SQL Alchemy URL object with the user to impersonate if applicable.
         :param url: SQLAlchemy URL object
-        :param impersonate_user: Bool indicating if impersonation is enabled
+        :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
         # Do nothing in the URL object since instead this should modify
@@ -367,14 +386,16 @@ class HiveEngineSpec(PrestoEngineSpec):
         pass
 
     @classmethod
-    def get_configuration_for_impersonation(cls, uri, impersonate_user, username):
+    def get_configuration_for_impersonation(
+        cls, uri: str, impersonate_user: bool, username: str
+    ) -> Dict[str, str]:
         """
         Return a configuration dictionary that can be merged with other configs
         that can set the correct properties for impersonating users
         :param uri: URI string
-        :param impersonate_user: Bool indicating if impersonation is enabled
+        :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
-        :return: Dictionary with configs required for impersonation
+        :return: Configs required for impersonation
         """
         configuration = {}
         url = make_url(uri)
@@ -392,6 +413,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         return configuration
 
     @staticmethod
-    def execute(cursor, query, async_=False):
+    def execute(cursor, query: str, async_: bool = False):
         kwargs = {"async": async_}
         cursor.execute(query, **kwargs)

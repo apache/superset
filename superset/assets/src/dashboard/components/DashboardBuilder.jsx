@@ -44,6 +44,8 @@ import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
+import getDirectPathToTabIndex from '../util/getDirectPathToTabIndex';
+import getLeafComponentIdFromPath from '../util/getLeafComponentIdFromPath';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
@@ -55,11 +57,11 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   showBuilderPane: PropTypes.func.isRequired,
   builderPaneType: PropTypes.string.isRequired,
-  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   colorScheme: PropTypes.string,
+  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
-  toggleBuilderPane: PropTypes.func.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  setDirectPathToChild: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -78,23 +80,38 @@ class DashboardBuilder extends React.Component {
     );
   }
 
+  static getRootLevelTabIndex(dashboardLayout, directPathToChild) {
+    return Math.max(
+      0,
+      findTabIndexByComponentId({
+        currentComponent: DashboardBuilder.getRootLevelTabsComponent(
+          dashboardLayout,
+        ),
+        directPathToChild,
+      }),
+    );
+  }
+
+  static getRootLevelTabsComponent(dashboardLayout) {
+    const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
+    const rootChildId = dashboardRoot.children[0];
+    return rootChildId === DASHBOARD_GRID_ID
+      ? dashboardLayout[DASHBOARD_ROOT_ID]
+      : dashboardLayout[rootChildId];
+  }
+
   constructor(props) {
     super(props);
 
     const { dashboardLayout, directPathToChild } = props;
-    const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
-    const rootChildId = dashboardRoot.children[0];
-    const tabIndex = findTabIndexByComponentId({
-      currentComponent:
-        rootChildId === DASHBOARD_GRID_ID
-          ? dashboardLayout[DASHBOARD_ROOT_ID]
-          : dashboardLayout[rootChildId],
+    const tabIndex = DashboardBuilder.getRootLevelTabIndex(
+      dashboardLayout,
       directPathToChild,
-    });
-
+    );
     this.state = {
       tabIndex,
     };
+
     this.handleChangeTab = this.handleChangeTab.bind(this);
     this.handleDeleteTopLevelTabs = this.handleDeleteTopLevelTabs.bind(this);
   }
@@ -105,20 +122,37 @@ class DashboardBuilder extends React.Component {
     };
   }
 
-  handleDeleteTopLevelTabs() {
-    this.props.deleteTopLevelTabs();
-    this.setState({ tabIndex: 0 });
+  componentWillReceiveProps(nextProps) {
+    const nextFocusComponent = getLeafComponentIdFromPath(
+      nextProps.directPathToChild,
+    );
+    const currentFocusComponent = getLeafComponentIdFromPath(
+      this.props.directPathToChild,
+    );
+    if (nextFocusComponent !== currentFocusComponent) {
+      const { dashboardLayout, directPathToChild } = nextProps;
+      const nextTabIndex = DashboardBuilder.getRootLevelTabIndex(
+        dashboardLayout,
+        directPathToChild,
+      );
+
+      this.setState(() => ({ tabIndex: nextTabIndex }));
+    }
   }
 
-  handleChangeTab({ tabIndex }) {
-    this.setState(() => ({ tabIndex }));
-    setTimeout(() => {
-      if (window)
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth',
-        });
-    }, 100);
+  handleDeleteTopLevelTabs() {
+    this.props.deleteTopLevelTabs();
+
+    const { dashboardLayout } = this.props;
+    const firstTab = getDirectPathToTabIndex(
+      DashboardBuilder.getRootLevelTabsComponent(dashboardLayout),
+      0,
+    );
+    this.props.setDirectPathToChild(firstTab);
+  }
+
+  handleChangeTab({ pathToTabIndex }) {
+    this.props.setDirectPathToChild(pathToTabIndex);
   }
 
   render() {

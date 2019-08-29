@@ -19,7 +19,7 @@ from contextlib import closing
 from datetime import datetime, timedelta
 import logging
 import re
-from typing import Dict, List  # noqa: F401
+from typing import Dict, List, Optional, Union  # noqa: F401
 from urllib import parse
 
 from flask import (
@@ -40,7 +40,9 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
+import msgpack
 import pandas as pd
+import pyarrow as pa
 import simplejson as json
 from sqlalchemy import and_, or_, select
 from werkzeug.routing import BaseConverter
@@ -50,11 +52,13 @@ from superset import (
     appbuilder,
     cache,
     conf,
+    dataframe,
     db,
     event_logger,
     get_feature_flags,
     is_feature_enabled,
     results_backend,
+    results_backend_use_msgpack,
     security_manager,
     sql_lab,
     viz,
@@ -76,7 +80,7 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
-from superset.utils.decorators import etag_cache
+from superset.utils.decorators import etag_cache, stats_timing
 from .base import (
     api,
     BaseSupersetView,
@@ -192,6 +196,38 @@ def check_slice_perms(self, slice_id):
         force=False,
     )
     security_manager.assert_datasource_permission(viz_obj.datasource)
+
+
+def _deserialize_results_payload(
+    payload: Union[bytes, str], query, use_msgpack: Optional[bool] = False
+) -> dict:
+    logging.debug(f"Deserializing from msgpack: {use_msgpack}")
+    if use_msgpack:
+        with stats_timing(
+            "sqllab.query.results_backend_msgpack_deserialize", stats_logger
+        ):
+            ds_payload = msgpack.loads(payload, raw=False)
+
+        with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
+            df = pa.deserialize(ds_payload["data"])
+
+        # TODO: optimize this, perhaps via df.to_dict, then traversing
+        ds_payload["data"] = dataframe.SupersetDataFrame.format_data(df) or []
+
+        db_engine_spec = query.database.db_engine_spec
+        all_columns, data, expanded_columns = db_engine_spec.expand_data(
+            ds_payload["selected_columns"], ds_payload["data"]
+        )
+        ds_payload.update(
+            {"data": data, "columns": all_columns, "expanded_columns": expanded_columns}
+        )
+
+        return ds_payload
+    else:
+        with stats_timing(
+            "sqllab.query.results_backend_json_deserialize", stats_logger
+        ):
+            return json.loads(payload)  # noqa
 
 
 class SliceFilter(SupersetFilter):
@@ -2409,7 +2445,13 @@ class Superset(BaseSupersetView):
                 status=410,
             )
 
-        query = db.session.query(Query).filter_by(results_key=key).one()
+        query = db.session.query(Query).filter_by(results_key=key).one_or_none()
+        if query is None:
+            return json_error_response(
+                "Data could not be retrieved. You may want to re-run the query.",
+                status=404,
+            )
+
         rejected_tables = security_manager.rejected_tables(
             query.sql, query.database, query.schema
         )
@@ -2421,12 +2463,12 @@ class Superset(BaseSupersetView):
                 status=403,
             )
 
-        payload = utils.zlib_decompress_to_string(blob)
-        payload_json = json.loads(payload)
+        payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
+        obj = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
 
         return json_success(
             json.dumps(
-                apply_display_max_row_limit(payload_json),
+                apply_display_max_row_limit(obj),
                 default=utils.json_iso_dttm_ser,
                 ignore_nan=True,
             )
@@ -2580,8 +2622,8 @@ class Superset(BaseSupersetView):
             )
         except Exception as e:
             return json_error_response(
-                "Template rendering failed: {}".format(
-                    utils.error_msg_from_exception(e)
+                "Query {}: Template rendering failed: {}".format(
+                    query_id, utils.error_msg_from_exception(e)
                 )
             )
 
@@ -2591,7 +2633,7 @@ class Superset(BaseSupersetView):
 
         # Async request.
         if async_:
-            logging.info("Running query on a Celery worker")
+            logging.info(f"Query {query_id}: Running query on a Celery worker")
             # Ignore the celery future object and the request may time out.
             try:
                 sql_lab.get_sql_results.delay(
@@ -2603,7 +2645,7 @@ class Superset(BaseSupersetView):
                     start_time=now_as_float(),
                 )
             except Exception as e:
-                logging.exception(e)
+                logging.exception(f"Query {query_id}: {e}")
                 msg = _(
                     "Failed to start remote query on a worker. "
                     "Tell your administrator to verify the availability of "
@@ -2645,7 +2687,7 @@ class Superset(BaseSupersetView):
                 encoding=None,
             )
         except Exception as e:
-            logging.exception(e)
+            logging.exception(f"Query {query_id}: {e}")
             return json_error_response("{}".format(e))
         if data.get("status") == QueryStatus.FAILED:
             return json_error_response(payload=data)
@@ -2677,8 +2719,12 @@ class Superset(BaseSupersetView):
             blob = results_backend.get(query.results_key)
         if blob:
             logging.info("Decompressing")
-            json_payload = utils.zlib_decompress_to_string(blob)
-            obj = json.loads(json_payload)
+            payload = utils.zlib_decompress(
+                blob, decode=not results_backend_use_msgpack
+            )
+            obj = _deserialize_results_payload(
+                payload, query, results_backend_use_msgpack
+            )
             columns = [c["name"] for c in obj["columns"]]
             df = pd.DataFrame.from_records(obj["data"], columns=columns)
             logging.info("Using pandas to convert to CSV")
@@ -2693,7 +2739,17 @@ class Superset(BaseSupersetView):
         response.headers[
             "Content-Disposition"
         ] = f"attachment; filename={query.name}.csv"
-        logging.info("Ready to return response")
+        event_info = {
+            "event_type": "csv_export",
+            "client_id": client_id,
+            "row_count": len(df.index),
+            "database": query.database,
+            "schema": query.schema,
+            "sql": query.sql,
+        }
+        logging.info(
+            f"CSV exported: {repr(event_info)}", extra={"superset_event": event_info}
+        )
         return response
 
     @api

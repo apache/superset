@@ -20,15 +20,15 @@ graft licenses/
 include README.md
 recursive-include superset/examples *
 recursive-include superset/migrations *
-recursive-include superset/static *
-recursive-exclude superset/static/assets/docs *
-recursive-exclude superset/static/assets/images/viz_thumbnails_large *
-recursive-exclude superset/static/docs *
-recursive-exclude superset/static/spec *
-recursive-exclude superset/static/assets/src *
-recursive-include superset/static/assets/src/visualizations/CountryMap/ *
+
+# Whitelist anything that needs to be added to the static bundle
+recursive-exclude superset/static *
+recursive-include superset/static/assets/branding *
+recursive-include superset/static/assets/dist *
+recursive-include superset/static/assets/images *
 recursive-exclude superset/static/images/viz_thumbnails_large *
-recursive-exclude superset/static/assets/node_modules *
+recursive-include superset/static/assets/stylesheets *
+
 recursive-include superset/templates *
 recursive-include superset/translations *
 recursive-exclude tests *

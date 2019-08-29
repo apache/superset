@@ -66,6 +66,14 @@ class ChartRenderer extends React.Component {
     this.handleAddFilter = this.handleAddFilter.bind(this);
     this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
     this.handleRenderFailure = this.handleRenderFailure.bind(this);
+    this.handleSetControlValue = this.handleSetControlValue.bind(this);
+
+    this.hooks = {
+      onAddFilter: this.handleAddFilter,
+      onError: this.handleRenderFailure,
+      setControlValue: this.handleSetControlValue,
+      setTooltip: this.setTooltip,
+    };
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -137,6 +145,13 @@ class ChartRenderer extends React.Component {
     }
   }
 
+  handleSetControlValue(...args) {
+    const { setControlValue } = this.props;
+    if (setControlValue) {
+      setControlValue(...args);
+    }
+  }
+
   renderTooltip() {
     const { tooltip } = this.state;
     if (tooltip && tooltip.content) {
@@ -184,7 +199,6 @@ class ChartRenderer extends React.Component {
       initialValues,
       formData,
       queryResponse,
-      setControlValue,
     } = this.props;
 
     return (
@@ -199,13 +213,10 @@ class ChartRenderer extends React.Component {
           height={height}
           annotationData={annotationData}
           datasource={datasource}
-          filters={initialValues}
+          initialValues={initialValues}
           formData={formData}
-          payload={queryResponse}
-          onAddFilter={this.handleAddFilter}
-          onError={this.handleRenderFailure}
-          setControlValue={setControlValue}
-          setTooltip={this.setTooltip}
+          hooks={this.hooks}
+          queryData={queryResponse}
           onRenderSuccess={this.handleRenderSuccess}
           onRenderFailure={this.handleRenderFailure}
         />
