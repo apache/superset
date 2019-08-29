@@ -19,6 +19,7 @@ from contextlib import closing
 from datetime import datetime, timedelta
 import logging
 import re
+from time import sleep
 from typing import Dict, List  # noqa: F401
 from urllib import parse
 
@@ -43,6 +44,7 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
 from sqlalchemy import and_, or_, select
+from sqlalchemy.exc import DatabaseError
 from werkzeug.routing import BaseConverter
 
 from superset import (
@@ -2432,12 +2434,35 @@ class Superset(BaseSupersetView):
     @event_logger.log_this
     def stop_query(self):
         client_id = request.form.get("client_id")
-        try:
-            query = db.session.query(Query).filter_by(client_id=client_id).one()
-            query.status = QueryStatus.STOPPED
-            db.session.commit()
-        except Exception:
-            pass
+        attempt, retry_count = 0, 5
+
+        while attempt < retry_count:
+            try:
+                query = db.session.query(Query).filter_by(client_id=client_id).one()
+                if query.status in [
+                    QueryStatus.FAILED,
+                    QueryStatus.SUCCESS,
+                    QueryStatus.TIMED_OUT,
+                ]:
+                    logging.error(
+                        f"Query with client_id {client_id} could not be stopped: query already complete"
+                    )
+                    return self.json_response("OK")
+                query.status = QueryStatus.STOPPED
+                db.session.commit()
+                return self.json_response("OK")
+            except DatabaseError:
+                # Database is busy
+                db.session.rollback()
+                attempt += 1
+                sleep(1)
+            except Exception:
+                # Other errors do not require retries
+                return self.json_response("OK")
+
+        logging.error(
+            f"Query with client_id {client_id} could not be stopped: ran out of retries"
+        )
         return self.json_response("OK")
 
     @has_access_api
