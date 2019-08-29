@@ -247,7 +247,7 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
     table = Column(String(256))
 
     # JSON describing the schema, partitions, latest partition, etc.
-    results = Column(Text)
+    description = Column(Text)
 
     expanded = Column(Boolean, default=False)
 
@@ -258,7 +258,7 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
             "database_id": self.database_id,
             "schema": self.schema,
             "table": self.table,
-            "results": json.loads(self.results),
+            "description": json.loads(self.description),
             "expanded": self.expanded,
         }
 

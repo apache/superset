@@ -67,7 +67,7 @@ def upgrade():
         sa.Column("database_id", sa.Integer(), nullable=False),
         sa.Column("schema", sa.String(length=256), nullable=True),
         sa.Column("table", sa.String(length=256), nullable=True),
-        sa.Column("results", sa.Text(), nullable=True),
+        sa.Column("description", sa.Text(), nullable=True),
         sa.Column("expanded", sa.Boolean(), nullable=True),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),

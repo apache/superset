@@ -318,6 +318,9 @@ def execute_sql_statements(
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()
 
+    if database.allow_run_async and not results_backend:
+        raise SqlLabException("Results backend isn't configured.")
+
     # Breaking down into multiple statements
     parsed_query = ParsedQuery(rendered_query)
     statements = parsed_query.get_statements()

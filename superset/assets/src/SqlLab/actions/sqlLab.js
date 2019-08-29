@@ -465,7 +465,7 @@ export function setTables(tableSchemas) {
       foreignKeys,
       indexes,
       dataPreviewQueryId,
-    } = tableSchema.results;
+    } = tableSchema.description;
     return {
       dbId: tableSchema.database_id,
       queryEditorId: tableSchema.tab_state_id,

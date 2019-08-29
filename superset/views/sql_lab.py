@@ -272,7 +272,7 @@ class TableSchemaView(BaseSupersetView):
             database_id=table["dbId"],
             schema=table["schema"],
             table=table["name"],
-            results=json.dumps(table),
+            description=json.dumps(table),
             expanded=True,
         )
         db.session.add(table_schema)

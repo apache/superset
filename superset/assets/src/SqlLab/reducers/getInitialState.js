@@ -91,7 +91,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
         foreignKeys,
         indexes,
         dataPreviewQueryId,
-      } = tableSchema.results;
+      } = tableSchema.description;
       const table = {
         dbId: tableSchema.database_id,
         queryEditorId: tableSchema.tab_state_id,
