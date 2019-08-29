@@ -55,9 +55,8 @@ export default function setupFormatters() {
     .registerValue('$,0', getNumberFormatter('$,.4f'))
     .registerValue('$,0f', getNumberFormatter('$,.4f'))
     .registerValue('$,.f', getNumberFormatter('$,.4f'))
-    .registerValue('DURATION_MS', createDurationFormatter())
-    .registerValue('DURATION_SEC', createDurationFormatter({ multiplier: 1000 }))
-    .registerValue('DURATION_MIN', createDurationFormatter({ multiplier: 60000 }));
+    .registerValue('DURATION', createDurationFormatter())
+    .registerValue('DURATION_SUB', createDurationFormatter({ formatSubMilliseconds: true }));
 
   getTimeFormatterRegistry()
     .registerValue('smart_date', smartDateFormatter)
