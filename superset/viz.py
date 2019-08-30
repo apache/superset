@@ -1475,22 +1475,18 @@ class HistogramViz(BaseViz):
         numeric_columns = self.form_data.get("all_columns_x")
         if numeric_columns is None:
             raise Exception(_("Must have at least one numeric column specified"))
-        self.columns = [numeric_columns]
-        d["columns"] = [numeric_columns] + self.groupby
+        self.columns = numeric_columns
+        d["columns"] = numeric_columns + self.groupby
         # override groupby entry to avoid aggregation
         d["groupby"] = []
         return d
 
     def labelify(self, keys, column):
-        if isinstance(keys, str) or isinstance(keys, int):
+        if isinstance(keys, str):
             keys = (keys,)
-
         # removing undesirable characters
-        labels = [
-            re.sub(r"\W+", r"_", k) if isinstance(k, str) else str(k) for k in keys
-        ]
-
-        if len(self.columns) > 0 or not self.groupby:
+        labels = [re.sub(r"\W+", r"_", k) for k in keys]
+        if len(self.columns) > 1 or not self.groupby:
             # Only show numeric column in label if there are many
             labels = [column] + labels
         return "__".join(labels)
