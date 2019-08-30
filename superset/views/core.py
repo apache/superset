@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+import backoff
 from contextlib import closing
 from datetime import datetime, timedelta
 import logging
 import re
-from time import sleep
 from typing import Dict, List  # noqa: F401
 from urllib import parse
 
@@ -2432,37 +2432,30 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/stop_query/", methods=["POST"])
     @event_logger.log_this
+    @backoff.on_exception(
+        backoff.constant,
+        DatabaseError,
+        interval=1,
+        on_backoff=db.session.rollback,
+        on_giveup=db.session.rollback,
+        max_tries=5,
+    )
     def stop_query(self):
         client_id = request.form.get("client_id")
-        attempt, retry_count = 0, 5
 
-        while attempt < retry_count:
-            try:
-                query = db.session.query(Query).filter_by(client_id=client_id).one()
-                if query.status in [
-                    QueryStatus.FAILED,
-                    QueryStatus.SUCCESS,
-                    QueryStatus.TIMED_OUT,
-                ]:
-                    logging.error(
-                        f"Query with client_id {client_id} could not be stopped: query already complete"
-                    )
-                    return self.json_response("OK")
-                query.status = QueryStatus.STOPPED
-                db.session.commit()
-                return self.json_response("OK")
-            except DatabaseError:
-                # Database is busy
-                db.session.rollback()
-                attempt += 1
-                sleep(1)
-            except Exception:
-                # Other errors do not require retries
-                return self.json_response("OK")
+        query = db.session.query(Query).filter_by(client_id=client_id).one()
+        if query.status in [
+            QueryStatus.FAILED,
+            QueryStatus.SUCCESS,
+            QueryStatus.TIMED_OUT,
+        ]:
+            logging.error(
+                f"Query with client_id {client_id} could not be stopped: query already complete"
+            )
+            return self.json_response("OK")
+        query.status = QueryStatus.STOPPED
+        db.session.commit()
 
-        logging.error(
-            f"Query with client_id {client_id} could not be stopped: ran out of retries"
-        )
         return self.json_response("OK")
 
     @has_access_api

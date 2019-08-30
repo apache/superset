@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+import backoff
 from contextlib import closing
 from datetime import datetime
 import logging
-from time import sleep
 import uuid
 
 from celery.exceptions import SoftTimeLimitExceeded
@@ -70,23 +70,31 @@ def handle_query_error(msg, query, session, payload=None):
     return payload
 
 
-def get_query(query_id, session, retry_count=5):
-    """attemps to get the query and retry if it cannot"""
-    query = None
-    attempt = 0
-    while not query and attempt < retry_count:
-        try:
-            query = session.query(Query).filter_by(id=query_id).one()
-        except Exception:
-            attempt += 1
-            logging.error(f"Query with id `{query_id}` could not be retrieved")
-            stats_logger.incr("error_attempting_orm_query_" + str(attempt))
-            logging.error(f"Query {query_id}: Sleeping for a sec before retrying...")
-            sleep(1)
-    if not query:
-        stats_logger.incr("error_failed_at_getting_orm_query")
+def backoff_handler(details):
+    query_id = details["kwargs"]["query_id"]
+    logging.error(f"Query with id `{query_id}` could not be retrieved")
+    stats_logger.incr("error_attempting_orm_query_{}".format(details["tries"] - 1))
+    logging.error(f"Query {query_id}: Sleeping for a sec before retrying...")
+
+
+def giveup_handler(details):
+    stats_logger.incr("error_failed_at_getting_orm_query")
+
+
+@backoff.on_exception(
+    backoff.constant,
+    SqlLabException,
+    interval=1,
+    on_backoff=backoff_handler,
+    on_giveup=giveup_handler,
+    max_tries=5,
+)
+def get_query(query_id, session):
+    """attempts to get the query and retry if it cannot"""
+    try:
+        return session.query(Query).filter_by(id=query_id).one()
+    except Exception:
         raise SqlLabException("Failed at getting query")
-    return query
 
 
 @contextmanager
