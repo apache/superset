@@ -143,6 +143,7 @@ class BaseEngineSpec:
     allows_joins = True
     allows_subqueries = True
     allows_column_aliases = True
+    allows_cost_estimate = False
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
@@ -642,6 +643,10 @@ class BaseEngineSpec:
         if indent:
             sql = sqlparse.format(sql, reindent=True)
         return sql
+
+    @classmethod
+    def estimate_cost_query(cls, query: str, **kwargs) -> str:
+        raise NotImplementedError('Subclasses should implement estimate_cost_query')
 
     @classmethod
     def modify_url_for_impersonation(cls, url, impersonate_user: bool, username: str):

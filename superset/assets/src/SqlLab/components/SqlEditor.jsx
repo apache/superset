@@ -39,6 +39,7 @@ import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
 import ScheduleQueryButton from './ScheduleQueryButton';
+import EstimateQueryCostButton from './EstimateQueryCostButton';
 import ShareSqlLabQuery from './ShareSqlLabQuery';
 import Timer from '../../components/Timer';
 import Hotkeys from '../../components/Hotkeys';
@@ -389,6 +390,9 @@ class SqlEditor extends React.PureComponent {
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
+    const queryEstimateToolTip = this.props.database.allows_cost_estimate
+      ? t('Estimate the cost before running a query')
+      : t('This database does not support query estimation');
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div>
@@ -404,6 +408,18 @@ class SqlEditor extends React.PureComponent {
                 sql={this.state.sql}
               />
             </span>
+            {isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
+            <span className="m-r-5">
+              <EstimateQueryCostButton
+                sql={qe.sql}
+                className="m-r-5"
+                schema={qe.schema}
+                dbId={qe.dbId}
+                tooltip={queryEstimateToolTip}
+                disabled={!this.props.database.allows_cost_estimate}
+              />
+            </span>
+            }
             {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) &&
             <span className="m-r-5">
               <ScheduleQueryButton

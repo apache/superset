@@ -42,6 +42,7 @@ QueryStatus = utils.QueryStatus
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = "presto"
+    allows_cost_estimate = True
 
     time_grain_functions = {
         None: "{col}",
@@ -372,6 +373,10 @@ class PrestoEngineSpec(BaseEngineSpec):
             latest_partition,
             presto_cols,
         )
+
+    @classmethod
+    def estimate_cost_query(cls, query: str, **kwargs) -> str:
+        return f'EXPLAIN (TYPE IO, FORMAT JSON) {query}'
 
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):

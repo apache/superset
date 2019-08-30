@@ -774,6 +774,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.db_engine_spec.allows_subqueries
 
     @property
+    def allows_cost_estimate(self):
+        return self.db_engine_spec.allows_cost_estimate
+
+    @property
     def data(self):
         return {
             "id": self.id,
@@ -781,6 +785,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             "backend": self.backend,
             "allow_multi_schema_metadata_fetch": self.allow_multi_schema_metadata_fetch,
             "allows_subquery": self.allows_subquery,
+            "allows_cost_estimate": self.allows_cost_estimate,
         }
 
     @property
