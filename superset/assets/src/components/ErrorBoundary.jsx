@@ -45,14 +45,17 @@ export default class ErrorBoundary extends React.Component {
   render() {
     const { error, info } = this.state;
     if (error) {
-      const firstLine = error ? error.toString() : null;
+      const firstLine = error.toString();
       const message = (
         <span>
-          <strong>{t('Unexpected error')}</strong>{firstLine ? `: ${firstLine}` : ''}
-        </span>);
+          <strong>{t('Unexpected error')}</strong>
+          {firstLine ? `: ${firstLine}` : ''}
+        </span>
+      );
       if (this.props.showMessage) {
         return (
-          <StackTraceMessage message={message} stackTrace={info ? info.componentStack : null} />);
+          <StackTraceMessage message={message} stackTrace={info ? info.componentStack : null} />
+        );
       }
       return null;
     }
