@@ -713,6 +713,59 @@ class R(BaseSupersetView):
 appbuilder.add_view_no_menu(R)
 
 
+class SQLJsonParams:
+    query_id: int
+    database_id: int
+    schema: str
+    sql: str
+    template_params: dict
+    limit: int
+    async: bool
+    status: bool
+    select_as_cta: bool
+    tmp_table_name: str
+    client_id: int
+    tab_name: str
+    sql_editor_id: str
+    tab: str
+
+    def __init__(self, request=None):
+        logging.error(f"!!!!!!!!!!!!!!! {type(request.form)}")
+        self.async = request.form.get("runAsync") == "true"
+        self.sql = request.form.get("sql")
+        self.database_id = int(request.form.get("database_id"))
+        self.schema = request.form.get("schema") or None  # ?
+        self.template_params = json.loads(request.form.get("templateParams") or "{}")
+        self.limit = int(request.form.get("queryLimit", 0))
+        if self.limit < 0:
+            logging.warning(
+                "Invalid limit of {} specified. Defaulting to max limit.".format(limit)
+            )
+            limit = 0
+        self.limit = self.limit or app.config.get("SQL_MAX_ROW")
+        self.select_as_cta = request.form.get("select_as_cta") == "true"
+        self.tmp_table_name = request.form.get("tmp_table_name")
+        self.client_id = request.form.get("client_id") or utils.shortid()[:10]
+        self.sql_editor_id = request.form.get("sql_editor_id")
+        self.tab_name = request.form.get("tab")
+        self.status = QueryStatus.PENDING if self.async else QueryStatus.RUNNING
+
+    def query_factory(self):
+        return Query(
+            database_id=self.database_id,
+            sql=self.sql,
+            schema=self.schema,
+            select_as_cta=self.select_as_cta,
+            start_time=now_as_float(),
+            tab_name=self.tab_name,
+            status=self.status,
+            sql_editor_id=self.sql_editor_id,
+            tmp_table_name=self.tmp_table_name,
+            user_id=g.user.get_id() if g.user else None,
+            client_id=self.client_id,
+        )
+
+
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
 
@@ -2544,86 +2597,71 @@ class Superset(BaseSupersetView):
     @event_logger.log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
-        async_ = request.form.get("runAsync") == "true"
-        sql = request.form.get("sql")
-        database_id = request.form.get("database_id")
-        schema = request.form.get("schema") or None
-        template_params = json.loads(request.form.get("templateParams") or "{}")
-        limit = int(request.form.get("queryLimit", 0))
-        if limit < 0:
-            logging.warning(
-                "Invalid limit of {} specified. Defaulting to max limit.".format(limit)
-            )
-            limit = 0
-        limit = limit or app.config.get("SQL_MAX_ROW")
+
+        # Collect Values
+        params = SQLJsonParams(request)
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).first()
-
+        # Get and Validate database
+        mydb = session.query(models.Database).filter_by(id=params.database_id).first()
         if not mydb:
-            json_error_response("Database with id {} is missing.".format(database_id))
+            json_error_response("Database with id {} is missing.".format(
+                params.database_id
+            ))
 
-        rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
+        # Check if it's a rejected datasource
+        rejected_tables = security_manager.rejected_tables(
+            params.sql, mydb, params.schema
+        )
         if rejected_tables:
             return json_error_response(
                 security_manager.get_table_access_error_msg(rejected_tables),
                 link=security_manager.get_table_access_link(rejected_tables),
                 status=403,
             )
+
+        # ?
         session.commit()
 
-        select_as_cta = request.form.get("select_as_cta") == "true"
-        tmp_table_name = request.form.get("tmp_table_name")
-        if select_as_cta and mydb.force_ctas_schema:
-            tmp_table_name = "{}.{}".format(mydb.force_ctas_schema, tmp_table_name)
+        if params.select_as_cta and mydb.force_ctas_schema:
+            params.tmp_table_name = "{}.{}".format(mydb.force_ctas_schema, params.tmp_table_name)
 
-        client_id = request.form.get("client_id") or utils.shortid()[:10]
-        query = Query(
-            database_id=int(database_id),
-            sql=sql,
-            schema=schema,
-            select_as_cta=select_as_cta,
-            start_time=now_as_float(),
-            tab_name=request.form.get("tab"),
-            status=QueryStatus.PENDING if async_ else QueryStatus.RUNNING,
-            sql_editor_id=request.form.get("sql_editor_id"),
-            tmp_table_name=tmp_table_name,
-            user_id=g.user.get_id() if g.user else None,
-            client_id=client_id,
-        )
+        # Save current query
+        query = params.query_factory()
         session.add(query)
         session.flush()
-        query_id = query.id
+        params.query_id = query.id
         session.commit()  # shouldn't be necessary
-        if not query_id:
+        if not params.query_id:
             raise Exception(_("Query record was not created as expected."))
-        logging.info("Triggering query_id: {}".format(query_id))
+        logging.info("Triggering query_id: {}".format(params.query_id))
 
+        # template processor
         try:
             template_processor = get_template_processor(
                 database=query.database, query=query
             )
             rendered_query = template_processor.process_template(
-                query.sql, **template_params
+                query.sql, **params.template_params
             )
         except Exception as e:
             return json_error_response(
                 "Query {}: Template rendering failed: {}".format(
-                    query_id, utils.error_msg_from_exception(e)
+                    params.query_id, utils.error_msg_from_exception(e)
                 )
             )
 
         # set LIMIT after template processing
-        limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
+        limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), params.limit]
         query.limit = min(lim for lim in limits if lim is not None)
 
         # Async request.
-        if async_:
-            logging.info(f"Query {query_id}: Running query on a Celery worker")
+        if params.async:
+            logging.info(f"Query {params.query_id}: Running query on a Celery worker")
             # Ignore the celery future object and the request may time out.
             try:
                 sql_lab.get_sql_results.delay(
-                    query_id,
+                    params.query_id,
                     rendered_query,
                     return_results=False,
                     store_results=not query.select_as_cta,
@@ -2631,7 +2669,7 @@ class Superset(BaseSupersetView):
                     start_time=now_as_float(),
                 )
             except Exception as e:
-                logging.exception(f"Query {query_id}: {e}")
+                logging.exception(f"Query {params.query_id}: {e}")
                 msg = _(
                     "Failed to start remote query on a worker. "
                     "Tell your administrator to verify the availability of "
@@ -2660,7 +2698,7 @@ class Superset(BaseSupersetView):
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
-                    query_id,
+                    params.query_id,
                     rendered_query,
                     return_results=True,
                     user_name=g.user.username if g.user else None,
@@ -2673,7 +2711,7 @@ class Superset(BaseSupersetView):
                 encoding=None,
             )
         except Exception as e:
-            logging.exception(f"Query {query_id}: {e}")
+            logging.exception(f"Query {params.query_id}: {e}")
             return json_error_response("{}".format(e))
         if data.get("status") == QueryStatus.FAILED:
             return json_error_response(payload=data)
