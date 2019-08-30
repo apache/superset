@@ -55,7 +55,7 @@ class SqlLabTests(SupersetTestCase):
     def test_sql_json(self):
         self.login("admin")
 
-        data = self.run_sql("SELECT * FROM ab_user", "1")
+        data = self.run_sql("SELECT * FROM birth_names LIMIT 10", "1")
         self.assertLess(0, len(data["data"]))
 
         data = self.run_sql("SELECT * FROM unexistant_table", "2")
@@ -206,10 +206,10 @@ class SqlLabTests(SupersetTestCase):
         self.run_some_queries()
         self.login("admin")
         first_query_time = (
-            db.session.query(Query).filter_by(sql="SELECT * FROM ab_user").one()
+            db.session.query(Query).filter_by(sql=QUERY_1).one()
         ).start_time
         second_query_time = (
-            db.session.query(Query).filter_by(sql="SELECT * FROM ab_permission").one()
+            db.session.query(Query).filter_by(sql=QUERY_3).one()
         ).start_time
         # Test search queries on time filter
         from_time = "from={}".format(int(first_query_time))
@@ -257,7 +257,7 @@ class SqlLabTests(SupersetTestCase):
 
     def test_alias_duplicate(self):
         self.run_sql(
-            "SELECT username as col, id as col, username FROM ab_user",
+            "SELECT name as col, gender as col FROM birth_names LIMIT 10",
             client_id="2e2df3",
             user_name="admin",
             raise_on_error=True,
@@ -321,20 +321,20 @@ class SqlLabTests(SupersetTestCase):
     def test_sql_limit(self):
         self.login("admin")
         test_limit = 1
-        data = self.run_sql("SELECT * FROM ab_user", client_id="sql_limit_1")
+        data = self.run_sql("SELECT * FROM birth_names", client_id="sql_limit_1")
         self.assertGreater(len(data["data"]), test_limit)
         data = self.run_sql(
-            "SELECT * FROM ab_user", client_id="sql_limit_2", query_limit=test_limit
+            "SELECT * FROM birth_names", client_id="sql_limit_2", query_limit=test_limit
         )
         self.assertEquals(len(data["data"]), test_limit)
         data = self.run_sql(
-            "SELECT * FROM ab_user LIMIT {}".format(test_limit),
+            "SELECT * FROM birth_names LIMIT {}".format(test_limit),
             client_id="sql_limit_3",
             query_limit=test_limit + 1,
         )
         self.assertEquals(len(data["data"]), test_limit)
         data = self.run_sql(
-            "SELECT * FROM ab_user LIMIT {}".format(test_limit + 1),
+            "SELECT * FROM birth_names LIMIT {}".format(test_limit + 1),
             client_id="sql_limit_4",
             query_limit=test_limit,
         )

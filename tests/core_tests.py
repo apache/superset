@@ -352,7 +352,7 @@ class CoreTests(SupersetTestCase):
         data = json.dumps(
             {
                 "uri": database.safe_sqlalchemy_uri(),
-                "name": "main",
+                "name": "examples",
                 "impersonate_user": False,
             }
         )
@@ -366,7 +366,7 @@ class CoreTests(SupersetTestCase):
         data = json.dumps(
             {
                 "uri": database.sqlalchemy_uri_decrypted,
-                "name": "main",
+                "name": "examples",
                 "impersonate_user": False,
             }
         )
@@ -460,24 +460,24 @@ class CoreTests(SupersetTestCase):
     def test_csv_endpoint(self):
         self.login("admin")
         sql = """
-            SELECT first_name, last_name
-            FROM ab_user
-            WHERE first_name='admin'
+            SELECT name
+            FROM birth_names
+            WHERE name = 'James'
+            LIMIT 1
         """
         client_id = "{}".format(random.getrandbits(64))[:10]
         self.run_sql(sql, client_id, raise_on_error=True)
 
         resp = self.get_resp("/superset/csv/{}".format(client_id))
         data = csv.reader(io.StringIO(resp))
-        expected_data = csv.reader(io.StringIO("first_name,last_name\nadmin, user\n"))
+        expected_data = csv.reader(io.StringIO("name\nJames\n"))
 
-        sql = "SELECT first_name FROM ab_user WHERE first_name LIKE '%admin%'"
         client_id = "{}".format(random.getrandbits(64))[:10]
         self.run_sql(sql, client_id, raise_on_error=True)
 
         resp = self.get_resp("/superset/csv/{}".format(client_id))
         data = csv.reader(io.StringIO(resp))
-        expected_data = csv.reader(io.StringIO("first_name\nadmin\n"))
+        expected_data = csv.reader(io.StringIO("name\nJames\n"))
 
         self.assertEqual(list(expected_data), list(data))
         self.logout()
@@ -486,7 +486,7 @@ class CoreTests(SupersetTestCase):
         self.login("admin")
         dbid = utils.get_example_database().id
         self.get_json_resp(
-            f"/superset/extra_table_metadata/{dbid}/" "ab_permission_view/panoramix/"
+            f"/superset/extra_table_metadata/{dbid}/birth_names/superset/"
         )
 
     def test_process_template(self):
@@ -518,21 +518,10 @@ class CoreTests(SupersetTestCase):
 
     def test_table_metadata(self):
         maindb = utils.get_example_database()
-        backend = maindb.backend
-        data = self.get_json_resp("/superset/table/{}/ab_user/null/".format(maindb.id))
-        self.assertEqual(data["name"], "ab_user")
+        data = self.get_json_resp(f"/superset/table/{maindb.id}/birth_names/null/")
+        self.assertEqual(data["name"], "birth_names")
         assert len(data["columns"]) > 5
         assert data.get("selectStar").startswith("SELECT")
-
-        # Engine specific tests
-        if backend in ("mysql", "postgresql"):
-            self.assertEqual(data.get("primaryKey").get("type"), "pk")
-            self.assertEqual(data.get("primaryKey").get("column_names")[0], "id")
-            self.assertEqual(len(data.get("foreignKeys")), 2)
-            if backend == "mysql":
-                self.assertEqual(len(data.get("indexes")), 7)
-            elif backend == "postgresql":
-                self.assertEqual(len(data.get("indexes")), 5)
 
     def test_fetch_datasource_metadata(self):
         self.login(username="admin")
