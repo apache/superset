@@ -482,7 +482,7 @@ export function setTables(tableSchemas) {
     } = tableSchema.description;
     return {
       dbId: tableSchema.database_id,
-      queryEditorId: tableSchema.tab_state_id,
+      queryEditorId: tableSchema.tab_state_id.toString(),
       schema: tableSchema.schema,
       name: tableSchema.table,
       expanded: tableSchema.expanded,

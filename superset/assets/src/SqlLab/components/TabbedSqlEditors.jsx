@@ -124,7 +124,12 @@ class TabbedSqlEditors extends React.PureComponent {
     } else {
       const qe = this.activeQueryEditor();
       const latestQuery = this.props.queries[qe.latestQueryId];
-      if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && latestQuery) {
+      if (
+        isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
+        latestQuery && latestQuery.resultsKey
+      ) {
+        // results are no longer stored in localStorage, so they need to be
+        // fetched from the results backend (if configured)
         this.props.actions.fetchQueryResults(latestQuery);
       }
     }

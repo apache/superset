@@ -229,7 +229,7 @@ export default class ResultSet extends React.PureComponent {
         return <Alert bsStyle="warning">{t('The query returned no data')}</Alert>;
       }
     }
-    if (query.cached || query.resultsKey) {
+    if (query.cached || (query.state === 'success' && !query.results)) {
       return (
         <Button
           bsSize="sm"
