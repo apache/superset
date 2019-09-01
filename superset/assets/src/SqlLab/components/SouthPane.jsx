@@ -94,7 +94,7 @@ export class SouthPane extends React.PureComponent {
         isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
         (!latestQuery.resultsKey && !latestQuery.results)
       ) {
-         results = <Alert bsStyle="warning">{t('No results backend found, you need to re-run your query')}</Alert>;
+         results = <Alert bsStyle="warning">{t('No stored results found, you need to re-run your query')}</Alert>;
       } else if ((Date.now() - latestQuery.startDttm) <= LOCALSTORAGE_MAX_QUERY_AGE_MS) {
         results = (
           <ResultSet

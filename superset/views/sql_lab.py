@@ -184,12 +184,19 @@ class TabStateView(BaseSupersetView):
     @expose("/", methods=["POST"])
     def post(self):
         query_editor = json.loads(request.form["queryEditor"])
-        query = Query(
-            client_id=utils.shortid()[:10],
-            database_id=query_editor["dbId"],
-            schema=query_editor.get("schema"),
-            sql=query_editor.get("sql", "SELECT ..."),
-        )
+        if query_editor.get("latestQueryId"):
+            query = (
+                db.session.query(Query)
+                .filter_by(client_id=query_editor.get("latestQueryId"))
+                .scalar()
+            )
+        else:
+            query = Query(
+                client_id=utils.shortid()[:10],
+                database_id=query_editor["dbId"],
+                schema=query_editor.get("schema"),
+                sql=query_editor.get("sql", "SELECT ..."),
+            )
         tab_state = TabState(
             user_id=g.user.get_id(),
             label=query_editor.get("title", "Untitled Query"),
