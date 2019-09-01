@@ -59,6 +59,7 @@ export const QUERY_EDITOR_PERSIST_HEIGHT = 'QUERY_EDITOR_PERSIST_HEIGHT';
 export const MIGRATE_QUERY_EDITOR = 'MIGRATE_QUERY_EDITOR';
 export const MIGRATE_TAB_HISTORY = 'MIGRATE_TAB_HISTORY';
 export const MIGRATE_TABLE = 'MIGRATE_TABLE';
+export const MIGRATE_QUERY = 'MIGRATE_QUERY';
 
 export const SET_DATABASES = 'SET_DATABASES';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
@@ -372,7 +373,32 @@ export function setDatabases(databases) {
   return { type: SET_DATABASES, databases };
 }
 
-export function migrateLocalStorage(queryEditor, tables, queries) {
+function migrateTable(table, queryEditorId, dispatch) {
+  return SupersetClient.post({
+    endpoint: encodeURI('/tableschemaview/'),
+    postPayload: { table: { ...table, queryEditorId } },
+  })
+    .then(({ json }) => {
+      const newTable = {
+        ...table,
+        id: json.id,
+        queryEditorId,
+      };
+      return dispatch({ type: MIGRATE_TABLE, oldTable: table, newTable });
+    })
+    .catch(() => dispatch(addDangerToast(t('Unable to migrate table'))));
+}
+
+function migrateQuery(queryId, queryEditorId, dispatch) {
+  return SupersetClient.post({
+    endpoint: encodeURI(`/tabstateview/${queryEditorId}/migrate_query`),
+    postPayload: { queryId },
+  })
+    .then(() => dispatch({ type: MIGRATE_QUERY, queryId, queryEditorId }))
+    .catch(() => dispatch(addDangerToast(t('Unable to migrate query'))));
+}
+
+export function migrateQueryEditorFromLocalStorage(queryEditor, tables, queries) {
   return function (dispatch) {
     return SupersetClient.post({ endpoint: '/tabstateview/', postPayload: { queryEditor } })
       .then(({ json }) => {
@@ -382,24 +408,12 @@ export function migrateLocalStorage(queryEditor, tables, queries) {
         };
         dispatch({ type: MIGRATE_QUERY_EDITOR, oldQueryEditor: queryEditor, newQueryEditor });
         dispatch({ type: MIGRATE_TAB_HISTORY, oldId: queryEditor.id, newId: newQueryEditor.id });
-        return Promise.all(tables.map(table =>
-          SupersetClient.post({
-            endpoint: encodeURI('/tableschemaview/'),
-            postPayload: { table: { ...table, queryEditorId: newQueryEditor.id } },
-          })
-            .then(({ json: resultJson }) => {
-              const newTable = {
-                ...table,
-                id: resultJson.id,
-              };
-              return Promise.all([
-                dispatch({ type: MIGRATE_TABLE, oldTable: table, newTable }),
-                dispatch(runQuery(queries[table.dataPreviewQueryId])),
-              ]);
-            }),
-        ));
+        return Promise.all([
+          ...tables.map(table => migrateTable(table, newQueryEditor.id, dispatch)),
+          ...queries.map(query => migrateQuery(query.id, newQueryEditor.id, dispatch)),
+        ]);
       })
-      .catch(() => dispatch(addDangerToast(t('Unable to add a new tab'))));
+      .catch(() => dispatch(addDangerToast(t('Unable to migrate query editor'))));
   };
 }
 

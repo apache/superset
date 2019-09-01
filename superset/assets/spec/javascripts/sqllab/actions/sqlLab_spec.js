@@ -658,9 +658,9 @@ describe('async actions', () => {
       });
     });
 
-    describe('migrateLocalStorage', () => {
+    describe('migrateQueryEditorFromLocalStorage', () => {
       it('updates the tab state in the backend', () => {
-        expect.assertions(4);
+        expect.assertions(3);
 
         const results = {
           data: mockBigNumber,
@@ -677,10 +677,10 @@ describe('async actions', () => {
           { id: 'one', dataPreviewQueryId: 'previewOne' },
           { id: 'two', dataPreviewQueryId: 'previewTwo' },
         ];
-        const queries = {
-          previewOne: query,
-          previewTwo: query,
-        };
+        const queries = [
+          { ...query, id: 'previewOne' },
+          { ...query, id: 'previewTwo' },
+        ];
         const store = mockStore({});
         const expectedActions = [
           {
@@ -697,43 +697,34 @@ describe('async actions', () => {
           {
             type: actions.MIGRATE_TABLE,
             oldTable: tables[0],
-            // new table has a different id
-            newTable: { ...tables[0], id: 1 },
-          },
-          {
-            type: actions.START_QUERY,
-            query,
+            // new table has a different id and points to new query editor
+            newTable: { ...tables[0], id: 1, queryEditorId: '1' },
           },
           {
             type: actions.MIGRATE_TABLE,
             oldTable: tables[1],
-            // new table has a different id
-            newTable: { ...tables[1], id: 1 },
+            // new table has a different id and points to new query editor
+            newTable: { ...tables[1], id: 1, queryEditorId: '1' },
           },
           {
-            type: actions.START_QUERY,
-            query,
+            type: actions.MIGRATE_QUERY,
+            queryId: 'previewOne',
+            queryEditorId: '1',
           },
           {
-            type: actions.QUERY_SUCCESS,
-            query,
-            results,
-          },
-          {
-            type: actions.QUERY_SUCCESS,
-            query,
-            results,
+            type: actions.MIGRATE_QUERY,
+            queryId: 'previewTwo',
+            queryEditorId: '1',
           },
         ];
         return store.dispatch(
-          actions.migrateLocalStorage(queryEditor, tables, queries))
+          actions.migrateQueryEditorFromLocalStorage(queryEditor, tables, queries))
           .then(() => {
             expect(store.getActions()).toEqual(expectedActions);
-            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
+            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(3);
 
             // query editor has 2 tables loaded in the schema viewer
             expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(2);
-            expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(2);
           });
       });
     });

@@ -371,6 +371,15 @@ export default function sqlLabReducer(state = {}, action) {
       tabHistory.push(action.newId);
       return Object.assign({}, state, { tabHistory });
     },
+    [actions.MIGRATE_QUERY]() {
+      const query = {
+        ...state.queries[action.queryId],
+        // point query to migrated query editor
+        sqlEditorId: action.queryEditorId,
+      };
+      const queries = Object.assign({}, state.queries, { [query.id]: query });
+      return Object.assign({}, state, { queries });
+    },
     [actions.QUERY_EDITOR_SETDB]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { dbId: action.dbId });
     },

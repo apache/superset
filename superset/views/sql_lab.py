@@ -243,7 +243,7 @@ class TabStateView(BaseSupersetView):
             return Response(status=403)
 
         fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
-        (db.session.query(TabState).filter_by(id=tab_state_id).update(fields))
+        db.session.query(TabState).filter_by(id=tab_state_id).update(fields)
         db.session.commit()
         return json_success(json.dumps(tab_state_id))
 
@@ -257,7 +257,20 @@ class TabStateView(BaseSupersetView):
         query_id = (
             db.session.query(TabState.query_id).filter_by(id=tab_state_id).scalar()
         )
-        (db.session.query(Query).filter_by(id=query_id).update(fields))
+        db.session.query(Query).filter_by(id=query_id).update(fields)
+        db.session.commit()
+        return json_success(json.dumps(tab_state_id))
+
+    @has_access_api
+    @expose("<int:tab_state_id>/migrate_query", methods=["POST"])
+    def migrate_query(self, tab_state_id):
+        if self._get_owner_id(tab_state_id) != int(g.user.get_id()):
+            return Response(status=403)
+
+        client_id = json.loads(request.form["queryId"])
+        db.session.query(Query).filter_by(client_id=client_id).update(
+            {"sql_editor_id": tab_state_id}
+        )
         db.session.commit()
         return json_success(json.dumps(tab_state_id))
 

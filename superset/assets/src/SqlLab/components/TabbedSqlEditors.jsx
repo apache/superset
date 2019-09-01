@@ -75,11 +75,13 @@ class TabbedSqlEditors extends React.PureComponent {
     if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
       const localStorageTables = this.props.tables.filter(table => table.inLocalStorage);
       const localStorageQueries = Object.values(this.props.queries)
-        .filter(query => query.inLocalStorage)
-        .reduce((obj, query) => ({ ...obj, [query.id]: query }), {});
+        .filter(query => query.inLocalStorage);
       this.props.queryEditors.filter(qe => qe.inLocalStorage).forEach((qe) => {
+        // get all queries associated with the query editor
+        const queries = localStorageQueries
+          .filter(query => query.sqlEditorId === qe.id);
         const tables = localStorageTables.filter(table => table.queryEditorId === qe.id);
-        this.props.actions.migrateLocalStorage(qe, tables, localStorageQueries);
+        this.props.actions.migrateQueryEditorFromLocalStorage(qe, tables, queries);
       });
     }
 
