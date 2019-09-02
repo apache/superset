@@ -27,9 +27,9 @@ if sys.version_info < (3, 6):
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_DIR = os.path.join(BASE_DIR, "superset", "static", "assets")
-PACKAGE_FILE = os.path.join(PACKAGE_DIR, "package.json")
-with open(PACKAGE_FILE) as package_file:
-    version_string = json.load(package_file)["version"]
+VERSION_INFO_FILE = os.path.join(PACKAGE_DIR, "version_info.json")
+with open(VERSION_INFO_FILE) as version_info_file:
+    version_string = json.load(version_info_file)["version"]
 
 with io.open("README.md", encoding="utf-8") as f:
     long_description = f.read()
