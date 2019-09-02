@@ -44,7 +44,12 @@ class FilterIndicator extends React.PureComponent {
   }
 
   render() {
-    const { colorCode, label, values } = this.props.indicator;
+    const {
+      colorCode,
+      label,
+      values,
+      isFilterFieldActive,
+    } = this.props.indicator;
 
     const filterTooltip = (
       <FilterIndicatorTooltip
@@ -57,7 +62,9 @@ class FilterIndicator extends React.PureComponent {
     return (
       <FilterTooltipWrapper tooltip={filterTooltip}>
         <div
-          className="filter-indicator"
+          className={`filter-indicator ${
+            isFilterFieldActive ? 'isFilterFieldActive' : ''
+          }`}
           onClick={this.focusToFilterComponent}
           role="none"
         >

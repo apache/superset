@@ -65,6 +65,10 @@ function mapStateToProps(
     editMode: dashboardState.editMode,
     filters: getActiveFilters(),
     directPathToChild: dashboardState.directPathToChild,
+    filterFieldOnFocus:
+      dashboardState.focusedFilterField.length === 0
+        ? {}
+        : dashboardState.focusedFilterField.slice(-1).pop(),
   };
 
   // rows and columns need more data about their child dimensions

@@ -253,6 +253,7 @@ export default function(bootstrapData) {
     dashboardState: {
       sliceIds: Array.from(sliceIds),
       directPathToChild,
+      focusedFilterField: [],
       expandedSlices: dashboard.metadata.expanded_slices || {},
       refreshFrequency: dashboard.metadata.refresh_frequency || 0,
       css: dashboard.css || '',

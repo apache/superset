@@ -43,6 +43,9 @@ class FilterIndicatorGroup extends React.PureComponent {
 
   render() {
     const { indicators } = this.props;
+    const hasFilterFieldActive = indicators.some(
+      indicator => indicator.isFilterFieldActive,
+    );
     const hasFilterApplied = indicators.some(
       indicator => !isEmpty(indicator.values),
     );
@@ -68,7 +71,11 @@ class FilterIndicatorGroup extends React.PureComponent {
           </React.Fragment>
         }
       >
-        <div className="filter-indicator-group">
+        <div
+          className={`filter-indicator-group ${
+            hasFilterFieldActive ? 'isFilterFieldActive' : ''
+          }`}
+        >
           <div className="color-bar badge-group" />
           <FilterBadgeIcon colorCode={hasFilterApplied ? 'badge-group' : ''} />
         </div>

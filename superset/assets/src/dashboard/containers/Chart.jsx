@@ -19,7 +19,10 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import { toggleExpandSlice } from '../actions/dashboardState';
+import {
+  toggleExpandSlice,
+  setFocusedFilterField,
+} from '../actions/dashboardState';
 import { updateComponents } from '../actions/dashboardLayout';
 import { changeFilter } from '../actions/dashboardFilters';
 import { addDangerToast } from '../../messageToasts/actions';
@@ -78,6 +81,7 @@ function mapDispatchToProps(dispatch) {
       addDangerToast,
       toggleExpandSlice,
       changeFilter,
+      setFocusedFilterField,
       refreshChart,
       logEvent,
     },

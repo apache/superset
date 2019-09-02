@@ -53,6 +53,8 @@ export default function transformProps(chartProps) {
     filtersFields,
     instantFiltering,
     onChange: onAddFilter,
+    onFilterMenuOpen: hooks.onFilterMenuOpen,
+    onFilterMenuClose: hooks.onFilterMenuClose,
     origSelectedValues: initialValues || {},
     showDateFilter: dateFilter,
     showDruidTimeGrain: showDruidTimeGranularity,

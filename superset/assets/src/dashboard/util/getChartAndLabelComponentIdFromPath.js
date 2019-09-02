@@ -16,18 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sliceId } from './mockChartQueries';
-import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
+import { IN_COMPONENT_ELEMENT_TYPES } from './constants';
 
-export default {
-  sliceIds: [sliceId],
-  expandedSlices: {},
-  editMode: false,
-  builderPaneType: BUILDER_PANE_TYPE.NONE,
-  hasUnsavedChanges: false,
-  maxUndoHistoryExceeded: false,
-  isStarred: true,
-  isPublished: true,
-  css: '',
-  focusedFilterField: [],
-};
+export default function getChartAndLabelComponentIdFromPath(directPathToChild) {
+  const result = {};
+
+  if (directPathToChild.length > 0) {
+    const currentPath = directPathToChild.slice();
+
+    while (currentPath.length) {
+      const componentId = currentPath.pop();
+      const componentType = componentId.split('-')[0];
+
+      result[componentType.toLowerCase()] = componentId;
+      if (!IN_COMPONENT_ELEMENT_TYPES.includes(componentType)) {
+        break;
+      }
+    }
+  }
+
+  return result;
+}
