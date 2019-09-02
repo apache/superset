@@ -18,17 +18,17 @@ include NOTICE
 include LICENSE.txt
 graft licenses/
 include README.md
+recursive-include superset/assets/package.json
 recursive-include superset/examples *
 recursive-include superset/migrations *
 
-# Whitelist anything that needs to be added to the static bundle
-recursive-exclude superset/static *
-recursive-include superset/static/assets/branding *
-recursive-include superset/static/assets/dist *
-recursive-include superset/static/assets/images *
+# Whitelist the static bundle, it has a set of symlinks pointing to assets/
+# subfolders
+recursive-include superset/static *
+# Remove large files used for docs only
 recursive-exclude superset/static/images/viz_thumbnails_large *
-recursive-include superset/static/assets/stylesheets *
-include superset/static/assets/version_info.json
+# Remove docs images to minimize bundle size
+recursive-exclude superset/static/images/docs *
 
 recursive-include superset/templates *
 recursive-include superset/translations *

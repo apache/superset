@@ -286,7 +286,7 @@ When the docs are deployed to https://superset.incubator.apache.org/, images
 are copied from there to the `_static/img` directory, just like they're referenced
 in the docs.
 
-For example, the image referenced above actually lives in `superset/assets/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/img/tutorial` instead.
+For example, the image referenced above actually lives in `superset/assets/images/docs/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/img/tutorial` instead.
 
 #### API documentation
 

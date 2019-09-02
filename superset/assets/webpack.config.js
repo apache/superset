@@ -86,7 +86,7 @@ if (isDevMode) {
 
 const output = {
   path: BUILD_DIR,
-  publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks
+  publicPath: '/static/dist/', // necessary for lazy-loaded chunks
 };
 
 if (isDevMode) {
@@ -264,7 +264,7 @@ const config = {
       '/': `http://localhost:${supersetPort}`,
       target: `http://localhost:${supersetPort}`,
     },
-    contentBase: path.join(process.cwd(), '../static/assets/dist'),
+    contentBase: path.join(process.cwd(), '../static/dist'),
   },
 };
 

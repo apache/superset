@@ -49,8 +49,8 @@ else:
 # Superset specific config
 # ---------------------------------------------------------
 PACKAGE_DIR = os.path.join(BASE_DIR, "static", "assets")
-VERSION_INFO_FILE = os.path.join(PACKAGE_DIR, "version_info.json")
-PACKAGE_JSON_FILE = os.path.join(PACKAGE_DIR, "package.json")
+VERSION_INFO_FILE = os.path.join(BASE_DIR, "static", "version_info.json")
+PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets", "package.json")
 
 #
 # Depending on the context in which this config is loaded, the version_info.json file
@@ -59,12 +59,19 @@ PACKAGE_JSON_FILE = os.path.join(PACKAGE_DIR, "package.json")
 # exist. When unit tests are running, however, it WILL NOT exist, so we fall
 # back to reading package.json
 #
-try:
-    with open(VERSION_INFO_FILE) as version_file:
-        VERSION_STRING = json.load(version_file)["version"]
-except Exception:
-    with open(PACKAGE_JSON_FILE) as version_file:
-        VERSION_STRING = json.load(version_file)["version"]
+
+
+def _try_json_reafile(filepath):
+    try:
+        with open(filepath) as f:
+            return json.load(f).get("version")
+    except Exception:
+        return None
+
+
+VERSION_STRING = _try_json_reafile(VERSION_INFO_FILE) or _try_json_reafile(
+    PACKAGE_JSON_FILE
+)
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
@@ -135,7 +142,7 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 APP_NAME = "Superset"
 
 # Uncomment to setup an App icon
-APP_ICON = "/static/assets/images/superset-logo@2x.png"
+APP_ICON = "/static/images/superset-logo@2x.png"
 APP_ICON_WIDTH = 126
 
 # Uncomment to specify where clicking the logo would take the user

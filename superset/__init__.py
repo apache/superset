@@ -51,7 +51,7 @@ conf = app.config
 #################################################################
 # Handling manifest file logic at app start
 #################################################################
-MANIFEST_FILE = APP_DIR + "/static/assets/dist/manifest.json"
+MANIFEST_FILE = APP_DIR + "/static/dist/manifest.json"
 manifest = {}
 
 

@@ -17,7 +17,7 @@
 
 |apache_img| |superset_img|
 
-.. |apache_img| image:: images/apache_feather.png
+.. |apache_img| image:: images/docs/apache_feather.png
    :width: 7%
    :target: http://www.apache.org/
    :alt: The Apache Software Foundation
@@ -128,19 +128,19 @@ be supported as well.
 Screenshots
 -----------
 
-.. image:: images/screenshots/bank_dash.png
+.. image:: images/docs/screenshots/bank_dash.png
 
 ------
 
-.. image:: images/screenshots/explore.png
+.. image:: images/docs/screenshots/explore.png
 
 ------
 
-.. image:: images/screenshots/sqllab.png
+.. image:: images/docs/screenshots/sqllab.png
 
 ------
 
-.. image:: images/screenshots/deckgl_dash.png
+.. image:: images/docs/screenshots/deckgl_dash.png
 
 ------
 

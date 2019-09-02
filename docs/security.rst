@@ -20,7 +20,7 @@ Security
 Security in Superset is handled by Flask AppBuilder (FAB). FAB is a
 "Simple and rapid application development framework, built on top of Flask.".
 FAB provides authentication, user management, permissions and roles.
-Please read its `Security documentation 
+Please read its `Security documentation
 <https://flask-appbuilder.readthedocs.io/en/latest/security.html>`_.
 
 Provided Roles
@@ -87,7 +87,7 @@ sure the users with limited access have [only] the Gamma role assigned to
 them. Second, create a new role (``Menu -> Security -> List Roles``) and
 click the ``+`` sign.
 
-.. image:: images/create_role.png
+.. image:: images/docs/create_role.png
    :scale: 50 %
 
 This new window allows you to give this new role a name, attribute it to users

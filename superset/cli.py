@@ -57,13 +57,9 @@ def init():
 @click.option("--verbose", "-v", is_flag=True, help="Show extra information")
 def version(verbose):
     """Prints the current version number"""
+    version = config.get("VERSION_STRING") or "UNKNOWN"
     print(Fore.BLUE + "-=" * 15)
-    print(
-        Fore.YELLOW
-        + "Superset "
-        + Fore.CYAN
-        + "{version}".format(version=config.get("VERSION_STRING"))
-    )
+    print(Fore.YELLOW + "Superset " + Fore.CYAN + version)
     print(Fore.BLUE + "-=" * 15)
     if verbose:
         print("[DB] : " + "{}".format(db.engine))

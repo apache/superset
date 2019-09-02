@@ -186,7 +186,7 @@ export default class DisplayQueryButton extends React.PureComponent {
       return (<img
         className="loading"
         alt="Loading..."
-        src="/static/assets/images/loading.gif"
+        src="/static/images/loading.gif"
       />);
     } else if (this.state.error) {
       return <pre>{this.state.error}</pre>;

@@ -647,7 +647,7 @@ def load_birth_names(only_metadata=False, force=False):
             "children": [],
             "id": "MARKDOWN-zaflB60tbC",
             "meta": {
-              "code": "<div style=\\"text-align:center\\">  <h1>Birth Names Dashboard</h1>  <img src=\\"/static/assets/images/babies.png\\" style=\\"width:50%;\\"></div>",
+              "code": "<div style=\\"text-align:center\\">  <h1>Birth Names Dashboard</h1>  <img src=\\"/static/images/babies.png\\" style=\\"width:50%;\\"></div>",
               "height": 34,
               "width": 6
             },

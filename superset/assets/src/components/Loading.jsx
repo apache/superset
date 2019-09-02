@@ -51,7 +51,7 @@ export default function Loading({ size, position, className }) {
     <img
       className={`loading ${className}`}
       alt="Loading..."
-      src="/static/assets/images/loading.gif"
+      src="/static/images/loading.gif"
       style={styleWithWidth}
     />
   );
