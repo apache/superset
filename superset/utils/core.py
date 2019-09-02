@@ -30,7 +30,6 @@ import logging
 import os
 import signal
 import smtplib
-import sys
 from time import struct_time
 import traceback
 from typing import List, NamedTuple, Optional, Tuple, Union
@@ -68,7 +67,6 @@ from superset.utils.dates import datetime_to_epoch, EPOCH
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 
-PY3K = sys.version_info >= (3, 0)
 DTTM_ALIAS = "__timestamp"
 ADHOC_METRIC_EXPRESSION_TYPES = {"SIMPLE": "SIMPLE", "SQL": "SQL"}
 
@@ -796,10 +794,8 @@ def zlib_compress(data):
     >>> json_str = '{"test": 1}'
     >>> blob = zlib_compress(json_str)
     """
-    if PY3K:
-        if isinstance(data, str):
-            return zlib.compress(bytes(data, "utf-8"))
-        return zlib.compress(data)
+    if isinstance(data, str):
+        return zlib.compress(bytes(data, "utf-8"))
     return zlib.compress(data)
 
 
@@ -812,13 +808,11 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
     >>> got_str == json_str
     True
     """
-    if PY3K:
-        if isinstance(blob, bytes):
-            decompressed = zlib.decompress(blob)
-        else:
-            decompressed = zlib.decompress(bytes(blob, "utf-8"))
-        return decompressed.decode("utf-8") if decode else decompressed
-    return zlib.decompress(blob)
+    if isinstance(blob, bytes):
+        decompressed = zlib.decompress(blob)
+    else:
+        decompressed = zlib.decompress(bytes(blob, "utf-8"))
+    return decompressed.decode("utf-8") if decode else decompressed
 
 
 _celery_app = None
