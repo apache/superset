@@ -28,7 +28,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     engine = "impala"
 
-    _time_grain_functions = {
+    time_grain_functions = {
         None: "{col}",
         "PT1M": "TRUNC({col}, 'MI')",
         "PT1H": "TRUNC({col}, 'HH')",

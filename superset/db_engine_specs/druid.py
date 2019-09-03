@@ -25,7 +25,7 @@ class DruidEngineSpec(BaseEngineSpec):
     allows_joins = False
     allows_subqueries = True
 
-    _time_grain_functions = {
+    time_grain_functions = {
         None: "{col}",
         "PT1S": "FLOOR({col} TO SECOND)",
         "PT1M": "FLOOR({col} TO MINUTE)",
