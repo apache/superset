@@ -2472,6 +2472,7 @@ class Superset(BaseSupersetView):
             query = db.session.query(Query).filter_by(client_id=client_id).one()
             query.status = QueryStatus.STOPPED
             db.session.commit()
+            sql_lab.cancel_query(query, g.user.username if g.user else None)
         except Exception:
             pass
         return self.json_response("OK")
