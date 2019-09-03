@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-import backoff
 from contextlib import closing
 from datetime import datetime, timedelta
 import logging
@@ -23,6 +22,7 @@ import re
 from typing import Dict, List, Optional, Union  # noqa: F401
 from urllib import parse
 
+import backoff
 from flask import (
     abort,
     flash,

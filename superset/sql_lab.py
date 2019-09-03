@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-import backoff
 from contextlib import closing
 from datetime import datetime
 import logging
@@ -23,6 +22,7 @@ from sys import getsizeof
 from typing import Optional, Tuple, Union
 import uuid
 
+import backoff
 from celery.exceptions import SoftTimeLimitExceeded
 from contextlib2 import contextmanager
 from flask_babel import lazy_gettext as _
