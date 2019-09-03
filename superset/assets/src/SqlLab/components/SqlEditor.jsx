@@ -46,10 +46,9 @@ import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import {
   STATE_BSSTYLE_MAP,
-  SQL_EDITOR_VERTICAL_GUTTER_HEIGHT,
-  SQL_EDITOR_VERTICAL_GUTTER_MARGIN,
+  SQL_EDITOR_GUTTER_HEIGHT,
+  SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
-  SQL_EDITOR_HORIZONTAL_GUTTER_WIDTH,
 } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
@@ -57,11 +56,8 @@ import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 const SQL_EDITOR_PADDING = 10;
 const INITIAL_NORTH_PERCENT = 30;
 const INITIAL_SOUTH_PERCENT = 70;
-const INITIAL_WEST_PERCENT = 20;
-const INITIAL_EAST_PERCENT = 80;
 const VALIDATION_DEBOUNCE_MS = 600;
 const WINDOW_RESIZE_THROTTLE_MS = 100;
-const SQL_EDITOR_MIN_SIZE = 300;
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -107,7 +103,6 @@ class SqlEditor extends React.PureComponent {
     this.onSqlChanged = this.onSqlChanged.bind(this);
     this.setQueryEditorSql = this.setQueryEditorSql.bind(this);
     this.queryPane = this.queryPane.bind(this);
-    this.leftBar = this.leftBar.bind(this);
     this.getAceEditorAndSouthPaneHeights = this.getAceEditorAndSouthPaneHeights.bind(this);
     this.getSqlEditorHeight = this.getSqlEditorHeight.bind(this);
     this.requestValidation = debounce(
@@ -169,10 +164,10 @@ class SqlEditor extends React.PureComponent {
   getAceEditorAndSouthPaneHeights(height, northPercent, southPercent) {
     return {
       aceEditorHeight: height * northPercent / 100
-        - (SQL_EDITOR_VERTICAL_GUTTER_HEIGHT / 2 + SQL_EDITOR_VERTICAL_GUTTER_MARGIN)
+        - (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN)
         - SQL_TOOLBAR_HEIGHT,
       southPaneHeight: height * southPercent / 100
-        - (SQL_EDITOR_VERTICAL_GUTTER_HEIGHT / 2 + SQL_EDITOR_VERTICAL_GUTTER_MARGIN),
+        - (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN),
     };
   }
   getHotkeyConfig() {
@@ -220,7 +215,7 @@ class SqlEditor extends React.PureComponent {
   }
   elementStyle(dimension, elementSize, gutterSize) {
     return {
-      [dimension]: `calc(${elementSize}% - ${gutterSize + SQL_EDITOR_VERTICAL_GUTTER_MARGIN}px)`,
+      [dimension]: `calc(${elementSize}% - ${gutterSize + SQL_EDITOR_GUTTER_MARGIN}px)`,
     };
   }
   requestValidation() {
@@ -292,7 +287,7 @@ class SqlEditor extends React.PureComponent {
         elementStyle={this.elementStyle}
         minSize={200}
         direction="vertical"
-        gutterSize={SQL_EDITOR_VERTICAL_GUTTER_HEIGHT}
+        gutterSize={SQL_EDITOR_GUTTER_HEIGHT}
         onDragStart={this.onResizeStart}
         onDragEnd={this.onResizeEnd}
       >
@@ -319,22 +314,6 @@ class SqlEditor extends React.PureComponent {
           height={southPaneHeight}
         />
       </Split>
-    );
-  }
-  leftBar() {
-    return (
-      <CSSTransition
-        classNames="schemaPane"
-        in={!this.props.hideLeftBar}
-        timeout={300}
-      >
-        <SqlEditorLeftBar
-          database={this.props.database}
-          queryEditor={this.props.queryEditor}
-          tables={this.props.tables}
-          actions={this.props.actions}
-        />
-      </CSSTransition>
     );
   }
   renderEditorBottomBar(hotkeys) {
@@ -476,18 +455,23 @@ class SqlEditor extends React.PureComponent {
   }
   render() {
     return (
-      <Split
-        ref={this.sqlEditorRef}
-        className={this.props.hideLeftBar ? 'SqlEditor-expanded' : 'SqlEditor'}
-        sizes={[INITIAL_WEST_PERCENT, INITIAL_EAST_PERCENT]}
-        direction="horizontal"
-        minSize={SQL_EDITOR_MIN_SIZE}
-        gutterSize={SQL_EDITOR_HORIZONTAL_GUTTER_WIDTH}
-        snapOffset={0}
-      >
-        {this.leftBar()}
+      <div ref={this.sqlEditorRef} className="SqlEditor">
+        <CSSTransition
+          classNames="schemaPane"
+          in={!this.props.hideLeftBar}
+          timeout={300}
+        >
+          <div className="schemaPane">
+            <SqlEditorLeftBar
+              database={this.props.database}
+              queryEditor={this.props.queryEditor}
+              tables={this.props.tables}
+              actions={this.props.actions}
+            />
+          </div>
+        </CSSTransition>
         {this.queryPane()}
-      </Split>
+      </div>
     );
   }
 }

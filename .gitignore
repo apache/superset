@@ -24,6 +24,7 @@
 .DS_Store
 .eggs
 .idea
+.mypy_cache
 .python-version
 .tox
 .vscode
