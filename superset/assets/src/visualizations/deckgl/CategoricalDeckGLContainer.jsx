@@ -78,7 +78,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.toggleCategory = this.toggleCategory.bind(this);
     this.showSingleCategory = this.showSingleCategory.bind(this);
   }
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.payload.form_data !== this.state.formData) {
       this.setState({ ...this.getStateFromProps(nextProps) });
     }
