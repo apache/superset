@@ -48,6 +48,7 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  directPathLastUpdated: PropTypes.number,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -64,14 +65,16 @@ const propTypes = {
 
 const defaultProps = {
   directPathToChild: [],
+  directPathLastUpdated: 0,
 };
 
 class ChartHolder extends React.Component {
   static renderInFocusCSS(columnName) {
     return (
       <style>
-        {`.show-outline label[for=${columnName}] + .Select .Select-control {
-                    animation: fade-in-fade-out-border 2s;
+        {`label[for=${columnName}] + .Select .Select-control {
+                    border-color: #00736a;
+                    transition: border-color 1s ease-in-out;
            }`}
       </style>
     );
@@ -81,11 +84,59 @@ class ChartHolder extends React.Component {
     super(props);
     this.state = {
       isFocused: false,
+      outlinedComponentId: null,
+      outlinedColumnName: null,
+      directPathLastUpdated: 0,
     };
+    // window.clearTimeout's key is global,
+    // we don't want one chart clear out another's chart's timeout.
+    this.timer = [];
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateSliceName = this.handleUpdateSliceName.bind(this);
+  }
+
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    const { component, directPathToChild, directPathLastUpdated } = nextProps;
+    const {
+      label: columnName,
+      chart: chartComponentId,
+    } = getChartAndLabelComponentIdFromPath(directPathToChild);
+
+    if (
+      directPathLastUpdated !== this.state.directPathLastUpdated &&
+      component.id === chartComponentId
+    ) {
+      this.setState(() => ({
+        outlinedComponentId: component.id,
+        outlinedColumnName: columnName,
+        directPathLastUpdated,
+      }));
+    }
+  }
+
+  componentDidMount() {
+    this.hideOutline({}, this.state);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    this.hideOutline(prevState, this.state);
+  }
+
+  hideOutline(prevState, state) {
+    const { outlinedComponentId: timerKey } = state;
+    const { outlinedComponentId: prevTimerKey } = prevState;
+
+    // because of timeout, there might be multiple charts showing outline
+    if (!!timerKey && !prevTimerKey) {
+      this.timer[timerKey] = setTimeout(() => {
+        this.setState(() => ({
+          outlinedComponentId: null,
+          outlinedColumnName: null,
+        }));
+      }, 2000);
+    }
   }
 
   handleChangeFocus(nextFocus) {
@@ -126,7 +177,6 @@ class ChartHolder extends React.Component {
       handleComponentDrop,
       editMode,
       isComponentVisible,
-      directPathToChild,
     } = this.props;
 
     // inherit the size of parent columns
@@ -134,12 +184,6 @@ class ChartHolder extends React.Component {
       parentComponent.type === COLUMN_TYPE
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
         : component.meta.width || GRID_MIN_COLUMN_COUNT;
-
-    const {
-      label: columnName,
-      chart: chartComponentId,
-    } = getChartAndLabelComponentIdFromPath(directPathToChild);
-    const showOutline = chartComponentId === component.id;
 
     return (
       <DragDroppable
@@ -172,13 +216,17 @@ class ChartHolder extends React.Component {
             <div
               ref={dragSourceRef}
               className={`dashboard-component dashboard-component-chart-holder ${
-                showOutline ? 'show-outline' : ''
+                this.state.outlinedComponentId ? 'fade-in' : 'fade-out'
               }`}
             >
               {!editMode && (
-                <AnchorLink anchorLinkId={component.id} inFocus={showOutline} />
+                <AnchorLink
+                  anchorLinkId={component.id}
+                  inFocus={!!this.state.outlinedComponentId}
+                />
               )}
-              {showOutline && ChartHolder.renderInFocusCSS(columnName)}
+              {!!this.state.outlinedComponentId &&
+                ChartHolder.renderInFocusCSS(this.state.outlinedColumnName)}
               <Chart
                 componentId={component.id}
                 id={component.meta.chartId}

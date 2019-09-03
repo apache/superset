@@ -127,6 +127,7 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         directPathToChild: action.path,
+        directPathLastUpdated: Date.now(),
       };
     },
     [SET_FOCUSED_FILTER_FIELD]() {
