@@ -225,7 +225,7 @@ class Chart extends React.Component {
     const { queryResponse, chartUpdateEndTime } = chart;
     const isCached = queryResponse && queryResponse.is_cached;
     const cachedDttm = queryResponse && queryResponse.cached_dttm;
-    const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice && slice.viz_type);
+    const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice.viz_type);
 
     return (
       <div>
