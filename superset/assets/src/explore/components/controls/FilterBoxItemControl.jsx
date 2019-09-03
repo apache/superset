@@ -169,6 +169,7 @@ export default class FilterBoxItemControl extends React.Component {
               value={this.state.limit}
               name="limit"
               onChange={v => this.onControlChange('limit', v)}
+              isInt={true}
             />
           }
         />
