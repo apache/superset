@@ -45,7 +45,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     """
     arraysize = 5000
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "TIMESTAMP_TRUNC({col}, SECOND)",
         "PT1M": "TIMESTAMP_TRUNC({col}, MINUTE)",

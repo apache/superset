@@ -136,7 +136,7 @@ class BaseEngineSpec:
     """Abstract class for database engine specific configurations"""
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
-    time_grain_functions: Dict[Optional[str], str] = {}
+    _time_grain_functions: Dict[Optional[str], str] = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -201,10 +201,10 @@ class BaseEngineSpec:
 
         :return: All time grains supported by the engine
         """
-        grain_functions = cls.time_grain_functions.copy()
+        time_grain_functions = cls._time_grain_functions.copy()
         grain_addon_functions = config.get("TIME_GRAIN_ADDON_FUNCTIONS", {})
-        grain_functions.update(grain_addon_functions.get(cls.engine, {}))
-        return grain_functions
+        time_grain_functions.update(grain_addon_functions.get(cls.engine, {}))
+        return time_grain_functions
 
     @classmethod
     def make_select_compatible(

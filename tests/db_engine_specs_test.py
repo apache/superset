@@ -330,7 +330,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         for engine in engines.values():
             if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
-                self.assertGreater(len(engine.time_grain_functions), 0)
+                self.assertGreater(len(engine.get_time_grain_functions()), 0)
                 # make sure all defined time grains are supported
                 defined_grains = {grain.duration for grain in engine.get_time_grains()}
                 intersection = time_grains.intersection(defined_grains)

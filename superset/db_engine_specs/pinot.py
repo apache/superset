@@ -29,7 +29,7 @@ class PinotEngineSpec(BaseEngineSpec):
     allows_column_aliases = False
 
     # Pinot does its own conversion below
-    time_grain_functions: Dict[Optional[str], str] = {
+    _time_grain_functions: Dict[Optional[str], str] = {
         "PT1S": "1:SECONDS",
         "PT1M": "1:MINUTES",
         "PT1H": "1:HOURS",
