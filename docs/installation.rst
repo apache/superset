@@ -360,7 +360,7 @@ Here's a list of some of the recommended packages.
 |                  |                                       | For JDBC                                        |
 |                  |                                       | ``drill+jdbc://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
-| Apache Druid     | ``pip install pyduid``                | ``druid://``                                    |
+| Apache Druid     | ``pip install pydruid``                | ``druid://``                                    |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Apache Hive      | ``pip install pyhive``                | ``hive://``                                     |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -845,6 +845,12 @@ look something like:
     from werkzeug.contrib.cache import RedisCache
     RESULTS_BACKEND = RedisCache(
         host='localhost', port=6379, key_prefix='superset_results')
+
+For performance gains, `MessagePack <https://github.com/msgpack/msgpack-python>`_
+and `PyArrow <https://arrow.apache.org/docs/python/>`_ are now used for results
+serialization. This can be disabled by setting ``RESULTS_BACKEND_USE_MSGPACK = False``
+in your configuration, should any issues arise. Please clear your existing results
+cache store when upgrading an existing environment.
 
 **Important notes**
 

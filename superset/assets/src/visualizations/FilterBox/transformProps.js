@@ -16,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+const NOOP = () => {};
+
 export default function transformProps(chartProps) {
   const {
     datasource,
-    filters,
     formData,
-    onAddFilter,
-    payload,
+    hooks,
+    initialValues,
+    queryData,
     rawDatasource,
   } = chartProps;
+  const { onAddFilter = NOOP } = hooks;
   const {
     sliceId,
     dateFilter,
@@ -46,11 +49,11 @@ export default function transformProps(chartProps) {
   return {
     chartId: sliceId,
     datasource: rawDatasource,
+    filtersChoices: queryData.data,
     filtersFields,
-    filtersChoices: payload.data,
     instantFiltering,
     onChange: onAddFilter,
-    origSelectedValues: filters || {},
+    origSelectedValues: initialValues || {},
     showDateFilter: dateFilter,
     showDruidTimeGrain: showDruidTimeGranularity,
     showDruidTimeOrigin,
