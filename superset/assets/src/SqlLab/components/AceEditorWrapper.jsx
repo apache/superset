@@ -83,7 +83,7 @@ class AceEditorWrapper extends React.PureComponent {
     this.props.actions.queryEditorSetSelectedText(this.props.queryEditor, null);
     this.setAutoCompleter(this.props);
   }
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (!areArraysShallowEqual(this.props.tables, nextProps.tables) ||
       !areArraysShallowEqual(this.props.schemas, nextProps.schemas) ||
       !areArraysShallowEqual(this.props.extendedTables, nextProps.extendedTables)) {

@@ -151,7 +151,7 @@ export default class MetricsControl extends React.PureComponent {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const { value } = this.props;
     if (
       !isEqual(this.props.columns, nextProps.columns) ||
