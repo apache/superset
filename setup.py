@@ -112,6 +112,7 @@ setup(
         "presto": ["pyhive[presto]>=0.4.0"],
         "druid": ["pydruid==0.5.2", "requests==2.22.0"],
     },
+    python_requires="~=3.6",
     author="Apache Software Foundation",
     author_email="dev@superset.incubator.apache.org",
     url="https://superset.apache.org/",
