@@ -2595,7 +2595,7 @@ class Superset(BaseSupersetView):
         :param query: The query (SQLAlchemy) object
         :return: String JSON response
         """
-        logging.info(f"Query {query.query_id}: Running query on a Celery worker")
+        logging.info(f"Query {query.id}: Running query on a Celery worker")
         # Ignore the celery future object and the request may time out.
         try:
             sql_lab.get_sql_results.delay(
