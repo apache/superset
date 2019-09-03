@@ -50,6 +50,6 @@ describe('FilterBoxItemControl', () => {
 
   it('renderForms does the job', () => {
     const popover = shallow(inst.renderForm());
-    expect(popover.find(FormRow)).toHaveLength(7);
+    expect(popover.find(FormRow)).toHaveLength(8);
   });
 });
