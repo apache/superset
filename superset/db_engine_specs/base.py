@@ -194,7 +194,7 @@ class BaseEngineSpec:
         )
 
     @classmethod
-    def get_time_grain_functions(cls) -> Dict[str, str]:
+    def get_time_grain_functions(cls) -> Dict[Optional[str], str]:
         """
         Return a dict of all supported time grains including any potential added grains
         in the config file.
