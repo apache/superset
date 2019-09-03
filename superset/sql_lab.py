@@ -70,14 +70,14 @@ def handle_query_error(msg, query, session, payload=None):
     return payload
 
 
-def backoff_handler(details):
+def get_query_backoff_handler(details):
     query_id = details["kwargs"]["query_id"]
     logging.error(f"Query with id `{query_id}` could not be retrieved")
     stats_logger.incr("error_attempting_orm_query_{}".format(details["tries"] - 1))
     logging.error(f"Query {query_id}: Sleeping for a sec before retrying...")
 
 
-def giveup_handler(details):
+def get_query_giveup_handler(details):
     stats_logger.incr("error_failed_at_getting_orm_query")
 
 
@@ -85,8 +85,8 @@ def giveup_handler(details):
     backoff.constant,
     SqlLabException,
     interval=1,
-    on_backoff=backoff_handler,
-    on_giveup=giveup_handler,
+    on_backoff=get_query_backoff_handler,
+    on_giveup=get_query_giveup_handler,
     max_tries=5,
 )
 def get_query(query_id, session):

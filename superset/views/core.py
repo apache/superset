@@ -2436,8 +2436,8 @@ class Superset(BaseSupersetView):
         backoff.constant,
         DatabaseError,
         interval=1,
-        on_backoff=db.session.rollback,
-        on_giveup=db.session.rollback,
+        on_backoff=lambda details: db.session.rollback(),
+        on_giveup=lambda details: db.session.rollback(),
         max_tries=5,
     )
     def stop_query(self):
