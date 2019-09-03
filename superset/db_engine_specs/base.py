@@ -136,7 +136,7 @@ class BaseEngineSpec:
     """Abstract class for database engine specific configurations"""
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
-    time_grain_functions: Dict[Optional[str], str] = {}
+    _time_grain_functions: Dict[Optional[str], str] = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -161,7 +161,7 @@ class BaseEngineSpec:
         :return: TimestampExpression object
         """
         if time_grain:
-            time_expr = cls.time_grain_functions.get(time_grain)
+            time_expr = cls.get_time_grain_functions().get(time_grain)
             if not time_expr:
                 raise NotImplementedError(
                     f"No grain spec for {time_grain} for database {cls.engine}"
@@ -181,17 +181,28 @@ class BaseEngineSpec:
     def get_time_grains(cls) -> Tuple[TimeGrain, ...]:
         """
         Generate a tuple of time grains based on time grains provided by the engine
-        and any potential additional or blacklisted grains in the config file.
+        excluding any potential blacklisted grains in the config file.
 
         :return: All time grains supported by the engine
         """
         blacklist: List[str] = config.get("TIME_GRAIN_BLACKLIST", [])
         supported_grains = builtin_time_grains.copy()
         supported_grains.update(config.get("TIME_GRAIN_ADDONS", {}))
-        grain_functions = cls.time_grain_functions.copy()
+        grain_functions = cls.get_time_grain_functions()
+        return _create_time_grains_tuple(supported_grains, grain_functions, blacklist)
+
+    @classmethod
+    def get_time_grain_functions(cls) -> Dict[str, str]:
+        """
+        Return a dict of all supported time grains including any potential added grains
+        in the config file.
+
+        :return: All time grains supported by the engine
+        """
+        grain_functions = cls._time_grain_functions.copy()
         grain_addon_functions = config.get("TIME_GRAIN_ADDON_FUNCTIONS", {})
         grain_functions.update(grain_addon_functions.get(cls.engine, {}))
-        return _create_time_grains_tuple(supported_grains, grain_functions, blacklist)
+        return grain_functions
 
     @classmethod
     def make_select_compatible(

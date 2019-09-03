@@ -26,7 +26,7 @@ class Db2EngineSpec(BaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 30
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "CAST({col} as TIMESTAMP)" " - MICROSECOND({col}) MICROSECONDS",
         "PT1M": "CAST({col} as TIMESTAMP)"
