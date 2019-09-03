@@ -188,8 +188,10 @@ class BaseEngineSpec:
         blacklist: List[str] = config.get("TIME_GRAIN_BLACKLIST", [])
         supported_grains = builtin_time_grains.copy()
         supported_grains.update(config.get("TIME_GRAIN_ADDONS", {}))
-        grain_functions = cls.get_time_grain_functions()
-        return _create_time_grains_tuple(supported_grains, grain_functions, blacklist)
+        time_grain_functions = cls.get_time_grain_functions()
+        return _create_time_grains_tuple(
+            supported_grains, time_grain_functions, blacklist
+        )
 
     @classmethod
     def get_time_grain_functions(cls) -> Dict[str, str]:
