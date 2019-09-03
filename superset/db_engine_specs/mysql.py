@@ -86,7 +86,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         return "from_unixtime({col})"
 
     @classmethod
-    def extract_error_message(cls, e):
+    def _extract_error_message(cls, e):
         """Extract error message for queries"""
         message = str(e)
         try:

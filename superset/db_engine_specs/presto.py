@@ -863,7 +863,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             polled = cursor.poll()
 
     @classmethod
-    def extract_error_message(cls, e):
+    def _extract_error_message(cls, e):
         if (
             hasattr(e, "orig")
             and type(e.orig).__name__ == "DatabaseError"

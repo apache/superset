@@ -438,8 +438,8 @@ def error_msg_from_exception(e):
         if isinstance(e.message, dict):
             msg = e.message.get("message")
         elif e.message:
-            msg = "{}".format(e.message)
-    return msg or "{}".format(e)
+            msg = e.message
+    return msg or str(e)
 
 
 def markdown(s: str, markup_wrap: Optional[bool] = False) -> str:
