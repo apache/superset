@@ -19,7 +19,7 @@
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json --fix ./{src,spec}/**/*.ts{,x}",
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true",
-    "install-cypress": "npm install cypress@3.1.5"
+    "install-cypress": "npm install cypress@3.4.1"
   },
   "repository": {
     "type": "git",
