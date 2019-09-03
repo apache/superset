@@ -45,6 +45,7 @@ import pandas as pd
 import pyarrow as pa
 import simplejson as json
 from sqlalchemy import and_, or_, select
+from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.routing import BaseConverter
 
 from superset import (
@@ -714,41 +715,34 @@ appbuilder.add_view_no_menu(R)
 
 
 class SQLJsonParams:
-    query_id: int
-    database_id: int
-    schema: str
-    sql: str
-    template_params: dict
-    limit: int
-    async: bool
-    status: bool
-    select_as_cta: bool
-    tmp_table_name: str
-    client_id: int
-    tab_name: str
-    sql_editor_id: str
-    tab: str
-
-    def __init__(self, request=None):
-        logging.error(f"!!!!!!!!!!!!!!! {type(request.form)}")
-        self.async = request.form.get("runAsync") == "true"
-        self.sql = request.form.get("sql")
-        self.database_id = int(request.form.get("database_id"))
-        self.schema = request.form.get("schema") or None  # ?
-        self.template_params = json.loads(request.form.get("templateParams") or "{}")
-        self.limit = int(request.form.get("queryLimit", 0))
+    def __init__(self, request:ImmutableMultiDict = None):
+        self.query_id: Optional[int] = None
+        self.database_id: int = int(request.form.get("database_id"))
+        self.schema: str = request.form.get("schema") or None  # ?
+        self.sql: str = request.form.get("sql")
+        try:
+            self.template_params: dict = json.loads(
+                request.form.get("templateParams", "{}")
+            )
+        except json.decoder.JSONDecodeError:
+            logging.warning(
+                f"Invalid template parameter {request.form.get('templateParams')}"
+                " specified. Defaulting to empty dict"
+            )
+            self.template_params = {}
+        self.limit = int(request.form.get("queryLimit", app.config.get("SQL_MAX_ROW")))
+        self.async: bool = request.form.get("runAsync") == "true"
         if self.limit < 0:
             logging.warning(
-                "Invalid limit of {} specified. Defaulting to max limit.".format(limit)
+                f"Invalid limit of {self.limit} specified. Defaulting to max limit."
             )
-            limit = 0
-        self.limit = self.limit or app.config.get("SQL_MAX_ROW")
-        self.select_as_cta = request.form.get("select_as_cta") == "true"
-        self.tmp_table_name = request.form.get("tmp_table_name")
-        self.client_id = request.form.get("client_id") or utils.shortid()[:10]
-        self.sql_editor_id = request.form.get("sql_editor_id")
-        self.tab_name = request.form.get("tab")
-        self.status = QueryStatus.PENDING if self.async else QueryStatus.RUNNING
+            self.limit = 0
+        self.select_as_cta: bool = request.form.get("select_as_cta") == "true"
+        self.tmp_table_name: str = request.form.get("tmp_table_name")
+        self.client_id: str = request.form.get("client_id") or utils.shortid()[:10]
+        self.sql_editor_id: str = request.form.get("sql_editor_id")
+        self.tab_name: str = request.form.get("tab")
+        self.status: bool = QueryStatus.PENDING if self.async else QueryStatus.RUNNING
 
     def query_factory(self):
         return Query(
@@ -2592,6 +2586,81 @@ class Superset(BaseSupersetView):
             )
             return json_error_response(f"{msg}")
 
+    def _sql_json_async(self, session, rendered_query, query: Query) -> str:
+        """
+            Send SQL JSON query to celery workers
+
+        :param session: SQLAlchemy session object
+        :param rendered_query: the rendered query to perform by workers
+        :param query: The query (SQLAlchemy) object
+        :return: String JSON response
+        """
+        logging.info(f"Query {query.query_id}: Running query on a Celery worker")
+        # Ignore the celery future object and the request may time out.
+        try:
+            sql_lab.get_sql_results.delay(
+                query.id,
+                rendered_query,
+                return_results=False,
+                store_results=not query.select_as_cta,
+                user_name=g.user.username if g.user else None,
+                start_time=now_as_float(),
+            )
+        except Exception as e:
+            logging.exception(f"Query {query.id}: {e}")
+            msg = _(
+                "Failed to start remote query on a worker. "
+                "Tell your administrator to verify the availability of "
+                "the message queue."
+            )
+            query.status = QueryStatus.FAILED
+            query.error_message = msg
+            session.commit()
+            return json_error_response("{}".format(msg))
+        resp = json_success(
+            json.dumps(
+                {"query": query.to_dict()},
+                default=utils.json_int_dttm_ser,
+                ignore_nan=True,
+            ),
+            status=202,
+        )
+        session.commit()
+        return resp
+
+    def _sql_json_sync(self, session, rendered_query, query: Query) -> str:
+        """
+            Execute SQL query (sql json)
+
+        :param rendered_query: The rendered query (included templates)
+        :param query: The query SQL (SQLAlchemy) object
+        :return: String JSON response
+        """
+        try:
+            timeout = config.get("SQLLAB_TIMEOUT")
+            timeout_msg = f"The query exceeded the {timeout} seconds timeout."
+            with utils.timeout(seconds=timeout, error_message=timeout_msg):
+                # pylint: disable=no-value-for-parameter
+                data = sql_lab.get_sql_results(
+                    query.id,
+                    rendered_query,
+                    return_results=True,
+                    user_name=g.user.username if g.user else None,
+                )
+
+            payload = json.dumps(
+                apply_display_max_row_limit(data),
+                default=utils.pessimistic_json_iso_dttm_ser,
+                ignore_nan=True,
+                encoding=None,
+            )
+        except Exception as e:
+            logging.exception(f"Query {query.id}: {e}")
+            return json_error_response(f"{{e}}")
+        if data.get("status") == QueryStatus.FAILED:
+            return json_error_response(payload=data)
+        return json_success(payload)
+
     @has_access_api
     @expose("/sql_json/", methods=["POST", "GET"])
     @event_logger.log_this
@@ -2624,7 +2693,7 @@ class Superset(BaseSupersetView):
         session.commit()
 
         if params.select_as_cta and mydb.force_ctas_schema:
-            params.tmp_table_name = "{}.{}".format(mydb.force_ctas_schema, params.tmp_table_name)
+            params.tmp_table_name = f"{mydb.force_ctas_schema}.{params.tmp_table_name}"
 
         # Save current query
         query = params.query_factory()
@@ -2657,65 +2726,9 @@ class Superset(BaseSupersetView):
 
         # Async request.
         if params.async:
-            logging.info(f"Query {params.query_id}: Running query on a Celery worker")
-            # Ignore the celery future object and the request may time out.
-            try:
-                sql_lab.get_sql_results.delay(
-                    params.query_id,
-                    rendered_query,
-                    return_results=False,
-                    store_results=not query.select_as_cta,
-                    user_name=g.user.username if g.user else None,
-                    start_time=now_as_float(),
-                )
-            except Exception as e:
-                logging.exception(f"Query {params.query_id}: {e}")
-                msg = _(
-                    "Failed to start remote query on a worker. "
-                    "Tell your administrator to verify the availability of "
-                    "the message queue."
-                )
-                query.status = QueryStatus.FAILED
-                query.error_message = msg
-                session.commit()
-                return json_error_response("{}".format(msg))
-
-            resp = json_success(
-                json.dumps(
-                    {"query": query.to_dict()},
-                    default=utils.json_int_dttm_ser,
-                    ignore_nan=True,
-                ),
-                status=202,
-            )
-            session.commit()
-            return resp
-
+            return self._sql_json_async(session, rendered_query, query)
         # Sync request.
-        try:
-            timeout = config.get("SQLLAB_TIMEOUT")
-            timeout_msg = f"The query exceeded the {timeout} seconds timeout."
-            with utils.timeout(seconds=timeout, error_message=timeout_msg):
-                # pylint: disable=no-value-for-parameter
-                data = sql_lab.get_sql_results(
-                    params.query_id,
-                    rendered_query,
-                    return_results=True,
-                    user_name=g.user.username if g.user else None,
-                )
-
-            payload = json.dumps(
-                apply_display_max_row_limit(data),
-                default=utils.pessimistic_json_iso_dttm_ser,
-                ignore_nan=True,
-                encoding=None,
-            )
-        except Exception as e:
-            logging.exception(f"Query {params.query_id}: {e}")
-            return json_error_response("{}".format(e))
-        if data.get("status") == QueryStatus.FAILED:
-            return json_error_response(payload=data)
-        return json_success(payload)
+        return self._sql_json_sync(session, rendered_query, query)
 
     @has_access
     @expose("/csv/<client_id>")
