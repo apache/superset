@@ -715,7 +715,7 @@ appbuilder.add_view_no_menu(R)
 
 
 class SQLJsonParams:
-    def __init__(self, request:ImmutableMultiDict = None):
+    def __init__(self, request: ImmutableMultiDict = None):
         self.query_id: Optional[int] = None
         self.database_id: int = int(request.form.get("database_id"))
         self.schema: str = request.form.get("schema") or None  # ?
@@ -731,7 +731,7 @@ class SQLJsonParams:
             )
             self.template_params = {}
         self.limit = int(request.form.get("queryLimit", app.config.get("SQL_MAX_ROW")))
-        self.async: bool = request.form.get("runAsync") == "true"
+        self.async_flag: bool = request.form.get("runAsync") == "true"
         if self.limit < 0:
             logging.warning(
                 f"Invalid limit of {self.limit} specified. Defaulting to max limit."
@@ -742,7 +742,7 @@ class SQLJsonParams:
         self.client_id: str = request.form.get("client_id") or utils.shortid()[:10]
         self.sql_editor_id: str = request.form.get("sql_editor_id")
         self.tab_name: str = request.form.get("tab")
-        self.status: bool = QueryStatus.PENDING if self.async else QueryStatus.RUNNING
+        self.status: bool = QueryStatus.PENDING if self.async_flag else QueryStatus.RUNNING
 
     def query_factory(self):
         return Query(
@@ -2674,9 +2674,9 @@ class Superset(BaseSupersetView):
         # Get and Validate database
         mydb = session.query(models.Database).filter_by(id=params.database_id).first()
         if not mydb:
-            json_error_response("Database with id {} is missing.".format(
-                params.database_id
-            ))
+            json_error_response(
+                "Database with id {} is missing.".format(params.database_id)
+            )
 
         # Check if it's a rejected datasource
         rejected_tables = security_manager.rejected_tables(
@@ -2725,7 +2725,7 @@ class Superset(BaseSupersetView):
         query.limit = min(lim for lim in limits if lim is not None)
 
         # Async request.
-        if params.async:
+        if params.async_flag:
             return self._sql_json_async(session, rendered_query, query)
         # Sync request.
         return self._sql_json_sync(session, rendered_query, query)
