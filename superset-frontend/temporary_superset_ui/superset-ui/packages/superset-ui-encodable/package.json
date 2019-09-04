@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/encodable",
-  "version": "0.12.1",
+  "version": "0.12.3",
   "description": "Superset UI encodable",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -27,13 +27,13 @@
   },
   "private": true,
   "dependencies": {
-    "lodash": "^4.17.15",
-    "@types/d3-scale": "^2.1.1",
     "@types/d3-interpolate": "^1.3.1",
+    "@types/d3-scale": "^2.1.1",
     "@types/d3-time": "^1.0.10",
-    "d3-scale": "^3.0.1",
     "d3-interpolate": "^1.3.2",
+    "d3-scale": "^3.0.1",
     "d3-time": "^1.0.11",
+    "lodash": "^4.17.15",
     "vega": "^5.4.0",
     "vega-expression": "^2.6.0",
     "vega-lite": "^3.4.0"
