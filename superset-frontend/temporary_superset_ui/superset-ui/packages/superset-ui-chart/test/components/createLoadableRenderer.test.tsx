@@ -76,6 +76,23 @@ describe('createLoadableRenderer', () => {
       }, 10);
     });
 
+    it('onRenderFailure is optional', done => {
+      const loadChartFailure = jest.fn(() => Promise.reject(new Error('Invalid chart')));
+      const FailedRenderer = createLoadableRenderer({
+        loader: {
+          Chart: loadChartFailure,
+        },
+        loading,
+        render,
+      });
+      shallow(<FailedRenderer />);
+      expect(loadChartFailure).toHaveBeenCalledTimes(1);
+      setTimeout(() => {
+        expect(render).not.toHaveBeenCalled();
+        done();
+      }, 10);
+    });
+
     it('renders the lazy-load components', done => {
       const wrapper = shallow(<LoadableRenderer />);
       // lazy-loaded component not rendered immediately
