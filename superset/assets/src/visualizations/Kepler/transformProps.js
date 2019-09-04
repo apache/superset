@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+const NOOP = () => {}
+
 export default function transformProps(chartProps) {
   const {
     formData,
