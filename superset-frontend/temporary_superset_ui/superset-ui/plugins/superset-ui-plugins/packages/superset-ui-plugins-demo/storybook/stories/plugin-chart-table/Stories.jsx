@@ -3,6 +3,7 @@ import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
 import dataLegacy from './dataLegacy';
 import data from './data';
+import bigData from './bigData';
 
 export default [
   {
@@ -93,6 +94,33 @@ export default [
       />
     ),
     storyName: 'TableFilter',
+    storyPath: 'plugin-chart-table|TableChartPlugin',
+  },
+  {
+    renderStory: () => (
+      <SuperChart
+        chartType="table2"
+        key="bigTable"
+        datasource={{
+          columnFormats: {},
+          verboseMap: {},
+        }}
+        formData={{
+          alignPn: true,
+          colorPn: true,
+          includeSearch: true,
+          metrics: [],
+          orderDesc: true,
+          pageLength: 0,
+          percentMetrics: [],
+          tableFilter: true,
+          tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
+          timeseriesLimitMetric: null,
+        }}
+        queryData={{ data: bigData }}
+      />
+    ),
+    storyName: 'BigTable',
     storyPath: 'plugin-chart-table|TableChartPlugin',
   },
 ];

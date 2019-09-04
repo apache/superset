@@ -9,6 +9,7 @@ import { getRenderer, ColumnType, heightType, Cell } from './renderer';
 type Props = {
   data: ParentRow[];
   height: number;
+  width: number;
   alignPositiveNegative?: boolean;
   colorPositiveNegative?: boolean;
   columns: ColumnType[];
@@ -33,6 +34,10 @@ const defaultProps = {
 };
 
 const SEARCH_BAR_HEIGHT = 40;
+
+const CHAR_WIDTH = 10;
+
+const MAX_COLUMN_WIDTH = 500;
 
 export type TableProps = Props & Readonly<typeof defaultProps>;
 
@@ -148,6 +153,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
       alignPositiveNegative,
       colorPositiveNegative,
       height,
+      width,
       tableFilter,
       styles,
       includeSearch,
@@ -176,6 +182,18 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
       }
     });
 
+    const keys = dataToRender && dataToRender.length > 0 ? Object.keys(dataToRender[0].data) : [];
+    let calculatedWidth = 0;
+    keys.forEach(key => {
+      const maxLength = Math.max(...data.map(d => String(d.data[key]).length), key.length);
+      columnMetadata[key] = {
+        maxWidth: MAX_COLUMN_WIDTH,
+        width: maxLength * CHAR_WIDTH,
+        ...columnMetadata[key],
+      };
+      calculatedWidth += Math.min(maxLength * CHAR_WIDTH, MAX_COLUMN_WIDTH);
+    });
+
     const tableHeight = includeSearch ? height - SEARCH_BAR_HEIGHT : height;
 
     return (
@@ -199,12 +217,13 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
         )}
         <DataTable
           data={dataToRender}
-          keys={dataToRender && dataToRender.length > 0 ? Object.keys(dataToRender[0].data) : []}
+          keys={keys}
           columnMetadata={columnMetadata}
           zebra
           rowHeight={heightType}
           renderers={renderers}
           height={tableHeight}
+          width={Math.max(calculatedWidth, width)}
         />
       </div>
     );
