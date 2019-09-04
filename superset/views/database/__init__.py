@@ -45,6 +45,7 @@ class DatabaseMixin:  # noqa
         "database_name",
         "backend",
         "allow_run_async",
+        "cost_estimate_enabled",
         "allow_dml",
         "allow_csv_upload",
         "expose_in_sqllab",
@@ -65,6 +66,7 @@ class DatabaseMixin:  # noqa
         "cache_timeout",
         "expose_in_sqllab",
         "allow_run_async",
+        "cost_estimate_enabled",
         "allow_csv_upload",
         "allow_ctas",
         "allow_dml",
@@ -112,6 +114,11 @@ class DatabaseMixin:  # noqa
             "This assumes that you have a Celery worker setup as well "
             "as a results backend. Refer to the installation docs "
             "for more information."
+        ),
+        "cost_estimate_enabled": _(
+            "Allow the estimation of query costs before execution. This is "
+            "currently supported only in Presto, and requires enabling the "
+            "ESTIMATE_QUERY_COST feature flag in your configuration."
         ),
         "allow_ctas": _("Allow CREATE TABLE AS option in SQL Lab"),
         "allow_dml": _(
@@ -182,6 +189,7 @@ class DatabaseMixin:  # noqa
         "cache_timeout": _("Chart Cache Timeout"),
         "extra": _("Extra"),
         "allow_run_async": _("Asynchronous Query Execution"),
+        "cost_estimate_enabled": _("Enable Query Cost Estimation"),
         "impersonate_user": _("Impersonate the logged on user"),
         "allow_csv_upload": _("Allow Csv Upload"),
         "modified": _("Modified"),

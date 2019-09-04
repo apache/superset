@@ -730,6 +730,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
+    cost_estimate_enabled = Column(Boolean, default=False)
     allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
@@ -756,6 +757,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         "cache_timeout",
         "expose_in_sqllab",
         "allow_run_async",
+        "cost_estimate_enabled",
         "allow_ctas",
         "allow_csv_upload",
         "extra",

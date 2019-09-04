@@ -217,6 +217,19 @@ class SqlEditor extends React.PureComponent {
   setQueryLimit(queryLimit) {
     this.props.actions.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
   }
+  getQueryCostEstimate() {
+    if (this.props.database) {
+      const qe = this.props.queryEditor;
+      const query = {
+        dbId: qe.dbId,
+        sql: qe.selectedText ? qe.selectedText : this.state.sql,
+        sqlEditorId: qe.id,
+        schema: qe.schema,
+        templateParams: qe.templateParams,
+      };
+      this.props.actions.estimateQueryCost(query);
+    }
+  }
   handleWindowResize() {
     this.setState({ height: this.getSqlEditorHeight() });
   }
@@ -236,19 +249,6 @@ class SqlEditor extends React.PureComponent {
         templateParams: qe.templateParams,
       };
       this.props.actions.validateQuery(query);
-    }
-  }
-  getQueryCostEstimate() {
-    if (this.props.database) {
-      const qe = this.props.queryEditor;
-      const query = {
-        dbId: qe.dbId,
-        sql: this.state.sql,
-        sqlEditorId: qe.id,
-        schema: qe.schema,
-        templateParams: qe.templateParams,
-      };
-      this.props.actions.estimateQueryCost(query);
     }
   }
   canValidateQuery() {
@@ -424,19 +424,24 @@ class SqlEditor extends React.PureComponent {
                 sql={this.state.sql}
               />
             </span>
-            {isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
-            <span className="m-r-5">
-              <EstimateQueryCostButton
-                dbId={qe.dbId}
-                schema={qe.schema}
-                sql={qe.sql}
-                getEstimate={this.getQueryCostEstimate}
-                queryCostEstimate={qe.queryCostEstimate}
-                tooltip={queryEstimateToolTip}
-                disabled={!(this.props.database && this.props.database.allows_cost_estimate)}
-                className="m-r-5"
-              />
-            </span>
+            {
+              isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
+              this.props.database &&
+              this.props.database.allows_cost_estimate &&
+              this.props.database.cost_estimate_enabled &&
+              <span className="m-r-5">
+                <EstimateQueryCostButton
+                  dbId={qe.dbId}
+                  schema={qe.schema}
+                  sql={qe.sql}
+                  getEstimate={this.getQueryCostEstimate}
+                  queryCostEstimate={qe.queryCostEstimate}
+                  selectedText={qe.selectedText}
+                  tooltip={queryEstimateToolTip}
+                  disabled={!(this.props.database && this.props.database.allows_cost_estimate)}
+                  className="m-r-5"
+                />
+              </span>
             }
             {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) &&
             <span className="m-r-5">

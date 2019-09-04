@@ -31,6 +31,7 @@ const propTypes = {
   sql: PropTypes.string.isRequired,
   getEstimate: PropTypes.func.isRequired,
   queryCostEstimate: PropTypes.Object,
+  selectedText: PropTypes.string,
   tooltip: PropTypes.string,
   disabled: PropTypes.bool,
 };
@@ -59,7 +60,10 @@ class EstimateQueryCostButton extends React.PureComponent {
   }
 
   render() {
-    const { disabled, tooltip } = this.props;
+    const { disabled, selectedText, tooltip } = this.props;
+    const btnText = selectedText
+      ? t('Estimate Selected Query Cost')
+      : t('Estimate Query Cost');
     return (
       <span className="EstimateQueryCostButton">
         <ModalTrigger
@@ -75,7 +79,7 @@ class EstimateQueryCostButton extends React.PureComponent {
               tooltip={tooltip}
               disabled={disabled}
             >
-              <i className="fa fa-clock-o" /> {t('Estimate Query Cost')}
+              <i className="fa fa-clock-o" /> {btnText}
             </Button>
           }
           bsSize="medium"
