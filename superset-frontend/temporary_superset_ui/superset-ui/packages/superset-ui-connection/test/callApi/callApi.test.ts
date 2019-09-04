@@ -19,6 +19,7 @@ describe('callApi()', () => {
   const mockPutUrl = '/mock/put/url';
   const mockPatchUrl = '/mock/patch/url';
   const mockCacheUrl = '/mock/cache/url';
+  const mockNotFound = '/mock/notfound';
 
   const mockGetPayload = { get: 'payload' };
   const mockPostPayload = { post: 'payload' };
@@ -35,6 +36,7 @@ describe('callApi()', () => {
   fetchMock.put(mockPutUrl, mockPutPayload);
   fetchMock.patch(mockPatchUrl, mockPatchPayload);
   fetchMock.get(mockCacheUrl, mockCachePayload);
+  fetchMock.get(mockNotFound, { status: 404 });
 
   afterEach(fetchMock.reset);
 
@@ -412,6 +414,24 @@ describe('callApi()', () => {
         expect(calls).toHaveLength(1);
         expect(error.message).toEqual('Received 304 but no content is cached!');
       });
+    });
+
+    it('returns original response if no Etag', async () => {
+      const url = mockGetUrl;
+      const response = await callApi({ url, method: 'GET' });
+      const calls = fetchMock.calls(url);
+      expect(calls).toHaveLength(1);
+      expect(response.status).toEqual(200);
+      const body = await response.json();
+      expect(body).toEqual(mockGetPayload);
+    });
+
+    it('returns original response if status not 304 or 200', async () => {
+      const url = mockNotFound;
+      const response = await callApi({ url, method: 'GET' });
+      const calls = fetchMock.calls(url);
+      expect(calls).toHaveLength(1);
+      expect(response.status).toEqual(404);
     });
   });
 
