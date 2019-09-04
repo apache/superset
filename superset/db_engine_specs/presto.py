@@ -401,7 +401,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         estimate = result["estimate"]
 
         def humanize(value, suffix):
-            if value == 'NaN':
+            if value == "NaN":
                 return value
 
             prefix = ""
