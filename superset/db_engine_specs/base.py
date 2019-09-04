@@ -109,29 +109,6 @@ class LimitMethod(object):
     FORCE_LIMIT = "force_limit"
 
 
-def _create_time_grains_tuple(
-    time_grains: Dict[Optional[str], str],
-    time_grain_functions: Dict[Optional[str], str],
-    blacklist: List[str],
-) -> Tuple[TimeGrain, ...]:
-    """
-    function for creating a tuple of time grains based on time grains provided by
-    the engine and any potential additional or blacklisted grains in the config file.
-
-    :param time_grains: all time grains supported by the engine + config files
-    :param time_grain_functions: mapping between time grain id and sql expression
-    :param blacklist: list of time grain ids to be excluded
-    :return: final collection of time grains
-    """
-    ret_list = []
-    blacklist = blacklist if blacklist else []
-    for duration, func in time_grain_functions.items():
-        if duration in time_grains and duration not in blacklist:
-            name = time_grains[duration]
-            ret_list.append(TimeGrain(name, _(name), func, duration))
-    return tuple(ret_list)
-
-
 class BaseEngineSpec:
     """Abstract class for database engine specific configurations"""
 
@@ -180,30 +157,35 @@ class BaseEngineSpec:
     @classmethod
     def get_time_grains(cls) -> Tuple[TimeGrain, ...]:
         """
-        Generate a tuple of time grains based on time grains provided by the engine
-        excluding any potential blacklisted grains in the config file.
+        Generate a tuple of supported time grains.
 
         :return: All time grains supported by the engine
         """
-        blacklist: List[str] = config.get("TIME_GRAIN_BLACKLIST", [])
-        supported_grains = builtin_time_grains.copy()
-        supported_grains.update(config.get("TIME_GRAIN_ADDONS", {}))
+
+        ret_list = []
         time_grain_functions = cls.get_time_grain_functions()
-        return _create_time_grains_tuple(
-            supported_grains, time_grain_functions, blacklist
-        )
+        time_grains = builtin_time_grains.copy()
+        time_grains.update(config.get("TIME_GRAIN_ADDONS", {}))
+        for duration, func in time_grain_functions.items():
+            if duration in time_grains:
+                name = time_grains[duration]
+                ret_list.append(TimeGrain(name, _(name), func, duration))
+        return tuple(ret_list)
 
     @classmethod
     def get_time_grain_functions(cls) -> Dict[Optional[str], str]:
         """
         Return a dict of all supported time grains including any potential added grains
-        in the config file.
+        but excluding any potentially blacklisted grains in the config file.
 
-        :return: All time grains supported by the engine
+        :return: All time grain functions supported by the engine
         """
         time_grain_functions = cls._time_grain_functions.copy()
         grain_addon_functions = config.get("TIME_GRAIN_ADDON_FUNCTIONS", {})
         time_grain_functions.update(grain_addon_functions.get(cls.engine, {}))
+        blacklist: List[str] = config.get("TIME_GRAIN_BLACKLIST", [])
+        for key in blacklist:
+            time_grain_functions.pop(key)
         return time_grain_functions
 
     @classmethod
