@@ -404,11 +404,6 @@ class SqlEditor extends React.PureComponent {
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
-    const queryEstimateToolTip = (
-      this.props.database && this.props.database.allows_cost_estimate
-    )
-      ? t('Estimate the cost before running a query')
-      : t('This database does not support query estimation');
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div>
@@ -437,8 +432,7 @@ class SqlEditor extends React.PureComponent {
                   getEstimate={this.getQueryCostEstimate}
                   queryCostEstimate={qe.queryCostEstimate}
                   selectedText={qe.selectedText}
-                  tooltip={queryEstimateToolTip}
-                  disabled={!(this.props.database && this.props.database.allows_cost_estimate)}
+                  tooltip={t('Estimate the cost before running a query')}
                   className="m-r-5"
                 />
               </span>

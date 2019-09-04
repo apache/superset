@@ -69,6 +69,7 @@ from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,
     SupersetSecurityException,
+    SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
 from superset.legacy import update_time_range
@@ -104,6 +105,12 @@ from .utils import (
     get_form_data,
     get_viz,
 )
+
+try:
+    from pyhive.exc import DatabaseError
+except ImportError:
+    pass
+
 
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
@@ -2409,16 +2416,24 @@ class Superset(BaseSupersetView):
 
         mydb = db.session.query(models.Database).filter_by(id=database_id).first()
 
+        timeout = SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT
+        timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."
         try:
-            timeout = SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT
-            timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 cost = mydb.db_engine_spec.estimate_query_cost(
                     mydb, schema, sql, utils.sources.get("sql_lab")
                 )
-        except Exception as e:
+        except SupersetTimeoutException as e:
             logging.exception(e)
             return json_error_response(timeout_msg)
+        except DatabaseError as e:
+            if not e.args or not isinstance(e.args[0], dict):
+                message = str(e)
+            else:
+                message = e.args[0].get("message", str(e))
+            return json_error_response(message)
+        except Exception as e:
+            return json_error_response(str(e))
 
         return json_success(json.dumps(cost))
 

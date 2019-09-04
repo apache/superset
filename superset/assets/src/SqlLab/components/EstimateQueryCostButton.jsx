@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Table } from 'reactable-arc';
+import { Alert } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
@@ -55,7 +56,11 @@ class EstimateQueryCostButton extends React.PureComponent {
 
   renderModalBody() {
     if (this.props.queryCostEstimate.error !== null) {
-      return <div><p>{this.props.queryCostEstimate.error}</p></div>;
+      return (
+        <Alert key="query-estimate-error" bsStyle="danger">
+          {this.props.queryCostEstimate.error}
+        </Alert>
+      );
     } else if (this.props.queryCostEstimate.completed) {
       return (
         <Table

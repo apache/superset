@@ -401,9 +401,11 @@ class PrestoEngineSpec(BaseEngineSpec):
         estimate = result["estimate"]
 
         def humanize(value, suffix):
+            if value == 'NaN':
+                return value
+
             prefix = ""
             symbols = ["K", "M", "G", "T", "P", "E", "Z", "Y"]
-            value = int(value)
             while value > 1000 and symbols:
                 prefix = symbols.pop(0)
                 value //= 1000

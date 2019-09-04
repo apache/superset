@@ -132,16 +132,13 @@ export function estimateQueryCost(query) {
     dispatch({ type: COST_ESTIMATE_STARTED, query }),
     SupersetClient.post({
       endpoint,
-      postPayload: { sql, tempalteParams: JSON.parse(templateParams) },
+      postPayload: { sql, templateParams: JSON.parse(templateParams) },
     })
       .then(({ json }) => dispatch({ type: COST_ESTIMATE_RETURNED, query, json }))
       .catch(response =>
         getClientErrorObject(response).then((error) => {
           const message = error.error || error.statusText || t('Failed at retrieving results');
-          return Promise.all([
-            dispatch({ type: COST_ESTIMATE_FAILED, query, error: message }),
-            dispatch(addDangerToast(t('Failed at estimating query cost'))),
-          ]);
+          return dispatch({ type: COST_ESTIMATE_FAILED, query, error: message });
         }),
       ),
   ]);
