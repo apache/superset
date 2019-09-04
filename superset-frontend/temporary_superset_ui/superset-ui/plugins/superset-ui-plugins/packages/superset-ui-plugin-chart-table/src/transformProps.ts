@@ -86,7 +86,7 @@ function transformData(data: PlainObject[], formData: PlainObject) {
 const NOOP = () => {};
 
 export default function transformProps(chartProps: ChartProps) {
-  const { height, datasource, initialValues, formData, hooks, queryData } = chartProps;
+  const { height, width, datasource, initialValues, formData, hooks, queryData } = chartProps;
 
   const { onAddFilter = NOOP } = hooks;
 
@@ -137,5 +137,6 @@ export default function transformProps(chartProps: ChartProps) {
     orderDesc,
     pageLength: pageLength && parseInt(pageLength, 10),
     tableFilter,
+    width,
   };
 }
