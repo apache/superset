@@ -122,7 +122,7 @@ class DashboardBuilder extends React.Component {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const nextFocusComponent = getLeafComponentIdFromPath(
       nextProps.directPathToChild,
     );
