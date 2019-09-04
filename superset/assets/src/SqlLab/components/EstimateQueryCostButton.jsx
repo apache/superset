@@ -18,66 +18,74 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { Table } from 'reactable-arc';
 import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
+import Loading from '../../components/Loading';
+import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
-  dbId: PropTypes.number,
-  queryState: PropTypes.string,
-  runQuery: PropTypes.func.isRequired,
-  selectedText: PropTypes.string,
-  stopQuery: PropTypes.func.isRequired,
+  dbId: PropTypes.number.isRequired,
+  schema: PropTypes.string.isRequired,
   sql: PropTypes.string.isRequired,
+  getEstimate: PropTypes.func.isRequired,
+  queryCostEstimate: PropTypes.Object,
+  tooltip: PropTypes.string,
+  disabled: PropTypes.bool,
 };
 const defaultProps = {
-  sql: '',
+  queryCostEstimate: [],
+  tooltip: '',
+  disabled: false,
 };
 
-export default function EstimateQueryCostButton(props) {
-  const runBtnText = props.selectedText ? t('Run Selected Query') : t('Run Query');
-  const btnStyle = props.selectedText ? 'warning' : 'primary';
-  const shouldShowStopBtn = ['running', 'pending'].indexOf(props.queryState) > -1;
-
-  const commonBtnProps = {
-    bsSize: 'small',
-    bsStyle: btnStyle,
-    disabled: !(props.dbId),
-  };
-
-  if (shouldShowStopBtn) {
-    return (
-      <Button
-        {...commonBtnProps}
-        onClick={props.stopQuery}
-      >
-        <i className="fa fa-stop" /> {t('Stop')}
-      </Button>
-    );
-  } else if (props.allowAsync) {
-    return (
-      <Button
-        {...commonBtnProps}
-        onClick={() => props.runQuery(true)}
-        key="run-async-btn"
-        tooltip={t('Run query asynchronously')}
-        disabled={!props.sql.trim()}
-      >
-        <i className="fa fa-table" /> {runBtnText}
-      </Button>);
+class EstimateQueryCostButton extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.queryCostModal = React.createRef();
+    this.onClick = this.onClick.bind(this);
+    this.renderModalBody = this.renderModalBody.bind(this);
   }
-  return (
-    <Button
-      {...commonBtnProps}
-      onClick={() => props.runQuery(false)}
-      key="run-btn"
-      tooltip={t('Run query synchronously')}
-      disabled={!props.sql.trim()}
-    >
-      <i className="fa fa-refresh" /> {runBtnText}
-    </Button>
-  );
+
+  onClick() {
+    this.props.getEstimate();
+  }
+
+  renderModalBody() {
+    return this.props.queryCostEstimate.completed
+      ? <Table className="table cost-estimate" data={this.props.queryCostEstimate.cost} />
+      : <Loading position="normal" />;
+  }
+
+  render() {
+    const { disabled, tooltip } = this.props;
+    return (
+      <span className="EstimateQueryCostButton">
+        <ModalTrigger
+          ref={this.queryCostModal}
+          modalTitle={t('Query Cost Estimate')}
+          modalBody={this.renderModalBody()}
+          triggerNode={
+            <Button
+              bsStyle="warning"
+              bsSize="small"
+              onClick={this.onClick}
+              key="query-estimate-btn"
+              tooltip={tooltip}
+              disabled={disabled}
+            >
+              <i className="fa fa-clock-o" /> {t('Estimate Query Cost')}
+            </Button>
+          }
+          bsSize="medium"
+        />
+      </span>
+    );
+  }
 }
 
 EstimateQueryCostButton.propTypes = propTypes;
 EstimateQueryCostButton.defaultProps = defaultProps;
+
+export default EstimateQueryCostButton;

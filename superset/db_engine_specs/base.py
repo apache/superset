@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+from contextlib import closing
 from datetime import datetime
 import hashlib
 import os
@@ -645,8 +646,32 @@ class BaseEngineSpec:
         return sql
 
     @classmethod
-    def estimate_cost_query(cls, query: str, **kwargs) -> str:
-        raise NotImplementedError('Subclasses should implement estimate_cost_query')
+    def estimate_statement_cost(cls, statement, database, cursor, user_name):
+        raise NotImplementedError("Subclasses should implement estimate_query_cost")
+
+    @classmethod
+    def estimate_query_cost(cls, database, schema, sql, source=None):
+        if not cls.allows_cost_estimate:
+            raise Exception("Database does not support cost estimation")
+
+        user_name = g.user.username if g.user else None
+        parsed_query = sql_parse.ParsedQuery(sql)
+        statements = parsed_query.get_statements()
+
+        engine = database.get_sqla_engine(
+            schema=schema, nullpool=True, user_name=user_name, source=source
+        )
+
+        costs = []
+        with closing(engine.raw_connection()) as conn:
+            with closing(conn.cursor()) as cursor:
+                for statement in statements:
+                    costs.append(
+                        cls.estimate_statement_cost(
+                            statement, database, cursor, user_name
+                        )
+                    )
+        return costs
 
     @classmethod
     def modify_url_for_impersonation(cls, url, impersonate_user: bool, username: str):

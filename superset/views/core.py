@@ -107,6 +107,9 @@ from .utils import (
 
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
+SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config.get(
+    "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT", 10
+)
 stats_logger = config.get("STATS_LOGGER")
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
@@ -2390,6 +2393,34 @@ class Superset(BaseSupersetView):
         return json_success(
             mydb.select_star(table_name, schema, latest_partition=True, show_cols=True)
         )
+
+    @has_access_api
+    @expose("/estimate_query_cost/<database_id>/", methods=["POST"])
+    @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])
+    @event_logger.log_this
+    def estimate_query_cost(self, database_id, schema=None):
+        sql = json.loads(request.form.get("sql"))
+        template_params = json.loads(request.form.get("templateParams") or "{}")
+
+        if len(template_params) > 0:
+            return json_error_response(
+                "Query cost estimation does not support template parameters", status=400
+            )
+
+        mydb = db.session.query(models.Database).filter_by(id=database_id).first()
+
+        try:
+            timeout = SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT
+            timeout_msg = f"The query exceeded the {timeout} seconds timeout."
+            with utils.timeout(seconds=timeout, error_message=timeout_msg):
+                cost = mydb.db_engine_spec.estimate_query_cost(
+                    mydb, schema, sql, utils.sources.get("sql_lab")
+                )
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response(timeout_msg)
+
+        return json_success(json.dumps(cost))
 
     @expose("/theme/")
     def theme(self):

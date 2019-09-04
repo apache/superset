@@ -157,7 +157,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         annotations: List[SQLValidationAnnotation] = []
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
-                for statement in parsed_query.get_statements():
+                for statement in statements:
                     annotation = cls.validate_statement(
                         statement, database, cursor, user_name
                     )

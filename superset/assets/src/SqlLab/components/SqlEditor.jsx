@@ -115,6 +115,7 @@ class SqlEditor extends React.PureComponent {
       this.requestValidation.bind(this),
       VALIDATION_DEBOUNCE_MS,
     );
+    this.getQueryCostEstimate = this.getQueryCostEstimate.bind(this);
     this.handleWindowResize = throttle(
       this.handleWindowResize.bind(this),
       WINDOW_RESIZE_THROTTLE_MS,
@@ -235,6 +236,19 @@ class SqlEditor extends React.PureComponent {
         templateParams: qe.templateParams,
       };
       this.props.actions.validateQuery(query);
+    }
+  }
+  getQueryCostEstimate() {
+    if (this.props.database) {
+      const qe = this.props.queryEditor;
+      const query = {
+        dbId: qe.dbId,
+        sql: this.state.sql,
+        sqlEditorId: qe.id,
+        schema: qe.schema,
+        templateParams: qe.templateParams,
+      };
+      this.props.actions.estimateQueryCost(query);
     }
   }
   canValidateQuery() {
@@ -390,7 +404,9 @@ class SqlEditor extends React.PureComponent {
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
-    const queryEstimateToolTip = this.props.database.allows_cost_estimate
+    const queryEstimateToolTip = (
+      this.props.database && this.props.database.allows_cost_estimate
+    )
       ? t('Estimate the cost before running a query')
       : t('This database does not support query estimation');
     return (
@@ -411,12 +427,14 @@ class SqlEditor extends React.PureComponent {
             {isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
             <span className="m-r-5">
               <EstimateQueryCostButton
-                sql={qe.sql}
-                className="m-r-5"
-                schema={qe.schema}
                 dbId={qe.dbId}
+                schema={qe.schema}
+                sql={qe.sql}
+                getEstimate={this.getQueryCostEstimate}
+                queryCostEstimate={qe.queryCostEstimate}
                 tooltip={queryEstimateToolTip}
-                disabled={!this.props.database.allows_cost_estimate}
+                disabled={!(this.props.database && this.props.database.allows_cost_estimate)}
+                className="m-r-5"
               />
             </span>
             }

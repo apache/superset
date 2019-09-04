@@ -25,19 +25,22 @@ import time
 from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib import parse
 
+import simplejson as json
 from sqlalchemy import Column, literal_column
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import is_feature_enabled
+from superset import app, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
+from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 
 QueryStatus = utils.QueryStatus
+config = app.config
 
 
 class PrestoEngineSpec(BaseEngineSpec):
@@ -375,8 +378,51 @@ class PrestoEngineSpec(BaseEngineSpec):
         )
 
     @classmethod
-    def estimate_cost_query(cls, query: str, **kwargs) -> str:
-        return f'EXPLAIN (TYPE IO, FORMAT JSON) {query}'
+    def estimate_statement_cost(cls, statement, database, cursor, user_name):
+        db_engine_spec = database.db_engine_spec
+        parsed_query = ParsedQuery(statement)
+        sql = parsed_query.stripped()
+
+        SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR")
+        if SQL_QUERY_MUTATOR:
+            sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
+
+        sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {sql}"
+
+        db_engine_spec.execute(cursor, sql)
+        polled = cursor.poll()
+        while polled:
+            time.sleep(0.2)
+            polled = cursor.poll()
+        data = db_engine_spec.fetch_data(cursor, 1)
+
+        first = data[0][0]
+        result = json.loads(first)
+        estimate = result["estimate"]
+
+        def humanize(value, suffix):
+            prefix = ""
+            symbols = ["K", "M", "G", "T", "P", "E", "Z", "Y"]
+            value = int(value)
+            while value > 1000 and symbols:
+                prefix = symbols.pop(0)
+                value //= 1000
+
+            return f"{value} {prefix}{suffix}"
+
+        cost = {}
+        columns = [
+            ("outputRowCount", "Output count", " rows"),
+            ("outputSizeInBytes", "Output size", "B"),
+            ("cpuCost", "CPU cost", ""),
+            ("maxMemory", "Max memory", "B"),
+            ("networkCost", "Network cost", ""),
+        ]
+        for key, label, suffix in columns:
+            if key in estimate:
+                cost[label] = humanize(estimate[key], suffix)
+
+        return cost
 
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
