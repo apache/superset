@@ -16,10 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+const NOOP = () => {};
+
 export default function transformProps(chartProps) {
-  const { formData, height, width, payload, setControlValue } = chartProps;
-  const { mapboxApiAccessToken, features } = payload.data;
+  const {
+    formData,
+    height,
+    width,
+    queryData,
+    hooks,
+  } = chartProps;
+  const { mapboxApiAccessToken, features } = queryData.data;
   const { config, autozoom, readonly } = formData;
+  const { setControlValue = NOOP } = hooks;
   return {
     height,
     width,
