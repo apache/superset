@@ -54,9 +54,17 @@ class EstimateQueryCostButton extends React.PureComponent {
   }
 
   renderModalBody() {
-    return this.props.queryCostEstimate.completed
-      ? <Table className="table cost-estimate" data={this.props.queryCostEstimate.cost} />
-      : <Loading position="normal" />;
+    if (this.props.queryCostEstimate.error !== null) {
+      return <div><p>{this.props.queryCostEstimate.error}</p></div>;
+    } else if (this.props.queryCostEstimate.completed) {
+      return (
+        <Table
+          className="table cost-estimate"
+          data={this.props.queryCostEstimate.cost}
+        />
+      );
+    }
+    return <Loading position="normal" />;
   }
 
   render() {

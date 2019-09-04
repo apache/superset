@@ -213,6 +213,7 @@ export default function sqlLabReducer(state = {}, action) {
         queryCostEstimate: {
           completed: false,
           cost: null,
+          error: null,
         },
       });
       return newState;
@@ -224,6 +225,19 @@ export default function sqlLabReducer(state = {}, action) {
         queryCostEstimate: {
           completed: true,
           cost: action.json,
+          error: null,
+        },
+      });
+      return newState;
+    },
+    [actions.COST_ESTIMATE_FAILED]() {
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        queryCostEstimate: {
+          completed: false,
+          cost: null,
+          error: action.error,
         },
       });
       return newState;

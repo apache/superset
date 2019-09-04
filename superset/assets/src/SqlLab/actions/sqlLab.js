@@ -135,10 +135,15 @@ export function estimateQueryCost(query) {
       postPayload: { sql, tempalteParams: JSON.parse(templateParams) },
     })
       .then(({ json }) => dispatch({ type: COST_ESTIMATE_RETURNED, query, json }))
-      .catch(() => Promise.all([
-        dispatch({ type: COST_ESTIMATE_FAILED, query }),
-        dispatch(addDangerToast(t('Failed at estimating query cost'))),
-      ])),
+      .catch(response =>
+        getClientErrorObject(response).then((error) => {
+          const message = error.error || error.statusText || t('Failed at retrieving results');
+          return Promise.all([
+            dispatch({ type: COST_ESTIMATE_FAILED, query, error: message }),
+            dispatch(addDangerToast(t('Failed at estimating query cost'))),
+          ]);
+        }),
+      ),
   ]);
 }
 

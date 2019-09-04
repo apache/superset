@@ -2411,7 +2411,7 @@ class Superset(BaseSupersetView):
 
         try:
             timeout = SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT
-            timeout_msg = f"The query exceeded the {timeout} seconds timeout."
+            timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 cost = mydb.db_engine_spec.estimate_query_cost(
                     mydb, schema, sql, utils.sources.get("sql_lab")
