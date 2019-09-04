@@ -17,9 +17,16 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { formData, height, width, queryData, setControlValue } = chartProps;
+  const {
+    formData,
+    height,
+    width,
+    queryData,
+    hooks,
+  } = chartProps;
   const { mapboxApiAccessToken, features } = queryData.data;
   const { config, autozoom, readonly } = formData;
+  const { onAddFilter = NOOP, setControlValue = NOOP, setTooltip = NOOP } = hooks;
   return {
     height,
     width,
