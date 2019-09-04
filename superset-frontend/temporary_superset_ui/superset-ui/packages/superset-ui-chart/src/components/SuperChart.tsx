@@ -116,29 +116,34 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       disableErrorBoundary,
       FallbackComponent,
       onErrorBoundary,
-      Wrapper = React.Fragment,
+      Wrapper,
       ...rest
     } = this.props as PropsWithDefault;
 
-    const chart = (
+    const chartWithoutWrapper = (
+      <SuperChartCore
+        ref={this.setRef}
+        id={id}
+        className={className}
+        chartType={chartType}
+        chartProps={this.createChartProps({
+          ...rest,
+          height,
+          width,
+        })}
+        preTransformProps={preTransformProps}
+        overrideTransformProps={overrideTransformProps}
+        postTransformProps={postTransformProps}
+        onRenderSuccess={onRenderSuccess}
+        onRenderFailure={onRenderFailure}
+      />
+    );
+    const chart = Wrapper ? (
       <Wrapper width={width} height={height}>
-        <SuperChartCore
-          ref={this.setRef}
-          id={id}
-          className={className}
-          chartType={chartType}
-          chartProps={this.createChartProps({
-            ...rest,
-            height,
-            width,
-          })}
-          preTransformProps={preTransformProps}
-          overrideTransformProps={overrideTransformProps}
-          postTransformProps={postTransformProps}
-          onRenderSuccess={onRenderSuccess}
-          onRenderFailure={onRenderFailure}
-        />
+        {chartWithoutWrapper}
       </Wrapper>
+    ) : (
+      chartWithoutWrapper
     );
 
     // Include the error boundary by default unless it is specifically disabled.
