@@ -1,3 +1,18 @@
+## [0.12.3](https://github.com/apache-superset/superset-ui/compare/v0.12.2...v0.12.3) (2019-09-04)
+
+
+### Bug Fixes
+
+* fix React.Fragment complaining about width/height ([#219](https://github.com/apache-superset/superset-ui/issues/219)) ([3e8ca39](https://github.com/apache-superset/superset-ui/commit/3e8ca39))
+
+
+### Features
+
+* add functions for parsing scales ([#207](https://github.com/apache-superset/superset-ui/issues/207)) ([6f56ed9](https://github.com/apache-superset/superset-ui/commit/6f56ed9))
+* add Wrapper support and bounding box for dynamic width/height ([#215](https://github.com/apache-superset/superset-ui/issues/215)) ([c83ba1f](https://github.com/apache-superset/superset-ui/commit/c83ba1f))
+
+
+
 ## [0.12.2](https://github.com/apache-superset/superset-ui/compare/v0.12.1...v0.12.2) (2019-08-26)
 
 
