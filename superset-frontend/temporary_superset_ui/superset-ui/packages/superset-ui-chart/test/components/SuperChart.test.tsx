@@ -7,7 +7,7 @@ jest.mock('resize-observer-polyfill');
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import ErrorBoundary from 'react-error-boundary';
 import { SuperChart } from '../../src';
-import RealSuperChart from '../../src/components/SuperChart';
+import RealSuperChart, { WrapperProps } from '../../src/components/SuperChart';
 import { ChartKeys, DiligentChartPlugin, BuggyChartPlugin } from './MockChartPlugins';
 import promiseTimeout from './promiseTimeout';
 
@@ -135,10 +135,17 @@ describe('SuperChart', () => {
       const wrapper = mount(
         <SuperChart chartType={ChartKeys.DILIGENT} debounceTime={1} width="50%" height="125" />,
       );
-      triggerResizeObserver();
+      triggerResizeObserver([{ contentRect: { height: 125, width: 150 } }]);
 
       return promiseTimeout(() => {
         const renderedWrapper = wrapper.render();
+        const boundingBox = renderedWrapper
+          .find('div.test-component')
+          .parent()
+          .parent()
+          .parent();
+        expect(boundingBox.css('width')).toEqual('50%');
+        expect(boundingBox.css('height')).toEqual('125px');
         expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
         expectDimension(renderedWrapper, 150, 125);
       }, 100);
@@ -147,10 +154,17 @@ describe('SuperChart', () => {
       const wrapper = mount(
         <SuperChart chartType={ChartKeys.DILIGENT} debounceTime={1} width="50" height="25%" />,
       );
-      triggerResizeObserver();
+      triggerResizeObserver([{ contentRect: { height: 75, width: 50 } }]);
 
       return promiseTimeout(() => {
         const renderedWrapper = wrapper.render();
+        const boundingBox = renderedWrapper
+          .find('div.test-component')
+          .parent()
+          .parent()
+          .parent();
+        expect(boundingBox.css('width')).toEqual('50px');
+        expect(boundingBox.css('height')).toEqual('25%');
         expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
         expectDimension(renderedWrapper, 50, 75);
       }, 100);
@@ -163,6 +177,54 @@ describe('SuperChart', () => {
         const renderedWrapper = wrapper.render();
         expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
         expectDimension(renderedWrapper, 300, 400);
+      }, 100);
+    });
+  });
+
+  describe('supports Wrapper', () => {
+    function MyWrapper({ width, height, children }: WrapperProps) {
+      return (
+        <div>
+          <div className="wrapper-insert">
+            {width}x{height}
+          </div>
+          {children}
+        </div>
+      );
+    }
+
+    it('works with width and height that are numbers', () => {
+      const wrapper = mount(
+        <SuperChart chartType={ChartKeys.DILIGENT} width={100} height={100} Wrapper={MyWrapper} />,
+      );
+
+      return promiseTimeout(() => {
+        const renderedWrapper = wrapper.render();
+        expect(renderedWrapper.find('div.wrapper-insert')).toHaveLength(1);
+        expect(renderedWrapper.find('div.wrapper-insert').text()).toEqual('100x100');
+        expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
+        expectDimension(renderedWrapper, 100, 100);
+      }, 100);
+    });
+
+    it('works when width and height are percent', () => {
+      const wrapper = mount(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          debounceTime={1}
+          width="100%"
+          height="100%"
+          Wrapper={MyWrapper}
+        />,
+      );
+      triggerResizeObserver();
+
+      return promiseTimeout(() => {
+        const renderedWrapper = wrapper.render();
+        expect(renderedWrapper.find('div.wrapper-insert')).toHaveLength(1);
+        expect(renderedWrapper.find('div.wrapper-insert').text()).toEqual('300x300');
+        expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
+        expectDimension(renderedWrapper, 300, 300);
       }, 100);
     });
   });
