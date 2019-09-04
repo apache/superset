@@ -26,7 +26,7 @@ export default function transformProps(chartProps) {
   } = chartProps;
   const { mapboxApiAccessToken, features } = queryData.data;
   const { config, autozoom, readonly } = formData;
-  const { onAddFilter = NOOP, setControlValue = NOOP, setTooltip = NOOP } = hooks;
+  const { setControlValue = NOOP } = hooks;
   return {
     height,
     width,
