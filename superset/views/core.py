@@ -46,7 +46,6 @@ import pandas as pd
 import pyarrow as pa
 import simplejson as json
 from sqlalchemy import and_, or_, select
-from werkzeug.datastructures import ImmutableMultiDict
 from sqlalchemy.exc import DatabaseError
 from werkzeug.routing import BaseConverter
 
@@ -717,7 +716,7 @@ appbuilder.add_view_no_menu(R)
 
 
 class SQLJsonParams:
-    def __init__(self, request: ImmutableMultiDict = None):
+    def __init__(self):
         self.query_id: Optional[int] = None
         self.database_id: int = int(request.form.get("database_id"))
         self.schema: str = request.form.get("schema") or None  # ?
@@ -2686,7 +2685,7 @@ class Superset(BaseSupersetView):
         """Runs arbitrary sql and returns and json"""
 
         # Collect Values
-        params = SQLJsonParams(request)
+        params = SQLJsonParams()
 
         session = db.session()
         # Get and Validate database
