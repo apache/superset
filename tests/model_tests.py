@@ -104,9 +104,9 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertNotEquals(example_user, user_name)
 
     def test_select_star(self):
-        main_db = get_example_database()
+        db = get_example_database()
         table_name = "energy_usage"
-        sql = main_db.select_star(table_name, show_cols=False, latest_partition=False)
+        sql = db.select_star(table_name, show_cols=False, latest_partition=False)
         expected = textwrap.dedent(
             f"""\
         SELECT *
@@ -115,7 +115,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         )
         assert sql.startswith(expected)
 
-        sql = main_db.select_star(table_name, show_cols=True, latest_partition=False)
+        sql = db.select_star(table_name, show_cols=True, latest_partition=False)
         expected = textwrap.dedent(
             f"""\
         SELECT source,
@@ -127,10 +127,10 @@ class DatabaseModelTestCase(SupersetTestCase):
         assert sql.startswith(expected)
 
     def test_select_star_with_exotic_names(self):
-        main_db = get_example_database()
+        db = get_example_database()
         schema = "schema.name"
         table_name = "table/name"
-        sql = main_db.select_star(
+        sql = db.select_star(
             table_name, schema=schema, show_cols=False, latest_partition=False
         )
         fully_qualified_names = {
@@ -138,7 +138,7 @@ class DatabaseModelTestCase(SupersetTestCase):
             "mysql": "`schema.name`.`table/name`",
             "postgres": '"schema.name"."table/name"',
         }
-        fully_qualified_name = fully_qualified_names.get(main_db.db_engine_spec.engine)
+        fully_qualified_name = fully_qualified_names.get(db.db_engine_spec.engine)
         if fully_qualified_name:
             expected = textwrap.dedent(
                 f"""\
