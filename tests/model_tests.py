@@ -126,7 +126,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         )
         assert sql.startswith(expected)
 
-    def test_select_star_with_exotic_names(self):
+    def test_select_star_fully_qualified_names(self):
         db = get_example_database()
         schema = "schema.name"
         table_name = "table/name"
