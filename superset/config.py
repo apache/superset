@@ -407,7 +407,7 @@ class CeleryConfig(object):
     CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"
     CELERYD_LOG_LEVEL = "DEBUG"
     CELERYD_PREFETCH_MULTIPLIER = 1
-    CELERY_ACKS_LATE = True
+    CELERY_ACKS_LATE = False
     CELERY_ANNOTATIONS = {
         "sql_lab.get_sql_results": {"rate_limit": "100/s"},
         "email_reports.send": {
