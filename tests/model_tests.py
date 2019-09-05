@@ -126,6 +126,28 @@ class DatabaseModelTestCase(SupersetTestCase):
         )
         assert sql.startswith(expected)
 
+    def test_select_star_with_exotic_names(self):
+        main_db = get_example_database()
+        schema = "schema.name"
+        table_name = "table/name"
+        sql = main_db.select_star(
+            table_name, schema=schema, show_cols=False, latest_partition=False
+        )
+        fully_qualified_names = {
+            "sqlite": '"schema.name"."table/name"',
+            "mysql": "`schema.name`.`table/name`",
+            "postgres": '"schema.name"."table/name"',
+        }
+        fully_qualified_name = fully_qualified_names.get(main_db.db_engine_spec.engine)
+        if fully_qualified_name:
+            expected = textwrap.dedent(
+                f"""\
+            SELECT *
+            FROM {fully_qualified_name}
+            LIMIT 100"""
+            )
+            assert sql.startswith(expected)
+
     def test_single_statement(self):
         main_db = get_main_database()
 
