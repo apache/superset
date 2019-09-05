@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 // For individual deployments to add custom overrides
-export default function extraOverrides(controlPanelConfigs) {
-  return controlPanelConfigs;
-}
+export default function setupPluginsExtra() {}

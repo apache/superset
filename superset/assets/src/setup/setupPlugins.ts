@@ -18,6 +18,7 @@
  */
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import MainPreset from '../visualizations/presets/MainPreset';
+import setupPluginsExtra from './setupPluginsExtra';
 
 import Area from '../explore/controlPanels/Area';
 import Bar from '../explore/controlPanels/Bar';
@@ -121,4 +122,6 @@ export default function setupPlugins() {
     .registerValue('deck_polygon', DeckPolygon)
     .registerValue('deck_scatter', DeckScatter)
     .registerValue('deck_screengrid', DeckScreengrid);
+
+  setupPluginsExtra();
 }

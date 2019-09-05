@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import controlPanelConfigs, { sectionsToRender } from './controlPanels';
+import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import controls from './controls';
+import * as sections from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
   const formData = {};
@@ -51,11 +53,11 @@ function isGlobalControl(controlKey) {
 export function getControlConfig(controlKey, vizType) {
   // Gets the control definition, applies overrides, and executes
   // the mapStatetoProps
-  const vizConf = controlPanelConfigs[vizType] || {};
-  const controlOverrides = vizConf.controlOverrides || {};
+  const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
+  const { controlOverrides = {}, controlPanelSections = [] } = controlPanelConfig;
 
   if (!isGlobalControl(controlKey)) {
-    for (const section of vizConf.controlPanelSections) {
+    for (const section of controlPanelSections) {
       for (const controlArr of section.controlSetRows) {
         for (const control of controlArr) {
           if (control != null && typeof control === 'object') {
@@ -129,6 +131,33 @@ export function getControlState(controlKey, vizType, state, value) {
   controlState.value = controlValue === undefined ? controlState.default : controlValue;
   controlState = handleMissingChoice(controlKey, controlState);
   return validateControl(controlState);
+}
+
+export function sectionsToRender(vizType, datasourceType) {
+  const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
+  const { sectionOverrides = {}, controlPanelSections = [] } = controlPanelConfig;
+
+  const sectionsCopy = { ...sections };
+
+  Object.entries(sectionOverrides).forEach(([section, overrides]) => {
+    if (typeof overrides === 'object' && overrides.constructor === Object) {
+      sectionsCopy[section] = {
+        ...sectionsCopy[section],
+        ...overrides,
+      };
+    } else {
+      sectionsCopy[section] = overrides;
+    }
+  });
+
+  const { datasourceAndVizType, sqlaTimeSeries, druidTimeSeries, filters } = sectionsCopy;
+
+  return [].concat(
+    datasourceAndVizType,
+    datasourceType === 'table' ? sqlaTimeSeries : druidTimeSeries,
+    isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? filters : undefined,
+    controlPanelSections,
+  ).filter(section => section);
 }
 
 export function getAllControlsState(vizType, datasourceType, state, formData) {
