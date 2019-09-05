@@ -34,7 +34,27 @@ describe('SuperChart', () => {
   });
 
   describe('includes ErrorBoundary', () => {
+    let expectedErrors = 0;
+    let actualErrors = 0;
+    function onError(e) {
+      e.preventDefault();
+      actualErrors += 1;
+    }
+
+    beforeEach(() => {
+      expectedErrors = 0;
+      actualErrors = 0;
+      window.addEventListener('error', onError);
+    });
+
+    afterEach(() => {
+      window.removeEventListener('error', onError);
+      expect(actualErrors).toBe(expectedErrors);
+      expectedErrors = 0;
+    });
+
     it('renders default FallbackComponent', () => {
+      expectedErrors = 1;
       jest.spyOn(RealSuperChart.defaultProps, 'FallbackComponent');
       const wrapper = mount(<SuperChart chartType={ChartKeys.BUGGY} width="200" height="200" />);
       const renderedWrapper = wrapper.render();
@@ -45,6 +65,7 @@ describe('SuperChart', () => {
       }, 100);
     });
     it('renders custom FallbackComponent', () => {
+      expectedErrors = 1;
       const CustomFallbackComponent = jest.fn(() => <div>Custom Fallback!</div>);
       const wrapper = mount(
         <SuperChart
@@ -61,6 +82,7 @@ describe('SuperChart', () => {
       });
     });
     it('call onErrorBoundary', () => {
+      expectedErrors = 1;
       const handleError = jest.fn();
       mount(
         <SuperChart
@@ -76,6 +98,7 @@ describe('SuperChart', () => {
       });
     });
     it('does not include ErrorBoundary if told so', () => {
+      expectedErrors = 1;
       const inactiveErrorHandler = jest.fn();
       const activeErrorHandler = jest.fn();
       mount(
