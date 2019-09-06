@@ -2714,10 +2714,16 @@ class Superset(BaseSupersetView):
 
         # Save current query
         query = params.query_factory()
-        session.add(query)
-        session.flush()
-        params.query_id = query.id
-        session.commit()  # shouldn't be necessary
+        # New error catch
+        try:
+            session.add(query)
+            session.flush()
+            params.query_id = query.id
+            session.commit()  # shouldn't be necessary
+        except Exception as e:
+            logging.error(f"Errors saving query details {e}")
+            session.rollback()
+            raise Exception(_("Query record was not created as expected."))
         if not params.query_id:
             raise Exception(_("Query record was not created as expected."))
         logging.info("Triggering query_id: {}".format(params.query_id))

@@ -676,3 +676,5 @@ elif importlib.util.find_spec("superset_config"):
     except Exception:
         logging.exception("Found but failed to import local superset_config")
         raise
+
+SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:postgres@localhost/superset'
