@@ -1,7 +1,8 @@
 {
   "baseUrl": "http://localhost:8081",
   "chromeWebSecurity": false,
-  "defaultCommandTimeout": 10000,
+  "defaultCommandTimeout": 20000,
+  "requestTimeout": 20000,
   "ignoreTestFiles": ["**/!(*.test.js)"],
   "projectId": "fbf96q",
   "video": false,

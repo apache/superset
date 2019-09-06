@@ -88,6 +88,7 @@ from superset.utils.decorators import etag_cache, stats_timing
 
 from .base import (
     api,
+    BaseFilter,
     BaseSupersetView,
     check_ownership,
     CsvResponse,
@@ -99,7 +100,6 @@ from .base import (
     handle_api_exception,
     json_error_response,
     json_success,
-    SupersetFilter,
     SupersetModelView,
 )
 from .database import api as database_api, views as in_views
@@ -243,16 +243,18 @@ def _deserialize_results_payload(
             return json.loads(payload)  # type: ignore
 
 
-class SliceFilter(SupersetFilter):
-    def apply(self, query, func):
+class SliceFilter(BaseFilter):
+    def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
             return query
-        perms = self.get_view_menus("datasource_access")
-        # TODO(bogdan): add `schema_access` support here
-        return query.filter(self.model.perm.in_(perms))
+        perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
+        return query.filter(
+            or_(self.model.perm.in_(perms), self.model.schema_perm.in_(schema_perms))
+        )
 
 
-class DashboardFilter(SupersetFilter):
+class DashboardFilter(BaseFilter):
     """
     List dashboards with the following criteria:
         1. Those which the user owns
@@ -270,19 +272,24 @@ class DashboardFilter(SupersetFilter):
         Slice = models.Slice
         Favorites = models.FavStar
 
-        user_roles = [role.name.lower() for role in list(self.get_user_roles())]
+        user_roles = [role.name.lower() for role in list(get_user_roles())]
         if "admin" in user_roles:
             return query
 
-        datasource_perms = self.get_view_menus("datasource_access")
+        datasource_perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
         all_datasource_access = security_manager.all_datasource_access()
         published_dash_query = (
             db.session.query(Dash.id)
             .join(Dash.slices)
             .filter(
                 and_(
-                    Dash.published == True,
-                    or_(Slice.perm.in_(datasource_perms), all_datasource_access),
+                    Dash.published == True,  # noqa
+                    or_(
+                        Slice.perm.in_(datasource_perms),
+                        Slice.schema_perm.in_(schema_perms),
+                        all_datasource_access,
+                    ),
                 )
             )
         )
