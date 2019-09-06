@@ -46,7 +46,6 @@ import pandas as pd
 import pyarrow as pa
 import simplejson as json
 from sqlalchemy import and_, or_, select
-from sqlalchemy.exc import DatabaseError
 from werkzeug.routing import BaseConverter
 
 from superset import (
@@ -2470,7 +2469,7 @@ class Superset(BaseSupersetView):
     @event_logger.log_this
     @backoff.on_exception(
         backoff.constant,
-        DatabaseError,
+        Exception,
         interval=1,
         on_backoff=lambda details: db.session.rollback(),
         on_giveup=lambda details: db.session.rollback(),
