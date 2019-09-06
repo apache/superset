@@ -794,6 +794,8 @@ class SqlaTable(Model, BaseDatasource):
             direction = asc if ascending else desc
             if utils.is_adhoc_metric(col):
                 col = self.adhoc_metric_to_sqla(col, cols)
+            elif col in cols:
+                col = cols[col].get_sqla_col()
             qry = qry.order_by(direction(col))
 
         if row_limit:
