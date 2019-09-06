@@ -180,6 +180,7 @@ class BaseEngineSpec:
 
         :return: All time grain functions supported by the engine
         """
+        # TODO: use @memoize decorator or similar to avoid recomputation on every call
         time_grain_functions = cls._time_grain_functions.copy()
         grain_addon_functions = config.get("TIME_GRAIN_ADDON_FUNCTIONS", {})
         time_grain_functions.update(grain_addon_functions.get(cls.engine, {}))
