@@ -325,6 +325,16 @@ class SupersetFilter(BaseFilter):
         """Whether the user has this perm"""
         return (permission_name, view_menu_name) in self.get_all_permissions()
 
+    # TODO(bogdan): consider caching.
+    def get_databases_from_schema_access(self):
+        vms = self.get_view_menus('schema_access')
+        found_databases = set()
+        for vm in vms:
+            # [database_name].[schema_name]
+            database_name = vm.split('.')[0][1:-1]
+            found_databases.add(database_name)
+        return found_databases
+
     def get_view_menus(self, permission_name):
         """Returns the details of view_menus for a perm name"""
         vm = set()

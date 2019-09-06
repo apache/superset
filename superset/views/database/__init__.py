@@ -19,7 +19,7 @@ import inspect
 
 from flask import Markup
 from flask_babel import lazy_gettext as _
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, or_
 
 from superset import security_manager
 from superset.exceptions import SupersetException
@@ -32,7 +32,14 @@ class DatabaseFilter(SupersetFilter):
         if security_manager.all_database_access():
             return query
         perms = self.get_view_menus("database_access")
-        return query.filter(self.model.perm.in_(perms))
+        # TODO(bogdan): consider adding datasource access here as well.
+        schema_access_databases = self.get_databases_from_schema_access()
+        return query.filter(
+            or_(
+                self.model.perm.in_(perms),
+                self.model.database_name.in_(schema_access_databases)
+            )
+        )
 
 
 class DatabaseMixin:  # noqa
