@@ -745,7 +745,7 @@ class SQLJsonParams:
         self.tab_name: str = request.form.get("tab")
         self.status: bool = QueryStatus.PENDING if self.async_flag else QueryStatus.RUNNING
 
-    def query_factory(self):
+    def create_query(self):
         return Query(
             database_id=self.database_id,
             sql=self.sql,
@@ -759,6 +759,22 @@ class SQLJsonParams:
             user_id=g.user.get_id() if g.user else None,
             client_id=self.client_id,
         )
+
+    def save_query(self, session):
+        query = self.create_query()
+        # New error catch
+        try:
+            session.add(query)
+            session.flush()
+            self.query_id = query.id
+            session.commit()  # shouldn't be necessary
+        except Exception as e:
+            logging.error(f"Errors saving query details {e}")
+            session.rollback()
+            raise Exception(_("Query record was not created as expected."))
+        if not self.query_id:
+            raise Exception(_("Query record was not created as expected."))
+        return query
 
 
 class Superset(BaseSupersetView):
@@ -2678,16 +2694,16 @@ class Superset(BaseSupersetView):
             return json_error_response(payload=data)
         return json_success(payload)
 
+
     @has_access_api
     @expose("/sql_json/", methods=["POST", "GET"])
     @event_logger.log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
-
         # Collect Values
         params = SQLJsonParams()
-
         session = db.session()
+
         # Get and Validate database
         mydb = session.query(models.Database).filter_by(id=params.database_id).first()
         if not mydb:
@@ -2705,27 +2721,15 @@ class Superset(BaseSupersetView):
                 link=security_manager.get_table_access_link(rejected_tables),
                 status=403,
             )
-
         # ?
         session.commit()
 
+        # Set tmp_table_name for CTA
         if params.select_as_cta and mydb.force_ctas_schema:
             params.tmp_table_name = f"{mydb.force_ctas_schema}.{params.tmp_table_name}"
 
         # Save current query
-        query = params.query_factory()
-        # New error catch
-        try:
-            session.add(query)
-            session.flush()
-            params.query_id = query.id
-            session.commit()  # shouldn't be necessary
-        except Exception as e:
-            logging.error(f"Errors saving query details {e}")
-            session.rollback()
-            raise Exception(_("Query record was not created as expected."))
-        if not params.query_id:
-            raise Exception(_("Query record was not created as expected."))
+        query = params.save_query(session)
         logging.info("Triggering query_id: {}".format(params.query_id))
 
         # template processor
