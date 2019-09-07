@@ -2694,7 +2694,6 @@ class Superset(BaseSupersetView):
             return json_error_response(payload=data)
         return json_success(payload)
 
-
     @has_access_api
     @expose("/sql_json/", methods=["POST", "GET"])
     @event_logger.log_this
