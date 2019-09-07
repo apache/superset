@@ -80,6 +80,26 @@ class ChartHolder extends React.Component {
     );
   }
 
+  static getDerivedStateFromProps(props, state) {
+    const { component, directPathToChild, directPathLastUpdated } = props;
+    const {
+      label: columnName,
+      chart: chartComponentId,
+    } = getChartAndLabelComponentIdFromPath(directPathToChild);
+
+    if (
+      directPathLastUpdated !== state.directPathLastUpdated &&
+      component.id === chartComponentId
+    ) {
+      return {
+        outlinedComponentId: component.id,
+        outlinedColumnName: columnName,
+        directPathLastUpdated,
+      };
+    }
+    return null;
+  }
+
   constructor(props) {
     super(props);
     this.state = {
@@ -88,32 +108,10 @@ class ChartHolder extends React.Component {
       outlinedColumnName: null,
       directPathLastUpdated: 0,
     };
-    // window.clearTimeout's key is global,
-    // we don't want one chart clear out another's chart's timeout.
-    this.timer = [];
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateSliceName = this.handleUpdateSliceName.bind(this);
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    const { component, directPathToChild, directPathLastUpdated } = nextProps;
-    const {
-      label: columnName,
-      chart: chartComponentId,
-    } = getChartAndLabelComponentIdFromPath(directPathToChild);
-
-    if (
-      directPathLastUpdated !== this.state.directPathLastUpdated &&
-      component.id === chartComponentId
-    ) {
-      this.setState(() => ({
-        outlinedComponentId: component.id,
-        outlinedColumnName: columnName,
-        directPathLastUpdated,
-      }));
-    }
   }
 
   componentDidMount() {
@@ -130,7 +128,7 @@ class ChartHolder extends React.Component {
 
     // because of timeout, there might be multiple charts showing outline
     if (!!timerKey && !prevTimerKey) {
-      this.timer[timerKey] = setTimeout(() => {
+      setTimeout(() => {
         this.setState(() => ({
           outlinedComponentId: null,
           outlinedColumnName: null,

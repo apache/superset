@@ -52,6 +52,7 @@ const propTypes = {
   toggleExpandSlice: PropTypes.func.isRequired,
   changeFilter: PropTypes.func.isRequired,
   setFocusedFilterField: PropTypes.func.isRequired,
+  unsetFocusedFilterField: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   isExpanded: PropTypes.bool.isRequired,
   isCached: PropTypes.bool,
@@ -177,7 +178,7 @@ class Chart extends React.Component {
   }
 
   handleFilterMenuClose() {
-    this.props.setFocusedFilterField();
+    this.props.unsetFocusedFilterField();
   }
 
   exploreChart() {

@@ -73,7 +73,7 @@ class FilterIndicatorGroup extends React.PureComponent {
       >
         <div
           className={`filter-indicator-group ${
-            hasFilterFieldActive ? 'isFilterFieldActive' : ''
+            hasFilterFieldActive ? 'active' : ''
           }`}
         >
           <div className="color-bar badge-group" />

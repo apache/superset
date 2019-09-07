@@ -22,6 +22,7 @@ import { connect } from 'react-redux';
 import {
   toggleExpandSlice,
   setFocusedFilterField,
+  unsetFocusedFilterField,
 } from '../actions/dashboardState';
 import { updateComponents } from '../actions/dashboardLayout';
 import { changeFilter } from '../actions/dashboardFilters';
@@ -82,6 +83,7 @@ function mapDispatchToProps(dispatch) {
       toggleExpandSlice,
       changeFilter,
       setFocusedFilterField,
+      unsetFocusedFilterField,
       refreshChart,
       logEvent,
     },

@@ -75,6 +75,8 @@ const FREEFORM_TOOLTIP = t(
   '`last october` can be used.',
 );
 
+const DATE_FILTER_POPOVER_STYLE = { width: '250px' };
+
 const propTypes = {
   animation: PropTypes.bool,
   name: PropTypes.string.isRequired,
@@ -254,22 +256,25 @@ export default class DateFilterControl extends React.Component {
     }
 
     // if user click outside popover, popover will hide and we will call onCloseDateFilterControl,
-    // but popover overlay trigger button is inside popover DOM h
-    if (
-      this.popoverContainer &&
-      !this.popoverContainer.contains(target) &&
-      target.getAttribute('name') !== 'popover-trigger'
-    ) {
-      this.props.onCloseDateFilterControl();
+    // but need to exclude OverlayTrigger component to avoid handle click events twice.
+    if (target.getAttribute('name') !== 'popover-trigger') {
+      if (
+        this.popoverContainer &&
+        !this.popoverContainer.contains(target)
+      ) {
+        this.props.onCloseDateFilterControl();
+      }
     }
   }
 
   handleClickTrigger() {
-    // showing popover container
-    if (this.popoverContainer) {
-      this.props.onCloseDateFilterControl();
-    } else {
+    // when user clicks OverlayTrigger,
+    // popoverContainer component will be created after handleClickTrigger
+    // and before handleClick handler
+    if (!this.popoverContainer) {
       this.props.onOpenDateFilterControl();
+    } else {
+      this.props.onCloseDateFilterControl();
     }
   }
 
@@ -365,7 +370,7 @@ export default class DateFilterControl extends React.Component {
     });
     return (
       <Popover id="filter-popover" placement="top" positionTop={0}>
-        <div style={{ width: '250px' }} ref={(ref) => { this.popoverContainer = ref; }}>
+        <div style={DATE_FILTER_POPOVER_STYLE} ref={(ref) => { this.popoverContainer = ref; }}>
           <Tabs
             defaultActiveKey={this.state.tab === TABS.DEFAULTS ? 1 : 2}
             id="type"

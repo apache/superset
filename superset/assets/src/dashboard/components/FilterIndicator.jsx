@@ -62,9 +62,7 @@ class FilterIndicator extends React.PureComponent {
     return (
       <FilterTooltipWrapper tooltip={filterTooltip}>
         <div
-          className={`filter-indicator ${
-            isFilterFieldActive ? 'isFilterFieldActive' : ''
-          }`}
+          className={`filter-indicator ${isFilterFieldActive ? 'active' : ''}`}
           onClick={this.focusToFilterComponent}
           role="none"
         >

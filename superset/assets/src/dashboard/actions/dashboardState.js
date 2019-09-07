@@ -336,6 +336,11 @@ export function setFocusedFilterField(chartId, column) {
   return { type: SET_FOCUSED_FILTER_FIELD, chartId, column };
 }
 
+export function unsetFocusedFilterField() {
+  // same ACTION as setFocusedFilterField, without arguments
+  return { type: SET_FOCUSED_FILTER_FIELD };
+}
+
 // Undo history ---------------------------------------------------------------
 export const SET_MAX_UNDO_HISTORY_EXCEEDED = 'SET_MAX_UNDO_HISTORY_EXCEEDED';
 export function setMaxUndoHistoryExceeded(maxUndoHistoryExceeded = true) {
