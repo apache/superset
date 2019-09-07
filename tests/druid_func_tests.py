@@ -22,7 +22,7 @@ try:
     from pydruid.utils.dimensions import (
         MapLookupExtraction,
         RegexExtraction,
-        RegisteredLookupExtraction
+        RegisteredLookupExtraction,
     )
     import pydruid.utils.postaggregator as postaggs
 except ImportError:
