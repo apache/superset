@@ -20,7 +20,7 @@ from unittest.mock import Mock
 
 try:
     from pydruid.utils.dimensions import (
-        MapLookupExtraction, 
+        MapLookupExtraction,
         RegexExtraction,
         RegisteredLookupExtraction
     )
@@ -124,7 +124,7 @@ class DruidFuncTestCase(unittest.TestCase):
             "dimension": "country_name",
             "outputName": "country",
             "outputType": "STRING",
-            "extractionFn": {"type": "registeredLookup","lookup": "country_name"},
+            "extractionFn": {"type": "registeredLookup", "lookup": "country_name"},
         }
         spec_json = json.dumps(dimension_spec)
         col = DruidColumn(column_name="country", dimension_spec_json=spec_json)
