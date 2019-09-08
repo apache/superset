@@ -37,7 +37,7 @@ from werkzeug.utils import secure_filename
 from superset import app, db, sql_parse
 from superset.utils import core as utils
 
-Grain = namedtuple("Grain", "name label function duration")
+TimeGrain = namedtuple("Grain", "name label function duration")
 
 config = app.config
 
@@ -99,21 +99,11 @@ class LimitMethod(object):
     FORCE_LIMIT = "force_limit"
 
 
-def create_time_grains_tuple(time_grains, time_grain_functions, blacklist):
-    ret_list = []
-    blacklist = blacklist if blacklist else []
-    for duration, func in time_grain_functions.items():
-        if duration not in blacklist:
-            name = time_grains.get(duration)
-            ret_list.append(Grain(name, _(name), func, duration))
-    return tuple(ret_list)
-
-
-class BaseEngineSpec(object):
+class BaseEngineSpec:
     """Abstract class for database engine specific configurations"""
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
-    time_grain_functions: Dict[Optional[str], str] = {}
+    _time_grain_functions: Dict[Optional[str], str] = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -138,7 +128,7 @@ class BaseEngineSpec(object):
         :return: TimestampExpression object
         """
         if time_grain:
-            time_expr = cls.time_grain_functions.get(time_grain)
+            time_expr = cls.get_time_grain_functions().get(time_grain)
             if not time_expr:
                 raise NotImplementedError(
                     f"No grain spec for {time_grain} for database {cls.engine}"
@@ -155,14 +145,39 @@ class BaseEngineSpec(object):
         return TimestampExpression(time_expr, col, type_=DateTime)
 
     @classmethod
-    def get_time_grains(cls):
-        blacklist = config.get("TIME_GRAIN_BLACKLIST", [])
-        grains = builtin_time_grains.copy()
-        grains.update(config.get("TIME_GRAIN_ADDONS", {}))
-        grain_functions = cls.time_grain_functions.copy()
+    def get_time_grains(cls) -> Tuple[TimeGrain, ...]:
+        """
+        Generate a tuple of supported time grains.
+
+        :return: All time grains supported by the engine
+        """
+
+        ret_list = []
+        time_grain_functions = cls.get_time_grain_functions()
+        time_grains = builtin_time_grains.copy()
+        time_grains.update(config.get("TIME_GRAIN_ADDONS", {}))
+        for duration, func in time_grain_functions.items():
+            if duration in time_grains:
+                name = time_grains[duration]
+                ret_list.append(TimeGrain(name, _(name), func, duration))
+        return tuple(ret_list)
+
+    @classmethod
+    def get_time_grain_functions(cls) -> Dict[Optional[str], str]:
+        """
+        Return a dict of all supported time grains including any potential added grains
+        but excluding any potentially blacklisted grains in the config file.
+
+        :return: All time grain functions supported by the engine
+        """
+        # TODO: use @memoize decorator or similar to avoid recomputation on every call
+        time_grain_functions = cls._time_grain_functions.copy()
         grain_addon_functions = config.get("TIME_GRAIN_ADDON_FUNCTIONS", {})
-        grain_functions.update(grain_addon_functions.get(cls.engine, {}))
-        return create_time_grains_tuple(grains, grain_functions, blacklist)
+        time_grain_functions.update(grain_addon_functions.get(cls.engine, {}))
+        blacklist: List[str] = config.get("TIME_GRAIN_BLACKLIST", [])
+        for key in blacklist:
+            time_grain_functions.pop(key)
+        return time_grain_functions
 
     @classmethod
     def make_select_compatible(cls, groupby_exprs, select_exprs):

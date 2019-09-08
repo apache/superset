@@ -25,7 +25,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 256
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "DATE_TRUNC('SECOND', {col})",
         "PT1M": "DATE_TRUNC('MINUTE', {col})",
