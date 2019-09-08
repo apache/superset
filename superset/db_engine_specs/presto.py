@@ -43,7 +43,7 @@ QueryStatus = utils.QueryStatus
 class PrestoEngineSpec(BaseEngineSpec):
     engine = "presto"
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
         "PT1M": "date_trunc('minute', CAST({col} AS TIMESTAMP))",

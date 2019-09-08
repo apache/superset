@@ -31,7 +31,7 @@ class MssqlEngineSpec(BaseEngineSpec):
     limit_method = LimitMethod.WRAP_SQL
     max_column_name_length = 128
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "DATEADD(second, DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')",
         "PT1M": "DATEADD(minute, DATEDIFF(minute, 0, {col}), 0)",

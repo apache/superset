@@ -28,7 +28,7 @@ class ClickHouseEngineSpec(BaseEngineSpec):
     time_secondary_columns = True
     time_groupby_inline = True
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1M": "toStartOfMinute(toDateTime({col}))",
         "PT5M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)",
