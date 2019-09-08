@@ -53,7 +53,7 @@ class SqlValidatorEndpointTests(SupersetTestCase):
         app.config["SQL_VALIDATORS_BY_ENGINE"] = {}
 
         resp = self.validate_sql(
-            "SELECT * FROM ab_user", client_id="1", raise_on_error=False
+            "SELECT * FROM birth_names", client_id="1", raise_on_error=False
         )
         self.assertIn("error", resp)
         self.assertIn("no SQL validator is configured", resp["error"])
@@ -97,7 +97,7 @@ class SqlValidatorEndpointTests(SupersetTestCase):
         validator.validate.side_effect = Exception("Kaboom!")
 
         resp = self.validate_sql(
-            "SELECT * FROM ab_user", client_id="1", raise_on_error=False
+            "SELECT * FROM birth_names", client_id="1", raise_on_error=False
         )
         self.assertIn("error", resp)
         self.assertIn("Kaboom!", resp["error"])
@@ -186,7 +186,7 @@ class PrestoValidatorTests(SupersetTestCase):
         #    validator for sqlite, this test will fail because the validator
         #    will no longer error out.
         resp = self.validate_sql(
-            "SELECT * FROM ab_user", client_id="1", raise_on_error=False
+            "SELECT * FROM birth_names", client_id="1", raise_on_error=False
         )
         self.assertIn("error", resp)
         self.assertIn("no SQL validator is configured", resp["error"])

@@ -28,7 +28,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
-from superset.utils.core import get_main_database
+from superset.utils.core import get_example_database
 from .base_tests import SupersetTestCase
 
 
@@ -132,20 +132,20 @@ class CeleryTestCase(SupersetTestCase):
         return json.loads(resp.data)
 
     def test_run_sync_query_dont_exist(self):
-        main_db = get_main_database()
+        main_db = get_example_database()
         db_id = main_db.id
         sql_dont_exist = "SELECT name FROM table_dont_exist"
         result1 = self.run_sql(db_id, sql_dont_exist, "1", cta="true")
         self.assertTrue("error" in result1)
 
     def test_run_sync_query_cta(self):
-        main_db = get_main_database()
+        main_db = get_example_database()
         backend = main_db.backend
         db_id = main_db.id
         tmp_table_name = "tmp_async_22"
         self.drop_table_if_exists(tmp_table_name, main_db)
-        perm_name = "can_sql_json"
-        sql_where = "SELECT name FROM ab_permission WHERE name='{}'".format(perm_name)
+        name = "James"
+        sql_where = f"SELECT name FROM birth_names WHERE name='{name}' LIMIT 1"
         result = self.run_sql(
             db_id, sql_where, "2", tmp_table=tmp_table_name, cta="true"
         )
@@ -162,9 +162,9 @@ class CeleryTestCase(SupersetTestCase):
             self.assertGreater(len(results["data"]), 0)
 
     def test_run_sync_query_cta_no_data(self):
-        main_db = get_main_database()
+        main_db = get_example_database()
         db_id = main_db.id
-        sql_empty_result = "SELECT * FROM ab_user WHERE id=666"
+        sql_empty_result = "SELECT * FROM birth_names WHERE name='random'"
         result3 = self.run_sql(db_id, sql_empty_result, "3")
         self.assertEqual(QueryStatus.SUCCESS, result3["query"]["state"])
         self.assertEqual([], result3["data"])
@@ -183,12 +183,12 @@ class CeleryTestCase(SupersetTestCase):
         return self.run_sql(db_id, sql)
 
     def test_run_async_query(self):
-        main_db = get_main_database()
+        main_db = get_example_database()
         db_id = main_db.id
 
         self.drop_table_if_exists("tmp_async_1", main_db)
 
-        sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
+        sql_where = "SELECT name FROM birth_names WHERE name='James' LIMIT 10"
         result = self.run_sql(
             db_id, sql_where, "4", async_="true", tmp_table="tmp_async_1", cta="true"
         )
@@ -202,12 +202,13 @@ class CeleryTestCase(SupersetTestCase):
 
         query = self.get_query_by_id(result["query"]["serverId"])
         self.assertEqual(QueryStatus.SUCCESS, query.status)
+
         self.assertTrue("FROM tmp_async_1" in query.select_sql)
         self.assertEqual(
             "CREATE TABLE tmp_async_1 AS \n"
-            "SELECT name FROM ab_role "
-            "WHERE name='Admin'\n"
-            "LIMIT 666",
+            "SELECT name FROM birth_names "
+            "WHERE name='James' "
+            "LIMIT 10",
             query.executed_sql,
         )
         self.assertEqual(sql_where, query.sql)
@@ -216,13 +217,14 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual(True, query.select_as_cta_used)
 
     def test_run_async_query_with_lower_limit(self):
-        main_db = get_main_database()
+        main_db = get_example_database()
         db_id = main_db.id
-        self.drop_table_if_exists("tmp_async_2", main_db)
+        tmp_table = "tmp_async_2"
+        self.drop_table_if_exists(tmp_table, main_db)
 
-        sql_where = "SELECT name FROM ab_role WHERE name='Alpha' LIMIT 1"
+        sql_where = "SELECT name FROM birth_names LIMIT 1"
         result = self.run_sql(
-            db_id, sql_where, "5", async_="true", tmp_table="tmp_async_2", cta="true"
+            db_id, sql_where, "5", async_="true", tmp_table=tmp_table, cta="true"
         )
         assert result["query"]["state"] in (
             QueryStatus.PENDING,
@@ -234,10 +236,9 @@ class CeleryTestCase(SupersetTestCase):
 
         query = self.get_query_by_id(result["query"]["serverId"])
         self.assertEqual(QueryStatus.SUCCESS, query.status)
-        self.assertTrue("FROM tmp_async_2" in query.select_sql)
+        self.assertTrue(f"FROM {tmp_table}" in query.select_sql)
         self.assertEqual(
-            "CREATE TABLE tmp_async_2 AS \nSELECT name FROM ab_role "
-            "WHERE name='Alpha' LIMIT 1",
+            f"CREATE TABLE {tmp_table} AS \n" "SELECT name FROM birth_names LIMIT 1",
             query.executed_sql,
         )
         self.assertEqual(sql_where, query.sql)
