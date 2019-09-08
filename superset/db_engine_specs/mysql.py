@@ -29,7 +29,7 @@ class MySQLEngineSpec(BaseEngineSpec):
     engine = "mysql"
     max_column_name_length = 64
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "DATE_ADD(DATE({col}), "
         "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
