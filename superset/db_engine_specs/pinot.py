@@ -29,7 +29,7 @@ class PinotEngineSpec(BaseEngineSpec):
     allows_column_aliases = False
 
     # Pinot does its own conversion below
-    time_grain_functions: Dict[Optional[str], str] = {
+    _time_grain_functions: Dict[Optional[str], str] = {
         "PT1S": "1:SECONDS",
         "PT1M": "1:MINUTES",
         "PT1H": "1:HOURS",
@@ -52,7 +52,7 @@ class PinotEngineSpec(BaseEngineSpec):
         # We are not really converting any time units, just bucketing them.
         seconds_or_ms = "MILLISECONDS" if pdf == "epoch_ms" else "SECONDS"
         tf = f"1:{seconds_or_ms}:EPOCH"
-        granularity = cls.time_grain_functions.get(time_grain)
+        granularity = cls.get_time_grain_functions().get(time_grain)
         if not granularity:
             raise NotImplementedError("No pinot grain spec for " + str(time_grain))
         # In pinot the output is a string since there is no timestamp column like pg
