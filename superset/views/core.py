@@ -2705,11 +2705,7 @@ class Superset(BaseSupersetView):
             query.sql, query.database, query.schema
         )
         if rejected_tables:
-            flash(
-                security_manager.get_table_access_error_msg(
-                    "{}".format(rejected_tables)
-                )
-            )
+            flash(security_manager.get_table_access_error_msg(rejected_tables))
             return redirect("/")
         blob = None
         if results_backend and query.results_key:
