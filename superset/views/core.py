@@ -22,6 +22,7 @@ import re
 from typing import Dict, List, Optional, Union  # noqa: F401
 from urllib import parse
 
+import backoff
 from flask import (
     abort,
     flash,
@@ -2457,10 +2458,7 @@ class Superset(BaseSupersetView):
         )
         if rejected_tables:
             return json_error_response(
-                security_manager.get_table_access_error_msg(
-                    "{}".format(rejected_tables)
-                ),
-                status=403,
+                security_manager.get_table_access_error_msg(rejected_tables), status=403
             )
 
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
@@ -2477,14 +2475,30 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/stop_query/", methods=["POST"])
     @event_logger.log_this
+    @backoff.on_exception(
+        backoff.constant,
+        Exception,
+        interval=1,
+        on_backoff=lambda details: db.session.rollback(),
+        on_giveup=lambda details: db.session.rollback(),
+        max_tries=5,
+    )
     def stop_query(self):
         client_id = request.form.get("client_id")
-        try:
-            query = db.session.query(Query).filter_by(client_id=client_id).one()
-            query.status = QueryStatus.STOPPED
-            db.session.commit()
-        except Exception:
-            pass
+
+        query = db.session.query(Query).filter_by(client_id=client_id).one()
+        if query.status in [
+            QueryStatus.FAILED,
+            QueryStatus.SUCCESS,
+            QueryStatus.TIMED_OUT,
+        ]:
+            logging.error(
+                f"Query with client_id {client_id} could not be stopped: query already complete"
+            )
+            return self.json_response("OK")
+        query.status = QueryStatus.STOPPED
+        db.session.commit()
+
         return self.json_response("OK")
 
     @has_access_api
@@ -2705,11 +2719,7 @@ class Superset(BaseSupersetView):
             query.sql, query.database, query.schema
         )
         if rejected_tables:
-            flash(
-                security_manager.get_table_access_error_msg(
-                    "{}".format(rejected_tables)
-                )
-            )
+            flash(security_manager.get_table_access_error_msg(rejected_tables))
             return redirect("/")
         blob = None
         if results_backend and query.results_key:
@@ -2740,12 +2750,13 @@ class Superset(BaseSupersetView):
             "Content-Disposition"
         ] = f"attachment; filename={query.name}.csv"
         event_info = {
-            "event_type": "csv_export",
+            "event_type": "data_export",
             "client_id": client_id,
             "row_count": len(df.index),
-            "database": query.database,
+            "database": query.database.name,
             "schema": query.schema,
             "sql": query.sql,
+            "exported_format": "csv",
         }
         logging.info(
             f"CSV exported: {repr(event_info)}", extra={"superset_event": event_info}

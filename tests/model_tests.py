@@ -22,7 +22,7 @@ from sqlalchemy.engine.url import make_url
 
 from superset import app
 from superset.models.core import Database
-from superset.utils.core import get_example_database, get_main_database, QueryStatus
+from superset.utils.core import get_example_database, QueryStatus
 from .base_tests import SupersetTestCase
 
 
@@ -104,9 +104,9 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertNotEquals(example_user, user_name)
 
     def test_select_star(self):
-        main_db = get_example_database()
+        db = get_example_database()
         table_name = "energy_usage"
-        sql = main_db.select_star(table_name, show_cols=False, latest_partition=False)
+        sql = db.select_star(table_name, show_cols=False, latest_partition=False)
         expected = textwrap.dedent(
             f"""\
         SELECT *
@@ -115,7 +115,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         )
         assert sql.startswith(expected)
 
-        sql = main_db.select_star(table_name, show_cols=True, latest_partition=False)
+        sql = db.select_star(table_name, show_cols=True, latest_partition=False)
         expected = textwrap.dedent(
             f"""\
         SELECT source,
@@ -126,8 +126,30 @@ class DatabaseModelTestCase(SupersetTestCase):
         )
         assert sql.startswith(expected)
 
+    def test_select_star_fully_qualified_names(self):
+        db = get_example_database()
+        schema = "schema.name"
+        table_name = "table/name"
+        sql = db.select_star(
+            table_name, schema=schema, show_cols=False, latest_partition=False
+        )
+        fully_qualified_names = {
+            "sqlite": '"schema.name"."table/name"',
+            "mysql": "`schema.name`.`table/name`",
+            "postgres": '"schema.name"."table/name"',
+        }
+        fully_qualified_name = fully_qualified_names.get(db.db_engine_spec.engine)
+        if fully_qualified_name:
+            expected = textwrap.dedent(
+                f"""\
+            SELECT *
+            FROM {fully_qualified_name}
+            LIMIT 100"""
+            )
+            assert sql.startswith(expected)
+
     def test_single_statement(self):
-        main_db = get_main_database()
+        main_db = get_example_database()
 
         if main_db.backend == "mysql":
             df = main_db.get_df("SELECT 1", None)
@@ -137,7 +159,7 @@ class DatabaseModelTestCase(SupersetTestCase):
             self.assertEquals(df.iat[0, 0], 1)
 
     def test_multi_statement(self):
-        main_db = get_main_database()
+        main_db = get_example_database()
 
         if main_db.backend == "mysql":
             df = main_db.get_df("USE superset; SELECT 1", None)

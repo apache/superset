@@ -52,7 +52,7 @@ class DeckMulti extends React.PureComponent {
     this.loadLayers(formData, payload);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const { formData, payload } = nextProps;
     const hasChanges = !_.isEqual(this.props.formData.deck_slices, nextProps.formData.deck_slices);
     if (hasChanges) {
