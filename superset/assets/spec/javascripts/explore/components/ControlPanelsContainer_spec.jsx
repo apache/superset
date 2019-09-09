@@ -28,6 +28,7 @@ const defaultProps = {
   datasource_type: 'table',
   actions: {},
   controls: defaultControls,
+  // Note: default viz_type is table
   form_data: getFormDataFromControls(defaultControls),
   isDatasourceMetaLoading: false,
   exploreState: {},
@@ -45,12 +46,12 @@ describe('ControlPanelsContainer', () => {
 
   it('renders ControlPanelSections', () => {
     wrapper = shallow(<ControlPanelsContainer {...defaultProps} />);
-    expect(wrapper.find(ControlPanelSection)).toHaveLength(6);
+    expect(wrapper.find(ControlPanelSection)).toHaveLength(2);
   });
 
   it('renders filter panel when SCOPED_FILTER flag is on', () => {
     scopedFilterOn = true;
     wrapper = shallow(<ControlPanelsContainer {...defaultProps} />);
-    expect(wrapper.find(ControlPanelSection)).toHaveLength(7);
+    expect(wrapper.find(ControlPanelSection)).toHaveLength(3);
   });
 });
