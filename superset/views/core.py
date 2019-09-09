@@ -2742,6 +2742,7 @@ class Superset(BaseSupersetView):
             "database": query.database.name,
             "schema": query.schema,
             "sql": query.sql,
+            "exported_format": "csv",
         }
         logging.info(
             f"CSV exported: {repr(event_info)}", extra={"superset_event": event_info}
