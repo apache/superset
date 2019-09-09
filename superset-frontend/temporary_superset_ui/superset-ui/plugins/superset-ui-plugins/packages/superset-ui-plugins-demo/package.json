@@ -9,7 +9,8 @@
     "demo:build": "build-storybook -o _gh-pages",
     "demo:publish": "gh-pages -d _gh-pages",
     "deploy-demo": "npm run demo:clean && npm run demo:build && npm run demo:publish && npm run demo:clean",
-    "storybook": "start-storybook -p 9001"
+    "storybook:run": "start-storybook -p 9001",
+    "storybook": "cd ../../ && yarn build && cd - && yarn storybook:run"
   },
   "repository": {
     "type": "git",
