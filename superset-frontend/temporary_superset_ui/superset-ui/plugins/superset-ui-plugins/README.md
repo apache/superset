@@ -106,6 +106,12 @@ You can demo your changes by running the storybook demo locally with the followi
 yarn install
 yarn build
 cd packages/superset-ui-plugins-demo
+yarn storybook:run
+```
+
+Alternatively, you can demo your changes by using the following command while in `packages/superset-ui-plugins-demo`:
+
+```sh
 yarn storybook
 ```
 
