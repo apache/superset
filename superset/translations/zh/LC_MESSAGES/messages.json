@@ -2507,7 +2507,7 @@
         "不要添加到仪表板"
       ],
       "Add chart to existing dashboard": [
-        "将图表添加到现有仪表盘"
+        "将图表添加到现有看板"
       ],
       "Add to new dashboard": [
         "添加到新的仪表板"
@@ -2987,7 +2987,7 @@
         "没有找到任何记录"
       ],
       "Import dashboards": [
-        "仪表盘导入"
+        "看板导入"
       ],
       "No Access!": [
         "不能访问!"
@@ -3119,7 +3119,7 @@
         "模拟登录用户"
       ],
       "Import Dashboards": [
-        "导入仪表盘"
+        "导入看板"
       ],
       "CSV to Database configuration": [
         "csv 到数据库配置"
@@ -3179,16 +3179,16 @@
         "图表"
       ],
       "List Dashboards": [
-        "仪表盘列表"
+        "看板列表"
       ],
       "Show Dashboard": [
-        "显示仪表盘"
+        "显示看板"
       ],
       "Add Dashboard": [
-        "添加仪表盘"
+        "添加看板"
       ],
       "Edit Dashboard": [
-        "编辑仪表盘"
+        "编辑看板"
       ],
       "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view": [
         "这个JSON对象描述了部件在看板中的位置。它是动态生成的，可以通过拖放，在看板中调整整部件的大小和位置"
@@ -3224,7 +3224,7 @@
         "导出"
       ],
       "Export dashboards?": [
-        "导出仪表盘?"
+        "导出看板?"
       ],
       "Action": [
         "操作"
