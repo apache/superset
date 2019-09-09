@@ -8,5 +8,6 @@ export { default as convertKeysToCamelCase } from './utils/convertKeysToCamelCas
 export { default as isDefined } from './utils/isDefined';
 export { default as isRequired } from './utils/isRequired';
 export { default as makeSingleton } from './utils/makeSingleton';
+export { default as promiseTimeout } from './utils/promiseTimeout';
 
 export * from './types';
