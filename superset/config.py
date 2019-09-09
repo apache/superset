@@ -53,7 +53,7 @@ VERSION_INFO_FILE = os.path.join(PACKAGE_DIR, "version_info.json")
 PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets" "package.json")
 
 
-def _try_json_reafile(filepath):
+def _try_json_readfile(filepath):
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("version")
@@ -66,7 +66,7 @@ def _try_json_reafile(filepath):
 # that we're actually running Superset, we will have already installed, therefore it WILL
 # exist. When unit tests are running, however, it WILL NOT exist, so we fall
 # back to reading package.json
-VERSION_STRING = _try_json_reafile(VERSION_INFO_FILE) or _try_json_reafile(
+VERSION_STRING = _try_json_readfile(VERSION_INFO_FILE) or _try_json_readfile(
     PACKAGE_JSON_FILE
 )
 
