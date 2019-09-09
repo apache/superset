@@ -473,6 +473,10 @@ class BaseEngineSpec:
 
     @classmethod
     def extract_error_message(cls, e: Exception) -> str:
+        return f"{cls.engine} error: {cls._extract_error_message(e)}"
+
+    @classmethod
+    def _extract_error_message(cls, e: Exception) -> str:
         """Extract error message for queries"""
         return utils.error_msg_from_exception(e)
 

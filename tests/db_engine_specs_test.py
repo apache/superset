@@ -137,7 +137,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         )
         self.assertEquals(
             (
-                "Error while compiling statement: FAILED: "
+                "hive error: Error while compiling statement: FAILED: "
                 "SemanticException [Error 10001]: Line 4:5 "
                 "Table not found 'fact_ridesfdslakj'"
             ),
@@ -145,7 +145,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         )
 
         e = Exception("Some string that doesn't match the regex")
-        self.assertEquals(str(e), HiveEngineSpec.extract_error_message(e))
+        self.assertEquals(f"hive error: {e}", HiveEngineSpec.extract_error_message(e))
 
         msg = (
             "errorCode=10001, "
@@ -153,7 +153,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             '=None)"'
         )
         self.assertEquals(
-            ("Error while compiling statement"),
+            ("hive error: Error while compiling statement"),
             HiveEngineSpec.extract_error_message(Exception(msg)),
         )
 
