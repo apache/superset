@@ -66,7 +66,7 @@ from sqlalchemy_utils import EncryptedType
 
 from superset import conf, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
-from superset.exceptions import MetricPermException, SupersetException
+from superset.exceptions import SupersetException
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.utils import core as utils, import_datasource
 
@@ -389,7 +389,6 @@ class DruidMetric(Model, BaseMetric):
         "datasource_id",
         "json",
         "description",
-        "is_restricted",
         "d3format",
         "warning_text",
     )
@@ -1044,19 +1043,6 @@ class DruidDatasource(Model, BaseDatasource):
             }
         return aggregations
 
-    def check_restricted_metrics(self, aggregations):
-        rejected_metrics = [
-            m.metric_name
-            for m in self.metrics
-            if m.is_restricted
-            and m.metric_name in aggregations.keys()
-            and not security_manager.has_access("metric_access", m.perm)
-        ]
-        if rejected_metrics:
-            raise MetricPermException(
-                "Access to the metrics denied: " + ", ".join(rejected_metrics)
-            )
-
     def get_dimensions(self, groupby, columns_dict):
         dimensions = []
         groupby = [gb for gb in groupby if gb in columns_dict]
@@ -1163,8 +1149,6 @@ class DruidDatasource(Model, BaseDatasource):
         aggregations, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict
         )
-
-        self.check_restricted_metrics(aggregations)
 
         # the dimensions list with dimensionSpecs expanded
         dimensions = self.get_dimensions(groupby, columns_dict)
