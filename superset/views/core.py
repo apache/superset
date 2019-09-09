@@ -2736,12 +2736,13 @@ class Superset(BaseSupersetView):
             "Content-Disposition"
         ] = f"attachment; filename={query.name}.csv"
         event_info = {
-            "event_type": "csv_export",
+            "event_type": "data_export",
             "client_id": client_id,
             "row_count": len(df.index),
-            "database": query.database,
+            "database": query.database.name,
             "schema": query.schema,
             "sql": query.sql,
+            "exported_format": "csv",
         }
         logging.info(
             f"CSV exported: {repr(event_info)}", extra={"superset_event": event_info}
