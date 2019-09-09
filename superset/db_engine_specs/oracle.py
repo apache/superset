@@ -27,7 +27,7 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 30
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "CAST({col} as DATE)",
         "PT1M": "TRUNC(CAST({col} as DATE), 'MI')",

@@ -48,7 +48,6 @@ def make_shell_context():
 @app.cli.command()
 def init():
     """Inits the Superset application"""
-    utils.get_or_create_main_db()
     utils.get_example_database()
     appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
@@ -430,75 +429,40 @@ def load_test_users_run():
     Syncs permissions for those users/roles
     """
     if config.get("TESTING"):
-        security_manager.sync_role_definitions()
-        gamma_sqllab_role = security_manager.add_role("gamma_sqllab")
-        for perm in security_manager.find_role("Gamma").permissions:
-            security_manager.add_permission_role(gamma_sqllab_role, perm)
-        utils.get_or_create_main_db()
-        db_perm = utils.get_main_database().perm
-        security_manager.add_permission_view_menu("database_access", db_perm)
-        db_pvm = security_manager.find_permission_view_menu(
-            view_menu_name=db_perm, permission_name="database_access"
+
+        sm = security_manager
+
+        examples_db = utils.get_example_database()
+
+        examples_pv = sm.add_permission_view_menu("database_access", examples_db.perm)
+
+        sm.sync_role_definitions()
+        gamma_sqllab_role = sm.add_role("gamma_sqllab")
+        sm.add_permission_role(gamma_sqllab_role, examples_pv)
+
+        for role in ["Gamma", "sql_lab"]:
+            for perm in sm.find_role(role).permissions:
+                sm.add_permission_role(gamma_sqllab_role, perm)
+
+        users = (
+            ("admin", "Admin"),
+            ("gamma", "Gamma"),
+            ("gamma2", "Gamma"),
+            ("gamma_sqllab", "gamma_sqllab"),
+            ("alpha", "Alpha"),
         )
-        gamma_sqllab_role.permissions.append(db_pvm)
-        for perm in security_manager.find_role("sql_lab").permissions:
-            security_manager.add_permission_role(gamma_sqllab_role, perm)
-
-        admin = security_manager.find_user("admin")
-        if not admin:
-            security_manager.add_user(
-                "admin",
-                "admin",
-                " user",
-                "admin@fab.org",
-                security_manager.find_role("Admin"),
-                password="general",
-            )
-
-        gamma = security_manager.find_user("gamma")
-        if not gamma:
-            security_manager.add_user(
-                "gamma",
-                "gamma",
-                "user",
-                "gamma@fab.org",
-                security_manager.find_role("Gamma"),
-                password="general",
-            )
-
-        gamma2 = security_manager.find_user("gamma2")
-        if not gamma2:
-            security_manager.add_user(
-                "gamma2",
-                "gamma2",
-                "user",
-                "gamma2@fab.org",
-                security_manager.find_role("Gamma"),
-                password="general",
-            )
-
-        gamma_sqllab_user = security_manager.find_user("gamma_sqllab")
-        if not gamma_sqllab_user:
-            security_manager.add_user(
-                "gamma_sqllab",
-                "gamma_sqllab",
-                "user",
-                "gamma_sqllab@fab.org",
-                gamma_sqllab_role,
-                password="general",
-            )
-
-        alpha = security_manager.find_user("alpha")
-        if not alpha:
-            security_manager.add_user(
-                "alpha",
-                "alpha",
-                "user",
-                "alpha@fab.org",
-                security_manager.find_role("Alpha"),
-                password="general",
-            )
-        security_manager.get_session.commit()
+        for username, role in users:
+            user = sm.find_user(username)
+            if not user:
+                sm.add_user(
+                    username,
+                    username,
+                    "user",
+                    username + "@fab.org",
+                    sm.find_role(role),
+                    password="general",
+                )
+        sm.get_session.commit()
 
 
 @app.cli.command()
