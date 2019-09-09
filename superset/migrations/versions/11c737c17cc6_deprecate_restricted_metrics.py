@@ -31,8 +31,10 @@ down_revision = "def97f26fdfb"
 
 
 def upgrade():
-    op.drop_column("metrics", "is_restricted")
-    op.drop_column("sql_metrics", "is_restricted")
+    with op.batch_alter_table("metrics") as batch_op:
+        batch_op.drop_column("is_restricted")
+    with op.batch_alter_table("sql_metrics") as batch_op:
+        batch_op.drop_column("is_restricted")
 
 
 def downgrade():
