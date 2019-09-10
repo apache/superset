@@ -31,6 +31,7 @@ import logging
 import math
 import pickle as pkl
 import re
+from typing import Any, Dict, List, Optional
 import uuid
 
 from dateutil import relativedelta as rdelta
@@ -77,7 +78,7 @@ class BaseViz(object):
 
     """All visualizations derive this base class"""
 
-    viz_type = None
+    viz_type: Optional[str] = None
     verbose_name = "Base Viz"
     credits = ""
     is_timeseries = False
@@ -181,7 +182,9 @@ class BaseViz(object):
         df = self.get_df(query_obj)
         return df.to_dict(orient="records")
 
-    def get_df(self, query_obj=None):
+    def get_df(
+        self, query_obj: Optional[Dict[str, Any]] = None
+    ) -> Optional[pd.DataFrame]:
         """Returns a pandas dataframe based on the query object"""
         if not query_obj:
             query_obj = self.query_obj()
@@ -722,7 +725,9 @@ class MarkupViz(BaseViz):
     def query_obj(self):
         return None
 
-    def get_df(self, query_obj=None):
+    def get_df(
+        self, query_obj: Optional[Dict[str, Any]] = None
+    ) -> Optional[pd.DataFrame]:
         return None
 
     def get_data(self, df):
@@ -855,7 +860,7 @@ class NVD3Viz(BaseViz):
     """Base class for all nvd3 vizs"""
 
     credits = '<a href="http://nvd3.org/">NVD3.org</a>'
-    viz_type = None
+    viz_type: Optional[str] = None
     verbose_name = "Base NVD3 Viz"
     is_timeseries = False
 
@@ -1846,7 +1851,7 @@ class IFrameViz(BaseViz):
     def query_obj(self):
         return None
 
-    def get_df(self, query_obj=None):
+    def get_df(self, query_obj: Dict[str, Any] = None) -> Optional[pd.DataFrame]:
         return None
 
     def get_data(self, df):
@@ -2105,7 +2110,7 @@ class BaseDeckGLViz(BaseViz):
 
     is_timeseries = False
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
-    spatial_control_keys = []
+    spatial_control_keys: List[str] = []
 
     def get_metrics(self):
         self.metric = self.form_data.get("size")
