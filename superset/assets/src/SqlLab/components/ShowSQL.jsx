@@ -35,12 +35,12 @@ const propTypes = {
 };
 
 const defaultProps = {
-  tooltipText: t('Show CREATE VIEW statement'),
-  title: t('CREATE VIEW statement'),
+  tooltipText: t('Show SQL'),
+  title: t('SQL statement'),
   sql: '',
 };
 
-export default class ShowCreateView extends React.Component {
+export default class ShowSQL extends React.Component {
   renderModalBody() {
     return (
       <div>
@@ -74,5 +74,5 @@ export default class ShowCreateView extends React.Component {
   }
 }
 
-ShowCreateView.propTypes = propTypes;
-ShowCreateView.defaultProps = defaultProps;
+ShowSQL.propTypes = propTypes;
+ShowSQL.defaultProps = defaultProps;

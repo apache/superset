@@ -213,8 +213,6 @@ export default class TableSelector extends React.PureComponent {
     if (valueArray.indexOf(option) >= 0) {
       classNames.push('is-selected')
     }
-    console.log(option);
-
     return (
       <div
         className={classNames.join(' ')}
@@ -307,7 +305,7 @@ export default class TableSelector extends React.PureComponent {
         isLoading={this.state.tableLoading}
         ignoreAccents={false}
         placeholder={t('Select table or type table name')}
-        autosize={true}
+        autosize={false}
         onChange={this.changeTable}
         options={options}
         value={this.state.tableName}
@@ -323,6 +321,7 @@ export default class TableSelector extends React.PureComponent {
           onChange={this.changeTable}
           value={this.state.tableName}
           loadOptions={this.getTableNamesBySubStr}
+          optionRenderer={this.renderTableOption}
         />);
     return this.renderSelectRow(
       select,

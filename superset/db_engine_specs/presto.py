@@ -90,11 +90,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         and get_view_names() is not implemented in sqlalchemy_presto.py
         https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
         """
-        return ['google_click_daily_report_default_presto']
-
-    @classmethod
-    def get_table_names(cls, *args, **kwargs):
-        return ['applicant_quality_estimates']
+        return []
 
     @classmethod
     def _create_column_info(cls, name: str, data_type: str) -> dict:
@@ -919,7 +915,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return metadata
 
     @classmethod
-    def get_create_view(cls, database, schema, table):
+    def get_create_view(cls, database, schema: str, table: str) -> str:
         db_engine_spec = database.db_engine_spec
         engine = cls.get_engine(database, schema)
         with closing(engine.raw_connection()) as conn:
