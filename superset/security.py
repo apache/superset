@@ -125,8 +125,6 @@ class SupersetSecurityManager(SecurityManager):
         "all_datasource_access",
     }
 
-<<<<<<< HEAD
-=======
     GAMMA_ONLY_PERMISSIONS = {
         "can_add",
         "can_add_slices",
@@ -136,7 +134,6 @@ class SupersetSecurityManager(SecurityManager):
         "can_show",
     }
 
->>>>>>> d50f21f4... reformatting using black
     OBJECT_SPEC_PERMISSIONS = {
         "database_access",
         "schema_access",
