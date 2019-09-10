@@ -35,11 +35,11 @@ export function isTypedFieldDef<Output extends Value>(
 export function isScaleFieldDef<Output extends Value>(
   channelDef: ChannelDef<Output>,
 ): channelDef is ScaleFieldDef<Output> {
-  return channelDef && 'scale' in channelDef;
+  return isTypedFieldDef(channelDef) && 'scale' in channelDef;
 }
 
 export function isPositionFieldDef<Output extends Value>(
   channelDef: ChannelDef<Output>,
 ): channelDef is PositionFieldDef<Output> {
-  return channelDef && 'axis' in channelDef;
+  return isTypedFieldDef(channelDef) && 'axis' in channelDef;
 }

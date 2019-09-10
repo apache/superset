@@ -1,8 +1,42 @@
 import { CategoricalColorScale } from '@superset-ui/color';
 import { ScaleTime } from 'd3-scale';
-import { D3Scale } from '../types/Scale';
+import {
+  D3Scale,
+  ScaleConfig,
+  LinearScaleConfig,
+  LogScaleConfig,
+  PowScaleConfig,
+  SqrtScaleConfig,
+  SymlogScaleConfig,
+  TimeScaleConfig,
+  UtcScaleConfig,
+} from '../types/Scale';
 import { Value, ScaleType } from '../types/VegaLite';
-import { timeScaleTypesSet } from '../parsers/scale/scaleCategories';
+import { timeScaleTypesSet, continuousScaleTypesSet } from '../parsers/scale/scaleCategories';
+import isPropertySupportedByScaleType from '../parsers/scale/isPropertySupportedByScaleType';
+
+export function isContinuousScaleConfig<Output extends Value = Value>(
+  config: ScaleConfig,
+): config is
+  | LinearScaleConfig<Output>
+  | LogScaleConfig<Output>
+  | PowScaleConfig<Output>
+  | SqrtScaleConfig<Output>
+  | SymlogScaleConfig<Output>
+  | TimeScaleConfig<Output>
+  | UtcScaleConfig<Output> {
+  return continuousScaleTypesSet.has(config.type);
+}
+
+export function isScaleConfigWithZero<Output extends Value = Value>(
+  config: ScaleConfig,
+): config is
+  | LinearScaleConfig<Output>
+  | PowScaleConfig<Output>
+  | SqrtScaleConfig<Output>
+  | SymlogScaleConfig<Output> {
+  return isPropertySupportedByScaleType('zero', config.type);
+}
 
 export function isCategoricalColorScale<Output extends Value = Value>(
   scale: D3Scale<Output> | CategoricalColorScale,

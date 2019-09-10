@@ -8,7 +8,7 @@ export default function applyRound<Output extends Value>(
   config: ScaleConfig<Output>,
   scale: D3Scale<Output>,
 ) {
-  if ('round' in config && typeof config.round !== 'undefined') {
+  if ('round' in config && config.round === true) {
     const roundableScale = scale as
       | ContinuousD3Scale<number>
       | ScalePoint<HasToString>
