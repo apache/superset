@@ -1,11 +1,5 @@
-export default function isDisabled(
-  config:
-    | {
-        [key: string]: any;
-      }
-    | boolean
-    | null
-    | undefined,
-) {
+import { PropertyValue } from '../types/ChannelDef';
+
+export default function isDisabled(config: PropertyValue): config is false | null {
   return config === false || config === null;
 }

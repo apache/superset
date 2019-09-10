@@ -85,7 +85,7 @@ export interface LinearScaleConfig<Output extends Value = Value>
 export interface LogScaleConfig<Output extends Value = Value>
   extends PickFromCombinedScaleConfig<
     Output,
-    'base' | 'clamp' | 'interpolate' | 'nice' | 'padding' | 'round' | 'scheme' | 'zero'
+    'base' | 'clamp' | 'interpolate' | 'nice' | 'padding' | 'round' | 'scheme'
   > {
   type: 'log';
 }
@@ -93,7 +93,7 @@ export interface LogScaleConfig<Output extends Value = Value>
 export interface PowScaleConfig<Output extends Value = Value>
   extends PickFromCombinedScaleConfig<
     Output,
-    'clamp' | 'exponent' | 'interpolate' | 'nice' | 'padding' | 'round' | 'scheme'
+    'clamp' | 'exponent' | 'interpolate' | 'nice' | 'padding' | 'round' | 'scheme' | 'zero'
   > {
   type: 'pow';
 }
