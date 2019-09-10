@@ -450,6 +450,7 @@ def load_test_users_run():
             ("gamma2", "Gamma"),
             ("gamma_sqllab", "gamma_sqllab"),
             ("alpha", "Alpha"),
+            ("rho", "Rho"),
         )
         for username, role in users:
             user = sm.find_user(username)
