@@ -115,7 +115,6 @@ function Sankey(element, props) {
         '<br/>',
         `<span class='emph'>${Number.isFinite(targetPercent) ? targetPercent : '--'}%</span> of `,
         d.target.name,
-        'target',
         '</div>',
       ].join('');
     }
