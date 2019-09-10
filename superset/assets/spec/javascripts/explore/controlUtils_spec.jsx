@@ -80,6 +80,12 @@ describe('controlUtils', () => {
     });
   });
 
+  afterAll(() => {
+    getChartControlPanelRegistry()
+      .remove('test-chart')
+      .remove('test-chart-override');
+  });
+
   describe('getControlConfig', () => {
     it('returns a valid spatial controlConfig', () => {
       const spatialControl = getControlConfig('color_scheme', 'test-chart');

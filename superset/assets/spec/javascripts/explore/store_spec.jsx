@@ -32,6 +32,10 @@ describe('store', () => {
     });
   });
 
+  afterAll(() => {
+    getChartControlPanelRegistry().remove('test-chart');
+  });
+
   describe('applyDefaultFormData', () => {
 
     window.featureFlags = {
