@@ -1,65 +1,60 @@
 /** See https://vega.github.io/vega-lite/docs/axis.html */
 
-import { DateTime } from './VegaLite';
+import { Axis as VegaLiteAxis } from './VegaLite';
 
 /** Axis orientation */
 export type AxisOrient = 'top' | 'bottom' | 'left' | 'right';
 
-/** Strategy for handling label overlap */
-export type LabelOverlapStrategy = 'auto' | 'flat' | 'rotate';
+export type LabelOverlapStrategyFlat = {
+  strategy: 'flat';
+};
 
-export interface CoreAxis {
-  /** Tick label format */
-  format?: string;
-  /** Angle to rotate the tick labels */
+export type LabelOverlapStrategyRotate = {
+  strategy: 'rotate';
   labelAngle: number;
-  /**
-   * Indicates if the first and last axis labels should be aligned flush with the scale range.
-   * Flush alignment for a horizontal axis will left-align the first label and right-align the last label.
-   * For vertical axes, bottom and top text baselines are applied instead.
-   * If this property is a number, it also indicates the number of pixels by which to offset the first and last labels;
-   * for example, a value of 2 will flush-align the first and last labels
-   * and also push them 2 pixels outward from the center of the axis.
-   * The additional adjustment can sometimes help the labels better visually group with corresponding axis ticks. */
-  labelFlush?: boolean | number;
+};
+
+export type LabelOverlapStrategy = LabelOverlapStrategyFlat | LabelOverlapStrategyRotate;
+
+/** Strategy for handling label overlap */
+export type LabelOverlapType = 'auto' | LabelOverlapStrategy['strategy'] | LabelOverlapStrategy;
+
+export interface BaseAxisConfig
+  extends Pick<
+    VegaLiteAxis,
+    | 'format'
+    | 'labelAngle'
+    | 'labelFlush'
+    | 'labelPadding'
+    | 'tickCount'
+    | 'tickSize'
+    | 'ticks'
+    | 'title'
+    | 'titlePadding'
+    | 'values'
+  > {
   /** Strategy for handling label overlap */
-  labelOverlap: LabelOverlapStrategy;
-  /** The padding, in pixels, between axis and text labels. */
-  labelPadding: number;
-  /** Axis orientation */
-  orient: AxisOrient;
-  /** Estimated number of desired ticks */
-  tickCount: number;
-  /** Tick length */
-  tickSize?: number;
-  /** Axis title */
-  title?: string | boolean;
-  /** Explicitly set the visible axis tick values. */
-  values?: string[] | number[] | boolean[] | DateTime[];
+  labelOverlap?: LabelOverlapType;
+  orient?: AxisOrient;
 }
 
-export type Axis = Partial<CoreAxis>;
-
-export interface XAxis extends Axis {
+export interface XAxisConfig extends BaseAxisConfig {
   orient?: 'top' | 'bottom';
-  labelAngle?: number;
-  labelOverlap?: LabelOverlapStrategy;
 }
+
+export interface YAxisConfig extends BaseAxisConfig {
+  orient?: 'left' | 'right';
+  labelOverlap?: Exclude<LabelOverlapType, 'rotate' | LabelOverlapStrategyRotate>;
+}
+
+export type AxisConfig = XAxisConfig | YAxisConfig;
 
 export interface WithXAxis {
-  axis?: XAxis | boolean;
-}
-
-export interface YAxis extends Axis {
-  orient?: 'left' | 'right';
-  labelAngle?: 0;
-  labelOverlap?: 'auto' | 'flat';
+  axis?: Partial<XAxisConfig> | boolean;
 }
 
 export interface WithYAxis {
-  axis?: YAxis;
+  axis?: Partial<YAxisConfig> | boolean;
 }
 
-export interface WithAxis {
-  axis?: XAxis | YAxis;
-}
+export type WithAxis = WithXAxis | WithYAxis;

@@ -1,5 +1,5 @@
-import { Type, ScaleType } from '../../types/VegaLite';
-import { ChannelType } from '../../types/Channel';
+import { Type, ScaleType } from '../types/VegaLite';
+import { ChannelType } from '../types/Channel';
 
 /**
  * Sometimes scale type is not specified but can be inferred
@@ -7,13 +7,13 @@ import { ChannelType } from '../../types/Channel';
  * See https://vega.github.io/vega-lite/docs/scale.html
  * @param channelType type of the channel
  * @param fieldType type of the field
- * @param isBinned is value binned
+ * @param bin is value binned
  */
 // eslint-disable-next-line complexity
 export default function inferScaleType(
   channelType: ChannelType,
   fieldType?: Type,
-  isBinned: boolean = false,
+  bin: boolean = false,
 ): ScaleType | undefined {
   if (fieldType === 'nominal' || fieldType === 'ordinal') {
     switch (channelType) {
@@ -42,7 +42,7 @@ export default function inferScaleType(
       case 'Numeric':
         return ScaleType.LINEAR;
       case 'Color':
-        return isBinned ? ScaleType.BIN_ORDINAL : ScaleType.LINEAR;
+        return bin ? ScaleType.BIN_ORDINAL : ScaleType.LINEAR;
       default:
     }
   } else if (fieldType === 'temporal') {

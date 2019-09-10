@@ -1,9 +1,31 @@
 import { CategoricalColorScale } from '@superset-ui/color';
 import { scaleLinear, scaleOrdinal, scaleTime, scaleLog } from 'd3-scale';
-import { isD3Scale, isCategoricalColorScale, isTimeScale } from '../../src/typeGuards/Scale';
+import {
+  isD3Scale,
+  isCategoricalColorScale,
+  isTimeScale,
+  isContinuousScaleConfig,
+  isScaleConfigWithZero,
+} from '../../src/typeGuards/Scale';
 import { HasToString } from '../../src/types/Base';
 
 describe('type guards', () => {
+  describe('isContinuousScaleConfig(scaleConfig)', () => {
+    it('returns true if continuous', () => {
+      expect(isContinuousScaleConfig({ type: 'linear' })).toBeTruthy();
+    });
+    it('returns false otherwise', () => {
+      expect(isContinuousScaleConfig({ type: 'point' })).toBeFalsy();
+    });
+  });
+  describe('isScaleConfigWithZero(scaleConfig)', () => {
+    it('returns true if support zero', () => {
+      expect(isScaleConfigWithZero({ type: 'linear' })).toBeTruthy();
+    });
+    it('returns false otherwise', () => {
+      expect(isScaleConfigWithZero({ type: 'log' })).toBeFalsy();
+    });
+  });
   describe('isD3Scale(scale)', () => {
     it('returns true if it is one of D3 scales', () => {
       expect(isD3Scale(scaleLinear())).toBeTruthy();
