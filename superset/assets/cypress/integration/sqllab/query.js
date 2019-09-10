@@ -34,7 +34,9 @@ export default () => {
       // are fetched below (because React _Virtualized_ does not render all rows)
       const rowLimit = 3;
 
-      cy.get('#brace-editor textarea').type(
+      cy.get('#brace-editor textarea')
+        .clear()
+        .type(
         `{selectall}{backspace}SELECT ds, gender, name, num FROM main.birth_names LIMIT ${rowLimit}`,
         { force: true },
       );
