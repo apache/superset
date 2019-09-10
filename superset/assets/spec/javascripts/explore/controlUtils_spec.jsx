@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import { t } from '@superset-ui/translation';
 import {
   getControlConfig,
   getControlState,
   applyMapStateToPropsToControl,
 } from '../../../src/explore/controlUtils';
-import { getChartControlPanelRegistry } from '@superset-ui/chart';
 
 describe('controlUtils', () => {
   const state = {
@@ -77,8 +77,8 @@ describe('controlUtils', () => {
           label: t('My beautiful colors'),
         },
       },
-    })
-  })
+    });
+  });
 
   describe('getControlConfig', () => {
     it('returns a valid spatial controlConfig', () => {
