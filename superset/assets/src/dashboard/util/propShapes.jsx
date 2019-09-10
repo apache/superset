@@ -72,9 +72,10 @@ export const filterIndicatorPropShape = PropTypes.shape({
   componentId: PropTypes.string.isRequired,
   directPathToFilter: PropTypes.arrayOf(PropTypes.string).isRequired,
   isDateFilter: PropTypes.bool.isRequired,
+  isFilterFieldActive: PropTypes.bool.isRequired,
   isInstantFilter: PropTypes.bool.isRequired,
-  name: PropTypes.string.isRequired,
   label: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
   scope: PropTypes.string.isRequired,
   values: PropTypes.array.isRequired,
 });

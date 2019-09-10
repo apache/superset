@@ -64,6 +64,7 @@ ul.select2-results div.filter_box{
 }
 .filter-container .filter-badge-container {
     width: 30px;
+    padding-right: 10px;
 }
 .filter-container .filter-badge-container + div {
     width: 100%;

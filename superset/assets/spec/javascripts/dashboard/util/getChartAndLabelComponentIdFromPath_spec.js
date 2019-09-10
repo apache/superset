@@ -16,19 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.filter-badge {
-    width: 20px;
-    height: 20px;
-    background-color: #bababa;
-    border-radius: 2px;
-    z-index: 10;
-}
-.filter-badge:hover {
-    cursor: pointer;
-    background-color: #9e9e9e;
-}
+import getChartAndLabelComponentIdFromPath from '../../../../src/dashboard/util/getChartAndLabelComponentIdFromPath';
 
-.color-bar.badge-group,
-.filter-badge.badge-group {
-    background-color: rgb(72, 72, 72);
-}
+describe('getChartAndLabelComponentIdFromPath', () => {
+  it('should return label and component id', () => {
+    const directPathToChild = [
+      'ROOT_ID',
+      'TABS-aX1uNK-ryo',
+      'TAB-ZRgxfD2ktj',
+      'ROW-46632bc2',
+      'COLUMN-XjlxaS-flc',
+      'CHART-x-RMdAtlDb',
+      'LABEL-region',
+    ];
+
+    expect(getChartAndLabelComponentIdFromPath(directPathToChild)).toEqual({
+      label: 'LABEL-region',
+      chart: 'CHART-x-RMdAtlDb',
+    });
+  });
+});
