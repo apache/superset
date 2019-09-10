@@ -16,19 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.filter-badge {
-    width: 20px;
-    height: 20px;
-    background-color: #bababa;
-    border-radius: 2px;
-    z-index: 10;
-}
-.filter-badge:hover {
-    cursor: pointer;
-    background-color: #9e9e9e;
-}
+import { IN_COMPONENT_ELEMENT_TYPES } from './constants';
 
-.color-bar.badge-group,
-.filter-badge.badge-group {
-    background-color: rgb(72, 72, 72);
+export default function getChartAndLabelComponentIdFromPath(directPathToChild) {
+  const result = {};
+
+  if (directPathToChild.length > 0) {
+    const currentPath = directPathToChild.slice();
+
+    while (currentPath.length) {
+      const componentId = currentPath.pop();
+      const componentType = componentId.split('-')[0];
+
+      result[componentType.toLowerCase()] = componentId;
+      if (!IN_COMPONENT_ELEMENT_TYPES.includes(componentType)) {
+        break;
+      }
+    }
+  }
+
+  return result;
 }

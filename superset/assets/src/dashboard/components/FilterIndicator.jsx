@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
+import { isEmpty } from 'lodash';
 
 import { filterIndicatorPropShape } from '../util/propShapes';
 import FilterBadgeIcon from '../../components/FilterBadgeIcon';
@@ -43,7 +44,12 @@ class FilterIndicator extends React.PureComponent {
   }
 
   render() {
-    const { colorCode, label, values } = this.props.indicator;
+    const {
+      colorCode,
+      label,
+      values,
+      isFilterFieldActive,
+    } = this.props.indicator;
 
     const filterTooltip = (
       <FilterIndicatorTooltip
@@ -56,12 +62,12 @@ class FilterIndicator extends React.PureComponent {
     return (
       <FilterTooltipWrapper tooltip={filterTooltip}>
         <div
-          className="filter-indicator"
+          className={`filter-indicator ${isFilterFieldActive ? 'active' : ''}`}
           onClick={this.focusToFilterComponent}
           role="none"
         >
           <div className={`color-bar ${colorCode}`} />
-          <FilterBadgeIcon />
+          <FilterBadgeIcon colorCode={isEmpty(values) ? '' : colorCode} />
         </div>
       </FilterTooltipWrapper>
     );

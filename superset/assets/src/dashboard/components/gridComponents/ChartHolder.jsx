@@ -26,6 +26,7 @@ import DeleteComponentButton from '../DeleteComponentButton';
 import DragDroppable from '../dnd/DragDroppable';
 import HoverMenu from '../menu/HoverMenu';
 import ResizableContainer from '../resizable/ResizableContainer';
+import getChartAndLabelComponentIdFromPath from '../../util/getChartAndLabelComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
 import { ROW_TYPE, COLUMN_TYPE } from '../../util/componentTypes';
 
@@ -34,7 +35,6 @@ import {
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
   GRID_GUTTER_SIZE,
-  IN_COMPONENT_ELEMENT_TYPES,
 } from '../../util/constants';
 
 const CHART_MARGIN = 32;
@@ -48,6 +48,7 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  directPathLastUpdated: PropTypes.number,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -64,23 +65,48 @@ const propTypes = {
 
 const defaultProps = {
   directPathToChild: [],
+  directPathLastUpdated: 0,
 };
 
 class ChartHolder extends React.Component {
-  static renderInFocusCSS(labelName) {
+  static renderInFocusCSS(columnName) {
     return (
       <style>
-        {`.inFocus label[for=${labelName}] + .Select .Select-control {
-                    border: 2px solid #00736a;
+        {`label[for=${columnName}] + .Select .Select-control {
+                    border-color: #00736a;
+                    transition: border-color 1s ease-in-out;
            }`}
       </style>
     );
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    const { component, directPathToChild, directPathLastUpdated } = props;
+    const {
+      label: columnName,
+      chart: chartComponentId,
+    } = getChartAndLabelComponentIdFromPath(directPathToChild);
+
+    if (
+      directPathLastUpdated !== state.directPathLastUpdated &&
+      component.id === chartComponentId
+    ) {
+      return {
+        outlinedComponentId: component.id,
+        outlinedColumnName: columnName,
+        directPathLastUpdated,
+      };
+    }
+    return null;
   }
 
   constructor(props) {
     super(props);
     this.state = {
       isFocused: false,
+      outlinedComponentId: null,
+      outlinedColumnName: null,
+      directPathLastUpdated: 0,
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
@@ -88,25 +114,27 @@ class ChartHolder extends React.Component {
     this.handleUpdateSliceName = this.handleUpdateSliceName.bind(this);
   }
 
-  getChartAndLabelComponentIdFromPath() {
-    const { directPathToChild = [] } = this.props;
-    const result = {};
+  componentDidMount() {
+    this.hideOutline({}, this.state);
+  }
 
-    if (directPathToChild.length > 0) {
-      const currentPath = directPathToChild.slice();
+  componentDidUpdate(prevProps, prevState) {
+    this.hideOutline(prevState, this.state);
+  }
 
-      while (currentPath.length) {
-        const componentId = currentPath.pop();
-        const componentType = componentId.split('-')[0];
+  hideOutline(prevState, state) {
+    const { outlinedComponentId: timerKey } = state;
+    const { outlinedComponentId: prevTimerKey } = prevState;
 
-        result[componentType.toLowerCase()] = componentId;
-        if (!IN_COMPONENT_ELEMENT_TYPES.includes(componentType)) {
-          break;
-        }
-      }
+    // because of timeout, there might be multiple charts showing outline
+    if (!!timerKey && !prevTimerKey) {
+      setTimeout(() => {
+        this.setState(() => ({
+          outlinedComponentId: null,
+          outlinedColumnName: null,
+        }));
+      }, 2000);
     }
-
-    return result;
   }
 
   handleChangeFocus(nextFocus) {
@@ -155,12 +183,6 @@ class ChartHolder extends React.Component {
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
         : component.meta.width || GRID_MIN_COLUMN_COUNT;
 
-    const {
-      label: labelName,
-      chart: chartComponentId,
-    } = this.getChartAndLabelComponentIdFromPath();
-    const inFocus = chartComponentId === component.id;
-
     return (
       <DragDroppable
         component={component}
@@ -192,13 +214,17 @@ class ChartHolder extends React.Component {
             <div
               ref={dragSourceRef}
               className={`dashboard-component dashboard-component-chart-holder ${
-                inFocus ? 'inFocus' : ''
+                this.state.outlinedComponentId ? 'fade-in' : 'fade-out'
               }`}
             >
               {!editMode && (
-                <AnchorLink anchorLinkId={component.id} inFocus={inFocus} />
+                <AnchorLink
+                  anchorLinkId={component.id}
+                  inFocus={!!this.state.outlinedComponentId}
+                />
               )}
-              {inFocus && ChartHolder.renderInFocusCSS(labelName)}
+              {!!this.state.outlinedComponentId &&
+                ChartHolder.renderInFocusCSS(this.state.outlinedColumnName)}
               <Chart
                 componentId={component.id}
                 id={component.meta.chartId}

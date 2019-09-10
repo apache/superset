@@ -43,10 +43,16 @@
     line-height: 22px;
     margin-right: 22px;
     text-align: left;
+    display: flex;
+    flex-flow: row wrap;
+    align-items: stretch;
 
     label {
       font-weight: 700;
       white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      margin-right: 4px;
     }
   }
 
