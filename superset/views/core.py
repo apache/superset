@@ -46,6 +46,7 @@ import pandas as pd
 import pyarrow as pa
 import simplejson as json
 from sqlalchemy import and_, or_, select
+from sqlalchemy.orm.session import Session
 from sqlalchemy.exc import DatabaseError
 from werkzeug.routing import BaseConverter
 
@@ -2557,7 +2558,7 @@ class Superset(BaseSupersetView):
             )
             return json_error_response(f"{msg}")
 
-    def _sql_json_async(self, session, rendered_query, query: Query) -> str:
+    def _sql_json_async(self, session: Session, rendered_query: str, query: Query) -> str:
         """
             Send SQL JSON query to celery workers
 
@@ -2599,7 +2600,7 @@ class Superset(BaseSupersetView):
         session.commit()
         return resp
 
-    def _sql_json_sync(self, session, rendered_query, query: Query) -> str:
+    def _sql_json_sync(self, session: Session, rendered_query: str, query: Query) -> str:
         """
             Execute SQL query (sql json)
 
@@ -2638,7 +2639,6 @@ class Superset(BaseSupersetView):
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
         # Collect Values
-        query_id: Optional[int] = None
         database_id: int = int(request.form.get("database_id"))
         schema: str = request.form.get("schema") or None  # ?
         sql: str = request.form.get("sql")
