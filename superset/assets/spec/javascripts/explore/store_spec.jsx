@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { applyDefaultFormData } from '../../../src/explore/store';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { applyDefaultFormData } from '../../../src/explore/store';
 
 describe('store', () => {
-  beforeAll(() =>{
+  beforeAll(() => {
     getChartControlPanelRegistry().registerValue('test-chart', {
       controlPanelSections: [
         {
           label: 'Test section',
           expanded: true,
-          controlSetRows: [['row_limit']]
-        }
-      ]
-    })
+          controlSetRows: [['row_limit']],
+        },
+      ],
+    });
   });
 
   describe('applyDefaultFormData', () => {
