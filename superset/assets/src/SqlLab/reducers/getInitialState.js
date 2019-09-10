@@ -20,6 +20,14 @@ import { t } from '@superset-ui/translation';
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 
 export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
+  /*
+   * Before YYYY-MM-DD, the state for SQL Lab was stored exclusively in the
+   * browser's localStorage. The feature flag `SQLLAB_BACKEND_PERSISTENCE`
+   * moves the state to the backend instead, migrating it from local storage.
+   *
+   * To allow for a transparent migration, the initial state is a combination
+   * of the backend state (if any) with the browser state (if any).
+   */
   const queryEditors = [];
   const defaultQueryEditor = {
     id: null,
@@ -44,6 +52,9 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     },
   };
 
+  /* Load state from the backend. This will be empty if the feature flag
+   * `SQLLAB_BACKEND_PERSISTENCE` is off.
+   */
   restBootstrapData.tab_state_ids.forEach(({ id, label }) => {
     let queryEditor;
     if (restBootstrapData.active_tab && restBootstrapData.active_tab.id === id) {
@@ -114,10 +125,9 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
 
   const { databases, queries } = restBootstrapData;
 
-  /* Before YYYY-MM-DD the state of SQL Lab was stored in the browser's local
-   * storage. This section migrates the data from the client to the backend,
-   * allowing users to transition transparently to the new system where state
-   * is stored on the server.
+  /* If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user
+   * hasn't used SQL Lab after it has been turned on, the state will be stored
+   * in the browser's local storage.
    */
   if (localStorage.getItem('redux') && JSON.parse(localStorage.getItem('redux')).sqlLab) {
     const sqlLab = JSON.parse(localStorage.getItem('redux')).sqlLab;
@@ -127,7 +137,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       localStorage.removeItem('redux');
     } else {
       // add query editors and tables to state with a special flag so they can
-      // be migrated
+      // be migrated if the `SQLLAB_BACKEND_PERSISTENCE` feature flag is on
       sqlLab.queryEditors.forEach(qe => queryEditors.push({
         ...qe,
         inLocalStorage: true,

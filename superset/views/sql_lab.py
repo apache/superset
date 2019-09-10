@@ -218,6 +218,9 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("/<int:tab_state_id>", methods=["DELETE"])
     def delete(self, tab_state_id):
+        if self._get_owner_id(tab_state_id) != int(g.user.get_id()):
+            return Response(status=403)
+
         db.session.query(TabState).filter(TabState.id == tab_state_id).delete(
             synchronize_session=False
         )
@@ -227,6 +230,9 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("/<int:tab_state_id>", methods=["GET"])
     def get(self, tab_state_id):
+        if self._get_owner_id(tab_state_id) != int(g.user.get_id()):
+            return Response(status=403)
+
         tab_state = db.session.query(TabState).filter_by(id=tab_state_id).first()
         return json_success(
             json.dumps(tab_state.to_dict(), default=utils.json_iso_dttm_ser)
@@ -235,6 +241,9 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("<int:tab_state_id>/activate", methods=["POST"])
     def activate(self, tab_state_id):
+        if self._get_owner_id(tab_state_id) != int(g.user.get_id()):
+            return Response(status=403)
+
         (
             db.session.query(TabState)
             .filter_by(user_id=g.user.get_id())

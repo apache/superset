@@ -46,7 +46,7 @@ def upgrade():
         sa.Column("schema", sa.String(length=256), nullable=True),
         sa.Column("query_id", sa.Integer(), nullable=True),
         sa.Column("query_limit", sa.Integer(), nullable=True),
-        sa.Column("autorun", sa.Boolean(), nullable=True),
+        sa.Column("autorun", sa.Boolean(), nullable=False, default=False),
         sa.Column("template_params", sa.Text(), nullable=True),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
