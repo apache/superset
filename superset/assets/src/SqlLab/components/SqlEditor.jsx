@@ -404,6 +404,7 @@ class SqlEditor extends React.PureComponent {
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
+    console.log(this.props.database);
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div>
@@ -423,7 +424,6 @@ class SqlEditor extends React.PureComponent {
               isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
               this.props.database &&
               this.props.database.allows_cost_estimate &&
-              this.props.database.cost_estimate_enabled &&
               <span className="m-r-5">
                 <EstimateQueryCostButton
                   dbId={qe.dbId}

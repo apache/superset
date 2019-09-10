@@ -144,11 +144,14 @@ class BaseEngineSpec:
     allows_joins = True
     allows_subqueries = True
     allows_column_aliases = True
-    allows_cost_estimate = False
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
     try_remove_schema_from_table_name = True
+
+    @classmethod
+    def get_allow_cost_estimate(cls, version=None):
+        return False
 
     @classmethod
     def get_timestamp_expr(
@@ -646,12 +649,33 @@ class BaseEngineSpec:
         return sql
 
     @classmethod
-    def estimate_statement_cost(cls, statement, database, cursor, user_name):
+    def estimate_statement_cost(
+        cls, statement: str, database, cursor, user_name: str
+    ) -> Dict[str, str]:
+        """
+        Generate a SQL query that estimates the cost of a given statement.
+
+        :param statement: A single SQL statement
+        :param database: Database instance
+        :param cursor: Cursor instance
+        :param username: Effective username
+        """
         raise NotImplementedError("Subclasses should implement estimate_query_cost")
 
     @classmethod
-    def estimate_query_cost(cls, database, schema, sql, source=None):
-        if not cls.allows_cost_estimate:
+    def estimate_query_cost(
+        cls, database, schema: str, sql: str, source: str = None
+    ) -> List[Dict[str, str]]:
+        """
+        Estimate the cost of a multiple statement SQL query.
+
+        :param database: Database instance
+        :param schema: Database schema
+        :param sql: SQL query with possibly multiple statements
+        :param source: Source of the query (eg, "sql_lab")
+        """
+        database_version = database.get_extra().get('version')
+        if not cls.get_allow_cost_estimate(database_version):
             raise Exception("Database does not support cost estimation")
 
         user_name = g.user.username if g.user else None

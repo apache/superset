@@ -45,7 +45,6 @@ config = app.config
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = "presto"
-    allows_cost_estimate = True
 
     time_grain_functions = {
         None: "{col}",
@@ -62,6 +61,10 @@ class PrestoEngineSpec(BaseEngineSpec):
         "1969-12-28T00:00:00Z/P1W": "date_add('day', -1, date_trunc('week', "
         "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
     }
+
+    @classmethod
+    def get_allow_cost_estimate(cls, version=None):
+        return version and StrictVersion(version) >= StrictVersion("0.319")
 
     @classmethod
     def get_view_names(cls, inspector: Inspector, schema: Optional[str]) -> List[str]:
@@ -378,7 +381,17 @@ class PrestoEngineSpec(BaseEngineSpec):
         )
 
     @classmethod
-    def estimate_statement_cost(cls, statement, database, cursor, user_name):
+    def estimate_statement_cost(
+        cls, statement: str, database, cursor, user_name: str
+    ) -> Dict[str, str]:
+        """
+        Generate a SQL query that estimates the cost of a given statement.
+
+        :param statement: A single SQL statement
+        :param database: Database instance
+        :param cursor: Cursor instance
+        :param username: Effective username
+        """
         db_engine_spec = database.db_engine_spec
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
@@ -394,8 +407,21 @@ class PrestoEngineSpec(BaseEngineSpec):
         while polled:
             time.sleep(0.2)
             polled = cursor.poll()
-        data = db_engine_spec.fetch_data(cursor, 1)
 
+        # the output from Presto is a single column and a single row containing
+        # JSON:
+        #
+        #   {
+        #     ...
+        #     "estimate" : {
+        #       "outputRowCount" : 8.73265878E8,
+        #       "outputSizeInBytes" : 3.41425774958E11,
+        #       "cpuCost" : 3.41425774958E11,
+        #       "maxMemory" : 0.0,
+        #       "networkCost" : 3.41425774958E11
+        #     }
+        #   }
+        data = db_engine_spec.fetch_data(cursor, 1)
         first = data[0][0]
         result = json.loads(first)
         estimate = result["estimate"]
@@ -404,11 +430,12 @@ class PrestoEngineSpec(BaseEngineSpec):
             if value == "NaN":
                 return value
 
+            prefixes = ["K", "M", "G", "T", "P", "E", "Z", "Y"]
             prefix = ""
-            symbols = ["K", "M", "G", "T", "P", "E", "Z", "Y"]
-            while value > 1000 and symbols:
-                prefix = symbols.pop(0)
-                value //= 1000
+            to_next_prefix = 1000
+            while value > to_next_prefix and prefixes:
+                prefix = prefixes.pop(0)
+                value //= to_next_prefix
 
             return f"{value} {prefix}{suffix}"
 

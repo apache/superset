@@ -2401,15 +2401,13 @@ class Superset(BaseSupersetView):
     @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])
     @event_logger.log_this
     def estimate_query_cost(self, database_id, schema=None):
+        mydb = db.session.query(models.Database).filter_by(id=database_id).first()
+
         sql = json.loads(request.form.get("sql"))
         template_params = json.loads(request.form.get("templateParams") or "{}")
-
-        if len(template_params) > 0:
-            return json_error_response(
-                "Query cost estimation does not support template parameters", status=400
-            )
-
-        mydb = db.session.query(models.Database).filter_by(id=database_id).first()
+        if template_params:
+            template_processor = get_template_processor(mydb)
+            sql = template_processor.process_template(sql, **template_params)
 
         timeout = SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT
         timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."

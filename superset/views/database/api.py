@@ -44,7 +44,6 @@ class DatabaseRestApi(DatabaseMixin, ModelRestApi):
         "allow_ctas",
         "force_ctas_schema",
         "allow_run_async",
-        "cost_estimate_enabled",
         "allow_dml",
         "allow_multi_schema_metadata_fetch",
         "allow_csv_upload",

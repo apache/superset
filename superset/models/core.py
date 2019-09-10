@@ -730,7 +730,6 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
-    cost_estimate_enabled = Column(Boolean, default=False)
     allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
@@ -757,7 +756,6 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         "cache_timeout",
         "expose_in_sqllab",
         "allow_run_async",
-        "cost_estimate_enabled",
         "allow_ctas",
         "allow_csv_upload",
         "extra",
@@ -777,7 +775,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def allows_cost_estimate(self):
-        return self.db_engine_spec.allows_cost_estimate
+        extra = self.get_extra()
+        database_version = extra.get('version')
+        cost_estimate_enabled = extra.get('cost_estimate_enabled')
+        return self.db_engine_spec.get_allow_cost_estimate(database_version) and cost_estimate_enabled
 
     @property
     def data(self):
