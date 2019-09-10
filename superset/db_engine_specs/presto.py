@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 from collections import OrderedDict
+from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
 import logging
@@ -89,7 +90,11 @@ class PrestoEngineSpec(BaseEngineSpec):
         and get_view_names() is not implemented in sqlalchemy_presto.py
         https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
         """
-        return []
+        return [] #'google_click_daily_report_default_presto']
+
+    @classmethod
+    def _get_table_names(cls, *args, **kwargs):
+        return ['applicant_quality_estimates']
 
     @classmethod
     def _create_column_info(cls, name: str, data_type: str) -> dict:
@@ -890,25 +895,46 @@ class PrestoEngineSpec(BaseEngineSpec):
     def extra_table_metadata(
         cls, database, table_name: str, schema_name: str
     ) -> Dict[str, Any]:
+        metadata = {}
+
         indexes = database.get_indexes(table_name, schema_name)
-        if not indexes:
-            return {}
-        cols = indexes[0].get("column_names", [])
-        full_table_name = table_name
-        if schema_name and "." not in table_name:
-            full_table_name = "{}.{}".format(schema_name, table_name)
-        pql = cls._partition_query(full_table_name, database)
-        col_names, latest_parts = cls.latest_partition(
-            table_name, schema_name, database, show_first=True
-        )
-        latest_parts = latest_parts or tuple([None] * len(col_names))
-        return {
-            "partitions": {
+        if indexes:
+            cols = indexes[0].get("column_names", [])
+            full_table_name = table_name
+            if schema_name and "." not in table_name:
+                full_table_name = "{}.{}".format(schema_name, table_name)
+            pql = cls._partition_query(full_table_name, database)
+            col_names, latest_parts = cls.latest_partition(
+                table_name, schema_name, database, show_first=True
+            )
+            latest_parts = latest_parts or tuple([None] * len(col_names))
+            metadata["partitions"] = {
                 "cols": cols,
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": pql,
             }
-        }
+
+        metadata["view"] = cls.get_create_view(database, schema_name, table_name)
+
+        return metadata
+
+    @classmethod
+    def get_create_view(cls, database, schema, table):
+        db_engine_spec = database.db_engine_spec
+        engine = cls.get_engine(database, schema)
+        with closing(engine.raw_connection()) as conn:
+            with closing(conn.cursor()) as cursor:
+                sql = f"SHOW CREATE VIEW {schema}.{table}"
+                db_engine_spec.execute(cursor, sql)
+                try:
+                    polled = cursor.poll()
+                except Exception:  # not a VIEW
+                    return False 
+                while polled:
+                    time.sleep(0.2)
+                    polled = cursor.poll()
+                rows = db_engine_spec.fetch_data(cursor, 1)
+        return rows[0][0]
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):

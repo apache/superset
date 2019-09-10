@@ -131,6 +131,13 @@ class BaseEngineSpec:
         return False
 
     @classmethod
+    def get_engine(cls, database, schema=None, source=None):
+        user_name = g.user.username if g.user else None
+        return database.get_sqla_engine(
+            schema=schema, nullpool=True, user_name=user_name, source=source
+        )
+
+    @classmethod
     def get_timestamp_expr(
         cls, col: ColumnClause, pdf: Optional[str], time_grain: Optional[str]
     ) -> TimestampExpression:

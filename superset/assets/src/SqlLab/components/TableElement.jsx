@@ -25,6 +25,7 @@ import { t } from '@superset-ui/translation';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from './Link';
 import ColumnElement from './ColumnElement';
+import ShowCreateView from './ShowCreateView';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
 
@@ -172,6 +173,7 @@ class TableElement extends React.PureComponent {
             tooltipText={t('Copy SELECT statement to the clipboard')}
           />
         }
+        {table.view && <ShowCreateView sql={table.view} />}
         <Link
           className="fa fa-times table-remove pull-left m-l-2"
           onClick={this.removeTable}

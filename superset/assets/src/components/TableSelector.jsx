@@ -203,6 +203,19 @@ export default class TableSelector extends React.PureComponent {
         {db.database_name}
       </span>);
   }
+  renderTableOption({ style, option, selectValue }) {
+    console.log(style);
+    return (
+      <div style={style} key={`table-option-${option.value}`}>
+        <a
+          onClick={() => selectValue(option)}
+        >
+          &nbsp;
+          {option.value}
+        </a>
+      </div>
+    );
+  }
   renderSelectRow(select, refreshBtn) {
     return (
       <div className="section">
@@ -276,10 +289,11 @@ export default class TableSelector extends React.PureComponent {
         isLoading={this.state.tableLoading}
         ignoreAccents={false}
         placeholder={t('Select table or type table name')}
-        autosize={false}
+        autosize={true}
         onChange={this.changeTable}
         options={options}
         value={this.state.tableName}
+        optionRenderer={this.renderTableOption}
       />) : (
         <Select
           async

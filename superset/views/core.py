@@ -1556,6 +1556,7 @@ class Superset(BaseSupersetView):
                 "schema": tn.schema,
                 "label": get_datasource_label(tn),
                 "title": get_datasource_label(tn),
+                "type": "table",
             }
             for tn in tables[:max_tables]
         ]
@@ -1566,6 +1567,7 @@ class Superset(BaseSupersetView):
                     "schema": vn.schema,
                     "label": f"[view] {get_datasource_label(vn)}",
                     "title": f"[view] {get_datasource_label(vn)}",
+                    "type": "view",
                 }
                 for vn in views[:max_views]
             ]
