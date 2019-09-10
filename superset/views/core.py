@@ -715,68 +715,6 @@ class R(BaseSupersetView):
 appbuilder.add_view_no_menu(R)
 
 
-class SQLJsonParams:
-    def __init__(self):
-        self.query_id: Optional[int] = None
-        self.database_id: int = int(request.form.get("database_id"))
-        self.schema: str = request.form.get("schema") or None  # ?
-        self.sql: str = request.form.get("sql")
-        try:
-            self.template_params: dict = json.loads(
-                request.form.get("templateParams", "{}")
-            )
-        except json.decoder.JSONDecodeError:
-            logging.warning(
-                f"Invalid template parameter {request.form.get('templateParams')}"
-                " specified. Defaulting to empty dict"
-            )
-            self.template_params = {}
-        self.limit = int(request.form.get("queryLimit", app.config.get("SQL_MAX_ROW")))
-        self.async_flag: bool = request.form.get("runAsync") == "true"
-        if self.limit < 0:
-            logging.warning(
-                f"Invalid limit of {self.limit} specified. Defaulting to max limit."
-            )
-            self.limit = 0
-        self.select_as_cta: bool = request.form.get("select_as_cta") == "true"
-        self.tmp_table_name: str = request.form.get("tmp_table_name")
-        self.client_id: str = request.form.get("client_id") or utils.shortid()[:10]
-        self.sql_editor_id: str = request.form.get("sql_editor_id")
-        self.tab_name: str = request.form.get("tab")
-        self.status: bool = QueryStatus.PENDING if self.async_flag else QueryStatus.RUNNING
-
-    def create_query(self):
-        return Query(
-            database_id=self.database_id,
-            sql=self.sql,
-            schema=self.schema,
-            select_as_cta=self.select_as_cta,
-            start_time=now_as_float(),
-            tab_name=self.tab_name,
-            status=self.status,
-            sql_editor_id=self.sql_editor_id,
-            tmp_table_name=self.tmp_table_name,
-            user_id=g.user.get_id() if g.user else None,
-            client_id=self.client_id,
-        )
-
-    def save_query(self, session):
-        query = self.create_query()
-        # New error catch
-        try:
-            session.add(query)
-            session.flush()
-            self.query_id = query.id
-            session.commit()  # shouldn't be necessary
-        except Exception as e:
-            logging.error(f"Errors saving query details {e}")
-            session.rollback()
-            raise Exception(_("Query record was not created as expected."))
-        if not self.query_id:
-            raise Exception(_("Query record was not created as expected."))
-        return query
-
-
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
 
@@ -2700,20 +2638,41 @@ class Superset(BaseSupersetView):
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
         # Collect Values
-        params = SQLJsonParams()
+        query_id: Optional[int] = None
+        database_id: int = int(request.form.get("database_id"))
+        schema: str = request.form.get("schema") or None  # ?
+        sql: str = request.form.get("sql")
+        try:
+            template_params: dict = json.loads(request.form.get("templateParams", "{}"))
+        except json.decoder.JSONDecodeError:
+            logging.warning(
+                f"Invalid template parameter {request.form.get('templateParams')}"
+                " specified. Defaulting to empty dict"
+            )
+            template_params = {}
+        limit = int(request.form.get("queryLimit", app.config.get("SQL_MAX_ROW")))
+        async_flag: bool = request.form.get("runAsync") == "true"
+        if limit < 0:
+            logging.warning(
+                f"Invalid limit of {limit} specified. Defaulting to max limit."
+            )
+            limit = 0
+        select_as_cta: bool = request.form.get("select_as_cta") == "true"
+        tmp_table_name: str = request.form.get("tmp_table_name")
+        client_id: str = request.form.get("client_id") or utils.shortid()[:10]
+        sql_editor_id: str = request.form.get("sql_editor_id")
+        tab_name: str = request.form.get("tab")
+        status: bool = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
+
         session = db.session()
 
         # Get and Validate database
-        mydb = session.query(models.Database).filter_by(id=params.database_id).first()
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
         if not mydb:
-            json_error_response(
-                "Database with id {} is missing.".format(params.database_id)
-            )
+            json_error_response("Database with id {} is missing.".format(database_id))
 
         # Check if it's a rejected datasource
-        rejected_tables = security_manager.rejected_tables(
-            params.sql, mydb, params.schema
-        )
+        rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
         if rejected_tables:
             return json_error_response(
                 security_manager.get_table_access_error_msg(rejected_tables),
@@ -2724,12 +2683,36 @@ class Superset(BaseSupersetView):
         session.commit()
 
         # Set tmp_table_name for CTA
-        if params.select_as_cta and mydb.force_ctas_schema:
-            params.tmp_table_name = f"{mydb.force_ctas_schema}.{params.tmp_table_name}"
+        if select_as_cta and mydb.force_ctas_schema:
+            tmp_table_name = f"{mydb.force_ctas_schema}.{tmp_table_name}"
 
         # Save current query
-        query = params.save_query(session)
-        logging.info("Triggering query_id: {}".format(params.query_id))
+        query = Query(
+            database_id=database_id,
+            sql=sql,
+            schema=schema,
+            select_as_cta=select_as_cta,
+            start_time=now_as_float(),
+            tab_name=tab_name,
+            status=status,
+            sql_editor_id=sql_editor_id,
+            tmp_table_name=tmp_table_name,
+            user_id=g.user.get_id() if g.user else None,
+            client_id=client_id,
+        )
+        try:
+            session.add(query)
+            session.flush()
+            query_id = query.id
+            session.commit()  # shouldn't be necessary
+        except Exception as e:
+            logging.error(f"Errors saving query details {e}")
+            session.rollback()
+            raise Exception(_("Query record was not created as expected."))
+        if not query_id:
+            raise Exception(_("Query record was not created as expected."))
+
+        logging.info("Triggering query_id: {}".format(query_id))
 
         # template processor
         try:
@@ -2737,21 +2720,21 @@ class Superset(BaseSupersetView):
                 database=query.database, query=query
             )
             rendered_query = template_processor.process_template(
-                query.sql, **params.template_params
+                query.sql, **template_params
             )
         except Exception as e:
             return json_error_response(
                 "Query {}: Template rendering failed: {}".format(
-                    params.query_id, utils.error_msg_from_exception(e)
+                    query_id, utils.error_msg_from_exception(e)
                 )
             )
 
         # set LIMIT after template processing
-        limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), params.limit]
+        limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
         query.limit = min(lim for lim in limits if lim is not None)
 
         # Async request.
-        if params.async_flag:
+        if async_flag:
             return self._sql_json_async(session, rendered_query, query)
         # Sync request.
         return self._sql_json_sync(session, rendered_query, query)
