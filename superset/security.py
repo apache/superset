@@ -535,10 +535,6 @@ class SupersetSecurityManager(SecurityManager):
         for datasource_class in ConnectorRegistry.sources.values():
             metrics += list(db.session.query(datasource_class.metric_class).all())
 
-        for metric in metrics:
-            if metric.is_restricted:
-                merge_pv("metric_access", metric.perm)
-
     def clean_perms(self) -> None:
         """
         Clean up the FAB faulty permissions.

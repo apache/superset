@@ -14,43 +14,31 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+"""deprecate_restricted_metrics
+
+Revision ID: 11c737c17cc6
+Revises: def97f26fdfb
+Create Date: 2019-09-08 21:50:58.200229
+
+"""
+from alembic import op
+import sqlalchemy as sa
 
 
-class SupersetException(Exception):
-    status = 500
-
-    def __init__(self, msg):
-        super(SupersetException, self).__init__(msg)
+# revision identifiers, used by Alembic.
+revision = "11c737c17cc6"
+down_revision = "def97f26fdfb"
 
 
-class SupersetTimeoutException(SupersetException):
-    pass
+def upgrade():
+    with op.batch_alter_table("metrics") as batch_op:
+        batch_op.drop_column("is_restricted")
+    with op.batch_alter_table("sql_metrics") as batch_op:
+        batch_op.drop_column("is_restricted")
 
 
-class SupersetSecurityException(SupersetException):
-    status = 401
-
-    def __init__(self, msg, link=None):
-        super(SupersetSecurityException, self).__init__(msg)
-        self.link = link
-
-
-class NoDataException(SupersetException):
-    status = 400
-
-
-class NullValueException(SupersetException):
-    status = 400
-
-
-class SupersetTemplateException(SupersetException):
-    pass
-
-
-class SpatialException(SupersetException):
-    pass
-
-
-class DatabaseNotFound(SupersetException):
-    status = 400
+def downgrade():
+    op.add_column(
+        "sql_metrics", sa.Column("is_restricted", sa.BOOLEAN(), nullable=True)
+    )
+    op.add_column("metrics", sa.Column("is_restricted", sa.BOOLEAN(), nullable=True))
