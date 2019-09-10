@@ -23,6 +23,8 @@ assists people when migrating to a new version.
 
 ## Next Version
 
+* We're deprecating the concept of "restricted metric", this feature
+  was not fully working anyhow.
 * [8117](https://github.com/apache/incubator-superset/pull/8117): If you are
 using `ENABLE_PROXY_FIX = True`, review the newly-introducted variable,
 `PROXY_FIX_CONFIG`, which changes the proxy behavior in accordance with
@@ -34,7 +36,7 @@ using `ENABLE_PROXY_FIX = True`, review the newly-introducted variable,
 backend serialization. To disable set `RESULTS_BACKEND_USE_MSGPACK = False`
 in your configuration.
 
-* [7848](https://github.com/apache/incubator-superset/pull/7848): If you are 
+* [7848](https://github.com/apache/incubator-superset/pull/7848): If you are
 running redis with celery, celery bump to 4.3.0 requires redis-py upgrade to
 3.2.0 or later.
 

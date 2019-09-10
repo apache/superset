@@ -417,7 +417,6 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
     verbose_name = Column(String(1024))
     metric_type = Column(String(32))
     description = Column(Text)
-    is_restricted = Column(Boolean, default=False, nullable=True)
     d3format = Column(String(128))
     warning_text = Column(Text)
 

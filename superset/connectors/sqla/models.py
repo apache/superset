@@ -241,7 +241,6 @@ class SqlMetric(Model, BaseMetric):
         "table_id",
         "expression",
         "description",
-        "is_restricted",
         "d3format",
         "warning_text",
     )
