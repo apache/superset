@@ -145,7 +145,7 @@ describe('AlteredSliceTag', () => {
     };
     newProps.currentFormData.beta = 10;
     wrapper = shallow(<AlteredSliceTag {...props} />);
-    wrapper.instance().componentWillReceiveProps(newProps);
+    wrapper.instance().UNSAFE_componentWillReceiveProps(newProps);
     const newDiffs = wrapper.instance().state.diffs;
     const expectedBeta = { before: undefined, after: 10 };
     expect(newDiffs.beta).toEqual(expectedBeta);
@@ -153,7 +153,7 @@ describe('AlteredSliceTag', () => {
 
   it('does not set new state when props are the same', () => {
     const currentDiff = wrapper.instance().state.diffs;
-    wrapper.instance().componentWillReceiveProps(props);
+    wrapper.instance().UNSAFE_componentWillReceiveProps(props);
     // Check equal references
     expect(wrapper.instance().state.diffs).toBe(currentDiff);
   });

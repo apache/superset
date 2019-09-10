@@ -478,7 +478,7 @@ class SqlaTable(Model, BaseDatasource):
         # show_cols and latest_partition set to false to avoid
         # the expensive cost of inspecting the DB
         return self.database.select_star(
-            self.name, show_cols=False, latest_partition=False
+            self.table_name, schema=self.schema, show_cols=False, latest_partition=False
         )
 
     def get_col(self, col_name):
@@ -794,6 +794,8 @@ class SqlaTable(Model, BaseDatasource):
             direction = asc if ascending else desc
             if utils.is_adhoc_metric(col):
                 col = self.adhoc_metric_to_sqla(col, cols)
+            elif col in cols:
+                col = cols[col].get_sqla_col()
             qry = qry.order_by(direction(col))
 
         if row_limit:

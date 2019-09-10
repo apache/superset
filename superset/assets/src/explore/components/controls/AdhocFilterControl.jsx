@@ -89,7 +89,7 @@ export default class AdhocFilterControl extends React.Component {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (
       this.props.columns !== nextProps.columns ||
       this.props.formData !== nextProps.formData

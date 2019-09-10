@@ -23,6 +23,11 @@ assists people when migrating to a new version.
 
 ## Next Version
 
+* [8117](https://github.com/apache/incubator-superset/pull/8117): If you are
+using `ENABLE_PROXY_FIX = True`, review the newly-introducted variable,
+`PROXY_FIX_CONFIG`, which changes the proxy behavior in accordance with
+[Werkzeug](https://werkzeug.palletsprojects.com/en/0.15.x/middleware/proxy_fix/)
+
 * [8069](https://github.com/apache/incubator-superset/pull/8069): introduces
 [MessagePack](https://github.com/msgpack/msgpack-python) and
 [PyArrow](https://arrow.apache.org/docs/python/) for async query results

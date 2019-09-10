@@ -104,7 +104,7 @@ class TabbedSqlEditors extends React.PureComponent {
       this.popNewTab();
     }
   }
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const nextActiveQeId = nextProps.tabHistory[nextProps.tabHistory.length - 1];
     const queriesArray = [];
     for (const id in nextProps.queries) {

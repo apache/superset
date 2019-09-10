@@ -50,7 +50,7 @@ class AnchorLink extends React.PureComponent {
     }
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const { inFocus = false } = nextProps;
     if (inFocus) {
       this.scrollToView();

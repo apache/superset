@@ -52,7 +52,7 @@ export function createDeckGLComponent(getLayer, getPoints) {
       };
       this.onViewportChange = this.onViewportChange.bind(this);
     }
-    componentWillReceiveProps(nextProps) {
+    UNSAFE_componentWillReceiveProps(nextProps) {
       // Only recompute the layer if anything BUT the viewport has changed
       const nextFdNoVP = { ...nextProps.formData, viewport: null };
       const currFdNoVP = { ...this.props.formData, viewport: null };
