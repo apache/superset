@@ -227,7 +227,7 @@ export default class TableSelector extends React.PureComponent {
               <i className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`} />
             </small>
           </span>
-          {option.value}
+          {option.label}
         </span>
       </div>
     );
