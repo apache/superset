@@ -51,6 +51,8 @@ const propTypes = {
   logEvent: PropTypes.func.isRequired,
   toggleExpandSlice: PropTypes.func.isRequired,
   changeFilter: PropTypes.func.isRequired,
+  setFocusedFilterField: PropTypes.func.isRequired,
+  unsetFocusedFilterField: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   isExpanded: PropTypes.bool.isRequired,
   isCached: PropTypes.bool,
@@ -83,6 +85,8 @@ class Chart extends React.Component {
     };
 
     this.changeFilter = this.changeFilter.bind(this);
+    this.handleFilterMenuOpen = this.handleFilterMenuOpen.bind(this);
+    this.handleFilterMenuClose = this.handleFilterMenuClose.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
@@ -167,6 +171,14 @@ class Chart extends React.Component {
       columns: Object.keys(newSelectedValues),
     });
     this.props.changeFilter(this.props.chart.id, newSelectedValues);
+  }
+
+  handleFilterMenuOpen(chartId, column) {
+    this.props.setFocusedFilterField(chartId, column);
+  }
+
+  handleFilterMenuClose() {
+    this.props.unsetFocusedFilterField();
   }
 
   exploreChart() {
@@ -278,6 +290,8 @@ class Chart extends React.Component {
             width={width}
             height={this.getChartHeight()}
             addFilter={this.changeFilter}
+            onFilterMenuOpen={this.handleFilterMenuOpen}
+            onFilterMenuClose={this.handleFilterMenuClose}
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}
             chartId={id}
