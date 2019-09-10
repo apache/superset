@@ -82,6 +82,8 @@ class SupersetSecurityManager(SecurityManager):
         "UserRemoteUserModelView",
     }
 
+    RHO_READ_ONLY_MODEL_VIEWS = {"DashboardModelView"} | READ_ONLY_MODEL_VIEWS
+
     GAMMA_READ_ONLY_MODEL_VIEWS = {
         "SqlMetricInlineView",
         "TableColumnInlineView",
@@ -103,6 +105,8 @@ class SupersetSecurityManager(SecurityManager):
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {"Upload a CSV"}
+
+    GAMMA_ONLY_VIEW_MENUS = {"Charts", "Sources"}
 
     ADMIN_ONLY_PERMISSIONS = {
         "can_sql_json",  # TODO: move can_sql_json to sql_lab role
@@ -568,11 +572,14 @@ class SupersetSecurityManager(SecurityManager):
         self.set_role("Admin", self._is_admin_pvm)
         self.set_role("Alpha", self._is_alpha_pvm)
         self.set_role("Gamma", self._is_gamma_pvm)
+        self.set_role("Rho", self._is_rho_pvm)
         self.set_role("granter", self._is_granter_pvm)
         self.set_role("sql_lab", self._is_sql_lab_pvm)
 
         if conf.get("PUBLIC_ROLE_LIKE_GAMMA", False):
             self.set_role("Public", self._is_gamma_pvm)
+        if conf.get("PUBLIC_ROLE_LIKE_RHO", False):
+            self.set_role("Public", self._is_rho_pvm)
 
         self.create_missing_perms()
 
@@ -638,6 +645,25 @@ class SupersetSecurityManager(SecurityManager):
             or pvm.permission.name in self.ALPHA_ONLY_PERMISSIONS
         )
 
+    def _is_gamma_only(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is accessible to all, False
+        otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is accessible to all users
+        """
+
+        if (
+            pvm.view_menu.name in self.RHO_READ_ONLY_MODEL_VIEWS
+            and pvm.permission.name not in self.READ_ONLY_PERMISSION
+        ):
+            return True
+        return (
+            pvm.view_menu.name in self.GAMMA_ONLY_VIEW_MENUS
+            or pvm.permission.name in self.GAMMA_ONLY_PERMISSIONS
+        )
+
     def _is_accessible_to_all(self, pvm: PermissionModelView) -> bool:
         """
         Return True if the FAB permission/view is accessible to all, False
@@ -687,6 +713,22 @@ class SupersetSecurityManager(SecurityManager):
             or self._is_admin_only(pvm)
             or self._is_alpha_only(pvm)
         ) or self._is_accessible_to_all(pvm)
+
+    def _is_rho_pvm(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is Rho user related, False
+        otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is SQL Lab related
+        """
+
+        return not (
+            self._is_user_defined_permission(pvm)
+            or self._is_admin_only(pvm)
+            or self._is_alpha_only(pvm)
+            or self._is_gamma_only(pvm)
+        )
 
     def _is_sql_lab_pvm(self, pvm: PermissionModelView) -> bool:
         """
