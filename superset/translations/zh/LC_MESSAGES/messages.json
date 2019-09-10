@@ -56,7 +56,7 @@
         "表名"
       ],
       "Name of table to be created from csv data.": [
-        "从CSV数据将创建的表的名称."
+        "从CSV数据创建的表的名称."
       ],
       "CSV File": [
         "CSV文件"
@@ -65,7 +65,7 @@
         "选择一个CSV文件上传到数据库."
       ],
       "CSV Files Only!": [
-        "仅CSV文件！"
+        "仅支持CSV文件！"
       ],
       "Database": [
         "数据库"
@@ -419,7 +419,7 @@
         "查询被终止。"
       ],
       "Failed at stopping query.": [
-        "无法终止查询。"
+        "停止查询失败。"
       ],
       "Error occurred while fetching table metadata": [
         "获取表格元数据时发生错误"
@@ -491,7 +491,7 @@
         "在 SQL 编辑器中打开"
       ],
       "view results": [
-        "展示结果"
+        "查看结果"
       ],
       "Data preview": [
         "数据预览"
@@ -794,10 +794,10 @@
         "%s%s"
       ],
       "Active Dashboard Filters": [
-        "活跃的仪表板过滤器"
+        "活跃的看板过滤器"
       ],
       "Checkout this dashboard: %s": [
-        "查看这个仪表板：%s"
+        "查看这个看板：%s"
       ],
       "Save as": [
         "另存为"
@@ -806,7 +806,7 @@
         "强制刷新"
       ],
       "Force refresh the whole dashboard": [
-        "强制刷新整个仪表板"
+        "强制刷新整个看板"
       ],
       "Set autorefresh": [
         "设置自动刷新"
@@ -815,31 +815,31 @@
         "设置此会话的自动刷新间隔"
       ],
       "Save the dashboard": [
-        "保存仪表板"
+        "保存看板"
       ],
       "Edit properties": [
         "编辑属性"
       ],
       "Edit the dashboards's properties": [
-        "编辑仪表板的属性"
+        "编辑看板的属性"
       ],
       "Email": [
         "邮箱"
       ],
       "Email a link to this dashboard": [
-        "将这个仪表板链接通过Email发送"
+        "将这个看板链接通过Email发送"
       ],
       "Add Charts": [
         "添加图表"
       ],
       "Add some charts to this dashboard": [
-        "在该仪表板中添加一些图表"
+        "在该看板中添加一些图表"
       ],
       "Edit CSS": [
         "编辑CSS"
       ],
       "Change the style of the dashboard using CSS code": [
-        "使用CSS代码更改仪表板的样式"
+        "使用CSS代码更改看板的样式"
       ],
       "Load a template": [
         "加载一个模板"
@@ -893,10 +893,10 @@
         "刷新间隔"
       ],
       "Choose the refresh frequency for this dashboard": [
-        "选择此仪表板的刷新频率"
+        "选择此看板的刷新频率"
       ],
       "This dashboard was saved successfully.": [
-        "该仪表板已成功保存。"
+        "该看板已成功保存。"
       ],
       "Sorry, there was an error saving this dashboard: ": [
         "抱歉，保存此信息中心时发生错误"
@@ -905,13 +905,13 @@
         "异常"
       ],
       "You must pick a name for the new dashboard": [
-        "您必须为新的仪表板选择一个名称"
+        "您必须为新的看板选择一个名称"
       ],
       "Save Dashboard": [
-        "保存仪表板"
+        "保存看板"
       ],
       "Overwrite Dashboard [%s]": [
-        "覆盖仪表板 [%s]"
+        "覆盖看板 [%s]"
       ],
       "Save as:": [
         "另存为："
@@ -920,10 +920,10 @@
         "[看板名称]"
       ],
       "Sorry, there was an error fetching charts to this dashboard: ": [
-        "抱歉，这个仪表板在获取图表时发生错误："
+        "抱歉，这个看板在获取图表时发生错误："
       ],
       "Sorry, there was an error adding charts to this dashboard: ": [
-        "抱歉，这个仪表板在添加图表时发生错误："
+        "抱歉，这个看板在添加图表时发生错误："
       ],
       "Name": [
         "名字"
@@ -938,10 +938,10 @@
         "已修改"
       ],
       "Add a new chart to the dashboard": [
-        "在仪表板中添加新图表"
+        "在看板中添加新图表"
       ],
       "Add Charts to Dashboard": [
-        "在仪表板中添加图表"
+        "在看板中添加图表"
       ],
       "Served from data cached %s . Click to force refresh.": [
         "数据缓存 %s 。点击强制刷新。"
@@ -971,7 +971,7 @@
         "探索图表"
       ],
       "Remove chart from dashboard": [
-        "从仪表板中删除图表"
+        "从看板中删除图表"
       ],
       "A reference to the [Time] configuration, taking granularity into account": [
         "参考 [时间] 配置，考虑粒度"
@@ -2489,10 +2489,10 @@
         "请输入图表名称"
       ],
       "Please select a dashboard": [
-        "请选择一个仪表板"
+        "请选择一个看板"
       ],
       "Please enter a dashboard name": [
-        "请输入仪表板名称"
+        "请输入看板名称"
       ],
       "Save A Chart": [
         "图表保存"
@@ -2504,16 +2504,16 @@
         "[图表名称]"
       ],
       "Do not add to a dashboard": [
-        "不要添加到仪表板"
+        "不要添加到看板"
       ],
       "Add chart to existing dashboard": [
         "将图表添加到现有看板"
       ],
       "Add to new dashboard": [
-        "添加到新的仪表板"
+        "添加到新的看板"
       ],
       "Save & go to dashboard": [
-        "保存并转到仪表板"
+        "保存并转到看板"
       ],
       "choose a column or metric": [
         "选择列或计量指标"
