@@ -36,6 +36,8 @@ using `ENABLE_PROXY_FIX = True`, review the newly-introducted variable,
 backend serialization. To disable set `RESULTS_BACKEND_USE_MSGPACK = False`
 in your configuration.
 
+## 0.34.0
+
 * [7848](https://github.com/apache/incubator-superset/pull/7848): If you are
 running redis with celery, celery bump to 4.3.0 requires redis-py upgrade to
 3.2.0 or later.
