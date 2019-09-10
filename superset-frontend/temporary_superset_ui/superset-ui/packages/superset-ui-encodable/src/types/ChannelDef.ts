@@ -1,7 +1,15 @@
 import { ValueDef, Value, Type } from './VegaLite';
 import { WithScale } from './Scale';
-import { WithXAxis, WithYAxis, WithAxis } from './Axis';
+import { WithXAxis, WithYAxis } from './Axis';
 import { WithLegend } from './Legend';
+
+export type PropertyValue =
+  | {
+      [key: string]: any;
+    }
+  | boolean
+  | null
+  | undefined;
 
 export type Formatter = (d: any) => string;
 
@@ -9,6 +17,7 @@ export interface FieldDef {
   field: string;
   format?: string;
   title?: string;
+  bin?: boolean;
 }
 
 export interface TypedFieldDef extends FieldDef {
@@ -29,7 +38,7 @@ export type XFieldDef<Output extends Value = Value> = PositionFieldDefBase<Outpu
 
 export type YFieldDef<Output extends Value = Value> = PositionFieldDefBase<Output> & WithYAxis;
 
-export type PositionFieldDef<Output extends Value = Value> = ScaleFieldDef<Output> & WithAxis;
+export type PositionFieldDef<Output extends Value = Value> = XFieldDef<Output> | YFieldDef<Output>;
 
 export type MarkPropChannelDef<Output extends Value = Value> =
   | MarkPropFieldDef<Output>
