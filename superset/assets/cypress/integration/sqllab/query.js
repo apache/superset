@@ -35,7 +35,7 @@ export default () => {
       const rowLimit = 3;
 
       cy.get('#brace-editor textarea')
-        .clear()
+        .clear({ force: true })
         .type(
         `{selectall}{backspace}SELECT ds, gender, name, num FROM main.birth_names LIMIT ${rowLimit}`,
         { force: true },
