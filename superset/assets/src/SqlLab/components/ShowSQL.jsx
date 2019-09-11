@@ -27,6 +27,8 @@ import { t } from '@superset-ui/translation';
 import Link from './Link';
 import ModalTrigger from '../../components/ModalTrigger';
 
+registerLanguage('sql', sql);
+
 const propTypes = {
   tooltipText: PropTypes.string,
   title: PropTypes.string,

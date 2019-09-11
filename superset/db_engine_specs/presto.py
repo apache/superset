@@ -23,7 +23,7 @@ import logging
 import re
 import textwrap
 import time
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, cast, Dict, List, Optional, Set, Tuple
 from urllib import parse
 
 import simplejson as json
@@ -910,7 +910,10 @@ class PrestoEngineSpec(BaseEngineSpec):
                 "partitionQuery": pql,
             }
 
-        metadata["view"] = cls.get_create_view(database, schema_name, table_name)
+        # flake8 is not matching `Optional[str]` to `Any` for some reason...
+        metadata["view"] = cast(
+            Any, cls.get_create_view(database, schema_name, table_name)
+        )
 
         return metadata
 
