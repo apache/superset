@@ -60,7 +60,7 @@ export default () => describe('top-level controls', () => {
       .find('.refresh-tooltip').trigger('click', { force: true });
 
     // not allow dashboard level force refresh when any chart is loading
-    cy.get('#save-dash-split-button').trigger('click', { forece: true });
+    cy.get('#save-dash-split-button').trigger('click', { force: true });
     cy.contains('Force refresh dashboard').parent().should('have.class', 'disabled');
     // not allow chart level force refresh when it is loading
     cy.get(`#slice_${mapId}-controls`).next()
