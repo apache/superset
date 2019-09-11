@@ -37,6 +37,8 @@ const SEARCH_BAR_HEIGHT = 40;
 
 const CHAR_WIDTH = 10;
 
+const CELL_PADDING = 32;
+
 const MAX_COLUMN_WIDTH = 500;
 
 export type TableProps = Props & Readonly<typeof defaultProps>;
@@ -186,12 +188,13 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     let calculatedWidth = 0;
     keys.forEach(key => {
       const maxLength = Math.max(...data.map(d => String(d.data[key]).length), key.length);
+      const stringWidth = maxLength * CHAR_WIDTH + CELL_PADDING;
       columnMetadata[key] = {
         maxWidth: MAX_COLUMN_WIDTH,
-        width: maxLength * CHAR_WIDTH,
+        width: stringWidth,
         ...columnMetadata[key],
       };
-      calculatedWidth += Math.min(maxLength * CHAR_WIDTH, MAX_COLUMN_WIDTH);
+      calculatedWidth += Math.min(stringWidth, MAX_COLUMN_WIDTH);
     });
 
     const tableHeight = includeSearch ? height - SEARCH_BAR_HEIGHT : height;
