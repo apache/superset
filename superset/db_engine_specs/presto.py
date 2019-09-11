@@ -915,7 +915,14 @@ class PrestoEngineSpec(BaseEngineSpec):
         return metadata
 
     @classmethod
-    def get_create_view(cls, database, schema: str, table: str) -> str:
+    def get_create_view(cls, database, schema: str, table: str) -> Optional[str]:
+        """
+        Return a CREATE VIEW statement, or `None` if not a view.
+
+        :param database: Database instance
+        :param schema: Schema name
+        :param table: Table (view) name
+        """
         engine = cls.get_engine(database, schema)
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
@@ -924,7 +931,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 try:
                     polled = cursor.poll()
                 except Exception:  # not a VIEW
-                    return False
+                    return None
                 while polled:
                     time.sleep(0.2)
                     polled = cursor.poll()
