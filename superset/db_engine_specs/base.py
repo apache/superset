@@ -132,7 +132,7 @@ class BaseEngineSpec:
 
     @classmethod
     def get_engine(cls, database, schema=None, source=None):
-        user_name = g.user.username if g.user else None
+        user_name = utils.get_username()
         return database.get_sqla_engine(
             schema=schema, nullpool=True, user_name=user_name, source=source
         )

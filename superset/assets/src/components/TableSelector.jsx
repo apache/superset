@@ -211,7 +211,7 @@ export default class TableSelector extends React.PureComponent {
       classNames.push('is-focused');
     }
     if (valueArray.indexOf(option) >= 0) {
-      classNames.push('is-selected')
+      classNames.push('is-selected');
     }
     return (
       <div

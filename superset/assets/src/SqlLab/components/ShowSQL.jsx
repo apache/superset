@@ -18,10 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Badge } from 'react-bootstrap';
-import AceEditor from 'react-ace';
-import 'brace/mode/sql';
-import 'brace/theme/textmate';
+import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/dist/light';
+import sql from 'react-syntax-highlighter/dist/languages/hljs/sql';
+import github from 'react-syntax-highlighter/dist/styles/hljs/github';
 
 import { t } from '@superset-ui/translation';
 
@@ -40,20 +39,13 @@ const defaultProps = {
   sql: '',
 };
 
-export default class ShowSQL extends React.Component {
+export default class ShowSQL extends React.PureComponent {
   renderModalBody() {
     return (
       <div>
-        <AceEditor
-          mode="sql"
-          theme="textmate"
-          style={{ border: '1px solid #CCC' }}
-          minLines={25}
-          maxLines={50}
-          width="100%"
-          editorProps={{ $blockScrolling: true }}
-          value={this.props.sql}
-        />
+        <SyntaxHighlighter language="sql" style={github}>
+          {this.props.sql}
+        </SyntaxHighlighter>
       </div>
     );
   }
