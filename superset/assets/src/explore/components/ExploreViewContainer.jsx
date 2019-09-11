@@ -103,7 +103,7 @@ class ExploreViewContainer extends React.Component {
     }
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.controls.viz_type.value !== this.props.controls.viz_type.value) {
       this.props.actions.resetControls();
     }
@@ -131,8 +131,6 @@ class ExploreViewContainer extends React.Component {
 
   /* eslint no-unused-vars: 0 */
   componentDidUpdate(prevProps, prevState) {
-    this.triggerQueryIfNeeded();
-
     const changedControlKeys = this.findChangedControlKeys(prevProps.controls, this.props.controls);
     if (this.hasDisplayControlChanged(changedControlKeys, this.props.controls)) {
       this.addHistory({});
@@ -211,17 +209,6 @@ class ExploreViewContainer extends React.Component {
     return changedControlKeys.some(
       key => !currentControls[key].renderTrigger && !currentControls[key].dontRefreshOnChange,
     );
-  }
-
-  triggerQueryIfNeeded() {
-    if (this.props.chart.triggerQuery && !this.hasErrors()) {
-      this.props.actions.postChartFormData(
-        this.props.form_data,
-        false,
-        this.props.timeout,
-        this.props.chart.id,
-      );
-    }
   }
 
   addHistory({ isReplace = false, title }) {

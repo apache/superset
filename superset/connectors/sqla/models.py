@@ -18,7 +18,8 @@
 from collections import OrderedDict
 from datetime import datetime
 import logging
-from typing import Any, List, NamedTuple, Optional, Union
+import re
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 from flask import escape, Markup
 from flask_appbuilder import Model
@@ -240,7 +241,6 @@ class SqlMetric(Model, BaseMetric):
         "table_id",
         "expression",
         "description",
-        "is_restricted",
         "d3format",
         "warning_text",
     )
@@ -477,7 +477,7 @@ class SqlaTable(Model, BaseDatasource):
         # show_cols and latest_partition set to false to avoid
         # the expensive cost of inspecting the DB
         return self.database.select_star(
-            self.name, show_cols=False, latest_partition=False
+            self.table_name, schema=self.schema, show_cols=False, latest_partition=False
         )
 
     def get_col(self, col_name):
@@ -793,6 +793,8 @@ class SqlaTable(Model, BaseDatasource):
             direction = asc if ascending else desc
             if utils.is_adhoc_metric(col):
                 col = self.adhoc_metric_to_sqla(col, cols)
+            elif col in cols:
+                col = cols[col].get_sqla_col()
             qry = qry.order_by(direction(col))
 
         if row_limit:
@@ -1064,9 +1066,36 @@ class SqlaTable(Model, BaseDatasource):
     def default_query(qry):
         return qry.filter_by(is_sqllab_view=False)
 
-    def get_extra_cache_keys(self, query_obj) -> List[Any]:
-        sqla_query = self.get_sqla_query(**query_obj)
-        return sqla_query.extra_cache_keys
+    def has_extra_cache_keys(self, query_obj: Dict) -> bool:
+        """
+        Detects the presence of calls to cache_key_wrapper in items in query_obj that can
+        be templated.
+
+        :param query_obj: query object to analyze
+        :return: True if at least one item calls cache_key_wrapper, otherwise False
+        """
+        regex = re.compile(r"\{\{.*cache_key_wrapper\(.*\).*\}\}")
+        templatable_statements: List[str] = []
+        if self.sql:
+            templatable_statements.append(self.sql)
+        if self.fetch_values_predicate:
+            templatable_statements.append(self.fetch_values_predicate)
+        extras = query_obj.get("extras", {})
+        if "where" in extras:
+            templatable_statements.append(extras["where"])
+        if "having" in extras:
+            templatable_statements.append(extras["having"])
+        for statement in templatable_statements:
+            if regex.search(statement):
+                return True
+        return False
+
+    def get_extra_cache_keys(self, query_obj: Dict) -> List[Any]:
+        if self.has_extra_cache_keys(query_obj):
+            sqla_query = self.get_sqla_query(**query_obj)
+            extra_cache_keys = sqla_query.extra_cache_keys
+            return extra_cache_keys
+        return []
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)

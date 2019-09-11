@@ -19,14 +19,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import FilterIndicators from '../../containers/FilterIndicators';
 import Chart from '../../containers/Chart';
 import AnchorLink from '../../../components/AnchorLink';
 import DeleteComponentButton from '../DeleteComponentButton';
 import DragDroppable from '../dnd/DragDroppable';
 import HoverMenu from '../menu/HoverMenu';
 import ResizableContainer from '../resizable/ResizableContainer';
+import getChartAndLabelComponentIdFromPath from '../../util/getChartAndLabelComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
 import { ROW_TYPE, COLUMN_TYPE } from '../../util/componentTypes';
+
 import {
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
@@ -44,6 +47,8 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+  directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  directPathLastUpdated: PropTypes.number,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -58,18 +63,78 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
-const defaultProps = {};
+const defaultProps = {
+  directPathToChild: [],
+  directPathLastUpdated: 0,
+};
 
 class ChartHolder extends React.Component {
+  static renderInFocusCSS(columnName) {
+    return (
+      <style>
+        {`label[for=${columnName}] + .Select .Select-control {
+                    border-color: #00736a;
+                    transition: border-color 1s ease-in-out;
+           }`}
+      </style>
+    );
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    const { component, directPathToChild, directPathLastUpdated } = props;
+    const {
+      label: columnName,
+      chart: chartComponentId,
+    } = getChartAndLabelComponentIdFromPath(directPathToChild);
+
+    if (
+      directPathLastUpdated !== state.directPathLastUpdated &&
+      component.id === chartComponentId
+    ) {
+      return {
+        outlinedComponentId: component.id,
+        outlinedColumnName: columnName,
+        directPathLastUpdated,
+      };
+    }
+    return null;
+  }
+
   constructor(props) {
     super(props);
     this.state = {
       isFocused: false,
+      outlinedComponentId: null,
+      outlinedColumnName: null,
+      directPathLastUpdated: 0,
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateSliceName = this.handleUpdateSliceName.bind(this);
+  }
+
+  componentDidMount() {
+    this.hideOutline({}, this.state);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    this.hideOutline(prevState, this.state);
+  }
+
+  hideOutline(prevState, state) {
+    const { outlinedComponentId: timerKey } = state;
+    const { outlinedComponentId: prevTimerKey } = prevState;
+
+    // because of timeout, there might be multiple charts showing outline
+    if (!!timerKey && !prevTimerKey) {
+      setTimeout(() => {
+        this.setState(() => ({
+          outlinedComponentId: null,
+          outlinedColumnName: null,
+        }));
+      }, 2000);
+    }
   }
 
   handleChangeFocus(nextFocus) {
@@ -148,9 +213,18 @@ class ChartHolder extends React.Component {
           >
             <div
               ref={dragSourceRef}
-              className="dashboard-component dashboard-component-chart-holder"
+              className={`dashboard-component dashboard-component-chart-holder ${
+                this.state.outlinedComponentId ? 'fade-in' : 'fade-out'
+              }`}
             >
-              {!editMode && <AnchorLink anchorLinkId={component.id} />}
+              {!editMode && (
+                <AnchorLink
+                  anchorLinkId={component.id}
+                  inFocus={!!this.state.outlinedComponentId}
+                />
+              )}
+              {!!this.state.outlinedComponentId &&
+                ChartHolder.renderInFocusCSS(this.state.outlinedColumnName)}
               <Chart
                 componentId={component.id}
                 id={component.meta.chartId}
@@ -166,6 +240,9 @@ class ChartHolder extends React.Component {
                 updateSliceName={this.handleUpdateSliceName}
                 isComponentVisible={isComponentVisible}
               />
+              {!editMode && (
+                <FilterIndicators chartId={component.meta.chartId} />
+              )}
               {editMode && (
                 <HoverMenu position="top">
                   <DeleteComponentButton

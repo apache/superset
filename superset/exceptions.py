@@ -36,10 +36,6 @@ class SupersetSecurityException(SupersetException):
         self.link = link
 
 
-class MetricPermException(SupersetException):
-    pass
-
-
 class NoDataException(SupersetException):
     status = 400
 

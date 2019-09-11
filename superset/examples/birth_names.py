@@ -30,10 +30,42 @@ from .helpers import (
     get_example_data,
     get_slice_json,
     merge_slice,
+    misc_dash_slices,
     Slice,
     TBL,
     update_slice_ids,
 )
+
+
+def gen_filter(subject, comparator, operator="=="):
+    return {
+        "clause": "WHERE",
+        "comparator": comparator,
+        "expressionType": "SIMPLE",
+        "operator": operator,
+        "subject": subject,
+        "fromFormData": True,
+    }
+
+
+def load_data(tbl_name, database):
+    pdf = pd.read_json(get_example_data("birth_names.json.gz"))
+    pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
+    pdf.to_sql(
+        tbl_name,
+        database.get_sqla_engine(),
+        if_exists="replace",
+        chunksize=500,
+        dtype={
+            "ds": DateTime,
+            "gender": String(16),
+            "state": String(10),
+            "name": String(255),
+        },
+        index=False,
+    )
+    print("Done loading table!")
+    print("-" * 80)
 
 
 def load_birth_names(only_metadata=False, force=False):
@@ -44,23 +76,7 @@ def load_birth_names(only_metadata=False, force=False):
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        pdf = pd.read_json(get_example_data("birth_names.json.gz"))
-        pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
-        pdf.to_sql(
-            tbl_name,
-            database.get_sqla_engine(),
-            if_exists="replace",
-            chunksize=500,
-            dtype={
-                "ds": DateTime,
-                "gender": String(16),
-                "state": String(10),
-                "name": String(255),
-            },
-            index=False,
-        )
-        print("Done loading table!")
-        print("-" * 80)
+        load_data(tbl_name, database)
 
     obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not obj:
@@ -118,31 +134,6 @@ def load_birth_names(only_metadata=False, force=False):
     print("Creating some slices")
     slices = [
         Slice(
-            slice_name="Girls",
-            viz_type="table",
-            datasource_type="table",
-            datasource_id=tbl.id,
-            params=get_slice_json(
-                defaults,
-                groupby=["name"],
-                filters=[{"col": "gender", "op": "in", "val": ["girl"]}],
-                row_limit=50,
-                timeseries_limit_metric="sum__num",
-            ),
-        ),
-        Slice(
-            slice_name="Boys",
-            viz_type="table",
-            datasource_type="table",
-            datasource_id=tbl.id,
-            params=get_slice_json(
-                defaults,
-                groupby=["name"],
-                filters=[{"col": "gender", "op": "in", "val": ["boy"]}],
-                row_limit=50,
-            ),
-        ),
-        Slice(
             slice_name="Participants",
             viz_type="big_number",
             datasource_type="table",
@@ -161,6 +152,20 @@ def load_birth_names(only_metadata=False, force=False):
             datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(defaults, viz_type="pie", groupby=["gender"]),
+        ),
+        Slice(
+            slice_name="Trends",
+            viz_type="line",
+            datasource_type="table",
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                viz_type="line",
+                groupby=["name"],
+                granularity_sqla="ds",
+                rich_tooltip=True,
+                show_legend=True,
+            ),
         ),
         Slice(
             slice_name="Genders by State",
@@ -200,19 +205,98 @@ def load_birth_names(only_metadata=False, force=False):
             ),
         ),
         Slice(
-            slice_name="Trends",
-            viz_type="line",
+            slice_name="Girls",
+            viz_type="table",
             datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="line",
                 groupby=["name"],
-                granularity_sqla="ds",
-                rich_tooltip=True,
-                show_legend=True,
+                adhoc_filters=[gen_filter("gender", "girl")],
+                row_limit=50,
+                timeseries_limit_metric="sum__num",
             ),
         ),
+        Slice(
+            slice_name="Girl Name Cloud",
+            viz_type="word_cloud",
+            datasource_type="table",
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                viz_type="word_cloud",
+                size_from="10",
+                series="name",
+                size_to="70",
+                rotation="square",
+                limit="100",
+                adhoc_filters=[gen_filter("gender", "girl")],
+            ),
+        ),
+        Slice(
+            slice_name="Boys",
+            viz_type="table",
+            datasource_type="table",
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                groupby=["name"],
+                adhoc_filters=[gen_filter("gender", "boy")],
+                row_limit=50,
+            ),
+        ),
+        Slice(
+            slice_name="Boy Name Cloud",
+            viz_type="word_cloud",
+            datasource_type="table",
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                viz_type="word_cloud",
+                size_from="10",
+                series="name",
+                size_to="70",
+                rotation="square",
+                limit="100",
+                adhoc_filters=[gen_filter("gender", "boy")],
+            ),
+        ),
+        Slice(
+            slice_name="Top 10 Girl Name Share",
+            viz_type="area",
+            datasource_type="table",
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                adhoc_filters=[gen_filter("gender", "girl")],
+                comparison_type="values",
+                groupby=["name"],
+                limit=10,
+                stacked_style="expand",
+                time_grain_sqla="P1D",
+                viz_type="area",
+                x_axis_forma="smart_date",
+            ),
+        ),
+        Slice(
+            slice_name="Top 10 Boy Name Share",
+            viz_type="area",
+            datasource_type="table",
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                adhoc_filters=[gen_filter("gender", "boy")],
+                comparison_type="values",
+                groupby=["name"],
+                limit=10,
+                stacked_style="expand",
+                time_grain_sqla="P1D",
+                viz_type="area",
+                x_axis_forma="smart_date",
+            ),
+        ),
+    ]
+    misc_slices = [
         Slice(
             slice_name="Average and Sum Trends",
             viz_type="dual_line",
@@ -233,61 +317,24 @@ def load_birth_names(only_metadata=False, force=False):
             ),
         ),
         Slice(
-            slice_name="Title",
-            viz_type="markup",
+            slice_name="Num Births Trend",
+            viz_type="line",
             datasource_type="table",
             datasource_id=tbl.id,
-            params=get_slice_json(
-                defaults,
-                viz_type="markup",
-                markup_type="html",
-                code="""\
-    <div style='text-align:center'>
-        <h1>Birth Names Dashboard</h1>
-        <p>
-            The source dataset came from
-            <a href='https://github.com/hadley/babynames' target='_blank'>[here]</a>
-        </p>
-        <img src="/static/assets/images/babies.png">
-    </div>
-    """,
-            ),
+            params=get_slice_json(defaults, viz_type="line"),
         ),
         Slice(
-            slice_name="Name Cloud",
-            viz_type="word_cloud",
+            slice_name="Daily Totals",
+            viz_type="table",
             datasource_type="table",
             datasource_id=tbl.id,
+            created_by=admin,
             params=get_slice_json(
                 defaults,
-                viz_type="word_cloud",
-                size_from="10",
-                series="name",
-                size_to="70",
-                rotation="square",
-                limit="100",
-            ),
-        ),
-        Slice(
-            slice_name="Pivot Table",
-            viz_type="pivot_table",
-            datasource_type="table",
-            datasource_id=tbl.id,
-            params=get_slice_json(
-                defaults, viz_type="pivot_table", groupby=["name"], columns=["state"]
-            ),
-        ),
-        Slice(
-            slice_name="Number of Girls",
-            viz_type="big_number_total",
-            datasource_type="table",
-            datasource_id=tbl.id,
-            params=get_slice_json(
-                defaults,
-                viz_type="big_number_total",
-                granularity_sqla="ds",
-                filters=[{"col": "gender", "op": "in", "val": ["girl"]}],
-                subheader="total female participants",
+                groupby=["ds"],
+                since="40 years ago",
+                until="now",
+                viz_type="table",
             ),
         ),
         Slice(
@@ -364,29 +411,34 @@ def load_birth_names(only_metadata=False, force=False):
             ),
         ),
         Slice(
-            slice_name="Num Births Trend",
-            viz_type="line",
+            slice_name="Number of Girls",
+            viz_type="big_number_total",
             datasource_type="table",
             datasource_id=tbl.id,
-            params=get_slice_json(defaults, viz_type="line"),
-        ),
-        Slice(
-            slice_name="Daily Totals",
-            viz_type="table",
-            datasource_type="table",
-            datasource_id=tbl.id,
-            created_by=admin,
             params=get_slice_json(
                 defaults,
-                groupby=["ds"],
-                since="40 years ago",
-                until="now",
-                viz_type="table",
+                viz_type="big_number_total",
+                granularity_sqla="ds",
+                adhoc_filters=[gen_filter("gender", "girl")],
+                subheader="total female participants",
+            ),
+        ),
+        Slice(
+            slice_name="Pivot Table",
+            viz_type="pivot_table",
+            datasource_type="table",
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults, viz_type="pivot_table", groupby=["name"], columns=["state"]
             ),
         ),
     ]
     for slc in slices:
         merge_slice(slc)
+
+    for slc in misc_slices:
+        merge_slice(slc)
+        misc_dash_slices.add(slc.slice_name)
 
     print("Creating a dashboard")
     dash = db.session.query(Dash).filter_by(slug="births").first()
@@ -395,265 +447,295 @@ def load_birth_names(only_metadata=False, force=False):
         dash = Dash()
         db.session.add(dash)
     dash.published = True
+    dash.json_metadata = textwrap.dedent(
+        """\
+    {
+        "label_colors": {
+            "Girls": "#FF69B4",
+            "Boys": "#ADD8E6",
+            "girl": "#FF69B4",
+            "boy": "#ADD8E6"
+        }
+    }"""
+    )
     js = textwrap.dedent(
         # pylint: disable=line-too-long
         """\
-{
-    "CHART-0dd270f0": {
-        "meta": {
-            "chartId": 51,
-            "width": 2,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-0dd270f0",
-        "children": []
-    },
-    "CHART-a3c21bcc": {
-        "meta": {
-            "chartId": 52,
-            "width": 2,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-a3c21bcc",
-        "children": []
-    },
-    "CHART-976960a5": {
-        "meta": {
-            "chartId": 53,
-            "width": 2,
-            "height": 25
-        },
-        "type": "CHART",
-        "id": "CHART-976960a5",
-        "children": []
-    },
-    "CHART-58575537": {
-        "meta": {
-            "chartId": 54,
-            "width": 2,
-            "height": 25
-        },
-        "type": "CHART",
-        "id": "CHART-58575537",
-        "children": []
-    },
-    "CHART-e9cd8f0b": {
-        "meta": {
-            "chartId": 55,
-            "width": 8,
-            "height": 38
-        },
-        "type": "CHART",
-        "id": "CHART-e9cd8f0b",
-        "children": []
-    },
-    "CHART-e440d205": {
-        "meta": {
-            "chartId": 56,
-            "width": 8,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-e440d205",
-        "children": []
-    },
-    "CHART-59444e0b": {
-        "meta": {
-            "chartId": 57,
-            "width": 3,
-            "height": 38
-        },
-        "type": "CHART",
-        "id": "CHART-59444e0b",
-        "children": []
-    },
-    "CHART-e2cb4997": {
-        "meta": {
-            "chartId": 59,
-            "width": 4,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-e2cb4997",
-        "children": []
-    },
-    "CHART-e8774b49": {
-        "meta": {
-            "chartId": 60,
-            "width": 12,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-e8774b49",
-        "children": []
-    },
-    "CHART-985bfd1e": {
-        "meta": {
-            "chartId": 61,
-            "width": 4,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-985bfd1e",
-        "children": []
-    },
-    "CHART-17f13246": {
-        "meta": {
-            "chartId": 62,
-            "width": 4,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-17f13246",
-        "children": []
-    },
-    "CHART-729324f6": {
-        "meta": {
-            "chartId": 63,
-            "width": 4,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-729324f6",
-        "children": []
-    },
-    "COLUMN-25a865d6": {
-        "meta": {
-            "width": 4,
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "COLUMN",
-        "id": "COLUMN-25a865d6",
-        "children": [
-            "ROW-cc97c6ac",
-            "CHART-e2cb4997"
-        ]
-    },
-    "COLUMN-4557b6ba": {
-        "meta": {
-            "width": 8,
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "COLUMN",
-        "id": "COLUMN-4557b6ba",
-        "children": [
-            "ROW-d2e78e59",
-            "CHART-e9cd8f0b"
-        ]
-    },
-    "GRID_ID": {
-        "type": "GRID",
-        "id": "GRID_ID",
-        "children": [
-            "ROW-8515ace3",
-            "ROW-1890385f",
-            "ROW-f0b64094",
-            "ROW-be9526b8"
-        ]
-    },
-    "HEADER_ID": {
-        "meta": {
-            "text": "Births"
-        },
-        "type": "HEADER",
-        "id": "HEADER_ID"
-    },
-    "MARKDOWN-00178c27": {
-        "meta": {
-            "width": 5,
-            "code": "<div style=\\"text-align:center\\">\\n <h1>Birth Names Dashboard</h1>\\n <p>\\n The source dataset came from\\n <a href=\\"https://github.com/hadley/babynames\\" target=\\"_blank\\">[here]</a>\\n </p>\\n <img src=\\"/static/assets/images/babies.png\\" style=\\"width:55%;\\">\\n</div>\\n",
-            "height": 38
-        },
-        "type": "MARKDOWN",
-        "id": "MARKDOWN-00178c27",
-        "children": []
-    },
-    "ROOT_ID": {
-        "type": "ROOT",
-        "id": "ROOT_ID",
-        "children": [
-            "GRID_ID"
-        ]
-    },
-    "ROW-1890385f": {
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW",
-        "id": "ROW-1890385f",
-        "children": [
-            "CHART-e440d205",
-            "CHART-0dd270f0",
-            "CHART-a3c21bcc"
-        ]
-    },
-    "ROW-8515ace3": {
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW",
-        "id": "ROW-8515ace3",
-        "children": [
-            "COLUMN-25a865d6",
-            "COLUMN-4557b6ba"
-        ]
-    },
-    "ROW-be9526b8": {
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW",
-        "id": "ROW-be9526b8",
-        "children": [
-            "CHART-985bfd1e",
-            "CHART-17f13246",
-            "CHART-729324f6"
-        ]
-    },
-    "ROW-cc97c6ac": {
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW",
-        "id": "ROW-cc97c6ac",
-        "children": [
-            "CHART-976960a5",
-            "CHART-58575537"
-        ]
-    },
-    "ROW-d2e78e59": {
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW",
-        "id": "ROW-d2e78e59",
-        "children": [
-            "MARKDOWN-00178c27",
-            "CHART-59444e0b"
-        ]
-    },
-    "ROW-f0b64094": {
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW",
-        "id": "ROW-f0b64094",
-        "children": [
-            "CHART-e8774b49"
-        ]
-    },
-    "DASHBOARD_VERSION_KEY": "v2"
-}
-        """
-        # pylint: enable=line-too-long
+        {
+          "CHART-6GdlekVise": {
+            "children": [],
+            "id": "CHART-6GdlekVise",
+            "meta": {
+              "chartId": 5547,
+              "height": 50,
+              "sliceName": "Top 10 Girl Name Share",
+              "width": 5
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID",
+              "ROW-eh0w37bWbR"
+            ],
+            "type": "CHART"
+          },
+          "CHART-6n9jxb30JG": {
+            "children": [],
+            "id": "CHART-6n9jxb30JG",
+            "meta": {
+              "chartId": 5540,
+              "height": 36,
+              "sliceName": "Genders by State",
+              "width": 5
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID",
+              "ROW--EyBZQlDi"
+            ],
+            "type": "CHART"
+          },
+          "CHART-Jj9qh1ol-N": {
+            "children": [],
+            "id": "CHART-Jj9qh1ol-N",
+            "meta": {
+              "chartId": 5545,
+              "height": 50,
+              "sliceName": "Boy Name Cloud",
+              "width": 4
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID",
+              "ROW-kzWtcvo8R1"
+            ],
+            "type": "CHART"
+          },
+          "CHART-ODvantb_bF": {
+            "children": [],
+            "id": "CHART-ODvantb_bF",
+            "meta": {
+              "chartId": 5548,
+              "height": 50,
+              "sliceName": "Top 10 Boy Name Share",
+              "width": 5
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID",
+              "ROW-kzWtcvo8R1"
+            ],
+            "type": "CHART"
+          },
+          "CHART-PAXUUqwmX9": {
+            "children": [],
+            "id": "CHART-PAXUUqwmX9",
+            "meta": {
+              "chartId": 5538,
+              "height": 34,
+              "sliceName": "Genders",
+              "width": 3
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID",
+              "ROW-2n0XgiHDgs"
+            ],
+            "type": "CHART"
+          },
+          "CHART-_T6n_K9iQN": {
+            "children": [],
+            "id": "CHART-_T6n_K9iQN",
+            "meta": {
+              "chartId": 5539,
+              "height": 36,
+              "sliceName": "Trends",
+              "width": 7
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID",
+              "ROW--EyBZQlDi"
+            ],
+            "type": "CHART"
+          },
+          "CHART-eNY0tcE_ic": {
+            "children": [],
+            "id": "CHART-eNY0tcE_ic",
+            "meta": {
+              "chartId": 5537,
+              "height": 34,
+              "sliceName": "Participants",
+              "width": 3
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID",
+              "ROW-2n0XgiHDgs"
+            ],
+            "type": "CHART"
+          },
+          "CHART-g075mMgyYb": {
+            "children": [],
+            "id": "CHART-g075mMgyYb",
+            "meta": {
+              "chartId": 5541,
+              "height": 50,
+              "sliceName": "Girls",
+              "width": 3
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID",
+              "ROW-eh0w37bWbR"
+            ],
+            "type": "CHART"
+          },
+          "CHART-n-zGGE6S1y": {
+            "children": [],
+            "id": "CHART-n-zGGE6S1y",
+            "meta": {
+              "chartId": 5542,
+              "height": 50,
+              "sliceName": "Girl Name Cloud",
+              "width": 4
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID",
+              "ROW-eh0w37bWbR"
+            ],
+            "type": "CHART"
+          },
+          "CHART-vJIPjmcbD3": {
+            "children": [],
+            "id": "CHART-vJIPjmcbD3",
+            "meta": {
+              "chartId": 5543,
+              "height": 50,
+              "sliceName": "Boys",
+              "width": 3
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID",
+              "ROW-kzWtcvo8R1"
+            ],
+            "type": "CHART"
+          },
+          "DASHBOARD_VERSION_KEY": "v2",
+          "GRID_ID": {
+            "children": [
+              "ROW-2n0XgiHDgs",
+              "ROW--EyBZQlDi",
+              "ROW-eh0w37bWbR",
+              "ROW-kzWtcvo8R1"
+            ],
+            "id": "GRID_ID",
+            "parents": [
+              "ROOT_ID"
+            ],
+            "type": "GRID"
+          },
+          "HEADER_ID": {
+            "id": "HEADER_ID",
+            "meta": {
+              "text": "Births"
+            },
+            "type": "HEADER"
+          },
+          "MARKDOWN-zaflB60tbC": {
+            "children": [],
+            "id": "MARKDOWN-zaflB60tbC",
+            "meta": {
+              "code": "<div style=\\"text-align:center\\">  <h1>Birth Names Dashboard</h1>  <img src=\\"/static/assets/images/babies.png\\" style=\\"width:50%;\\"></div>",
+              "height": 34,
+              "width": 6
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID",
+              "ROW-2n0XgiHDgs"
+            ],
+            "type": "MARKDOWN"
+          },
+          "ROOT_ID": {
+            "children": [
+              "GRID_ID"
+            ],
+            "id": "ROOT_ID",
+            "type": "ROOT"
+          },
+          "ROW--EyBZQlDi": {
+            "children": [
+              "CHART-_T6n_K9iQN",
+              "CHART-6n9jxb30JG"
+            ],
+            "id": "ROW--EyBZQlDi",
+            "meta": {
+              "background": "BACKGROUND_TRANSPARENT"
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID"
+            ],
+            "type": "ROW"
+          },
+          "ROW-2n0XgiHDgs": {
+            "children": [
+              "CHART-eNY0tcE_ic",
+              "MARKDOWN-zaflB60tbC",
+              "CHART-PAXUUqwmX9"
+            ],
+            "id": "ROW-2n0XgiHDgs",
+            "meta": {
+              "background": "BACKGROUND_TRANSPARENT"
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID"
+            ],
+            "type": "ROW"
+          },
+          "ROW-eh0w37bWbR": {
+            "children": [
+              "CHART-g075mMgyYb",
+              "CHART-n-zGGE6S1y",
+              "CHART-6GdlekVise"
+            ],
+            "id": "ROW-eh0w37bWbR",
+            "meta": {
+              "background": "BACKGROUND_TRANSPARENT"
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID"
+            ],
+            "type": "ROW"
+          },
+          "ROW-kzWtcvo8R1": {
+            "children": [
+              "CHART-vJIPjmcbD3",
+              "CHART-Jj9qh1ol-N",
+              "CHART-ODvantb_bF"
+            ],
+            "id": "ROW-kzWtcvo8R1",
+            "meta": {
+              "background": "BACKGROUND_TRANSPARENT"
+            },
+            "parents": [
+              "ROOT_ID",
+              "GRID_ID"
+            ],
+            "type": "ROW"
+          }
+        }
+        """  # pylint: enable=line-too-long
     )
     pos = json.loads(js)
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
     update_slice_ids(pos, dash.slices)
-    dash.dashboard_title = "Births"
+    dash.dashboard_title = "USA Births Names"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"
     db.session.commit()

@@ -25,7 +25,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 256
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "DATE_TRUNC('SECOND', {col})",
         "PT1M": "DATE_TRUNC('MINUTE', {col})",
@@ -56,9 +56,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return uri
 
     @classmethod
-    def epoch_to_dttm(cls):
+    def epoch_to_dttm(cls) -> str:
         return "DATEADD(S, {col}, '1970-01-01')"
 
     @classmethod
-    def epoch_ms_to_dttm(cls):
+    def epoch_ms_to_dttm(cls) -> str:
         return "DATEADD(MS, {col}, '1970-01-01')"

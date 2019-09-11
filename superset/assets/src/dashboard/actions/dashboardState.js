@@ -24,6 +24,11 @@ import { SupersetClient } from '@superset-ui/connection';
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
+import {
+  addFilter,
+  removeFilter,
+  updateDirectPathToFilter,
+} from '../../dashboard/actions/dashboardFilters';
 import { applyDefaultFormData } from '../../explore/store';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
@@ -37,11 +42,6 @@ import { UPDATE_COMPONENTS_PARENTS_LIST } from '../actions/dashboardLayout';
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
   return { type: SET_UNSAVED_CHANGES, payload: { hasUnsavedChanges } };
-}
-
-export const CHANGE_FILTER = 'CHANGE_FILTER';
-export function changeFilter(chart, col, vals, merge = true, refresh = true) {
-  return { type: CHANGE_FILTER, chart, col, vals, merge, refresh };
 }
 
 export const ADD_SLICE = 'ADD_SLICE';
@@ -64,7 +64,7 @@ export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(id) {
   return function fetchFaveStarThunk(dispatch) {
     return SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${id}/count`,
+      endpoint: `${FAVESTAR_BASE_URL}/${id}/count/`,
     })
       .then(({ json }) => {
         if (json.count > 0) dispatch(toggleFaveStar(true));
@@ -151,8 +151,8 @@ export function onSave() {
 }
 
 export const SET_REFRESH_FREQUENCY = 'SET_REFRESH_FREQUENCY';
-export function setRefreshFrequency(refreshFrequency) {
-  return { type: SET_REFRESH_FREQUENCY, refreshFrequency };
+export function setRefreshFrequency(refreshFrequency, isPersistent = false) {
+  return { type: SET_REFRESH_FREQUENCY, refreshFrequency, isPersistent };
 }
 
 export function saveDashboardRequestSuccess() {
@@ -166,8 +166,18 @@ export function saveDashboardRequestSuccess() {
 export function saveDashboardRequest(data, id, saveType) {
   const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
 
-  return dispatch => {
+  return (dispatch, getState) => {
     dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
+
+    const { dashboardFilters, dashboardLayout } = getState();
+    const layout = dashboardLayout.present;
+    Object.values(dashboardFilters).forEach(filter => {
+      const { chartId } = filter;
+      const componentId = filter.directPathToFilter.slice().pop();
+      const directPathToFilter = (layout[componentId].parents || []).slice();
+      directPathToFilter.push(componentId);
+      dispatch(updateDirectPathToFilter(chartId, directPathToFilter));
+    });
 
     return SupersetClient.post({
       endpoint: `/superset/${path}/${id}/`,
@@ -257,7 +267,7 @@ export function showBuilderPane(builderPaneType) {
   return { type: SHOW_BUILDER_PANE, builderPaneType };
 }
 
-export function addSliceToDashboard(id) {
+export function addSliceToDashboard(id, component) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
     const selectedSlice = sliceEntities.slices[id];
@@ -282,12 +292,23 @@ export function addSliceToDashboard(id) {
     return Promise.all([
       dispatch(addChart(newChart, id)),
       dispatch(fetchDatasourceMetadata(form_data.datasource)),
-    ]).then(() => dispatch(addSlice(selectedSlice)));
+    ]).then(() => {
+      dispatch(addSlice(selectedSlice));
+
+      if (selectedSlice && selectedSlice.viz_type === 'filter_box') {
+        dispatch(addFilter(id, component, selectedSlice.form_data));
+      }
+    });
   };
 }
 
 export function removeSliceFromDashboard(id) {
-  return dispatch => {
+  return (dispatch, getState) => {
+    const sliceEntity = getState().sliceEntities.slices[id];
+    if (sliceEntity && sliceEntity.viz_type === 'filter_box') {
+      dispatch(removeFilter(id));
+    }
+
     dispatch(removeSlice(id));
     dispatch(removeChart(id));
   };
@@ -303,6 +324,21 @@ export function setColorSchemeAndUnsavedChanges(colorScheme) {
     dispatch(setColorScheme(colorScheme));
     dispatch(setUnsavedChanges(true));
   };
+}
+
+export const SET_DIRECT_PATH = 'SET_DIRECT_PATH';
+export function setDirectPathToChild(path) {
+  return { type: SET_DIRECT_PATH, path };
+}
+
+export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';
+export function setFocusedFilterField(chartId, column) {
+  return { type: SET_FOCUSED_FILTER_FIELD, chartId, column };
+}
+
+export function unsetFocusedFilterField() {
+  // same ACTION as setFocusedFilterField, without arguments
+  return { type: SET_FOCUSED_FILTER_FIELD };
 }
 
 // Undo history ---------------------------------------------------------------
