@@ -327,11 +327,11 @@ class SupersetFilter(BaseFilter):
 
     # TODO(bogdan): consider caching.
     def get_databases_from_schema_access(self):
-        vms = self.get_view_menus('schema_access')
+        vms = self.get_view_menus("schema_access")
         found_databases = set()
         for vm in vms:
             # [database_name].[schema_name]
-            database_name = vm.split('.')[0][1:-1]
+            database_name = vm.split(".")[0][1:-1]
             found_databases.add(database_name)
         return found_databases
 

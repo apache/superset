@@ -37,7 +37,7 @@ class DatabaseFilter(SupersetFilter):
         return query.filter(
             or_(
                 self.model.perm.in_(perms),
-                self.model.database_name.in_(schema_access_databases)
+                self.model.database_name.in_(schema_access_databases),
             )
         )
 
