@@ -17,7 +17,7 @@
 import inspect
 import unittest
 
-from superset import app, appbuilder, security_manager, db
+from superset import app, appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
@@ -41,11 +41,15 @@ class RolePermissionTests(SupersetTestCase):
         security_manager.add_role(SCHEMA_ACCESS_ROLE)
         session.commit()
 
-        example_db = session.query(Database).filter_by(database_name='examples').one()
+        example_db = session.query(Database).filter_by(database_name="examples").one()
         example_db.expose_in_sqllab = True
         session.commit()
 
-        ds = db.session.query(SqlaTable).filter_by(table_name="wb_health_population").first()
+        ds = (
+            db.session.query(SqlaTable)
+            .filter_by(table_name="wb_health_population")
+            .first()
+        )
         ds.schema = "temp_schema"
         security_manager.add_permission_view_menu("schema_access", ds.schema_perm)
         schema_perm_view = security_manager.find_permission_view_menu(
@@ -58,15 +62,21 @@ class RolePermissionTests(SupersetTestCase):
         gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
         session.commit()
 
-        GET_SQL_DBS_REQUEST = "databaseasync/api/read?_flt_0_expose_in_sqllab=1&" \
-                              "_oc_DatabaseAsync=database_name&_od_DatabaseAsync=asc"
+        GET_SQL_DBS_REQUEST = (
+            "databaseasync/api/read?_flt_0_expose_in_sqllab=1&"
+            "_oc_DatabaseAsync=database_name&_od_DatabaseAsync=asc"
+        )
         self.login(username="gamma")
         databases_json = self.client.get(GET_SQL_DBS_REQUEST).json
-        assert databases_json['count'] == 1
+        assert databases_json["count"] == 1
         self.logout()
 
         # cleanup
-        ds = session.query(SqlaTable).filter_by(table_name="wb_health_population").first()
+        ds = (
+            session.query(SqlaTable)
+            .filter_by(table_name="wb_health_population")
+            .first()
+        )
         ds.schema = None
         session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
         session.commit()
