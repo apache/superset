@@ -29,6 +29,7 @@ recursive-include superset/static/assets/images *
 recursive-exclude superset/static/images/viz_thumbnails_large *
 recursive-include superset/static/assets/stylesheets *
 include superset/static/assets/version_info.json
+includesuperset/static/assets/package.json superset/static/assets/package.json
 
 recursive-include superset/templates *
 recursive-include superset/translations *
