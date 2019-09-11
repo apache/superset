@@ -50,21 +50,25 @@ else:
 # ---------------------------------------------------------
 PACKAGE_DIR = os.path.join(BASE_DIR, "static", "assets")
 VERSION_INFO_FILE = os.path.join(PACKAGE_DIR, "version_info.json")
-PACKAGE_JSON_FILE = os.path.join(PACKAGE_DIR, "package.json")
+PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets" "package.json")
 
-#
+
+def _try_json_readfile(filepath):
+    try:
+        with open(filepath, "r") as f:
+            return json.load(f).get("version")
+    except Exception:
+        return None
+
+
 # Depending on the context in which this config is loaded, the version_info.json file
 # may or may not be available, as it is generated on install via setup.py. In the event
 # that we're actually running Superset, we will have already installed, therefore it WILL
 # exist. When unit tests are running, however, it WILL NOT exist, so we fall
 # back to reading package.json
-#
-try:
-    with open(VERSION_INFO_FILE) as version_file:
-        VERSION_STRING = json.load(version_file)["version"]
-except Exception:
-    with open(PACKAGE_JSON_FILE) as version_file:
-        VERSION_STRING = json.load(version_file)["version"]
+VERSION_STRING = _try_json_readfile(VERSION_INFO_FILE) or _try_json_readfile(
+    PACKAGE_JSON_FILE
+)
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
