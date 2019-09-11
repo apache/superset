@@ -62,13 +62,22 @@ class RolePermissionTests(SupersetTestCase):
         gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
         session.commit()
 
-        GET_SQL_DBS_REQUEST = (
+        OLD_FLASK_GET_SQL_DBS_REQUEST = (
             "databaseasync/api/read?_flt_0_expose_in_sqllab=1&"
             "_oc_DatabaseAsync=database_name&_od_DatabaseAsync=asc"
         )
         self.login(username="gamma")
-        databases_json = self.client.get(GET_SQL_DBS_REQUEST).json
+        databases_json = self.client.get(OLD_FLASK_GET_SQL_DBS_REQUEST).json
         assert databases_json["count"] == 1
+
+        NEW_FLASK_GET_SQL_DBS_REQUEST = (
+            "/api/v1/database/?q=(keys:!(none),filters:!((col:expose_in_sqllab,opr:eq,value:!t)),"
+            "order_columns:database_name,order_direction:asc,page:0,page_size:-1)"
+        )
+        self.login(username="gamma")
+        databases_json = self.client.get(NEW_FLASK_GET_SQL_DBS_REQUEST).json
+        assert databases_json["count"] == 1
+
         self.logout()
 
         # cleanup
