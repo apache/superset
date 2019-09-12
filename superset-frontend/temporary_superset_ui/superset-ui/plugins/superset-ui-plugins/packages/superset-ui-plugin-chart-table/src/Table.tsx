@@ -4,6 +4,7 @@ import Text from '@airbnb/lunar/lib/components/Text';
 import Input from '@airbnb/lunar/lib/components/Input';
 import withStyles, { WithStylesProps } from '@airbnb/lunar/lib/composers/withStyles';
 import { Renderers, ParentRow, ColumnMetadata } from '@airbnb/lunar/lib/components/DataTable/types';
+import dompurify from 'dompurify';
 import { getRenderer, ColumnType, heightType, Cell } from './renderer';
 
 type Props = {
@@ -56,6 +57,18 @@ type TableState = {
 
 function getCellHash(cell: Cell) {
   return `${cell.key}#${cell.value}`;
+}
+
+function getText(value: string | number) {
+  if (typeof value === 'string') {
+    const span = document.createElement('span');
+    const sanitizedString = dompurify.sanitize(value);
+    span.innerHTML = sanitizedString;
+
+    return String(span.textContent || span.innerText);
+  }
+
+  return String(value);
 }
 
 class TableVis extends React.PureComponent<InternalTableProps, TableState> {
@@ -187,7 +200,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     const keys = dataToRender && dataToRender.length > 0 ? Object.keys(dataToRender[0].data) : [];
     let calculatedWidth = 0;
     keys.forEach(key => {
-      const maxLength = Math.max(...data.map(d => String(d.data[key]).length), key.length);
+      const maxLength = Math.max(...data.map(d => getText(d.data[key]).length), key.length);
       const stringWidth = maxLength * CHAR_WIDTH + CELL_PADDING;
       columnMetadata[key] = {
         maxWidth: MAX_COLUMN_WIDTH,
@@ -195,6 +208,21 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
         ...columnMetadata[key],
       };
       calculatedWidth += Math.min(stringWidth, MAX_COLUMN_WIDTH);
+
+      if (!renderers[key]) {
+        renderers[key] = getRenderer({
+          alignPositiveNegative,
+          colorPositiveNegative,
+          column: {
+            key,
+            label: key,
+            type: 'string',
+          },
+          enableFilter: tableFilter,
+          handleCellSelected: this.handleCellSelected,
+          isSelected: this.isSelected,
+        });
+      }
     });
 
     const tableHeight = includeSearch ? height - SEARCH_BAR_HEIGHT : height;
