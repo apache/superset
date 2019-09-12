@@ -62,6 +62,7 @@ from superset import (
     results_backend_use_msgpack,
     security_manager,
     sql_lab,
+    talisman,
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -629,16 +630,19 @@ class DashboardAddView(DashboardModelView):  # noqa
 appbuilder.add_view_no_menu(DashboardAddView)
 
 
+@talisman(force_https=False)
 @app.route("/health")
 def health():
     return "OK"
 
 
+@talisman(force_https=False)
 @app.route("/healthcheck")
 def healthcheck():
     return "OK"
 
 
+@talisman(force_https=False)
 @app.route("/ping")
 def ping():
     return "OK"
