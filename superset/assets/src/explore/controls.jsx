@@ -2114,27 +2114,6 @@ export const controls = {
     }),
   },
 
-  significance_level: {
-    type: 'TextControl',
-    label: t('Significance Level'),
-    default: 0.05,
-    description: t('Threshold alpha level for determining significance'),
-  },
-
-  pvalue_precision: {
-    type: 'TextControl',
-    label: t('p-value precision'),
-    default: 6,
-    description: t('Number of decimal places with which to display p-values'),
-  },
-
-  liftvalue_precision: {
-    type: 'TextControl',
-    label: t('Lift percent precision'),
-    default: 4,
-    description: t('Number of decimal places with which to display lift values'),
-  },
-
   column_collection: {
     type: 'CollectionControl',
     label: t('Time Series Columns'),

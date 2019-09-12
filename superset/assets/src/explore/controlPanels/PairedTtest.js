@@ -27,9 +27,33 @@ export default {
       label: t('Paired t-test'),
       expanded: false,
       controlSetRows: [
-        ['significance_level'],
-        ['pvalue_precision'],
-        ['liftvalue_precision'],
+        [{
+          name: 'significance_level',
+          config: {
+            type: 'TextControl',
+            label: t('Significance Level'),
+            default: 0.05,
+            description: t('Threshold alpha level for determining significance'),
+          },
+        }],
+        [{
+          name: 'pvalue_precision',
+          config: {
+            type: 'TextControl',
+            label: t('p-value precision'),
+            default: 6,
+            description: t('Number of decimal places with which to display p-values'),
+          },
+        }],
+        [{
+          name: 'liftvalue_precision',
+          config: {
+            type: 'TextControl',
+            label: t('Lift percent precision'),
+            default: 4,
+            description: t('Number of decimal places with which to display lift values'),
+          },
+        }],
       ],
     },
   ],
