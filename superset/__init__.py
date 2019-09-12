@@ -222,9 +222,11 @@ def is_feature_enabled(feature):
 if conf.get("ENABLE_FLASK_COMPRESS"):
     Compress(app)
 
+
+talisman = Talisman()
+
 if app.config["TALISMAN_ENABLED"]:
-    talisman_config = app.config.get("TALISMAN_CONFIG")
-    Talisman(app, **talisman_config)
+    talisman.init_app(app, **app.config["TALISMAN_CONFIG"])
 
 # Hook that provides administrators a handle on the Flask APP
 # after initialization
