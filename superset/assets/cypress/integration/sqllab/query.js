@@ -34,7 +34,9 @@ export default () => {
       // are fetched below (because React _Virtualized_ does not render all rows)
       const rowLimit = 3;
 
-      cy.get('#brace-editor textarea').type(
+      cy.get('#brace-editor textarea')
+        .clear({ force: true })
+        .type(
         `{selectall}{backspace}SELECT ds, gender, name, num FROM main.birth_names LIMIT ${rowLimit}`,
         { force: true },
       );
@@ -68,6 +70,7 @@ export default () => {
       let savedQueryResultsTable = null;
 
       cy.get('#brace-editor textarea')
+        .clear({ force: true })
         .type(`{selectall}{backspace}${query}`, { force: true })
         .focus() // focus => blur is required for updating the query that is to be saved
         .blur();
@@ -87,7 +90,9 @@ export default () => {
         .click();
 
       // Enter name + save into modal
-      cy.get('.modal-sm input').type(`{selectall}{backspace}${savedQueryTitle}`, {
+      cy.get('.modal-sm input')
+        .clear({ force: true })
+        .type(`{selectall}{backspace}${savedQueryTitle}`, {
         force: true,
       });
 

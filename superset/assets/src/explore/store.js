@@ -17,12 +17,12 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
+import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import {
   getAllControlsState,
   getFormDataFromControls,
 } from './controlUtils';
 import controls from './controls';
-import controlPanelConfigs from './controlPanels';
 
 function handleDeprecatedControls(formData) {
   // Reacffectation / handling of deprecated controls
@@ -56,9 +56,9 @@ export function getControlsState(state, inputFormData) {
     formData,
   );
 
-  const viz = controlPanelConfigs[vizType] || {};
-  if (viz.onInit) {
-    return viz.onInit(controlsState);
+  const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
+  if (controlPanelConfig.onInit) {
+    return controlPanelConfig.onInit(controlsState);
   }
 
   return controlsState;

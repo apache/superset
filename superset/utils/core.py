@@ -438,8 +438,8 @@ def error_msg_from_exception(e):
         if isinstance(e.message, dict):
             msg = e.message.get("message")
         elif e.message:
-            msg = "{}".format(e.message)
-    return msg or "{}".format(e)
+            msg = e.message
+    return msg or str(e)
 
 
 def markdown(s: str, markup_wrap: Optional[bool] = False) -> str:
@@ -936,10 +936,6 @@ def user_label(user: User) -> Optional[str]:
     return None
 
 
-def get_or_create_main_db():
-    get_main_database()
-
-
 def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
     from superset import db
     from superset.models import core as models
@@ -955,12 +951,6 @@ def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
     database.set_sqlalchemy_uri(sqlalchemy_uri)
     db.session.commit()
     return database
-
-
-def get_main_database():
-    from superset import conf
-
-    return get_or_create_db("main", conf.get("SQLALCHEMY_DATABASE_URI"))
 
 
 def get_example_database():

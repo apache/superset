@@ -352,7 +352,7 @@ under the License.
 - [#7148](https://github.com/apache/incubator-superset/pull/7148) Celery task for warming up cache (#7148) (@betodealmeida)
 - [#7206](https://github.com/apache/incubator-superset/pull/7206) feat: [lyftga] add tooltips to deck.gl viz types (#7206) (@khtruong)
 - [e714dc1](https://github.com/apache/incubator-superset/commit/e714dc19feb42fefbc573272edc06a50963b0849) Merge branch 'master' into lyftga (@mistercrunch)
-- [#7215](https://github.com/apache/incubator-superset/pull/7215) Fix <Select> clearable (#7215) (@mistercrunch)
+- [#7215](https://github.com/apache/incubator-superset/pull/7215) Fix `<Select>` clearable (#7215) (@mistercrunch)
 - [#7218](https://github.com/apache/incubator-superset/pull/7218) Allow bigint to be used as time column in Presto (#7218) (@betodealmeida)
 - [#7032](https://github.com/apache/incubator-superset/pull/7032) Fetch charts with GET to benefit from browser cache and conditional requests (#7032) (@betodealmeida)
 - [#7210](https://github.com/apache/incubator-superset/pull/7210) chore: revert bignumber.js patch for charts and reapply the original bignumber.js change to SQL editor in an opt-in fashion (#7210) (@xtinec)
