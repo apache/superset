@@ -27,7 +27,9 @@
   },
   "dependencies": {
     "@airbnb/lunar": "^2.16.0",
-    "@airbnb/lunar-icons": "^2.1.4"
+    "@airbnb/lunar-icons": "^2.1.4",
+    "@types/dompurify": "^0.0.33",
+    "dompurify": "^1.0.11"
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.12.0",

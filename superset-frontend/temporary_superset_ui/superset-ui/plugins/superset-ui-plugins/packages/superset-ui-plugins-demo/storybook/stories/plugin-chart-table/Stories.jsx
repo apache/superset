@@ -113,7 +113,7 @@ export default [
           orderDesc: true,
           pageLength: 0,
           percentMetrics: [],
-          tableFilter: true,
+          tableFilter: false,
           tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
           timeseriesLimitMetric: null,
         }}

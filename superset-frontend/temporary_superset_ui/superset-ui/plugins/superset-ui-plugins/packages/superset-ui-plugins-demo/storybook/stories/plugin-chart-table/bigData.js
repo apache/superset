@@ -4,7 +4,7 @@
 const ROW_COUNT = 30;
 const COLUMN_COUNT = 20;
 
-export const keys = ['ds'].concat(
+export const keys = ['ds', 'html'].concat(
   Array(COLUMN_COUNT)
     .fill(0)
     .map((_, i) => `clm ${i}`),
@@ -17,6 +17,7 @@ keys.forEach((key, i) => {
     .join('');
 });
 item.ds = '2019-09-09';
+item.html = '<a href="www.google.com" target="_blank">Link Test</a>';
 
 export default Array(ROW_COUNT)
   .fill(0)
