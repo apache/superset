@@ -40,7 +40,8 @@ export default () => {
           `{selectall}{backspace}SELECT ds, gender, name, num FROM main.birth_names LIMIT ${rowLimit}`,
           { force: true },
         )
-        .focus().blur(); // focus + blur required to update the store
+        .focus()
+        .blur(); // focus + blur required to update the store
       cy.get('#js-sql-toolbar button')
         .eq(0)
         .click();
@@ -73,7 +74,8 @@ export default () => {
       cy.get('#brace-editor textarea')
         .clear({ force: true })
         .type(`{selectall}{backspace}${query}`, { force: true })
-        .focus().blur(); // focus + blur required to update the store
+        .focus()
+        .blur(); // focus + blur required to update the store
 
       // ctrl + r also runs query
       cy.get('#brace-editor textarea').type('{ctrl}r', { force: true });
@@ -95,7 +97,8 @@ export default () => {
         .type(`{selectall}{backspace}${savedQueryTitle}`, {
           force: true,
         })
-        .focus().blur(); // focus + blur required to update the store
+        .focus()
+        .blur(); // focus + blur required to update the store
 
       cy.get('.modal-sm .modal-body button')
         .eq(0) // save
