@@ -414,6 +414,7 @@ class CeleryConfig(object):
     CELERY_ACKS_LATE = False
     CELERY_ANNOTATIONS = {
         "sql_lab.get_sql_results": {"rate_limit": "100/s"},
+        "sql_lab.stop_query": {"rate_limit": "100/s"},
         "email_reports.send": {
             "rate_limit": "1/s",
             "time_limit": 120,

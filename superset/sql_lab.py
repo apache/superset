@@ -109,6 +109,25 @@ def get_query(query_id, session):
         raise SqlLabException("Failed at getting query")
 
 
+@celery_app.task(
+    name="sql_lab.stop_query",
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_kwargs={"max_retries": 5, "countdown": 1},
+    on_retry=lambda *args: db.session.rollback(),
+    on_failure=lambda *args: db.session.rollback(),
+)
+def stop_query(ctask, client_id):
+    query = db.session.query(Query).filter_by(client_id=client_id).one()
+    if query.status in [QueryStatus.FAILED, QueryStatus.SUCCESS, QueryStatus.TIMED_OUT]:
+        logging.error(
+            f"Query with client_id {client_id} could not be stopped: query already complete"
+        )
+        return
+    query.status = QueryStatus.STOPPED
+    db.session.commit()
+
+
 @contextmanager
 def session_scope(nullpool):
     """Provide a transactional scope around a series of operations."""

@@ -22,7 +22,6 @@ import re
 from typing import Dict, List, Optional, Union  # noqa: F401
 from urllib import parse
 
-import backoff
 from flask import (
     abort,
     flash,
@@ -2464,30 +2463,9 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/stop_query/", methods=["POST"])
     @event_logger.log_this
-    @backoff.on_exception(
-        backoff.constant,
-        Exception,
-        interval=1,
-        on_backoff=lambda details: db.session.rollback(),
-        on_giveup=lambda details: db.session.rollback(),
-        max_tries=5,
-    )
     def stop_query(self):
         client_id = request.form.get("client_id")
-
-        query = db.session.query(Query).filter_by(client_id=client_id).one()
-        if query.status in [
-            QueryStatus.FAILED,
-            QueryStatus.SUCCESS,
-            QueryStatus.TIMED_OUT,
-        ]:
-            logging.error(
-                f"Query with client_id {client_id} could not be stopped: query already complete"
-            )
-            return self.json_response("OK")
-        query.status = QueryStatus.STOPPED
-        db.session.commit()
-
+        sql_lab.stop_query.delay(client_id)
         return self.json_response("OK")
 
     @has_access_api
