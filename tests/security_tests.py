@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import inspect
-import prison
 import unittest
+
+import prison
 
 from superset import app, appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
