@@ -2641,7 +2641,7 @@ class Superset(BaseSupersetView):
         """Runs arbitrary sql and returns and json"""
         # Collect Values
         database_id: int = int(request.form.get("database_id"))
-        schema: str = request.form.get("schema") or None  # ?
+        schema: str = request.form.get("schema")
         sql: str = request.form.get("sql")
         try:
             template_params: dict = json.loads(request.form.get("templateParams", "{}"))
@@ -2680,8 +2680,6 @@ class Superset(BaseSupersetView):
                 link=security_manager.get_table_access_link(rejected_tables),
                 status=403,
             )
-        # ?
-        session.commit()
 
         # Set tmp_table_name for CTA
         if select_as_cta and mydb.force_ctas_schema:
