@@ -23,9 +23,7 @@ from typing import Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
-import msgpack
 import pandas as pd
-import pyarrow as pa
 import simplejson as json
 from flask import (
     abort,
@@ -109,6 +107,10 @@ from .utils import (
     get_form_data,
     get_viz,
 )
+
+if results_backend_use_msgpack:
+    import msgpack
+    import pyarrow as pa
 
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config["CACHE_DEFAULT_TIMEOUT"]

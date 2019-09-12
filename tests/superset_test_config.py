@@ -57,3 +57,5 @@ class CeleryConfig(object):
 
 
 CELERY_CONFIG = CeleryConfig
+
+RESULTS_BACKEND_USE_MSGPACK = True
