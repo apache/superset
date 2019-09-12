@@ -195,7 +195,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return uri
 
     @classmethod
-    def extract_error_message(cls, e):
+    def _extract_error_message(cls, e):
         msg = str(e)
         match = re.search(r'errorMessage="(.*?)(?<!\\)"', msg)
         if match:

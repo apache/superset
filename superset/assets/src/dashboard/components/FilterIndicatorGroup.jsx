@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
+import { isEmpty } from 'lodash';
 
 import FilterBadgeIcon from '../../components/FilterBadgeIcon';
 import FilterIndicatorTooltip from './FilterIndicatorTooltip';
@@ -42,6 +43,13 @@ class FilterIndicatorGroup extends React.PureComponent {
 
   render() {
     const { indicators } = this.props;
+    const hasFilterFieldActive = indicators.some(
+      indicator => indicator.isFilterFieldActive,
+    );
+    const hasFilterApplied = indicators.some(
+      indicator => !isEmpty(indicator.values),
+    );
+
     return (
       <FilterTooltipWrapper
         tooltip={
@@ -63,9 +71,13 @@ class FilterIndicatorGroup extends React.PureComponent {
           </React.Fragment>
         }
       >
-        <div className="filter-indicator-group">
+        <div
+          className={`filter-indicator-group ${
+            hasFilterFieldActive ? 'active' : ''
+          }`}
+        >
           <div className="color-bar badge-group" />
-          <FilterBadgeIcon />
+          <FilterBadgeIcon colorCode={hasFilterApplied ? 'badge-group' : ''} />
         </div>
       </FilterTooltipWrapper>
     );

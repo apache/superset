@@ -27,7 +27,7 @@ from superset.utils import core as utils
 class SqliteEngineSpec(BaseEngineSpec):
     engine = "sqlite"
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:%S', {col}))",
         "PT1M": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:00', {col}))",

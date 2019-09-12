@@ -34,6 +34,7 @@ describe('FilterIndicatorsContainer', () => {
     filterImmuneSlices: [],
     filterImmuneSliceFields: {},
     setDirectPathToChild: () => {},
+    filterFieldOnFocus: {},
   };
 
   colorMap.getFilterColorKey = jest.fn(() => 'id_column');

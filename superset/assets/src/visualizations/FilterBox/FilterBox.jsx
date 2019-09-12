@@ -64,6 +64,8 @@ const propTypes = {
     metric: PropTypes.number,
   }))),
   onChange: PropTypes.func,
+  onFilterMenuOpen: PropTypes.func,
+  onFilterMenuClose: PropTypes.func,
   showDateFilter: PropTypes.bool,
   showSqlaTimeGrain: PropTypes.bool,
   showSqlaTimeColumn: PropTypes.bool,
@@ -73,6 +75,8 @@ const propTypes = {
 const defaultProps = {
   origSelectedValues: {},
   onChange: () => {},
+  onFilterMenuOpen: () => {},
+  onFilterMenuClose: () => {},
   showDateFilter: false,
   showSqlaTimeGrain: false,
   showSqlaTimeColumn: false,
@@ -90,6 +94,19 @@ class FilterBox extends React.Component {
       hasChanged: false,
     };
     this.changeFilter = this.changeFilter.bind(this);
+    this.onFilterMenuOpen = this.onFilterMenuOpen.bind(this, props.chartId);
+    this.onFilterMenuClose = this.onFilterMenuClose.bind(this);
+    this.onFocus = this.onFilterMenuOpen;
+    this.onBlur = this.onFilterMenuClose;
+    this.onOpenDateFilterControl = this.onFilterMenuOpen.bind(props.chartId, TIME_RANGE);
+  }
+
+  onFilterMenuOpen(chartId, column) {
+    this.props.onFilterMenuOpen(chartId, column);
+  }
+
+  onFilterMenuClose() {
+    this.props.onFilterMenuClose();
   }
 
   getControlData(controlName) {
@@ -150,6 +167,8 @@ class FilterBox extends React.Component {
               label={label}
               description={t('Select start and end date')}
               onChange={(...args) => { this.changeFilter(TIME_RANGE, ...args); }}
+              onOpenDateFilterControl={this.onOpenDateFilterControl}
+              onCloseDateFilterControl={this.onFilterMenuClose}
               value={this.state.selectedValues[TIME_RANGE] || 'No filter'}
             />
           </div>
@@ -256,6 +275,10 @@ class FilterBox extends React.Component {
           return { value: opt.id, label: opt.id, style };
         })}
         onChange={(...args) => { this.changeFilter(key, ...args); }}
+        onFocus={this.onFocus}
+        onBlur={this.onBlur}
+        onOpen={(...args) => { this.onFilterMenuOpen(key, ...args); }}
+        onClose={this.onFilterMenuClose}
         selectComponent={Creatable}
         selectWrap={VirtualizedSelect}
         optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
