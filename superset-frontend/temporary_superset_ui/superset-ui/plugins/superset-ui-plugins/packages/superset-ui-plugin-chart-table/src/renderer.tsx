@@ -1,9 +1,11 @@
+/* eslint-disable complexity */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable no-magic-numbers */
 import React, { CSSProperties } from 'react';
 import { HEIGHT_TO_PX } from '@airbnb/lunar/lib/components/DataTable/constants';
 import { RendererProps } from '@airbnb/lunar/lib/components/DataTable/types';
+import Interweave from '@airbnb/lunar/lib/components/Interweave';
 
 const NEGATIVE_COLOR = '#FFA8A8';
 const POSITIVE_COLOR = '#ced4da';
@@ -51,10 +53,12 @@ export const getRenderer = ({
   const isMetric = column.type === 'metric';
   let Parent;
 
+  const cursorStyle = enableFilter && !isMetric ? 'pointer' : 'default';
+
   const boxStyle: CSSProperties = {
     backgroundColor:
       enableFilter && isSelected({ key: keyName, value }) ? SELECTION_COLOR : undefined,
-    cursor: isMetric ? 'default' : 'pointer',
+    cursor: cursorStyle,
     margin: '0px -16px',
   };
 
@@ -123,7 +127,7 @@ export const getRenderer = ({
             })
       }
     >
-      <Parent>{column.format ? column.format(value) : value}</Parent>
+      <Parent>{column.format ? column.format(value) : <Interweave content={value} />}</Parent>
     </div>
   );
 };
