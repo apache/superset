@@ -17,12 +17,22 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { NVD3TimeSeries } from './sections';
 
 export default {
   requiresTime: true,
   controlPanelSections: [
-    NVD3TimeSeries[0],
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [
+        ['metrics'],
+        ['adhoc_filters'],
+        ['groupby'],
+        ['limit', 'timeseries_limit_metric'],
+        ['order_desc', 'contribution'],
+        ['row_limit', null],
+      ],
+    },
     {
       label: t('Paired t-test'),
       expanded: false,
