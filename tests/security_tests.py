@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import inspect
+import prison
 import unittest
 
 from superset import app, appbuilder, db, security_manager
@@ -70,10 +71,15 @@ class RolePermissionTests(SupersetTestCase):
         databases_json = self.client.get(OLD_FLASK_GET_SQL_DBS_REQUEST).json
         assert databases_json["count"] == 1
 
-        NEW_FLASK_GET_SQL_DBS_REQUEST = (
-            "/api/v1/database/?q=(keys:!(none),filters:!((col:expose_in_sqllab,opr:eq,value:!t)),"
-            "order_columns:database_name,order_direction:asc,page:0,page_size:-1)"
-        )
+        arguments = {
+            "keys": ["none"],
+            "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
+            "order_columns": "database_name",
+            "order_direction": "asc",
+            "page": 0,
+            "page_size": -1,
+        }
+        NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={prison.dumps(arguments)}"
         self.login(username="gamma")
         databases_json = self.client.get(NEW_FLASK_GET_SQL_DBS_REQUEST).json
         assert databases_json["count"] == 1
