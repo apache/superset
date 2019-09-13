@@ -26,10 +26,10 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { now } from '../../modules/dates';
 import {
-  addSuccessToast as addSuccessToastAction,
   addDangerToast as addDangerToastAction,
-  addWarningToast as addWarningToast,
   addInfoToast as addInfoToastAction,
+  addSuccessToast as addSuccessToastAction,
+  addWarningToast as addWarningToastAction,
 } from '../../messageToasts/actions/index';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from '../../utils/errorMessages';
@@ -93,6 +93,7 @@ export const CREATE_DATASOURCE_FAILED = 'CREATE_DATASOURCE_FAILED';
 export const addInfoToast = addInfoToastAction;
 export const addSuccessToast = addSuccessToastAction;
 export const addDangerToast = addDangerToastAction;
+export const addWarningToast = addWarningToastAction;
 
 // a map of SavedQuery field names to the different names used client-side,
 // because for now making the names consistent is too complicated
@@ -210,10 +211,10 @@ export function startQuery(query) {
 
 export function querySuccess(query, results) {
   return function (dispatch) {
-    const sync = (!query.isDataPreview && isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE))
+    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
           endpoint: encodeURI(`/tabstateview/${results.query.sqlEditorId}`),
-          postPayload: { query_id: results.query_id },
+          postPayload: { latest_query_id: query.id },
         })
       : Promise.resolve();
 
@@ -221,16 +222,27 @@ export function querySuccess(query, results) {
       .then(() => dispatch({ type: QUERY_SUCCESS, query, results }))
       .catch(() =>
         dispatch(addDangerToast(t(
-          'An error occurred while storing your query in the backend. To ' +
-          'avoid losing your changes, please save your query using the ' +
-          '"Save Query" button.'
-        ))),
-      );
+          'An error occurred while storing the latest query id in the backend. ' +
+          'Please contact your administrator if this problem persists.'))));
   };
 }
 
 export function queryFailed(query, msg, link) {
-  return { type: QUERY_FAILED, query, msg, link };
+  return function (dispatch) {
+    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? SupersetClient.put({
+          endpoint: encodeURI(`/tabstateview/${query.sqlEditorId}`),
+          postPayload: { latest_query_id: query.id },
+        })
+      : Promise.resolve();
+
+    return sync
+      .then(() => dispatch({ type: QUERY_FAILED, query, msg, link }))
+      .catch(() =>
+        dispatch(addDangerToast(t(
+          'An error occurred while storing the latest query id in the backend. ' +
+          'Please contact your administrator if this problem persists.'))));
+  };
 }
 
 export function stopQuery(query) {
@@ -299,7 +311,7 @@ export function runQuery(query) {
       .then(({ text = '{}' }) => {
         if (!query.runAsync) {
           const bigIntJson = JSONbig.parse(text);
-          dispatch(querySuccess(query, bigIntJson));
+          dispatch(querySuccess(query, bigIntJson)); // XXX update latest_query_id
         }
       })
       .catch(response =>
@@ -308,7 +320,7 @@ export function runQuery(query) {
           if (message.includes('CSRF token')) {
             message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
           }
-          dispatch(queryFailed(query, message, error.link));
+          dispatch(queryFailed(query, message, error.link));  // XXX update latest_query_id
         }),
       );
   };
@@ -379,8 +391,7 @@ function migrateTable(table, queryEditorId, dispatch) {
     })
     .catch(() => dispatch(addWarningToast(t(
       'Unable to migrate table schema state to backend. Superset will retry ' +
-      'later. Please contact your administrator if this problem persists.'
-    ))));
+      'later. Please contact your administrator if this problem persists.'))));
 }
 
 function migrateQuery(queryId, queryEditorId, dispatch) {
@@ -391,8 +402,7 @@ function migrateQuery(queryId, queryEditorId, dispatch) {
     .then(() => dispatch({ type: MIGRATE_QUERY, queryId, queryEditorId }))
     .catch(() => dispatch(addWarningToast(t(
       'Unable to migrate query state to backend. Superset will retry later. ' +
-      'Please contact your administrator if this problem persists.'
-    ))));
+      'Please contact your administrator if this problem persists.'))));
 }
 
 export function migrateQueryEditorFromLocalStorage(queryEditor, tables, queries) {
@@ -412,8 +422,7 @@ export function migrateQueryEditorFromLocalStorage(queryEditor, tables, queries)
       })
       .catch(() => dispatch(addWarningToast(t(
         'Unable to migrate query editor state to backend. Superset will retry ' +
-        'later. Please contact your administrator if this problem persists.'
-      ))));
+        'later. Please contact your administrator if this problem persists.'))));
   };
 }
 
@@ -432,8 +441,7 @@ export function addQueryEditor(queryEditor) {
         return dispatch({ type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor });
       })
       .catch(() => dispatch(addDangerToast(t(
-        'Unable to add a new tab to the backend. Please contact your administrator.'
-      ))));
+        'Unable to add a new tab to the backend. Please contact your administrator.'))));
   };
 }
 
@@ -515,14 +523,14 @@ export function switchQueryEditor(queryEditor) {
             id: json.id.toString(),
             loaded: true,
             title: json.label,
-            sql: json.query.sql,
+            sql: json.sql,
             selectedText: null,
-            latestQueryId: json.query.id,
+            latestQueryId: json.latest_query_id,
             autorun: json.autorun,
             dbId: json.database_id,
             templateParams: json.template_params,
             schema: json.schema,
-            queryLimit: json.queryLimit,
+            queryLimit: json.query_limit,
             validationResult: {
               id: null,
               errors: [],
@@ -561,8 +569,7 @@ export function removeQueryEditor(queryEditor) {
       )
       .catch(() =>
         dispatch(addDangerToast(t(
-          'An error occurred while removing tab. Please contact your administrator.'
-        ))),
+          'An error occurred while removing tab. Please contact your administrator.'))),
       );
   };
 }
@@ -584,8 +591,7 @@ export function queryEditorSetDb(queryEditor, dbId) {
       .then(() => dispatch({ type: QUERY_EDITOR_SETDB, queryEditor, dbId }))
       .catch(() =>
         dispatch(addDangerToast(t(
-          'An error occurred while setting the tab database ID. Please contact your administrator.'
-        ))),
+          'An error occurred while setting the tab database ID. Please contact your administrator.'))),
       );
   };
 }
@@ -603,8 +609,7 @@ export function queryEditorSetSchema(queryEditor, schema) {
       .then(() => dispatch({ type: QUERY_EDITOR_SET_SCHEMA, queryEditor, schema }))
       .catch(() =>
         dispatch(addDangerToast(t(
-          'An error occurred while setting the tab schema. Please contact your administrator.'
-        ))),
+          'An error occurred while setting the tab schema. Please contact your administrator.'))),
       );
   };
 }
@@ -630,8 +635,7 @@ export function queryEditorSetAutorun(queryEditor, autorun) {
       .then(() => dispatch({ type: QUERY_EDITOR_SET_AUTORUN, queryEditor, autorun }))
       .catch(() =>
         dispatch(addDangerToast(t(
-          'An error occurred while setting the tab autorun. Please contact your administrator.'
-        ))),
+          'An error occurred while setting the tab autorun. Please contact your administrator.'))),
       );
   };
 }
@@ -649,8 +653,7 @@ export function queryEditorSetTitle(queryEditor, title) {
       .then(() => dispatch({ type: QUERY_EDITOR_SET_TITLE, queryEditor, title }))
       .catch(() =>
         dispatch(addDangerToast(t(
-          'An error occurred while setting the tab title. Please contact your administrator.'
-        ))),
+          'An error occurred while setting the tab title. Please contact your administrator.'))),
       );
   };
 }
@@ -659,7 +662,7 @@ export function queryEditorSetSql(queryEditor, sql) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
-          endpoint: encodeURI(`/tabstateview/${queryEditor.id}/query`),
+          endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
           postPayload: { sql },
         })
       : Promise.resolve();
@@ -668,8 +671,9 @@ export function queryEditorSetSql(queryEditor, sql) {
       .then(() => dispatch({ type: QUERY_EDITOR_SET_SQL, queryEditor, sql }))
       .catch(() =>
         dispatch(addDangerToast(t(
-          'An error occurred while setting the tab SQL. Please contact your administrator.'
-        ))),
+          'An error occurred while storing your query in the backend. To ' +
+          'avoid losing your changes, please save your query using the ' +
+          '"Save Query" button.'))),
       );
   };
 }
@@ -687,8 +691,7 @@ export function queryEditorSetQueryLimit(queryEditor, queryLimit) {
       .then(() => dispatch({ type: QUERY_EDITOR_SET_QUERY_LIMIT, queryEditor, queryLimit }))
       .catch(() =>
         dispatch(addDangerToast(t(
-          'An error occurred while setting the tab title. Please contact your administrator.'
-        ))),
+          'An error occurred while setting the tab title. Please contact your administrator.'))),
       );
   };
 }
@@ -707,8 +710,7 @@ export function queryEditorSetTemplateParams(queryEditor, templateParams) {
       .catch(() =>
         dispatch(addDangerToast(t(
           'An error occurred while setting the tab template parameters. ' +
-          'Please contact your administrator.'
-        ))),
+          'Please contact your administrator.'))),
       );
   };
 }
@@ -734,7 +736,6 @@ function getTableMetadata(table, query, dispatch) {
         tab: '',
         runAsync: false,
         ctas: false,
-        isDataPreview: true,
       };
       const newTable = {
         ...table,
@@ -814,8 +815,8 @@ export function addTable(query, tableName, schemaName) {
           )
           .catch(() =>
             dispatch(addDangerToast(t(
-              'An error occurred while fetching table metadata. Please contact your administrator.'
-            ))),
+              'An error occurred while fetching table metadata. ' +
+              'Please contact your administrator.'))),
           );
       });
   };
@@ -837,7 +838,6 @@ export function reFetchQueryResults(query) {
       runAsync: false,
       ctas: false,
       queryLimit: query.queryLimit,
-      isDataPreview: query.isDataPreview,
     };
     dispatch(runQuery(newQuery));
     dispatch(changeDataPreviewId(query.id, newQuery));
@@ -857,8 +857,8 @@ export function expandTable(table) {
       .then(() => dispatch({ type: EXPAND_TABLE, table }))
       .catch(() =>
         dispatch(addDangerToast(t(
-          'An error occurred while expanding the table schema. Please contact your administrator.'
-        ))),
+          'An error occurred while expanding the table schema. ' +
+          'Please contact your administrator.'))),
       );
   };
 }
@@ -876,8 +876,8 @@ export function collapseTable(table) {
       .then(() => dispatch({ type: COLLAPSE_TABLE, table }))
       .catch(() =>
         dispatch(addDangerToast(t(
-          'An error occurred while collapsing the table schema. Please contact your administrator.'
-        ))),
+          'An error occurred while collapsing the table schema. ' +
+          'Please contact your administrator.'))),
       );
   };
 }
@@ -892,8 +892,8 @@ export function removeTable(table) {
       .then(() => dispatch({ type: REMOVE_TABLE, table }))
       .catch(() =>
         dispatch(addDangerToast(t(
-          'An error occurred while removing the table schema. Please contact your administrator.'
-        ))),
+          'An error occurred while removing the table schema. ' +
+          'Please contact your administrator.'))),
       );
   };
 }

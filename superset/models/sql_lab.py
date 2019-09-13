@@ -210,9 +210,9 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     )
 
     # the query in the textarea, and results (if any)
-    query_id = Column(Integer, ForeignKey("query.id"))
-    query = relationship("Query")
+    sql = Column(Text)
     query_limit = Column(Integer)
+    latest_query_id = Column(Integer, ForeignKey("query.id"))
 
     # other properties
     autorun = Column(Boolean, default=False)
@@ -227,8 +227,9 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             "database_id": self.database_id,
             "schema": self.schema,
             "table_schemas": [ts.to_dict() for ts in self.table_schemas],
-            "query": self.query.to_dict(),
+            "sql": self.sql,
             "query_limit": self.query_limit,
+            "latest_query_id": self.latest_query_id,
             "autorun": self.autorun,
             "template_params": self.template_params,
         }

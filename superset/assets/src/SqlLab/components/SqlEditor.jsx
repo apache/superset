@@ -280,6 +280,7 @@ class SqlEditor extends React.PureComponent {
       queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
       runAsync: this.props.database ? this.props.database.allow_run_async : false,
       ctas,
+      updateTabState: !qe.selectedText,
     };
     this.props.actions.runQuery(query);
     this.props.actions.setActiveSouthPaneTab('Results');
