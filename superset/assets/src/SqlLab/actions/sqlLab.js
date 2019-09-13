@@ -395,8 +395,8 @@ function migrateTable(table, queryEditorId, dispatch) {
 }
 
 function migrateQuery(queryId, queryEditorId, dispatch) {
-  return SupersetClient.put({
-    endpoint: encodeURI(`/tabstateview/${queryEditorId}/query`),
+  return SupersetClient.post({
+    endpoint: encodeURI(`/tabstateview/${queryEditorId}/migrate_query`),
     postPayload: { queryId },
   })
     .then(() => dispatch({ type: MIGRATE_QUERY, queryId, queryEditorId }))
@@ -577,7 +577,22 @@ export function removeQueryEditor(queryEditor) {
 }
 
 export function removeQuery(query) {
-  return { type: REMOVE_QUERY, query };
+  return function (dispatch) {
+    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? SupersetClient.delete({
+        endpoint: encodeURI(`/tabstateview/${query.sqlEditorId}/query/${query.id}`),
+      })
+      : Promise.resolve();
+
+    return sync
+      .then(() =>
+        dispatch({ type: REMOVE_QUERY, query }),
+      )
+      .catch(() =>
+        dispatch(addDangerToast(t(
+          'An error occurred while removing query. Please contact your administrator.'))),
+      );
+  };
 }
 
 export function queryEditorSetDb(queryEditor, dbId) {
