@@ -395,8 +395,8 @@ function migrateTable(table, queryEditorId, dispatch) {
 }
 
 function migrateQuery(queryId, queryEditorId, dispatch) {
-  return SupersetClient.post({
-    endpoint: encodeURI(`/tabstateview/${queryEditorId}/migrate_query`),
+  return SupersetClient.put({
+    endpoint: encodeURI(`/tabstateview/${queryEditorId}/query`),
     postPayload: { queryId },
   })
     .then(() => dispatch({ type: MIGRATE_QUERY, queryId, queryEditorId }))
@@ -447,7 +447,8 @@ export function addQueryEditor(queryEditor) {
 
 export function cloneQueryToNewTab(query) {
   return function (dispatch, getState) {
-    const { queryEditors, tabHistory } = getState();
+    const state = getState();
+    const { queryEditors, tabHistory } = state.sqlLab;
     const sourceQueryEditor = queryEditors.find(qe => qe.id === tabHistory[tabHistory.length - 1]);
     const queryEditor = {
       title: t('Copy of %s', sourceQueryEditor.title),
@@ -455,10 +456,11 @@ export function cloneQueryToNewTab(query) {
       schema: query.schema ? query.schema : null,
       autorun: true,
       sql: query.sql,
-      queryLimit: query.queryLimit,
-      maxRow: query.maxRow,
+      queryLimit: sourceQueryEditor.queryLimit,
+      maxRow: sourceQueryEditor.maxRow,
     };
-    return dispatch({ type: ADD_QUERY_EDITOR, queryEditor });
+    console.log(query, queryEditor);
+    return dispatch(addQueryEditor(queryEditor));
   };
 }
 
