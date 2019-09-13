@@ -774,7 +774,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.db_engine_spec.allows_subqueries
 
     @property
-    def allows_cost_estimate(self):
+    def allows_cost_estimate(self) -> bool:
         extra = self.get_extra()
         database_version = extra.get('version')
         cost_estimate_enabled = extra.get('cost_estimate_enabled')

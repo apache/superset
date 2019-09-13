@@ -150,7 +150,7 @@ class BaseEngineSpec:
     try_remove_schema_from_table_name = True
 
     @classmethod
-    def get_allow_cost_estimate(cls, version=None):
+    def get_allow_cost_estimate(cls, version: str = None) -> bool:
         return False
 
     @classmethod

@@ -63,7 +63,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def get_allow_cost_estimate(cls, version=None):
+    def get_allow_cost_estimate(cls, version: str = None) -> bool:
         return version and StrictVersion(version) >= StrictVersion("0.319")
 
     @classmethod
@@ -392,7 +392,6 @@ class PrestoEngineSpec(BaseEngineSpec):
         :param cursor: Cursor instance
         :param username: Effective username
         """
-        db_engine_spec = database.db_engine_spec
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
 
@@ -401,12 +400,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
 
         sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {sql}"
-
-        db_engine_spec.execute(cursor, sql)
-        polled = cursor.poll()
-        while polled:
-            time.sleep(0.2)
-            polled = cursor.poll()
+        cursor.execute(sql)
 
         # the output from Presto is a single column and a single row containing
         # JSON:
@@ -421,14 +415,14 @@ class PrestoEngineSpec(BaseEngineSpec):
         #       "networkCost" : 3.41425774958E11
         #     }
         #   }
-        data = db_engine_spec.fetch_data(cursor, 1)
-        first = data[0][0]
-        result = json.loads(first)
+        result = json.loads(cursor.fetchone()[0])
         estimate = result["estimate"]
 
-        def humanize(value, suffix):
-            if value == "NaN":
-                return value
+        def humanize(value: Any, suffix: str) -> str:
+            try:
+                value = int(value)
+            except ValueError:
+                return str(value)
 
             prefixes = ["K", "M", "G", "T", "P", "E", "Z", "Y"]
             prefix = ""

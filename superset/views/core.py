@@ -2400,7 +2400,7 @@ class Superset(BaseSupersetView):
     @expose("/estimate_query_cost/<database_id>/", methods=["POST"])
     @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])
     @event_logger.log_this
-    def estimate_query_cost(self, database_id, schema=None):
+    def estimate_query_cost(self, database_id: int, schema: str = None) -> Response:
         mydb = db.session.query(models.Database).filter_by(id=database_id).first()
 
         sql = json.loads(request.form.get("sql"))
