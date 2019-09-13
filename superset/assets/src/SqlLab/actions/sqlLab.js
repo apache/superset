@@ -211,7 +211,7 @@ export function startQuery(query) {
 
 export function querySuccess(query, results) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const sync = (!query.isDataPreview && isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE))
       ? SupersetClient.put({
           endpoint: encodeURI(`/tabstateview/${results.query.sqlEditorId}`),
           postPayload: { latest_query_id: query.id },
@@ -229,7 +229,7 @@ export function querySuccess(query, results) {
 
 export function queryFailed(query, msg, link) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const sync = (!query.isDataPreview && isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE))
       ? SupersetClient.put({
           endpoint: encodeURI(`/tabstateview/${query.sqlEditorId}`),
           postPayload: { latest_query_id: query.id },
@@ -311,7 +311,7 @@ export function runQuery(query) {
       .then(({ text = '{}' }) => {
         if (!query.runAsync) {
           const bigIntJson = JSONbig.parse(text);
-          dispatch(querySuccess(query, bigIntJson)); // XXX update latest_query_id
+          dispatch(querySuccess(query, bigIntJson));
         }
       })
       .catch(response =>
@@ -320,7 +320,7 @@ export function runQuery(query) {
           if (message.includes('CSRF token')) {
             message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
           }
-          dispatch(queryFailed(query, message, error.link));  // XXX update latest_query_id
+          dispatch(queryFailed(query, message, error.link));
         }),
       );
   };
@@ -525,7 +525,7 @@ export function switchQueryEditor(queryEditor) {
             title: json.label,
             sql: json.sql,
             selectedText: null,
-            latestQueryId: json.latest_query_id,
+            latestQueryId: json.latest_query ? json.latest_query.id : null,
             autorun: json.autorun,
             dbId: json.database_id,
             templateParams: json.template_params,
@@ -540,8 +540,8 @@ export function switchQueryEditor(queryEditor) {
           dispatch(loadQueryEditor(loadedQueryEditor));
           dispatch(setTables(json.table_schemas || []));
           dispatch(setActiveQueryEditor(loadedQueryEditor));
-          if (json.query.resultsKey) {
-            dispatch(fetchQueryResults(json.query));
+          if (json.latest_query.resultsKey) {
+            dispatch(fetchQueryResults(json.latest_query));
           }
         })
         .catch(() =>
@@ -736,6 +736,7 @@ function getTableMetadata(table, query, dispatch) {
         tab: '',
         runAsync: false,
         ctas: false,
+        isDataPreview: true,
       };
       const newTable = {
         ...table,
@@ -838,6 +839,7 @@ export function reFetchQueryResults(query) {
       runAsync: false,
       ctas: false,
       queryLimit: query.queryLimit,
+      isDataPreview: query.isDataPreview,
     };
     dispatch(runQuery(newQuery));
     dispatch(changeDataPreviewId(query.id, newQuery));

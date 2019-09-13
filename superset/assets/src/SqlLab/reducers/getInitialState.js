@@ -55,21 +55,22 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   /* Load state from the backend. This will be empty if the feature flag
    * `SQLLAB_BACKEND_PERSISTENCE` is off.
    */
+  const activeTab = restBootstrapData.active_tab;
   restBootstrapData.tab_state_ids.forEach(({ id, label }) => {
     let queryEditor;
-    if (restBootstrapData.active_tab && restBootstrapData.active_tab.id === id) {
+    if (activeTab && activeTab.id === id) {
       queryEditor = {
         id: id.toString(),
         loaded: true,
-        title: restBootstrapData.active_tab.label,
-        sql: restBootstrapData.active_tab.sql,
+        title: activeTab.label,
+        sql: activeTab.sql,
         selectedText: null,
-        latestQueryId: restBootstrapData.active_tab.latest_query_id,
-        autorun: restBootstrapData.active_tab.autorun,
-        templateParams: restBootstrapData.active_tab.template_params,
-        dbId: restBootstrapData.active_tab.database_id,
-        schema: restBootstrapData.active_tab.schema,
-        queryLimit: restBootstrapData.active_tab.query_limit,
+        latestQueryId: activeTab.latest_query ? activeTab.latest_query.id : null,
+        autorun: activeTab.autorun,
+        templateParams: activeTab.template_params,
+        dbId: activeTab.database_id,
+        schema: activeTab.schema,
+        queryLimit: activeTab.query_limit,
         validationResult: {
           id: null,
           errors: [],
@@ -88,13 +89,11 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     queryEditors.push(queryEditor);
   });
 
-  const tabHistory = restBootstrapData.active_tab
-    ? [restBootstrapData.active_tab.id.toString()]
-    : [];
+  const tabHistory = activeTab ? [activeTab.id.toString()] : [];
 
   const tables = [];
-  if (restBootstrapData.active_tab) {
-    restBootstrapData.active_tab.table_schemas.forEach((tableSchema) => {
+  if (activeTab) {
+    activeTab.table_schemas.forEach((tableSchema) => {
       const {
         columns,
         selectStar,

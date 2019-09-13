@@ -235,7 +235,7 @@ export default class ResultSet extends React.PureComponent {
           bsSize="sm"
           className="fetch"
           bsStyle="primary"
-          onClick={this.reFetchQueryResults.bind(this, query)}
+          onClick={this.reFetchQueryResults.bind(this, { ...query, isDataPreview: true })}
         >
           {t('Fetch data preview')}
         </Button>
