@@ -660,7 +660,7 @@ class BaseEngineSpec:
         :param cursor: Cursor instance
         :param username: Effective username
         """
-        raise NotImplementedError("Subclasses should implement estimate_query_cost")
+        raise NotImplementedError("Subclasses should implement estimate_statement_cost")
 
     @classmethod
     def estimate_query_cost(

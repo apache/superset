@@ -404,7 +404,6 @@ class SqlEditor extends React.PureComponent {
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
-    console.log(this.props.database);
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div>
