@@ -449,41 +449,41 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals({"SalesOrderHeader"}, self.extract_tables(query))
 
     def test_get_query_with_new_limit_comment(self):
-        sql = "SELECT * FROM ab_user -- SOME COMMENT"
+        sql = "SELECT * FROM birth_names -- SOME COMMENT"
         parsed = sql_parse.ParsedQuery(sql)
         newsql = parsed.get_query_with_new_limit(1000)
         self.assertEquals(newsql, sql + "\nLIMIT 1000")
 
     def test_get_query_with_new_limit_comment_with_limit(self):
-        sql = "SELECT * FROM ab_user -- SOME COMMENT WITH LIMIT 555"
+        sql = "SELECT * FROM birth_names -- SOME COMMENT WITH LIMIT 555"
         parsed = sql_parse.ParsedQuery(sql)
         newsql = parsed.get_query_with_new_limit(1000)
         self.assertEquals(newsql, sql + "\nLIMIT 1000")
 
     def test_get_query_with_new_limit(self):
-        sql = "SELECT * FROM ab_user LIMIT 555"
+        sql = "SELECT * FROM birth_names LIMIT 555"
         parsed = sql_parse.ParsedQuery(sql)
         newsql = parsed.get_query_with_new_limit(1000)
-        expected = "SELECT * FROM ab_user LIMIT 1000"
+        expected = "SELECT * FROM birth_names LIMIT 1000"
         self.assertEquals(newsql, expected)
 
     def test_basic_breakdown_statements(self):
         multi_sql = """
-        SELECT * FROM ab_user;
-        SELECT * FROM ab_user LIMIT 1;
+        SELECT * FROM birth_names;
+        SELECT * FROM birth_names LIMIT 1;
         """
         parsed = sql_parse.ParsedQuery(multi_sql)
         statements = parsed.get_statements()
         self.assertEquals(len(statements), 2)
-        expected = ["SELECT * FROM ab_user", "SELECT * FROM ab_user LIMIT 1"]
+        expected = ["SELECT * FROM birth_names", "SELECT * FROM birth_names LIMIT 1"]
         self.assertEquals(statements, expected)
 
     def test_messy_breakdown_statements(self):
         multi_sql = """
         SELECT 1;\t\n\n\n  \t
         \t\nSELECT 2;
-        SELECT * FROM ab_user;;;
-        SELECT * FROM ab_user LIMIT 1
+        SELECT * FROM birth_names;;;
+        SELECT * FROM birth_names LIMIT 1
         """
         parsed = sql_parse.ParsedQuery(multi_sql)
         statements = parsed.get_statements()
@@ -491,8 +491,8 @@ class SupersetTestCase(unittest.TestCase):
         expected = [
             "SELECT 1",
             "SELECT 2",
-            "SELECT * FROM ab_user",
-            "SELECT * FROM ab_user LIMIT 1",
+            "SELECT * FROM birth_names",
+            "SELECT * FROM birth_names LIMIT 1",
         ]
         self.assertEquals(statements, expected)
 

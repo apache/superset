@@ -28,7 +28,6 @@ from flask_compress import Compress
 from flask_migrate import Migrate
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
-from werkzeug.contrib.fixers import ProxyFix
 import wtforms_json
 
 from superset import config
@@ -139,7 +138,9 @@ if app.config.get("ENABLE_CORS"):
     CORS(app, **app.config.get("CORS_OPTIONS"))
 
 if app.config.get("ENABLE_PROXY_FIX"):
-    app.wsgi_app = ProxyFix(app.wsgi_app)
+    from werkzeug.middleware.proxy_fix import ProxyFix
+
+    app.wsgi_app = ProxyFix(app.wsgi_app, **app.config.get("PROXY_FIX_CONFIG"))
 
 if app.config.get("ENABLE_CHUNK_ENCODING"):
 
@@ -221,9 +222,11 @@ def is_feature_enabled(feature):
 if conf.get("ENABLE_FLASK_COMPRESS"):
     Compress(app)
 
+
+talisman = Talisman()
+
 if app.config["TALISMAN_ENABLED"]:
-    talisman_config = app.config.get("TALISMAN_CONFIG")
-    Talisman(app, **talisman_config)
+    talisman.init_app(app, **app.config["TALISMAN_CONFIG"])
 
 # Hook that provides administrators a handle on the Flask APP
 # after initialization
