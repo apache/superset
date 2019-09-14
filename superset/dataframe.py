@@ -98,7 +98,7 @@ class SupersetDataFrame(object):
         self.column_names = column_names
 
         if dtype:
-            # convert each row in data into a Series of the proper dtype; we
+            # convert each column in data into a Series of the proper dtype; we
             # need to do this because we can not specify a mixed dtype when
             # instantiating the DataFrame, and this allows us to have different
             # dtypes for each column.
