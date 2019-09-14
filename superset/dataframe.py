@@ -205,7 +205,7 @@ class SupersetDataFrame(object):
         if (
             hasattr(dtype, "type")
             and issubclass(dtype.type, np.generic)
-            and np.issubdtype(dtype, np.number)
+            and dtype._is_numeric
         ):
             return "sum"
         return None
