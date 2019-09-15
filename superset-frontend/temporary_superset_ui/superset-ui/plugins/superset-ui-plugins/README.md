@@ -10,6 +10,10 @@
 These packages are extracted with minimal changes (almost as-is). They also depend on legacy API (`viz.py`) to function.
 
 `@superset-ui/plugin-*` packages are newer and has higher quality in general.
+A key difference that they do not depend on `viz.py`
+(which contain visualization-specific python code) and interface with
+`/api/v1/query/` instead: a new generic endpoint instead meant to
+serve all visualizations.
 
 We are not accepting pull requests for new community-contributed plugins to be merged into this repository at the moment.
 We will keep it lean for now to improve the standard and reduce operational load on maintenance.
