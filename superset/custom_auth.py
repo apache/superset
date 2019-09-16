@@ -16,7 +16,6 @@ class CustomAuthDBView(AuthDBView):
         redirect_url = self.appbuilder.get_url_for_index
         user_role = 'gamma'
         try:
-            print('Intry')
             if request.args.get('redirect') is not None:
                 redirect_url = request.args.get('redirect')
 
