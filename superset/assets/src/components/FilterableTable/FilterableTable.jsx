@@ -223,7 +223,7 @@ export default class FilterableTable extends PureComponent {
         const cellValue = row[key];
         if (typeof cellValue === 'string') {
           values.push(cellValue.toLowerCase());
-        } else if (typeof cellValue.toString === 'function') {
+        } else if (cellValue !== null && typeof cellValue.toString === 'function') {
           values.push(cellValue.toString());
         }
       }
