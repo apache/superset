@@ -9,6 +9,15 @@ from json import loads
 from os import environ
 
 
+def has_resource_access(privileges):
+    for config in privileges['level']['tenant']['tenants']:
+        if config['tenant'] == environ['TENANT']:
+            for resource in config['tenant']['resources']:
+                if resource['name'] == 'SOLUTION MANAGER':
+                    return True
+    return False
+
+
 class CustomAuthDBView(AuthDBView):
 
     @expose('/login/', methods=['GET'])
@@ -31,6 +40,11 @@ class CustomAuthDBView(AuthDBView):
                     raise Exception('Tenant mismatch in token')
                 if auth_response['role'] in ['tenantManager', 'tenantAdmin']:
                     user_role = 'admin'
+                else:
+                    privileges = loads(auth_response['privileges'])
+                    if not has_resource_access(privileges):
+                        raise Exception('Insufficient Resource Permissions')
+
                 user = self.appbuilder.sm.find_user(user_role)
                 login_user(user, remember=False)
                 return redirect(redirect_url)

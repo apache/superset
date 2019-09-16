@@ -269,7 +269,7 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # IMG_SIZE = (300, 200, True)
 
 CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24
-CACHE_CONFIG = = {
+CACHE_CONFIG = {
     'CACHE_TYPE': 'redis',
     'CACHE_DEFAULT_TIMEOUT': 300,
     'CACHE_KEY_PREFIX': '{}_superset_'.format(TENANT),
