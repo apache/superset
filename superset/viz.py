@@ -2765,6 +2765,15 @@ class PartitionViz(NVD3TimeSeriesViz):
         return self.nest_values(levels)
 
 
+class EchartsScatter(BubbleViz):
+
+    """Based on the NVD3 bubble chart"""
+
+    viz_type = "echarts_scatter"
+    verbose_name = _("Bubble Chart")
+    is_timeseries = False
+
+
 viz_types = {
     o.viz_type: o
     for o in globals().values()

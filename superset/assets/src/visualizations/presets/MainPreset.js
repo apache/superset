@@ -26,6 +26,7 @@ import ForceDirectedChartPlugin from '@superset-ui/legacy-plugin-chart-force-dir
 import HeatmapChartPlugin from '@superset-ui/legacy-plugin-chart-heatmap';
 import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
 import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
+import EchartsScatterChartPlugin from '@superset-ui/superset-ui-plugin-echarts-scatter/src';
 import IframeChartPlugin from '@superset-ui/legacy-plugin-chart-iframe';
 import MapBoxChartPlugin from '@superset-ui/legacy-plugin-chart-map-box';
 import MarkupChartPlugin from '@superset-ui/legacy-plugin-chart-markup';
@@ -102,6 +103,7 @@ export default class MainPreset extends Preset {
         new TreemapChartPlugin().configure({ key: 'treemap' }),
         new WordCloudChartPlugin().configure({ key: 'word_cloud' }),
         new WorldMapChartPlugin().configure({ key: 'world_map' }),
+        new EchartsScatterChartPlugin().configure({ key: 'echarts_scatter' }),
       ],
     });
   }

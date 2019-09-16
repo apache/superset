@@ -30,6 +30,7 @@ import BigNumber from './BigNumber';
 import BigNumberTotal from './BigNumberTotal';
 import BoxPlot from './BoxPlot';
 import Bubble from './Bubble';
+import EchartsScatter from './EchartsScatter';
 import Bullet from './Bullet';
 import CalHeatmap from './CalHeatmap';
 import Chord from './Chord';
@@ -80,6 +81,7 @@ export const controlPanelConfigs = extraOverrides({
   big_number_total: BigNumberTotal,
   box_plot: BoxPlot,
   bubble: Bubble,
+  echarts_scatter: EchartsScatter,
   bullet: Bullet,
   cal_heatmap: CalHeatmap,
   chord: Chord,
