@@ -65,4 +65,4 @@ RUN chmod +x docker_entrypoint.sh
 
 EXPOSE 8088
 
-ENTRYPOINT ["/docker_entrypoint.sh"]
+CMD ["./docker_entrypoint.sh"]
