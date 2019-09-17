@@ -33,6 +33,7 @@ import {
   UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
   SET_DIRECT_PATH,
+  SET_FOCUSED_FILTER_FIELD,
 } from '../actions/dashboardState';
 import { BUILDER_PANE_TYPE } from '../util/constants';
 
@@ -126,6 +127,22 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         directPathToChild: action.path,
+        directPathLastUpdated: Date.now(),
+      };
+    },
+    [SET_FOCUSED_FILTER_FIELD]() {
+      const { focusedFilterField } = state;
+      if (action.chartId && action.column) {
+        focusedFilterField.push({
+          chartId: action.chartId,
+          column: action.column,
+        });
+      } else {
+        focusedFilterField.shift();
+      }
+      return {
+        ...state,
+        focusedFilterField,
       };
     },
   };

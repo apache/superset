@@ -18,6 +18,7 @@ import numpy as np
 
 from superset.dataframe import dedup, SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
+from superset.db_engine_specs.presto import PrestoEngineSpec
 from .base_tests import SupersetTestCase
 
 
@@ -108,3 +109,23 @@ class SupersetDataFrameTestCase(SupersetTestCase):
         cursor_descr = (("a", "string"), ("a", "string"))
         cdf = SupersetDataFrame(data, cursor_descr, BaseEngineSpec)
         self.assertListEqual(cdf.column_names, ["a", "a__1"])
+
+    def test_int64_with_missing_data(self):
+        data = [(None,), (1239162456494753670,), (None,), (None,), (None,), (None,)]
+        cursor_descr = [("user_id", "bigint", None, None, None, None, True)]
+
+        # the base engine spec does not provide a dtype based on the cursor
+        # description, so the column is inferred as float64 because of the
+        # missing data
+        cdf = SupersetDataFrame(data, cursor_descr, BaseEngineSpec)
+        np.testing.assert_array_equal(
+            cdf.raw_df.values.tolist(),
+            [[np.nan], [1.2391624564947538e18], [np.nan], [np.nan], [np.nan], [np.nan]],
+        )
+
+        # currently only Presto provides a dtype based on the cursor description
+        cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
+        np.testing.assert_array_equal(
+            cdf.raw_df.values.tolist(),
+            [[np.nan], [1239162456494753670], [np.nan], [np.nan], [np.nan], [np.nan]],
+        )

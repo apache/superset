@@ -27,7 +27,11 @@ export default function transformProps(chartProps) {
     queryData,
     rawDatasource,
   } = chartProps;
-  const { onAddFilter = NOOP } = hooks;
+  const {
+    onAddFilter = NOOP,
+    onFilterMenuOpen =  NOOP,
+    onFilterMenuClose = NOOP,
+  } = hooks;
   const {
     sliceId,
     dateFilter,
@@ -53,6 +57,8 @@ export default function transformProps(chartProps) {
     filtersFields,
     instantFiltering,
     onChange: onAddFilter,
+    onFilterMenuOpen,
+    onFilterMenuClose,
     origSelectedValues: initialValues || {},
     showDateFilter: dateFilter,
     showDruidTimeGrain: showDruidTimeGranularity,

@@ -200,7 +200,6 @@ class SupersetSecurityManager(SecurityManager):
         :param database: The Superset database
         :returns: Whether the user can access the Superset database
         """
-
         return (
             self.all_datasource_access()
             or self.all_database_access()
@@ -269,9 +268,9 @@ class SupersetSecurityManager(SecurityManager):
         :param tables: The list of denied SQL table names
         :returns: The error message
         """
-
-        return f"""You need access to the following tables: {", ".join(tables)}, all
-            database access or `all_datasource_access` permission"""
+        quoted_tables = [f"`{t}`" for t in tables]
+        return f"""You need access to the following tables: {", ".join(quoted_tables)},
+            `all_database_access` or `all_datasource_access` permission"""
 
     def get_table_access_link(self, tables: List[str]) -> Optional[str]:
         """
@@ -535,10 +534,6 @@ class SupersetSecurityManager(SecurityManager):
         metrics: List[BaseMetric] = []
         for datasource_class in ConnectorRegistry.sources.values():
             metrics += list(db.session.query(datasource_class.metric_class).all())
-
-        for metric in metrics:
-            if metric.is_restricted:
-                merge_pv("metric_access", metric.perm)
 
     def clean_perms(self) -> None:
         """

@@ -66,6 +66,8 @@
 @iterations: length(@badge-colors);
 .badge-loop (@i) when (@i > 0) {
   .filter-badge.badge-@{i},
+  .active .color-bar.badge-@{i},
+  .dashboard-filter-indicators-container:hover .color-bar.badge-@{i},
   .dashboard-component-chart-holder:hover .color-bar.badge-@{i} {
     @value:  extract(@badge-colors, @i);
     background-color: @value;

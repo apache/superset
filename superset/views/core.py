@@ -46,7 +46,6 @@ import pandas as pd
 import pyarrow as pa
 import simplejson as json
 from sqlalchemy import and_, or_, select
-from sqlalchemy.exc import DatabaseError
 from werkzeug.routing import BaseConverter
 
 from superset import (
@@ -63,6 +62,7 @@ from superset import (
     results_backend_use_msgpack,
     security_manager,
     sql_lab,
+    talisman,
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -630,16 +630,19 @@ class DashboardAddView(DashboardModelView):  # noqa
 appbuilder.add_view_no_menu(DashboardAddView)
 
 
+@talisman(force_https=False)
 @app.route("/health")
 def health():
     return "OK"
 
 
+@talisman(force_https=False)
 @app.route("/healthcheck")
 def healthcheck():
     return "OK"
 
 
+@talisman(force_https=False)
 @app.route("/ping")
 def ping():
     return "OK"
@@ -2448,10 +2451,7 @@ class Superset(BaseSupersetView):
         )
         if rejected_tables:
             return json_error_response(
-                security_manager.get_table_access_error_msg(
-                    "{}".format(rejected_tables)
-                ),
-                status=403,
+                security_manager.get_table_access_error_msg(rejected_tables), status=403
             )
 
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
@@ -2470,7 +2470,7 @@ class Superset(BaseSupersetView):
     @event_logger.log_this
     @backoff.on_exception(
         backoff.constant,
-        DatabaseError,
+        Exception,
         interval=1,
         on_backoff=lambda details: db.session.rollback(),
         on_giveup=lambda details: db.session.rollback(),
@@ -2709,11 +2709,7 @@ class Superset(BaseSupersetView):
             query.sql, query.database, query.schema
         )
         if rejected_tables:
-            flash(
-                security_manager.get_table_access_error_msg(
-                    "{}".format(rejected_tables)
-                )
-            )
+            flash(security_manager.get_table_access_error_msg(rejected_tables))
             return redirect("/")
         blob = None
         if results_backend and query.results_key:
@@ -2744,12 +2740,13 @@ class Superset(BaseSupersetView):
             "Content-Disposition"
         ] = f"attachment; filename={query.name}.csv"
         event_info = {
-            "event_type": "csv_export",
+            "event_type": "data_export",
             "client_id": client_id,
             "row_count": len(df.index),
-            "database": query.database,
+            "database": query.database.name,
             "schema": query.schema,
             "sql": query.sql,
+            "exported_format": "csv",
         }
         logging.info(
             f"CSV exported: {repr(event_info)}", extra={"superset_event": event_info}
