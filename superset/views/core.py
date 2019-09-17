@@ -2670,7 +2670,9 @@ class Superset(BaseSupersetView):
         # Get and Validate database
         mydb = session.query(models.Database).filter_by(id=database_id).one_or_none()
         if not mydb:
-            return json_error_response("Database with id {} is missing.".format(database_id))
+            return json_error_response(
+                "Database with id {} is missing.".format(database_id)
+            )
 
         # Check if it's a rejected datasource
         rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
