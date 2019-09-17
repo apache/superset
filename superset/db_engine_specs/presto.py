@@ -68,7 +68,7 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
     if type_ == "ARRAY":
         return [{"name": column["name"], "type": children_type}]
     elif type_ == "ROW":
-        i = 0
+        nameless_columns = 0
         columns = []
         for child in utils.split(children_type, ","):
             parts = list(utils.split(child.strip(), " "))
@@ -76,9 +76,9 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
                 name, type_ = parts
                 name = name.strip('"')
             else:
-                name = f"_col{i}"
+                name = f"_col{nameless_columns}"
                 type_ = parts[0]
-                i += 1
+                nameless_columns += 1
             columns.append({"name": f"{column['name']}.{name.lower()}", "type": type_})
         return columns
     else:
@@ -775,7 +775,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 del array_column_hierarchy[array_column]
 
     @classmethod
-    def _expand_data(
+    def expand_data(
         cls, columns: List[dict], data: List[dict]
     ) -> Tuple[List[dict], List[dict], List[dict]]:
         """

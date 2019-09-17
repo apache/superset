@@ -32,7 +32,7 @@ import signal
 import smtplib
 from time import struct_time
 import traceback
-from typing import List, NamedTuple, Optional, Tuple, Union
+from typing import Iterator, List, NamedTuple, Optional, Tuple, Union
 from urllib.parse import unquote_plus
 import uuid
 import zlib
@@ -1197,8 +1197,8 @@ def get_stacktrace():
 
 
 def split(
-    s: str, delimiter: str, quote: str = '"', escaped_quote: str = '\\"'
-) -> List[str]:
+    s: str, delimiter: str = " ", quote: str = '"', escaped_quote: str = r"\""
+) -> Iterator[str]:
     """
     A split function that is aware of quotes and parentheses.
 
@@ -1221,7 +1221,7 @@ def split(
         elif c == ")":
             parens -= 1
         elif c == quote:
-            if quotes and s[j - len(escaped_quote) : j] != escaped_quote:
+            if quotes and s[j - len(escaped_quote) + 1 : j + 1] != escaped_quote:
                 quotes = False
             elif not quotes:
                 quotes = True

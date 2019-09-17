@@ -45,6 +45,7 @@ from superset.utils.core import (
     parse_js_uri_path_item,
     parse_past_timedelta,
     setup_cache,
+    split,
     validate_json,
     zlib_compress,
     zlib_decompress,
@@ -832,6 +833,20 @@ class UtilsTestCase(unittest.TestCase):
                 stacktrace = get_stacktrace()
                 assert stacktrace is None
 
+    def test_split(self):
+        self.assertEqual(list(split("a b")), ["a", "b"])
+        self.assertEqual(list(split("a,b", delimiter=",")), ["a", "b"])
+        self.assertEqual(list(split("a,(b,a)", delimiter=",")), ["a", "(b,a)"])
+        self.assertEqual(
+            list(split('a,(b,a),"foo , bar"', delimiter=",")),
+            ["a", "(b,a)", '"foo , bar"'],
+        )
+        self.assertEqual(
+            list(split("a,'b,c'", delimiter=",", quote="'")), ["a", "'b,c'"]
+        )
+        self.assertEqual(list(split('a "b c"')), ["a", '"b c"'])
+        self.assertEqual(list(split(r'a "b \" c"')), ["a", r'"b \" c"'])
+
     def test_get_or_create_db(self):
         get_or_create_db("test_db", "sqlite:///superset.db")
         database = db.session.query(Database).filter_by(database_name="test_db").one()
@@ -850,3 +865,7 @@ class UtilsTestCase(unittest.TestCase):
     def test_get_or_create_db_invalid_uri(self):
         with self.assertRaises(ArgumentError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
+
+
+if __name__ == "__main__":
+    unittest.main()
