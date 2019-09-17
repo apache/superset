@@ -77,6 +77,7 @@ from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators import get_validator_by_name
+from superset.tasks.celery_app import app as celery_app
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
@@ -2465,7 +2466,14 @@ class Superset(BaseSupersetView):
     @event_logger.log_this
     def stop_query(self):
         client_id = request.form.get("client_id")
-        sql_lab.stop_query.delay(client_id)
+
+        if celery_app.control.inspect().ping():
+            sql_lab.stop_query.delay(client_id)
+        else:
+            try:
+                sql_lab.stop_query(client_id)
+            except Exception:
+                db.session.rollback()
         return self.json_response("OK")
 
     @has_access_api
