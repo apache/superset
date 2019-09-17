@@ -51,6 +51,7 @@ import Horizon from '../explore/controlPanels/Horizon';
 import Iframe from '../explore/controlPanels/Iframe';
 import Line from '../explore/controlPanels/Line';
 import LineMulti from '../explore/controlPanels/LineMulti';
+import Kepler from '../explore/controlPanels/Kepler';
 import Mapbox from '../explore/controlPanels/Mapbox';
 import Markup from '../explore/controlPanels/Markup';
 import PairedTtest from '../explore/controlPanels/PairedTtest';
@@ -96,6 +97,7 @@ export default function setupPlugins() {
     .registerValue('iframe', Iframe)
     .registerValue('line', Line)
     .registerValue('line_multi', LineMulti)
+    .registerValue('kepler', Kepler)
     .registerValue('mapbox', Mapbox)
     .registerValue('markup', Markup)
     .registerValue('paired_ttest', PairedTtest)
