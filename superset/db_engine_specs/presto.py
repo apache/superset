@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from collections import deque, OrderedDict
+from collections import deque, defaultdict, OrderedDict
 from datetime import datetime
 from distutils.version import StrictVersion
 import logging
@@ -40,31 +40,49 @@ from superset.utils import core as utils
 QueryStatus = utils.QueryStatus
 
 
-def get_columns_from_row(column):
-    type_ = column["type"]
-    start = type_.index("ROW(") + len("ROW(")
-    children_type = type_[start:-1]
+def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
+    """
+    Get the children of a complex Presto type (row or array).
 
-    # split on space -- what about quoted names with spaces inside? XXX
-    tokens = [token.strip().split(" ", 1) for token in tokenizer(children_type)]
-    return [
-        {"name": ".".join((column["name"], token[0].lower())), "type": token[1]}
-        for token in tokens
-    ]
+    For arrays, we return a single list with the base type:
 
+        >>> get_children(dict(name="a", type="ARRAY(BIGINT)"))
+        [{"name": "a", "type": "BIGINT"}]
 
-def tokenizer(types):
-    parens = 0
-    i = 0
-    for j, c in enumerate(types):
-        if parens == 0 and c == ",":
-            yield types[i:j]
-            i = j + 1
-        elif c == "(":
-            parens += 1
-        elif c == ")":
-            parens -= 1
-    yield types[i:]
+    For rows, we return a list of the columns:
+
+        >>> get_children(dict(name="a", type="ROW(BIGINT,FOO VARCHAR)"))
+        [{'name': 'a._col0', 'type': 'BIGINT'}, {'name': 'a.foo', 'type': 'VARCHAR'}]
+
+    :param column: dictionary representing a Presto column
+    :return: list of dictionaries representing children columns
+    """
+    pattern = re.compile("(?P<type>\w+)\((?P<children>.*)\)")
+    match = pattern.match(column["type"])
+    if not match:
+        raise Exception("Unable to parse column type!")
+
+    group = match.groupdict()
+    type_ = group["type"].upper()
+    children_type = group["children"]
+    if type_ == "ARRAY":
+        return [{"name": column["name"], "type": children_type}]
+    elif type_ == "ROW":
+        i = 0
+        columns = []
+        for child in utils.split(children_type, ","):
+            parts = list(utils.split(child.strip(), " "))
+            if len(parts) == 2:
+                name, type_ = parts
+                name = name.strip('"')
+            else:
+                name = f"_col{i}"
+                type_ = parts[0]
+                i += 1
+            columns.append({"name": f"{column['name']}.{name.lower()}", "type": type_})
+        return columns
+    else:
+        raise Exception(f"Unknown type {type_}!")
 
 
 class PrestoEngineSpec(BaseEngineSpec):
@@ -784,71 +802,65 @@ class PrestoEngineSpec(BaseEngineSpec):
         if not is_feature_enabled("PRESTO_EXPAND_DATA"):
             return columns, data, []
 
-        all_columns: List[dict] = []
-        # Get the list of all columns (selected fields and their nested fields)
-        for column in columns:
-            if column["type"].startswith("ARRAY") or column["type"].startswith("ROW"):
-                cls._parse_structural_column(
-                    column["name"], column["type"].lower(), all_columns
-                )
-            else:
-                all_columns.append(column)
+        # insert a custom column that tracks the original row
+        columns.insert(0, {"name": "__row_id", "type": "BIGINT"})
+        for i, row in enumerate(data):
+            row["__row_id"] = i
 
-        # Build graphs where the root node is a row or array and its children are that
-        # column's nested fields
-        row_column_hierarchy, array_column_hierarchy, expanded_columns = cls._create_row_and_array_hierarchy(
-            columns
-        )
-
-        # Pull out a row's nested fields and their values into separate columns
-        ordered_row_columns = row_column_hierarchy.keys()
-        for datum in data:
-            for row_column in ordered_row_columns:
-                cls._expand_row_data(datum, row_column, row_column_hierarchy)
-
-        while array_column_hierarchy:
-            array_columns = list(array_column_hierarchy.keys())
-            # Determine what columns are ready to be processed.
-            array_columns_to_process, unprocessed_array_columns = cls._split_array_columns_by_process_state(
-                array_columns, array_column_hierarchy, data[0]
-            )
-            all_array_data = cls._process_array_data(
-                data, all_columns, array_column_hierarchy
-            )
-            # Consolidate the original data set and the expanded array data
-            cls._consolidate_array_data_into_data(data, all_array_data)
-            # Remove processed array columns from the graph
-            cls._remove_processed_array_columns(
-                unprocessed_array_columns, array_column_hierarchy
-            )
-
-        return all_columns, data, expanded_columns
-
-    @classmethod
-    def expand_data(cls, columns: List[dict], data: List[dict]) -> Tuple[List[dict], List[dict], List[dict]]:
+        # process each column, unnesting ARRAY types and expanding ROW types into new columns
+        to_process = deque((column, 0) for column in columns)
         expanded_columns = []
-        to_process = deque(columns)
+        current_array_level = None
         while to_process:
-            column = to_process.popleft()
+            column, level = to_process.popleft()
+
+            # When unnesting arrays we need to keep track of how many extra rows
+            # were added, for each original row. This is necessary when we expand multiple
+            # arrays, so that the arrays after the first reuse the rows added by
+            # the first. every time we change a level in the nested arrays we
+            # reinitialize this.
+            if level != current_array_level:
+                unnested_rows = defaultdict(int)
+                current_array_level = level
+
             name = column["name"]
 
-            if column['type'].startswith('ARRAY('):
-                # pivot array objects data into new rows
-                new_data = []
-                for row in data:
-                    values = row[name]
-                    if values:
-                        to_process.append({"name": name, "type": column["type"][6:-1]})
-                        row[name] = values[0]
-                        new_data.append(row)
-                        for value in values[1:]:
-                            new_data.append({name: value})
-                data = new_data
+            if column["type"].startswith("ARRAY("):
+                # keep processing array children; we append to the right so that
+                # multiple nested arrays are processed breadth-first
+                to_process.append((get_children(column)[0], level + 1))
 
-            if column['type'].startswith('ROW('):
+                # unnest array objects data into new rows
+                i = 0
+                while i < len(data):
+                    row = data[i]
+                    values = row.get(name)
+                    if values:
+                        # how many extra rows we need to unnest the data?
+                        extra_rows = len(values) - 1
+
+                        # how many rows were already added for this row?
+                        current_unnested_rows = unnested_rows[i]
+
+                        # add any necessary rows
+                        missing = extra_rows - current_unnested_rows
+                        for _ in range(missing):
+                            data.insert(i + current_unnested_rows + 1, {})
+                            unnested_rows[i] += 1
+
+                        # unnest array into rows
+                        for j, value in enumerate(values):
+                            data[i + j][name] = value
+
+                        # skip newly unnested rows
+                        i += unnested_rows[i]
+
+                    i += 1
+
+            if column["type"].startswith("ROW("):
                 # expand columns
-                expanded = get_columns_from_row(column)
-                to_process.extendleft(expanded)
+                expanded = get_children(column)
+                to_process.extend((column, level) for column in expanded)
                 expanded_columns.extend(expanded)
 
                 # expand row objects into new columns
@@ -856,7 +868,6 @@ class PrestoEngineSpec(BaseEngineSpec):
                     for value, col in zip(row.get(name) or [], expanded):
                         row[col["name"]] = value
 
-        # add columns to pivoted rows
         all_columns = columns + expanded_columns
         data = [{k["name"]: row.get(k["name"], "") for k in all_columns} for row in data]
 

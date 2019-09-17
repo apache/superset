@@ -1194,3 +1194,35 @@ class DatasourceName(NamedTuple):
 def get_stacktrace():
     if current_app.config.get("SHOW_STACKTRACE"):
         return traceback.format_exc()
+
+
+def split(
+    s: str, delimiter: str, quote: str = '"', escaped_quote: str = '\\"'
+) -> List[str]:
+    """
+    A split function that is aware of quotes and parentheses.
+
+    :param s: string to split
+    :param delimiter: string defining where to split, usually a comma or space
+    :param quote: string, either a single or a double quote
+    :param escaped_quote: string representing an escaped quote
+    :return: list of strings
+    """
+    parens = 0
+    quotes = False
+    i = 0
+    for j, c in enumerate(s):
+        complete = parens == 0 and not quotes
+        if complete and c == delimiter:
+            yield s[i:j]
+            i = j + len(delimiter)
+        elif c == "(":
+            parens += 1
+        elif c == ")":
+            parens -= 1
+        elif c == quote:
+            if quotes and s[j - len(escaped_quote) : j] != escaped_quote:
+                quotes = False
+            elif not quotes:
+                quotes = True
+    yield s[i:]
