@@ -809,12 +809,13 @@ class PrestoEngineSpec(BaseEngineSpec):
 
         # process each column, unnesting ARRAY types and expanding ROW types into new columns
         to_process = deque((column, 0) for column in columns)
-        all_columns = []
+        all_columns: List[dict] = []
         expanded_columns = []
         current_array_level = None
         while to_process:
             column, level = to_process.popleft()
-            all_columns.append(column)
+            if column["name"] not in [column["name"] for column in all_columns]:
+                all_columns.append(column)
 
             # When unnesting arrays we need to keep track of how many extra rows
             # were added, for each original row. This is necessary when we expand multiple

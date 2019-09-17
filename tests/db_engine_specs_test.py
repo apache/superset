@@ -657,7 +657,6 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             {"name": "row_column", "type": "ROW(NESTED_OBJ VARCHAR)"},
             {"name": "row_column.nested_obj", "type": "VARCHAR"},
             {"name": "array_column", "type": "ARRAY(BIGINT)"},
-            {"name": "array_column", "type": "BIGINT"},
         ]
 
         expected_data = [
@@ -780,14 +779,9 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 "type": "ARRAY(ROW(NESTED_ARRAY ARRAY(ROW(NESTED_OBJ VARCHAR))))",
             },
             {
-                "name": "array_column",
-                "type": "ROW(NESTED_ARRAY ARRAY(ROW(NESTED_OBJ VARCHAR)))",
-            },
-            {
                 "name": "array_column.nested_array",
                 "type": "ARRAY(ROW(NESTED_OBJ VARCHAR))",
             },
-            {"name": "array_column.nested_array", "type": "ROW(NESTED_OBJ VARCHAR)"},
             {"name": "array_column.nested_array.nested_obj", "type": "VARCHAR"},
         ]
         expected_data = [
