@@ -220,6 +220,7 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
                 security_manager,
             )
         query.executed_sql = sql
+        session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
             logging.info(f"Query {query_id}: Running query: \n{sql}")
             db_engine_spec.execute(cursor, sql, async_=True)
