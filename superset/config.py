@@ -454,6 +454,11 @@ SQLLAB_DEFAULT_DBID = None
 # by celery.
 SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 
+# Some databases support running EXPLAIN queries that allow users to estimate
+# query costs before they run. These EXPLAIN queries should have a small
+# timeout.
+SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = 10  # seconds
+
 # An instantiated derivative of werkzeug.contrib.cache.BaseCache
 # if enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
