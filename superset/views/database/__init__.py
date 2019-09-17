@@ -18,7 +18,7 @@
 import inspect
 from typing import Type
 
-from flask import current_app, Markup
+from flask import Markup
 from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 from sqlalchemy import MetaData
@@ -32,13 +32,13 @@ from superset.views.base import SupersetFilter
 
 
 def sqlalchemy_uri_validator(
-        uri: str, exception: Type[ValidationError] = ValidationError
+    uri: str, exception: Type[ValidationError] = ValidationError
 ) -> None:
     """
     Check if a user has submitted a valid SQLAlchemy URI
     """
     try:
-        url = make_url(uri.strip())
+        make_url(uri.strip())
     except ArgumentError:
         raise exception(
             _(

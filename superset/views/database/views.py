@@ -158,8 +158,8 @@ class CsvToDatabaseView(SimpleFormView):
         if schemas:
             return schema in schemas
         return (
-                security_manager.database_access(database)
-                or security_manager.all_datasource_access()
+            security_manager.database_access(database)
+            or security_manager.all_datasource_access()
         )
 
 
