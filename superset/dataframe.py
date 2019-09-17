@@ -95,9 +95,11 @@ class SupersetDataFrame(object):
             column_names = dedup([col[0] for col in cursor_description])
 
             # fix cursor descriptor with the deduped names
-            cursor_description = list(cursor_description)
-            for i, column_name in enumerate(column_names):
-                cursor_description[i] = tuple([column_name, *cursor_description[i][1:]])
+            cursor_description = [
+                tuple([column_name, *list(description)[1:]])
+                for column_name, description
+                in zip(column_names, cursor_description)
+            ]
 
             # get type for better type casting, if possible
             dtype = db_engine_spec.get_pandas_dtype(cursor_description)
