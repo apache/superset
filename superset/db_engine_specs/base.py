@@ -552,7 +552,9 @@ class BaseEngineSpec:
         return sorted(tables)
 
     @classmethod
-    def get_view_names(cls, inspector: Inspector, schema: Optional[str]) -> List[str]:
+    def get_view_names(
+        cls, database, inspector: Inspector, schema: Optional[str]
+    ) -> List[str]:
         """
         Get all views from schema
 

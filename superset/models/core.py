@@ -1063,7 +1063,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         """
         try:
             tables = self.db_engine_spec.get_table_names(
-                inspector=self.inspector, schema=schema
+                database=self, inspector=self.inspector, schema=schema
             )
             return [
                 utils.DatasourceName(table=table, schema=schema) for table in tables
@@ -1097,7 +1097,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         """
         try:
             views = self.db_engine_spec.get_view_names(
-                inspector=self.inspector, schema=schema
+                database=self, inspector=self.inspector, schema=schema
             )
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
         except Exception as e:

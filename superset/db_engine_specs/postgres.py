@@ -64,7 +64,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
     @classmethod
     def get_table_names(
-        cls, inspector: PGInspector, schema: Optional[str]
+        cls, database, inspector: PGInspector, schema: Optional[str]
     ) -> List[str]:
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
