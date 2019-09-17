@@ -62,6 +62,12 @@ def dedup(l, suffix="__", case_sensitive=True):
     return new_l
 
 
+def is_numeric(dtype):
+    if hasattr(dtype, "_is_numeric"):
+        return dtype._is_numeric
+    return np.issubdtype(dtype, np.number)
+
+
 class SupersetDataFrame(object):
     # Mapping numpy dtype.char to generic database types
     type_map = {
@@ -80,21 +86,45 @@ class SupersetDataFrame(object):
     }
 
     def __init__(self, data, cursor_description, db_engine_spec):
-        column_names = []
-        if cursor_description:
-            column_names = [col[0] for col in cursor_description]
-
-        self.column_names = dedup(column_names)
-
         data = data or []
-        self.df = pd.DataFrame(list(data), columns=self.column_names).infer_objects()
+
+        column_names = []
+        dtype = None
+        if cursor_description:
+            # get deduped list of column names
+            column_names = dedup([col[0] for col in cursor_description])
+
+            # fix cursor descriptor with the deduped names
+            cursor_description = [
+                tuple([column_name, *list(description)[1:]])
+                for column_name, description in zip(column_names, cursor_description)
+            ]
+
+            # get type for better type casting, if possible
+            dtype = db_engine_spec.get_pandas_dtype(cursor_description)
+
+        self.column_names = column_names
+
+        if dtype:
+            # convert each column in data into a Series of the proper dtype; we
+            # need to do this because we can not specify a mixed dtype when
+            # instantiating the DataFrame, and this allows us to have different
+            # dtypes for each column.
+            array = np.array(data)
+            data = {
+                column: pd.Series(array[:, i], dtype=dtype[column])
+                for i, column in enumerate(column_names)
+            }
+            self.df = pd.DataFrame(data, columns=column_names)
+        else:
+            self.df = pd.DataFrame(list(data), columns=column_names).infer_objects()
 
         self._type_dict = {}
         try:
             # The driver may not be passing a cursor.description
             self._type_dict = {
                 col: db_engine_spec.get_datatype(cursor_description[i][1])
-                for i, col in enumerate(self.column_names)
+                for i, col in enumerate(column_names)
                 if cursor_description
             }
         except Exception as e:
@@ -183,7 +213,7 @@ class SupersetDataFrame(object):
         if (
             hasattr(dtype, "type")
             and issubclass(dtype.type, np.generic)
-            and np.issubdtype(dtype, np.number)
+            and is_numeric(dtype)
         ):
             return "sum"
         return None

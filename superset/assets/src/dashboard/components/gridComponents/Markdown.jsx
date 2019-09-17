@@ -100,7 +100,7 @@ class Markdown extends React.PureComponent {
     });
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const nextSource = nextProps.component.meta.code;
     if (this.state.markdownSource !== nextSource) {
       this.setState({ markdownSource: nextSource });

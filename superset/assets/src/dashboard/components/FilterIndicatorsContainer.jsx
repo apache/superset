@@ -38,6 +38,7 @@ const propTypes = {
   filterImmuneSlices: PropTypes.arrayOf(PropTypes.number).isRequired,
   filterImmuneSliceFields: PropTypes.object.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
+  filterFieldOnFocus: PropTypes.object.isRequired,
 };
 
 const defaultProps = {
@@ -62,6 +63,7 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
       chartId: currentChartId,
       filterImmuneSlices,
       filterImmuneSliceFields,
+      filterFieldOnFocus,
     } = this.props;
 
     if (Object.keys(dashboardFilters).length === 0) {
@@ -108,6 +110,9 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
                 (isDateFilter && columns[name] === 'No filter')
                   ? []
                   : [].concat(columns[name]),
+              isFilterFieldActive:
+                chartId === filterFieldOnFocus.chartId &&
+                name === filterFieldOnFocus.column,
             };
 
             // do not apply filter on fields in the filterImmuneSliceFields map

@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import MainPreset from '../visualizations/presets/MainPreset';
 
-export default function setupPlugins() {
-  new MainPreset().register();
-}
+// For individual deployments to add custom overrides
+export default function setupPluginsExtra() {}
