@@ -25,19 +25,22 @@ import time
 from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib import parse
 
+import simplejson as json
 from sqlalchemy import Column, literal_column
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import is_feature_enabled
+from superset import app, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
+from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 
 QueryStatus = utils.QueryStatus
+config = app.config
 
 # map between Presto types and Pandas
 pandas_dtype_map = {
@@ -73,6 +76,10 @@ class PrestoEngineSpec(BaseEngineSpec):
         "1969-12-28T00:00:00Z/P1W": "date_add('day', -1, date_trunc('week', "
         "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
     }
+
+    @classmethod
+    def get_allow_cost_estimate(cls, version: str = None) -> bool:
+        return version is not None and StrictVersion(version) >= StrictVersion("0.319")
 
     @classmethod
     def get_view_names(cls, inspector: Inspector, schema: Optional[str]) -> List[str]:
@@ -387,6 +394,73 @@ class PrestoEngineSpec(BaseEngineSpec):
             latest_partition,
             presto_cols,
         )
+
+    @classmethod
+    def estimate_statement_cost(
+        cls, statement: str, database, cursor, user_name: str
+    ) -> Dict[str, str]:
+        """
+        Generate a SQL query that estimates the cost of a given statement.
+
+        :param statement: A single SQL statement
+        :param database: Database instance
+        :param cursor: Cursor instance
+        :param username: Effective username
+        """
+        parsed_query = ParsedQuery(statement)
+        sql = parsed_query.stripped()
+
+        SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR")
+        if SQL_QUERY_MUTATOR:
+            sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
+
+        sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {sql}"
+        cursor.execute(sql)
+
+        # the output from Presto is a single column and a single row containing
+        # JSON:
+        #
+        #   {
+        #     ...
+        #     "estimate" : {
+        #       "outputRowCount" : 8.73265878E8,
+        #       "outputSizeInBytes" : 3.41425774958E11,
+        #       "cpuCost" : 3.41425774958E11,
+        #       "maxMemory" : 0.0,
+        #       "networkCost" : 3.41425774958E11
+        #     }
+        #   }
+        result = json.loads(cursor.fetchone()[0])
+        estimate = result["estimate"]
+
+        def humanize(value: Any, suffix: str) -> str:
+            try:
+                value = int(value)
+            except ValueError:
+                return str(value)
+
+            prefixes = ["K", "M", "G", "T", "P", "E", "Z", "Y"]
+            prefix = ""
+            to_next_prefix = 1000
+            while value > to_next_prefix and prefixes:
+                prefix = prefixes.pop(0)
+                value //= to_next_prefix
+
+            return f"{value} {prefix}{suffix}"
+
+        cost = {}
+        columns = [
+            ("outputRowCount", "Output count", " rows"),
+            ("outputSizeInBytes", "Output size", "B"),
+            ("cpuCost", "CPU cost", ""),
+            ("maxMemory", "Max memory", "B"),
+            ("networkCost", "Network cost", ""),
+        ]
+        for key, label, suffix in columns:
+            if key in estimate:
+                cost[label] = humanize(estimate[key], suffix)
+
+        return cost
 
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
