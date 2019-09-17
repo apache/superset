@@ -97,8 +97,7 @@ class SupersetDataFrame(object):
             # fix cursor descriptor with the deduped names
             cursor_description = [
                 tuple([column_name, *list(description)[1:]])
-                for column_name, description
-                in zip(column_names, cursor_description)
+                for column_name, description in zip(column_names, cursor_description)
             ]
 
             # get type for better type casting, if possible
