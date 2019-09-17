@@ -135,7 +135,11 @@ class PrestoEngineSpec(BaseEngineSpec):
         and get_view_names() is not implemented in sqlalchemy_presto.py
         https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
         """
-        return []
+        
+        if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TALBES"):
+            return []
+
+
 
     @classmethod
     def _create_column_info(cls, name: str, data_type: str) -> dict:
