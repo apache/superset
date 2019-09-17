@@ -653,18 +653,51 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             cols, data
         )
         expected_cols = [
-            {"name": "row_column", "type": "ROW"},
+            {"name": "__row_id", "type": "BIGINT"},
+            {"name": "row_column", "type": "ROW(NESTED_OBJ VARCHAR)"},
             {"name": "row_column.nested_obj", "type": "VARCHAR"},
-            {"name": "array_column", "type": "ARRAY"},
+            {"name": "array_column", "type": "ARRAY(BIGINT)"},
         ]
+
         expected_data = [
-            {"row_column": ["a"], "row_column.nested_obj": "a", "array_column": 1},
-            {"row_column": "", "row_column.nested_obj": "", "array_column": 2},
-            {"row_column": "", "row_column.nested_obj": "", "array_column": 3},
-            {"row_column": ["b"], "row_column.nested_obj": "b", "array_column": 4},
-            {"row_column": "", "row_column.nested_obj": "", "array_column": 5},
-            {"row_column": "", "row_column.nested_obj": "", "array_column": 6},
+            {
+                "__row_id": 0,
+                "array_column": 1,
+                "row_column": ["a"],
+                "row_column.nested_obj": "a",
+            },
+            {
+                "__row_id": "",
+                "array_column": 2,
+                "row_column": "",
+                "row_column.nested_obj": "",
+            },
+            {
+                "__row_id": "",
+                "array_column": 3,
+                "row_column": "",
+                "row_column.nested_obj": "",
+            },
+            {
+                "__row_id": 1,
+                "array_column": 4,
+                "row_column": ["b"],
+                "row_column.nested_obj": "b",
+            },
+            {
+                "__row_id": "",
+                "array_column": 5,
+                "row_column": "",
+                "row_column.nested_obj": "",
+            },
+            {
+                "__row_id": "",
+                "array_column": 6,
+                "row_column": "",
+                "row_column.nested_obj": "",
+            },
         ]
+
         expected_expanded_cols = [{"name": "row_column.nested_obj", "type": "VARCHAR"}]
         self.assertEqual(actual_cols, expected_cols)
         self.assertEqual(actual_data, expected_data)
@@ -677,7 +710,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         cols = [
             {
                 "name": "row_column",
-                "type": "ROW(NESTED_OBJ1 VARCHAR, NESTED_ROW ROW(NESTED_OBJ2 VARCHAR)",
+                "type": "ROW(NESTED_OBJ1 VARCHAR, NESTED_ROW ROW(NESTED_OBJ2 VARCHAR))",
             }
         ]
         data = [{"row_column": ["a1", ["a2"]]}, {"row_column": ["b1", ["b2"]]}]
@@ -685,28 +718,35 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             cols, data
         )
         expected_cols = [
-            {"name": "row_column", "type": "ROW"},
-            {"name": "row_column.nested_obj1", "type": "VARCHAR"},
-            {"name": "row_column.nested_row", "type": "ROW"},
+            {"name": "__row_id", "type": "BIGINT"},
+            {
+                "name": "row_column",
+                "type": "ROW(NESTED_OBJ1 VARCHAR, NESTED_ROW ROW(NESTED_OBJ2 VARCHAR))",
+            },
+            {"name": "row_column.nested_row", "type": "ROW(NESTED_OBJ2 VARCHAR)"},
             {"name": "row_column.nested_row.nested_obj2", "type": "VARCHAR"},
+            {"name": "row_column.nested_obj1", "type": "VARCHAR"},
         ]
         expected_data = [
             {
+                "__row_id": 0,
                 "row_column": ["a1", ["a2"]],
                 "row_column.nested_obj1": "a1",
                 "row_column.nested_row": ["a2"],
                 "row_column.nested_row.nested_obj2": "a2",
             },
             {
+                "__row_id": 1,
                 "row_column": ["b1", ["b2"]],
                 "row_column.nested_obj1": "b1",
                 "row_column.nested_row": ["b2"],
                 "row_column.nested_row.nested_obj2": "b2",
             },
         ]
+
         expected_expanded_cols = [
             {"name": "row_column.nested_obj1", "type": "VARCHAR"},
-            {"name": "row_column.nested_row", "type": "ROW"},
+            {"name": "row_column.nested_row", "type": "ROW(NESTED_OBJ2 VARCHAR)"},
             {"name": "row_column.nested_row.nested_obj2", "type": "VARCHAR"},
         ]
         self.assertEqual(actual_cols, expected_cols)
@@ -732,63 +772,81 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             cols, data
         )
         expected_cols = [
+            {"name": "__row_id", "type": "BIGINT"},
             {"name": "int_column", "type": "BIGINT"},
-            {"name": "array_column", "type": "ARRAY"},
-            {"name": "array_column.nested_array", "type": "ARRAY"},
+            {
+                "name": "array_column",
+                "type": "ARRAY(ROW(NESTED_ARRAY ARRAY(ROW(NESTED_OBJ VARCHAR))))",
+            },
+            {
+                "name": "array_column.nested_array",
+                "type": "ARRAY(ROW(NESTED_OBJ VARCHAR))",
+            },
             {"name": "array_column.nested_array.nested_obj", "type": "VARCHAR"},
         ]
         expected_data = [
             {
-                "int_column": 1,
-                "array_column": [[[["a"], ["b"]]], [[["c"], ["d"]]]],
-                "array_column.nested_array": [["a"], ["b"]],
+                "__row_id": 0,
+                "array_column": [[["a"], ["b"]]],
+                "array_column.nested_array": ["a"],
                 "array_column.nested_array.nested_obj": "a",
+                "int_column": 1,
             },
             {
-                "int_column": "",
+                "__row_id": "",
                 "array_column": "",
-                "array_column.nested_array": "",
+                "array_column.nested_array": ["b"],
                 "array_column.nested_array.nested_obj": "b",
+                "int_column": "",
             },
             {
-                "int_column": "",
-                "array_column": "",
-                "array_column.nested_array": [["c"], ["d"]],
+                "__row_id": "",
+                "array_column": [[["c"], ["d"]]],
+                "array_column.nested_array": ["c"],
                 "array_column.nested_array.nested_obj": "c",
+                "int_column": "",
             },
             {
-                "int_column": "",
+                "__row_id": "",
                 "array_column": "",
-                "array_column.nested_array": "",
+                "array_column.nested_array": ["d"],
                 "array_column.nested_array.nested_obj": "d",
+                "int_column": "",
             },
             {
-                "int_column": 2,
-                "array_column": [[[["e"], ["f"]]], [[["g"], ["h"]]]],
-                "array_column.nested_array": [["e"], ["f"]],
+                "__row_id": 1,
+                "array_column": [[["e"], ["f"]]],
+                "array_column.nested_array": ["e"],
                 "array_column.nested_array.nested_obj": "e",
+                "int_column": 2,
             },
             {
-                "int_column": "",
+                "__row_id": "",
                 "array_column": "",
-                "array_column.nested_array": "",
+                "array_column.nested_array": ["f"],
                 "array_column.nested_array.nested_obj": "f",
+                "int_column": "",
             },
             {
-                "int_column": "",
-                "array_column": "",
-                "array_column.nested_array": [["g"], ["h"]],
+                "__row_id": "",
+                "array_column": [[["g"], ["h"]]],
+                "array_column.nested_array": ["g"],
                 "array_column.nested_array.nested_obj": "g",
+                "int_column": "",
             },
             {
-                "int_column": "",
+                "__row_id": "",
                 "array_column": "",
-                "array_column.nested_array": "",
+                "array_column.nested_array": ["h"],
                 "array_column.nested_array.nested_obj": "h",
+                "int_column": "",
             },
         ]
         expected_expanded_cols = [
-            {"name": "array_column.nested_array", "type": "ARRAY"},
+            {
+                "name": "array_column.nested_array",
+                "type": "ARRAY(ROW(NESTED_OBJ VARCHAR))",
+            },
             {"name": "array_column.nested_array.nested_obj", "type": "VARCHAR"},
         ]
         self.assertEqual(actual_cols, expected_cols)
