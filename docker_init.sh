@@ -19,7 +19,7 @@ set -ex
 
 # Create an admin user
 export FLASK_APP=superset:app
-export AWS_DEFAULT_REGION=eu-west-1
+export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
 
 flask fab create-admin \
   --username admin \

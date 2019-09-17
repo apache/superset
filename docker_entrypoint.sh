@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
 set -ex
 
 if [ "$#" -ne 0 ]; then

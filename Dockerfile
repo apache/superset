@@ -44,6 +44,7 @@ ENV SUPERSET_ENV=${SUPERSET_ENV} \
   SQLALCHEMY_ENGINE_OPTIONS=${SQLALCHEMY_ENGINE_OPTIONS} \
   ADMIN_EMAIL=${ADMIN_EMAIL} \
   ADMIN_PASSWORD=${ADMIN_PASSWORD}
+  AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 
 WORKDIR /home/superset
 
@@ -52,6 +53,7 @@ COPY . /home/superset
 RUN pip install --upgrade setuptools pip \
   && pip install -r requirements.txt -r requirements-dev.txt  \
   && pip install -e . \
+  && pip install gevent \
   && rm -rf /root/.cache/pip
 
 RUN cd superset/assets \
