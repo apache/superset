@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from collections import deque, defaultdict, OrderedDict
+from collections import defaultdict, deque, OrderedDict
 from datetime import datetime
 from distutils.version import StrictVersion
 import logging
@@ -823,7 +823,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             # the first. every time we change a level in the nested arrays we
             # reinitialize this.
             if level != current_array_level:
-                unnested_rows = defaultdict(int)
+                unnested_rows: Dict[int, int] = defaultdict(int)
                 current_array_level = level
 
             name = column["name"]
@@ -872,7 +872,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                     for value, col in zip(row.get(name) or [], expanded):
                         row[col["name"]] = value
 
-        data = [{k["name"]: row.get(k["name"], "") for k in all_columns} for row in data]
+        data = [
+            {k["name"]: row.get(k["name"], "") for k in all_columns} for row in data
+        ]
 
         return all_columns, data, expanded_columns
 
