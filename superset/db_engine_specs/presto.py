@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from collections import OrderedDict
+from collections import deque, OrderedDict
 from datetime import datetime
 from distutils.version import StrictVersion
 import logging
@@ -38,6 +38,33 @@ from superset.models.sql_types.presto_sql_types import type_map as presto_type_m
 from superset.utils import core as utils
 
 QueryStatus = utils.QueryStatus
+
+
+def get_columns_from_row(column):
+    type_ = column["type"]
+    start = type_.index("ROW(") + len("ROW(")
+    children_type = type_[start:-1]
+
+    # split on space -- what about quoted names with spaces inside? XXX
+    tokens = [token.strip().split(" ", 1) for token in tokenizer(children_type)]
+    return [
+        {"name": ".".join((column["name"], token[0].lower())), "type": token[1]}
+        for token in tokens
+    ]
+
+
+def tokenizer(types):
+    parens = 0
+    i = 0
+    for j, c in enumerate(types):
+        if parens == 0 and c == ",":
+            yield types[i:j]
+            i = j + 1
+        elif c == "(":
+            parens += 1
+        elif c == ")":
+            parens -= 1
+    yield types[i:]
 
 
 class PrestoEngineSpec(BaseEngineSpec):
@@ -730,7 +757,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 del array_column_hierarchy[array_column]
 
     @classmethod
-    def expand_data(
+    def _expand_data(
         cls, columns: List[dict], data: List[dict]
     ) -> Tuple[List[dict], List[dict], List[dict]]:
         """
@@ -794,6 +821,44 @@ class PrestoEngineSpec(BaseEngineSpec):
             cls._remove_processed_array_columns(
                 unprocessed_array_columns, array_column_hierarchy
             )
+
+        return all_columns, data, expanded_columns
+
+    @classmethod
+    def expand_data(cls, columns: List[dict], data: List[dict]) -> Tuple[List[dict], List[dict], List[dict]]:
+        expanded_columns = []
+        to_process = deque(columns)
+        while to_process:
+            column = to_process.popleft()
+            name = column["name"]
+
+            if column['type'].startswith('ARRAY('):
+                # pivot array objects data into new rows
+                new_data = []
+                for row in data:
+                    values = row[name]
+                    if values:
+                        to_process.append({"name": name, "type": column["type"][6:-1]})
+                        row[name] = values[0]
+                        new_data.append(row)
+                        for value in values[1:]:
+                            new_data.append({name: value})
+                data = new_data
+
+            if column['type'].startswith('ROW('):
+                # expand columns
+                expanded = get_columns_from_row(column)
+                to_process.extendleft(expanded)
+                expanded_columns.extend(expanded)
+
+                # expand row objects into new columns
+                for row in data:
+                    for value, col in zip(row.get(name) or [], expanded):
+                        row[col["name"]] = value
+
+        # add columns to pivoted rows
+        all_columns = columns + expanded_columns
+        data = [{k["name"]: row.get(k["name"], "") for k in all_columns} for row in data]
 
         return all_columns, data, expanded_columns
 
