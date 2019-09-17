@@ -865,7 +865,3 @@ class UtilsTestCase(unittest.TestCase):
     def test_get_or_create_db_invalid_uri(self):
         with self.assertRaises(ArgumentError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
-
-
-if __name__ == "__main__":
-    unittest.main()

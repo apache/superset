@@ -60,7 +60,7 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
     pattern = re.compile("(?P<type>\w+)\((?P<children>.*)\)")
     match = pattern.match(column["type"])
     if not match:
-        raise Exception("Unable to parse column type!")
+        raise Exception(f"Unable to parse column type {column['type']}")
 
     group = match.groupdict()
     type_ = group["type"].upper()
@@ -809,10 +809,12 @@ class PrestoEngineSpec(BaseEngineSpec):
 
         # process each column, unnesting ARRAY types and expanding ROW types into new columns
         to_process = deque((column, 0) for column in columns)
+        all_columns = []
         expanded_columns = []
         current_array_level = None
         while to_process:
             column, level = to_process.popleft()
+            all_columns.append(column)
 
             # When unnesting arrays we need to keep track of how many extra rows
             # were added, for each original row. This is necessary when we expand multiple
@@ -858,9 +860,10 @@ class PrestoEngineSpec(BaseEngineSpec):
                     i += 1
 
             if column["type"].startswith("ROW("):
-                # expand columns
+                # expand columns; we append them to the left so they are added
+                # immediately after the parent
                 expanded = get_children(column)
-                to_process.extend((column, level) for column in expanded)
+                to_process.extendleft((column, level) for column in expanded)
                 expanded_columns.extend(expanded)
 
                 # expand row objects into new columns
@@ -868,7 +871,6 @@ class PrestoEngineSpec(BaseEngineSpec):
                     for value, col in zip(row.get(name) or [], expanded):
                         row[col["name"]] = value
 
-        all_columns = columns + expanded_columns
         data = [{k["name"]: row.get(k["name"], "") for k in all_columns} for row in data]
 
         return all_columns, data, expanded_columns
