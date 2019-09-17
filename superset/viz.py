@@ -501,6 +501,26 @@ class BaseViz(object):
     def json_data(self):
         return json.dumps(self.data)
 
+class ImageTableViz(BaseViz):
+    viz_type = "image_gallery"
+    def query_obj(self):
+        d = super().query_obj()
+        fd = self.form_data
+        d['columns'] = []
+        if (fd.get('all_columns_y') is not None ):
+            d['columns'].append(fd.get('all_columns_y'))
+        if (fd.get('all_columns_x') is not None ):
+            d['columns'].append(fd.get('all_columns_x'))
+        
+        return d
+
+    def get_data(self, df): 
+        fd = self.form_data
+        # Sum up and compute percentages for all percent metrics
+        data = self.handle_js_int_overflow(
+            dict(records=df.to_dict(orient="records"), columns=list(df.columns))
+        )
+        return data
 
 class TableViz(BaseViz):
 
