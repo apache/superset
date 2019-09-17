@@ -49,9 +49,9 @@ import Heatmap from '../explore/controlPanels/Heatmap';
 import Histogram from '../explore/controlPanels/Histogram';
 import Horizon from '../explore/controlPanels/Horizon';
 import Iframe from '../explore/controlPanels/Iframe';
+import Kepler from '../explore/controlPanels/Kepler';
 import Line from '../explore/controlPanels/Line';
 import LineMulti from '../explore/controlPanels/LineMulti';
-import Kepler from '../explore/controlPanels/Kepler';
 import Mapbox from '../explore/controlPanels/Mapbox';
 import Markup from '../explore/controlPanels/Markup';
 import PairedTtest from '../explore/controlPanels/PairedTtest';
@@ -95,9 +95,9 @@ export default function setupPlugins() {
     .registerValue('histogram', Histogram)
     .registerValue('horizon', Horizon)
     .registerValue('iframe', Iframe)
+    .registerValue('kepler', Kepler)
     .registerValue('line', Line)
     .registerValue('line_multi', LineMulti)
-    .registerValue('kepler', Kepler)
     .registerValue('mapbox', Mapbox)
     .registerValue('markup', Markup)
     .registerValue('paired_ttest', PairedTtest)
