@@ -39,6 +39,21 @@ from superset.utils import core as utils
 
 QueryStatus = utils.QueryStatus
 
+# map between Presto types and Pandas
+pandas_dtype_map = {
+    "boolean": "bool",
+    "tinyint": "Int64",  # note: capital "I" means nullable int
+    "smallint": "Int64",
+    "integer": "Int64",
+    "bigint": "Int64",
+    "real": "float64",
+    "double": "float64",
+    "varchar": "object",
+    "timestamp": "datetime64",
+    "date": "datetime64",
+    "varbinary": "object",
+}
+
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = "presto"
@@ -1052,3 +1067,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         if df.empty:
             return ""
         return df.to_dict()[field_to_return][0]
+
+    @classmethod
+    def get_pandas_dtype(cls, cursor_description: List[tuple]) -> Dict[str, str]:
+        return {
+            col[0]: pandas_dtype_map.get(col[1], "object") for col in cursor_description
+        }
