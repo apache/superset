@@ -5,7 +5,6 @@ services:
     build:
       context: .
       args:
-        SECRET_KEY: $SECRET_KEY
         SQLALCHEMY_DATABASE_URI: $SQLALCHEMY_DATABASE_URI
         TENANT: $TENANT
         STAGE: $STAGE

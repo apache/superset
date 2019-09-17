@@ -28,7 +28,6 @@ RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
 
 
 ARG SUPERSET_ENV=$SUPERSET_ENV
-ARG SECRET_KEY=$SECRET_KEY
 ARG SQLALCHEMY_DATABASE_URI=$SQLALCHEMY_DATABASE_URI
 ARG TENANT=$TENANT
 ARG STAGE=$STAGE
@@ -38,7 +37,6 @@ ARG ADMIN_EMAIL=$ADMIN_EMAIL
 ARG ADMIN_PASSWORD=$ADMIN_PASSWORD
 
 ENV SUPERSET_ENV=${SUPERSET_ENV} \
-  SECRET_KEY=${SECRET_KEY} \
   SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI} \
   TENANT=${TENANT} \
   STAGE=$STAGE \
@@ -63,6 +61,8 @@ RUN cd superset/assets \
 
 RUN chmod +x docker_init.sh && ./docker_init.sh
 
+RUN chmod +x docker_entrypoint.sh
+
 EXPOSE 8088
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/docker_entrypoint.sh"]
