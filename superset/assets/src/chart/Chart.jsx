@@ -58,12 +58,16 @@ const propTypes = {
   // dashboard callbacks
   addFilter: PropTypes.func,
   onQuery: PropTypes.func,
+  onFilterMenuOpen: PropTypes.func,
+  onFilterMenuClose: PropTypes.func,
 };
 
 const BLANK = {};
 
 const defaultProps = {
   addFilter: () => BLANK,
+  onFilterMenuOpen: () => BLANK,
+  onFilterMenuClose: () => BLANK,
   initialValues: BLANK,
   setControlValue() {},
   triggerRender: false,

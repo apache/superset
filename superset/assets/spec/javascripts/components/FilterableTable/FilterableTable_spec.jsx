@@ -26,6 +26,7 @@ describe('FilterableTable', () => {
     data: [
       { a: 'a1', b: 'b1', c: 'c1', d: 0 },
       { a: 'a2', b: 'b2', c: 'c2', d: 100 },
+      { a: null, b: 'b3', c: 'c3', d: 50 },
     ],
     height: 500,
   };
@@ -38,7 +39,7 @@ describe('FilterableTable', () => {
   });
   it('renders a grid with 2 Table rows', () => {
     expect(wrapper.find('.ReactVirtualized__Grid')).toHaveLength(1);
-    expect(wrapper.find('.ReactVirtualized__Table__row')).toHaveLength(2);
+    expect(wrapper.find('.ReactVirtualized__Table__row')).toHaveLength(3);
   });
   it('renders a grid with 2 Grid rows for wide tables', () => {
     const wideTableColumns = MAX_COLUMNS_FOR_TABLE + 1;

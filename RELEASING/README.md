@@ -102,6 +102,13 @@ folder.
 Now you can announce the release on the mailing list, make sure to use the
 proper template
 
+## Post release
+
+In `UPDATING.md`, a file that contains a list of notifications around
+deprecations and upgrading-related topics,
+make sure to move the content now under the `Next Version` section under a new
+section for the new release.
+
 ## Build from source tarball
 
 To make a working build given a tarball

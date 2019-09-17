@@ -44,12 +44,16 @@ const propTypes = {
   refreshOverlayVisible: PropTypes.bool,
   // dashboard callbacks
   addFilter: PropTypes.func,
+  onFilterMenuOpen: PropTypes.func,
+  onFilterMenuClose: PropTypes.func,
 };
 
 const BLANK = {};
 
 const defaultProps = {
   addFilter: () => BLANK,
+  onFilterMenuOpen: () => BLANK,
+  onFilterMenuClose: () => BLANK,
   initialValues: BLANK,
   setControlValue() {},
   triggerRender: false,
@@ -73,6 +77,8 @@ class ChartRenderer extends React.Component {
       onError: this.handleRenderFailure,
       setControlValue: this.handleSetControlValue,
       setTooltip: this.setTooltip,
+      onFilterMenuOpen: this.props.onFilterMenuOpen,
+      onFilterMenuClose: this.props.onFilterMenuClose,
     };
   }
 

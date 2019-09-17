@@ -26,12 +26,12 @@ if sys.version_info < (3, 6):
     sys.exit("Sorry, Python < 3.6 is not supported")
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-PACKAGE_DIR = os.path.join(BASE_DIR, "superset", "static", "assets")
-PACKAGE_FILE = os.path.join(PACKAGE_DIR, "package.json")
-with open(PACKAGE_FILE) as package_file:
+
+PACKAGE_JSON = os.path.join(BASE_DIR, "superset", "assets", "package.json")
+with open(PACKAGE_JSON, "r") as package_file:
     version_string = json.load(package_file)["version"]
 
-with io.open("README.md", encoding="utf-8") as f:
+with io.open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 
@@ -50,7 +50,11 @@ print("VERSION: " + version_string)
 print("GIT SHA: " + GIT_SHA)
 print("-==-" * 15)
 
-with open(os.path.join(PACKAGE_DIR, "version_info.json"), "w") as version_file:
+VERSION_INFO_FILE = os.path.join(
+    BASE_DIR, "superset", "static", "assets", "version_info.json"
+)
+
+with open(VERSION_INFO_FILE, "w") as version_file:
     json.dump(version_info, version_file)
 
 

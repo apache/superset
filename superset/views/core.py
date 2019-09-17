@@ -62,6 +62,7 @@ from superset import (
     results_backend_use_msgpack,
     security_manager,
     sql_lab,
+    talisman,
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -70,6 +71,7 @@ from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,
     SupersetSecurityException,
+    SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
 from superset.legacy import update_time_range
@@ -106,8 +108,12 @@ from .utils import (
     get_viz,
 )
 
+
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
+SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config.get(
+    "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT", 10
+)
 stats_logger = config.get("STATS_LOGGER")
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
@@ -637,16 +643,19 @@ class DashboardAddView(DashboardModelView):  # noqa
 appbuilder.add_view_no_menu(DashboardAddView)
 
 
+@talisman(force_https=False)
 @app.route("/health")
 def health():
     return "OK"
 
 
+@talisman(force_https=False)
 @app.route("/healthcheck")
 def healthcheck():
     return "OK"
 
 
+@talisman(force_https=False)
 @app.route("/ping")
 def ping():
     return "OK"
@@ -2399,6 +2408,34 @@ class Superset(BaseSupersetView):
         return json_success(
             mydb.select_star(table_name, schema, latest_partition=True, show_cols=True)
         )
+
+    @has_access_api
+    @expose("/estimate_query_cost/<database_id>/", methods=["POST"])
+    @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])
+    @event_logger.log_this
+    def estimate_query_cost(self, database_id: int, schema: str = None) -> Response:
+        mydb = db.session.query(models.Database).filter_by(id=database_id).one_or_none()
+
+        sql = json.loads(request.form.get("sql", '""'))
+        template_params = json.loads(request.form.get("templateParams") or "{}")
+        if template_params:
+            template_processor = get_template_processor(mydb)
+            sql = template_processor.process_template(sql, **template_params)
+
+        timeout = SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT
+        timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."
+        try:
+            with utils.timeout(seconds=timeout, error_message=timeout_msg):
+                cost = mydb.db_engine_spec.estimate_query_cost(
+                    mydb, schema, sql, utils.sources.get("sql_lab")
+                )
+        except SupersetTimeoutException as e:
+            logging.exception(e)
+            return json_error_response(timeout_msg)
+        except Exception as e:
+            return json_error_response(str(e))
+
+        return json_success(json.dumps(cost))
 
     @expose("/theme/")
     def theme(self):
