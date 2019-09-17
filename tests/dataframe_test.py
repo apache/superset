@@ -17,7 +17,8 @@
 import numpy as np
 
 from superset.dataframe import dedup, SupersetDataFrame
-from superset.db_engine_specs import BaseEngineSpec, PrestoEngineSpec
+from superset.db_engine_specs import BaseEngineSpec
+from superset.db_engine_specs.presto import PrestoEngineSpec
 from .base_tests import SupersetTestCase
 
 

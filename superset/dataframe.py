@@ -62,6 +62,12 @@ def dedup(l, suffix="__", case_sensitive=True):
     return new_l
 
 
+def is_numeric(dtype):
+    if hasattr(dtype, "_is_numeric"):
+        return dtype._is_numeric
+    return np.issubdtype(dtype, np.number)
+
+
 class SupersetDataFrame(object):
     # Mapping numpy dtype.char to generic database types
     type_map = {
@@ -205,7 +211,7 @@ class SupersetDataFrame(object):
         if (
             hasattr(dtype, "type")
             and issubclass(dtype.type, np.generic)
-            and dtype._is_numeric
+            and is_numeric(dtype)
         ):
             return "sum"
         return None

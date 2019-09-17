@@ -1069,9 +1069,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return df.to_dict()[field_to_return][0]
 
     @classmethod
-    def get_pandas_dtype(
-        cls, cursor_description: List[tuple]
-    ) -> Dict[str, str]:
+    def get_pandas_dtype(cls, cursor_description: List[tuple]) -> Dict[str, str]:
         return {
             col[0]: pandas_dtype_map.get(col[1], "object") for col in cursor_description
         }
