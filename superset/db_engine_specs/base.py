@@ -660,7 +660,7 @@ class BaseEngineSpec:
         :param cursor: Cursor instance
         :param username: Effective username
         """
-        raise NotImplementedError("Subclasses should implement estimate_statement_cost")
+        raise Exception("Database does not support cost estimation")
 
     @classmethod
     def estimate_query_cost(
@@ -674,7 +674,7 @@ class BaseEngineSpec:
         :param sql: SQL query with possibly multiple statements
         :param source: Source of the query (eg, "sql_lab")
         """
-        database_version = database.get_extra().get('version')
+        database_version = database.get_extra().get("version")
         if not cls.get_allow_cost_estimate(database_version):
             raise Exception("Database does not support cost estimation")
 

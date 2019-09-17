@@ -64,7 +64,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_allow_cost_estimate(cls, version: str = None) -> bool:
-        return version and StrictVersion(version) >= StrictVersion("0.319")
+        return version is not None and StrictVersion(version) >= StrictVersion("0.319")
 
     @classmethod
     def get_view_names(cls, inspector: Inspector, schema: Optional[str]) -> List[str]:

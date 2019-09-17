@@ -776,9 +776,12 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     @property
     def allows_cost_estimate(self) -> bool:
         extra = self.get_extra()
-        database_version = extra.get('version')
-        cost_estimate_enabled = extra.get('cost_estimate_enabled')
-        return self.db_engine_spec.get_allow_cost_estimate(database_version) and cost_estimate_enabled
+        database_version = extra.get("version")
+        cost_estimate_enabled = extra.get("cost_estimate_enabled")
+        return (
+            self.db_engine_spec.get_allow_cost_estimate(database_version)
+            and cost_estimate_enabled
+        )
 
     @property
     def data(self):
