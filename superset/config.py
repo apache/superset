@@ -96,7 +96,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 TENANT = os.environ['TENANT']
 # Your App secret key
-SECRET_KEY = os.environ['SECRET_KEY']  # noqa
+SECRET_KEY = "\2\1thisismyscretkey\1\2\e\y\y\h"  # noqa
 
 REDIS_ENDPOINT = os.environ['REDIS_ENDPOINT']
 SQLALCHEMY_ENGINE_OPTIONS = json.loads(os.environ['SQLALCHEMY_ENGINE_OPTIONS'])
