@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import { t } from '@superset-ui/translation';
 import {
   getControlConfig,
@@ -36,27 +37,73 @@ describe('controlUtils', () => {
     },
   };
 
+  beforeAll(() => {
+    getChartControlPanelRegistry().registerValue('test-chart', {
+      requiresTime: true,
+      controlPanelSections: [
+        {
+          label: t('Chart Options'),
+          expanded: true,
+          controlSetRows: [
+            ['color_scheme', {
+              name: 'rose_area_proportion',
+              config: {
+                type: 'CheckboxControl',
+                label: t('Use Area Proportions'),
+                description: t(
+                  'Check if the Rose Chart should use segment area instead of ' +
+                  'segment radius for proportioning',
+                ),
+                default: false,
+                renderTrigger: true,
+              },
+            }],
+          ],
+        },
+      ],
+    }).registerValue('test-chart-override', {
+      requiresTime: true,
+      controlPanelSections: [
+        {
+          label: t('Chart Options'),
+          expanded: true,
+          controlSetRows: [
+            ['color_scheme'],
+          ],
+        },
+      ],
+      controlOverrides: {
+        color_scheme: {
+          label: t('My beautiful colors'),
+        },
+      },
+    });
+  });
+
+  afterAll(() => {
+    getChartControlPanelRegistry()
+      .remove('test-chart')
+      .remove('test-chart-override');
+  });
+
   describe('getControlConfig', () => {
     it('returns a valid spatial controlConfig', () => {
-      const spatialControl = getControlConfig('spatial', 'deck_grid');
-      expect(spatialControl.type).toEqual('SpatialControl');
-      expect(spatialControl.validators).toHaveLength(1);
+      const spatialControl = getControlConfig('color_scheme', 'test-chart');
+      expect(spatialControl.type).toEqual('ColorSchemeControl');
     });
 
     it('overrides according to vizType', () => {
-      let control = getControlConfig('metric', 'line');
-      expect(control.type).toEqual('MetricsControl');
-      expect(control.validators).toHaveLength(1);
+      let control = getControlConfig('color_scheme', 'test-chart');
+      expect(control.label).toEqual('Color Scheme');
 
       // deck_polygon overrides and removes validators
-      control = getControlConfig('metric', 'deck_polygon');
-      expect(control.type).toEqual('MetricsControl');
-      expect(control.validators).toHaveLength(0);
+      control = getControlConfig('color_scheme', 'test-chart-override');
+      expect(control.label).toEqual('My beautiful colors');
     });
 
     it('returns correct control config when control config is defined ' +
       'in the control panel definition', () => {
-        const roseAreaProportionControlConfig = getControlConfig('rose_area_proportion', 'rose');
+        const roseAreaProportionControlConfig = getControlConfig('rose_area_proportion', 'test-chart');
         expect(roseAreaProportionControlConfig).toEqual({
           type: 'CheckboxControl',
           label: t('Use Area Proportions'),

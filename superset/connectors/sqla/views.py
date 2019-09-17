@@ -154,7 +154,6 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         "expression",
         "table",
         "d3format",
-        "is_restricted",
         "warning_text",
     ]
     description_columns = {
@@ -162,12 +161,6 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             "a valid, *aggregating* SQL expression as supported by the "
             "underlying backend. Example: `count(DISTINCT userid)`",
             True,
-        ),
-        "is_restricted": _(
-            "Whether access to this metric is restricted "
-            "to certain roles. Only roles with the permission "
-            "'metric access on XXX (the name of this metric)' "
-            "are allowed to access this metric"
         ),
         "d3format": utils.markdown(
             "d3 formatting string as defined [here]"
@@ -188,7 +181,6 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         "expression": _("SQL Expression"),
         "table": _("Table"),
         "d3format": _("D3 Format"),
-        "is_restricted": _("Is Restricted"),
         "warning_text": _("Warning Message"),
     }
 
@@ -202,18 +194,6 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     }
 
     edit_form_extra_fields = add_form_extra_fields
-
-    def post_add(self, metric):
-        if metric.is_restricted:
-            security_manager.add_permission_view_menu(
-                "metric_access", metric.get_perm()
-            )
-
-    def post_update(self, metric):
-        if metric.is_restricted:
-            security_manager.add_permission_view_menu(
-                "metric_access", metric.get_perm()
-            )
 
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)

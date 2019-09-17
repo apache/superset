@@ -22,6 +22,7 @@ import {
   ON_SAVE,
   REMOVE_SLICE,
   SET_EDIT_MODE,
+  SET_FOCUSED_FILTER_FIELD,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
   SET_UNSAVED_CHANGES,
   TOGGLE_EXPAND_SLICE,
@@ -129,6 +130,40 @@ describe('dashboardState reducer', () => {
       editMode: false,
       builderPaneType: BUILDER_PANE_TYPE.NONE,
       updatedColorScheme: false,
+    });
+  });
+
+  it('should clear focused filter field', () => {
+    // dashboard only has 1 focused filter field at a time,
+    // but when user switch different filter boxes,
+    // browser didn't always fire onBlur and onFocus events in order.
+    // so in redux state focusedFilterField prop is a queue,
+    // we always shift first element in the queue
+
+    // init state: has 1 focus field
+    const initState = {
+      focusedFilterField: [
+        {
+          chartId: 1,
+          column: 'column_1',
+        },
+      ],
+    };
+    // when user switching filter,
+    // browser focus on new filter first,
+    // then blur current filter
+    const step1 = dashboardStateReducer(initState, {
+      type: SET_FOCUSED_FILTER_FIELD,
+      chartId: 2,
+      column: 'column_2',
+    });
+    const step2 = dashboardStateReducer(step1, {
+      type: SET_FOCUSED_FILTER_FIELD,
+    });
+
+    expect(step2.focusedFilterField.slice(-1).pop()).toEqual({
+      chartId: 2,
+      column: 'column_2',
     });
   });
 });

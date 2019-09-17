@@ -16,31 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// We can codegen the enum definition based on a list of supported flags that we
-// check into source control. We're hardcoding the supported flags for now.
-export enum FeatureFlag {
-  SCOPED_FILTER = 'SCOPED_FILTER',
-  OMNIBAR = 'OMNIBAR',
-  CLIENT_CACHE = 'CLIENT_CACHE',
-  SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',
-  SQL_VALIDATORS_BY_ENGINE = 'SQL_VALIDATORS_BY_ENGINE',
-  ESTIMATE_QUERY_COST = 'ESTIMATE_QUERY_COST',
-}
+import { IN_COMPONENT_ELEMENT_TYPES } from './constants';
 
-export type FeatureFlagMap = {
-  [key in FeatureFlag]?: boolean;
-};
+export default function getChartAndLabelComponentIdFromPath(directPathToChild) {
+  const result = {};
 
-declare global {
-  interface Window {
-    featureFlags: FeatureFlagMap;
+  if (directPathToChild.length > 0) {
+    const currentPath = directPathToChild.slice();
+
+    while (currentPath.length) {
+      const componentId = currentPath.pop();
+      const componentType = componentId.split('-')[0];
+
+      result[componentType.toLowerCase()] = componentId;
+      if (!IN_COMPONENT_ELEMENT_TYPES.includes(componentType)) {
+        break;
+      }
+    }
   }
-}
 
-export function initFeatureFlags(featureFlags: FeatureFlagMap) {
-  window.featureFlags = featureFlags || {};
-}
-
-export function isFeatureEnabled(feature: FeatureFlag) {
-  return window && window.featureFlags && !!window.featureFlags[feature];
+  return result;
 }
