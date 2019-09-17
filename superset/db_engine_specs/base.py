@@ -695,10 +695,7 @@ class BaseEngineSpec:
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
-        engine = database.get_sqla_engine(
-            schema=schema, nullpool=True, user_name=user_name, source=source
-        )
-
+        engine = cls.get_engine(database, schema=schema, source=source)
         costs = []
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
