@@ -70,6 +70,9 @@ export const CHANGE_DATA_PREVIEW_ID = 'CHANGE_DATA_PREVIEW_ID';
 export const START_QUERY_VALIDATION = 'START_QUERY_VALIDATION';
 export const QUERY_VALIDATION_RETURNED = 'QUERY_VALIDATION_RETURNED';
 export const QUERY_VALIDATION_FAILED = 'QUERY_VALIDATION_FAILED';
+export const COST_ESTIMATE_STARTED = 'COST_ESTIMATE_STARTED';
+export const COST_ESTIMATE_RETURNED = 'COST_ESTIMATE_RETURNED';
+export const COST_ESTIMATE_FAILED = 'COST_ESTIMATE_FAILED';
 
 export const CREATE_DATASOURCE_STARTED = 'CREATE_DATASOURCE_STARTED';
 export const CREATE_DATASOURCE_SUCCESS = 'CREATE_DATASOURCE_SUCCESS';
@@ -118,6 +121,27 @@ export function scheduleQuery(query) {
     })
       .then(() => dispatch(addSuccessToast(t('Your query has been scheduled. To see details of your query, navigate to Saved Queries'))))
       .catch(() => dispatch(addDangerToast(t('Your query could not be scheduled'))));
+}
+
+export function estimateQueryCost(query) {
+  const { dbId, schema, sql, templateParams } = query;
+  const endpoint = schema === null
+      ? `/superset/estimate_query_cost/${dbId}/`
+      : `/superset/estimate_query_cost/${dbId}/${schema}/`;
+  return dispatch => Promise.all([
+    dispatch({ type: COST_ESTIMATE_STARTED, query }),
+    SupersetClient.post({
+      endpoint,
+      postPayload: { sql, templateParams: JSON.parse(templateParams) },
+    })
+      .then(({ json }) => dispatch({ type: COST_ESTIMATE_RETURNED, query, json }))
+      .catch(response =>
+        getClientErrorObject(response).then((error) => {
+          const message = error.error || error.statusText || t('Failed at retrieving results');
+          return dispatch({ type: COST_ESTIMATE_FAILED, query, error: message });
+        }),
+      ),
+  ]);
 }
 
 export function startQuery(query) {

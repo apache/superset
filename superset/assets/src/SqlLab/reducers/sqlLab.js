@@ -206,6 +206,42 @@ export default function sqlLabReducer(state = {}, action) {
       });
       return newState;
     },
+    [actions.COST_ESTIMATE_STARTED]() {
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        queryCostEstimate: {
+          completed: false,
+          cost: null,
+          error: null,
+        },
+      });
+      return newState;
+    },
+    [actions.COST_ESTIMATE_RETURNED]() {
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        queryCostEstimate: {
+          completed: true,
+          cost: action.json,
+          error: null,
+        },
+      });
+      return newState;
+    },
+    [actions.COST_ESTIMATE_FAILED]() {
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        queryCostEstimate: {
+          completed: false,
+          cost: null,
+          error: action.error,
+        },
+      });
+      return newState;
+    },
     [actions.START_QUERY]() {
       let newState = Object.assign({}, state);
       if (action.query.sqlEditorId) {
