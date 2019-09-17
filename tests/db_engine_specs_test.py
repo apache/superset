@@ -859,6 +859,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         db.get_extra = mock.Mock(return_value={})
         df = pd.DataFrame({"ds": ["01-01-19"], "hour": [1]})
         db.get_df = mock.Mock(return_value=df)
+        PrestoEngineSpec.get_create_view = mock.Mock(return_value=None)
         result = PrestoEngineSpec.extra_table_metadata(db, "test_table", "test_schema")
         self.assertEqual({"ds": "01-01-19", "hour": 1}, result["partitions"]["latest"])
 

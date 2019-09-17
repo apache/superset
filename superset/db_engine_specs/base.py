@@ -131,6 +131,13 @@ class BaseEngineSpec:
         return False
 
     @classmethod
+    def get_engine(cls, database, schema=None, source=None):
+        user_name = utils.get_username()
+        return database.get_sqla_engine(
+            schema=schema, nullpool=True, user_name=user_name, source=source
+        )
+
+    @classmethod
     def get_timestamp_expr(
         cls, col: ColumnClause, pdf: Optional[str], time_grain: Optional[str]
     ) -> TimestampExpression:
@@ -688,10 +695,7 @@ class BaseEngineSpec:
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
-        engine = database.get_sqla_engine(
-            schema=schema, nullpool=True, user_name=user_name, source=source
-        )
-
+        engine = cls.get_engine(database, schema=schema, source=source)
         costs = []
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:

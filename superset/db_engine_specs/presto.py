@@ -16,13 +16,14 @@
 # under the License.
 # pylint: disable=C,R,W
 from collections import defaultdict, deque, OrderedDict
+from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
 import logging
 import re
 import textwrap
 import time
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, cast, Dict, List, Optional, Set, Tuple
 from urllib import parse
 
 import simplejson as json
@@ -971,25 +972,55 @@ class PrestoEngineSpec(BaseEngineSpec):
     def extra_table_metadata(
         cls, database, table_name: str, schema_name: str
     ) -> Dict[str, Any]:
+        metadata = {}
+
         indexes = database.get_indexes(table_name, schema_name)
-        if not indexes:
-            return {}
-        cols = indexes[0].get("column_names", [])
-        full_table_name = table_name
-        if schema_name and "." not in table_name:
-            full_table_name = "{}.{}".format(schema_name, table_name)
-        pql = cls._partition_query(full_table_name, database)
-        col_names, latest_parts = cls.latest_partition(
-            table_name, schema_name, database, show_first=True
-        )
-        latest_parts = latest_parts or tuple([None] * len(col_names))
-        return {
-            "partitions": {
+        if indexes:
+            cols = indexes[0].get("column_names", [])
+            full_table_name = table_name
+            if schema_name and "." not in table_name:
+                full_table_name = "{}.{}".format(schema_name, table_name)
+            pql = cls._partition_query(full_table_name, database)
+            col_names, latest_parts = cls.latest_partition(
+                table_name, schema_name, database, show_first=True
+            )
+            latest_parts = latest_parts or tuple([None] * len(col_names))
+            metadata["partitions"] = {
                 "cols": cols,
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": pql,
             }
-        }
+
+        # flake8 is not matching `Optional[str]` to `Any` for some reason...
+        metadata["view"] = cast(
+            Any, cls.get_create_view(database, schema_name, table_name)
+        )
+
+        return metadata
+
+    @classmethod
+    def get_create_view(cls, database, schema: str, table: str) -> Optional[str]:
+        """
+        Return a CREATE VIEW statement, or `None` if not a view.
+
+        :param database: Database instance
+        :param schema: Schema name
+        :param table: Table (view) name
+        """
+        engine = cls.get_engine(database, schema)
+        with closing(engine.raw_connection()) as conn:
+            with closing(conn.cursor()) as cursor:
+                sql = f"SHOW CREATE VIEW {schema}.{table}"
+                cls.execute(cursor, sql)
+                try:
+                    polled = cursor.poll()
+                except Exception:  # not a VIEW
+                    return None
+                while polled:
+                    time.sleep(0.2)
+                    polled = cursor.poll()
+                rows = cls.fetch_data(cursor, 1)
+        return rows[0][0]
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
