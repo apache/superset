@@ -118,14 +118,14 @@ class SupersetDataFrameTestCase(SupersetTestCase):
         # description, so the column is inferred as float64 because of the
         # missing data
         cdf = SupersetDataFrame(data, cursor_descr, BaseEngineSpec)
-        self.assertListEqual(
+        np.testing.assert_array_equal(
             cdf.raw_df.values.tolist(),
             [[np.nan], [1.2391624564947538e18], [np.nan], [np.nan], [np.nan], [np.nan]],
         )
 
         # currently only Presto provides a dtype based on the cursor description
         cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
-        self.assertListEqual(
+        np.testing.assert_array_equal(
             cdf.raw_df.values.tolist(),
             [[np.nan], [1239162456494753670], [np.nan], [np.nan], [np.nan], [np.nan]],
         )
