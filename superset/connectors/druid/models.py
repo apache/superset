@@ -35,7 +35,11 @@ import pandas
 try:
     from pydruid.client import PyDruid
     from pydruid.utils.aggregators import count
-    from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
+    from pydruid.utils.dimensions import (
+        MapLookupExtraction,
+        RegexExtraction,
+        RegisteredLookupExtraction,
+    )
     from pydruid.utils.filters import Dimension, Filter
     from pydruid.utils.having import Aggregation
     from pydruid.utils.postaggregator import (
@@ -1402,6 +1406,8 @@ class DruidDatasource(Model, BaseDatasource):
                 )
             elif ext_type == "regex":
                 extraction_fn = RegexExtraction(fn["expr"])
+            elif ext_type == "registeredLookup":
+                extraction_fn = RegisteredLookupExtraction(fn.get("lookup"))
             else:
                 raise Exception(_("Unsupported extraction function: " + ext_type))
         return (col, extraction_fn)

@@ -1580,6 +1580,7 @@ class Superset(BaseSupersetView):
                 for vn in views[:max_views]
             ]
         )
+        table_options.sort(key=lambda value: value["label"])
         payload = {"tableLength": len(tables) + len(views), "options": table_options}
         return json_success(json.dumps(payload))
 
