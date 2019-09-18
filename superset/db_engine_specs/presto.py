@@ -131,8 +131,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     def get_table_names(
         cls, database, inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
-        tables = super().get_table_names(inspector, schema)
-
+        tables = super().get_table_names(database, inspector, schema)
         if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
             return tables
 
@@ -150,12 +149,11 @@ class PrestoEngineSpec(BaseEngineSpec):
         and get_view_names() is not implemented in sqlalchemy_presto.py
         https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
         """
-
         if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
             return []
 
         if schema:
-            sql = "SELECT table_name FROM information_schema.views WHERE schema_name=%(schema)s"
+            sql = "SELECT table_name FROM information_schema.views WHERE table_schema=%(schema)s"
             params = {"schema": schema}
         else:
             sql = "SELECT table_name FROM information_schema.views"
@@ -167,7 +165,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 cursor.execute(sql, params)
                 results = cursor.fetchall()
 
-        return [row["table_name"] for row in results]
+        return [row[0] for row in results]
 
     @classmethod
     def _create_column_info(cls, name: str, data_type: str) -> dict:

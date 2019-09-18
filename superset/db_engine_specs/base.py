@@ -538,7 +538,9 @@ class BaseEngineSpec:
         return sorted(inspector.get_schema_names())
 
     @classmethod
-    def get_table_names(cls, inspector: Inspector, schema: Optional[str]) -> List[str]:
+    def get_table_names(
+        cls, database, inspector: Inspector, schema: Optional[str]
+    ) -> List[str]:
         """
         Get all tables from schema
 
