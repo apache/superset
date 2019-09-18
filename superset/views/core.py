@@ -2612,19 +2612,10 @@ class Superset(BaseSupersetView):
         limit = limit or app.config.get("SQL_MAX_ROW")
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).first()
+        mydb = session.query(models.Database).filter_by(id=database_id).one_or_none()
 
         if not mydb:
-            json_error_response("Database with id {} is missing.".format(database_id))
-
-        rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
-        if rejected_tables:
-            return json_error_response(
-                security_manager.get_table_access_error_msg(rejected_tables),
-                link=security_manager.get_table_access_link(rejected_tables),
-                status=403,
-            )
-        session.commit()
+            return json_error_response(f"Database with id {database_id} is missing.")
 
         select_as_cta = request.form.get("select_as_cta") == "true"
         tmp_table_name = request.form.get("tmp_table_name")
@@ -2652,6 +2643,16 @@ class Superset(BaseSupersetView):
         if not query_id:
             raise Exception(_("Query record was not created as expected."))
         logging.info("Triggering query_id: {}".format(query_id))
+
+        rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
+        if rejected_tables:
+            query.status = QueryStatus.FAILED
+            session.commit()
+            return json_error_response(
+                security_manager.get_table_access_error_msg(rejected_tables),
+                link=security_manager.get_table_access_link(rejected_tables),
+                status=403,
+            )
 
         try:
             template_processor = get_template_processor(
