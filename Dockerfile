@@ -57,19 +57,14 @@ RUN pip install --upgrade setuptools pip \
   && pip install gevent \
   && rm -rf /root/.cache/pip
 
-COPY --chown=superset:superset superset superset
-
-ENV PATH=/home/superset/superset/bin:$PATH \
-    PYTHONPATH=/home/superset/superset/:$PYTHONPATH
-
-USER superset
-
 RUN cd superset/assets \
   && npm ci \
   && npm run build \
   && rm -rf node_modules
 
-RUN ./docker_init.sh
+RUN chmod +x docker_init.sh && ./docker_init.sh
+
+RUN chmod +x docker_entrypoint.sh
 
 EXPOSE 8088
 
