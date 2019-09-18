@@ -1,0 +1,106 @@
+{
+  "name": "@superset-ui/plugins-monorepo",
+  "version": "0.0.0-master",
+  "description": "Superset UI Plugins",
+  "private": true,
+  "scripts": {
+    "build": "yarn build:cjs && yarn build:esm && yarn run type:dts && yarn build:assets",
+    "build:cjs": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir lib/ --delete-dir-on-start --minify --workspaces=\"@superset-ui/!(plugins-demo)\"",
+    "build:esm": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir esm/ --delete-dir-on-start --esm --minify --workspaces=\"@superset-ui/!(plugins-demo)\"",
+    "build:assets": "node ./buildAssets.js",
+    "commit": "superset-commit",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
+    "type": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/((preset|plugin)-*)\" --noEmit",
+    "type:dts": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/((preset|plugin)-*)\" --emitDeclarationOnly",
+    "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
+    "lint:fix": "beemo create-config prettier && beemo eslint --fix \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
+    "jest": "beemo jest --color --coverage --react",
+    "postrelease": "lerna run deploy-demo",
+    "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn run test",
+    "prerelease": "yarn run build",
+    "pretest": "yarn run lint",
+    "prettier": "beemo prettier \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx,json,md}\"",
+    "release": "yarn run prepare-release && lerna publish && yarn run postrelease",
+    "test": "yarn run type && yarn run jest",
+    "test:watch": "yarn run lint:fix && beemo create-config jest --react && jest --watch"
+  },
+  "repository": "https://github.com/apache-superset/superset-ui-plugins.git",
+  "keywords": [
+    "apache",
+    "superset",
+    "data",
+    "analytics",
+    "analysis",
+    "visualization",
+    "react",
+    "d3",
+    "data-ui",
+    "vx"
+  ],
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@superset-ui/build-config": "^0.1.0",
+    "@superset-ui/commit-config": "^0.0.9",
+    "@superset-ui/chart": "^0.12.1",
+    "@superset-ui/chart-composition": "^0.12.1",
+    "@superset-ui/color": "^0.12.1",
+    "@superset-ui/connection": "^0.12.0",
+    "@superset-ui/core": "^0.12.0",
+    "@superset-ui/dimension": "^0.12.0",
+    "@superset-ui/number-format": "^0.12.1",
+    "@superset-ui/query": "^0.12.2",
+    "@superset-ui/time-format": "^0.12.1",
+    "@superset-ui/translation": "^0.12.0",
+    "@types/react": "^16.8.8",
+    "core-js": "^3.0.1",
+    "csstype": "^2.6.3",
+    "fast-glob": "^3.0.1",
+    "fs-extra": "^8.0.1",
+    "husky": "^3.0.3",
+    "lerna": "^3.2.1",
+    "lint-staged": "^9.2.1",
+    "react": "^16.6.0",
+    "react-dom": "^16.6.0",
+    "yarn": "^1.9.4"
+  },
+  "engines": {
+    "node": ">=8.10.0"
+  },
+  "beemo": {
+    "module": "@superset-ui/build-config",
+    "drivers": [
+      "babel",
+      "eslint",
+      {
+        "driver": "jest",
+        "env": {
+          "NODE_ENV": "test"
+        }
+      },
+      "prettier",
+      "typescript"
+    ],
+    "typescript": {
+      "compilerOptions": {
+        "typeRoots": [
+          "../../node_modules/vega-lite/typings"
+        ]
+      }
+    }
+  },
+  "workspaces": [
+    "./packages/*"
+  ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "lint-staged": {
+    "./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx,json,md}": [
+      "yarn run prettier --write",
+      "git add"
+    ]
+  }
+}
