@@ -69,9 +69,7 @@ RUN cd superset/assets \
   && npm run build \
   && rm -rf node_modules
 
-RUN chmod +x docker_init.sh && ./docker_init.sh
-
-RUN chmod +x docker_entrypoint.sh
+RUN ./docker_init.sh
 
 EXPOSE 8088
 
