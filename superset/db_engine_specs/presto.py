@@ -23,7 +23,7 @@ import logging
 import re
 import textwrap
 import time
-from typing import Any, cast, Dict, List, Optional, Set, Tuple
+from typing import Any, cast, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 from urllib import parse
 
 import simplejson as json
@@ -39,6 +39,10 @@ from superset.exceptions import SupersetTemplateException
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
+
+if TYPE_CHECKING:
+    # prevent circular imports
+    from superset.models.core import Database
 
 QueryStatus = utils.QueryStatus
 config = app.config
@@ -128,14 +132,44 @@ class PrestoEngineSpec(BaseEngineSpec):
         return version is not None and StrictVersion(version) >= StrictVersion("0.319")
 
     @classmethod
-    def get_view_names(cls, inspector: Inspector, schema: Optional[str]) -> List[str]:
+    def get_table_names(
+        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+    ) -> List[str]:
+        tables = super().get_table_names(database, inspector, schema)
+        if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
+            return tables
+
+        views = set(cls.get_view_names(database, inspector, schema))
+        actual_tables = set(tables) - views
+        return list(actual_tables)
+
+    @classmethod
+    def get_view_names(
+        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+    ) -> List[str]:
         """Returns an empty list
 
         get_table_names() function returns all table names and view names,
         and get_view_names() is not implemented in sqlalchemy_presto.py
         https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
         """
-        return []
+        if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
+            return []
+
+        if schema:
+            sql = "SELECT table_name FROM information_schema.views WHERE table_schema=%(schema)s"
+            params = {"schema": schema}
+        else:
+            sql = "SELECT table_name FROM information_schema.views"
+            params = {}
+
+        engine = cls.get_engine(database, schema=schema)
+        with closing(engine.raw_connection()) as conn:
+            with closing(conn.cursor()) as cursor:
+                cursor.execute(sql, params)
+                results = cursor.fetchall()
+
+        return [row[0] for row in results]
 
     @classmethod
     def _create_column_info(cls, name: str, data_type: str) -> dict:

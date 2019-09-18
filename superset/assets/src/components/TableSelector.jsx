@@ -221,7 +221,7 @@ export default class TableSelector extends React.PureComponent {
         onMouseEnter={() => focusOption(option)}
         style={style}
       >
-        <span>
+        <span className="TableLabel">
           <span className="m-r-5">
             <small className="text-muted">
               <i className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`} />
