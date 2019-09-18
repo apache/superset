@@ -2600,7 +2600,9 @@ class Superset(BaseSupersetView):
         async_ = request.form.get("runAsync") == "true"
         sql = request.form.get("sql")
         database_id = request.form.get("database_id")
-        schema = request.form.get("schema") or None
+        schema = (
+            request.form.get("schema") != "null" and request.form.get("schema") or None
+        )
         template_params = json.loads(request.form.get("templateParams") or "{}")
         limit = int(request.form.get("queryLimit", 0))
         if limit < 0:
