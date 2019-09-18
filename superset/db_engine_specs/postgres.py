@@ -16,11 +16,15 @@
 # under the License.
 # pylint: disable=C,R,W
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, TYPE_CHECKING
 
 from sqlalchemy.dialects.postgresql.base import PGInspector
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+
+if TYPE_CHECKING:
+    # prevent circular imports
+    from superset.models.core import Database
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -64,7 +68,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
     @classmethod
     def get_table_names(
-        cls, inspector: PGInspector, schema: Optional[str]
+        cls, database: "Database", inspector: PGInspector, schema: Optional[str]
     ) -> List[str]:
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)

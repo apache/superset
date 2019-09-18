@@ -342,7 +342,9 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 self.assertSetEqual(defined_grains, intersection, engine)
 
     def test_presto_get_view_names_return_empty_list(self):
-        self.assertEquals([], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY))
+        self.assertEquals(
+            [], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY)
+        )
 
     def verify_presto_column(self, column, expected_results):
         inspector = mock.Mock()
@@ -877,7 +879,9 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEqual("SELECT  \nWHERE ds = '01-01-19' AND hour = 1", query_result)
 
     def test_hive_get_view_names_return_empty_list(self):
-        self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))
+        self.assertEquals(
+            [], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY)
+        )
 
     def test_bigquery_sqla_column_label(self):
         label = BigQueryEngineSpec.make_label_compatible(column("Col").name)
@@ -952,7 +956,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         ie. when try_remove_schema_from_table_name == True. """
         base_result_expected = ["table", "table_2"]
         base_result = BaseEngineSpec.get_table_names(
-            schema="schema", inspector=inspector
+            database=mock.ANY, schema="schema", inspector=inspector
         )
         self.assertListEqual(base_result_expected, base_result)
 
@@ -960,7 +964,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         ie. when try_remove_schema_from_table_name == False. """
         pg_result_expected = ["schema.table", "table_2", "table_3"]
         pg_result = PostgresEngineSpec.get_table_names(
-            schema="schema", inspector=inspector
+            database=mock.ANY, schema="schema", inspector=inspector
         )
         self.assertListEqual(pg_result_expected, pg_result)
 
