@@ -66,7 +66,7 @@ class DeckMulti extends React.PureComponent {
 
   loadLayers(formData, payload, viewport) {
     this.setState({ subSlicesLayers: {}, viewport });
-    payload.data.slices.forEach((subslice) => {
+    payload.data.slices.forEach(subslice => {
       // Filters applied to multi_deck are passed down to underlying charts
       // note that dashboard contextual information (filter_immune_slices and such) aren't
       // taken into consideration here
@@ -84,8 +84,8 @@ class DeckMulti extends React.PureComponent {
       };
 
       SupersetClient.get({
-          endpoint: getExploreLongUrl(subsliceCopy.form_data, 'json'),
-        })
+        endpoint: getExploreLongUrl(subsliceCopy.form_data, 'json'),
+      })
         .then(({ json }) => {
           const layer = layerGenerators[subsliceCopy.form_data.viz_type](
             subsliceCopy.form_data,

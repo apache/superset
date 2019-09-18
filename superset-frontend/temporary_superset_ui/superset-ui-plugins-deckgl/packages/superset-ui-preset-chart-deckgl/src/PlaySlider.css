@@ -16,24 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import thumbnail from './images/thumbnail.png';
-import transformProps from '../../transformProps';
+.play-slider {
+    display: flex;
+    height: 40px;
+    width: 100%;
+    margin: 0;
+}
 
-const metadata = new ChartMetadata({
-  credits: ['https://uber.github.io/deck.gl'],
-  description: '',
-  name: t('deck.gl Polygon'),
-  thumbnail,
-});
+.play-slider-controls {
+    flex: 0 0 80px;
+    text-align: middle;
+}
 
-export default class PolygonChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./Polygon'),
-      metadata,
-      transformProps,
-    });
-  }
+.play-slider-scrobbler {
+    flex: 1;
+}
+
+.slider.slider-horizontal {
+    width: 100% !important;
+}
+
+.slider-button {
+    color: #b3b3b3;
+    margin-right: 5px;
+}
+
+div.slider > div.tooltip.tooltip-main.top.in {
+    margin-left: 0 !important;
 }

@@ -22,9 +22,9 @@ import MapGL from 'react-map-gl';
 import DeckGL from 'deck.gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { isEqual } from 'lodash';
-import '../stylesheets/deckgl.css';
+import './css/deckgl.css';
 
-const TICK = 2000;  // milliseconds
+const TICK = 2000; // milliseconds
 
 const propTypes = {
   viewport: PropTypes.object.isRequired,
@@ -51,6 +51,7 @@ export default class DeckGLContainer extends React.Component {
       timer: setInterval(this.tick, TICK),
     };
   }
+
   static getDerivedStateFromProps(nextProps, prevState) {
     if (nextProps.viewport !== prevState.viewport) {
       return {
@@ -58,11 +59,14 @@ export default class DeckGLContainer extends React.Component {
         previousViewport: prevState.viewport,
       };
     }
+
     return null;
   }
+
   componentWillUnmount() {
     clearInterval(this.state.timer);
   }
+
   onViewportChange(viewport) {
     const vp = Object.assign({}, viewport);
     // delete vp.width;
@@ -72,6 +76,7 @@ export default class DeckGLContainer extends React.Component {
     // this.setState(() => ({ viewport: newVp }));
     this.props.onViewportChange(newVp);
   }
+
   tick() {
     // Limiting updating viewport controls through Redux at most 1*sec
     // Deep compare is needed as shallow equality doesn't work here, viewport object
@@ -85,15 +90,19 @@ export default class DeckGLContainer extends React.Component {
       this.setState(() => ({ previousViewport: this.props.viewport }));
     }
   }
+
   layers() {
     // Support for layer factory
     if (this.props.layers.some(l => typeof l === 'function')) {
-      return this.props.layers.map(l => typeof l === 'function' ? l() : l);
+      return this.props.layers.map(l => (typeof l === 'function' ? l() : l));
     }
+
     return this.props.layers;
   }
+
   render() {
     const { viewport } = this.props;
+
     return (
       <MapGL
         {...viewport}
@@ -101,11 +110,7 @@ export default class DeckGLContainer extends React.Component {
         onViewportChange={this.onViewportChange}
         mapboxApiAccessToken={this.props.mapboxApiAccessToken}
       >
-        <DeckGL
-          {...viewport}
-          layers={this.layers()}
-          initWebGLParameters
-        />
+        <DeckGL {...viewport} layers={this.layers()} initWebGLParameters />
       </MapGL>
     );
   }

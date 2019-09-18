@@ -35,7 +35,10 @@ function getPoints(data) {
 function setTooltipContent(o) {
   return (
     <div className="deckgl-tooltip">
-      <TooltipRow label={`${t('Longitude and Latitude')}: `} value={`${o.object.position[0]}, ${o.object.position[1]}`} />
+      <TooltipRow
+        label={`${t('Longitude and Latitude')}: `}
+        value={`${o.object.position[0]}, ${o.object.position[1]}`}
+      />
       <TooltipRow label={`${t('Weight')}: `} value={`${o.object.weight}`} />
     </div>
   );
@@ -56,7 +59,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, selected, o
   }
 
   if (filters != null) {
-    filters.forEach((f) => {
+    filters.forEach(f => {
       data = data.filter(f);
     });
   }
@@ -99,6 +102,7 @@ class DeckGLScreenGrid extends React.PureComponent {
     this.onValuesChange = this.onValuesChange.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
   }
+
   static getDerivedStateFromProps(props, state) {
     // the state is computed only from the payload; if it hasn't changed, do
     // not recompute state since this would reset selections and/or the play
@@ -112,19 +116,10 @@ class DeckGLScreenGrid extends React.PureComponent {
 
     // the granularity has to be read from the payload form_data, not the
     // props formData which comes from the instantaneous controls state
-    const granularity = (
-      props.payload.form_data.time_grain_sqla ||
-      props.payload.form_data.granularity ||
-      'P1D'
-    );
+    const granularity =
+      props.payload.form_data.time_grain_sqla || props.payload.form_data.granularity || 'P1D';
 
-    const {
-      start,
-      end,
-      getStep,
-      values,
-      disabled,
-    } = getPlaySliderParams(timestamps, granularity);
+    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, granularity);
 
     const viewport = props.formData.autozoom
       ? fitViewport(props.viewport, getPoints(features))
@@ -142,16 +137,17 @@ class DeckGLScreenGrid extends React.PureComponent {
       formData: props.payload.form_data,
     };
   }
+
   onValuesChange(values) {
     this.setState({
-      values: Array.isArray(values)
-        ? values
-        : [values, values + this.state.getStep(values)],
+      values: Array.isArray(values) ? values : [values, values + this.state.getStep(values)],
     });
   }
+
   onViewportChange(viewport) {
     this.setState({ viewport });
   }
+
   getLayers(values) {
     const filters = [];
 
@@ -167,13 +163,15 @@ class DeckGLScreenGrid extends React.PureComponent {
       this.props.payload,
       this.props.onAddFilter,
       this.props.setTooltip,
-      filters);
+      filters,
+    );
 
     return [layer];
   }
 
   render() {
     const { formData, payload, setControlValue } = this.props;
+
     return (
       <div>
         <AnimatableDeckGLContainer

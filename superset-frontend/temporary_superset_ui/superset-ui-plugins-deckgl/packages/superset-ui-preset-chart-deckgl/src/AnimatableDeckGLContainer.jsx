@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import DeckGLContainer from './DeckGLContainer';
 import PlaySlider from '../PlaySlider';
 
-const PLAYSLIDER_HEIGHT = 20;  // px
+const PLAYSLIDER_HEIGHT = 20; // px
 
 const propTypes = {
   getLayers: PropTypes.func.isRequired,
@@ -55,12 +55,14 @@ export default class AnimatableDeckGLContainer extends React.Component {
     super(props);
     this.onViewportChange = this.onViewportChange.bind(this);
   }
+
   onViewportChange(viewport) {
     const originalViewport = this.props.disabled
       ? { ...viewport }
       : { ...viewport, height: viewport.height + PLAYSLIDER_HEIGHT };
     this.props.onViewportChange(originalViewport);
   }
+
   render() {
     const {
       start,
@@ -95,16 +97,16 @@ export default class AnimatableDeckGLContainer extends React.Component {
           mapboxApiAccessToken={mapboxApiAccessToken}
           onViewportChange={this.onViewportChange}
         />
-        {!disabled &&
-        <PlaySlider
-          start={start}
-          end={end}
-          step={getStep(start)}
-          values={values}
-          range={!aggregation}
-          onChange={onValuesChange}
-        />
-        }
+        {!disabled && (
+          <PlaySlider
+            start={start}
+            end={end}
+            step={getStep(start)}
+            values={values}
+            range={!aggregation}
+            onChange={onValuesChange}
+          />
+        )}
         {children}
       </div>
     );

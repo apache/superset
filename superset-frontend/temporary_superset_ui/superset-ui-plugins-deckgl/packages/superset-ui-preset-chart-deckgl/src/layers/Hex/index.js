@@ -22,17 +22,17 @@ import thumbnail from './images/thumbnail.png';
 import transformProps from '../../transformProps';
 
 const metadata = new ChartMetadata({
-  name: t('deck.gl 3D Hexagon'),
-  description: '',
   credits: ['https://uber.github.io/deck.gl'],
+  description: '',
+  name: t('deck.gl 3D Hexagon'),
   thumbnail,
 });
 
 export default class HexChartPlugin extends ChartPlugin {
   constructor() {
     super({
+      loadChart: () => import('./Hex'),
       metadata,
-      loadChart: () => import('./Hex.jsx'),
       transformProps,
     });
   }

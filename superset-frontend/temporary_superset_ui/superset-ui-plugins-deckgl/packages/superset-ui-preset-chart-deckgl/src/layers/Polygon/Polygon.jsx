@@ -32,7 +32,7 @@ import { commonLayerProps, fitViewport } from '../common';
 import { getPlaySliderParams } from '../../../../modules/time';
 import sandboxedEval from '../../../../modules/sandbox';
 
-const DOUBLE_CLICK_TRESHOLD = 250;  // milliseconds
+const DOUBLE_CLICK_TRESHOLD = 250; // milliseconds
 
 function getPoints(features) {
   return features.map(d => d.polygon).flat();
@@ -44,18 +44,22 @@ function getElevation(d, colorScaler) {
    * effectively showing the map layer no matter what other polygons are
    * behind it.
    */
-  return colorScaler(d)[3] === 0
-    ? 0
-    : d.elevation;
+  return colorScaler(d)[3] === 0 ? 0 : d.elevation;
 }
 
 function setTooltipContent(formData) {
-  return (o) => {
+  return o => {
     const metricLabel = formData.metric.label || formData.metric;
+
     return (
       <div className="deckgl-tooltip">
-        <TooltipRow label={`${formData.line_column}: `} value={`${o.object[formData.line_column]}`} />
-        {formData.metric && <TooltipRow label={`${metricLabel}: `} value={`${o.object[metricLabel]}`} />}
+        <TooltipRow
+          label={`${formData.line_column}: `}
+          value={`${o.object[formData.line_column]}`}
+        />
+        {formData.metric && (
+          <TooltipRow label={`${metricLabel}: `} value={`${o.object[metricLabel]}`} />
+        )}
       </div>
     );
   };
@@ -68,7 +72,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, selected, o
   let data = [...payload.data.features];
 
   if (filters != null) {
-    filters.forEach((f) => {
+    filters.forEach(f => {
       data = data.filter(f);
     });
   }
@@ -82,21 +86,25 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, selected, o
   const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
   const accessor = d => d[metricLabel];
   // base color for the polygons
-  const baseColorScaler = fd.metric === null
-    ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
-    : getBreakPointColorScaler(fd, data, accessor);
+  const baseColorScaler =
+    fd.metric === null
+      ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
+      : getBreakPointColorScaler(fd, data, accessor);
 
   // when polygons are selected, reduce the opacity of non-selected polygons
-  const colorScaler = (d) => {
+  const colorScaler = d => {
     const baseColor = baseColorScaler(d);
     if (selected.length > 0 && selected.indexOf(d[fd.line_column]) === -1) {
       baseColor[3] /= 2;
     }
+
     return baseColor;
   };
-  const tooltipContentGenerator = (fd.line_column && fd.metric && ['geohash', 'zipcode'].indexOf(fd.line_type) >= 0)
-    ? setTooltipContent(fd)
-    : undefined;
+  const tooltipContentGenerator =
+    fd.line_column && fd.metric && ['geohash', 'zipcode'].indexOf(fd.line_type) >= 0
+      ? setTooltipContent(fd)
+      : undefined;
+
   return new PolygonLayer({
     id: `path-layer-${fd.slice_id}`,
     data,
@@ -140,6 +148,7 @@ class DeckGLPolygon extends React.Component {
     this.onValuesChange = this.onValuesChange.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
   }
+
   static getDerivedStateFromProps(props, state) {
     // the state is computed only from the payload; if it hasn't changed, do
     // not recompute state since this would reset selections and/or the play
@@ -153,19 +162,10 @@ class DeckGLPolygon extends React.Component {
 
     // the granularity has to be read from the payload form_data, not the
     // props formData which comes from the instantaneous controls state
-    const granularity = (
-      props.payload.form_data.time_grain_sqla ||
-      props.payload.form_data.granularity ||
-      'P1D'
-    );
+    const granularity =
+      props.payload.form_data.time_grain_sqla || props.payload.form_data.granularity || 'P1D';
 
-    const {
-      start,
-      end,
-      getStep,
-      values,
-      disabled,
-    } = getPlaySliderParams(timestamps, granularity);
+    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, granularity);
 
     const viewport = props.formData.autozoom
       ? fitViewport(props.viewport, getPoints(features))
@@ -183,11 +183,12 @@ class DeckGLPolygon extends React.Component {
       formData: props.payload.form_data,
     };
   }
+
   onSelect(polygon) {
     const { formData, onAddFilter } = this.props;
 
     const now = new Date();
-    const doubleClick = (now - this.state.lastClick) <= DOUBLE_CLICK_TRESHOLD;
+    const doubleClick = now - this.state.lastClick <= DOUBLE_CLICK_TRESHOLD;
 
     // toggle selected polygons
     const selected = [...this.state.selected];
@@ -209,16 +210,17 @@ class DeckGLPolygon extends React.Component {
       onAddFilter(formData.line_column, selected, false, true);
     }
   }
+
   onValuesChange(values) {
     this.setState({
-      values: Array.isArray(values)
-        ? values
-        : [values, values + this.state.getStep(values)],
+      values: Array.isArray(values) ? values : [values, values + this.state.getStep(values)],
     });
   }
+
   onViewportChange(viewport) {
     this.setState({ viewport });
   }
+
   getLayers(values) {
     if (this.props.payload.data.features === undefined) {
       return [];
@@ -240,10 +242,12 @@ class DeckGLPolygon extends React.Component {
       this.props.setTooltip,
       this.state.selected,
       this.onSelect,
-      filters);
+      filters,
+    );
 
     return [layer];
   }
+
   render() {
     const { payload, formData, setControlValue } = this.props;
     const { start, end, getStep, values, disabled, viewport } = this.state;
@@ -253,6 +257,7 @@ class DeckGLPolygon extends React.Component {
     const accessor = d => d[metricLabel];
 
     const buckets = getBuckets(formData, payload.data.features, accessor);
+
     return (
       <div style={{ position: 'relative' }}>
         <AnimatableDeckGLContainer
@@ -270,12 +275,13 @@ class DeckGLPolygon extends React.Component {
           setControlValue={setControlValue}
           aggregation
         >
-          {formData.metric !== null &&
-          <Legend
-            categories={buckets}
-            position={formData.legend_position}
-            format={formData.legend_format}
-          />}
+          {formData.metric !== null && (
+            <Legend
+              categories={buckets}
+              position={formData.legend_position}
+              format={formData.legend_format}
+            />
+          )}
         </AnimatableDeckGLContainer>
       </div>
     );

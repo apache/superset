@@ -31,20 +31,26 @@ function getPoints(data) {
 function setTooltipContent(formData) {
   return o => (
     <div className="deckgl-tooltip">
-      <TooltipRow label={`${t('Longitude and Latitude')}: `} value={`${o.object.position[0]}, ${o.object.position[1]}`} />
-      {
-        o.object.cat_color && <TooltipRow label={`${t('Category')}: `} value={`${o.object.cat_color}`} />
-      }
-      {
-        o.object.metric && <TooltipRow label={`${formData.point_radius_fixed.value.label}: `} value={`${o.object.metric}`} />
-      }
+      <TooltipRow
+        label={`${t('Longitude and Latitude')}: `}
+        value={`${o.object.position[0]}, ${o.object.position[1]}`}
+      />
+      {o.object.cat_color && (
+        <TooltipRow label={`${t('Category')}: `} value={`${o.object.cat_color}`} />
+      )}
+      {o.object.metric && (
+        <TooltipRow
+          label={`${formData.point_radius_fixed.value.label}: `}
+          value={`${o.object.metric}`}
+        />
+      )}
     </div>
   );
 }
 
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
-  const dataWithRadius = payload.data.features.map((d) => {
+  const dataWithRadius = payload.data.features.map(d => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
     if (fd.multiplier) {
       radius *= fd.multiplier;
@@ -54,6 +60,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     }
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
     const color = [c.r, c.g, c.b, c.a * 255];
+
     return { ...d, radius, color };
   });
 

@@ -25,21 +25,28 @@ import TooltipRow from '../../TooltipRow';
 
 function getPoints(data) {
   const points = [];
-  data.forEach((d) => {
+  data.forEach(d => {
     points.push(d.sourcePosition);
     points.push(d.targetPosition);
   });
+
   return points;
 }
 
 function setTooltipContent(formData) {
   return o => (
     <div className="deckgl-tooltip">
-      <TooltipRow label={`${t('Start (Longitude, Latitude)')}: `} value={`${o.object.sourcePosition[0]}, ${o.object.sourcePosition[1]}`} />
-      <TooltipRow label={`${t('End (Longitude, Latitude)')}: `} value={`${o.object.targetPosition[0]}, ${o.object.targetPosition[1]}`} />
-      {
-        formData.dimension && <TooltipRow label={`${formData.dimension}: `} value={`${o.object.cat_color}`} />
-      }
+      <TooltipRow
+        label={`${t('Start (Longitude, Latitude)')}: `}
+        value={`${o.object.sourcePosition[0]}, ${o.object.sourcePosition[1]}`}
+      />
+      <TooltipRow
+        label={`${t('End (Longitude, Latitude)')}: `}
+        value={`${o.object.targetPosition[0]}, ${o.object.targetPosition[1]}`}
+      />
+      {formData.dimension && (
+        <TooltipRow label={`${formData.dimension}: `} value={`${o.object.cat_color}`} />
+      )}
     </div>
   );
 }
@@ -48,12 +55,13 @@ export function getLayer(fd, payload, onAddFilter, setTooltip) {
   const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
+
   return new ArcLayer({
-    id: `path-layer-${fd.slice_id}`,
     data,
     getSourceColor: d => d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
     getTargetColor: d => d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
-    strokeWidth: (fd.stroke_width) ? fd.stroke_width : 3,
+    id: `path-layer-${fd.slice_id}`,
+    strokeWidth: fd.stroke_width ? fd.stroke_width : 3,
     ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
   });
 }

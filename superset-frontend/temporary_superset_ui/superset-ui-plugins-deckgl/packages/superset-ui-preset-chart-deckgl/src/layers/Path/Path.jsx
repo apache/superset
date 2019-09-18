@@ -25,14 +25,18 @@ import TooltipRow from '../../TooltipRow';
 
 function setTooltipContent(o) {
   return (
-    o.object.extraProps &&
-    <div className="deckgl-tooltip">
-      {
+    o.object.extraProps && (
+      <div className="deckgl-tooltip">
+  {
         Object.keys(o.object.extraProps).map((prop, index) =>
-          <TooltipRow key={`prop-${index}`} label={`${prop}: `} value={`${o.object.extraProps[prop]}`} />,
-        )
-      }
-    </div>
+          <TooltipRow
+            key={`prop-${index}`}
+            label={`${prop}: `}
+            value={`${o.object.extraProps[prop]}`}
+          />
+        ))}
+</div>
+    )
   );
 }
 
@@ -63,9 +67,10 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
 
 function getPoints(data) {
   let points = [];
-  data.forEach((d) => {
+  data.forEach(d => {
     points = points.concat(d.path);
   });
+
   return points;
 }
 
