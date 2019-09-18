@@ -53,8 +53,8 @@ pandas_dtype_map = {
     "real": "float64",
     "double": "float64",
     "varchar": "object",
-    "timestamp": "datetime64",
-    "date": "datetime64",
+    "timestamp": "datetime64[ns]",
+    "date": "datetime64[ns]",
     "varbinary": "object",
 }
 
