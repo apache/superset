@@ -1,7 +1,7 @@
 {
-  "name": "@superset-ui/plugins-monorepo",
+  "name": "@superset-ui/plugins-deckgl-monorepo",
   "version": "0.0.0-master",
-  "description": "Superset UI Plugins",
+  "description": "Superset UI Plugins - deck.gl",
   "private": true,
   "scripts": {
     "build": "yarn build:cjs && yarn build:esm && yarn run type:dts && yarn build:assets",
@@ -24,7 +24,7 @@
     "test": "yarn run type && yarn run jest",
     "test:watch": "yarn run lint:fix && beemo create-config jest --react && jest --watch"
   },
-  "repository": "https://github.com/apache-superset/superset-ui-plugins.git",
+  "repository": "https://github.com/apache-superset/superset-ui-plugins-deckgl.git",
   "keywords": [
     "apache",
     "superset",
