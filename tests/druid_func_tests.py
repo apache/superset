@@ -19,7 +19,11 @@ import unittest
 from unittest.mock import Mock
 
 try:
-    from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
+    from pydruid.utils.dimensions import (
+        MapLookupExtraction,
+        RegexExtraction,
+        RegisteredLookupExtraction,
+    )
     import pydruid.utils.postaggregator as postaggs
 except ImportError:
     pass
@@ -109,6 +113,27 @@ class DruidFuncTestCase(unittest.TestCase):
         dim_ext_fn = dimension_spec["extractionFn"]
         f_ext_fn = f.extraction_function
         self.assertEqual(dim_ext_fn["expr"], f_ext_fn._expr)
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
+    def test_get_filters_extraction_fn_registered_lookup_extraction(self):
+        filters = [{"col": "country", "val": ["Spain"], "op": "in"}]
+        dimension_spec = {
+            "type": "extraction",
+            "dimension": "country_name",
+            "outputName": "country",
+            "outputType": "STRING",
+            "extractionFn": {"type": "registeredLookup", "lookup": "country_name"},
+        }
+        spec_json = json.dumps(dimension_spec)
+        col = DruidColumn(column_name="country", dimension_spec_json=spec_json)
+        column_dict = {"country": col}
+        f = DruidDatasource.get_filters(filters, [], column_dict)
+        assert isinstance(f.extraction_function, RegisteredLookupExtraction)
+        dim_ext_fn = dimension_spec["extractionFn"]
+        self.assertEqual(dim_ext_fn["type"], f.extraction_function.extraction_type)
+        self.assertEqual(dim_ext_fn["lookup"], f.extraction_function._lookup)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
