@@ -26,7 +26,7 @@ export default () => {
       cy.server();
       cy.visit('/superset/sqllab');
 
-      cy.route('POST', '/superset/sql_json/**').as('sqlLabQuery');
+      cy.route('POST', '/superset/sql_json/').as('sqlLabQuery');
     });
 
     it('supports entering and running a query', () => {
