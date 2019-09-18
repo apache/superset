@@ -21,6 +21,7 @@ from typing import List, Optional, Tuple
 from sqlalchemy.dialects.postgresql.base import PGInspector
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.models.core import Database
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -64,7 +65,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
     @classmethod
     def get_table_names(
-        cls, database, inspector: PGInspector, schema: Optional[str]
+        cls, database: Database, inspector: PGInspector, schema: Optional[str]
     ) -> List[str]:
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)

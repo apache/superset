@@ -21,6 +21,7 @@ from typing import List
 from sqlalchemy.engine.reflection import Inspector
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.models.core import Database
 from superset.utils import core as utils
 
 
@@ -79,6 +80,8 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "'{}'".format(iso)
 
     @classmethod
-    def get_table_names(cls, database, inspector: Inspector, schema: str) -> List[str]:
+    def get_table_names(
+        cls, database: Database, inspector: Inspector, schema: str
+    ) -> List[str]:
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())

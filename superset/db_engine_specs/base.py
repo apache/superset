@@ -38,6 +38,7 @@ import sqlparse
 from werkzeug.utils import secure_filename
 
 from superset import app, db, sql_parse
+from superset.models.core import Database
 from superset.utils import core as utils
 
 
@@ -539,7 +540,7 @@ class BaseEngineSpec:
 
     @classmethod
     def get_table_names(
-        cls, database, inspector: Inspector, schema: Optional[str]
+        cls, database: Database, inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         """
         Get all tables from schema
@@ -555,7 +556,7 @@ class BaseEngineSpec:
 
     @classmethod
     def get_view_names(
-        cls, database, inspector: Inspector, schema: Optional[str]
+        cls, database: Database, inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         """
         Get all views from schema
