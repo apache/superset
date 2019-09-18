@@ -129,3 +129,9 @@ class SupersetDataFrameTestCase(SupersetTestCase):
             cdf.raw_df.values.tolist(),
             [[np.nan], [1239162456494753670], [np.nan], [np.nan], [np.nan], [np.nan]],
         )
+
+    def test_pandas_datetime64(self):
+        data = [(None,)]
+        cursor_descr = [("ds", "timestamp", None, None, None, None, True)]
+        cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
+        self.assertEqual(cdf.raw_df.dtypes[0], np.dtype("<M8[ns]"))
