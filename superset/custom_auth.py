@@ -20,7 +20,7 @@ def has_resource_access(privileges):
 
 class CustomAuthDBView(AuthDBView):
 
-    @expose('/login/', methods=['GET'])
+    @expose('/login/', methods=['GET'. 'POST'])
     def login(self):
         redirect_url = self.appbuilder.get_url_for_index
         user_role = 'gamma'
