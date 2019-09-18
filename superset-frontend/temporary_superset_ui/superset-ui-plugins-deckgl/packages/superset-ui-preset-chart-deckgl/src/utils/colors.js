@@ -16,24 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import thumbnail from './images/thumbnail.png';
-import transformProps from '../../transformProps';
+import { rgb } from 'd3-color';
 
-const metadata = new ChartMetadata({
-  credits: ['https://uber.github.io/deck.gl'],
-  description: '',
-  name: t('deck.gl Polygon'),
-  thumbnail,
-});
-
-export default class PolygonChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./Polygon'),
-      metadata,
-      transformProps,
-    });
+export function hexToRGB(hex, alpha = 255) {
+  if (!hex) {
+    return [0, 0, 0, alpha];
   }
+  const { r, g, b } = rgb(hex);
+  return [r, g, b, alpha];
 }

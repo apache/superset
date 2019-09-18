@@ -22,8 +22,8 @@ import { GeoJsonLayer } from 'deck.gl';
 // TODO import geojsonExtent from 'geojson-extent';
 
 import DeckGLContainer from '../../DeckGLContainer';
-import { hexToRGB } from '../../../../modules/colors';
-import sandboxedEval from '../../../../modules/sandbox';
+import { hexToRGB } from '../../utils/colors';
+import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
 
@@ -39,7 +39,7 @@ const propertyMap = {
 
 const alterProps = (props, propOverrides) => {
   const newProps = {};
-  Object.keys(props).forEach((k) => {
+  Object.keys(props).forEach(k => {
     if (k in propertyMap) {
       newProps[propertyMap[k]] = props[k];
     } else {
@@ -52,6 +52,7 @@ const alterProps = (props, propOverrides) => {
   if (typeof props.strokeColor === 'string') {
     newProps.strokeColor = hexToRGB(props.strokeColor);
   }
+
   return {
     ...newProps,
     ...propOverrides,
@@ -60,7 +61,7 @@ const alterProps = (props, propOverrides) => {
 let features;
 const recurseGeoJson = (node, propOverrides, extraProps) => {
   if (node && node.features) {
-    node.features.forEach((obj) => {
+    node.features.forEach(obj => {
       recurseGeoJson(obj, propOverrides, node.extraProps || extraProps);
     });
   }
@@ -78,14 +79,17 @@ const recurseGeoJson = (node, propOverrides, extraProps) => {
 
 function setTooltipContent(o) {
   return (
-    o.object.extraProps &&
-    <div className="deckgl-tooltip">
-      {
-        Object.keys(o.object.extraProps).map((prop, index) =>
-          <TooltipRow key={`prop-${index}`} label={`${prop}: `} value={`${o.object.extraProps[prop]}`} />,
-        )
-      }
-    </div>
+    o.object.extraProps && (
+      <div className="deckgl-tooltip">
+        {Object.keys(o.object.extraProps).map((prop, index) => (
+          <TooltipRow
+            key={`prop-${index}`}
+            label={`${prop}: `}
+            value={`${o.object.extraProps[prop]}`}
+          />
+        ))}
+      </div>
+    )
   );
 }
 
@@ -138,14 +142,7 @@ const defaultProps = {
 };
 
 function deckGeoJson(props) {
-  const {
-    formData,
-    payload,
-    setControlValue,
-    onAddFilter,
-    setTooltip,
-    viewport,
-  } = props;
+  const { formData, payload, setControlValue, onAddFilter, setTooltip, viewport } = props;
 
   // TODO get this to work
   // if (formData.autozoom) {

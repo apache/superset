@@ -19,7 +19,7 @@
 import { extent } from 'd3-array';
 import { scaleThreshold } from 'd3-scale';
 import { getSequentialSchemeRegistry, SequentialScheme } from '@superset-ui/color';
-import { hexToRGB } from '../../modules/colors';
+import { hexToRGB } from './utils/colors';
 
 const DEFAULT_NUM_BUCKETS = 10;
 
@@ -42,12 +42,12 @@ export function getBreakPoints(
     const precision = delta === 0 ? 0 : Math.max(0, Math.ceil(Math.log10(1 / delta)));
     const extraBucket = maxValue > maxValue.toFixed(precision) ? 1 : 0;
 
-return Array(numBuckets + 1 + extraBucket)
+    return Array(numBuckets + 1 + extraBucket)
       .fill()
       .map((_, i) => (minValue + i * delta).toFixed(precision));
   }
 
-return formDataBreakPoints.sort((a, b) => parseFloat(a) - parseFloat(b));
+  return formDataBreakPoints.sort((a, b) => parseFloat(a) - parseFloat(b));
 }
 
 export function getBreakPointColorScaler(
@@ -112,7 +112,7 @@ export function getBreakPointColorScaler(
       c[3] = (opacity / 100.0) * 255;
     }
 
-return c;
+    return c;
   };
 }
 
@@ -121,7 +121,7 @@ export function getBuckets(fd, features, accessor) {
   const colorScaler = getBreakPointColorScaler(fd, features, accessor);
   const buckets = {};
   breakPoints.slice(1).forEach((value, i) => {
-    const range = `${breakPoints[i]  } - ${  breakPoints[i + 1]}`;
+    const range = `${breakPoints[i]} - ${breakPoints[i + 1]}`;
     const mid = 0.5 * (parseFloat(breakPoints[i]) + parseFloat(breakPoints[i + 1]));
     // fix polygon doesn't show
     const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
@@ -131,5 +131,5 @@ export function getBuckets(fd, features, accessor) {
     };
   });
 
-return buckets;
+  return buckets;
 }
