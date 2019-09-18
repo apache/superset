@@ -110,7 +110,7 @@ class SupersetDataFrame(object):
             # need to do this because we can not specify a mixed dtype when
             # instantiating the DataFrame, and this allows us to have different
             # dtypes for each column.
-            array = np.array(data)
+            array = np.array(data, dtype="object")
             data = {
                 column: pd.Series(array[:, i], dtype=dtype[column])
                 for i, column in enumerate(column_names)
