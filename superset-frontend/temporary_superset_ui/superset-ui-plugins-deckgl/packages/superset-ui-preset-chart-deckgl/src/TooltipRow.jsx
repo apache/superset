@@ -24,11 +24,15 @@ const propTypes = {
   value: PropTypes.string.isRequired,
 };
 
-
 export default class TooltipRow extends React.PureComponent {
   render() {
+    const { label, value } = this.props;
+
     return (
-      <div>{this.props.label}<strong>{this.props.value}</strong></div>
+      <div>
+        {label}
+        <strong>{value}</strong>
+      </div>
     );
   }
 }

@@ -22,10 +22,10 @@ import sandboxedEval from '../../../modules/sandbox';
 
 const PADDING = 0.25;
 const GEO_BOUNDS = {
-  LAT_MIN: -90,
   LAT_MAX: 90,
-  LNG_MIN: -180,
+  LAT_MIN: -90,
   LNG_MAX: 180,
+  LNG_MIN: -180,
 };
 
 /**
@@ -33,12 +33,11 @@ const GEO_BOUNDS = {
  * @param latExt Latitude range
  */
 function getLatBoundsForSingleCoordinate(latExt) {
-  const latMin = latExt[0] - PADDING < GEO_BOUNDS.LAT_MIN
-    ? GEO_BOUNDS.LAT_MIN
-    : latExt[0] - PADDING;
-  const latMax = latExt[1] + PADDING > GEO_BOUNDS.LAT_MAX
-    ? GEO_BOUNDS.LAT_MAX
-    : latExt[1] + PADDING;
+  const latMin =
+    latExt[0] - PADDING < GEO_BOUNDS.LAT_MIN ? GEO_BOUNDS.LAT_MIN : latExt[0] - PADDING;
+  const latMax =
+    latExt[1] + PADDING > GEO_BOUNDS.LAT_MAX ? GEO_BOUNDS.LAT_MAX : latExt[1] + PADDING;
+
   return [latMin, latMax];
 }
 
@@ -47,12 +46,11 @@ function getLatBoundsForSingleCoordinate(latExt) {
  * @param lngExt Longitude range
  */
 function getLngBoundsForSingleCoordinate(lngExt) {
-  const lngMin = lngExt[0] - PADDING < GEO_BOUNDS.LNG_MIN
-    ? GEO_BOUNDS.LNG_MIN
-    : lngExt[0] - PADDING;
-  const lngMax = lngExt[1] + PADDING > GEO_BOUNDS.LNG_MAX
-    ? GEO_BOUNDS.LNG_MAX
-    : lngExt[1] + PADDING;
+  const lngMin =
+    lngExt[0] - PADDING < GEO_BOUNDS.LNG_MIN ? GEO_BOUNDS.LNG_MIN : lngExt[0] - PADDING;
+  const lngMax =
+    lngExt[1] + PADDING > GEO_BOUNDS.LNG_MAX ? GEO_BOUNDS.LNG_MAX : lngExt[1] + PADDING;
+
   return [lngMin, lngMax];
 }
 
@@ -61,15 +59,14 @@ export function getBounds(points) {
   const lngExt = d3array.extent(points, d => d[0]);
   const latBounds = latExt[0] === latExt[1] ? getLatBoundsForSingleCoordinate(latExt) : latExt;
   const lngBounds = lngExt[0] === lngExt[1] ? getLngBoundsForSingleCoordinate(lngExt) : lngExt;
-  return [
-    [lngBounds[0], latBounds[0]],
-    [lngBounds[1], latBounds[1]],
-  ];
+
+  return [[lngBounds[0], latBounds[0]], [lngBounds[1], latBounds[1]]];
 }
 
 export function fitViewport(viewport, points, padding = 10) {
   try {
     const bounds = getBounds(points);
+
     return {
       ...viewport,
       ...fitBounds({
@@ -82,6 +79,7 @@ export function fitViewport(viewport, points, padding = 10) {
   } catch (e) {
     /* eslint no-console: 0 */
     console.error('Could not auto zoom', e);
+
     return viewport;
   }
 }
@@ -94,7 +92,7 @@ export function commonLayerProps(formData, setTooltip, setTooltipContent, onSele
     tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
   }
   if (tooltipContentGenerator) {
-    onHover = (o) => {
+    onHover = o => {
       if (o.picked) {
         setTooltip({
           content: tooltipContentGenerator(o),
@@ -108,13 +106,14 @@ export function commonLayerProps(formData, setTooltip, setTooltipContent, onSele
   }
   let onClick;
   if (fd.js_onclick_href) {
-    onClick = (o) => {
+    onClick = o => {
       const href = sandboxedEval(fd.js_onclick_href)(o);
       window.open(href);
     };
   } else if (fd.table_filter && onSelect !== undefined) {
     onClick = o => onSelect(o.object[fd.line_column]);
   }
+
   return {
     onClick,
     onHover,
@@ -143,6 +142,7 @@ export function getAggFunc(type = 'sum', accessor = null) {
       } else {
         sortedArr = arr.sort(d3array.ascending);
       }
+
       return d3array.quantile(sortedArr, percentiles[type], acc);
     };
   } else {
@@ -151,5 +151,6 @@ export function getAggFunc(type = 'sum', accessor = null) {
   if (!accessor) {
     return arr => d3func(arr);
   }
+
   return arr => d3func(arr.map(accessor));
 }

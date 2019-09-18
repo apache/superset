@@ -52,39 +52,30 @@ export function createDeckGLComponent(getLayer, getPoints) {
       };
       this.onViewportChange = this.onViewportChange.bind(this);
     }
+
     UNSAFE_componentWillReceiveProps(nextProps) {
       // Only recompute the layer if anything BUT the viewport has changed
       const nextFdNoVP = { ...nextProps.formData, viewport: null };
       const currFdNoVP = { ...this.props.formData, viewport: null };
-      if (
-        !isEqual(nextFdNoVP, currFdNoVP) ||
-        nextProps.payload !== this.props.payload
-      ) {
+      if (!isEqual(nextFdNoVP, currFdNoVP) || nextProps.payload !== this.props.payload) {
         this.setState({ layer: this.computeLayer(nextProps) });
       }
     }
+
     onViewportChange(viewport) {
       this.setState({ viewport });
     }
+
     computeLayer(props) {
-      const {
-        formData,
-        payload,
-        onAddFilter,
-        setTooltip,
-      } = props;
+      const { formData, payload, onAddFilter, setTooltip } = props;
+
       return getLayer(formData, payload, onAddFilter, setTooltip);
     }
+
     render() {
-      const {
-        formData,
-        payload,
-        setControlValue,
-      } = this.props;
-      const {
-        layer,
-        viewport,
-      } = this.state;
+      const { formData, payload, setControlValue } = this.props;
+      const { layer, viewport } = this.state;
+
       return (
         <DeckGLContainer
           mapboxApiAccessToken={payload.data.mapboxApiKey}
@@ -93,24 +84,19 @@ export function createDeckGLComponent(getLayer, getPoints) {
           mapStyle={formData.mapbox_style}
           setControlValue={setControlValue}
           onViewportChange={this.onViewportChange}
-        />);
+        />
+      );
     }
   }
   Component.propTypes = propTypes;
   Component.defaultProps = defaultProps;
+
   return Component;
 }
 
 export function createCategoricalDeckGLComponent(getLayer, getPoints) {
   function Component(props) {
-    const {
-      formData,
-      payload,
-      setControlValue,
-      onAddFilter,
-      setTooltip,
-      viewport,
-    } = props;
+    const { formData, payload, setControlValue, onAddFilter, setTooltip, viewport } = props;
 
     return (
       <CategoricalDeckGLContainer

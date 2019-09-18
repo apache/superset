@@ -22,17 +22,17 @@ import thumbnail from './images/thumbnail.png';
 import transformProps from '../../transformProps';
 
 const metadata = new ChartMetadata({
-  name: t('deck.gl Path'),
-  description: '',
   credits: ['https://uber.github.io/deck.gl'],
+  description: '',
+  name: t('deck.gl Path'),
   thumbnail,
 });
 
 export default class PathChartPlugin extends ChartPlugin {
   constructor() {
     super({
+      loadChart: () => import('./Path'),
       metadata,
-      loadChart: () => import('./Path.jsx'),
       transformProps,
     });
   }

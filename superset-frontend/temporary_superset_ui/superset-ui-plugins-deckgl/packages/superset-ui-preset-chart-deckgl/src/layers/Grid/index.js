@@ -22,17 +22,17 @@ import thumbnail from './images/thumbnail.png';
 import transformProps from '../../transformProps';
 
 const metadata = new ChartMetadata({
-  name: t('deck.gl Grid'),
-  description: '',
   credits: ['https://uber.github.io/deck.gl'],
+  description: '',
+  name: t('deck.gl Grid'),
   thumbnail,
 });
 
 export default class GridChartPlugin extends ChartPlugin {
   constructor() {
     super({
+      loadChart: () => import('./Grid'),
       metadata,
-      loadChart: () => import('./Grid.jsx'),
       transformProps,
     });
   }
