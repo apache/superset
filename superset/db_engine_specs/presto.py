@@ -23,7 +23,7 @@ import logging
 import re
 import textwrap
 import time
-from typing import Any, cast, Dict, List, Optional, Set, Tuple
+from typing import Any, cast, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 from urllib import parse
 
 import simplejson as json
@@ -36,10 +36,13 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import app, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
-from superset.models.core import Database
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
+
+if TYPE_CHECKING:
+    # prevent circular imports
+    from superset.models.core import Database
 
 QueryStatus = utils.QueryStatus
 config = app.config
@@ -130,7 +133,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_table_names(
-        cls, database: Database, inspector: Inspector, schema: Optional[str]
+        cls, database: "Database", inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         tables = super().get_table_names(database, inspector, schema)
         if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
@@ -142,7 +145,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_view_names(
-        cls, database: Database, inspector: Inspector, schema: Optional[str]
+        cls, database: "Database", inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         """Returns an empty list
 

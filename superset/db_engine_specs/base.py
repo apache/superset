@@ -20,7 +20,7 @@ from datetime import datetime
 import hashlib
 import os
 import re
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING, Union
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -38,8 +38,11 @@ import sqlparse
 from werkzeug.utils import secure_filename
 
 from superset import app, db, sql_parse
-from superset.models.core import Database
 from superset.utils import core as utils
+
+if TYPE_CHECKING:
+    # prevent circular imports
+    from superset.models.core import Database
 
 
 class TimeGrain(NamedTuple):
@@ -540,7 +543,7 @@ class BaseEngineSpec:
 
     @classmethod
     def get_table_names(
-        cls, database: Database, inspector: Inspector, schema: Optional[str]
+        cls, database: "Database", inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         """
         Get all tables from schema
@@ -556,7 +559,7 @@ class BaseEngineSpec:
 
     @classmethod
     def get_view_names(
-        cls, database: Database, inspector: Inspector, schema: Optional[str]
+        cls, database: "Database", inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         """
         Get all views from schema
