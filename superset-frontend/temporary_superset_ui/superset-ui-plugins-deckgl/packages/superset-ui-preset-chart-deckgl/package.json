@@ -1,0 +1,53 @@
+{
+  "name": "@superset-ui/legacy-preset-chart-deckgl",
+  "version": "0.11.0",
+  "description": "Superset Legacy Chart - deck.gl",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui-plugins-deckgl.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui-plugins-deckgl/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui-plugins-deckgl#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@data-ui/xy-chart": "^0.0.80",
+    "d3": "^3.5.17",
+    "d3-tip": "^0.9.1",
+    "dompurify": "^1.0.3",
+    "fast-safe-stringify": "^2.0.6",
+    "lodash": "^4.17.11",
+    "mathjs": "^3.20.2",
+    "moment": "^2.20.1",
+    "nvd3": "1.8.6",
+    "prop-types": "^15.6.2",
+    "urijs": "^1.18.10"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart": "^0.12.0",
+    "@superset-ui/color": "^0.12.0",
+    "@superset-ui/core": "^0.12.0",
+    "@superset-ui/dimension": "^0.12.0",
+    "@superset-ui/number-format": "^0.12.0",
+    "@superset-ui/time-format": "^0.12.0",
+    "@superset-ui/translation": "^0.12.0",
+    "react": "^15 || ^16"
+  }
+}
