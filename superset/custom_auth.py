@@ -12,7 +12,7 @@ from os import environ
 def has_resource_access(privileges):
     for config in privileges['level']['tenant']['tenants']:
         if config['tenant'] == environ['TENANT']:
-            for resource in config['tenant']['resources']:
+            for resource in config['resources']:
                 if resource['name'] == 'SOLUTION MANAGER':
                     return True
     return False
@@ -23,7 +23,7 @@ class CustomAuthDBView(AuthDBView):
     @expose('/login/', methods=['GET', 'POST'])
     def login(self):
         redirect_url = self.appbuilder.get_url_for_index
-        user_role = 'gamma'
+        user = 'guest'
         try:
             if request.args.get('redirect') is not None:
                 redirect_url = request.args.get('redirect')
@@ -39,17 +39,18 @@ class CustomAuthDBView(AuthDBView):
                 if not auth_response['tenant'] == environ['TENANT']:
                     raise Exception('Tenant mismatch in token')
                 if auth_response['role'] in ['tenantManager', 'tenantAdmin']:
-                    user_role = 'admin'
+                    user = 'admin'
                 else:
                     privileges = loads(auth_response['privileges'])
                     if not has_resource_access(privileges):
                         raise Exception('Insufficient Resource Permissions')
-
-                user = self.appbuilder.sm.find_user(user_role)
+                user = self.appbuilder.sm.find_user(user)
                 login_user(user, remember=False)
                 return redirect(redirect_url)
             elif g.user is not None and g.user.is_authenticated:
                 return redirect(redirect_url)
+            else:
+                raise Exception('Login is valid only through "authToken"')
         except Exception as e:
             flash(e, 'warning')
             return super(CustomAuthDBView, self).login()

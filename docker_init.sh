@@ -31,10 +31,10 @@ flask fab create-admin \
 flask fab create-user \
   --role Gamma \
   --username guest \
-  --firstname mehmaan \
-  --lastname bhagwan \
-  --email guest@peak.ai \
-  --password mehmaanbhagwan
+  --firstname guest \
+  --lastname guest \
+  --email $GUEST_EMAIL \
+  --password $GUEST_PASSWORD
 
 # Initialize the database
 superset db upgrade
