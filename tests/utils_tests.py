@@ -45,6 +45,7 @@ from superset.utils.core import (
     parse_js_uri_path_item,
     parse_past_timedelta,
     setup_cache,
+    split,
     validate_json,
     zlib_compress,
     zlib_decompress,
@@ -831,6 +832,20 @@ class UtilsTestCase(unittest.TestCase):
             except Exception:
                 stacktrace = get_stacktrace()
                 assert stacktrace is None
+
+    def test_split(self):
+        self.assertEqual(list(split("a b")), ["a", "b"])
+        self.assertEqual(list(split("a,b", delimiter=",")), ["a", "b"])
+        self.assertEqual(list(split("a,(b,a)", delimiter=",")), ["a", "(b,a)"])
+        self.assertEqual(
+            list(split('a,(b,a),"foo , bar"', delimiter=",")),
+            ["a", "(b,a)", '"foo , bar"'],
+        )
+        self.assertEqual(
+            list(split("a,'b,c'", delimiter=",", quote="'")), ["a", "'b,c'"]
+        )
+        self.assertEqual(list(split('a "b c"')), ["a", '"b c"'])
+        self.assertEqual(list(split(r'a "b \" c"')), ["a", r'"b \" c"'])
 
     def test_get_or_create_db(self):
         get_or_create_db("test_db", "sqlite:///superset.db")
