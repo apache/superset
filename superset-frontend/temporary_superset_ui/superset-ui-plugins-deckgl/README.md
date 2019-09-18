@@ -1,0 +1,200 @@
+# @superset-ui/plugins 🔌💡
+
+[![Codecov branch](https://img.shields.io/codecov/c/github/apache-superset/superset-ui-plugins/master.svg?style=flat-square)](https://codecov.io/gh/apache-superset/superset-ui-plugins/branch/master)
+[![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui-plugins/master.svg?style=flat-square
+)](https://travis-ci.com/apache-superset/superset-ui-plugins)
+[![David](https://img.shields.io/david/dev/apache-superset/superset-ui-plugins.svg?style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins?type=dev)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/d2c78390-752e-4fc2-abf0-7e6df362b9ff/deploy-status)](https://app.netlify.com/sites/superset-ui-plugins/deploys)
+
+`@superset-ui/legacy-*` packages are extracted from the classic [Apache Superset](https://github.com/apache/incubator-superset) and converted into plugins.
+These packages are extracted with minimal changes (almost as-is). They also depend on legacy API (`viz.py`) to function.
+
+`@superset-ui/plugin-*` packages are newer and has higher quality in general.
+A key difference that they do not depend on `viz.py`
+(which contain visualization-specific python code) and interface with
+`/api/v1/query/` instead: a new generic endpoint instead meant to
+serve all visualizations.
+
+We are not accepting pull requests for new community-contributed plugins to be merged into this repository at the moment.
+We will keep it lean for now to improve the standard and reduce operational load on maintenance.
+Bug fixes are welcome.
+
+In the future, we plan to have a template for new repository or generator for everybody to setup a single plugin repository easily on his/her own.
+This way anybody can create and publish a Superset plugin.
+
+## Demo (Storybook)
+
+Most recent release: https://apache-superset.github.io/superset-ui-plugins/
+
+Current master: https://superset-ui-plugins.netlify.com
+
+## Packages
+
+| Package | Version | Note |
+|--|--|--|
+| [@superset-ui/plugin-chart-word-cloud](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-plugin-chart-word-cloud) | [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square) | |
+| [@superset-ui/preset-chart-xy](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-preset-chart-xy) | [![Version](https://img.shields.io/npm/v/@superset-ui/preset-chart-xy.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/preset-chart-xy.svg?style=flat-square) | experimental |
+
+| Package | Version |
+|--|--|
+| [@superset-ui/legacy-preset-chart-big-number](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-preset-chart-big-number) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-big-number.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-big-number.svg?style=flat-square) |
+| [@superset-ui/legacy-preset-chart-nvd3](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-preset-chart-nvd3) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-nvd3.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-nvd3.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-calendar](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-calendar) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-calendar.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-calendar.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-chord](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-chord) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-chord.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-chord.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-country-map](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-country-map) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-country-map.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-country-map.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-event-flow](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-event-flow) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-event-flow.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-event-flow.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-force-directed](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-force-directed) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-force-directed.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-force-directed.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-heatmap](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-heatmap) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-heatmap.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-heatmap.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-histogram](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-histogram) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-histogram.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-histogram.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-horizon](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-horizon) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-horizon.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-horizon.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-iframe](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-iframe) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-iframe.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-iframe.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-markup](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-markup) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-markup.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-markup.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-map-box](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-map-box) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-map-box.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-map-box.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-paired-t-test](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-paired-t-test) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-paired-t-test.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-paired-t-test.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-parallel-coordinates](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-parallel-coordinates) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-parallel-coordinates.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-parallel-coordinates.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-partition](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-partition) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-partition.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-partition.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-pivot-table](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-pivot-table) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-pivot-table.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-pivot-table.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-rose](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-rose) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-rose.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-rose.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-sankey](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-sankey) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-sankey.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-sankey.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-sankey-loop](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-sankey-loop) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-sankey-loop.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-sankey-loop.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-sunburst](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-sunburst) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-sunburst.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-sunburst.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-table](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-table) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-table.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-table.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-treemap](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-treemap) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-treemap.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-treemap.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-word-cloud](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-word-cloud) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-word-cloud.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-word-cloud.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-world-map](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-world-map) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-world-map.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-world-map.svg?style=flat-square) |
+
+### Development
+
+[lerna](https://github.com/lerna/lerna/) and [yarn](https://yarnpkg.com) are used to manage versions and dependencies between
+packages in this monorepo.
+
+```
+superset-ui/
+  lerna.json
+  package.json
+  ...
+  packages/
+    package1/
+      package.json
+      ...
+      src/
+      test/
+      ...
+      lib/
+      esm/
+      ...
+    ...
+```
+
+
+
+### Installation
+
+1. clone this repo
+2. have yarn install package dependencies and manage the symlinking between packages for you
+
+```sh
+git clone ...superset-ui-plugins && cd superset-ui-plugins
+yarn install
+yarn build
+```
+
+### Activating plugins for local development
+
+1. Enable `npm link` for the package.
+
+```sh
+cd superset-ui
+cd packages/superset-ui-chart
+npm link
+```
+
+2. Link the local package to `incubator-superset`.
+
+```sh
+cd incubator-superset
+cd superset/assets
+npm link @superset-ui/chart \# use package name in package.json, not directory name 
+```
+
+3) After npm link complete, update the import statements in Superset.
+
+Instead of
+
+```js
+import { xxx } from '@superset-ui/plugin-chart-horizon';
+```
+
+which will point to the transpiled code.
+
+do refer to `src`
+
+```js
+import { xxx } from '@superset-ui/plugin-chart-horizon/src'
+```
+
+4. After that you can run `dev-server` as usual.
+
+```sh
+npm run dev-server
+```
+
+Now when you change the code in `@superset-ui`, it will update the app immediately similar to code inside `incubator-superset`.
+
+### Deactivating plugins for local development
+
+1. Change the `import` statements back.
+
+2. Unlink the package from `incubator-superset`.
+
+```cd incubator-superset
+cd superset/assets
+npm unlink @superset-ui/chart
+```
+
+Note: Quite often, `npm link` mess up your `node_modules` and the `unlink` command above does not work correctly, making webpack build fails or other unexpected behaviors. If that happens, just delete your `node_modules` and `npm install` from scratch.
+
+3. Clean up global link.
+
+```sh
+cd superset-ui
+cd packages/superset-ui-chart
+npm unlink
+```
+
+### Builds, linting, and testing
+
+Each package defines its own build config, linting, and testing. You can have lerna run commands
+across all packages using the syntax `yarn run test` (or `yarn run test:watch` for watch mode) from the root `@superset-ui` directory.
+
+#### Storybook
+
+You can demo your changes by running the storybook demo locally with the following commands:
+
+```sh
+yarn install
+yarn build
+cd packages/superset-ui-plugins-demo
+yarn storybook:run
+```
+
+Alternatively, you can demo your changes by using the following command while in `packages/superset-ui-plugins-demo`:
+
+```sh
+yarn storybook
+```
+
+### Committing
+
+This repository follows [conventional commits](https://www.conventionalcommits.org/en/v1.0.0-beta.3/) guideline for commit messages and has a `commitlint` hook which will require you to have the valid commit message before committing. You can use `npm run commit` to help you create a commit message.
+
+### Publishing
+
+**Prerequisite:** You'll need an [npmjs.com](https://npmjs.com) account that is part of the `@superset-ui` organization.
+
+1. Make sure you're logged in to NPM from your shell. Run `npm login` if necessary.
+2. To make the release, run `yarn run release` and follow the prompts.
+
+### License
+
+Apache-2.0
