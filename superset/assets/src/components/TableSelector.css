@@ -36,3 +36,6 @@
   border-bottom: 1px solid #f2f2f2;
   margin: 15px 0;
 }
+.TableLabel {
+  white-space: nowrap;
+}
