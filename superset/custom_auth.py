@@ -31,7 +31,7 @@ class CustomAuthDBView(AuthDBView):
             if request.args.get('authToken') is not None:
                 token = 'Bearer {}'.format(request.args.get('authToken'))
                 auth_response = loads(call(
-                    'ais-{}'.format(environ('STAGE')),
+                    'ais-{}'.format(environ['STAGE']),
                     'authentication',
                     'auth', {
                         'authorizationToken': token
