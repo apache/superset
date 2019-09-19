@@ -395,7 +395,7 @@ class Druid(BaseSupersetView):
 
     @has_access
     @expose("/refresh_datasources/")
-    def refresh_datasources(self, refreshAll=True):
+    def refresh_datasources(self, refresh_all=True):
         """endpoint that refreshes druid datasources metadata"""
         session = db.session()
         DruidCluster = ConnectorRegistry.sources["druid"].cluster_class
@@ -403,7 +403,7 @@ class Druid(BaseSupersetView):
             cluster_name = cluster.cluster_name
             valid_cluster = True
             try:
-                cluster.refresh_datasources(refreshAll=refreshAll)
+                cluster.refresh_datasources(refresh_all=refresh_all)
             except Exception as e:
                 valid_cluster = False
                 flash(
@@ -432,7 +432,7 @@ class Druid(BaseSupersetView):
         Calling this endpoint will cause a scan for new
         datasources only and add them.
         """
-        return self.refresh_datasources(refreshAll=False)
+        return self.refresh_datasources(refresh_all=False)
 
 
 appbuilder.add_view_no_menu(Druid)
