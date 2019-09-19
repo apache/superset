@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('deck.gl Arc'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class ArcChartPlugin extends ChartPlugin {

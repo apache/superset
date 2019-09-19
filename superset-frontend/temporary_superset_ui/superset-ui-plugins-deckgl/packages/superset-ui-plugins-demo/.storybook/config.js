@@ -2,7 +2,7 @@ import { addParameters, configure } from '@storybook/react';
 
 addParameters({
   options: {
-    name: '@superset-ui/plugins 🔌💡',
+    name: '@superset-ui/plugins-deckgl 🔌💡',
     addonPanelInRight: false,
     enableShortcuts: false,
     goFullScreen: false,
