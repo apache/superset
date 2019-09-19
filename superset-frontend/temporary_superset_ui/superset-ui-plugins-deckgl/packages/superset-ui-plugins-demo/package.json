@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugins-demo",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Storybook for Superset UI Plugins 🔌💡",
   "private": true,
   "main": "index.js",
@@ -38,8 +38,8 @@
     "@storybook/addons": "^5.0.9",
     "@storybook/react": "^5.0.9",
     "@types/react": "^16.8.8",
-    "@types/storybook__react": "3.0.7",
     "@types/storybook__addon-knobs": "^5.0.0",
+    "@types/storybook__react": "3.0.7",
     "bootstrap": "^4.3.1",
     "react": "^16.6.0",
     "storybook-addon-jsx": "^7.1.0"
