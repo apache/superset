@@ -1,3 +1,9 @@
+/* eslint-disable react/jsx-handler-names */
+/* eslint-disable react/destructuring-assignment */
+/* eslint-disable react/no-access-state-in-setstate */
+/* eslint-disable react/forbid-prop-types */
+/* eslint-disable no-magic-numbers */
+/* eslint-disable sort-keys */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -24,13 +30,13 @@ import PropTypes from 'prop-types';
 import { PolygonLayer } from 'deck.gl';
 
 import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
-import Legend from '../../../Legend';
+import Legend from '../../components/Legend';
 import TooltipRow from '../../TooltipRow';
 import { getBuckets, getBreakPointColorScaler } from '../../utils';
 
 import { commonLayerProps, fitViewport } from '../common';
-import { getPlaySliderParams } from '../../../../modules/time';
-import sandboxedEval from '../../../../modules/sandbox';
+import { getPlaySliderParams } from '../../utils/time';
+import sandboxedEval from '../../utils/sandbox';
 
 const DOUBLE_CLICK_TRESHOLD = 250; // milliseconds
 
@@ -71,6 +77,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, selected, o
   const sc = fd.stroke_color_picker;
   let data = [...payload.data.features];
 
+  // eslint-disable-next-line no-eq-null
   if (filters != null) {
     filters.forEach(f => {
       data = data.filter(f);

@@ -1,3 +1,8 @@
+/* eslint-disable sort-keys */
+/* eslint-disable babel/no-invalid-this */
+/* eslint-disable no-eq-null */
+/* eslint-disable no-negated-condition */
+/* eslint-disable func-names */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,19 +23,17 @@
  */
 import moment from 'moment';
 
-
 // array with the minimum values of each part of a timestamp -- note that
 // months are zero-indexed in Javascript
 const truncatePartTo = [
-  1,  // year
-  0,  // month
-  1,  // day
-  0,  // hour
-  0,  // minute
-  0,  // second
-  0,  // millisecond
+  1, // year
+  0, // month
+  1, // day
+  0, // hour
+  0, // minute
+  0, // second
+  0, // millisecond
 ];
-
 
 export function truncate(timestamp, step) {
   /*
@@ -41,16 +44,18 @@ export function truncate(timestamp, step) {
   const explodedLowerBound = lowerBound.toArray();
 
   const firstDiffIndex = explodedTimestamp
-    .map((part, i) => (explodedLowerBound[i] !== part))
+    .map((part, i) => explodedLowerBound[i] !== part)
     .indexOf(true);
   const dateParts = explodedTimestamp.map((part, i) => {
     if (i === firstDiffIndex) {
       // truncate down to closest `truncatePartTo[i] + n * step`
       const difference = part - explodedLowerBound[i];
+
       return part - ((part - truncatePartTo[i]) % difference);
     } else if (i < firstDiffIndex || firstDiffIndex === -1) {
       return part;
     }
+
     return truncatePartTo[i];
   });
 
@@ -64,11 +69,17 @@ function getStepSeconds(step, start) {
    * seconds, which is why we need to know the start time.
    */
   const startMillliseconds = parseInt(moment(start).format('x'), 10);
-  const endMilliseconds = parseInt(moment(start).add(step).format('x'), 10);
+  const endMilliseconds = parseInt(
+    moment(start)
+      .add(step)
+      .format('x'),
+    10,
+  );
+
   return endMilliseconds - startMillliseconds;
 }
 
-export const getPlaySliderParams = function (timestamps, timeGrain) {
+export const getPlaySliderParams = function(timestamps, timeGrain) {
   const minTimestamp = moment(Math.min(...timestamps));
   const maxTimestamp = moment(Math.max(...timestamps));
   let step;
@@ -81,7 +92,8 @@ export const getPlaySliderParams = function (timestamps, timeGrain) {
     // example, if `reference` is a Saturday and `duration` is 1 week (P1W)
     // then both start and end should be Saturdays.
     const parts = timeGrain.split('/', 2);
-    if (parts[0].endsWith('Z')) {  // ISO string
+    if (parts[0].endsWith('Z')) {
+      // ISO string
       reference = moment(parts[0]);
       step = moment.duration(parts[1]);
     } else {

@@ -1,3 +1,5 @@
+/* eslint-disable no-magic-numbers */
+/* eslint-disable sort-keys */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -21,7 +23,7 @@ import React from 'react';
 import { t } from '@superset-ui/translation';
 
 import { commonLayerProps, getAggFunc } from '../common';
-import sandboxedEval from '../../../../modules/sandbox';
+import sandboxedEval from '../../utils/sandbox';
 import { createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 

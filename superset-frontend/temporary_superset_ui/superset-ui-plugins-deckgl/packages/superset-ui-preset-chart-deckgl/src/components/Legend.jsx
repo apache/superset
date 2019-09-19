@@ -1,3 +1,7 @@
+/* eslint-disable react/destructuring-assignment */
+/* eslint-disable jsx-a11y/anchor-is-valid */
+/* eslint-disable sort-keys */
+/* eslint-disable react/forbid-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,8 +51,8 @@ export default class Legend extends React.PureComponent {
     }
 
     const numValue = parseFloat(value);
-    return formatNumber(this.props.format, numValue);
 
+    return formatNumber(this.props.format, numValue);
   }
 
   formatCategoryLabel(k) {
@@ -58,6 +62,7 @@ export default class Legend extends React.PureComponent {
 
     if (k.includes(categoryDelimiter)) {
       const values = k.split(categoryDelimiter);
+
       return this.format(values[0]) + categoryDelimiter + this.format(values[1]);
     }
 
@@ -70,8 +75,9 @@ export default class Legend extends React.PureComponent {
     }
 
     const categories = Object.entries(this.props.categories).map(([k, v]) => {
-      const style = { color: 'rgba(' + v.color.join(', ') + ')' };
+      const style = { color: `rgba(${v.color.join(', ')})` };
       const icon = v.enabled ? '\u25FC' : '\u25FB';
+
       return (
         <li key={k}>
           <a
@@ -94,8 +100,8 @@ export default class Legend extends React.PureComponent {
     };
 
     return (
-      <div className={'legend'} style={style}>
-        <ul className={'categories'}>{categories}</ul>
+      <div className="legend" style={style}>
+        <ul className="categories">{categories}</ul>
       </div>
     );
   }
