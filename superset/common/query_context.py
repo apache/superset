@@ -18,20 +18,22 @@
 from datetime import datetime, timedelta
 import logging
 import pickle as pkl
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 
 from superset import app, cache
 from superset import db
+from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.core import DTTM_ALIAS
 from .query_object import QueryObject
 
 config = app.config
-stats_logger = config.get("STATS_LOGGER")
+stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 
 
 class QueryContext:
@@ -40,8 +42,13 @@ class QueryContext:
     to retrieve the data payload for a given viz.
     """
 
-    cache_type = "df"
-    enforce_numerical_metrics = True
+    cache_type: str = "df"
+    enforce_numerical_metrics: bool = True
+
+    datasource: BaseDatasource
+    queries: List[QueryObject]
+    force: bool
+    custom_cache_timeout: Optional[int]
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     # a vanilla python type https://github.com/python/mypy/issues/5288
@@ -50,8 +57,8 @@ class QueryContext:
         datasource: Dict,
         queries: List[Dict],
         force: bool = False,
-        custom_cache_timeout: int = None,
-    ):
+        custom_cache_timeout: Optional[int] = None,
+    ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
             datasource.get("type"), int(datasource.get("id")), db.session  # noqa: T400
         )
@@ -61,9 +68,7 @@ class QueryContext:
 
         self.custom_cache_timeout = custom_cache_timeout
 
-        self.enforce_numerical_metrics = True
-
-    def get_query_result(self, query_object):
+    def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
         """Returns a pandas dataframe based on the query object"""
 
         # Here, we assume that all the queries will use the same datasource, which is
@@ -109,23 +114,23 @@ class QueryContext:
             "df": df,
         }
 
-    def df_metrics_to_num(self, df, query_object):
+    def df_metrics_to_num(self, df: pd.DataFrame, query_object: QueryObject) -> None:
         """Converting metrics to numeric when pandas.read_sql cannot"""
         metrics = [metric for metric in query_object.metrics]
         for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in metrics:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    def get_data(self, df):
+    def get_data(self, df: pd.DataFrame) -> List[Dict]:
         return df.to_dict(orient="records")
 
-    def get_single_payload(self, query_obj: QueryObject):
+    def get_single_payload(self, query_obj: QueryObject) -> Dict[str, Any]:
         """Returns a payload of metadata and data"""
         payload = self.get_df_payload(query_obj)
         df = payload.get("df")
         status = payload.get("status")
         if status != utils.QueryStatus.FAILED:
-            if df is not None and df.empty:
+            if df is None or df.empty:
                 payload["error"] = "No data"
             else:
                 payload["data"] = self.get_data(df)
@@ -133,12 +138,12 @@ class QueryContext:
             del payload["df"]
         return payload
 
-    def get_payload(self):
+    def get_payload(self) -> List[Dict[str, Any]]:
         """Get all the payloads from the arrays"""
         return [self.get_single_payload(query_object) for query_object in self.queries]
 
     @property
-    def cache_timeout(self):
+    def cache_timeout(self) -> int:
         if self.custom_cache_timeout is not None:
             return self.custom_cache_timeout
         if self.datasource.cache_timeout is not None:
@@ -148,10 +153,10 @@ class QueryContext:
             and self.datasource.database.cache_timeout
         ) is not None:
             return self.datasource.database.cache_timeout
-        return config.get("CACHE_DEFAULT_TIMEOUT")
+        return config["CACHE_DEFAULT_TIMEOUT"]
 
-    def get_df_payload(self, query_obj: QueryObject, **kwargs):
-        """Handles caching around the df paylod retrieval"""
+    def get_df_payload(self, query_obj: QueryObject, **kwargs) -> Dict[str, Any]:
+        """Handles caching around the df payload retrieval"""
         extra_cache_keys = self.datasource.get_extra_cache_keys(query_obj.to_dict())
         cache_key = (
             query_obj.cache_key(
@@ -207,9 +212,7 @@ class QueryContext:
 
             if is_loaded and cache_key and cache and status != utils.QueryStatus.FAILED:
                 try:
-                    cache_value = dict(
-                        dttm=cached_dttm, df=df if df is not None else None, query=query
-                    )
+                    cache_value = dict(dttm=cached_dttm, df=df, query=query)
                     cache_binary = pkl.dumps(cache_value, protocol=pkl.HIGHEST_PROTOCOL)
 
                     logging.info(

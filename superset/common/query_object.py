@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=R
+from datetime import datetime, timedelta
 import hashlib
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import simplejson as json
 
@@ -34,12 +35,28 @@ class QueryObject:
     and druid. The query objects are constructed on the client.
     """
 
+    granularity: str
+    from_dttm: datetime
+    to_dttm: datetime
+    is_timeseries: bool
+    time_shift: timedelta
+    groupby: List[str]
+    metrics: List[Union[Dict, str]]
+    row_limit: int
+    filter: List[str]
+    timeseries_limit: int
+    timeseries_limit_metric: Optional[Dict]
+    order_desc: bool
+    extras: Dict
+    columns: List[str]
+    orderby: List[List]
+
     def __init__(
         self,
         granularity: str,
         metrics: List[Union[Dict, str]],
-        groupby: List[str] = None,
-        filters: List[str] = None,
+        groupby: Optional[List[str]] = None,
+        filters: Optional[List[str]] = None,
         time_range: Optional[str] = None,
         time_shift: Optional[str] = None,
         is_timeseries: bool = False,
@@ -48,8 +65,8 @@ class QueryObject:
         timeseries_limit_metric: Optional[Dict] = None,
         order_desc: bool = True,
         extras: Optional[Dict] = None,
-        columns: List[str] = None,
-        orderby: List[List] = None,
+        columns: Optional[List[str]] = None,
+        orderby: Optional[List[List]] = None,
         relative_start: str = app.config.get("DEFAULT_RELATIVE_START_TIME", "today"),
         relative_end: str = app.config.get("DEFAULT_RELATIVE_END_TIME", "today"),
     ):
@@ -63,7 +80,7 @@ class QueryObject:
         self.is_timeseries = is_timeseries
         self.time_range = time_range
         self.time_shift = utils.parse_human_timedelta(time_shift)
-        self.groupby = groupby if groupby is not None else []
+        self.groupby = groupby or []
 
         # Temporal solution for backward compatability issue
         # due the new format of non-ad-hoc metric.
@@ -72,15 +89,15 @@ class QueryObject:
             for metric in metrics
         ]
         self.row_limit = row_limit
-        self.filter = filters if filters is not None else []
+        self.filter = filters or []
         self.timeseries_limit = timeseries_limit
         self.timeseries_limit_metric = timeseries_limit_metric
         self.order_desc = order_desc
-        self.extras = extras if extras is not None else {}
-        self.columns = columns if columns is not None else []
-        self.orderby = orderby if orderby is not None else []
+        self.extras = extras or {}
+        self.columns = columns or []
+        self.orderby = orderby or []
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         query_object_dict = {
             "granularity": self.granularity,
             "from_dttm": self.from_dttm,
@@ -99,7 +116,7 @@ class QueryObject:
         }
         return query_object_dict
 
-    def cache_key(self, **extra):
+    def cache_key(self, **extra) -> str:
         """
         The cache key is made out of the key/values from to_dict(), plus any
         other key/values in `extra`
@@ -117,7 +134,7 @@ class QueryObject:
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
 
-    def json_dumps(self, obj, sort_keys=False):
+    def json_dumps(self, obj: Any, sort_keys: bool = False) -> str:
         return json.dumps(
             obj, default=utils.json_int_dttm_ser, ignore_nan=True, sort_keys=sort_keys
         )
