@@ -1,3 +1,5 @@
+/* eslint-disable sort-keys */
+/* eslint-disable no-magic-numbers */
 export default {
   cache_key: null,
   cached_dttm: null,

@@ -1,4 +1,4 @@
-import { ArcChartPlugin } from '../../../../../superset-ui-legacy-preset-chart-deckgl/src';
+import { ArcChartPlugin } from '../../../../../superset-ui-legacy-preset-chart-deckgl';
 import Stories from './Stories';
 
 new ArcChartPlugin().configure({ key: 'deck_arc' }).register();

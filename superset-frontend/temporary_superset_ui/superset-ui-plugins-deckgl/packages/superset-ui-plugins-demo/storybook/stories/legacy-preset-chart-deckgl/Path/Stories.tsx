@@ -1,3 +1,4 @@
+/* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
