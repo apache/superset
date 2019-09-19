@@ -79,7 +79,7 @@ function getStepSeconds(step, start) {
   return endMilliseconds - startMillliseconds;
 }
 
-export const getPlaySliderParams = function(timestamps, timeGrain) {
+export function getPlaySliderParams(timestamps, timeGrain) {
   const minTimestamp = moment(Math.min(...timestamps));
   const maxTimestamp = moment(Math.max(...timestamps));
   let step;
@@ -106,24 +106,26 @@ export const getPlaySliderParams = function(timestamps, timeGrain) {
   }
 
   // find the largest `reference + n * step` smaller than the minimum timestamp
-  const start = moment(reference);
-  while (start < minTimestamp) {
+  let start;
+  const minValue = minTimestamp.valueOf();
+  for (start = reference.clone(); start.valueOf() < minValue; ) {
     start.add(step);
   }
-  while (start > minTimestamp) {
+  for (; start.valueOf() > minValue; ) {
     start.subtract(step);
   }
 
   // find the smallest `reference + n * step` larger than the maximum timestamp
-  const end = moment(reference);
-  while (end > maxTimestamp) {
+  let end;
+  const maxValue = maxTimestamp.valueOf();
+  for (end = reference.clone(); end.valueOf() > maxValue; ) {
     end.subtract(step);
   }
-  while (end < maxTimestamp) {
+  for (; end.valueOf() < maxValue; ) {
     end.add(step);
   }
 
-  const values = timeGrain != null ? [start, moment(start).add(step)] : [start, end];
+  const values = timeGrain != null ? [start, start.clone().add(step)] : [start, end];
   const disabled = timestamps.every(timestamp => timestamp === null);
 
   return {
@@ -133,4 +135,4 @@ export const getPlaySliderParams = function(timestamps, timeGrain) {
     values: values.map(v => parseInt(v.format('x'), 10)),
     disabled,
   };
-};
+}
