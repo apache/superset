@@ -1,3 +1,17 @@
+/* eslint-disable react/require-default-props */
+/* eslint-disable react/no-unused-prop-types */
+/* eslint-disable react/forbid-prop-types */
+/* eslint-disable react/no-access-state-in-setstate */
+/* eslint-disable compat/compat */
+/* eslint-disable react/destructuring-assignment */
+/* eslint-disable react/jsx-handler-names */
+/* eslint-disable react/no-unsafe */
+/* eslint-disable react/sort-comp */
+/* eslint-disable camelcase */
+/* eslint-disable no-prototype-builtins */
+/* eslint-disable sort-keys */
+/* eslint-disable no-eq-null */
+/* eslint-disable no-magic-numbers */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,7 +36,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
-import Legend from './Legend';
+import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import { getPlaySliderParams } from './utils/time';
 import sandboxedEval from './utils/sandbox';

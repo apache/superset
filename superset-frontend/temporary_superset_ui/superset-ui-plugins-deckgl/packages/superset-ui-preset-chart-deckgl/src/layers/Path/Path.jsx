@@ -1,3 +1,6 @@
+/* eslint-disable react/no-array-index-key */
+/* eslint-disable no-magic-numbers */
+/* eslint-disable sort-keys */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,7 +22,7 @@
 import { PathLayer } from 'deck.gl';
 import React from 'react';
 import { commonLayerProps } from '../common';
-import sandboxedEval from '../../../../modules/sandbox';
+import sandboxedEval from '../../utils/sandbox';
 import { createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 
@@ -27,15 +30,14 @@ function setTooltipContent(o) {
   return (
     o.object.extraProps && (
       <div className="deckgl-tooltip">
-  {
-        Object.keys(o.object.extraProps).map((prop, index) =>
+        {Object.keys(o.object.extraProps).map((prop, index) => (
           <TooltipRow
             key={`prop-${index}`}
             label={`${prop}: `}
             value={`${o.object.extraProps[prop]}`}
           />
         ))}
-</div>
+      </div>
     )
   );
 }

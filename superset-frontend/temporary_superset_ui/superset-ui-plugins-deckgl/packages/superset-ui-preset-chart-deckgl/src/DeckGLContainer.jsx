@@ -1,3 +1,7 @@
+/* eslint-disable react/jsx-handler-names */
+/* eslint-disable react/destructuring-assignment */
+/* eslint-disable sort-keys */
+/* eslint-disable react/forbid-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file

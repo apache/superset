@@ -1,3 +1,8 @@
+/* eslint-disable react/jsx-handler-names */
+/* eslint-disable react/destructuring-assignment */
+/* eslint-disable react/forbid-prop-types */
+/* eslint-disable sort-keys */
+/* eslint-disable react/require-default-props */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,7 +25,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import DeckGLContainer from './DeckGLContainer';
-import PlaySlider from '../PlaySlider';
+import PlaySlider from './components/PlaySlider';
 
 const PLAYSLIDER_HEIGHT = 20; // px
 

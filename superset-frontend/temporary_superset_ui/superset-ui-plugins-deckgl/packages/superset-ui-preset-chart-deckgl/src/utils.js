@@ -1,3 +1,5 @@
+/* eslint-disable no-magic-numbers */
+/* eslint-disable no-negated-condition */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -73,8 +75,8 @@ export function getBreakPointColorScaler(
       : null;
   const colorScheme = Array.isArray(linearColorScheme)
     ? new SequentialScheme({
-        id: 'custom',
         colors: linearColorScheme,
+        id: 'custom',
       })
     : getSequentialSchemeRegistry().get(linearColorScheme);
 

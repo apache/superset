@@ -1,3 +1,4 @@
+/* eslint-disable no-magic-numbers */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,10 +19,12 @@
  */
 import { rgb } from 'd3-color';
 
+// eslint-disable-next-line import/prefer-default-export
 export function hexToRGB(hex, alpha = 255) {
   if (!hex) {
     return [0, 0, 0, alpha];
   }
   const { r, g, b } = rgb(hex);
+
   return [r, g, b, alpha];
 }

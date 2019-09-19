@@ -1,3 +1,5 @@
+/* eslint-disable sort-keys */
+/* eslint-disable no-magic-numbers */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -35,15 +37,16 @@ const GLOBAL_CONTEXT = {
 // Copied/modified from https://github.com/hacksparrow/safe-eval/blob/master/index.js
 export default function sandboxedEval(code, context, opts) {
   const sandbox = {};
-  const resultKey = 'SAFE_EVAL_' + Math.floor(Math.random() * 1000000);
+  const resultKey = `SAFE_EVAL_${Math.floor(Math.random() * 1000000)}`;
   sandbox[resultKey] = {};
-  const codeToEval = resultKey + '=' + code;
+  const codeToEval = `${resultKey}=${code}`;
   const sandboxContext = { ...GLOBAL_CONTEXT, ...context };
-  Object.keys(sandboxContext).forEach(function (key) {
+  Object.keys(sandboxContext).forEach(key => {
     sandbox[key] = sandboxContext[key];
   });
   try {
     vm.runInNewContext(codeToEval, sandbox, opts);
+
     return sandbox[resultKey];
   } catch (error) {
     return () => error;

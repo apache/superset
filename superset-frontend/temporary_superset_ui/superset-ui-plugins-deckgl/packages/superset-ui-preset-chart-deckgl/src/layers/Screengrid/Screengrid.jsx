@@ -1,3 +1,8 @@
+/* eslint-disable react/jsx-handler-names */
+/* eslint-disable react/destructuring-assignment */
+/* eslint-disable no-magic-numbers */
+/* eslint-disable sort-keys */
+/* eslint-disable react/forbid-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,8 +28,8 @@ import PropTypes from 'prop-types';
 import { ScreenGridLayer } from 'deck.gl';
 import { t } from '@superset-ui/translation';
 import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
-import { getPlaySliderParams } from '../../../../modules/time';
-import sandboxedEval from '../../../../modules/sandbox';
+import { getPlaySliderParams } from '../../utils/time';
+import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps, fitViewport } from '../common';
 import TooltipRow from '../../TooltipRow';
 
@@ -58,6 +63,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, selected, o
     data = jsFnMutator(data);
   }
 
+  // eslint-disable-next-line no-eq-null
   if (filters != null) {
     filters.forEach(f => {
       data = data.filter(f);
@@ -140,6 +146,7 @@ class DeckGLScreenGrid extends React.PureComponent {
 
   onValuesChange(values) {
     this.setState({
+      // eslint-disable-next-line react/no-access-state-in-setstate
       values: Array.isArray(values) ? values : [values, values + this.state.getStep(values)],
     });
   }
