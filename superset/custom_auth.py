@@ -5,6 +5,7 @@ from flask_appbuilder.security.views import expose
 from flask_appbuilder.security.manager import BaseSecurityManager
 from flask_login import login_user, logout_user
 from ais_service_discovery import call
+from datetime import timedelta, datetime
 from json import loads
 from os import environ
 
@@ -45,7 +46,10 @@ class CustomAuthDBView(AuthDBView):
                     if not has_resource_access(privileges):
                         raise Exception('Insufficient Resource Permissions')
                 user = self.appbuilder.sm.find_user(user)
-                login_user(user, remember=False)
+                login_user(user, remember=False,
+                           duration=timedelta(
+                            auth_response['exp'] - int(
+                                datetime.now().timestamp())))
                 return redirect(redirect_url)
             elif g.user is not None and g.user.is_authenticated:
                 return redirect(redirect_url)
