@@ -926,11 +926,6 @@ class PrestoEngineSpec(BaseEngineSpec):
         if not is_feature_enabled("PRESTO_EXPAND_DATA"):
             return columns, data, []
 
-        # insert a custom column that tracks the original row
-        columns.insert(0, {"name": "__row_id", "type": "BIGINT"})
-        for i, row in enumerate(data):
-            row["__row_id"] = i
-
         # process each column, unnesting ARRAY types and expanding ROW types into new columns
         to_process = deque((column, 0) for column in columns)
         all_columns: List[dict] = []
