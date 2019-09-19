@@ -99,90 +99,13 @@ yarn install
 yarn build
 ```
 
-### Activating plugins for local development
-
-1. Enable `npm link` for the package.
-
-```sh
-cd superset-ui
-cd packages/superset-ui-chart
-npm link
-```
-
-2. Link the local package to `incubator-superset`.
-
-```sh
-cd incubator-superset
-cd superset/assets
-npm link @superset-ui/chart \# use package name in package.json, not directory name 
-```
-
-3) After npm link complete, update the import statements in Superset.
-
-Instead of
-
-```js
-import { xxx } from '@superset-ui/plugin-chart-horizon';
-```
-
-which will point to the transpiled code.
-
-do refer to `src`
-
-```js
-import { xxx } from '@superset-ui/plugin-chart-horizon/src'
-```
-
-4. After that you can run `dev-server` as usual.
-
-```sh
-npm run dev-server
-```
-
-Now when you change the code in `@superset-ui`, it will update the app immediately similar to code inside `incubator-superset`.
-
-### Deactivating plugins for local development
-
-1. Change the `import` statements back.
-
-2. Unlink the package from `incubator-superset`.
-
-```cd incubator-superset
-cd superset/assets
-npm unlink @superset-ui/chart
-```
-
-Note: Quite often, `npm link` mess up your `node_modules` and the `unlink` command above does not work correctly, making webpack build fails or other unexpected behaviors. If that happens, just delete your `node_modules` and `npm install` from scratch.
-
-3. Clean up global link.
-
-```sh
-cd superset-ui
-cd packages/superset-ui-chart
-npm unlink
-```
-
 ### Builds, linting, and testing
 
 Each package defines its own build config, linting, and testing. You can have lerna run commands
-across all packages using the syntax `yarn run test` (or `yarn run test:watch` for watch mode) from the root `@superset-ui` directory.
+across all packages using the syntax `yarn run test` (or `yarn run test:watch` for watch mode) from the root `@superset-ui-plugins` directory.
 
-#### Storybook
-
-You can demo your changes by running the storybook demo locally with the following commands:
-
-```sh
-yarn install
-yarn build
-cd packages/superset-ui-plugins-demo
-yarn storybook:run
-```
-
-Alternatively, you can demo your changes by using the following command while in `packages/superset-ui-plugins-demo`:
-
-```sh
-yarn storybook
-```
+* [Using Storybook](https://github.com/apache-superset/superset-ui/blob/master/docs/storybook.md) - You can test your components independently from Superset app.
+* [Debugging Superset plugins in Superset app](https://github.com/apache-superset/superset-ui/blob/master/docs/debugging.md) - Sometimes something went wrong and you have to do it.
 
 ### Committing
 
