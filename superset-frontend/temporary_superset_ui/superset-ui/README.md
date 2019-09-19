@@ -71,8 +71,8 @@ yarn build
 Each package defines its own build config, linting, and testing. You can have lerna run commands
 across all packages using the syntax `yarn run test` (or `yarn run test:watch` for watch mode) from the root `@superset-ui` directory.
 
-* [Using Storybook](docs/storybook.md)
-* [Debugging Superset plugins in Superset app](docs/debugging.md)
+* [Using Storybook](docs/storybook.md) - You can test your components independently from Superset app.
+* [Debugging Superset plugins in Superset app](docs/debugging.md) - Sometimes something went wrong and you have to do it.
 
 ### Committing
 
