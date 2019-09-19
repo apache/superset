@@ -2,9 +2,7 @@
   "name": "@superset-ui/legacy-preset-chart-deckgl",
   "version": "0.0.0",
   "description": "Superset Legacy Chart - deck.gl",
-  "sideEffects": [
-    "*.css"
-  ],
+  "sideEffects": true,
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
