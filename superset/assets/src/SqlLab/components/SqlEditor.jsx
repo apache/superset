@@ -39,6 +39,7 @@ import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
 import ScheduleQueryButton from './ScheduleQueryButton';
+import EstimateQueryCostButton from './EstimateQueryCostButton';
 import ShareSqlLabQuery from './ShareSqlLabQuery';
 import Timer from '../../components/Timer';
 import Hotkeys from '../../components/Hotkeys';
@@ -109,6 +110,7 @@ class SqlEditor extends React.PureComponent {
       this.requestValidation.bind(this),
       VALIDATION_DEBOUNCE_MS,
     );
+    this.getQueryCostEstimate = this.getQueryCostEstimate.bind(this);
     this.handleWindowResize = throttle(
       this.handleWindowResize.bind(this),
       WINDOW_RESIZE_THROTTLE_MS,
@@ -209,6 +211,19 @@ class SqlEditor extends React.PureComponent {
   }
   setQueryLimit(queryLimit) {
     this.props.actions.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
+  }
+  getQueryCostEstimate() {
+    if (this.props.database) {
+      const qe = this.props.queryEditor;
+      const query = {
+        dbId: qe.dbId,
+        sql: qe.selectedText ? qe.selectedText : this.state.sql,
+        sqlEditorId: qe.id,
+        schema: qe.schema,
+        templateParams: qe.templateParams,
+      };
+      this.props.actions.estimateQueryCost(query);
+    }
   }
   handleWindowResize() {
     this.setState({ height: this.getSqlEditorHeight() });
@@ -383,6 +398,23 @@ class SqlEditor extends React.PureComponent {
                 sql={this.state.sql}
               />
             </span>
+            {
+              isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
+              this.props.database &&
+              this.props.database.allows_cost_estimate &&
+              <span className="m-r-5">
+                <EstimateQueryCostButton
+                  dbId={qe.dbId}
+                  schema={qe.schema}
+                  sql={qe.sql}
+                  getEstimate={this.getQueryCostEstimate}
+                  queryCostEstimate={qe.queryCostEstimate}
+                  selectedText={qe.selectedText}
+                  tooltip={t('Estimate the cost before running a query')}
+                  className="m-r-5"
+                />
+              </span>
+            }
             {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) &&
             <span className="m-r-5">
               <ScheduleQueryButton

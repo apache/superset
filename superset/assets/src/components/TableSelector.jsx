@@ -110,6 +110,7 @@ export default class TableSelector extends React.PureComponent {
         schema: o.schema,
         label: o.label,
         title: o.title,
+        type: o.type,
       }));
       return ({ options });
     });
@@ -140,6 +141,7 @@ export default class TableSelector extends React.PureComponent {
             schema: o.schema,
             label: o.label,
             title: o.title,
+            type: o.type,
           }));
           this.setState(() => ({
             tableLoading: false,
@@ -202,6 +204,33 @@ export default class TableSelector extends React.PureComponent {
         <Label bsStyle="default" className="m-r-5">{db.backend}</Label>
         {db.database_name}
       </span>);
+  }
+  renderTableOption({ focusOption, focusedOption, key, option, selectValue, style, valueArray }) {
+    const classNames = ['Select-option'];
+    if (option === focusedOption) {
+      classNames.push('is-focused');
+    }
+    if (valueArray.indexOf(option) >= 0) {
+      classNames.push('is-selected');
+    }
+    return (
+      <div
+        className={classNames.join(' ')}
+        key={key}
+        onClick={() => selectValue(option)}
+        onMouseEnter={() => focusOption(option)}
+        style={style}
+      >
+        <span className="TableLabel">
+          <span className="m-r-5">
+            <small className="text-muted">
+              <i className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`} />
+            </small>
+          </span>
+          {option.label}
+        </span>
+      </div>
+    );
   }
   renderSelectRow(select, refreshBtn) {
     return (
@@ -280,6 +309,7 @@ export default class TableSelector extends React.PureComponent {
         onChange={this.changeTable}
         options={options}
         value={this.state.tableName}
+        optionRenderer={this.renderTableOption}
       />) : (
         <Select
           async
@@ -291,6 +321,7 @@ export default class TableSelector extends React.PureComponent {
           onChange={this.changeTable}
           value={this.state.tableName}
           loadOptions={this.getTableNamesBySubStr}
+          optionRenderer={this.renderTableOption}
         />);
     return this.renderSelectRow(
       select,
