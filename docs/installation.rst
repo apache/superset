@@ -176,7 +176,7 @@ Superset installation and initialization
 Follow these few simple steps to install Superset.::
 
     # Install superset
-    pip install superset
+    pip install apache-superset
 
     # Initialize the database
     superset db upgrade
@@ -748,7 +748,7 @@ Upgrading
 
 Upgrading should be as straightforward as running::
 
-    pip install superset --upgrade
+    pip install apache-superset --upgrade
     superset db upgrade
     superset init
 
