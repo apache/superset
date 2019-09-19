@@ -27,6 +27,7 @@
   "publishConfig": {
     "access": "public"
   },
+  "private": true,
   "dependencies": {
     "@data-ui/xy-chart": "^0.0.80",
     "d3": "^3.5.17",
