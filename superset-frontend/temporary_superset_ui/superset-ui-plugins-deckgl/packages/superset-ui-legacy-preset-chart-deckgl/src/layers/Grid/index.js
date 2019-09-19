@@ -24,14 +24,15 @@ import transformProps from '../../transformProps';
 const metadata = new ChartMetadata({
   credits: ['https://uber.github.io/deck.gl'],
   description: '',
-  name: t('deck.gl Path'),
+  name: t('deck.gl Grid'),
   thumbnail,
+  useLegacyApi: true,
 });
 
-export default class PathChartPlugin extends ChartPlugin {
+export default class GridChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./Path'),
+      loadChart: () => import('./Grid'),
       metadata,
       transformProps,
     });

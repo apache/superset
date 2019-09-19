@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('deck.gl 3D Hexagon'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class HexChartPlugin extends ChartPlugin {
