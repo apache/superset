@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('deck.gl Multiple Layers'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class MultiChartPlugin extends ChartPlugin {

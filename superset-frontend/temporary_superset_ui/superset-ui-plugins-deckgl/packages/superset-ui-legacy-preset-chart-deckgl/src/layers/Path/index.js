@@ -24,14 +24,15 @@ import transformProps from '../../transformProps';
 const metadata = new ChartMetadata({
   credits: ['https://uber.github.io/deck.gl'],
   description: '',
-  name: t('deck.gl Polygon'),
+  name: t('deck.gl Path'),
   thumbnail,
+  useLegacyApi: true,
 });
 
-export default class PolygonChartPlugin extends ChartPlugin {
+export default class PathChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./Polygon'),
+      loadChart: () => import('./Path'),
       metadata,
       transformProps,
     });

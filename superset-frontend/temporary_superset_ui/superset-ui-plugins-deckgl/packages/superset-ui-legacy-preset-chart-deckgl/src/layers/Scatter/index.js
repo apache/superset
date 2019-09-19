@@ -24,14 +24,15 @@ import transformProps from '../../transformProps';
 const metadata = new ChartMetadata({
   credits: ['https://uber.github.io/deck.gl'],
   description: '',
-  name: t('deck.gl Screen Grid'),
+  name: t('deck.gl Scatterplot'),
   thumbnail,
+  useLegacyApi: true,
 });
 
-export default class ScreengridChartPlugin extends ChartPlugin {
+export default class ScatterChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./Screengrid'),
+      loadChart: () => import('./Scatter'),
       metadata,
       transformProps,
     });
