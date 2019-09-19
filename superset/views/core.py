@@ -2708,9 +2708,7 @@ class Superset(BaseSupersetView):
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).one_or_none()
         if not mydb:
-            return json_error_response(
-                "Database with id {} is missing.".format(database_id)
-            )
+            return json_error_response(f"Database with id {database_id} is missing.")
 
         # Set tmp_table_name for CTA
         if select_as_cta and mydb.force_ctas_schema:
@@ -2742,7 +2740,7 @@ class Superset(BaseSupersetView):
         if not query_id:
             raise Exception(_("Query record was not created as expected."))
 
-        logging.info("Triggering query_id: {}".format(query_id))
+        logging.info(f"Triggering query_id: {query_id}")
 
         rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
         if rejected_tables:
@@ -2762,10 +2760,9 @@ class Superset(BaseSupersetView):
                 query.sql, **template_params
             )
         except Exception as e:
+            error_msg = utils.error_msg_from_exception(e)
             return json_error_response(
-                "Query {}: Template rendering failed: {}".format(
-                    query_id, utils.error_msg_from_exception(e)
-                )
+                f"Query {query_id}: Template rendering failed: {error_msg}"
             )
 
         # set LIMIT after template processing
