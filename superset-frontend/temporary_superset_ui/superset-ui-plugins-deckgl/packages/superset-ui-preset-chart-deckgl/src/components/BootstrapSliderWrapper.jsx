@@ -1,4 +1,3 @@
-/* eslint-disable sort-keys */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,25 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint camelcase: 0 */
-import { getLayer as deck_grid } from './Grid/Grid';
-import { getLayer as deck_screengrid } from './Screengrid/Screengrid';
-import { getLayer as deck_path } from './Path/Path';
-import { getLayer as deck_hex } from './Hex/Hex';
-import { getLayer as deck_scatter } from './Scatter/Scatter';
-import { getLayer as deck_geojson } from './Geojson/Geojson';
-import { getLayer as deck_arc } from './Arc/Arc';
-import { getLayer as deck_polygon } from './Polygon/Polygon';
+import React from 'react';
+import ReactBootstrapSlider from 'react-bootstrap-slider';
+import 'bootstrap-slider/dist/css/bootstrap-slider.min.css';
+import './BootstrapSliderWrapper.css';
 
-const layerGenerators = {
-  deck_grid,
-  deck_screengrid,
-  deck_path,
-  deck_hex,
-  deck_scatter,
-  deck_geojson,
-  deck_arc,
-  deck_polygon,
-};
-
-export default layerGenerators;
+export default function BootstrapSliderWrapper(props) {
+  return (
+    <span className="BootstrapSliderWrapper">
+      <ReactBootstrapSlider {...props} />
+    </span>
+  );
+}

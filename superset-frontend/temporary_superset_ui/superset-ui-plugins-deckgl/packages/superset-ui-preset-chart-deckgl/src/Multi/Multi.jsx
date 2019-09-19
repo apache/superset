@@ -1,3 +1,13 @@
+/* eslint-disable compat/compat */
+/* eslint-disable react/no-unsafe */
+/* eslint-disable promise/always-return */
+/* eslint-disable react/jsx-handler-names */
+/* eslint-disable react/no-access-state-in-setstate */
+/* eslint-disable react/sort-comp */
+/* eslint-disable camelcase */
+/* eslint-disable react/destructuring-assignment */
+/* eslint-disable sort-keys */
+/* eslint-disable react/forbid-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,7 +32,7 @@ import PropTypes from 'prop-types';
 import { SupersetClient } from '@superset-ui/connection';
 
 import DeckGLContainer from '../DeckGLContainer';
-import { getExploreLongUrl } from '../../../explore/exploreUtils';
+import { getExploreLongUrl } from '../utils/explore';
 import layerGenerators from '../layers';
 
 const propTypes = {

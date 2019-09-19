@@ -1,3 +1,4 @@
+/* eslint-disable no-magic-numbers */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,7 +19,7 @@
  */
 import { fitBounds } from 'viewport-mercator-project';
 import * as d3array from 'd3-array';
-import sandboxedEval from '../../../modules/sandbox';
+import sandboxedEval from '../utils/sandbox';
 
 const PADDING = 0.25;
 const GEO_BOUNDS = {
@@ -70,10 +71,10 @@ export function fitViewport(viewport, points, padding = 10) {
     return {
       ...viewport,
       ...fitBounds({
-        height: viewport.height,
-        width: viewport.width,
-        padding,
         bounds,
+        height: viewport.height,
+        padding,
+        width: viewport.width,
       }),
     };
   } catch (e) {

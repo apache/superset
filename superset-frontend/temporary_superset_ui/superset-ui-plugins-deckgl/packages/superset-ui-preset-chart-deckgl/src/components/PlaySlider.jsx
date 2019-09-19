@@ -1,3 +1,11 @@
+/* eslint-disable react/jsx-handler-names */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable no-negated-condition */
+/* eslint-disable react/destructuring-assignment */
+/* eslint-disable no-eq-null */
+/* eslint-disable sort-keys */
+/* eslint-disable react/forbid-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,7 +28,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Mousetrap from 'mousetrap';
 import { t } from '@superset-ui/translation';
-import BootrapSliderWrapper from '../components/BootstrapSliderWrapper';
+import BootrapSliderWrapper from './BootstrapSliderWrapper';
 import './PlaySlider.css';
 
 const propTypes = {
@@ -66,24 +74,30 @@ export default class PlaySlider extends React.PureComponent {
     this.getPlayClass = this.getPlayClass.bind(this);
     this.formatter = this.formatter.bind(this);
   }
+
   componentDidMount() {
     Mousetrap.bind(['space'], this.play);
   }
+
   componentWillUnmount() {
     Mousetrap.unbind(['space']);
   }
+
   onChange(event) {
     this.props.onChange(event.target.value);
     if (this.state.intervalId != null) {
       this.pause();
     }
   }
+
   getPlayClass() {
     if (this.state.intervalId == null) {
       return 'fa fa-play fa-lg slider-button';
     }
+
     return 'fa fa-pause fa-lg slider-button';
   }
+
   play() {
     if (this.props.disabled) {
       return;
@@ -95,10 +109,12 @@ export default class PlaySlider extends React.PureComponent {
       this.setState({ intervalId: id });
     }
   }
+
   pause() {
     clearInterval(this.state.intervalId);
     this.setState({ intervalId: null });
   }
+
   stepForward() {
     const { start, end, step, values, disabled } = this.props;
 
@@ -108,10 +124,11 @@ export default class PlaySlider extends React.PureComponent {
 
     const currentValues = Array.isArray(values) ? values : [values, values + step];
     const nextValues = currentValues.map(value => value + this.increment);
-    const carriageReturn = (nextValues[1] > end) ? (nextValues[0] - start) : 0;
+    const carriageReturn = nextValues[1] > end ? nextValues[0] - start : 0;
 
     this.props.onChange(nextValues.map(value => value - carriageReturn));
   }
+
   stepBackward() {
     const { start, end, step, values, disabled } = this.props;
 
@@ -121,10 +138,11 @@ export default class PlaySlider extends React.PureComponent {
 
     const currentValues = Array.isArray(values) ? values : [values, values + step];
     const nextValues = currentValues.map(value => value - this.increment);
-    const carriageReturn = (nextValues[0] < start) ? (end - nextValues[1]) : 0;
+    const carriageReturn = nextValues[0] < start ? end - nextValues[1] : 0;
 
     this.props.onChange(nextValues.map(value => value + carriageReturn));
   }
+
   formatter(values) {
     if (this.props.disabled) {
       return t('Data has no time steps');
@@ -136,10 +154,13 @@ export default class PlaySlider extends React.PureComponent {
     } else if (values[0] === values[1]) {
       parts = [values[0]];
     }
-    return parts.map(value => (new Date(value)).toUTCString()).join(' : ');
+
+    return parts.map(value => new Date(value).toUTCString()).join(' : ');
   }
+
   render() {
     const { start, end, step, orientation, reversed, disabled, range, values } = this.props;
+
     return (
       <div className="play-slider">
         <div className="play-slider-controls padded">
