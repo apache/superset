@@ -24,12 +24,13 @@ import { connect } from 'react-redux';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
 import { isPlainObject } from 'lodash';
 import { t } from '@superset-ui/translation';
+import { getChartControlPanelRegistry } from '@superset-ui/chart';
 
-import controlPanelConfigs, { sectionsToRender } from '../controlPanels';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import controlConfigs from '../controls';
+import { sectionsToRender } from '../controlUtils';
 import * as exploreActions from '../actions/exploreActions';
 
 const propTypes = {
@@ -62,8 +63,9 @@ class ControlPanelsContainer extends React.Component {
     let mapF = controlConfigs[controlName].mapStateToProps;
 
     // Looking to find mapStateToProps override for this viz type
-    const config = controlPanelConfigs[this.props.controls.viz_type.value] || {};
-    const controlOverrides = config.controlOverrides || {};
+    const controlPanelConfig = getChartControlPanelRegistry()
+      .get(this.props.controls.viz_type.value) || {};
+    const controlOverrides = controlPanelConfig.controlOverrides || {};
     if (controlOverrides[controlName] && controlOverrides[controlName].mapStateToProps) {
       mapF = controlOverrides[controlName].mapStateToProps;
     }
@@ -86,8 +88,9 @@ class ControlPanelsContainer extends React.Component {
     const { actions, controls, exploreState, form_data: formData } = this.props;
 
     // Looking to find mapStateToProps override for this viz type
-    const controlPanelConfig = controlPanelConfigs[controls.viz_type.value].controlOverrides || {};
-    const overrides = controlPanelConfig[name];
+    const controlPanelConfig = getChartControlPanelRegistry().get(controls.viz_type.value) || {};
+    const controlOverrides = controlPanelConfig.controlOverrides || {};
+    const overrides = controlOverrides[name];
 
     // Identifying mapStateToProps function to apply (logic can't be in store)
     const mapFn = (overrides && overrides.mapStateToProps)

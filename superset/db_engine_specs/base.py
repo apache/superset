@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+from contextlib import closing
 from datetime import datetime
 import hashlib
 import os
 import re
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING, Union
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -38,6 +39,10 @@ from werkzeug.utils import secure_filename
 
 from superset import app, db, sql_parse
 from superset.utils import core as utils
+
+if TYPE_CHECKING:
+    # prevent circular imports
+    from superset.models.core import Database
 
 
 class TimeGrain(NamedTuple):
@@ -124,6 +129,17 @@ class BaseEngineSpec:
     arraysize = 0
     max_column_name_length = 0
     try_remove_schema_from_table_name = True
+
+    @classmethod
+    def get_allow_cost_estimate(cls, version: str = None) -> bool:
+        return False
+
+    @classmethod
+    def get_engine(cls, database, schema=None, source=None):
+        user_name = utils.get_username()
+        return database.get_sqla_engine(
+            schema=schema, nullpool=True, user_name=user_name, source=source
+        )
 
     @classmethod
     def get_timestamp_expr(
@@ -273,6 +289,12 @@ class BaseEngineSpec:
         """
         if isinstance(type_code, str) and len(type_code):
             return type_code.upper()
+        return None
+
+    @classmethod
+    def get_pandas_dtype(
+        cls, cursor_description: List[tuple]
+    ) -> Optional[Dict[str, str]]:
         return None
 
     @classmethod
@@ -520,7 +542,9 @@ class BaseEngineSpec:
         return sorted(inspector.get_schema_names())
 
     @classmethod
-    def get_table_names(cls, inspector: Inspector, schema: Optional[str]) -> List[str]:
+    def get_table_names(
+        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+    ) -> List[str]:
         """
         Get all tables from schema
 
@@ -534,7 +558,9 @@ class BaseEngineSpec:
         return sorted(tables)
 
     @classmethod
-    def get_view_names(cls, inspector: Inspector, schema: Optional[str]) -> List[str]:
+    def get_view_names(
+        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+    ) -> List[str]:
         """
         Get all views from schema
 
@@ -642,6 +668,52 @@ class BaseEngineSpec:
         if indent:
             sql = sqlparse.format(sql, reindent=True)
         return sql
+
+    @classmethod
+    def estimate_statement_cost(
+        cls, statement: str, database, cursor, user_name: str
+    ) -> Dict[str, str]:
+        """
+        Generate a SQL query that estimates the cost of a given statement.
+
+        :param statement: A single SQL statement
+        :param database: Database instance
+        :param cursor: Cursor instance
+        :param username: Effective username
+        """
+        raise Exception("Database does not support cost estimation")
+
+    @classmethod
+    def estimate_query_cost(
+        cls, database, schema: str, sql: str, source: str = None
+    ) -> List[Dict[str, str]]:
+        """
+        Estimate the cost of a multiple statement SQL query.
+
+        :param database: Database instance
+        :param schema: Database schema
+        :param sql: SQL query with possibly multiple statements
+        :param source: Source of the query (eg, "sql_lab")
+        """
+        database_version = database.get_extra().get("version")
+        if not cls.get_allow_cost_estimate(database_version):
+            raise Exception("Database does not support cost estimation")
+
+        user_name = g.user.username if g.user else None
+        parsed_query = sql_parse.ParsedQuery(sql)
+        statements = parsed_query.get_statements()
+
+        engine = cls.get_engine(database, schema=schema, source=source)
+        costs = []
+        with closing(engine.raw_connection()) as conn:
+            with closing(conn.cursor()) as cursor:
+                for statement in statements:
+                    costs.append(
+                        cls.estimate_statement_cost(
+                            statement, database, cursor, user_name
+                        )
+                    )
+        return costs
 
     @classmethod
     def modify_url_for_impersonation(cls, url, impersonate_user: bool, username: str):

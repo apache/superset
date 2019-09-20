@@ -48,6 +48,7 @@ class DatabaseRestApi(DatabaseMixin, ModelRestApi):
         "allow_multi_schema_metadata_fetch",
         "allow_csv_upload",
         "allows_subquery",
+        "allows_cost_estimate",
         "backend",
     ]
     # Removes the local limit for the page size
