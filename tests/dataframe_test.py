@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import numpy as np
+import pandas as pd
 
 from superset.dataframe import dedup, SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
@@ -135,3 +136,23 @@ class SupersetDataFrameTestCase(SupersetTestCase):
         cursor_descr = [("ds", "timestamp", None, None, None, None, True)]
         cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
         self.assertEqual(cdf.raw_df.dtypes[0], np.dtype("<M8[ns]"))
+
+    def test_no_type_coercion(self):
+        data = [("a", 1), ("b", 2)]
+        cursor_descr = [
+            ("one", "varchar", None, None, None, None, True),
+            ("two", "integer", None, None, None, None, True),
+        ]
+        cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
+        self.assertEqual(cdf.raw_df.dtypes[0], np.dtype("O"))
+        self.assertEqual(cdf.raw_df.dtypes[1], pd.Int64Dtype())
+
+    def test_empty_data(self):
+        data = []
+        cursor_descr = [
+            ("one", "varchar", None, None, None, None, True),
+            ("two", "integer", None, None, None, None, True),
+        ]
+        cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
+        self.assertEqual(cdf.raw_df.dtypes[0], np.dtype("O"))
+        self.assertEqual(cdf.raw_df.dtypes[1], pd.Int64Dtype())
