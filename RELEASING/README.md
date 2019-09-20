@@ -53,8 +53,9 @@ need to be done at every release.
 Now let's craft a source release
 ```bash
     # Assuming these commands are executed from the root of the repo
-    # Setting a VERSION var will be useful
-    export VERSION=0.31.0rc18
+    export REPO_DIR=$(pwd)
+    # Set VERSION to the release being prepared (rc1 for first vote on version)
+    export VERSION=0.34.1rc1
     export RELEASE=apache-superset-incubating-${VERSION}
     export RELEASE_TARBALL=${RELEASE}-source.tar.gz
 
@@ -69,7 +70,7 @@ Now let's craft a source release
         -o ~/svn/superset_dev/${VERSION}/${RELEASE_TARBALL}
 
     cd ~/svn/superset_dev/${VERSION}/
-    scripts/sign.sh ${RELEASE}-source.tar.gz
+    ${REPO_DIR}/scripts/sign.sh ${RELEASE}-source.tar.gz
 ```
 
 ## Shipping to SVN
