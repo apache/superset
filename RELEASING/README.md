@@ -80,7 +80,7 @@ Now let's ship this RC into svn's dev folder
 ```bash
     cd ~/svn/superset_dev/
     svn add ${VERSION}
-    svn commit
+    svn commit -m "${VERSION}"
 ```
 
 Now you're ready to start the VOTE thread.
@@ -97,7 +97,7 @@ folder.
     cp -r ~/svn/superset_dev/${VERSION}/ ~/svn/superset/${VERSION}/
     cd ~/svn/superset/
     svn add ${VERSION}
-    svn commit
+    svn commit -m "${VERSION}"
 ```
 
 Now you can announce the release on the mailing list, make sure to use the
