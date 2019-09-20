@@ -145,7 +145,7 @@ class SupersetDataFrameTestCase(SupersetTestCase):
         ]
         cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
         self.assertEqual(cdf.raw_df.dtypes[0], np.dtype("O"))
-        self.assertEqual(cdf.raw_df.dtypes[1], pd.Int64Dtype)
+        self.assertEqual(cdf.raw_df.dtypes[1], pd.Int64Dtype())
 
     def test_empty_data(self):
         data = []
@@ -155,4 +155,4 @@ class SupersetDataFrameTestCase(SupersetTestCase):
         ]
         cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
         self.assertEqual(cdf.raw_df.dtypes[0], np.dtype("O"))
-        self.assertEqual(cdf.raw_df.dtypes[1], pd.Int64Dtype)
+        self.assertEqual(cdf.raw_df.dtypes[1], pd.Int64Dtype())
