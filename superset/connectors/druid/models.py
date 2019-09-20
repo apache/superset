@@ -1193,6 +1193,9 @@ class DruidDatasource(Model, BaseDatasource):
             post_aggregations=post_aggs,
             intervals=self.intervals_from_dttms(from_dttm, to_dttm),
         )
+        
+        if is_timeseries:
+            qry["context"] = dict(skipEmptyBuckets=True)
 
         filters = DruidDatasource.get_filters(filter, self.num_cols, columns_dict)
         if filters:
