@@ -13,14 +13,19 @@ These packages are extracted with minimal changes (almost as-is). They also depe
 A key difference that they do not depend on `viz.py`
 (which contain visualization-specific python code) and interface with
 `/api/v1/query/` instead: a new generic endpoint instead meant to
-serve all visualizations.
+serve all visualizations. Also should be written in Typescript.
 
 We are not accepting pull requests for new community-contributed plugins to be merged into this repository at the moment.
 We will keep it lean for now to improve the standard and reduce operational load on maintenance.
 Bug fixes are welcome.
 
-In the future, we plan to have a template for new repository or generator for everybody to setup a single plugin repository easily on his/her own.
+To setup your own plugin repository,
+we current have a template for new repository that you can copy from.
+Go to ["superset-ui-plugins-template"](https://github.com/apache-superset/superset-ui-plugins-template)
+and look for the green "Use this template" button.
+
 This way anybody can create and publish a Superset plugin.
+In the future, we may create a generator, which may make it a bit more convenient.
 
 ## Demo (Storybook)
 
@@ -78,15 +83,14 @@ superset-ui/
       package.json
       ...
       src/
-      test/
+      test/  # unit tests
+      types/ # typescript type declarations
       ...
-      lib/
-      esm/
+      lib/   # commonjs output
+      esm/   # es module output
       ...
     ...
 ```
-
-
 
 ### Installation
 
