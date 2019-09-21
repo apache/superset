@@ -349,7 +349,7 @@ def datetime_f(dttm):
     return "<nobr>{}</nobr>".format(dttm)
 
 
-def timedelta_f(td):
+def timedelta_f(td: timedelta) -> str:
     """
     Ensures negative time deltas are easily interpreted by humans
 
