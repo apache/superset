@@ -360,7 +360,7 @@ def timedelta_f(td: timedelta) -> str:
     '-1 day, 5:06:00'
     """
     if td < timedelta(0):
-        return "-" + timedelta_f(-td)
+        return "-" + str(abs(td))
     else:
         # Change this to format positive timedeltas the way you want
         return str(td)
