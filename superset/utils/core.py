@@ -362,7 +362,7 @@ def format_timedelta(td: timedelta) -> str:
     if td < timedelta(0):
         return "-" + str(abs(td))
     else:
-        # Change this to format positive timedeltas the way you want
+        # Change this to format positive time deltas the way you want
         return str(td)
 
 
