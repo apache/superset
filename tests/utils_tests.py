@@ -538,16 +538,16 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(datetime_f(datetime(a, b, c)), "<nobr>00:00:00</nobr>")
 
     def test_timedelta_f(self):
-        self.assertEquals(timedelta_f(timedelta(0)), '0:00:00')
-        self.assertEquals(timedelta_f(timedelta(days=1)), '1 day, 0:00:00')
-        self.assertEquals(timedelta_f(timedelta(minutes=-6)), '-0:06:00')
-        self.assertEquals(timedelta_f(
-            timedelta(0)-timedelta(days=1, hours=5, minutes=6)),
-            '-1 day, 5:06:00'
+        self.assertEquals(timedelta_f(timedelta(0)), "0:00:00")
+        self.assertEquals(timedelta_f(timedelta(days=1)), "1 day, 0:00:00")
+        self.assertEquals(timedelta_f(timedelta(minutes=-6)), "-0:06:00")
+        self.assertEquals(
+            timedelta_f(timedelta(0) - timedelta(days=1, hours=5, minutes=6)),
+            "-1 day, 5:06:00",
         )
-        self.assertEquals(timedelta_f(
-            timedelta(0)-timedelta(days=16, hours=4, minutes=3)),
-            '-16 days, 4:03:00'
+        self.assertEquals(
+            timedelta_f(timedelta(0) - timedelta(days=16, hours=4, minutes=3)),
+            "-16 days, 4:03:00",
         )
 
     def test_json_encoded_obj(self):
