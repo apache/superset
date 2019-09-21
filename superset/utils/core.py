@@ -349,14 +349,14 @@ def datetime_f(dttm):
     return "<nobr>{}</nobr>".format(dttm)
 
 
-def timedelta_f(td: timedelta) -> str:
+def format_timedelta(td: timedelta) -> str:
     """
     Ensures negative time deltas are easily interpreted by humans
 
     >>> td = timedelta(0) - timedelta(days=1, hours=5,minutes=6)
     >>> str(td)
     '-2 days, 18:54:00'
-    >>> timedelta_f(td)
+    >>> format_timedelta(td)
     '-1 day, 5:06:00'
     """
     if td < timedelta(0):
@@ -380,7 +380,7 @@ def base_json_conv(obj):
     elif isinstance(obj, uuid.UUID):
         return str(obj)
     elif isinstance(obj, timedelta):
-        return timedelta_f(obj)
+        return format_timedelta(obj)
     elif isinstance(obj, bytes):
         try:
             return obj.decode("utf-8")

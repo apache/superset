@@ -32,6 +32,7 @@ from superset.utils.core import (
     base_json_conv,
     convert_legacy_filters_into_adhoc,
     datetime_f,
+    format_timedelta,
     get_or_create_db,
     get_since_until,
     get_stacktrace,
@@ -46,7 +47,6 @@ from superset.utils.core import (
     parse_past_timedelta,
     setup_cache,
     split,
-    timedelta_f,
     validate_json,
     zlib_compress,
     zlib_decompress,
@@ -537,16 +537,16 @@ class UtilsTestCase(unittest.TestCase):
         [a, b, c] = [int(v) for v in iso]
         self.assertEquals(datetime_f(datetime(a, b, c)), "<nobr>00:00:00</nobr>")
 
-    def test_timedelta_f(self):
-        self.assertEquals(timedelta_f(timedelta(0)), "0:00:00")
-        self.assertEquals(timedelta_f(timedelta(days=1)), "1 day, 0:00:00")
-        self.assertEquals(timedelta_f(timedelta(minutes=-6)), "-0:06:00")
+    def test_format_timedelta(self):
+        self.assertEquals(format_timedelta(timedelta(0)), "0:00:00")
+        self.assertEquals(format_timedelta(timedelta(days=1)), "1 day, 0:00:00")
+        self.assertEquals(format_timedelta(timedelta(minutes=-6)), "-0:06:00")
         self.assertEquals(
-            timedelta_f(timedelta(0) - timedelta(days=1, hours=5, minutes=6)),
+            format_timedelta(timedelta(0) - timedelta(days=1, hours=5, minutes=6)),
             "-1 day, 5:06:00",
         )
         self.assertEquals(
-            timedelta_f(timedelta(0) - timedelta(days=16, hours=4, minutes=3)),
+            format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3)),
             "-16 days, 4:03:00",
         )
 
