@@ -187,6 +187,34 @@ export default function(bootstrapData) {
           isDateFilter: Object.keys(columns).includes(TIME_RANGE),
         };
       }
+
+      // build dashboardFilters for interactive table filters
+      if (
+        slice.form_data.viz_type === 'table' &&
+        slice.form_data.table_filter
+      ) {
+        const groupByColumns = slice.form_data.groupby;
+        const metricColumns = slice.form_data.metrics
+          .filter(m => m.column.filterable)
+          .map(m => m.column.column_name);
+        const columns = [...groupByColumns, ...metricColumns];
+        const labels = [...columns];
+
+        const componentId = chartIdToLayoutId[key];
+        const directPathToFilter = (layout[componentId].parents || []).slice();
+        directPathToFilter.push(componentId);
+        dashboardFilters[key] = {
+          ...dashboardFilter,
+          chartId: key,
+          componentId,
+          directPathToFilter,
+          columns,
+          labels,
+          isInstantFilter: true,
+          isDateFilter: false,
+        };
+      }
+
       buildActiveFilters(dashboardFilters);
       buildFilterColorMap(dashboardFilters);
     }
