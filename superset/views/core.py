@@ -2013,7 +2013,7 @@ class Superset(BaseSupersetView):
                 status=400,
             )
         if slice_id:
-            slices = session.query(models.Slice).get(slice_id)
+            slices = session.query(models.Slice).filter_by(id=slice_id).all()
             if not slices:
                 return json_error_response(
                     __("Chart %(id)s not found", id=slice_id), status=404
