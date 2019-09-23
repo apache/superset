@@ -1367,9 +1367,8 @@ class Superset(BaseSupersetView):
         # Adding slice to a dashboard if requested
         dash = None
         if request.args.get("add_to_dash") == "existing":
-            dash = (
-                db.session.query(models.Dashboard)
-                .get(int(request.args.get("save_to_dashboard_id")))
+            dash = db.session.query(models.Dashboard).get(
+                int(request.args.get("save_to_dashboard_id"))
             )
             # check edit dashboard permissions
             dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
