@@ -116,19 +116,25 @@ class SupersetTestCase(unittest.TestCase):
         datasource.database.db_engine_spec.mutate_expression_label = lambda x: x
         return datasource
 
-    def get_resp(self, url, data=None, follow_redirects=True, raise_on_error=True):
+    def get_resp(
+        self, url, data=None, follow_redirects=True, raise_on_error=True, json_=None
+    ):
         """Shortcut to get the parsed results while following redirects"""
         if data:
             resp = self.client.post(url, data=data, follow_redirects=follow_redirects)
+        elif json_:
+            resp = self.client.post(url, json=json_, follow_redirects=follow_redirects)
         else:
             resp = self.client.get(url, follow_redirects=follow_redirects)
         if raise_on_error and resp.status_code > 400:
             raise Exception("http request failed with code {}".format(resp.status_code))
         return resp.data.decode("utf-8")
 
-    def get_json_resp(self, url, data=None, follow_redirects=True, raise_on_error=True):
+    def get_json_resp(
+        self, url, data=None, follow_redirects=True, raise_on_error=True, json_=None
+    ):
         """Shortcut to get the parsed results while following redirects"""
-        resp = self.get_resp(url, data, follow_redirects, raise_on_error)
+        resp = self.get_resp(url, data, follow_redirects, raise_on_error, json_)
         return json.loads(resp)
 
     def get_access_requests(self, username, ds_type, ds_id):
@@ -190,7 +196,7 @@ class SupersetTestCase(unittest.TestCase):
         resp = self.get_json_resp(
             "/superset/sql_json/",
             raise_on_error=False,
-            data=dict(
+            json_=dict(
                 database_id=dbid,
                 sql=sql,
                 select_as_create_as=False,
