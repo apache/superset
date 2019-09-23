@@ -114,12 +114,12 @@ class CeleryTestCase(SupersetTestCase):
         )
 
     def run_sql(
-        self, db_id, sql, client_id=None, cta="false", tmp_table="tmp", async_="false"
+        self, db_id, sql, client_id=None, cta=False, tmp_table="tmp", async_=False
     ):
         self.login()
         resp = self.client.post(
             "/superset/sql_json/",
-            data=dict(
+            json=dict(
                 database_id=db_id,
                 sql=sql,
                 runAsync=async_,
@@ -135,7 +135,7 @@ class CeleryTestCase(SupersetTestCase):
         main_db = get_example_database()
         db_id = main_db.id
         sql_dont_exist = "SELECT name FROM table_dont_exist"
-        result1 = self.run_sql(db_id, sql_dont_exist, "1", cta="true")
+        result1 = self.run_sql(db_id, sql_dont_exist, "1", cta=True)
         self.assertTrue("error" in result1)
 
     def test_run_sync_query_cta(self):
@@ -146,9 +146,7 @@ class CeleryTestCase(SupersetTestCase):
         self.drop_table_if_exists(tmp_table_name, main_db)
         name = "James"
         sql_where = f"SELECT name FROM birth_names WHERE name='{name}' LIMIT 1"
-        result = self.run_sql(
-            db_id, sql_where, "2", tmp_table=tmp_table_name, cta="true"
-        )
+        result = self.run_sql(db_id, sql_where, "2", tmp_table=tmp_table_name, cta=True)
         self.assertEqual(QueryStatus.SUCCESS, result["query"]["state"])
         self.assertEqual([], result["data"])
         self.assertEqual([], result["columns"])
@@ -190,7 +188,7 @@ class CeleryTestCase(SupersetTestCase):
 
         sql_where = "SELECT name FROM birth_names WHERE name='James' LIMIT 10"
         result = self.run_sql(
-            db_id, sql_where, "4", async_="true", tmp_table="tmp_async_1", cta="true"
+            db_id, sql_where, "4", async_=True, tmp_table="tmp_async_1", cta=True
         )
         assert result["query"]["state"] in (
             QueryStatus.PENDING,
@@ -224,7 +222,7 @@ class CeleryTestCase(SupersetTestCase):
 
         sql_where = "SELECT name FROM birth_names LIMIT 1"
         result = self.run_sql(
-            db_id, sql_where, "5", async_="true", tmp_table=tmp_table, cta="true"
+            db_id, sql_where, "5", async_=True, tmp_table=tmp_table, cta=True
         )
         assert result["query"]["state"] in (
             QueryStatus.PENDING,
