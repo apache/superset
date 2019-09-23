@@ -678,7 +678,7 @@ class KV(BaseSupersetView):
     def get_value(self, key_id):
         kv = None
         try:
-            kv = db.session.query(models.KeyValue).filter_by(id=key_id).one()
+            kv = db.session.query(models.KeyValue).get(key_id)
         except Exception as e:
             return json_error_response(e)
         return Response(kv.value, status=200, content_type="text/plain")
@@ -795,9 +795,7 @@ class Superset(BaseSupersetView):
         datasources = set()
         dashboard_id = request.args.get("dashboard_id")
         if dashboard_id:
-            dash = (
-                db.session.query(models.Dashboard).filter_by(id=int(dashboard_id)).one()
-            )
+            dash = db.session.query(models.Dashboard).get(int(dashboard_id))
             datasources |= dash.datasources
         datasource_id = request.args.get("datasource_id")
         datasource_type = request.args.get("datasource_type")
@@ -974,7 +972,7 @@ class Superset(BaseSupersetView):
         # Include the slice_form_data if request from explore or slice calls
         # or if form_data only contains slice_id
         if slice_id and (use_slice_data or contains_only_slc_id):
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
+            slc = db.session.query(models.Slice).get(slice_id)
             if slc:
                 slice_form_data = slc.form_data.copy()
                 slice_form_data.update(form_data)
@@ -993,7 +991,7 @@ class Superset(BaseSupersetView):
         force=False,
     ):
         if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
+            slc = db.session.query(models.Slice).get(slice_id)
             return slc.get_viz()
         else:
             viz_type = form_data.get("viz_type", "table")
@@ -1371,10 +1369,8 @@ class Superset(BaseSupersetView):
         if request.args.get("add_to_dash") == "existing":
             dash = (
                 db.session.query(models.Dashboard)
-                .filter_by(id=int(request.args.get("save_to_dashboard_id")))
-                .one()
+                .get(int(request.args.get("save_to_dashboard_id")))
             )
-
             # check edit dashboard permissions
             dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
             if not dash_overwrite_perm:
@@ -1495,7 +1491,7 @@ class Superset(BaseSupersetView):
         force_refresh = force_refresh.lower() == "true"
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         substr = utils.parse_js_uri_path_item(substr, eval_undefined=True)
-        database = db.session.query(models.Database).filter_by(id=db_id).one()
+        database = db.session.query(models.Database).get(db_id)
 
         if schema:
             tables = (
@@ -2005,7 +2001,7 @@ class Superset(BaseSupersetView):
         """
         slices = None
         session = db.session()
-        slice_id = request.args.get("slice_id")
+        slice_id = int(request.args.get("slice_id"))
         table_name = request.args.get("table_name")
         db_name = request.args.get("db_name")
 
@@ -2018,7 +2014,7 @@ class Superset(BaseSupersetView):
                 status=400,
             )
         if slice_id:
-            slices = session.query(models.Slice).filter_by(id=slice_id).all()
+            slices = session.query(models.Slice).get(slice_id)
             if not slices:
                 return json_error_response(
                     __("Chart %(id)s not found", id=slice_id), status=404
@@ -2331,7 +2327,7 @@ class Superset(BaseSupersetView):
     def table(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        mydb = db.session.query(models.Database).get(database_id)
         payload_columns = []
         indexes = []
         primary_key = []
@@ -2395,7 +2391,7 @@ class Superset(BaseSupersetView):
     def extra_table_metadata(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        mydb = db.session.query(models.Database).get(database_id)
         payload = mydb.db_engine_spec.extra_table_metadata(mydb, table_name, schema)
         return json_success(json.dumps(payload))
 
@@ -2416,7 +2412,7 @@ class Superset(BaseSupersetView):
     @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])
     @event_logger.log_this
     def estimate_query_cost(self, database_id: int, schema: str = None) -> Response:
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one_or_none()
+        mydb = db.session.query(models.Database).get(database_id)
 
         sql = json.loads(request.form.get("sql", '""'))
         template_params = json.loads(request.form.get("templateParams") or "{}")
@@ -2711,7 +2707,7 @@ class Superset(BaseSupersetView):
         status: bool = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).one_or_none()
+        mydb = session.query(models.Database).get(database_id)
         if not mydb:
             return json_error_response(f"Database with id {database_id} is missing.")
 
@@ -3035,7 +3031,7 @@ class Superset(BaseSupersetView):
             return json_error_response("No database is allowed for your csv upload")
 
         db_id = int(request.args.get("db_id"))
-        database = db.session.query(models.Database).filter_by(id=db_id).one()
+        database = db.session.query(models.Database).get(db_id)
         try:
             schemas_allowed = database.get_schema_access_for_csv_upload()
             if (
