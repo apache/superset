@@ -195,8 +195,8 @@ export default function(bootstrapData) {
       ) {
         const groupByColumns = slice.form_data.groupby;
         const metricColumns = slice.form_data.metrics
-          .filter(m => m.column.filterable)
-          .map(m => m.column.column_name);
+          .filter(m => m.column && m.column.filterable)
+          .map(m => m.column && m.column.column_name);
         const columns = [...groupByColumns, ...metricColumns];
         const labels = [...columns];
 
