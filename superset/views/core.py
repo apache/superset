@@ -2000,7 +2000,7 @@ class Superset(BaseSupersetView):
         """
         slices = None
         session = db.session()
-        slice_id = int(request.args.get("slice_id"))
+        slice_id = request.args.get("slice_id")
         table_name = request.args.get("table_name")
         db_name = request.args.get("db_name")
 
