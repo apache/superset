@@ -992,7 +992,7 @@ class Superset(BaseSupersetView):
         force=False,
     ):
         if slice_id:
-            slc = db.session.query(models.Slice).get(slice_id)
+            slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
             return slc.get_viz()
         else:
             viz_type = form_data.get("viz_type", "table")
