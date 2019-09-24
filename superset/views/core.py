@@ -2193,7 +2193,7 @@ class Superset(BaseSupersetView):
         )
         bootstrap_data = {
             "user_id": g.user.get_id(),
-            "user_roles" : [role.name for role in list(get_user_roles())],
+            "isGammaUser" : len([role.name for role in list(get_user_roles())]) > 0,
             "dashboard_data": dashboard_data,
             "datasources": {ds.uid: ds.data for ds in datasources},
             "common": self.common_bootstrap_payload(),

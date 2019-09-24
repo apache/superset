@@ -96,7 +96,7 @@ class SliceHeader extends React.PureComponent {
       componentId,
       filters,
       addDangerToast,
-      userRoles
+      isGammaUser
     } = this.props;
 
     return (
@@ -149,7 +149,7 @@ class SliceHeader extends React.PureComponent {
               componentId={componentId}
               filters={filters}
               addDangerToast={addDangerToast}
-              userRoles={userRoles}
+              isGammaUser={isGammaUser}
             />
           )}
         </div>

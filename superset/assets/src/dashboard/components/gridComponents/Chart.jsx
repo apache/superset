@@ -224,7 +224,7 @@ class Chart extends React.Component {
       supersetCanCSV,
       sliceCanEdit,
       addDangerToast,
-      userRoles
+      isGammaUser
     } = this.props;
 
     const { width } = this.state;
@@ -263,7 +263,7 @@ class Chart extends React.Component {
           componentId={componentId}
           filters={filters}
           addDangerToast={addDangerToast}
-          userRoles={userRoles}
+          isGammaUser={isGammaUser}
         />
 
         {/*

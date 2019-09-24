@@ -239,7 +239,7 @@ export default function (bootstrapData) {
           dashboard.metadata.timed_refresh_immune_slices,
       },
       userId: user_id,
-      userRoles: bootstrapData.user_roles,
+      isGammaUser: bootstrapData.isGammaUser,
       dash_edit_perm: dashboard.dash_edit_perm,
       dash_save_perm: dashboard.dash_save_perm,
       superset_can_explore: dashboard.superset_can_explore,
