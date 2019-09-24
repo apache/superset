@@ -14,7 +14,7 @@ def has_resource_access(privileges):
     for config in privileges['level']['tenant']['tenants']:
         if config['tenant'] == environ['TENANT']:
             for resource in config['resources']:
-                if resource['name'] == 'SOLUTION MANAGER':
+                if ('appId' in resource) and resource['appId'] == 'customerAi':
                     return True
     return False
 
