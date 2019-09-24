@@ -18,86 +18,85 @@
 #}
 {% import 'appbuilder/general/lib.html' as lib %}
 <html>
-  <head>
-    <title>
-      {% block title %}
-        {% if title %}
-          {{ title }}
-        {% elif appbuilder and appbuilder.app_name %}
-          {{ appbuilder.app_name }}
-        {% endif %}
-      {% endblock %}
-    </title>
-    {% block head_meta %}{% endblock %}
-    {% block head_css %}
-      <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
-      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
-      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/font-awesome.min.css">
 
-      {% for entry in get_unloaded_chunks(css_manifest('theme'), loaded_chunks) %}
-        <link rel="stylesheet" type="text/css" href="{{ entry }}" />
-      {% endfor %}
-
-      {% if entry %}
-        {% set entry_files = css_manifest(entry) %}
-        {% for entry in get_unloaded_chunks(entry_files, loaded_chunks) %}
-          <link rel="stylesheet" type="text/css" href="{{ entry }}" />
-        {% endfor %}
-      {% endif %}
-
+<head>
+  <title>
+    {% block title %}
+    {% if title %}
+    {{ title }}
+    {% elif appbuilder and appbuilder.app_name %}
+    {{ appbuilder.app_name }}
+    {% endif %}
     {% endblock %}
+  </title>
+  {% block head_meta %}{% endblock %}
+  {% block head_css %}
+  <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+  <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
+  <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat&display=swap" rel="stylesheet">
 
-    {% with filename="theme" %}
-      {% include "superset/partials/_script_tag.html" %}
-    {% endwith %}
+  {% for entry in get_unloaded_chunks(css_manifest('theme'), loaded_chunks) %}
+  <link rel="stylesheet" type="text/css" href="{{ entry }}" />
+  {% endfor %}
 
-    <input
-      type="hidden"
-      name="csrf_token"
-      id="csrf_token"
-      value="{{ csrf_token() if csrf_token else '' }}"
-    >
-  </head>
+  {% if entry %}
+  {% set entry_files = css_manifest(entry) %}
+  {% for entry in get_unloaded_chunks(entry_files, loaded_chunks) %}
+  <link rel="stylesheet" type="text/css" href="{{ entry }}" />
+  {% endfor %}
+  {% endif %}
 
-  <body {% if standalone_mode %}class="standalone"{% endif %}>
-    {% block navbar %}
-      {% if not standalone_mode %}
-        <header class="top" role="header">
-          {% include 'appbuilder/navbar.html' %}
-        </header>
-      {% endif %}
-    {% endblock %}
+  {% endblock %}
 
-    {% block body %}
-      <div id="app" data-bootstrap="{{ bootstrap_data }}">
-        <img src="/static/assets/images/loading.gif" style="width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%)">
-      </div>
-    {% endblock %}
+  {% with filename="theme" %}
+  {% include "superset/partials/_script_tag.html" %}
+  {% endwith %}
 
-    <!-- Modal for misc messages / alerts  -->
-    <div class="misc-modal modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-            <h4 class="modal-title"></h4>
-          </div>
-          <div class="modal-body">
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          </div>
+  <input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+</head>
+
+<body {% if standalone_mode %}class="standalone" {% endif %}>
+  {% block navbar %}
+  {% if not standalone_mode %}
+  <header class="top" role="header">
+    {% include 'appbuilder/navbar.html' %}
+  </header>
+  {% endif %}
+  {% endblock %}
+
+  {% block body %}
+  <div id="app" data-bootstrap="{{ bootstrap_data }}">
+    <img src="/static/assets/images/loading.gif"
+      style="width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%)">
+  </div>
+  {% endblock %}
+
+  <!-- Modal for misc messages / alerts  -->
+  <div class="misc-modal modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <h4 class="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
-    {% block tail_js %}
-      {% if entry %}
-        {% with filename=entry %}
-          {% include "superset/partials/_script_tag.html" %}
-        {% endwith %}
-      {% endif %}
-    {% endblock %}
-  </body>
+  </div>
+  {% block tail_js %}
+  {% if entry %}
+  {% with filename=entry %}
+  {% include "superset/partials/_script_tag.html" %}
+  {% endwith %}
+  {% endif %}
+  {% endblock %}
+</body>
+
 </html>

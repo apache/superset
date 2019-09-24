@@ -2191,9 +2191,9 @@ class Superset(BaseSupersetView):
                 "slice_can_edit": slice_can_edit,
             }
         )
-
         bootstrap_data = {
             "user_id": g.user.get_id(),
+            "user_roles" : [role.name for role in list(get_user_roles())],
             "dashboard_data": dashboard_data,
             "datasources": {ds.uid: ds.data for ds in datasources},
             "common": self.common_bootstrap_payload(),

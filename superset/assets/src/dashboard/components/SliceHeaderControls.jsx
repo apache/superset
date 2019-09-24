@@ -110,13 +110,15 @@ class SliceHeaderControls extends React.PureComponent {
       filters,
       componentId,
       addDangerToast,
+      userRoles
     } = this.props;
     const cachedWhen = moment.utc(cachedDttm).fromNow();
     const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
     const refreshTooltip = isCached
       ? t('Cached %s', cachedWhen)
       : (updatedWhen && t('Fetched %s', updatedWhen)) || '';
-
+    userRoles
+    const isGammaUser = userRoles.filter((role) => role === "Gamma").length > 0 ? true : false;
     return (
       <Dropdown
         id={`slice_${slice.slice_id}-controls`}
@@ -130,12 +132,17 @@ class SliceHeaderControls extends React.PureComponent {
         </Dropdown.Toggle>
 
         <Dropdown.Menu>
-          <MenuItem onClick={this.refreshChart} disabled={!updatedDttm}>
-            {t('Force refresh')}
-            <div className="refresh-tooltip">{refreshTooltip}</div>
-          </MenuItem>
+          {!isGammaUser && (
+            <div>
+              <MenuItem onClick={this.refreshChart} disabled={!updatedDttm}>
+                {t('Force refresh')}
+                <div className="refresh-tooltip">{refreshTooltip}</div>
+              </MenuItem>
+              <MenuItem divider />
+            </div>
+          )
+          }
 
-          <MenuItem divider />
 
           {slice.description && (
             <MenuItem onClick={this.toggleExpandSlice}>
@@ -159,7 +166,7 @@ class SliceHeaderControls extends React.PureComponent {
             </MenuItem>
           )}
 
-          <URLShortLinkModal
+          {!isGammaUser && <URLShortLinkModal
             url={getDashboardUrl(
               window.location.pathname,
               filters,
@@ -169,7 +176,7 @@ class SliceHeaderControls extends React.PureComponent {
             isMenuItem
             title={t('Share chart')}
             triggerNode={<span>{t('Share chart')}</span>}
-          />
+          />}
         </Dropdown.Menu>
       </Dropdown>
     );

@@ -287,7 +287,8 @@ class Header extends React.PureComponent {
     const userCanEdit = dashboardInfo.dash_edit_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
     const popButton = hasUnsavedChanges;
-
+    const { userRoles } = dashboardInfo
+    const isGammaUser = userRoles.filter((role) => role === "Gamma").length > 0 ? true : false;
     return (
       <div className="dashboard-header">
         <div className="dashboard-component-header header-large">
@@ -306,14 +307,14 @@ class Header extends React.PureComponent {
               canSave={userCanSaveAs}
             />
           </span>
-          <span className="favstar">
+          {!isGammaUser && <span className="favstar">
             <FaveStar
               itemId={dashboardInfo.id}
               fetchFaveStar={this.props.fetchFaveStar}
               saveFaveStar={this.props.saveFaveStar}
               isStarred={this.props.isStarred}
             />
-          </span>
+          </span>}
         </div>
 
         <div className="button-container">
@@ -391,18 +392,17 @@ class Header extends React.PureComponent {
             </div>
           )}
 
-          {!editMode && !hasUnsavedChanges && (
+          {!editMode && !hasUnsavedChanges && userCanEdit && (
             <Button
               bsSize="small"
               onClick={this.toggleEditMode}
               bsStyle={popButton ? 'primary' : undefined}
-              disabled={!userCanEdit}
             >
               {t('Edit dashboard')}
             </Button>
           )}
 
-          <HeaderActionsDropdown
+          {!isGammaUser && <HeaderActionsDropdown
             addSuccessToast={this.props.addSuccessToast}
             addDangerToast={this.props.addDangerToast}
             dashboardId={dashboardInfo.id}
@@ -425,7 +425,8 @@ class Header extends React.PureComponent {
             userCanEdit={userCanEdit}
             userCanSave={userCanSaveAs}
             isLoading={isLoading}
-          />
+            isGammaUser={isGammaUser}
+          />}
         </div>
       </div>
     );

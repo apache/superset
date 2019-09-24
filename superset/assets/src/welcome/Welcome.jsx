@@ -40,6 +40,8 @@ export default class Welcome extends React.PureComponent {
     this.setState({ search: event.target.value });
   }
   render() {
+    const { roles } = this.props.user;
+    const isGammaUser = Object.keys(roles).filter((role) => role === "Gamma").length > 0 ? true : false;
     return (
       <div className="container welcome">
         <Tabs defaultActiveKey={1} id="uncontrolled-tab-example">
@@ -62,7 +64,7 @@ export default class Welcome extends React.PureComponent {
               <DashboardTable search={this.state.search} />
             </Panel>
           </Tab>
-          <Tab eventKey={2} title={t('Recently Viewed')}>
+          {!isGammaUser && <Tab eventKey={2} title={t('Recently Viewed')}>
             <Panel>
               <Row>
                 <Col md={8}><h2>{t('Recently Viewed')}</h2></Col>
@@ -70,8 +72,8 @@ export default class Welcome extends React.PureComponent {
               <hr />
               <RecentActivity user={this.props.user} />
             </Panel>
-          </Tab>
-          <Tab eventKey={3} title={t('Favorites')}>
+          </Tab>}
+          {!isGammaUser && <Tab eventKey={3} title={t('Favorites')}>
             <Panel>
               <Row>
                 <Col md={8}><h2>{t('Favorites')}</h2></Col>
@@ -79,7 +81,7 @@ export default class Welcome extends React.PureComponent {
               <hr />
               <Favorites user={this.props.user} />
             </Panel>
-          </Tab>
+          </Tab>}
         </Tabs>
       </div>
     );
