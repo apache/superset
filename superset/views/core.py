@@ -676,9 +676,8 @@ class KV(BaseSupersetView):
     @has_access_api
     @expose("/<key_id>/", methods=["GET"])
     def get_value(self, key_id):
-        kv = None
         try:
-            kv = db.session.query(models.KeyValue).get(key_id)
+            kv = db.session.query(models.KeyValue).filter_by(id=key_id).one()
         except Exception as e:
             return json_error_response(e)
         return Response(kv.value, status=200, content_type="text/plain")
@@ -795,7 +794,9 @@ class Superset(BaseSupersetView):
         datasources = set()
         dashboard_id = request.args.get("dashboard_id")
         if dashboard_id:
-            dash = db.session.query(models.Dashboard).get(int(dashboard_id))
+            dash = (
+                db.session.query(models.Dashboard).filter_by(id=int(dashboard_id)).one()
+            )
             datasources |= dash.datasources
         datasource_id = request.args.get("datasource_id")
         datasource_type = request.args.get("datasource_type")
@@ -1367,8 +1368,10 @@ class Superset(BaseSupersetView):
         # Adding slice to a dashboard if requested
         dash = None
         if request.args.get("add_to_dash") == "existing":
-            dash = db.session.query(models.Dashboard).get(
-                int(request.args.get("save_to_dashboard_id"))
+            dash = (
+                db.session.query(models.Dashboard)
+                .filter_by(id=int(request.args.get("save_to_dashboard_id")))
+                .one()
             )
             # check edit dashboard permissions
             dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
@@ -1490,7 +1493,7 @@ class Superset(BaseSupersetView):
         force_refresh = force_refresh.lower() == "true"
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         substr = utils.parse_js_uri_path_item(substr, eval_undefined=True)
-        database = db.session.query(models.Database).get(db_id)
+        database = db.session.query(models.Database).filter_by(id=db_id).one()
 
         if schema:
             tables = (
@@ -2326,7 +2329,7 @@ class Superset(BaseSupersetView):
     def table(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
-        mydb = db.session.query(models.Database).get(database_id)
+        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload_columns = []
         indexes = []
         primary_key = []
@@ -2390,7 +2393,7 @@ class Superset(BaseSupersetView):
     def extra_table_metadata(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
-        mydb = db.session.query(models.Database).get(database_id)
+        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload = mydb.db_engine_spec.extra_table_metadata(mydb, table_name, schema)
         return json_success(json.dumps(payload))
 
@@ -3030,7 +3033,7 @@ class Superset(BaseSupersetView):
             return json_error_response("No database is allowed for your csv upload")
 
         db_id = int(request.args.get("db_id"))
-        database = db.session.query(models.Database).get(db_id)
+        database = db.session.query(models.Database).filter_by(id=db_id).one()
         try:
             schemas_allowed = database.get_schema_access_for_csv_upload()
             if (
