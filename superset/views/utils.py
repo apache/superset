@@ -36,6 +36,7 @@ if not app.config.get("ENABLE_JAVASCRIPT_CONTROLS"):
 
 
 def bootstrap_user_data(user, include_perms=False):
+    roles, permissions = get_permissions(user)
     payload = {
         "username": user.username,
         "firstName": user.first_name,
@@ -44,11 +45,10 @@ def bootstrap_user_data(user, include_perms=False):
         "isActive": user.is_active,
         "createdOn": user.created_on.isoformat(),
         "email": user.email,
+        "roles": roles,
     }
 
     if include_perms:
-        roles, permissions = get_permissions(user)
-        payload["roles"] = roles
         payload["permissions"] = permissions
 
     return payload

@@ -46,7 +46,7 @@ import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
-export default function(bootstrapData) {
+export default function (bootstrapData) {
   const { user_id, datasources, common, editMode } = bootstrapData;
 
   const dashboard = { ...bootstrapData.dashboard_data };
@@ -239,6 +239,7 @@ export default function(bootstrapData) {
           dashboard.metadata.timed_refresh_immune_slices,
       },
       userId: user_id,
+      isGammaUser: bootstrapData.isGammaUser,
       dash_edit_perm: dashboard.dash_edit_perm,
       dash_save_perm: dashboard.dash_save_perm,
       superset_can_explore: dashboard.superset_can_explore,

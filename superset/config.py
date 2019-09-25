@@ -147,7 +147,7 @@ APP_NAME = "{}-Superset".format(TENANT)
 
 # Uncomment to setup an App icon
 APP_ICON = "/static/assets/images/superset-logo@2x.png"
-APP_ICON_WIDTH = 126
+APP_ICON_WIDTH = 60
 
 # Uncomment to specify where clicking the logo would take the user
 # e.g. setting it to '/welcome' would take the user to '/superset/welcome'
@@ -282,7 +282,9 @@ TABLE_NAMES_CACHE_CONFIG = {"CACHE_TYPE": "null"}
 
 # CORS Options
 ENABLE_CORS = True
-CORS_OPTIONS = {}
+CORS_OPTIONS = {
+  'origins': '*',
+}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for

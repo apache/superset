@@ -39,6 +39,7 @@ flask fab create-user \
 # Initialize the database
 superset db upgrade
 
+superset load_examples
 if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     # Load some data to play with
     superset load_examples
