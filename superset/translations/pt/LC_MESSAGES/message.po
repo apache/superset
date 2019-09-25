@@ -4178,3 +4178,16 @@ msgstr "Alterado em"
 #: superset/views/sql_lab.py:79
 msgid "Saved Queries"
 msgstr "Queries Gravadas"
+
+#: superset/views/core.py:488
+msgid "Edit Dashboard"
+msgstr "Editar Painel"
+
+msgid "Force refresh dashboard"
+msgstr "Forçar actualização do painel"
+
+msgid "Set auto-refresh interval"
+msgstr "Definir intervalo de actualização automática"
+
+msgid "Share Dashboard"
+msgstr "Partilhar Painel"
