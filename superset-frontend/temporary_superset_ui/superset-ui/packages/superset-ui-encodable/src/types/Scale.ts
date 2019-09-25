@@ -191,6 +191,8 @@ export interface WithScale<Output extends Value = Value> {
 /** Each ScaleCategory contains one or more ScaleType */
 export type ScaleCategory = 'continuous' | 'discrete' | 'discretizing';
 
+export type CategoricalScaleInput = HasToString | null | undefined;
+
 export interface ScaleTypeToD3ScaleType<Output extends Value = Value> {
   [ScaleType.LINEAR]: ScaleLinear<Output, Output>;
   [ScaleType.LOG]: ScaleLogarithmic<Output, Output>;
@@ -202,10 +204,10 @@ export interface ScaleTypeToD3ScaleType<Output extends Value = Value> {
   [ScaleType.QUANTILE]: ScaleQuantile<Output>;
   [ScaleType.QUANTIZE]: ScaleQuantize<Output>;
   [ScaleType.THRESHOLD]: ScaleThreshold<number | string | Date, Output>;
-  [ScaleType.BIN_ORDINAL]: ScaleOrdinal<HasToString, Output>;
-  [ScaleType.ORDINAL]: ScaleOrdinal<HasToString, Output>;
-  [ScaleType.POINT]: ScalePoint<HasToString>;
-  [ScaleType.BAND]: ScaleBand<HasToString>;
+  [ScaleType.BIN_ORDINAL]: ScaleOrdinal<CategoricalScaleInput, Output>;
+  [ScaleType.ORDINAL]: ScaleOrdinal<CategoricalScaleInput, Output>;
+  [ScaleType.POINT]: ScalePoint<CategoricalScaleInput>;
+  [ScaleType.BAND]: ScaleBand<CategoricalScaleInput>;
 }
 
 export type ContinuousD3Scale<Output extends Value = Value> =
@@ -219,6 +221,6 @@ export type D3Scale<Output extends Value = Value> =
   | ScaleQuantile<Output>
   | ScaleQuantize<Output>
   | ScaleThreshold<number | string | Date, Output>
-  | ScaleOrdinal<HasToString, Output>
-  | ScalePoint<HasToString>
-  | ScaleBand<HasToString>;
+  | ScaleOrdinal<CategoricalScaleInput, Output>
+  | ScalePoint<CategoricalScaleInput>
+  | ScaleBand<CategoricalScaleInput>;

@@ -9,7 +9,7 @@ import { Value } from '../types/VegaLite';
 
 export type CompleteScaleConfig<Output extends Value = Value> = false | ScaleConfig<Output>;
 
-export default function completeScaleConfig<Output extends Value = Value>(
+export default function completeScaleConfig<Output extends Value>(
   channelType: ChannelType,
   channelDef: ChannelDef<Output>,
 ): CompleteScaleConfig<Output> {

@@ -51,4 +51,10 @@ describe('completeChannelDef(channelType, channelDef)', () => {
       }),
     ).toEqual({ axis: false, scale: false, title: '', value: 1 });
   });
+  it('leaves the title blank for invalid Def', () => {
+    expect(
+      // @ts-ignore
+      completeChannelDef('X', {}),
+    ).toEqual({ axis: false, scale: false, title: '', type: 'quantitative' });
+  });
 });
