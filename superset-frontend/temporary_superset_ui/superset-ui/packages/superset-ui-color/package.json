@@ -26,7 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@types/d3-scale": "^2.0.2",
+    "@types/d3-scale": "^2.1.1",
     "d3-scale": "^3.0.0"
   },
   "peerDependencies": {
