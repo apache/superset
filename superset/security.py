@@ -137,7 +137,7 @@ class SupersetSecurityManager(SecurityManager):
     ACCESSIBLE_PERMS = {"can_userinfo"}
 
     GAMMA_ACCESSIBLE_PERMS = {"all_datasource_access"}
-    
+
     def get_schema_perm(
         self, database: Union["Database", str], schema: Optional[str] = None
     ) -> Optional[str]:
@@ -601,7 +601,7 @@ class SupersetSecurityManager(SecurityManager):
         pvms = [p for p in pvms if p.permission and p.view_menu]
         role = self.add_role(role_name)
         role_pvms = [p for p in pvms if pvm_check(p)]
-        print (role_pvms)
+        print(role_pvms)
         role.permissions = role_pvms
         sesh.merge(role)
         sesh.commit()
@@ -656,6 +656,7 @@ class SupersetSecurityManager(SecurityManager):
         """
 
         return pvm.permission.name in self.ACCESSIBLE_PERMS
+
     def _is_accessible_to_gamma(self, pvm: PermissionModelView) -> bool:
         """
         Return True if the FAB permission/view is accessible to gamma users, False
@@ -665,6 +666,7 @@ class SupersetSecurityManager(SecurityManager):
         :returns: Whether the FAB object is accessible to gamma users
         """
         return pvm.permission.name in self.GAMMA_ACCESSIBLE_PERMS
+
     def _is_admin_pvm(self, pvm: PermissionModelView) -> bool:
         """
         Return True if the FAB permission/view is Admin user related, False
@@ -807,3 +809,6 @@ class SupersetSecurityManager(SecurityManager):
                 self.get_datasource_access_error_msg(datasource),
                 self.get_datasource_access_link(datasource),
             )
+
+    def contains_gamma_role(self, roles) -> None:
+        return "Gamma" in roles
