@@ -14,3 +14,6 @@ export type RequiredSome<T, RequiredFields extends keyof T> = {
   {
     [Field in RequiredFields]-?: T[Field];
   };
+
+/** Signature of an identity function */
+export type IdentityFunction<T> = (value: T) => T;
