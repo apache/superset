@@ -125,9 +125,9 @@ class SliceHeaderControls extends React.PureComponent {
         // and update the fetched/cached timestamps
         onToggle={this.toggleControls}
       >
-        <Dropdown.Toggle className="slice-header-controls-trigger" noCaret>
+        {!isGammaUser && <Dropdown.Toggle className="slice-header-controls-trigger" noCaret>
           <VerticalDotsTrigger />
-        </Dropdown.Toggle>
+        </Dropdown.Toggle>}
 
         <Dropdown.Menu>
           {!isGammaUser && (

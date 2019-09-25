@@ -116,6 +116,7 @@ class SupersetSecurityManager(SecurityManager):
         "can_update_role",
         "can_edit",
         "can_explore",
+        "can_csv"
     }
 
     READ_ONLY_PERMISSION = {"can_show", "can_list"}
@@ -601,7 +602,6 @@ class SupersetSecurityManager(SecurityManager):
         pvms = [p for p in pvms if p.permission and p.view_menu]
         role = self.add_role(role_name)
         role_pvms = [p for p in pvms if pvm_check(p)]
-        print(role_pvms)
         role.permissions = role_pvms
         sesh.merge(role)
         sesh.commit()

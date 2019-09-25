@@ -30,20 +30,14 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="{{ '/superset' + logo_target_path if current_user.username is defined else '#' }}">
-        <img
-          width="{{ app_icon_width }}"
-          src="{{ appbuilder.app_icon }}"
-          alt="{{ appbuilder.app_name }}"
-        />
-      </a>
+      <img width="{{ app_icon_width }}" src="{{ appbuilder.app_icon }}" alt="{{ appbuilder.app_name }}" />
     </div>
     <div class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         {% if WARNING_MSG %}
-          <li class="alert alert-danger">
-            {{ WARNING_MSG | safe }}
-          </li>
+        <li class="alert alert-danger">
+          {{ WARNING_MSG | safe }}
+        </li>
         {% endif %}
         {% include 'appbuilder/navbar_menu.html' %}
       </ul>
