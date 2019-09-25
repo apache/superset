@@ -12,8 +12,7 @@ import {
   scalePoint,
   scaleBand,
 } from 'd3-scale';
-import { HasToString } from '../../types/Base';
-import { ScaleConfig } from '../../types/Scale';
+import { ScaleConfig, CategoricalScaleInput } from '../../types/Scale';
 import { ScaleType, Value } from '../../types/VegaLite';
 
 // eslint-disable-next-line complexity
@@ -44,11 +43,11 @@ export default function createScaleFromScaleType<Output extends Value>(
     case ScaleType.THRESHOLD:
       return scaleThreshold<number | string | Date, Output>();
     case ScaleType.ORDINAL:
-      return scaleOrdinal<HasToString, Output>();
+      return scaleOrdinal<CategoricalScaleInput, Output>();
     case ScaleType.POINT:
-      return scalePoint<HasToString>();
+      return scalePoint<CategoricalScaleInput>();
     case ScaleType.BAND:
-      return scaleBand<HasToString>();
+      return scaleBand<CategoricalScaleInput>();
     case ScaleType.SYMLOG:
       // TODO: d3-scale typings does not include scaleSymlog yet
       // needs to patch the declaration file before continue.
