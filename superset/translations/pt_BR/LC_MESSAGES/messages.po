@@ -130,11 +130,11 @@ msgstr "10 minutos"
 #: superset/utils.py:499
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
-msgstr "[Superset] O acesso à fonte de dados %(name) s foi concedido"
+msgstr "[Superset] O acesso à fonte de dados %(name)s foi concedido"
 
 #: superset/viz.py:52
 msgid "Viz is missing a datasource"
-msgstr "Viz está faltando uma fonte de dados"
+msgstr "Está faltando uma fonte de dados à Viz"
 
 #: superset/viz.py:172
 msgid "From date cannot be larger than to date"
@@ -2191,7 +2191,7 @@ msgstr "Se deseja exibir os valores numéricos dentro das células"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1126
 msgid "X bounds"
-msgstr "Limitis do Eixo X"
+msgstr "Limites do Eixo X"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1129
 msgid "Whether to display the min and max values of the X axis"
@@ -2199,7 +2199,7 @@ msgstr "Se deseja exibir os valores mínimo e máximo do eixo X"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1134
 msgid "Y bounds"
-msgstr "Limitis do Eixo Y"
+msgstr "Limites do Eixo Y"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1137
 msgid "Whether to display the min and max values of the Y axis"
@@ -2297,8 +2297,8 @@ msgid ""
 "delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
 "Sobrepõe Séries temporais de um período de tempo relativo. Espera tempo "
-"relativo delta em linguagem natural (exemplo: 2 horas, 4 dias, 8 semanas, "
-"16 anos)"
+"relativo delta em linguagem natural (exemplo: 24 horas, 7 dias, 56 semanas, "
+"365 anos)"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1226
 msgid "Subheader"
