@@ -73,7 +73,7 @@ VERSION_STRING = _try_json_readfile(VERSION_INFO_FILE) or _try_json_readfile(
 )
 
 ROW_LIMIT = 50000000
-VIZ_ROW_LIMIT = 10000
+VIZ_ROW_LIMIT = 10000000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
 SUPERSET_WORKERS = 2  # deprecated
