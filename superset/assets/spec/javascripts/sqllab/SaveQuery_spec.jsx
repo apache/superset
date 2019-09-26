@@ -26,9 +26,11 @@ import Button from '../../../src/components/Button';
 
 describe('SavedQuery', () => {
   const mockedProps = {
-    dbId: 1,
-    schema: 'main',
-    sql: 'SELECT * FROM t',
+    query: {
+      dbId: 1,
+      schema: 'main',
+      sql: 'SELECT * FROM t',
+    },
     defaultLabel: 'untitled',
     animation: false,
   };
@@ -66,7 +68,14 @@ describe('SavedQuery', () => {
   });
   it('has an update button if this is an existing query', () => {
     const updateSpy = sinon.spy();
-    const wrapper = shallow(<SaveQuery {...mockedProps} remoteId="42" onUpdate={updateSpy} />);
+    const props = {
+      ...mockedProps,
+      query: {
+        ...mockedProps.query,
+        remoteId: '42',
+      },
+    };
+    const wrapper = shallow(<SaveQuery {...props} onUpdate={updateSpy} />);
     const modal = shallow(wrapper.instance().renderModalBody());
     expect(modal.find(Button)).toHaveLength(3);
     modal.find(Button).at(0).simulate('click');

@@ -41,7 +41,7 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.UPDATE_QUERY_EDITOR]() {
       const id = action.alterations.remoteId;
-      const existing = state.queryEditors.find((qe) => qe.remoteId === id);
+      const existing = state.queryEditors.find(qe => qe.remoteId === id);
       if (existing == null) return state;
       return alterInArr(state, 'queryEditors', existing, action.alterations, 'remoteId');
     },

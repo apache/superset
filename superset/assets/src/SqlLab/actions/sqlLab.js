@@ -97,10 +97,8 @@ const queryClientMapping = {
 const queryServerMapping = invert(queryClientMapping);
 
 // uses a mapping like those above to convert object key names to another style
-const fieldConverter = (mapping) => (obj) =>
-  mapKeys(obj, (value, key) =>
-    key in mapping ? mapping[key] : key
-  );
+const fieldConverter = mapping => obj =>
+  mapKeys(obj, (value, key) => key in mapping ? mapping[key] : key);
 
 const convertQueryToServer = fieldConverter(queryServerMapping);
 const convertQueryToClient = fieldConverter(queryClientMapping);
@@ -135,6 +133,10 @@ export function saveQuery(query) {
       .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
 }
 
+export function updateQueryEditor(alterations) {
+  return { type: UPDATE_QUERY_EDITOR, alterations };
+}
+
 export function updateSavedQuery(query) {
   return dispatch =>
     SupersetClient.put({
@@ -144,7 +146,7 @@ export function updateSavedQuery(query) {
     })
       .then(() => dispatch(addSuccessToast(t('Your query was updated'))))
       .catch(() => dispatch(addDangerToast(t('Your query could not be updated'))))
-      .then(() => dispatch(updateQueryEditor(query)))
+      .then(() => dispatch(updateQueryEditor(query)));
 }
 
 export function scheduleQuery(query) {
@@ -336,10 +338,6 @@ export function addQueryEditor(queryEditor) {
     id: shortid.generate(),
   };
   return { type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor };
-}
-
-export function updateQueryEditor(alterations) {
-  return { type: UPDATE_QUERY_EDITOR, alterations }
 }
 
 export function cloneQueryToNewTab(query) {

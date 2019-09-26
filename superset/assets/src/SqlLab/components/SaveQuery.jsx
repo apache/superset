@@ -25,12 +25,11 @@ import Button from '../../components/Button';
 import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
+  query: PropTypes.object,
   defaultLabel: PropTypes.string,
-  sql: PropTypes.string,
-  schema: PropTypes.string,
-  dbId: PropTypes.number,
   animation: PropTypes.bool,
   onSave: PropTypes.func,
+  onUpdate: PropTypes.func,
   saveQueryWarning: PropTypes.string,
 };
 const defaultProps = {
@@ -55,16 +54,6 @@ class SaveQuery extends React.PureComponent {
     this.onLabelChange = this.onLabelChange.bind(this);
     this.onDescriptionChange = this.onDescriptionChange.bind(this);
   }
-  close() {
-    if (this.saveModal) this.saveModal.close();
-  }
-  queryPayload() {
-    return {
-      ...this.props.query,
-      title: this.state.label,
-      description: this.state.description,
-    };
-  }
   onSave() {
     this.props.onSave(this.queryPayload());
     this.close();
@@ -81,6 +70,16 @@ class SaveQuery extends React.PureComponent {
   }
   onDescriptionChange(e) {
     this.setState({ description: e.target.value });
+  }
+  queryPayload() {
+    return {
+      ...this.props.query,
+      title: this.state.label,
+      description: this.state.description,
+    };
+  }
+  close() {
+    if (this.saveModal) this.saveModal.close();
   }
   toggleSave(e) {
     this.setState({ target: e.target, showSave: !this.state.showSave });
@@ -143,7 +142,7 @@ class SaveQuery extends React.PureComponent {
               </Button>
             )}
             <Button
-              bsStyle={isSaved ? undefined : "primary"}
+              bsStyle={isSaved ? undefined : 'primary'}
               onClick={this.onSave}
               className="m-r-3"
             >
