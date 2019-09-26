@@ -60,12 +60,9 @@ class SaveQuery extends React.PureComponent {
   }
   queryPayload() {
     return {
-      remoteId: this.props.remoteId,
-      label: this.state.label,
+      ...this.props.query,
+      title: this.state.label,
       description: this.state.description,
-      db_id: this.props.dbId,
-      schema: this.props.schema,
-      sql: this.props.sql,
     };
   }
   onSave() {
@@ -89,7 +86,7 @@ class SaveQuery extends React.PureComponent {
     this.setState({ target: e.target, showSave: !this.state.showSave });
   }
   renderModalBody() {
-    const remoteId = this.props.remoteId;
+    const isSaved = !!this.props.query.remoteId;
     return (
       <FormGroup bsSize="small">
         <Row>
@@ -136,7 +133,7 @@ class SaveQuery extends React.PureComponent {
         )}
         <Row>
           <Col md={12}>
-            {remoteId && (
+            {isSaved && (
               <Button
                 bsStyle="primary"
                 onClick={this.onUpdate}
@@ -146,11 +143,11 @@ class SaveQuery extends React.PureComponent {
               </Button>
             )}
             <Button
-              bsStyle={remoteId ? undefined : "primary"}
+              bsStyle={isSaved ? undefined : "primary"}
               onClick={this.onSave}
               className="m-r-3"
             >
-              {remoteId ? t('Save New') : t('Save')}
+              {isSaved ? t('Save New') : t('Save')}
             </Button>
             <Button onClick={this.onCancel} className="cancelQuery">
               {t('Cancel')}

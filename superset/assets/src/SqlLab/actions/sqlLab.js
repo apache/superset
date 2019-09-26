@@ -20,6 +20,8 @@ import shortid from 'shortid';
 import JSONbig from 'json-bigint';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
+import invert from 'lodash/invert';
+import mapKeys from 'lodash/mapKeys';
 
 import { now } from '../../modules/dates';
 import {
@@ -83,6 +85,26 @@ export const addInfoToast = addInfoToastAction;
 export const addSuccessToast = addSuccessToastAction;
 export const addDangerToast = addDangerToastAction;
 
+// a map of SavedQuery field names to the different names used client-side,
+// because for now making the names consistent is too complicated
+// so it might as well only happen in one place
+const queryClientMapping = {
+  id: 'remoteId',
+  db_id: 'dbId',
+  client_id: 'id',
+  label: 'title',
+};
+const queryServerMapping = invert(queryClientMapping);
+
+// uses a mapping like those above to convert object key names to another style
+const fieldConverter = (mapping) => (obj) =>
+  mapKeys(obj, (value, key) =>
+    key in mapping ? mapping[key] : key
+  );
+
+const convertQueryToServer = fieldConverter(queryServerMapping);
+const convertQueryToClient = fieldConverter(queryClientMapping);
+
 export function resetState() {
   return { type: RESET_STATE };
 }
@@ -106,7 +128,7 @@ export function saveQuery(query) {
   return dispatch =>
     SupersetClient.post({
       endpoint: '/savedqueryviewapi/api/create',
-      postPayload: query,
+      postPayload: convertQueryToServer(query),
       stringify: false,
     })
       .then(() => dispatch(addSuccessToast(t('Your query was saved'))))
@@ -114,21 +136,15 @@ export function saveQuery(query) {
 }
 
 export function updateSavedQuery(query) {
-  const { remoteId, ...payload } = query;
-  payload.id = remoteId;
   return dispatch =>
     SupersetClient.put({
-      endpoint: `/savedqueryviewapi/api/update/${remoteId}`,
-      postPayload: payload,
+      endpoint: `/savedqueryviewapi/api/update/${query.remoteId}`,
+      postPayload: convertQueryToServer(query),
       stringify: false,
     })
       .then(() => dispatch(addSuccessToast(t('Your query was updated'))))
       .catch(() => dispatch(addDangerToast(t('Your query could not be updated'))))
-      .then(() => dispatch(updateQueryEditor({
-        remoteId: query.remoteId,
-        title: query.label,
-        description: query.description,
-      })))
+      .then(() => dispatch(updateQueryEditor(query)))
 }
 
 export function scheduleQuery(query) {
@@ -527,15 +543,9 @@ export function popSavedQuery(saveQueryId) {
   return function (dispatch) {
     return SupersetClient.get({ endpoint: `/savedqueryviewapi/api/get/${saveQueryId}` })
       .then(({ json }) => {
-        const { result } = json;
         const queryEditorProps = {
-          // the api knows it as id, but we call it remoteId because id is taken
-          remoteId: result.id,
-          title: result.label,
-          dbId: result.db_id ? parseInt(result.db_id, 10) : null,
-          schema: result.schema,
+          ...convertQueryToClient(json.result),
           autorun: false,
-          sql: result.sql,
         };
         return dispatch(addQueryEditor(queryEditorProps));
       })
