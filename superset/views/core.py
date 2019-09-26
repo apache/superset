@@ -2678,7 +2678,7 @@ class Superset(BaseSupersetView):
     @expose("/sql_json/", methods=["POST"])
     @event_logger.log_this
     def sql_json(self):
-        """Runs arbitrary sql and returns and json"""
+        """Runs arbitrary sql and returns data as json"""
         # Collect Values
         database_id: int = request.json.get("database_id")
         schema: str = request.json.get("schema")

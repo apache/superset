@@ -50,23 +50,34 @@ class SaveQuery extends React.PureComponent {
     };
     this.toggleSave = this.toggleSave.bind(this);
     this.onSave = this.onSave.bind(this);
+    this.onUpdate = this.onUpdate.bind(this);
     this.onCancel = this.onCancel.bind(this);
     this.onLabelChange = this.onLabelChange.bind(this);
     this.onDescriptionChange = this.onDescriptionChange.bind(this);
   }
-  onSave() {
-    const query = {
+  close() {
+    if (this.saveModal) this.saveModal.close();
+  }
+  queryPayload() {
+    return {
+      remoteId: this.props.remoteId,
       label: this.state.label,
       description: this.state.description,
       db_id: this.props.dbId,
       schema: this.props.schema,
       sql: this.props.sql,
     };
-    this.props.onSave(query);
-    this.saveModal.close();
+  }
+  onSave() {
+    this.props.onSave(this.queryPayload());
+    this.close();
+  }
+  onUpdate() {
+    this.props.onUpdate(this.queryPayload());
+    this.close();
   }
   onCancel() {
-    this.saveModal.close();
+    this.close();
   }
   onLabelChange(e) {
     this.setState({ label: e.target.value });
@@ -78,6 +89,7 @@ class SaveQuery extends React.PureComponent {
     this.setState({ target: e.target, showSave: !this.state.showSave });
   }
   renderModalBody() {
+    const remoteId = this.props.remoteId;
     return (
       <FormGroup bsSize="small">
         <Row>
@@ -124,12 +136,21 @@ class SaveQuery extends React.PureComponent {
         )}
         <Row>
           <Col md={12}>
+            {remoteId && (
+              <Button
+                bsStyle="primary"
+                onClick={this.onUpdate}
+                className="m-r-3"
+              >
+                {t('Update')}
+              </Button>
+            )}
             <Button
-              bsStyle="primary"
+              bsStyle={remoteId ? undefined : "primary"}
               onClick={this.onSave}
               className="m-r-3"
             >
-              {t('Save')}
+              {remoteId ? t('Save New') : t('Save')}
             </Button>
             <Button onClick={this.onCancel} className="cancelQuery">
               {t('Cancel')}

@@ -32,6 +32,7 @@ import COMMON_ERR_MESSAGES from '../../utils/errorMessages';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
+export const UPDATE_QUERY_EDITOR = 'UPDATE_QUERY_EDITOR';
 export const CLONE_QUERY_TO_NEW_TAB = 'CLONE_QUERY_TO_NEW_TAB';
 export const REMOVE_QUERY_EDITOR = 'REMOVE_QUERY_EDITOR';
 export const MERGE_TABLE = 'MERGE_TABLE';
@@ -110,6 +111,24 @@ export function saveQuery(query) {
     })
       .then(() => dispatch(addSuccessToast(t('Your query was saved'))))
       .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
+}
+
+export function updateSavedQuery(query) {
+  const { remoteId, ...payload } = query;
+  payload.id = remoteId;
+  return dispatch =>
+    SupersetClient.put({
+      endpoint: `/savedqueryviewapi/api/update/${remoteId}`,
+      postPayload: payload,
+      stringify: false,
+    })
+      .then(() => dispatch(addSuccessToast(t('Your query was updated'))))
+      .catch(() => dispatch(addDangerToast(t('Your query could not be updated'))))
+      .then(() => dispatch(updateQueryEditor({
+        remoteId: query.remoteId,
+        title: query.label,
+        description: query.description,
+      })))
 }
 
 export function scheduleQuery(query) {
@@ -301,6 +320,10 @@ export function addQueryEditor(queryEditor) {
     id: shortid.generate(),
   };
   return { type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor };
+}
+
+export function updateQueryEditor(alterations) {
+  return { type: UPDATE_QUERY_EDITOR, alterations }
 }
 
 export function cloneQueryToNewTab(query) {
@@ -506,6 +529,8 @@ export function popSavedQuery(saveQueryId) {
       .then(({ json }) => {
         const { result } = json;
         const queryEditorProps = {
+          // the api knows it as id, but we call it remoteId because id is taken
+          remoteId: result.id,
           title: result.label,
           dbId: result.db_id ? parseInt(result.db_id, 10) : null,
           schema: result.schema,
