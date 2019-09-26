@@ -29,6 +29,7 @@ if (typeof window !== 'undefined') {
   if (bootstrapData.common && bootstrapData.common.language_pack) {
     const languagePack = bootstrapData.common.language_pack;
     configure({ languagePack });
+    localStorage.setItem('locale', bootstrapData.common.locale);
   } else {
     configure();
   }

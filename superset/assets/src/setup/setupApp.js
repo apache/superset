@@ -21,12 +21,11 @@ import $ from 'jquery';
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import moment from 'moment';
-import localStorage from 'local-storage';
 
 const DEFAULT_D3_LANGUAGE = 'en';
 
 function applyLocales() {
-  const currentLocale = localStorage.get('locale');
+  const currentLocale = localStorage.getItem('locale');
   const locale = currentLocale ? currentLocale : DEFAULT_D3_LANGUAGE;
   moment.locale(locale);
 }
