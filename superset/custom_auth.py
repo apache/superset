@@ -1,4 +1,4 @@
-from flask import redirect, g, flash, request
+from flask import redirect, g, flash, request, app
 from flask_appbuilder.security.views import UserDBModelView, AuthDBView
 from superset.security import SupersetSecurityManager
 from flask_appbuilder.security.views import expose
@@ -8,6 +8,9 @@ from ais_service_discovery import call
 from datetime import timedelta, datetime
 from json import loads
 from os import environ
+
+
+app.permanent_session_lifetime = timedelta(minutes=60)
 
 
 def has_resource_access(privileges):
