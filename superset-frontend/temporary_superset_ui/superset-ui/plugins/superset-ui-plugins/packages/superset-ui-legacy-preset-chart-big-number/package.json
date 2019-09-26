@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@data-ui/xy-chart": "^0.0.80",
+    "@data-ui/xy-chart": "^0.0.81",
     "d3-color": "^1.2.3",
     "prop-types": "^15.6.2",
     "shortid": "^2.2.14"
