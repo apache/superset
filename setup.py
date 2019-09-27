@@ -124,5 +124,8 @@ setup(
     download_url=(
         "https://dist.apache.org/repos/dist/release/superset/" + version_string
     ),
-    classifiers=["Programming Language :: Python :: 3.6"],
+    classifiers=[
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+    ],
 )
