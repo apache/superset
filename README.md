@@ -189,6 +189,7 @@ the world know they are using Superset. Join our growing community!
  1. [Pronto Tools](http://www.prontotools.io)
  1. [QPID Health](http://www.qpidhealth.com/    )
  1. [Qunar](https://www.qunar.com/)
+ 1. [Safaricom](https://www.safaricom.co.ke/)
  1. [Scoot](https://scoot.co/)
  1. [ScopeAI](https://www.getscopeai.com)
  1. [Shopee](https://shopee.sg)
