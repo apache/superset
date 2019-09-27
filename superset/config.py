@@ -661,9 +661,9 @@ TALISMAN_CONFIG = {
 # See https://flask.palletsprojects.com/en/1.1.x/security/#set-cookie-options
 # for details
 #
-SESSION_COOKIE_HTTPONLY=True  # Prevent cookie from being read by frontend JS?
-SESSION_COOKIE_SECURE=False  # Prevent cookie from being transmitted over non-tls?
-SESSION_COOKIE_SAMESITE='Lax'  # One of [None, 'Lax', 'Strict']
+SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
+SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
+SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'Lax', 'Strict']
 
 # URI to database storing the example data, points to
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
