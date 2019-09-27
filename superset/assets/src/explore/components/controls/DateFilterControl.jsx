@@ -380,10 +380,10 @@ export default class DateFilterControl extends React.Component {
             <Tab eventKey={1} title="Defaults">
               <FormGroup>{timeFrames}</FormGroup>
             </Tab>
-            <Tab eventKey={2} title="Custom">
+            <Tab eventKey={2} title={t("Custom")}>
               <FormGroup>
                 <PopoverSection
-                  title="Relative to today"
+                  title={t("Relative to today")}
                   isSelected={this.state.type === TYPES.CUSTOM_RANGE}
                   onSelect={this.setTypeCustomRange}
                 >
@@ -437,7 +437,7 @@ export default class DateFilterControl extends React.Component {
                   </div>
                 </PopoverSection>
                 <PopoverSection
-                  title="Start / end"
+                  title={t("Start / end")}
                   isSelected={this.state.type === TYPES.CUSTOM_START_END}
                   onSelect={this.setTypeCustomStartEnd}
                   info={FREEFORM_TOOLTIP}
