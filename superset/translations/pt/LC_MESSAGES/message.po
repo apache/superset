@@ -4178,3 +4178,24 @@ msgstr "Alterado em"
 #: superset/views/sql_lab.py:79
 msgid "Saved Queries"
 msgstr "Queries Gravadas"
+
+#: superset/assets/src/chart/chartReducer.js:88
+msgid "Query timeout"
+msgstr "Demora na Consulta"
+
+#: superset/assets/src/chart/chartReducer.js:89
+msgid "visualization queries are set to timeout at ${action.timeout} seconds. "
+msgstr "as consultas de visualização estão definidas para um tempo limite de ${action.timeout} segundos. "
+
+#: superset/assets/src/chart/chartReducer.js:90
+msgid ""
+"Perhaps your data has grown, your database is under unusual load, or you "
+"are simply querying a data source that is too large to be processed "
+"within the timeout range. If that is the case, we recommend that you "
+"summarize your data further."
+msgstr ""
+"Os dados poderão ter aumentado de volume, "
+"o banco de dados pode estar sob uma carga incomum "
+"ou a consulta de dados seja muito grande para ser processada "
+"dentro do intervalo de tempo limite. Se esse for o caso, "
+"recomendamos que resuma seus dados ainda mais."
