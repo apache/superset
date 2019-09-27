@@ -19,16 +19,7 @@
 /* eslint global-require: 0 */
 import $ from 'jquery';
 import { SupersetClient } from '@superset-ui/connection';
-import moment from 'moment';
 import getClientErrorObject from '../utils/getClientErrorObject';
-
-const DEFAULT_D3_LANGUAGE = 'en';
-
-function applyLocales() {
-  const currentLocale = localStorage.getItem('locale');
-  const locale = currentLocale || DEFAULT_D3_LANGUAGE;
-  moment.locale(locale);
-}
 
 function showApiMessage(resp) {
   const template =
@@ -55,8 +46,6 @@ function toggleCheckbox(apiUrlPrefix, selector) {
 }
 
 export default function setupApp() {
-  // Set a language for moment library
-  applyLocales();
   $(document).ready(function () {
     $(':checkbox[data-checkbox-api-prefix]').change(function () {
       const $this = $(this);
