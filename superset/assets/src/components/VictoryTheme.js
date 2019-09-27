@@ -18,7 +18,7 @@
  */
 const { assign } = Object;
 
-const A11Y_BABU = '#00A699';
+const A11Y_BABU = '#265FE5';
 const AXIS_LINE_GRAY = '#484848';
 
 // Colors
@@ -51,7 +51,7 @@ const baseProps = {
 
 // Labels
 const baseLabelStyles = {
-  fontFamily: sansSerif,
+  fontFamily: "Montserrat",
   fontSize,
   letterSpacing,
   padding: 10,

@@ -327,7 +327,7 @@ def load_world_bank_health_n_pop(only_metadata=False, force=False):
 
     print("Creating a World's Health Bank dashboard")
     dash_name = "World's Bank Data"
-    slug = "world_health"
+    slug = "pcv"
     dash = db.session.query(Dash).filter_by(slug=slug).first()
 
     if not dash:

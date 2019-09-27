@@ -35,6 +35,8 @@ from flask_appbuilder.security.manager import AUTH_DB
 
 from superset.stats_logger import DummyStatsLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+from werkzeug.contrib.cache import RedisCache
+from .custom_auth import CustomSecurityManager
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -70,8 +72,8 @@ VERSION_STRING = _try_json_readfile(VERSION_INFO_FILE) or _try_json_readfile(
     PACKAGE_JSON_FILE
 )
 
-ROW_LIMIT = 50000
-VIZ_ROW_LIMIT = 10000
+ROW_LIMIT = 50000000
+VIZ_ROW_LIMIT = 10000000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
 SUPERSET_WORKERS = 2  # deprecated
@@ -84,21 +86,26 @@ SUPERSET_WEBSERVER_PORT = 8088
 # [load balancer / proxy / envoy / kong / ...] timeout settings.
 # You should also make sure to configure your WSGI server
 # (gunicorn, nginx, apache, ...) timeout setting to be <= to this setting
-SUPERSET_WEBSERVER_TIMEOUT = 60
+SUPERSET_WEBSERVER_TIMEOUT = 120
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 EMAIL_NOTIFICATIONS = False
-CUSTOM_SECURITY_MANAGER = None
+CUSTOM_SECURITY_MANAGER = CustomSecurityManager
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
+TENANT = os.environ['TENANT']
 # Your App secret key
-SECRET_KEY = "\2\1thisismyscretkey\1\2\e\y\y\h"  # noqa
+SECRET_KEY = "\2\1thisis{}secretkey\1\2\e\y\y\h".format(TENANT)  # noqa
+
+REDIS_ENDPOINT = os.environ['REDIS_ENDPOINT']
+SQLALCHEMY_ENGINE_OPTIONS = json.loads(os.environ['SQLALCHEMY_ENGINE_OPTIONS'])
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
-# SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
-# SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
+SQLALCHEMY_DATABASE_URI = os.environ['SQLALCHEMY_DATABASE_URI']
+# SQLALCHEMY_DATABASE_URI="sqlite:///" + os.path.join(DATA_DIR, "superset.db")
+# SQLALCHEMY_DATABASE_URI='mysql://myapp@localhost/myapp'
+# SQLALCHEMY_DATABASE_URI='postgresql://root:password@localhost/myapp'
 
 # In order to hook up a custom password store for all SQLACHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
@@ -136,11 +143,11 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = "{}-Superset".format(TENANT)
 
 # Uncomment to setup an App icon
 APP_ICON = "/static/assets/images/superset-logo@2x.png"
-APP_ICON_WIDTH = 126
+APP_ICON_WIDTH = 60
 
 # Uncomment to specify where clicking the logo would take the user
 # e.g. setting it to '/welcome' would take the user to '/superset/welcome'
@@ -168,7 +175,7 @@ DRUID_ANALYSIS_TYPES = ["cardinality"]
 AUTH_TYPE = AUTH_DB
 
 # Uncomment to setup Full admin role name
-# AUTH_ROLE_ADMIN = 'Admin'
+AUTH_ROLE_ADMIN = 'Admin'
 
 # Uncomment to setup Public role name, no authentication needed
 # AUTH_ROLE_PUBLIC = 'Public'
@@ -262,12 +269,22 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # IMG_SIZE = (300, 200, True)
 
 CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24
-CACHE_CONFIG = {"CACHE_TYPE": "null"}
+CACHE_CONFIG = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': 300,
+    'CACHE_KEY_PREFIX': '{}_superset_'.format(TENANT),
+    'CACHE_REDIS_HOST': 'redis',
+    'CACHE_REDIS_PORT': 6379,
+    'CACHE_REDIS_DB': 1,
+    'CACHE_REDIS_URL': 'redis://{}/1'.format(REDIS_ENDPOINT)
+}
 TABLE_NAMES_CACHE_CONFIG = {"CACHE_TYPE": "null"}
 
 # CORS Options
-ENABLE_CORS = False
-CORS_OPTIONS = {}
+ENABLE_CORS = True
+CORS_OPTIONS = {
+  'origins': '*',
+}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
@@ -406,26 +423,20 @@ WARNING_MSG = None
 
 
 class CeleryConfig(object):
-    BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
-    CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"
-    CELERYD_LOG_LEVEL = "DEBUG"
-    CELERYD_PREFETCH_MULTIPLIER = 1
-    CELERY_ACKS_LATE = False
-    CELERY_ANNOTATIONS = {
-        "sql_lab.get_sql_results": {"rate_limit": "100/s"},
-        "email_reports.send": {
-            "rate_limit": "1/s",
-            "time_limit": 120,
-            "soft_time_limit": 150,
-            "ignore_result": True,
-        },
-    }
+    BROKER_URL = 'redis://{}/0'.format(REDIS_ENDPOINT)
+    CELERY_IMPORTS = ('superset.sql_lab', 'superset.tasks')
+    CELERY_RESULT_BACKEND = 'redis://{}/0'.format(REDIS_ENDPOINT)
+    CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
     CELERYBEAT_SCHEDULE = {
-        "email_reports.schedule_hourly": {
-            "task": "email_reports.schedule_hourly",
-            "schedule": crontab(minute=1, hour="*"),
-        }
+        'cache-warmup-hourly': {
+            'task': 'cache-warmup',
+            'schedule': crontab(minute=0, hour='*'),  # hourly
+            'kwargs': {
+                'strategy_name': 'top_n_dashboards',
+                'top_n': 5,
+                'since': '7 days ago',
+            },
+        },
     }
 
 
@@ -457,7 +468,12 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 # An instantiated derivative of werkzeug.contrib.cache.BaseCache
 # if enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
-RESULTS_BACKEND = None
+[redis_host, redis_port] = REDIS_ENDPOINT.split(':')
+RESULTS_BACKEND = RedisCache(
+    host=redis_host,
+    port=int(redis_port),
+    key_prefix='{}_superset_results'.format(TENANT),
+)
 
 # Use PyArrow and MessagePack for async query results serialization,
 # rather than JSON. This feature requires additional testing from the

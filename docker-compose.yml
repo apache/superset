@@ -1,0 +1,29 @@
+version: '3'
+services:
+  superset:
+    container_name: ais-service-superset
+    build:
+      context: .
+      args:
+        SQLALCHEMY_DATABASE_URI: $SQLALCHEMY_DATABASE_URI
+        TENANT: $TENANT
+        STAGE: $STAGE
+        REDIS_ENDPOINT: $REDIS_ENDPOINT
+        SQLALCHEMY_ENGINE_OPTIONS: $SQLALCHEMY_ENGINE_OPTIONS
+        ADMIN_EMAIL: $ADMIN_EMAIL
+        ADMIN_PASSWORD: $ADMIN_PASSWORD
+        GUEST_EMAIL: $GUEST_EMAIL
+        GUEST_PASSWORD: $GUEST_PASSWORD
+        SUPERSET_ENV: $SUPERSET_ENV
+    restart: always
+    environment:
+        AWS_PROFILE: peak-dev
+        AWS_REGION: eu-west-1
+    env_file:
+      - .env
+    ports:
+      - 8088:8088
+    volumes:
+      - .:/home/superset
+      - $HOME/.aws:/root/.aws
+    tty: true

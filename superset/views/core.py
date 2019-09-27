@@ -2191,9 +2191,10 @@ class Superset(BaseSupersetView):
                 "slice_can_edit": slice_can_edit,
             }
         )
-
+        isGammaUser = security_manager.contains_gamma_role([role.name for role in list(get_user_roles())])
         bootstrap_data = {
             "user_id": g.user.get_id(),
+            "isGammaUser" : isGammaUser,
             "dashboard_data": dashboard_data,
             "datasources": {ds.uid: ds.data for ds in datasources},
             "common": self.common_bootstrap_payload(),
