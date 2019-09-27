@@ -4020,7 +4020,7 @@ msgstr ""
 
 #: superset/views/core.py:488 superset/views/core.py:555
 msgid "Dashboard"
-msgstr "Dashboard"
+msgstr "Painel"
 
 #: superset/views/core.py:490
 msgid "Slug"
@@ -4259,3 +4259,15 @@ msgstr "Costume"
 
 msgid "Time range"
 msgstr "Intervalo de tempo"
+
+msgid "Data"
+msgstr "Dados"
+
+msgid "Customize"
+msgstr "Customizar"
+
+msgid "Apply"
+msgstr "Aplicar"
+
+msgid "No results found"
+msgstr "Dados não encontrados"
