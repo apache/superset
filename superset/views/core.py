@@ -2553,9 +2553,9 @@ class Superset(BaseSupersetView):
             )
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).first()
+        mydb = session.query(models.Database).filter_by(id=database_id).one_or_none()
         if not mydb:
-            json_error_response(
+            return json_error_response(
                 "Database with id {} is missing.".format(database_id), status=400
             )
 
