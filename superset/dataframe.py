@@ -106,11 +106,13 @@ class SupersetDataFrame(object):
         self.column_names = column_names
 
         if dtype:
+            # put data in a 2D array so we can efficiently access each column;
+            # the reshape ensures the shape is 2D in case data is empty
+            array = np.array(data, dtype="object").reshape(-1, len(column_names))
             # convert each column in data into a Series of the proper dtype; we
             # need to do this because we can not specify a mixed dtype when
             # instantiating the DataFrame, and this allows us to have different
             # dtypes for each column.
-            array = np.array(data, dtype="object")
             data = {
                 column: pd.Series(array[:, i], dtype=dtype[column])
                 for i, column in enumerate(column_names)
