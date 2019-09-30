@@ -40,10 +40,6 @@ flask fab create-user \
 superset db upgrade
 
 superset load_examples
-if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
-    # Load some data to play with
-    superset load_examples
-fi
 
 # Create default roles and permissions
 superset init
