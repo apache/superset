@@ -64,6 +64,23 @@ export default class OnPasteSelect extends React.Component {
       }
     }
   }
+  customFilter(option, searchText) {
+    // customFilter is passed as a function to react-select library
+    // in the case that there is a column name and verbose name
+    if (!option.column_name) {
+      return false;
+    }
+    if (
+      option.column_name.toLowerCase().includes(searchText.toLowerCase()) ||
+      (!!option.verbose_name &&
+      option.verbose_name.toLowerCase().includes(searchText.toLowerCase()))
+    ) {
+      return true;
+    }
+      return false;
+
+  }
+
   render() {
     const SelectComponent = this.props.selectWrap;
     const refFunc = (ref) => {
@@ -73,11 +90,14 @@ export default class OnPasteSelect extends React.Component {
       this.pasteInput = ref;
     };
     const inputProps = { onPaste: this.onPaste.bind(this) };
+    const customFilter =  this.customFilter.bind(this);
     return (
       <SelectComponent
         {...this.props}
         ref={refFunc}
         inputProps={inputProps}
+        filterOption={!!this.props.options && !!this.props.options[0].column_name && customFilter}
+
       />
     );
   }
