@@ -14,29 +14,35 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=C,R,W
+from typing import List, Tuple
+
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
-class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
-    """Engine spec for Druid.io"""
+class ExasolEngineSpec(BaseEngineSpec):
+    """Engine spec for Exasol"""
 
-    engine = "druid"
-    allows_joins = False
-    allows_subqueries = True
+    engine = "exa"
+    max_column_name_length = 128
 
+    # Exasol's DATE_TRUNC function is PostgresSQL compatible
     _time_grain_functions = {
         None: "{col}",
-        "PT1S": "FLOOR({col} TO SECOND)",
-        "PT1M": "FLOOR({col} TO MINUTE)",
-        "PT1H": "FLOOR({col} TO HOUR)",
-        "P1D": "FLOOR({col} TO DAY)",
-        "P1W": "FLOOR({col} TO WEEK)",
-        "P1M": "FLOOR({col} TO MONTH)",
-        "P0.25Y": "FLOOR({col} TO QUARTER)",
-        "P1Y": "FLOOR({col} TO YEAR)",
+        "PT1S": "DATE_TRUNC('second', {col})",
+        "PT1M": "DATE_TRUNC('minute', {col})",
+        "PT1H": "DATE_TRUNC('hour', {col})",
+        "P1D": "DATE_TRUNC('day', {col})",
+        "P1W": "DATE_TRUNC('week', {col})",
+        "P1M": "DATE_TRUNC('month', {col})",
+        "P0.25Y": "DATE_TRUNC('quarter', {col})",
+        "P1Y": "DATE_TRUNC('year', {col})",
     }
 
     @classmethod
-    def alter_new_orm_column(cls, orm_col):
-        if orm_col.column_name == "__time":
-            orm_col.is_dttm = True
+    def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
+        data = super().fetch_data(cursor, limit)
+        # Lists of `pyodbc.Row` need to be unpacked further
+        if data and type(data[0]).__name__ == "Row":
+            data = [[value for value in row] for row in data]
+        return data

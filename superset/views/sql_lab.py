@@ -156,9 +156,9 @@ class SavedQueryViewApi(SavedQueryView):
         "sql",
         "extra_json",
     ]
-    show_columns = ["label", "db_id", "schema", "description", "sql", "extra_json"]
-    add_columns = show_columns
+    add_columns = ["label", "db_id", "schema", "description", "sql", "extra_json"]
     edit_columns = add_columns
+    show_columns = add_columns + ["id"]
 
     @has_access_api
     @expose("show/<pk>")
