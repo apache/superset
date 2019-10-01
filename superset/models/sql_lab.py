@@ -206,7 +206,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
 
     # tables that are open in the schema browser and their data previews
     table_schemas = relationship(
-        "TableSchema", cascade="all,delete", backref="tab_state"
+        "TableSchema", cascade="all,delete", backref="tab_state", passive_deletes=True
     )
 
     # the query in the textarea, and results (if any)
@@ -243,7 +243,7 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
     __tablename__ = "table_schema"
 
     id = Column(Integer, primary_key=True)
-    tab_state_id = Column(Integer, ForeignKey("tab_state.id"))
+    tab_state_id = Column(Integer, ForeignKey("tab_state.id", ondelete="CASCADE"))
 
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     database = relationship("Database", foreign_keys=[database_id])

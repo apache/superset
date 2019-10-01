@@ -542,13 +542,16 @@ export function switchQueryEditor(queryEditor) {
           dispatch(loadQueryEditor(loadedQueryEditor));
           dispatch(setTables(json.table_schemas || []));
           dispatch(setActiveQueryEditor(loadedQueryEditor));
-          if (json.latest_query.resultsKey) {
+          if (json.latest_query && json.latest_query.resultsKey) {
             dispatch(fetchQueryResults(json.latest_query));
           }
         })
+      /*
         .catch(() =>
           dispatch(addDangerToast(t('An error occurred while fetching tab state'))),
         );
+        */
+        .catch(console.log);
     } else {
       dispatch(setActiveQueryEditor(queryEditor));
     }
