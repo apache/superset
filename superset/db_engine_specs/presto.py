@@ -1036,18 +1036,21 @@ class PrestoEngineSpec(BaseEngineSpec):
         :param schema: Schema name
         :param table: Table (view) name
         """
+        from pyhive.exc import DatabaseError
+
         engine = cls.get_engine(database, schema)
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
                 sql = f"SHOW CREATE VIEW {schema}.{table}"
-                cls.execute(cursor, sql)
                 try:
+                    cls.execute(cursor, sql)
                     polled = cursor.poll()
-                except Exception:  # not a VIEW
+
+                    while polled:
+                        time.sleep(0.2)
+                        polled = cursor.poll()
+                except DatabaseError:  # not a VIEW
                     return None
-                while polled:
-                    time.sleep(0.2)
-                    polled = cursor.poll()
                 rows = cls.fetch_data(cursor, 1)
         return rows[0][0]
 
