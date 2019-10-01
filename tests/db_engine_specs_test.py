@@ -158,7 +158,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         )
 
     def get_generic_database(self):
-        return Database(sqlalchemy_uri="sqlite://")
+        return Database(database_name="test_database", sqlalchemy_uri="sqlite://")
 
     def sql_limit_regex(
         self, sql, expected_sql, engine_spec_class=MySQLEngineSpec, limit=1000
