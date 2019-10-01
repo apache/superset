@@ -41,5 +41,9 @@ superset db upgrade
 
 superset load_examples
 
+# Load PCV datasources and dashboards at build time
+superset import_datasources -p pcv_datasources.yml \
+  && superset import_dashboards -p pcv_dashboard.json
+
 # Create default roles and permissions
 superset init
