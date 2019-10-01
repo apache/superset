@@ -156,7 +156,15 @@ class SavedQueryViewApi(SavedQueryView):
         "sql",
         "extra_json",
     ]
-    show_columns = ["label", "db_id", "schema", "description", "sql", "extra_json"]
+    show_columns = [
+        "id",
+        "label",
+        "db_id",
+        "schema",
+        "description",
+        "sql",
+        "extra_json",
+    ]
     add_columns = show_columns
     edit_columns = add_columns
 
