@@ -28,14 +28,6 @@ flask fab create-admin \
   --email $ADMIN_EMAIL \
   --password $ADMIN_PASSWORD
 
-flask fab create-user \
-  --role Gamma \
-  --username guest \
-  --firstname guest \
-  --lastname guest \
-  --email $GUEST_EMAIL \
-  --password $GUEST_PASSWORD
-
 # Initialize the database
 superset db upgrade
 
@@ -47,3 +39,11 @@ superset import_datasources -p pcv_datasources.yml \
 
 # Create default roles and permissions
 superset init
+
+flask fab create-user \
+  --role Gamma \
+  --username guest \
+  --firstname guest \
+  --lastname guest \
+  --email $GUEST_EMAIL \
+  --password $GUEST_PASSWORD
