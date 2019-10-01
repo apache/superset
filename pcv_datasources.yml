@@ -1,0 +1,263 @@
+databases:
+- allow_run_async: true
+  database_name: dashboards
+  extra: "{\r\n    \"metadata_params\": {},\r\n    \"engine_params\": {\"pool_recycle\"\
+    : 90, \"pool_timeout\": 900, \"pool_size\": 1, \"max_overflow\": 1},\r\n    \"\
+    metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_csv_upload\": []\r\n\
+    }"
+  tables:
+  - columns:
+    - column_name: addrcountry
+      type: STRING
+    - column_name: userstatus
+      type: STRING
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select  addrcountry, userid  from pcv.customer_attributes
+    table_name: Top Locations
+    template_params: '{}'
+  - columns:
+    - column_name: usergender
+      type: STRING
+    - column_name: userid
+      type: STRING
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select userid, usergender from pcv.customer_attributes
+    table_name: Gender Distribution
+    template_params: '{}'
+  - columns:
+    - column_name: associationvalue
+      type: STRING
+    - column_name: associationtype
+      type: STRING
+    - column_name: userstatus
+      type: STRING
+    - column_name: associationrank
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: "SELECT pcv.customer_preferences.associationtype,pcv.customer_preferences.associationrank\
+      \  , pcv.customer_preferences.associationvalue, pcv.customer_attributes.userstatus \r\nFROM\
+      \ pcv.customer_preferences \r\nINNER JOIN pcv.customer_attributes  ON pcv.customer_attributes.userid\
+      \ = pcv.customer_preferences.userid and pcv.customer_preferences.associationtype\
+      \ = 'Brand'"
+    table_name: Top Brands
+    template_params: '{}'
+  - columns:
+    - column_name: predengagement
+      type: STRING
+    - column_name: engagement
+      type: STRING
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: "SELECT predengagement, userid as engagement\r\nfrom pcv.customer_attributes\
+      \ ORDER BY predengagement ASC"
+    table_name: Predictive Engagement
+    template_params: '{}'
+  - columns:
+    - column_name: prednexttranswindow
+      type: STRING
+    - column_name: userid
+      type: STRING
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: "SELECT prednexttranswindow, userid \r\nfrom pcv.customer_attributes ORDER\
+      \ BY prednexttranswindow ASC"
+    table_name: Next Transaction Window
+    template_params: '{}'
+  - columns:
+    - column_name: predinmarket
+      type: STRING
+    - column_name: userid
+      type: STRING
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select predinmarket, userid  from pcv.customer_attributes
+    table_name: In Market Customers Breakdown
+    template_params: '{}'
+  - columns:
+    - column_name: predchurnrisk
+      type: STRING
+    - column_name: userid
+      type: STRING
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select predchurnrisk , userid  from pcv.customer_attributes
+    table_name: At Risk Customers Breakdown
+    template_params: '{}'
+  - columns:
+    - column_name: loaddate
+      is_dttm: true
+      type: DATETIME
+    - column_name: avgordervalue
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select avgordervalue    , loaddate from pcv.aggregatedcustomerdata
+    table_name: Average Order Value
+    template_params: '{}'
+  - columns:
+    - column_name: loaddate
+      is_dttm: true
+      type: DATETIME
+    - column_name: avgbasketsize
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select avgbasketsize   , loaddate from pcv.aggregatedcustomerdata
+    table_name: Average Basket Size
+    template_params: '{}'
+  - columns:
+    - column_name: loaddate
+      is_dttm: true
+      type: DATETIME
+    - column_name: avgordergapcnt
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select avgordergapcnt  , loaddate from pcv.aggregatedcustomerdata
+    table_name: Average Gap Between Orders
+    template_params: '{}'
+  - columns:
+    - column_name: loaddate
+      is_dttm: true
+      type: DATETIME
+    - column_name: repeatordercnt
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select repeatordercnt , loaddate from pcv.aggregatedcustomerdata
+    table_name: Repeat Order Customers
+    template_params: '{}'
+  - columns:
+    - column_name: loaddate
+      is_dttm: true
+      type: DATETIME
+    - column_name: singleordercnt
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select singleordercnt, loaddate from pcv.aggregatedcustomerdata
+    table_name: Single Order Customers
+    template_params: '{}'
+  - columns:
+    - column_name: associationvalue
+      type: STRING
+    - column_name: associationtype
+      type: STRING
+    - column_name: userid
+      type: STRING
+    - column_name: associationrank
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: "select associationtype , userid , associationvalue , associationrank from\
+      \ pcv.customer_preferences   where associationtype  = 'Product Recommendation'\
+      \ \r\nORDER by associationrank asc limit 10"
+    table_name: Top Products
+    template_params: '{}'
+  - columns:
+    - column_name: loaddate
+      is_dttm: true
+      type: DATETIME
+    - column_name: highriskcnt
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select loaddate , highriskcnt   from pcv.aggregatedcustomerdata
+    table_name: High Risk Customers
+    template_params: '{}'
+  - columns:
+    - column_name: loaddate
+      is_dttm: true
+      type: DATETIME
+    - column_name: inmarkethighcnt
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select loaddate , inmarkethighcnt  from pcv.aggregatedcustomerdata
+    table_name: In Market Customers
+    template_params: '{}'
+  - columns:
+    - column_name: loaddate
+      is_dttm: true
+      type: DATETIME
+    - column_name: avgeltv
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select loaddate , avgeltv from pcv.aggregatedcustomerdata
+    table_name: Avg Predictive LTV
+    template_params: '{}'
+  - columns:
+    - column_name: loaddate
+      is_dttm: true
+      type: DATETIME
+    - column_name: lapsedcnt
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select loaddate , lapsedcnt  from pcv.aggregatedcustomerdata
+    table_name: Lapsed Customers
+    template_params: '{}'
+  - columns:
+    - column_name: loaddate
+      is_dttm: true
+      type: DATETIME
+    - column_name: activecnt
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select loaddate , activecnt from pcv.aggregatedcustomerdata
+    table_name: Active Customers
+    template_params: '{}'
+  - columns:
+    - column_name: loaddate
+      is_dttm: true
+      type: DATETIME
+    - column_name: totalcustomercnt
+      type: INT
+    metrics:
+    - expression: count(*)
+      metric_name: count
+    schema: pcv
+    sql: select loaddate, totalcustomercnt  from pcv.aggregatedcustomerdata
+    table_name: Total Customer
+    template_params: '{}'
