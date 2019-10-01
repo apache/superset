@@ -39,7 +39,9 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetSecurityException
 
 if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
     from superset.models.core import Database, BaseDatasource
+    from superset.viz import BaseViz
 
 from superset.utils.core import DatasourceName  # noqa: E402
 
@@ -783,7 +785,7 @@ class SupersetSecurityManager(SecurityManager):
         Assert the the user has permission to access the Superset datasource.
 
         :param datasource: The Superset datasource
-        :rasies SupersetSecurityException: If the user does not have permission
+        :raises SupersetSecurityException: If the user does not have permission
         """
 
         if not self.datasource_access(datasource):
@@ -791,3 +793,23 @@ class SupersetSecurityManager(SecurityManager):
                 self.get_datasource_access_error_msg(datasource),
                 self.get_datasource_access_link(datasource),
             )
+
+    def assert_query_context_permission(self, query_context: "QueryContext") -> None:
+        """
+        Assert the the user has permission to access the query context.
+
+        :param query_context: The query context
+        :raises SupersetSecurityException: If the user does not have permission
+        """
+
+        self.assert_datasource_permission(query_context.datasource)
+
+    def assert_viz_permission(self, viz: "BaseViz") -> None:
+        """
+        Assert the the user has permission to access the visualization.
+
+        :param viz: The visualization
+        :raises SupersetSecurityException: If the user does not have permission
+        """
+
+        self.assert_datasource_permission(viz.datasource)

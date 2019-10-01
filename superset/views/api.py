@@ -41,7 +41,7 @@ class Api(BaseSupersetView):
         params: query_context: json_blob
         """
         query_context = QueryContext(**json.loads(request.form.get("query_context")))
-        security_manager.assert_datasource_permission(query_context.datasource)
+        security_manager.assert_query_context_permission(query_context)
         payload_json = query_context.get_payload()
         return json.dumps(
             payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
