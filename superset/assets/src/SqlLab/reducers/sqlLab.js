@@ -39,11 +39,18 @@ export default function sqlLabReducer(state = {}, action) {
       const newState = Object.assign({}, state, { tabHistory });
       return addToArr(newState, 'queryEditors', action.queryEditor);
     },
+    [actions.UPDATE_QUERY_EDITOR]() {
+      const id = action.alterations.remoteId;
+      const existing = state.queryEditors.find(qe => qe.remoteId === id);
+      if (existing == null) return state;
+      return alterInArr(state, 'queryEditors', existing, action.alterations, 'remoteId');
+    },
     [actions.CLONE_QUERY_TO_NEW_TAB]() {
       const progenitor = state.queryEditors.find(
         qe => qe.id === state.tabHistory[state.tabHistory.length - 1],
       );
       const qe = {
+        remoteId: progenitor.remoteId,
         id: shortid.generate(),
         title: t('Copy of %s', progenitor.title),
         dbId: action.query.dbId ? action.query.dbId : null,
