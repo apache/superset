@@ -176,7 +176,7 @@ def check_datasource_perms(
         force=False,
     )
 
-    security_manager.assert_datasource_permission(viz_obj.datasource)
+    security_manager.assert_viz_permission(viz_obj)
 
 
 def check_slice_perms(self, slice_id):
@@ -185,18 +185,18 @@ def check_slice_perms(self, slice_id):
 
     This function takes `self` since it must have the same signature as the
     the decorated method.
-
     """
+
     form_data, slc = get_form_data(slice_id, use_slice_data=True)
-    datasource_type = slc.datasource.type
-    datasource_id = slc.datasource.id
+
     viz_obj = get_viz(
-        datasource_type=datasource_type,
-        datasource_id=datasource_id,
+        datasource_type=slc.datasource.type,
+        datasource_id=slc.datasource.id,
         form_data=form_data,
         force=False,
     )
-    security_manager.assert_datasource_permission(viz_obj.datasource)
+
+    security_manager.assert_viz_permission(viz_obj)
 
 
 def _deserialize_results_payload(
@@ -3017,7 +3017,7 @@ class Superset(BaseSupersetView):
         get the database query string for this slice
         """
         viz_obj = get_viz(slice_id)
-        security_manager.assert_datasource_permission(viz_obj.datasource)
+        security_manager.assert_viz_permission(viz_obj)
         return self.get_query_string_response(viz_obj)
 
     @api
