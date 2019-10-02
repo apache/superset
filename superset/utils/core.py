@@ -1067,6 +1067,10 @@ def get_since_until(
             relative_start - relativedelta(years=1),  # noqa: T400
             relative_end,
         ),
+        "Year to Date": (
+            relative_start - relativedelta(yearday=1),
+            relative_end,
+        ),
     }
 
     if time_range:
