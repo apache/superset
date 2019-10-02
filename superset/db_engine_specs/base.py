@@ -45,7 +45,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pylint: disable=unused-import
 
 
-class TimeGrain(NamedTuple): # pylint: disable=too-few-public-methods
+class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
     name: str  # TODO: redundant field, remove
     label: str
     function: str

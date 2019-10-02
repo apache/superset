@@ -345,7 +345,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def _partition_query(  # pylint: disable=too-many-arguments
         cls, table_name, database, limit=0, order_by=None, filters=None
-        ):
+    ):
         return f"SHOW PARTITIONS {table_name}"
 
     @classmethod

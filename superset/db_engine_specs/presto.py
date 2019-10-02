@@ -439,7 +439,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return filtered_cols, array_cols
 
     @classmethod
-    def select_star( # pylint: disable=too-many-arguments
+    def select_star(  # pylint: disable=too-many-arguments
         cls,
         database,
         table_name: str,
