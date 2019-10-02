@@ -264,7 +264,8 @@ def _get_slice_data(schedule):
         raise URLError(response.getcode())
 
     # TODO: Move to the csv module
-    rows = [r.split(b",") for r in response.content.splitlines()]
+    content = response.readlines()
+    rows = [r.split(b",") for r in content]
 
     if schedule.delivery_type == EmailDeliveryType.inline:
         data = None
@@ -281,7 +282,11 @@ def _get_slice_data(schedule):
             )
 
     elif schedule.delivery_type == EmailDeliveryType.attachment:
-        data = {__("%(name)s.csv", name=slc.slice_name): response.content}
+        csv_content = ""
+        for r in content:
+            csv_content += str(r, 'utf-8')
+
+        data = {__("%(name)s.csv", name=slc.slice_name): csv_content}
         body = __(
             '<b><a href="%(url)s">Explore in Superset</a></b><p></p>',
             name=slc.slice_name,
