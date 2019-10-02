@@ -53,8 +53,6 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
 type PropsWithDefault = Props & Readonly<typeof defaultProps>;
 
 export default class SuperChart extends React.PureComponent<Props, {}> {
-  static defaultProps = defaultProps;
-
   /**
    * SuperChart's core
    */
@@ -98,6 +96,8 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       return { BoundingBox, heightInfo, widthInfo };
     },
   );
+
+  static defaultProps = defaultProps;
 
   private setRef = (core: SuperChartCore | null) => {
     this.core = core;
