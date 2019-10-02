@@ -415,6 +415,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         return configuration
 
     @staticmethod
-    def execute(cursor, query: str, async_: bool = False):  # pylint: disable=arguments-differ
+    def execute(
+        cursor, query: str, async_: bool = False
+    ):  # pylint: disable=arguments-differ
         kwargs = {"async": async_}
         cursor.execute(query, **kwargs)

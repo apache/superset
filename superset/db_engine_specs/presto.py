@@ -156,8 +156,10 @@ class PrestoEngineSpec(BaseEngineSpec):
             return []
 
         if schema:
-            sql = "SELECT table_name FROM information_schema.views" \
+            sql = (
+                "SELECT table_name FROM information_schema.views"
                 "WHERE table_schema=%(schema)s"
+            )
             params = {"schema": schema}
         else:
             sql = "SELECT table_name FROM information_schema.views"
@@ -793,10 +795,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         # Determine what columns are ready to be processed. This is necessary for
         # array columns that contain rows with nested arrays. We first process
         # the outer arrays before processing inner arrays.
-        array_columns_to_process, unprocessed_array_columns = \
-            cls._split_ary_cols_by_proc_state(
-                array_columns, array_column_hierarchy, data[0]
-            )
+        array_columns_to_process, unprocessed_array_columns = cls._split_ary_cols_by_proc_state(
+            array_columns, array_column_hierarchy, data[0]
+        )
 
         # Pull out array data that is ready to be processed into a dictionary.
         all_array_data = cls._convert_data_lst_to_ary_dict(
@@ -1069,11 +1070,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 error_dict.get("errorLocation"),
                 error_dict.get("message"),
             )
-        if (
-            type(e).__name__ == "DatabaseError"
-            and hasattr(e, "args")
-            and e.args
-        ):
+        if type(e).__name__ == "DatabaseError" and hasattr(e, "args") and e.args:
             error_dict = e.args[0]
             return error_dict.get("message")
         return utils.error_msg_from_exception(e)
@@ -1157,7 +1154,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         return query
 
     @classmethod
-    def _latest_partition_from_df(cls, df) -> Optional[List[str]]:  # pylint: disable=invalid-name
+    def _latest_partition_from_df(
+        cls, df
+    ) -> Optional[List[str]]:  # pylint: disable=invalid-name
         if not df.empty:
             return df.to_records(index=False)[0].item()
         return None
