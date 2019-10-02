@@ -56,19 +56,21 @@ class ImageGalleryTable extends React.PureComponent {
       {
         src: element[allColumnsX],
         thumbnail:element[allColumnsX],
-        thumbnailWidth: imagewd,
-        thumbnailHeight: 320,
         isSelected: false,
-        thumbnailCaption: element[allColumnsY]
+        thumbnailCaption: element[allColumnsY],
       }
     )
      
    });
 
+   var style = {'overflow':'auto','height':'100%','width':'100%', 'display': 'inline-table'}
+
    console.log(images)
 
     return (
+        <div style={style} >
          <Gallery images={images} enableImageSelection= {false}/>
+         </div>
     );
   }
 }
