@@ -22,13 +22,12 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import MapGL from 'react-map-gl';
+import { StaticMap } from 'react-map-gl';
 import DeckGL from 'deck.gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { isEqual } from 'lodash';
 import './css/deckgl.css';
 
-const TICK = 2000; // milliseconds
+const TICK = 250; // milliseconds
 
 const propTypes = {
   viewport: PropTypes.object.isRequired,
@@ -36,62 +35,47 @@ const propTypes = {
   setControlValue: PropTypes.func,
   mapStyle: PropTypes.string,
   mapboxApiAccessToken: PropTypes.string.isRequired,
-  onViewportChange: PropTypes.func,
+  children: PropTypes.node,
+  bottomMargin: PropTypes.number,
+  width: PropTypes.number.isRequired,
+  height: PropTypes.number.isRequired,
 };
 const defaultProps = {
   mapStyle: 'light',
-  onViewportChange: () => {},
   setControlValue: () => {},
+  children: null,
+  bottomMargin: 0,
 };
 
 export default class DeckGLContainer extends React.Component {
   constructor(props) {
     super(props);
     this.tick = this.tick.bind(this);
-    this.onViewportChange = this.onViewportChange.bind(this);
+    this.onViewStateChange = this.onViewStateChange.bind(this);
     // This has to be placed after this.tick is bound to this
     this.state = {
-      previousViewport: props.viewport,
       timer: setInterval(this.tick, TICK),
+      viewState: props.viewport,
     };
-  }
-
-  static getDerivedStateFromProps(nextProps, prevState) {
-    if (nextProps.viewport !== prevState.viewport) {
-      return {
-        viewport: { ...nextProps.viewport },
-        previousViewport: prevState.viewport,
-      };
-    }
-
-    return null;
   }
 
   componentWillUnmount() {
     clearInterval(this.state.timer);
   }
 
-  onViewportChange(viewport) {
-    const vp = Object.assign({}, viewport);
-    // delete vp.width;
-    // delete vp.height;
-    const newVp = { ...this.state.previousViewport, ...vp };
-
-    // this.setState(() => ({ viewport: newVp }));
-    this.props.onViewportChange(newVp);
+  onViewStateChange({ viewState }) {
+    this.setState({ viewState, lastUpdate: Date.now() });
   }
 
   tick() {
-    // Limiting updating viewport controls through Redux at most 1*sec
-    // Deep compare is needed as shallow equality doesn't work here, viewport object
-    // changes id at every change
-    if (this.state && !isEqual(this.state.previousViewport, this.props.viewport)) {
+    // Rate limiting updating viewport controls as it triggers lotsa renders
+    const { lastUpdate } = this.state;
+    if (lastUpdate && Date.now() - lastUpdate > TICK) {
       const setCV = this.props.setControlValue;
-      const vp = this.props.viewport;
       if (setCV) {
-        setCV('viewport', vp);
+        setCV('viewport', this.state.viewState);
       }
-      this.setState(() => ({ previousViewport: this.props.viewport }));
+      this.setState({ lastUpdate: null });
     }
   }
 
@@ -105,17 +89,30 @@ export default class DeckGLContainer extends React.Component {
   }
 
   render() {
-    const { viewport } = this.props;
+    const { children, bottomMargin, height, width } = this.props;
+    const { viewState } = this.state;
+    const adjustedHeight = height - bottomMargin;
+
+    const layers = this.layers();
 
     return (
-      <MapGL
-        {...viewport}
-        mapStyle={this.props.mapStyle}
-        onViewportChange={this.onViewportChange}
-        mapboxApiAccessToken={this.props.mapboxApiAccessToken}
-      >
-        <DeckGL {...viewport} layers={this.layers()} initWebGLParameters />
-      </MapGL>
+      <div style={{ position: 'relative', width, height: adjustedHeight }}>
+        <DeckGL
+          width={width}
+          height={adjustedHeight}
+          layers={layers}
+          viewState={viewState}
+          onViewStateChange={this.onViewStateChange}
+          initWebGLParameters
+          controller
+        >
+          <StaticMap
+            mapStyle={this.props.mapStyle}
+            mapboxApiAccessToken={this.props.mapboxApiAccessToken}
+          />
+        </DeckGL>
+        {children}
+      </div>
     );
   }
 }

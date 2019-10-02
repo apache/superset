@@ -32,7 +32,7 @@ function setTooltipContent(o) {
     <div className="deckgl-tooltip">
       <TooltipRow
         label={`${t('Centroid (Longitude and Latitude)')}: `}
-        value={`(${o.object.centroid[0]}, ${o.object.centroid[1]})`}
+        value={`(${o.coordinate[0]}, ${o.coordinate[1]})`}
       />
       <TooltipRow label={`${t('Height')}: `} value={`${o.object.elevationValue}`} />
     </div>

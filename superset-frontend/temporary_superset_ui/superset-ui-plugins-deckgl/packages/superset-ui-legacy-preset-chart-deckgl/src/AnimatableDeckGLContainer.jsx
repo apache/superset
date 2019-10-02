@@ -42,8 +42,9 @@ const propTypes = {
   mapStyle: PropTypes.string,
   mapboxApiAccessToken: PropTypes.string.isRequired,
   setControlValue: PropTypes.func,
-  onViewportChange: PropTypes.func,
   onValuesChange: PropTypes.func,
+  width: PropTypes.number.isRequired,
+  height: PropTypes.number.isRequired,
 };
 
 const defaultProps = {
@@ -51,23 +52,10 @@ const defaultProps = {
   disabled: false,
   mapStyle: 'light',
   setControlValue: () => {},
-  onViewportChange: () => {},
   onValuesChange: () => {},
 };
 
-export default class AnimatableDeckGLContainer extends React.Component {
-  constructor(props) {
-    super(props);
-    this.onViewportChange = this.onViewportChange.bind(this);
-  }
-
-  onViewportChange(viewport) {
-    const originalViewport = this.props.disabled
-      ? { ...viewport }
-      : { ...viewport, height: viewport.height + PLAYSLIDER_HEIGHT };
-    this.props.onViewportChange(originalViewport);
-  }
-
+export default class AnimatableDeckGLContainer extends React.PureComponent {
   render() {
     const {
       start,
@@ -83,24 +71,22 @@ export default class AnimatableDeckGLContainer extends React.Component {
       setControlValue,
       mapStyle,
       mapboxApiAccessToken,
+      height,
+      width,
     } = this.props;
     const layers = getLayers(values);
-
-    // leave space for the play slider
-    const modifiedViewport = {
-      ...viewport,
-      height: disabled ? viewport.height : viewport.height - PLAYSLIDER_HEIGHT,
-    };
 
     return (
       <div>
         <DeckGLContainer
-          viewport={modifiedViewport}
+          viewport={viewport}
           layers={layers}
           setControlValue={setControlValue}
           mapStyle={mapStyle}
           mapboxApiAccessToken={mapboxApiAccessToken}
-          onViewportChange={this.onViewportChange}
+          bottomMargin={disabled ? 0 : PLAYSLIDER_HEIGHT}
+          width={width}
+          height={height}
         />
         {!disabled && (
           <PlaySlider
