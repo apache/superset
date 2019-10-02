@@ -62,6 +62,7 @@ const COMMON_TIME_FRAMES = [
   'Last month',
   'Last quarter',
   'Last year',
+  'Year to Date',
   'No filter',
 ];
 const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
@@ -111,6 +112,16 @@ function getStateFromSeparator(value) {
 }
 
 function getStateFromCommonTimeFrame(value) {
+  if (value === "Year to Date") {
+    return {
+      tab: TABS.DEFAULTS,
+      type: TYPES.DEFAULTS,
+      common: value,
+      since: moment().startOf('day').dayOfYear(1).format(MOMENT_FORMAT),
+      until: moment().startOf('day').format(MOMENT_FORMAT),
+    };
+  }
+
   const units = value.split(' ')[1] + 's';
   return {
     tab: TABS.DEFAULTS,
