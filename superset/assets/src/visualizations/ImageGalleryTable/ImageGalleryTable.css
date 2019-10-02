@@ -16,5 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+.ReactGridGallery_tile-bottom-bar{
+  display: none;
+}
  

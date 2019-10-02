@@ -26,19 +26,62 @@ import './ImageGalleryTable.css';
 const propTypes = {
   height: PropTypes.number,
   width: PropTypes.number,
-  data:PropTypes.arrayOf(PropTypes.object),
-  allColumnsY:PropTypes.string,
-  allColumnsX:PropTypes.string 
+  data: PropTypes.arrayOf(PropTypes.object),
+  allColumnsY: PropTypes.string,
+  allColumnsX: PropTypes.string,
+  allColumns: PropTypes.arrayOf(PropTypes.string),
 };
 const defaultProps = {
   height: undefined,
   width: undefined,
   data: undefined,
-  allColumnsY:[],
-  allColumnsX:[],
+  allColumnsY: undefined,
+  allColumnsX: undefined,
+  allColumns: []
+};
+
+const captionStyle = {
+  backgroundColor: "rgba(0, 0, 0, 0.8)",
+  maxHeight: "240px",
+  overflow: "hidden",
+  position: "absolute",
+  bottom: "0",
+  width: "100%",
+  color: "white",
+  padding: "2px",
+  fontSize: "90%",
+};
+
+const customTagStyle = {
+  wordWrap: "break-word",
+  display: "grid",
+  backgroundColor: "white",
+  height: "auto",
+  fontSize: "75%",
+  fontWeight: "600",
+  lineHeight: "1",
+  padding: ".2em .6em .3em",
+  borderRadius: ".25em",
+  color: "black",
+  verticalAlign: "baseline",
+  margin: "2px"
 };
 
 class ImageGalleryTable extends React.PureComponent {
+
+
+  setCustomTags(i) {
+    return (
+      i.tags.map((t) => {
+        return (<div
+          key={t.value}
+          style={customTagStyle}>
+          {t.title}:{t.value}
+        </div>);
+      })
+    );
+  }
+
   render() {
 
     const {
@@ -46,31 +89,50 @@ class ImageGalleryTable extends React.PureComponent {
       width,
       data,
       allColumnsY,
-      allColumnsX,   
+      allColumnsX,
+      allColumns,
     } = this.props;
-   console.log(data)
-   const imagewd = width/3
-   let images = [];
-   data.forEach(element => {
-    images.push(
-      {
-        src: element[allColumnsX],
-        thumbnail:element[allColumnsX],
-        isSelected: false,
-        thumbnailCaption: element[allColumnsY],
-      }
-    )
-     
-   });
+    const imagewd = width / 3
+    let images = [];
 
-   var style = {'overflow':'auto','height':'100%','width':'100%', 'display': 'inline-table'}
+    const getTags = (data) => {
+      let tags = []
+      allColumns.forEach(col => {
+        tags.push({ 'title': col, 'value': data[col] })
+      });
+      return tags;
+    }
 
-   console.log(images)
+
+    data.forEach(element => {
+      images.push(
+        {
+          src: element[allColumnsX],
+          thumbnail: element[allColumnsX],
+          isSelected: false,
+          tags: getTags(element),
+          thumbnailCaption: element[allColumnsY],
+        }
+      )
+
+    });
+
+    images.map((i) => {
+      i.customOverlay = (
+        <div style={captionStyle}>
+          <div>{i.thumbnailCaption}</div>
+          {i.hasOwnProperty('tags') &&
+            this.setCustomTags(i)}
+        </div>);
+      return i;
+    });
+
+    var style = { 'overflow': 'auto', 'height': '100%', 'width': '100%', 'display': 'inline-table' }
 
     return (
-        <div style={style} >
-         <Gallery images={images} enableImageSelection= {false}/>
-         </div>
+      <div style={style} >
+        <Gallery images={images} enableImageSelection={false} />
+      </div>
     );
   }
 }
