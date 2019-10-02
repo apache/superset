@@ -2165,7 +2165,8 @@ class Superset(BaseSupersetView):
         superset_can_csv = security_manager.can_access("can_csv", "Superset")
         slice_can_edit = security_manager.can_access("can_edit", "SliceModelView")
 
-        standalone_mode = request.args.get("standalone") == "true"
+        charts_only_mode = request.args.get("chartsOnly") == "true"
+        standalone_mode = request.args.get("standalone") == "true" or charts_only_mode
         edit_mode = request.args.get("edit") == "true"
 
         # Hack to log the dashboard_id properly, even when getting a slug
@@ -2189,6 +2190,7 @@ class Superset(BaseSupersetView):
                 "superset_can_explore": superset_can_explore,
                 "superset_can_csv": superset_can_csv,
                 "slice_can_edit": slice_can_edit,
+                "charts_only_mode": charts_only_mode,
             }
         )
         isGammaUser = security_manager.contains_gamma_role([role.name for role in list(get_user_roles())])
@@ -2200,7 +2202,6 @@ class Superset(BaseSupersetView):
             "common": self.common_bootstrap_payload(),
             "editMode": edit_mode,
         }
-
         if request.args.get("json") == "true":
             return json_success(json.dumps(bootstrap_data))
 

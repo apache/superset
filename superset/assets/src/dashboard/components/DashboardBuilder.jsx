@@ -193,7 +193,7 @@ class DashboardBuilder extends React.Component {
             >
               {({ dropIndicatorProps }) => (
                 <div>
-                  <DashboardHeader />
+                  {!this.props.charts_only_mode && <DashboardHeader />}
                   {dropIndicatorProps && <div {...dropIndicatorProps} />}
                   {topLevelTabs && (
                     <WithPopoverMenu

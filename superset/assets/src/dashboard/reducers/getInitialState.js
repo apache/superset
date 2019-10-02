@@ -245,6 +245,7 @@ export default function (bootstrapData) {
       superset_can_explore: dashboard.superset_can_explore,
       superset_can_csv: dashboard.superset_can_csv,
       slice_can_edit: dashboard.slice_can_edit,
+      charts_only_mode: dashboard.charts_only_mode,
       common: {
         flash_messages: common.flash_messages,
         conf: common.conf,

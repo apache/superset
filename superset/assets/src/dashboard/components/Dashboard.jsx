@@ -193,7 +193,9 @@ class Dashboard extends React.PureComponent {
     return (
       <React.Fragment>
         <OmniContainer logEvent={this.props.actions.logEvent} />
-        <DashboardBuilder />
+        <DashboardBuilder
+          charts_only_mode={this.props.dashboardInfo.charts_only_mode}
+        />
       </React.Fragment>
     );
   }
