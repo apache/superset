@@ -39,6 +39,7 @@ import SunburstChartPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
 import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
 import TreemapChartPlugin from '@superset-ui/legacy-plugin-chart-treemap';
 import WordCloudChartPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
+import HelloWorldPlugin from '@superset-ui/plugin-chart-hello-world/src';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 // There is a known issue with bubble chart that the bubbles will not show up.
 // (<path d="NaN" />)
@@ -100,6 +101,7 @@ export default class MainPreset extends Preset {
         new TimeTableChartPlugin().configure({ key: 'time_table' }),
         new TreemapChartPlugin().configure({ key: 'treemap' }),
         new WordCloudChartPlugin().configure({ key: 'word_cloud' }),
+        new HelloWorldPlugin().configure({ key: 'hello_world' }),
         new WorldMapChartPlugin().configure({ key: 'world_map' }),
       ],
     });

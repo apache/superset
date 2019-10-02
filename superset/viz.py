@@ -764,6 +764,11 @@ class WordCloudViz(BaseViz):
         return d
 
 
+class HelloWorld(BaseViz):
+    viz_type = "hello_world"
+    pass
+
+
 class TreemapViz(BaseViz):
 
     """Tree map visualisation for hierarchical data."""
