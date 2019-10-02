@@ -70,9 +70,11 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     id: `scatter-layer-${fd.slice_id}`,
     data: dataWithRadius,
     fp64: true,
+    getFillColor: d => d.color,
+    getRadius: d => d.radius,
     radiusMinPixels: fd.min_radius || null,
     radiusMaxPixels: fd.max_radius || null,
-    outline: false,
+    stroked: false,
     ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
   });
 }
