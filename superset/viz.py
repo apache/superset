@@ -507,11 +507,15 @@ class ImageTableViz(BaseViz):
         d = super().query_obj()
         fd = self.form_data
         d['columns'] = []
+        if fd.get("all_columns"):
+            d["columns"] = fd.get("all_columns")
         if (fd.get('all_columns_y') is not None ):
             d['columns'].append(fd.get('all_columns_y'))
         if (fd.get('all_columns_x') is not None ):
             d['columns'].append(fd.get('all_columns_x'))
         
+        order_by_cols = fd.get("order_by_cols") or []
+        d["orderby"] = [json.loads(t) for t in order_by_cols]       
         return d
 
     def get_data(self, df): 

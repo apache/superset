@@ -24,6 +24,7 @@ export default function transformProps(chartProps) {
     width,
     data: records,
     allColumnsX:formData.allColumnsX ,
-    allColumnsY:formData.allColumnsY
+    allColumnsY:formData.allColumnsY,
+    allColumns:formData.allColumns
   };
 }

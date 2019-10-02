@@ -27,18 +27,26 @@ export default {
       controlSetRows: [
         ['all_columns_x'],
         ['all_columns_y'],
+        ['all_columns'],
         ['row_limit'],
+        ['order_by_cols'],
+        ['adhoc_filters'],
+        
       ],
     },
   ],
   controlOverrides: {
     all_columns_x: {
-        label: 'URL Column',
-        description: t('Columns to fetach images from url'),
+        label: 'URL Column ',
+        description: t('Column to fetach images from url'),
     },
     all_columns_y: {
-        label: 'Caption Column',
-        description: t('Columns to display caption below images'),
+        label: 'Title Column',
+        description: t('Column to display Title of Images'),
     },
+    all_columns:{
+      label: 'Extra Data Columns',
+      description: t('Columns to display extra info about images on hover'),
+    }
   },
 };
