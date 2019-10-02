@@ -15,7 +15,7 @@ databases:
     - expression: count(*)
       metric_name: count
     schema: pcv
-    sql: select  addrcountry, userid  from pcv.customer_attributes
+    sql: select  addrcountry, userid as location from pcv.customer_attributes
     table_name: Top Locations
     template_params: '{}'
   - columns:
@@ -27,7 +27,7 @@ databases:
     - expression: count(*)
       metric_name: count
     schema: pcv
-    sql: select userid, usergender from pcv.customer_attributes
+    sql: select userid as gender, usergender from pcv.customer_attributes
     table_name: Gender Distribution
     template_params: '{}'
   - columns:
@@ -44,9 +44,9 @@ databases:
       metric_name: count
     schema: pcv
     sql: "SELECT pcv.customer_preferences.associationtype,pcv.customer_preferences.associationrank\
-      \  , pcv.customer_preferences.associationvalue, pcv.customer_attributes.userstatus \r\nFROM\
-      \ pcv.customer_preferences \r\nINNER JOIN pcv.customer_attributes  ON pcv.customer_attributes.userid\
-      \ = pcv.customer_preferences.userid and pcv.customer_preferences.associationtype\
+      \  , pcv.customer_preferences.associationvalue as brand, pcv.customer_attributes.userstatus\
+      \ \r\nFROM pcv.customer_preferences \r\nINNER JOIN pcv.customer_attributes  ON\
+      \ pcv.customer_attributes.userid = pcv.customer_preferences.userid and pcv.customer_preferences.associationtype\
       \ = 'Brand'"
     table_name: Top Brands
     template_params: '{}'
@@ -72,8 +72,8 @@ databases:
     - expression: count(*)
       metric_name: count
     schema: pcv
-    sql: "SELECT prednexttranswindow, userid \r\nfrom pcv.customer_attributes ORDER\
-      \ BY prednexttranswindow ASC"
+    sql: "SELECT prednexttranswindow, userid as transaction\r\nfrom pcv.customer_attributes\
+      \ ORDER BY prednexttranswindow ASC"
     table_name: Next Transaction Window
     template_params: '{}'
   - columns:
@@ -97,7 +97,7 @@ databases:
     - expression: count(*)
       metric_name: count
     schema: pcv
-    sql: select predchurnrisk , userid  from pcv.customer_attributes
+    sql: select predchurnrisk , userid as atrisk from pcv.customer_attributes
     table_name: At Risk Customers Breakdown
     template_params: '{}'
   - columns:
@@ -178,8 +178,8 @@ databases:
     - expression: count(*)
       metric_name: count
     schema: pcv
-    sql: "select associationtype , userid , associationvalue , associationrank from\
-      \ pcv.customer_preferences   where associationtype  = 'Product Recommendation'\
+    sql: "select associationtype , userid , associationvalue as product , associationrank\
+      \ from pcv.customer_preferences   where associationtype  = 'Product Recommendation'\
       \ \r\nORDER by associationrank asc limit 10"
     table_name: Top Products
     template_params: '{}'
