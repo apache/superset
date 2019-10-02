@@ -569,9 +569,9 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_all_datasource_names(
-        cls, db, datasource_type: str
+        cls, database, datasource_type: str
     ) -> List[utils.DatasourceName]:
-        datasource_df = db.get_df(
+        datasource_df = database.get_df(
             "SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S "
             "ORDER BY concat(table_schema, '.', table_name)".format(
                 datasource_type.upper()

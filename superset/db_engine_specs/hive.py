@@ -80,9 +80,9 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def get_all_datasource_names(
-        cls, db, datasource_type: str
+        cls, database, datasource_type: str
     ) -> List[utils.DatasourceName]:
-        return BaseEngineSpec.get_all_datasource_names(db, datasource_type)
+        return BaseEngineSpec.get_all_datasource_names(database, datasource_type)
 
     @classmethod
     def fetch_data(cls, cursor, limit: int) -> List[Tuple]:

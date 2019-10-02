@@ -49,27 +49,27 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_all_datasource_names(
-        cls, db, datasource_type: str
+        cls, database, datasource_type: str
     ) -> List[utils.DatasourceName]:
-        schemas = db.get_all_schema_names(
-            cache=db.schema_cache_enabled,
-            cache_timeout=db.schema_cache_timeout,
+        schemas = database.get_all_schema_names(
+            cache=database.schema_cache_enabled,
+            cache_timeout=database.schema_cache_timeout,
             force=True,
         )
         schema = schemas[0]
         if datasource_type == "table":
-            return db.get_all_table_names_in_schema(
+            return database.get_all_table_names_in_schema(
                 schema=schema,
                 force=True,
-                cache=db.table_cache_enabled,
-                cache_timeout=db.table_cache_timeout,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
             )
         elif datasource_type == "view":
-            return db.get_all_view_names_in_schema(
+            return database.get_all_view_names_in_schema(
                 schema=schema,
                 force=True,
-                cache=db.table_cache_enabled,
-                cache_timeout=db.table_cache_timeout,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
             )
         else:
             raise Exception(f"Unsupported datasource_type: {datasource_type}")
