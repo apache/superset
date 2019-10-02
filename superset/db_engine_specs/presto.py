@@ -795,7 +795,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         # Determine what columns are ready to be processed. This is necessary for
         # array columns that contain rows with nested arrays. We first process
         # the outer arrays before processing inner arrays.
-        array_columns_to_process, unprocessed_array_columns = cls._split_ary_cols_by_proc_state(
+        array_columns_to_process, unprocessed_array_columns = cls._split_ary_cols_by_proc_state(  # pylint: disable=line-too-long
             array_columns, array_column_hierarchy, data[0]
         )
 
@@ -1154,9 +1154,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         return query
 
     @classmethod
-    def _latest_partition_from_df(
+    def _latest_partition_from_df(  # pylint: disable=invalid-name
         cls, df
-    ) -> Optional[List[str]]:  # pylint: disable=invalid-name
+    ) -> Optional[List[str]]:
         if not df.empty:
             return df.to_records(index=False)[0].item()
         return None
