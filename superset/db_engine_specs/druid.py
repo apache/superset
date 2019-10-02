@@ -17,7 +17,7 @@
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
-class DruidEngineSpec(BaseEngineSpec):
+class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Engine spec for Druid.io"""
 
     engine = "druid"
