@@ -54,8 +54,6 @@ export type Props = {
 };
 
 export default class SuperChartCore extends React.PureComponent<Props, {}> {
-  static defaultProps = defaultProps;
-
   /**
    * The HTML element that wraps all chart content
    */
@@ -118,6 +116,8 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
       return EMPTY;
     },
   );
+
+  static defaultProps = defaultProps;
 
   private renderChart = (loaded: LoadedModules, props: RenderProps) => {
     const { Chart, transformProps } = loaded;

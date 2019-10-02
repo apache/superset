@@ -40,16 +40,16 @@ class TimeFormatValidator extends React.PureComponent {
         <div className="row" style={{ margin: '40px 20px 0 20px' }}>
           <div className="col-sm">
             <p>
-              This <code>@superset-ui/time-format</code> package enriches{' '}
+              This <code>@superset-ui/time-format</code> package enriches
               <code>d3-time-format</code> to handle invalid formats as well as edge case values. Use
-              the validator below to preview outputs from the specified format string. See{' '}
+              the validator below to preview outputs from the specified format string. See
               <a
                 href="https://github.com/d3/d3-time-format#locale_format"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 D3 Time Format Reference
-              </a>{' '}
+              </a>
               for how to write a D3 time format string.
             </p>
           </div>
