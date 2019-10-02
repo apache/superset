@@ -51,16 +51,16 @@ class NumberFormatValidator extends React.PureComponent {
         <div className="row" style={{ margin: '40px 20px 0 20px' }}>
           <div className="col-sm">
             <p>
-              This <code>@superset-ui/number-format</code> package enriches <code>d3-format</code>{' '}
+              This <code>@superset-ui/number-format</code> package enriches <code>d3-format</code>
               to handle invalid formats as well as edge case values. Use the validator below to
-              preview outputs from the specified format string. See{' '}
+              preview outputs from the specified format string. See
               <a
                 href="https://github.com/d3/d3-format#locale_format"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 D3 Format Reference
-              </a>{' '}
+              </a>
               for how to write a D3 format string.
             </p>
           </div>
