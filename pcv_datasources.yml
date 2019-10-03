@@ -1,10 +1,6 @@
 databases:
 - allow_run_async: true
   database_name: dashboards
-  extra: "{\r\n    \"metadata_params\": {},\r\n    \"engine_params\": {\"pool_recycle\"\
-    : 90, \"pool_timeout\": 900, \"pool_size\": 1, \"max_overflow\": 1},\r\n    \"\
-    metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_csv_upload\": []\r\n\
-    }"
   tables:
   - columns:
     - column_name: addrcountry
@@ -43,11 +39,10 @@ databases:
     - expression: count(*)
       metric_name: count
     schema: pcv
-    sql: "SELECT pcv.customer_preferences.associationtype,pcv.customer_preferences.associationrank\
-      \  , pcv.customer_preferences.associationvalue as brand, pcv.customer_attributes.userstatus\
-      \ \r\nFROM pcv.customer_preferences \r\nINNER JOIN pcv.customer_attributes  ON\
-      \ pcv.customer_attributes.userid = pcv.customer_preferences.userid and pcv.customer_preferences.associationtype\
-      \ = 'Brand'"
+    sql: 'select associationtype , userid , associationvalue as brand , associationrank
+    from pcv.customer_preferences   where associationtype  = ''Brand''
+
+    ORDER by associationrank asc limit 10'
     table_name: Top Brands
     template_params: '{}'
   - columns:

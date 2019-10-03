@@ -99,7 +99,7 @@ TENANT = os.environ['TENANT']
 SECRET_KEY = "\2\1thisis{}secretkey\1\2\e\y\y\h".format(TENANT)  # noqa
 
 REDIS_ENDPOINT = os.environ['REDIS_ENDPOINT']
-SQLALCHEMY_ENGINE_OPTIONS = json.loads(os.environ['SQLALCHEMY_ENGINE_OPTIONS'])
+# SQLALCHEMY_ENGINE_OPTIONS = json.loads(os.environ['SQLALCHEMY_ENGINE_OPTIONS'])
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = os.environ['SQLALCHEMY_DATABASE_URI']
