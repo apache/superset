@@ -119,6 +119,8 @@ class SupersetDataFrame(object):
             }
             self.df = pd.DataFrame(data, columns=column_names)
         else:
+            if getattr(db_engine_spec, "odbc_row_results", None):
+                data = [[value for value in row] for row in data]
             self.df = pd.DataFrame(list(data), columns=column_names).infer_objects()
 
         self._type_dict = {}
