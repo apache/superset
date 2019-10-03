@@ -1186,6 +1186,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 df = df.rolling(**kwargs).sum()
         elif rolling_type == "cumsum":
             df = df.cumsum()
+        elif rolling_type == "cumperf":
+            df = (1.0 + df).cumprod() - 1.0
         if min_periods:
             df = df[min_periods:]
 
