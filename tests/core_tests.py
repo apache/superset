@@ -684,7 +684,9 @@ class CoreTests(SupersetTestCase):
     def test_comments_in_sqlatable_query(self):
         clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
         commented_query = "/* comment 1 */" + clean_query + "-- comment 2"
-        table = SqlaTable(sql=commented_query)
+        table = SqlaTable(
+            table_name="test_comments_in_sqlatable_query_table", sql=commented_query
+        )
         rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
 
