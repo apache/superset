@@ -268,10 +268,10 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # Setup image size default is (300, 200, True)
 # IMG_SIZE = (300, 200, True)
 
-CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24
+CACHE_DEFAULT_TIMEOUT = 60 * 60 * 2
 CACHE_CONFIG = {
     'CACHE_TYPE': 'redis',
-    'CACHE_DEFAULT_TIMEOUT': 300,
+    'CACHE_DEFAULT_TIMEOUT': CACHE_DEFAULT_TIMEOUT,
     'CACHE_KEY_PREFIX': '{}_superset_'.format(TENANT),
     'CACHE_REDIS_HOST': 'redis',
     'CACHE_REDIS_PORT': 6379,
