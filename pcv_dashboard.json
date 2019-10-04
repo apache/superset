@@ -1754,7 +1754,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 38, \"database_name\": \"examples\", \"import_time\": 1569934499}",
                 "schema": "pcv",
-                "sql": "SELECT pcv.customer_preferences.associationtype,pcv.customer_preferences.associationrank  , pcv.customer_preferences.associationvalue as brand, pcv.customer_attributes.userstatus \r\nFROM pcv.customer_preferences \r\nINNER JOIN pcv.customer_attributes  ON pcv.customer_attributes.userid = pcv.customer_preferences.userid and pcv.customer_preferences.associationtype = 'Brand'",
+                "sql": "select associationtype , userid , associationvalue as brand , associationrank from pcv.customer_preferences   where associationtype  = 'Brand'\nORDER by associationrank asc limit 10",
                 "table_name": "Top Brands",
                 "template_params": "{}"
             }

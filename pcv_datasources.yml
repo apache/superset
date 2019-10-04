@@ -1,6 +1,6 @@
 databases:
 - allow_run_async: true
-  database_name: dashboards
+  database_name: examples
   tables:
   - columns:
     - column_name: addrcountry

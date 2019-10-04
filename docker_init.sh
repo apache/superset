@@ -31,12 +31,6 @@ flask fab create-admin \
 # Initialize the database
 superset db upgrade
 
-superset load_examples
-
-# Load PCV datasources and dashboards at build time
-superset import_datasources -p pcv_datasources.yml \
-  && superset import_dashboards -p pcv_dashboard.json
-
 # Create default roles and permissions
 superset init
 
@@ -47,3 +41,7 @@ flask fab create-user \
   --lastname guest \
   --email $GUEST_EMAIL \
   --password $GUEST_PASSWORD
+
+  # Load PCV datasources and dashboards at build time
+  superset import_datasources -p pcv_datasources.yml \
+    && superset import_dashboards -p pcv_dashboard.json
