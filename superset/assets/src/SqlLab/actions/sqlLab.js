@@ -35,6 +35,7 @@ import COMMON_ERR_MESSAGES from '../../utils/errorMessages';
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
 export const UPDATE_QUERY_EDITOR = 'UPDATE_QUERY_EDITOR';
+export const QUERY_EDITOR_SAVED = 'QUERY_EDITOR_SAVED';
 export const CLONE_QUERY_TO_NEW_TAB = 'CLONE_QUERY_TO_NEW_TAB';
 export const REMOVE_QUERY_EDITOR = 'REMOVE_QUERY_EDITOR';
 export const MERGE_TABLE = 'MERGE_TABLE';
@@ -129,7 +130,14 @@ export function saveQuery(query) {
       postPayload: convertQueryToServer(query),
       stringify: false,
     })
-      .then(() => dispatch(addSuccessToast(t('Your query was saved'))))
+      .then((result) => {
+        dispatch({
+          type: QUERY_EDITOR_SAVED,
+          query,
+          result: convertQueryToClient(result.json.item),
+        });
+        dispatch(addSuccessToast(t('Your query was saved')));
+      })
       .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
 }
 
