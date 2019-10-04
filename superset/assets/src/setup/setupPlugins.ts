@@ -68,7 +68,7 @@ import TimeTable from '../explore/controlPanels/TimeTable';
 import Treemap from '../explore/controlPanels/Treemap';
 import WordCloud from '../explore/controlPanels/WordCloud';
 import WorldMap from '../explore/controlPanels/WorldMap';
-import ImageGalleryTable from '../explore/controlPanels/ImageGalleryTable';
+import GridGallery from '../explore/controlPanels/GridGallery';
 
 export default function setupPlugins() {
   new MainPreset().register();
@@ -123,7 +123,7 @@ export default function setupPlugins() {
     .registerValue('deck_polygon', DeckPolygon)
     .registerValue('deck_scatter', DeckScatter)
     .registerValue('deck_screengrid', DeckScreengrid)
-    .registerValue('image_gallery', ImageGalleryTable);
+    .registerValue('grid_gallery', GridGallery);
 
   setupPluginsExtra();
 }

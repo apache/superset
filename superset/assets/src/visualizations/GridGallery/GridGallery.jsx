@@ -21,7 +21,7 @@ import PropTypes, { array } from 'prop-types';
 import Mustache from 'mustache';
 import Gallery from 'react-grid-gallery';
 
-import './ImageGalleryTable.css';
+import './GridGallery.css';
 
 const propTypes = {
   height: PropTypes.number,
@@ -67,7 +67,7 @@ const customTagStyle = {
   margin: "2px"
 };
 
-class ImageGalleryTable extends React.PureComponent {
+class GridGallery extends React.PureComponent {
 
 
   setCustomTags(i) {
@@ -137,7 +137,7 @@ class ImageGalleryTable extends React.PureComponent {
   }
 }
 
-ImageGalleryTable.propTypes = propTypes;
-ImageGalleryTable.defaultProps = defaultProps;
+GridGallery.propTypes = propTypes;
+GridGallery.defaultProps = defaultProps;
 
-export default ImageGalleryTable;
+export default GridGallery;

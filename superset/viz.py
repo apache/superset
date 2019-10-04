@@ -501,8 +501,8 @@ class BaseViz(object):
     def json_data(self):
         return json.dumps(self.data)
 
-class ImageTableViz(BaseViz):
-    viz_type = "image_gallery"
+class GridGalleryViz(BaseViz):
+    viz_type = "grid_gallery"
     def query_obj(self):
         d = super().query_obj()
         fd = self.form_data

@@ -22,17 +22,17 @@ import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
-  name: t('Image-gallery Table'),
+  name: t('Grid Gallery'),
   description: '',
   thumbnail,
 });
 
-export default class ImageGalleryTableChartPlugin extends ChartPlugin {
+export default class GridGalleryChartPlugin extends ChartPlugin {
   constructor() {
     super({
       metadata,
       transformProps,
-      loadChart: () => import('./ImageGalleryTable.jsx'),
+      loadChart: () => import('./GridGallery.jsx'),
     });
   }
 }
