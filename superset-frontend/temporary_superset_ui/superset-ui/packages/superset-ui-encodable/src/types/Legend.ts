@@ -1,5 +1,5 @@
-export type Legend = boolean | null;
+export type Legend = {};
 
 export interface WithLegend {
-  legend?: Legend;
+  legend?: boolean | Legend;
 }

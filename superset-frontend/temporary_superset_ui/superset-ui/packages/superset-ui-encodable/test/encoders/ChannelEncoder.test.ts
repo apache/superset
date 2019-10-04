@@ -405,4 +405,29 @@ describe('ChannelEncoder', () => {
       expect(encoder.isXOrY()).toBeFalsy();
     });
   });
+
+  describe('.hasLegend()', () => {
+    it('returns true if channel has a legend', () => {
+      const encoder = new ChannelEncoder({
+        name: 'bubbleColor',
+        channelType: 'Color',
+        definition: {
+          type: 'nominal',
+          field: 'brand',
+        },
+      });
+      expect(encoder.hasLegend()).toBeTruthy();
+    });
+    it('returns false otherwise', () => {
+      const encoder = new ChannelEncoder({
+        name: 'x',
+        channelType: 'X',
+        definition: {
+          type: 'quantitative',
+          field: 'speed',
+        },
+      });
+      expect(encoder.hasLegend()).toBeFalsy();
+    });
+  });
 });

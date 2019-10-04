@@ -2,12 +2,14 @@ import { ChannelDef, NonValueDef } from '../types/ChannelDef';
 import { ChannelType } from '../types/Channel';
 import { isFieldDef, isValueDef, isTypedFieldDef } from '../typeGuards/ChannelDef';
 import completeAxisConfig, { CompleteAxisConfig } from './completeAxisConfig';
+import completeLegendConfig, { CompleteLegendConfig } from './completeLegendConfig';
 import completeScaleConfig, { CompleteScaleConfig } from './completeScaleConfig';
 import { Value, ValueDef, Type } from '../types/VegaLite';
 import inferFieldType from './inferFieldType';
 
 export interface CompleteValueDef<Output extends Value = Value> extends ValueDef<Output> {
   axis: false;
+  legend: false;
   scale: false;
   title: '';
 }
@@ -18,6 +20,7 @@ export type CompleteFieldDef<Output extends Value = Value> = Omit<
 > & {
   type: Type;
   axis: CompleteAxisConfig;
+  legend: CompleteLegendConfig;
   scale: CompleteScaleConfig<Output>;
   title: string;
 };
@@ -34,6 +37,7 @@ export default function completeChannelDef<Output extends Value>(
     return {
       ...channelDef,
       axis: false,
+      legend: false,
       scale: false,
       title: '',
     };
@@ -51,6 +55,7 @@ export default function completeChannelDef<Output extends Value>(
   return {
     ...copy,
     axis: completeAxisConfig(channelType, copy),
+    legend: completeLegendConfig(channelType, copy),
     scale: completeScaleConfig(channelType, copy),
   };
 }
