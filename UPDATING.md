@@ -36,6 +36,10 @@ using `ENABLE_PROXY_FIX = True`, review the newly-introducted variable,
 backend serialization. To disable set `RESULTS_BACKEND_USE_MSGPACK = False`
 in your configuration.
 
+* [8332](https://github.com/apache/incubator-superset/pull/8332): makes
+`tables.table_name`, `dbs.database_name`, and `clusters.cluster_name` non-nullable.
+Depending on the integrity of the data, manual intervention may be required.
+
 ## 0.34.0
 
 * [7848](https://github.com/apache/incubator-superset/pull/7848): If you are
