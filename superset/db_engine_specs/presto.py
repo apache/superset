@@ -157,7 +157,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
         if schema:
             sql = (
-                "SELECT table_name FROM information_schema.views"
+                "SELECT table_name FROM information_schema.views "
                 "WHERE table_schema=%(schema)s"
             )
             params = {"schema": schema}
