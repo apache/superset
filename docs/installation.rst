@@ -678,7 +678,7 @@ Example config (odbcinst.ini can be left empty) ::
     EXAHOST = host:8563
     EXASCHEMA = main
 
-See `SQLAlchemy for Exasol <https://https://github.com/blue-yonder/sqlalchemy_exasol>`_.
+See `SQLAlchemy for Exasol <https://github.com/blue-yonder/sqlalchemy_exasol>`_.
 
 CORS
 ----
