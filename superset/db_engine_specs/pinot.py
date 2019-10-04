@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from typing import Dict, List, Optional
 
 from sqlalchemy.sql.expression import ColumnClause, ColumnElement
@@ -22,7 +21,7 @@ from sqlalchemy.sql.expression import ColumnClause, ColumnElement
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 
 
-class PinotEngineSpec(BaseEngineSpec):
+class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "pinot"
     allows_subqueries = False
     allows_joins = False
@@ -66,10 +65,10 @@ class PinotEngineSpec(BaseEngineSpec):
         # Pinot does not want the group by expr's to appear in the select clause
         select_sans_groupby = []
         # We want identity and not equality, so doing the filtering manually
-        for s in select_exprs:
+        for sel in select_exprs:
             for gr in groupby_exprs:
-                if s is gr:
+                if sel is gr:
                     break
             else:
-                select_sans_groupby.append(s)
+                select_sans_groupby.append(sel)
         return select_sans_groupby
