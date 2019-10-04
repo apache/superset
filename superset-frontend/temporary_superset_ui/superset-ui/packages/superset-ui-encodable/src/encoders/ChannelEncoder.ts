@@ -126,4 +126,8 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
   isY() {
     return isY(this.channelType);
   }
+
+  hasLegend() {
+    return this.definition.legend !== false;
+  }
 }
