@@ -162,6 +162,7 @@ the world know they are using Superset. Join our growing community!
  1. [Clark.de](http://clark.de/)
  1. [Cloudsmith](https://cloudsmith.io)
  1. [CnOvit](http://www.cnovit.com/)
+ 1. [Deepomatic](https://deepomatic.com/)
  1. [Dial Once](https://www.dial-once.com/en/)
  1. [Digit Game Studios](https://www.digitgaming.com/)
  1. [Douban](https://www.douban.com/)
