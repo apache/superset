@@ -97,7 +97,6 @@ class SliceHeaderControls extends React.PureComponent {
   }
 
   toggleControls() {
-    console.log("this.state.showControls", this.state.showControls)
     this.setState({
       showControls: !this.state.showControls,
     });
