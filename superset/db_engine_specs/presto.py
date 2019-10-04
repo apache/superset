@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from collections import defaultdict, deque, OrderedDict
 from contextlib import closing
 from datetime import datetime
@@ -42,7 +41,7 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.core import Database
+    from superset.models.core import Database  # pylint: disable=unused-import
 
 QueryStatus = utils.QueryStatus
 config = app.config
@@ -80,7 +79,7 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
     :param column: dictionary representing a Presto column
     :return: list of dictionaries representing children columns
     """
-    pattern = re.compile("(?P<type>\w+)\((?P<children>.*)\)")
+    pattern = re.compile(r"(?P<type>\w+)\((?P<children>.*)\)")
     match = pattern.match(column["type"])
     if not match:
         raise Exception(f"Unable to parse column type {column['type']}")
@@ -157,7 +156,10 @@ class PrestoEngineSpec(BaseEngineSpec):
             return []
 
         if schema:
-            sql = "SELECT table_name FROM information_schema.views WHERE table_schema=%(schema)s"
+            sql = (
+                "SELECT table_name FROM information_schema.views"
+                "WHERE table_schema=%(schema)s"
+            )
             params = {"schema": schema}
         else:
             sql = "SELECT table_name FROM information_schema.views"
@@ -220,7 +222,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         )
 
     @classmethod
-    def _parse_structural_column(
+    def _parse_structural_column(  # pylint: disable=too-many-locals,too-many-branches
         cls, parent_column_name: str, parent_data_type: str, result: List[dict]
     ) -> None:
         """
@@ -243,7 +245,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             inner_types = cls._split_data_type(data_type, r"\)")
             for inner_type in inner_types:
                 # We have finished parsing multiple structural data types
-                if not inner_type and len(stack) > 0:
+                if not inner_type and stack:
                     stack.pop()
                 elif cls._has_nested_data_types(inner_type):
                     # split on comma , to get individual data types
@@ -283,11 +285,11 @@ class PrestoEngineSpec(BaseEngineSpec):
                     if not (inner_type.endswith("array") or inner_type.endswith("row")):
                         stack.pop()
                 # We have an array of row objects (i.e. array(row(...)))
-                elif "array" == inner_type or "row" == inner_type:
+                elif inner_type == "array" or inner_type == "row":
                     # Push a dummy object to represent the structural data type
                     stack.append(("", inner_type))
                 # We have an array of a basic data types(i.e. array(varchar)).
-                elif len(stack) > 0:
+                elif stack:
                     # Because it is an array of a basic data type. We have finished
                     # parsing the structural data type and can move on.
                     stack.pop()
@@ -348,7 +350,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                     column_type = presto_type_map[column.Type]()
             except KeyError:
                 logging.info(
-                    "Did not recognize type {} of column {}".format(
+                    "Did not recognize type {} of column {}".format(  # pylint: disable=logging-format-interpolation
                         column.Type, column.Column
                     )
                 )
@@ -439,7 +441,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return filtered_cols, array_cols
 
     @classmethod
-    def select_star(
+    def select_star(  # pylint: disable=too-many-arguments
         cls,
         database,
         table_name: str,
@@ -476,7 +478,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         )
 
     @classmethod
-    def estimate_statement_cost(
+    def estimate_statement_cost(  # pylint: disable=too-many-locals
         cls, statement: str, database, cursor, user_name: str
     ) -> Dict[str, str]:
         """
@@ -490,9 +492,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
 
-        SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR")
-        if SQL_QUERY_MUTATOR:
-            sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
+        sql_query_mutator = config.get("SQL_QUERY_MUTATOR")
+        if sql_query_mutator:
+            sql = sql_query_mutator(sql, user_name, security_manager, database)
 
         sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {sql}"
         cursor.execute(sql)
@@ -569,9 +571,9 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_all_datasource_names(
-        cls, db, datasource_type: str
+        cls, database, datasource_type: str
     ) -> List[utils.DatasourceName]:
-        datasource_df = db.get_df(
+        datasource_df = database.get_df(
             "SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S "
             "ORDER BY concat(table_schema, '.', table_name)".format(
                 datasource_type.upper()
@@ -579,7 +581,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             None,
         )
         datasource_names: List[utils.DatasourceName] = []
-        for unused, row in datasource_df.iterrows():
+        for _unused, row in datasource_df.iterrows():
             datasource_names.append(
                 utils.DatasourceName(
                     schema=row["table_schema"], table=row["table_name"]
@@ -599,7 +601,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                be root nodes
         :param column_hierarchy: dictionary representing the graph
         """
-        if len(columns) == 0:
+        if not columns:
             return
         root = columns.pop(0)
         root_info = {"type": root["type"], "children": []}
@@ -697,7 +699,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                     datum[row_child] = ""
 
     @classmethod
-    def _split_array_columns_by_process_state(
+    def _split_ary_cols_by_proc_state(
         cls, array_columns: List[str], array_column_hierarchy: dict, datum: dict
     ) -> Tuple[List[str], Set[str]]:
         """
@@ -727,7 +729,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return array_columns_to_process, unprocessed_array_columns
 
     @classmethod
-    def _convert_data_list_to_array_data_dict(
+    def _convert_data_lst_to_ary_dict(
         cls, data: List[dict], array_columns_to_process: List[str]
     ) -> dict:
         """
@@ -755,7 +757,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return array_data_dict
 
     @classmethod
-    def _process_array_data(
+    def _process_array_data(  # pylint: disable=too-many-locals,too-many-branches
         cls, data: List[dict], all_columns: List[dict], array_column_hierarchy: dict
     ) -> dict:
         """
@@ -793,16 +795,16 @@ class PrestoEngineSpec(BaseEngineSpec):
         # Determine what columns are ready to be processed. This is necessary for
         # array columns that contain rows with nested arrays. We first process
         # the outer arrays before processing inner arrays.
-        array_columns_to_process, unprocessed_array_columns = cls._split_array_columns_by_process_state(
+        array_columns_to_process, unprocessed_array_columns = cls._split_ary_cols_by_proc_state(  # pylint: disable=line-too-long
             array_columns, array_column_hierarchy, data[0]
         )
 
         # Pull out array data that is ready to be processed into a dictionary.
-        all_array_data = cls._convert_data_list_to_array_data_dict(
+        all_array_data = cls._convert_data_lst_to_ary_dict(
             data, array_columns_to_process
         )
 
-        for original_data_index, expanded_array_data in all_array_data.items():
+        for expanded_array_data in all_array_data.values():
             for array_column in array_columns:
                 if array_column in unprocessed_array_columns:
                     continue
@@ -842,47 +844,6 @@ class PrestoEngineSpec(BaseEngineSpec):
         return all_array_data
 
     @classmethod
-    def _consolidate_array_data_into_data(
-        cls, data: List[dict], array_data: dict
-    ) -> None:
-        """
-        Consolidate data given a list representing rows of data and a dictionary
-        representing expanded array data
-        Example:
-          Original data set = [
-              {'ColumnA': [1, 2], 'ColumnB': [3]},
-              {'ColumnA': [11, 22], 'ColumnB': [33]}
-          ]
-          array_data = {
-              0: [
-                  {'ColumnA': 1, 'ColumnB': 3},
-                  {'ColumnA': 2, 'ColumnB': ''},
-              ],
-              1: [
-                  {'ColumnA': 11, 'ColumnB': 33},
-                  {'ColumnA': 22, 'ColumnB': ''},
-              ],
-          }
-          Final data set = [
-               {'ColumnA': 1, 'ColumnB': 3},
-               {'ColumnA': 2, 'ColumnB': ''},
-               {'ColumnA': 11, 'ColumnB': 33},
-               {'ColumnA': 22, 'ColumnB': ''},
-          ]
-        :param data: list representing rows of data
-        :param array_data: dictionary representing expanded array data
-        :return: list where data and array_data are combined
-        """
-        data_index = 0
-        original_data_index = 0
-        while data_index < len(data):
-            data[data_index].update(array_data[original_data_index][0])
-            array_data[original_data_index].pop(0)
-            data[data_index + 1 : data_index + 1] = array_data[original_data_index]
-            data_index = data_index + len(array_data[original_data_index]) + 1
-            original_data_index = original_data_index + 1
-
-    @classmethod
     def _remove_processed_array_columns(
         cls, unprocessed_array_columns: Set[str], array_column_hierarchy: dict
     ) -> None:
@@ -899,7 +860,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 del array_column_hierarchy[array_column]
 
     @classmethod
-    def expand_data(
+    def expand_data(  # pylint: disable=too-many-locals
         cls, columns: List[dict], data: List[dict]
     ) -> Tuple[List[dict], List[dict], List[dict]]:
         """
@@ -926,7 +887,8 @@ class PrestoEngineSpec(BaseEngineSpec):
         if not is_feature_enabled("PRESTO_EXPAND_DATA"):
             return columns, data, []
 
-        # process each column, unnesting ARRAY types and expanding ROW types into new columns
+        # process each column, unnesting ARRAY types and
+        # expanding ROW types into new columns
         to_process = deque((column, 0) for column in columns)
         all_columns: List[dict] = []
         expanded_columns = []
@@ -937,10 +899,10 @@ class PrestoEngineSpec(BaseEngineSpec):
                 all_columns.append(column)
 
             # When unnesting arrays we need to keep track of how many extra rows
-            # were added, for each original row. This is necessary when we expand multiple
-            # arrays, so that the arrays after the first reuse the rows added by
-            # the first. every time we change a level in the nested arrays we
-            # reinitialize this.
+            # were added, for each original row. This is necessary when we expand
+            # multiple arrays, so that the arrays after the first reuse the rows
+            # added by the first. every time we change a level in the nested arrays
+            # we reinitialize this.
             if level != current_array_level:
                 unnested_rows: Dict[int, int] = defaultdict(int)
                 current_array_level = level
@@ -1085,7 +1047,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
                     logging.info(
-                        "Query {} progress: {} / {} "
+                        "Query {} progress: {} / {} "  # pylint: disable=logging-format-interpolation
                         "splits".format(query_id, completed_splits, total_splits)
                     )
                     if progress > query.progress:
@@ -1108,17 +1070,13 @@ class PrestoEngineSpec(BaseEngineSpec):
                 error_dict.get("errorLocation"),
                 error_dict.get("message"),
             )
-        if (
-            type(e).__name__ == "DatabaseError"
-            and hasattr(e, "args")
-            and len(e.args) > 0
-        ):
+        if type(e).__name__ == "DatabaseError" and hasattr(e, "args") and e.args:
             error_dict = e.args[0]
             return error_dict.get("message")
         return utils.error_msg_from_exception(e)
 
     @classmethod
-    def _partition_query(
+    def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals
         cls, table_name, database, limit=0, order_by=None, filters=None
     ):
         """Returns a partition query
@@ -1170,7 +1128,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return sql
 
     @classmethod
-    def where_latest_partition(
+    def where_latest_partition(  # pylint: disable=too-many-arguments
         cls,
         table_name: str,
         schema: str,
@@ -1182,7 +1140,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             col_names, values = cls.latest_partition(
                 table_name, schema, database, show_first=True
             )
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             # table is not partitioned
             return None
 
@@ -1196,7 +1154,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         return query
 
     @classmethod
-    def _latest_partition_from_df(cls, df) -> Optional[List[str]]:
+    def _latest_partition_from_df(  # pylint: disable=invalid-name
+        cls, df
+    ) -> Optional[List[str]]:
         if not df.empty:
             return df.to_records(index=False)[0].item()
         return None
@@ -1264,7 +1224,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         """
         indexes = database.get_indexes(table_name, schema)
         part_fields = indexes[0]["column_names"]
-        for k in kwargs.keys():
+        for k in kwargs.keys():  # pylint: disable=consider-iterating-dictionary
             if k not in k in part_fields:
                 msg = "Field [{k}] is not part of the portioning key"
                 raise SupersetTemplateException(msg)

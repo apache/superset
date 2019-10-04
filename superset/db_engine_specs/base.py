@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+# pylint: disable=unused-argument
 from contextlib import closing
 from datetime import datetime
 import hashlib
@@ -42,10 +42,10 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.core import Database
+    from superset.models.core import Database  # pylint: disable=unused-import
 
 
-class TimeGrain(NamedTuple):
+class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
     name: str  # TODO: redundant field, remove
     label: str
     function: str
@@ -79,7 +79,9 @@ builtin_time_grains: Dict[Optional[str], str] = {
 }
 
 
-class TimestampExpression(ColumnClause):
+class TimestampExpression(
+    ColumnClause
+):  # pylint: disable=abstract-method,too-many-ancestors,too-few-public-methods
     def __init__(self, expr: str, col: ColumnClause, **kwargs):
         """Sqlalchemy class that can be can be used to render native column elements
         respeting engine-specific quoting rules as part of a string-based expression.
@@ -106,7 +108,7 @@ def compile_timegrain_expression(
     return element.name.replace("{col}", compiler.process(element.col, **kw))
 
 
-class LimitMethod(object):
+class LimitMethod(object):  # pylint: disable=too-few-public-methods
     """Enum the ways that limits can be applied"""
 
     FETCH_MANY = "fetch_many"
@@ -114,7 +116,7 @@ class LimitMethod(object):
     FORCE_LIMIT = "force_limit"
 
 
-class BaseEngineSpec:
+class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """Abstract class for database engine specific configurations"""
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
@@ -128,7 +130,7 @@ class BaseEngineSpec:
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
-    try_remove_schema_from_table_name = True
+    try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
 
     @classmethod
     def get_allow_cost_estimate(cls, version: str = None) -> bool:
@@ -287,7 +289,7 @@ class BaseEngineSpec:
         :param type_code: Type code from cursor description
         :return: String representation of type code
         """
-        if isinstance(type_code, str) and len(type_code):
+        if isinstance(type_code, str) and type_code != "":
             return type_code.upper()
         return None
 
@@ -375,7 +377,7 @@ class BaseEngineSpec:
         return df
 
     @classmethod
-    def df_to_sql(cls, df: pd.DataFrame, **kwargs):
+    def df_to_sql(cls, df: pd.DataFrame, **kwargs):  # pylint: disable=invalid-name
         """ Upload data from a Pandas DataFrame to a database. For
         regular engines this calls the DataFrame.to_sql() method. Can be
         overridden for engines that don't work well with to_sql(), e.g.
@@ -449,35 +451,35 @@ class BaseEngineSpec:
 
     @classmethod
     def get_all_datasource_names(
-        cls, db, datasource_type: str
+        cls, database, datasource_type: str
     ) -> List[utils.DatasourceName]:
         """Returns a list of all tables or views in database.
 
-        :param db: Database instance
+        :param database: Database instance
         :param datasource_type: Datasource_type can be 'table' or 'view'
         :return: List of all datasources in database or schema
         """
         # TODO: Fix circular import caused by importing Database
-        schemas = db.get_all_schema_names(
-            cache=db.schema_cache_enabled,
-            cache_timeout=db.schema_cache_timeout,
+        schemas = database.get_all_schema_names(
+            cache=database.schema_cache_enabled,
+            cache_timeout=database.schema_cache_timeout,
             force=True,
         )
         all_datasources: List[utils.DatasourceName] = []
         for schema in schemas:
             if datasource_type == "table":
-                all_datasources += db.get_all_table_names_in_schema(
+                all_datasources += database.get_all_table_names_in_schema(
                     schema=schema,
                     force=True,
-                    cache=db.table_cache_enabled,
-                    cache_timeout=db.table_cache_timeout,
+                    cache=database.table_cache_enabled,
+                    cache_timeout=database.table_cache_timeout,
                 )
             elif datasource_type == "view":
-                all_datasources += db.get_all_view_names_in_schema(
+                all_datasources += database.get_all_view_names_in_schema(
                     schema=schema,
                     force=True,
-                    cache=db.table_cache_enabled,
-                    cache_timeout=db.table_cache_timeout,
+                    cache=database.table_cache_enabled,
+                    cache_timeout=database.table_cache_timeout,
                 )
             else:
                 raise Exception(f"Unsupported datasource_type: {datasource_type}")
@@ -588,7 +590,7 @@ class BaseEngineSpec:
         return inspector.get_columns(table_name, schema)
 
     @classmethod
-    def where_latest_partition(
+    def where_latest_partition(  # pylint: disable=too-many-arguments
         cls,
         table_name: str,
         schema: Optional[str],
@@ -615,7 +617,7 @@ class BaseEngineSpec:
         return [column(c.get("name")) for c in cols]
 
     @classmethod
-    def select_star(
+    def select_star(  # pylint: disable=too-many-arguments,too-many-locals
         cls,
         database,
         table_name: str,
@@ -727,7 +729,7 @@ class BaseEngineSpec:
             url.username = username
 
     @classmethod
-    def get_configuration_for_impersonation(
+    def get_configuration_for_impersonation(  # pylint: disable=invalid-name
         cls, uri: str, impersonate_user: bool, username: str
     ) -> Dict[str, str]:
         """
@@ -830,8 +832,9 @@ class BaseEngineSpec:
         cls, sqla_column_type: TypeEngine, dialect: Dialect
     ) -> str:
         """
-        Convert sqlalchemy column type to string representation. Can be overridden to remove
-        unnecessary details, especially collation info (see mysql, mssql).
+        Convert sqlalchemy column type to string representation.
+        Can be overridden to remove unnecessary details, especially
+        collation info (see mysql, mssql).
 
         :param sqla_column_type: SqlAlchemy column type
         :param dialect: Sqlalchemy dialect

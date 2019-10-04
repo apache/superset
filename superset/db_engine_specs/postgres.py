@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from datetime import datetime
 from typing import List, Optional, Tuple, TYPE_CHECKING
 
@@ -24,7 +23,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.core import Database
+    from superset.models.core import Database  # pylint: disable=unused-import
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
