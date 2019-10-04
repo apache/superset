@@ -169,6 +169,7 @@ the world know they are using Superset. Join our growing community!
  1. [Endress+Hauser](http://www.endress.com/)
  1. [FBK - ICT center](http://ict.fbk.eu)
  1. [Faasos](http://faasos.com/)
+ 1. [Fanatics](https://www.fanatics.com)
  1. [Fordeal](http://www.fordeal.com)
  1. [GFG - Global Fashion Group](https://global-fashion-group.com)
  1. [GfK Data Lab](http://datalab.gfk.com)
