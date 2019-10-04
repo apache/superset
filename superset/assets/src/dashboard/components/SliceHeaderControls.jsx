@@ -93,9 +93,11 @@ class SliceHeaderControls extends React.PureComponent {
     if (this.props.updatedDttm) {
       this.props.forceRefresh(this.props.slice.slice_id);
     }
+    this.toggleControls();
   }
 
   toggleControls() {
+    console.log("this.state.showControls", this.state.showControls)
     this.setState({
       showControls: !this.state.showControls,
     });
@@ -131,17 +133,16 @@ class SliceHeaderControls extends React.PureComponent {
 
         <Dropdown.Menu>
           {!isGammaUser && (
+            <MenuItem onClick={this.refreshChart} disabled={!updatedDttm} >
+              {t('Force refresh')}
+            </MenuItem>
+          )}
+          {!isGammaUser && (
             <div>
-              <MenuItem onClick={this.refreshChart} disabled={!updatedDttm}>
-                {t('Force refresh')}
-                <div className="refresh-tooltip">{refreshTooltip}</div>
-              </MenuItem>
+              <p className="refresh-tooltip">{refreshTooltip}</p>
               <MenuItem divider />
             </div>
-          )
-          }
-
-
+          )}
           {slice.description && (
             <MenuItem onClick={this.toggleExpandSlice}>
               {t('Toggle chart description')}
