@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib import parse
@@ -77,7 +76,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         datatype = type_code
         if isinstance(type_code, int):
             datatype = cls.type_code_map.get(type_code)
-        if datatype and isinstance(datatype, str) and len(datatype):
+        if datatype and isinstance(datatype, str) and datatype:
             return datatype
         return None
 
@@ -92,7 +91,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         try:
             if isinstance(e.args, tuple) and len(e.args) > 1:
                 message = e.args[1]
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             pass
         return message
 

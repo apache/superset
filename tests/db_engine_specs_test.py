@@ -528,7 +528,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         }
         self.assertEqual(datum, expected_datum)
 
-    def test_split_array_columns_by_process_state(self):
+    def test_presto_split_ary_cols_by_proc_state(self):
         array_cols = ["array_column", "array_column.nested_array"]
         array_col_hierarchy = {
             "array_column": {
@@ -541,7 +541,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             },
         }
         datum = {"array_column": [[[1], [2]]]}
-        actual_array_cols_to_process, actual_unprocessed_array_cols = PrestoEngineSpec._split_array_columns_by_process_state(  # noqa ignore: E50
+        actual_array_cols_to_process, actual_unprocessed_array_cols = PrestoEngineSpec._split_ary_cols_by_proc_state(  # noqa ignore: E50
             array_cols, array_col_hierarchy, datum
         )
         expected_array_cols_to_process = ["array_column"]
@@ -549,13 +549,13 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEqual(actual_array_cols_to_process, expected_array_cols_to_process)
         self.assertEqual(actual_unprocessed_array_cols, expected_unprocessed_array_cols)
 
-    def test_presto_convert_data_list_to_array_data_dict(self):
+    def test_presto_convert_data_lst_to_ary_dict(self):
         data = [
             {"array_column": [1, 2], "int_column": 3},
             {"array_column": [11, 22], "int_column": 33},
         ]
         array_columns_to_process = ["array_column"]
-        actual_array_data_dict = PrestoEngineSpec._convert_data_list_to_array_data_dict(
+        actual_array_data_dict = PrestoEngineSpec._convert_data_lst_to_ary_dict(
             data, array_columns_to_process
         )
         expected_array_data_dict = {
@@ -591,30 +591,6 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             ],
         }
         self.assertEqual(actual_array_data, expected_array_data)
-
-    def test_presto_consolidate_array_data_into_data(self):
-        data = [
-            {"arr_col": [[1], [2]], "int_col": 3},
-            {"arr_col": [[11], [22]], "int_col": 33},
-        ]
-        array_data = {
-            0: [
-                {"arr_col": [[1], [2]], "arr_col.nested_row": 1},
-                {"arr_col": "", "arr_col.nested_row": 2, "int_col": ""},
-            ],
-            1: [
-                {"arr_col": [[11], [22]], "arr_col.nested_row": 11},
-                {"arr_col": "", "arr_col.nested_row": 22, "int_col": ""},
-            ],
-        }
-        PrestoEngineSpec._consolidate_array_data_into_data(data, array_data)
-        expected_data = [
-            {"arr_col": [[1], [2]], "arr_col.nested_row": 1, "int_col": 3},
-            {"arr_col": "", "arr_col.nested_row": 2, "int_col": ""},
-            {"arr_col": [[11], [22]], "arr_col.nested_row": 11, "int_col": 33},
-            {"arr_col": "", "arr_col.nested_row": 22, "int_col": ""},
-        ]
-        self.assertEqual(data, expected_data)
 
     def test_presto_remove_processed_array_columns(self):
         array_col_hierarchy = {
