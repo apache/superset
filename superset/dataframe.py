@@ -121,7 +121,7 @@ class SupersetDataFrame(object):
         else:
             try:
                 self.df = pd.DataFrame(list(data), columns=column_names).infer_objects()
-            # Some odbc dialects return lists of of `pyodbc.Row` which need to be unpacked further
+            # Some odbc dialects return lists of `pyodbc.Row` which need to be unpacked further
             except ValueError:
                 data = [[value for value in row] for row in data]
                 self.df = pd.DataFrame(list(data), columns=column_names).infer_objects()
