@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+from typing import List, Tuple
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
@@ -37,3 +38,11 @@ class ExasolEngineSpec(BaseEngineSpec):
         "P0.25Y": "DATE_TRUNC('quarter', {col})",
         "P1Y": "DATE_TRUNC('year', {col})",
     }
+
+    @classmethod
+    def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
+        data = super(ExasolEngineSpec, cls).fetch_data(cursor, limit)
+        # Lists of `pyodbc.Row` need to be unpacked further
+        if data and type(data[0]).__name__ == "Row":
+            data = [[value for value in row] for row in data]
+        return data
