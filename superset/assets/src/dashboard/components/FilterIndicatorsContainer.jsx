@@ -23,10 +23,8 @@ import { isEmpty } from 'lodash';
 import FilterIndicator from './FilterIndicator';
 import FilterIndicatorGroup from './FilterIndicatorGroup';
 import { FILTER_INDICATORS_DISPLAY_LENGTH } from '../util/constants';
-import {
-  getFilterColorKey,
-  getFilterColorMap,
-} from '../util/dashboardFiltersColorMap';
+import { getDashboardFilterKey } from '../util/getDashboardFilterKey';
+import { getFilterColorMap } from '../util/dashboardFiltersColorMap';
 
 const propTypes = {
   // from props
@@ -92,7 +90,7 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
           !filterImmuneSlices.includes(currentChartId)
         ) {
           Object.keys(columns).forEach(name => {
-            const colorMapKey = getFilterColorKey(chartId, name);
+            const colorMapKey = getDashboardFilterKey(chartId, name);
             const directPathToLabel = directPathToFilter.slice();
             directPathToLabel.push(`LABEL-${name}`);
             const indicator = {

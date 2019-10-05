@@ -35,6 +35,9 @@ export const componentShape = PropTypes.shape({
 
     // Row
     background: PropTypes.oneOf(backgroundStyleOptions.map(opt => opt.value)),
+
+    // Chart
+    chartId: PropTypes.number,
   }),
 });
 
@@ -76,8 +79,14 @@ export const filterIndicatorPropShape = PropTypes.shape({
   isInstantFilter: PropTypes.bool.isRequired,
   label: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
-  scope: PropTypes.string.isRequired,
+  scope: PropTypes.arrayOf(PropTypes.string),
   values: PropTypes.array.isRequired,
+});
+
+export const filterScopeNodePropShape = PropTypes.shape({
+  children: PropTypes.arrayOf(filterScopeNodePropShape),
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
 });
 
 export const dashboardStatePropShape = PropTypes.shape({
