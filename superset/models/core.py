@@ -723,7 +723,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     id = Column(Integer, primary_key=True)
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
-    database_name = Column(String(250), unique=True)
+    database_name = Column(String(250), unique=True, nullable=False)
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get("SECRET_KEY")))
     cache_timeout = Column(Integer)
@@ -763,7 +763,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     export_children = ["tables"]
 
     def __repr__(self):
-        return self.verbose_name if self.verbose_name else self.database_name
+        return self.name
 
     @property
     def name(self):
