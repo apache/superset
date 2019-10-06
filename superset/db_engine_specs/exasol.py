@@ -41,7 +41,7 @@ class ExasolEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
-        data = super(ExasolEngineSpec, cls).fetch_data(cursor, limit)
+        data = super().fetch_data(cursor, limit)
         # Lists of `pyodbc.Row` need to be unpacked further
         if data and type(data[0]).__name__ == "Row":
             data = [[value for value in row] for row in data]
