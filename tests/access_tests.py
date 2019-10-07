@@ -129,7 +129,7 @@ class RequestAccessTests(SupersetTestCase):
             content_type="application/json",
             follow_redirects=True,
         )
-        self.assertNotEquals(405, response.status_code)
+        self.assertNotEqual(405, response.status_code)
 
     def test_override_role_permissions_1_table(self):
         response = self.client.post(
