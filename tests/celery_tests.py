@@ -156,7 +156,7 @@ class CeleryTestCase(SupersetTestCase):
         if backend != "postgresql":
             # TODO This test won't work in Postgres
             results = self.run_sql(db_id, query2.select_sql, "sdf2134")
-            self.assertEquals(results["status"], "success")
+            self.assertEqual(results["status"], "success")
             self.assertGreater(len(results["data"]), 0)
 
     def test_run_sync_query_cta_no_data(self):
