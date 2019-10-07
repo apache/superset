@@ -32,6 +32,7 @@ import sys
 from celery.schedules import crontab
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
+from datetime import timedelta, datetime
 
 from superset.stats_logger import DummyStatsLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
@@ -144,7 +145,7 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 # ------------------------------
 # Uncomment to setup Your App name
 APP_NAME = "{}-Superset".format(TENANT)
-
+PERMANENT_SESSION_LIFETIME = timedelta(minutes=60)
 # Uncomment to setup an App icon
 APP_ICON = "/static/assets/images/superset-logo@2x.png"
 APP_ICON_WIDTH = 60
