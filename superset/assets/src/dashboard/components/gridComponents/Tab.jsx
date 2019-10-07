@@ -60,11 +60,11 @@ const propTypes = {
 const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
-  onDropOnTab() {},
-  onDeleteTab() {},
-  onResizeStart() {},
-  onResize() {},
-  onResizeStop() {},
+  onDropOnTab() { },
+  onDeleteTab() { },
+  onResizeStart() { },
+  onResize() { },
+  onResizeStop() { },
 };
 
 export default class Tab extends React.PureComponent {
@@ -212,6 +212,7 @@ export default class Tab extends React.PureComponent {
       depth,
       editMode,
       filters,
+      isGammaUser
     } = this.props;
     const deleteTabIcon = (
       <div className="icon-button">
@@ -237,11 +238,11 @@ export default class Tab extends React.PureComponent {
                 parentComponent.children.length <= 1
                   ? []
                   : [
-                      <DeleteComponentModal
-                        triggerNode={deleteTabIcon}
-                        onDelete={this.handleDeleteComponent}
-                      />,
-                    ]
+                    <DeleteComponentModal
+                      triggerNode={deleteTabIcon}
+                      onDelete={this.handleDeleteComponent}
+                    />,
+                  ]
               }
               editMode={editMode}
             >
@@ -251,7 +252,7 @@ export default class Tab extends React.PureComponent {
                 onSaveTitle={this.handleChangeText}
                 showTooltip={false}
               />
-              {!editMode && (
+              {(!editMode && !isGammaUser) && (
                 <AnchorLink
                   anchorLinkId={component.id}
                   filters={filters}

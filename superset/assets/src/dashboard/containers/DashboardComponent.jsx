@@ -65,6 +65,7 @@ function mapStateToProps(
     component,
     parentComponent: dashboardLayout[parentId],
     editMode: dashboardState.editMode,
+    isGammaUser: dashboardState.isGammaUser,
     filters: getActiveFilters(),
     directPathToChild: dashboardState.directPathToChild,
     directPathLastUpdated: dashboardState.directPathLastUpdated,

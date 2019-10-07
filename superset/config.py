@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=C,R,W
 """The main config file for Superset
-
 All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.

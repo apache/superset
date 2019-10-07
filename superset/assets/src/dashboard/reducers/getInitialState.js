@@ -275,6 +275,7 @@ export default function (bootstrapData) {
           : BUILDER_PANE_TYPE.NONE,
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
+      isGammaUser: bootstrapData.isGammaUser,
     },
     dashboardLayout,
     messageToasts: [],
