@@ -4,6 +4,7 @@ from superset.security import SupersetSecurityManager
 from flask_appbuilder.security.views import expose
 from flask_appbuilder.security.manager import BaseSecurityManager
 from flask_login import login_user, logout_user
+from datetime import timedelta
 from ais_service_discovery import call
 from json import loads
 from os import environ
