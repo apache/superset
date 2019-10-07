@@ -93,7 +93,6 @@ class SliceHeaderControls extends React.PureComponent {
     if (this.props.updatedDttm) {
       this.props.forceRefresh(this.props.slice.slice_id);
     }
-    this.toggleControls();
   }
 
   toggleControls() {
