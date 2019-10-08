@@ -109,6 +109,7 @@ The following RDBMS are currently suppored:
 - `Apache Spark SQL <https://spark.apache.org/sql/>`_
 - `BigQuery <https://cloud.google.com/bigquery/>`_
 - `ClickHouse <https://clickhouse.yandex/>`_
+- `Exasol <https://www.exasol.com/>`_
 - `Google Sheets <https://www.google.com/sheets/about/>`_
 - `Greenplum <https://greenplum.org/>`_
 - `IBM Db2 <https://www.ibm.com/analytics/db2/>`_

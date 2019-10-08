@@ -377,6 +377,8 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
+| Exasol           | ``pip install sqlalchemy-exasol``     | ``exa+pyodbc://``                               |
++------------------+---------------------------------------+-------------------------------------------------+
 | Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://``                                  |
 +------------------+---------------------------------------+-------------------------------------------------+
 | IBM Db2          | ``pip install ibm_db_sa``             | ``db2+ibm_db://``                               |
@@ -658,6 +660,25 @@ it in the ``extra`` parameter::
         "version": "0.123"
     }
 
+
+Exasol
+---------
+
+The connection string for Exasol looks like this ::
+
+    exa+pyodbc://{user}:{password}@{host}
+
+*Note*: It's required to have Exasol ODBC drivers installed for the sqlalchemy dialect to work properly. Exasol ODBC Drivers available are here: https://www.exasol.com/portal/display/DOWNLOAD/Exasol+Download+Section
+
+Example config (odbcinst.ini can be left empty) ::
+
+    $ cat $/.../path/to/odbc.ini
+    [EXAODBC]
+    DRIVER = /.../path/to/driver/EXASOL_driver.so
+    EXAHOST = host:8563
+    EXASCHEMA = main
+
+See `SQLAlchemy for Exasol <https://github.com/blue-yonder/sqlalchemy_exasol>`_.
 
 CORS
 ----
