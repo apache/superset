@@ -32,7 +32,7 @@ class DatabaseModelTestCase(SupersetTestCase):
     )
     def test_database_schema_presto(self):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
-        model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
+        model = Database(sqlalchemy_uri=sqlalchemy_uri)
 
         db = make_url(model.get_sqla_engine().url).database
         self.assertEquals("hive/default", db)
@@ -41,7 +41,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertEquals("hive/core_db", db)
 
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive"
-        model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
+        model = Database(sqlalchemy_uri=sqlalchemy_uri)
 
         db = make_url(model.get_sqla_engine().url).database
         self.assertEquals("hive", db)
@@ -51,7 +51,7 @@ class DatabaseModelTestCase(SupersetTestCase):
 
     def test_database_schema_postgres(self):
         sqlalchemy_uri = "postgresql+psycopg2://postgres.airbnb.io:5439/prod"
-        model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
+        model = Database(sqlalchemy_uri=sqlalchemy_uri)
 
         db = make_url(model.get_sqla_engine().url).database
         self.assertEquals("prod", db)
@@ -67,7 +67,7 @@ class DatabaseModelTestCase(SupersetTestCase):
     )
     def test_database_schema_hive(self):
         sqlalchemy_uri = "hive://hive@hive.airbnb.io:10000/default?auth=NOSASL"
-        model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
+        model = Database(sqlalchemy_uri=sqlalchemy_uri)
         db = make_url(model.get_sqla_engine().url).database
         self.assertEquals("default", db)
 
@@ -79,7 +79,7 @@ class DatabaseModelTestCase(SupersetTestCase):
     )
     def test_database_schema_mysql(self):
         sqlalchemy_uri = "mysql://root@localhost/superset"
-        model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
+        model = Database(sqlalchemy_uri=sqlalchemy_uri)
 
         db = make_url(model.get_sqla_engine().url).database
         self.assertEquals("superset", db)
@@ -93,7 +93,7 @@ class DatabaseModelTestCase(SupersetTestCase):
     def test_database_impersonate_user(self):
         uri = "mysql://root@localhost"
         example_user = "giuseppe"
-        model = Database(database_name="test_database", sqlalchemy_uri=uri)
+        model = Database(sqlalchemy_uri=uri)
 
         model.impersonate_user = True
         user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
