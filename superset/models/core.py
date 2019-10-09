@@ -748,6 +748,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     """
         ),
     )
+    encrypted_extra = Column(EncryptedType(Text), nullable=True)
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
     export_fields = [
