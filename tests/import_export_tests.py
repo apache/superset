@@ -392,10 +392,13 @@ class ImportExportTests(SupersetTestCase):
             {
                 "remote_id": 10003,
                 "filter_immune_slices": ["{}".format(e_slc.id)],
+                "timed_refresh_immune_slices": ["{}".format(e_slc.id)],
+                "filter_immune_slice_fields": {"{}".format(e_slc.id): []},
                 "expanded_slices": {
                     "{}".format(e_slc.id): True,
                     "{}".format(b_slc.id): False,
                 },
+                "default_filters": json.dumps({"{}".format(e_slc.id): {}}),
             }
         )
 
@@ -415,10 +418,13 @@ class ImportExportTests(SupersetTestCase):
             "remote_id": 10003,
             "import_time": 1991,
             "filter_immune_slices": ["{}".format(i_e_slc.id)],
+            "timed_refresh_immune_slices": ["{}".format(i_e_slc.id)],
+            "filter_immune_slice_fields": {"{}".format(i_e_slc.id): []},
             "expanded_slices": {
                 "{}".format(i_e_slc.id): True,
                 "{}".format(i_b_slc.id): False,
             },
+            "default_filters": json.dumps({"{}".format(i_e_slc.id): {}}),
         }
         self.assertEquals(
             expected_json_metadata, json.loads(imported_dash.json_metadata)
