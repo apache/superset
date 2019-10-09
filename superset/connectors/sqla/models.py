@@ -312,7 +312,7 @@ class SqlaTable(Model, BaseDatasource):
     # correct filters are applied in order to identify uniqueness.
     __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
 
-    table_name = Column(String(250), nullable=False)
+    table_name = Column(String(250))
     main_dttm_col = Column(String(250))
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     fetch_values_predicate = Column(String(1000))
