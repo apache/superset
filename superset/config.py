@@ -435,8 +435,14 @@ CELERY_CONFIG = CeleryConfig
 # CELERY_CONFIG = None
 
 # Additional static HTTP headers to be served by your Superset server. Note
-# Flask-Talisman aplies the relevant security HTTP headers.
-HTTP_HEADERS = {}
+# Flask-Talisman applies the relevant security HTTP headers.
+#
+# DEFAULT_HTTP_HEADERS: sets default values for HTTP headers. These may be overridden
+# within the app
+# OVERRIDE_HTTP_HEADERS: sets override values for HTTP headers. These values will
+# override anything set within the app
+DEFAULT_HTTP_HEADERS = {}
+OVERRIDE_HTTP_HEADERS = {}
 
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
@@ -664,6 +670,9 @@ TALISMAN_CONFIG = {
 SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
 SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'Lax', 'Strict']
+
+# Flask configuration variables
+SEND_FILE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 365  # Cache static resources
 
 # URI to database storing the example data, points to
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
