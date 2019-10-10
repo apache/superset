@@ -755,6 +755,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
+        cursor.connection.autocommit = True
         cursor.execute(query)
 
     @classmethod
