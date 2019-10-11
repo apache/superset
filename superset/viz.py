@@ -357,6 +357,7 @@ class BaseViz(object):
         different time shifts wil differ only in the `from_dttm` and `to_dttm`
         values which are stripped.
         """
+
         cache_dict = copy.copy(query_obj)
         cache_dict.update(extra)
 
@@ -601,6 +602,146 @@ class TableViz(BaseViz):
         return json.dumps(
             obj, default=utils.json_iso_dttm_ser, sort_keys=sort_keys, ignore_nan=True
         )
+
+
+class FunnelViz(BaseViz):
+    """A Bar graph or 'STEP' Visualization that makes story telling easy through multipass queries"""
+
+    viz_type = "funnel"
+    verbose_name = _("Funnel")
+    is_timeseries = False
+    credits = 'a <a href="https://github.com/AmericanExpress">Superset</a> original'
+    cache_type = "get_data"
+    filter_row_limit = 1000
+    is_multipass = True
+
+    def _query_obj(self):
+        return super().query_obj()
+
+    def get_samples(self):
+        query_obj_array = self.query_obj()
+        step_count = len(self.form_data["funnel_steps"]["queries"])
+        for index in range(0, step_count):
+            query_obj = query_obj_array[str(index)]
+            query_obj.update(
+                {
+                    "groupby": [],
+                    "metrics": [],
+                    "row_limit": 1000,
+                    "columns": [o.column_name for o in self.datasource.columns],
+                }
+            )
+
+            df = self.get_df(query_obj)
+
+        return df.to_dict(orient="records")
+
+    def query_obj(self):
+        if not self.form_data.get("funnel_steps"):
+            raise Exception(_("Add at least one Step"))
+
+        sel_values = self.form_data["funnel_steps"]["selectedValues"]
+        step_count = len(sel_values)
+
+        filter_store = []
+        self.form_data["granularity"] = "all"
+        if self.form_data.get("filters"):
+            filter_store = self.form_data["filters"]
+
+        result_query = {}
+        for i in range(step_count):
+            index = str(i)
+            mod_form_data = self.form_data.copy()
+            mod_form_data["metrics"] = []
+            mod_form_data["adhoc_filters"] = []
+            mod_form_data["filters"] = []
+            mod_form_data["metrics"].append(sel_values[index]["metric"])
+            adhoc_filters = sel_values[index].get("adhoc_filters")
+            if adhoc_filters:
+                mod_form_data["adhoc_filters"] = adhoc_filters
+
+            qry = self.__class__(
+                form_data=mod_form_data, datasource=self.datasource
+            )._query_obj()
+
+            # Apply 'Absolute Filter' to Query
+            if filter_store:
+                for ifilter in filter_store:
+                    qry["filter"].append(ifilter)
+
+            result_query[str(i)] = qry
+        return result_query
+
+    def cache_key(self, query_obj, **extra):
+        if "0" in query_obj:
+            query_obj = query_obj["0"]
+
+        cache_dict = copy.copy(query_obj)
+        cache_dict.update(extra)
+
+        for k in ["from_dttm", "to_dttm"]:
+            del cache_dict[k]
+
+        cache_dict["time_range"] = self.form_data.get("time_range")
+        cache_dict["datasource"] = self.datasource.uid
+        cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
+        json_data = self.json_dumps(cache_dict, sort_keys=True)
+        return hashlib.md5(json_data.encode("utf-8")).hexdigest()
+
+    def get_df_payload(self, query_obj=None, **kwargs):
+        """Special handeling of Cache due to multipass nature of query """
+        if not query_obj:
+            query_obj = self.query_obj()
+        cache_key = self.cache_key(query_obj, **kwargs) if query_obj else None
+        logging.info("Cache key: {}".format(cache_key))
+        stacktrace = None
+        df = None
+        if cache_key and cache and not self.force:
+            cache_value = cache.get(cache_key)
+            if cache_value:
+                stats_logger.incr("loaded_from_cache")
+                try:
+                    cache_value = pkl.loads(cache_value)
+                    df = cache_value["df"]
+                    self.query = cache_value["query"]
+                    self._any_cached_dttm = cache_value["dttm"]
+                    self._any_cache_key = cache_key
+                    self.status = utils.QueryStatus.SUCCESS
+                except Exception as e:
+                    logging.exception(e)
+                    logging.error(
+                        "Error reading cache: " + utils.error_msg_from_exception(e)
+                    )
+                logging.info("Serving from cache")
+
+        if query_obj:
+            return {
+                "cache_key": self._any_cache_key,
+                "cached_dttm": self._any_cached_dttm,
+                "cache_timeout": self.cache_timeout,
+                "df": df,
+                "error": self.error_message,
+                "form_data": self.form_data,
+                "is_cached": self._any_cache_key is not None,
+                "query": self.query,
+                "status": self.status,
+                "stacktrace": stacktrace,
+                "rowcount": len(df.index) if df is not None else 0,
+            }
+
+    def get_data(self, df):
+        agg_queries = {}
+        all_queries = self.query_obj()
+        for query in all_queries:
+            df = self.get_df(query_obj=all_queries[query])
+            obj = df.to_dict(orient="records")[0]
+            key = list(obj.keys())[0]
+            if key not in agg_queries:
+                agg_queries.update(obj)
+            else:
+                new_key = key + "_" + query
+                agg_queries.update({new_key: obj[key]})
+        return agg_queries
 
 
 class TimeTableViz(BaseViz):

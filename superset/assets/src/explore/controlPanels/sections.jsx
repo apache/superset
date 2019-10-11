@@ -56,6 +56,12 @@ export const sqlaTimeSeries = {
   ],
 };
 
+export const simpleFilter = {
+  label: t('Filters'),
+  expanded: true,
+  controlSetRows: [['filters']],
+};
+
 export const filters = {
   label: t('Filters'),
   expanded: true,
@@ -69,6 +75,17 @@ export const annotations = {
   expanded: true,
   controlSetRows: [
     ['annotation_layers'],
+  ],
+};
+
+export const steps = {
+  label: t('Steps'),
+  description: t(
+    'Add filters and metrics for each step.' +
+    'The steps combine to tell a story.'),
+  expanded: true,
+  controlSetRows: [
+    ['funnel_steps'],
   ],
 };
 

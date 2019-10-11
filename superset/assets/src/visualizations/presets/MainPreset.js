@@ -53,6 +53,7 @@ import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
+import FunnelChartPlugin from '../Funnel/FunnelChartPlugin';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -75,6 +76,7 @@ export default class MainPreset extends Preset {
         new CountryMapChartPlugin().configure({ key: 'country_map' }),
         new DistBarChartPlugin().configure({ key: 'dist_bar' }),
         new DualLineChartPlugin().configure({ key: 'dual_line' }),
+        new FunnelChartPlugin().configure({ key: 'funnel' }),
         new EventFlowChartPlugin().configure({ key: 'event_flow' }),
         new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
         new ForceDirectedChartPlugin().configure({ key: 'directed_force' }),

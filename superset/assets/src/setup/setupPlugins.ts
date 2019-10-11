@@ -45,6 +45,7 @@ import DistBar from '../explore/controlPanels/DistBar';
 import DualLine from '../explore/controlPanels/DualLine';
 import EventFlow from '../explore/controlPanels/EventFlow';
 import FilterBox from '../explore/controlPanels/FilterBox';
+import Funnel from '../explore/controlPanels/Funnel';
 import Heatmap from '../explore/controlPanels/Heatmap';
 import Histogram from '../explore/controlPanels/Histogram';
 import Horizon from '../explore/controlPanels/Horizon';
@@ -90,6 +91,7 @@ export default function setupPlugins() {
     .registerValue('dual_line', DualLine)
     .registerValue('event_flow', EventFlow)
     .registerValue('filter_box', FilterBox)
+    .registerValue('funnel', Funnel)
     .registerValue('heatmap', Heatmap)
     .registerValue('histogram', Histogram)
     .registerValue('horizon', Horizon)

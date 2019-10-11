@@ -41,6 +41,8 @@ import AdhocFilterControl from './AdhocFilterControl';
 import FilterPanel from './FilterPanel';
 import FilterBoxItemControl from './FilterBoxItemControl';
 import withVerification from './withVerification';
+import StepsControl from './StepsControl';
+import FilterControl from './FilterControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -70,5 +72,7 @@ const controlMap = {
   MetricsControlVerifiedOptions: withVerification(MetricsControl, 'metric_name', 'savedMetrics'),
   SelectControlVerifiedOptions: withVerification(SelectControl, 'column_name', 'options'),
   AdhocFilterControlVerifiedOptions: withVerification(AdhocFilterControl, 'column_name', 'columns'),
+  StepsControl,
+  FilterControl,
 };
 export default controlMap;
