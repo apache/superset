@@ -94,6 +94,7 @@ class DatabaseMixin:
         "impersonate_user",
         "allow_multi_schema_metadata_fetch",
         "extra",
+        "encrypted_extra",
     ]
     search_exclude_columns = (
         "password",
@@ -170,6 +171,13 @@ class DatabaseMixin:
             "This should be used with Presto DBs so that the syntax is correct",
             True,
         ),
+        "encrypted_extra": utils.markdown(
+            "JSON string containing additional connection configuration.<br/>"
+            "This is used to provide connection information for systems like "
+            "Hive, Presto, and BigQuery, which do not conform to the username:password "
+            "syntax normally used by SQLAlchemy.",
+            True,
+        ),
         "impersonate_user": _(
             "If Presto, all the queries in SQL Lab are going to be executed as the "
             "currently logged on user who must have permission to run them.<br/>"
@@ -202,7 +210,8 @@ class DatabaseMixin:
         "changed_on_": _("Last Changed"),
         "sqlalchemy_uri": _("SQLAlchemy URI"),
         "cache_timeout": _("Chart Cache Timeout"),
-        "extra": _("Extra"),
+        "extra":_("Extra"),
+        "encrypted_extra": ("Secure Extra"),
         "allow_run_async": _("Asynchronous Query Execution"),
         "impersonate_user": _("Impersonate the logged on user"),
         "allow_csv_upload": _("Allow Csv Upload"),
@@ -253,3 +262,11 @@ class DatabaseMixin:
                     "is not configured correctly. The key "
                     "{} is invalid.".format(key)
                 )
+
+    def check_encrypted_extra(self, db):
+        # this will check whether json.loads(secure_extra) can succeed
+        try:
+            extra = db.get_encrypted_extra()
+        except Exception as e:
+            raise Exception("Secure Extra field cannot be decoded by JSON. {}".format(str(e)))
+
