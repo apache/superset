@@ -59,19 +59,25 @@ Now let's craft a source release
 ```bash
     # Assuming these commands are executed from the root of the repo
     export REPO_DIR=$(pwd)
-    # Set VERSION to the release being prepared (rc1 for first vote on version)
-    export VERSION=0.34.1rc1
-    export RELEASE=apache-superset-incubating-${VERSION}
-    export RELEASE_TARBALL=${RELEASE}-source.tar.gz
+    # Set VERSION to the release being prepared
+    export VERSION=0.34.1
+    # Set RC to the release candindate number. 1 indicates rc1 i.e.
+    # first vote on version (0.34.1rc1 in example below)
+    export RC=1
+
+    # create fully qualified ids
+    export VERSION_RC=${VERSION}rc${RC}
+    export RELEASE=apache-superset-incubating-${VERSION_RC}
+    export RELEASE_TARBALL=${RELEASE_RC}-source.tar.gz
 
     # Let's create a git tag
-    git tag -f ${VERSION}
+    git tag -f ${VERSION_RC}
 
     # Create the target folder
-    mkdir -p ~/svn/superset_dev/${VERSION}/
+    mkdir -p ~/svn/superset_dev/${VERSION_RC}/
     git archive \
-        --format=tar.gz ${VERSION} \
-        --prefix="${RELEASE}/" \
+        --format=tar.gz ${VERSION_RC} \
+        --prefix="${RELEASE_RC}/" \
         -o ~/svn/superset_dev/${VERSION}/${RELEASE_TARBALL}
 
     cd ~/svn/superset_dev/${VERSION}/
@@ -85,7 +91,7 @@ Now let's ship this RC into svn's dev folder
 ```bash
     cd ~/svn/superset_dev/
     svn add ${VERSION}
-    svn commit -m "${VERSION}"
+    svn commit -m "Release ${VERSION}"
 ```
 
 Now you're ready to start the VOTE thread.
