@@ -17,8 +17,7 @@
 # first bump up package.json manually, commit and tag
 rm superset/assets/dist/*
 cd superset/assets/
-npm run build
+npm ci && npm run build
 cd ../..
 python setup.py sdist
-echo "RUN: twine upload dist/superset-{VERSION}.tar.gz"
-
+echo "RUN: twine upload dist/apache-superset-{VERSION}.tar.gz"

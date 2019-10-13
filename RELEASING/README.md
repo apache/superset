@@ -53,23 +53,60 @@ need to be done at every release.
     svn commit -m "Add PGP keys of new Superset committer"
 ```
 
-## Crafting tarball and signatures
+## Setting up the release environment (do every time)
+
+As the vote process takes a minimum of 72h (community vote) + 72h (IPMC) vote,
+often stretching over several weeks calendar time if votes don't pass, chances are
+the same terminal session won't be used for crafting the release candidate and the
+final release. Therefore, it's a good idea to do the following every time you
+work on a new phase of the release process to make sure you aren't releasing
+the wrong files/using wrong names:
+
+```bash
+    # Set VERSION to the release being prepared, e.g. 0.34.1.
+    export VERSION=XX.YY.ZZ
+    # Set RC to the release candindate number. Replacing QQ below with 1
+    # indicates rc1 i.e. first vote on version above (0.34.1rc1)
+    export RC=QQ
+```
+
+Then you can generate other derived environment variables that are used
+throughout the release process:
+
+```bash
+    export VERSION_RC=${VERSION}rc${RC}
+    export RELEASE=apache-superset-incubating-${VERSION}
+    export RELEASE_RC=apache-superset-incubating-${VERSION_RC}
+    export RELEASE_TARBALL=${RELEASE}-source.tar.gz
+    export RELEASE_RC_TARBALL=${RELEASE_RC}-source.tar.gz
+```
+
+## Preparing the release candidate
+
+The first step of preparing an Apache Release is packaging a release candidate
+to be voted on. Start by going to the root of the repo and making sure the
+prerequisites are in order:
+
+```bash
+    # Go to the root directory of the repo, e.g. `~/src/incubator-superset`
+    cd ~/src/incubator-superset/
+    export REPO_DIR=$(pwd)
+    # make sure you're on the correct branch (e.g. 0.34)
+    git branch
+```
+
+Make sure the version number under `superset/assets/package.json` corresponds
+to `VERSION` above (`0.34.1` in example above), and has been committed to the
+branch.
+
+```bash
+    grep $(VERSION) superset/assets/package.json
+```
+
+### Crafting tarball and signatures
 
 Now let's craft a source release
 ```bash
-    # Assuming these commands are executed from the root of the repo
-    export REPO_DIR=$(pwd)
-    # Set VERSION to the release being prepared
-    export VERSION=0.34.1
-    # Set RC to the release candindate number. 1 indicates rc1 i.e.
-    # first vote on version (0.34.1rc1 in example below)
-    export RC=1
-
-    # create fully qualified ids
-    export VERSION_RC=${VERSION}rc${RC}
-    export RELEASE=apache-superset-incubating-${VERSION_RC}
-    export RELEASE_TARBALL=${RELEASE_RC}-source.tar.gz
-
     # Let's create a git tag
     git tag -f ${VERSION_RC}
 
@@ -84,28 +121,28 @@ Now let's craft a source release
     ${REPO_DIR}/scripts/sign.sh ${RELEASE}-source.tar.gz
 ```
 
-## Shipping to SVN
+### Shipping to SVN
 
 Now let's ship this RC into svn's dev folder
 
 ```bash
     cd ~/svn/superset_dev/
-    svn add ${VERSION}
+    svn add ${VERSION_RC}
     svn commit -m "Release ${VERSION}"
 ```
 
 Now you're ready to start the VOTE thread.
 
-## Validating a release
+### Validating a release
 
 https://www.apache.org/info/verification.html
 
 ## Publishing a successful release
 
-Upon a successful vote, you'll have to copy the folder into the non-"dev/"
-folder.
+Upon a successful vote (community AND IPMC), you'll have to copy the folder
+into the non-"dev/" folder.
 ```bash
-    cp -r ~/svn/superset_dev/${VERSION}/ ~/svn/superset/${VERSION}/
+    cp -r ~/svn/superset_dev/${VERSION_RC}/ ~/svn/superset/${VERSION}/
     cd ~/svn/superset/
     svn add ${VERSION}
     svn commit -m "${VERSION}"
