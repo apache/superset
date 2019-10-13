@@ -737,7 +737,7 @@ class SqlaTable(Model, BaseDatasource):
         tbl = self.get_from_clause(template_processor)
 
         if not columns:
-            qry = qry.group_by(*groupby_exprs_with_timestamp.values())
+            qry = qry.group_by(*groupby_exprs_with_timestamp.keys())
 
         where_clause_and = []
         having_clause_and: List = []
