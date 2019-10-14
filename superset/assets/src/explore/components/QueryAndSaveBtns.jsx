@@ -59,7 +59,7 @@ export default function QueryAndSaveBtns(
       onClick={onStop}
       bsStyle="warning"
     >
-      <i className="fa fa-stop-circle-o" /> {t('Stop')}
+      <i className="fa fa-stop-circle-o" /> {' ' + t('Stop')}
     </Button>
   ) : (
     <Button
@@ -68,7 +68,7 @@ export default function QueryAndSaveBtns(
       bsStyle={qryButtonStyle}
       disabled={!!errorMessage}
     >
-      <i className="fa fa-bolt" /> {t('Run Query')}
+      <i className="fa fa-bolt" /> {' ' + t('Run Query')}
     </Button>
   );
 
@@ -83,7 +83,7 @@ export default function QueryAndSaveBtns(
           disabled={saveButtonDisabled}
           onClick={onSave}
         >
-          <i className="fa fa-plus-circle" /> {t('Save')}
+          <i className="fa fa-plus-circle" /> {' ' + t('Save')}
         </Button>
       </ButtonGroup>
       {errorMessage &&
