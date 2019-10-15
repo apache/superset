@@ -206,7 +206,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
 
     # tables that are open in the schema browser and their data previews
     table_schemas = relationship(
-        "TableSchema", cascade="all,delete", backref="tab_state", passive_deletes=True
+        "TableSchema", cascade="all, delete-orphan", backref="tab_state", passive_deletes=True
     )
 
     # the query in the textarea, and results (if any)

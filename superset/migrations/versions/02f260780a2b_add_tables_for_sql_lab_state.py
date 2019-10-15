@@ -75,7 +75,7 @@ def upgrade():
         sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"]),
         sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"]),
         sa.ForeignKeyConstraint(["database_id"], ["dbs.id"]),
-        sa.ForeignKeyConstraint(["tab_state_id"], ["tab_state.id"]),
+        sa.ForeignKeyConstraint(["tab_state_id"], ["tab_state.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     # ### end Alembic commands ###
