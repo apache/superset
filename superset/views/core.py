@@ -76,7 +76,6 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
-from superset.legacy import update_time_range
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
@@ -935,54 +934,6 @@ class Superset(BaseSupersetView):
             session.delete(r)
         session.commit()
         return redirect("/accessrequestsmodelview/list/")
-
-    def get_form_data(self, slice_id=None, use_slice_data=False):
-        form_data = {}
-        post_data = request.form.get("form_data")
-        request_args_data = request.args.get("form_data")
-        # Supporting POST
-        if post_data:
-            form_data.update(json.loads(post_data))
-        # request params can overwrite post body
-        if request_args_data:
-            form_data.update(json.loads(request_args_data))
-
-        url_id = request.args.get("r")
-        if url_id:
-            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
-            if saved_url:
-                url_str = parse.unquote_plus(
-                    saved_url.url.split("?")[1][10:], encoding="utf-8", errors=None
-                )
-                url_form_data = json.loads(url_str)
-                # allow form_date in request override saved url
-                url_form_data.update(form_data)
-                form_data = url_form_data
-
-        form_data = {
-            k: v for k, v in form_data.items() if k not in FORM_DATA_KEY_BLACKLIST
-        }
-
-        # When a slice_id is present, load from DB and override
-        # the form_data from the DB with the other form_data provided
-        slice_id = form_data.get("slice_id") or slice_id
-        slc = None
-
-        # Check if form data only contains slice_id
-        contains_only_slc_id = not any(key != "slice_id" for key in form_data)
-
-        # Include the slice_form_data if request from explore or slice calls
-        # or if form_data only contains slice_id
-        if slice_id and (use_slice_data or contains_only_slc_id):
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
-            if slc:
-                slice_form_data = slc.form_data.copy()
-                slice_form_data.update(form_data)
-                form_data = slice_form_data
-
-        update_time_range(form_data)
-
-        return form_data, slc
 
     def get_viz(
         self,
