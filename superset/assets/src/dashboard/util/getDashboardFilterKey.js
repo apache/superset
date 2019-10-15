@@ -22,6 +22,6 @@ export function getDashboardFilterKey(chartId, column) {
 
 export function getDashboardFilterByKey(key) {
   const [chartId, ...parts] = key.split('_');
-  const columnName = parts.slice().join('_');
-  return [chartId, columnName];
+  const column = parts.slice().join('_');
+  return [parseInt(chartId, 10), column];
 }

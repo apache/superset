@@ -51,6 +51,7 @@ const propTypes = {
   isLoading: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
+  filterScopes: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   onSave: PropTypes.func.isRequired,
 };

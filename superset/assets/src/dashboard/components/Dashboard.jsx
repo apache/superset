@@ -28,14 +28,13 @@ import {
   slicePropShape,
   dashboardInfoPropShape,
   dashboardStatePropShape,
-  loadStatsPropShape,
 } from '../util/propShapes';
-import { areObjectsEqual } from '../../reduxUtils';
 import { LOG_ACTIONS_MOUNT_DASHBOARD } from '../../logger/LogUtils';
 import OmniContainer from '../../components/OmniContainer';
 import { safeStringify } from '../../utils/safeStringify';
 
 import '../stylesheets/index.less';
+import { getDashboardFilterByKey } from '../util/getDashboardFilterKey';
 
 const propTypes = {
   actions: PropTypes.shape({
@@ -50,7 +49,6 @@ const propTypes = {
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   filters: PropTypes.object.isRequired,
   datasources: PropTypes.object.isRequired,
-  loadStats: loadStatsPropShape.isRequired,
   layout: PropTypes.object.isRequired,
   impressionId: PropTypes.string.isRequired,
   initMessages: PropTypes.array,
@@ -122,27 +120,31 @@ class Dashboard extends React.PureComponent {
     // do not apply filter when dashboard in edit mode
     if (!editMode && safeStringify(appliedFilters) !== safeStringify(filters)) {
       // refresh charts if a filter was removed, added, or changed
-      let changedFilterKey = null;
       const currFilterKeys = Object.keys(filters);
       const appliedFilterKeys = Object.keys(appliedFilters);
 
-      currFilterKeys.forEach(key => {
-        if (
-          // filter was added or changed
-          typeof appliedFilters[key] === 'undefined' ||
-          !areObjectsEqual(appliedFilters[key], filters[key])
+      const allKeys = new Set(currFilterKeys.concat(appliedFilterKeys));
+      [...allKeys].forEach(filterKey => {
+        const affectedChartIds = [];
+        if (!currFilterKeys.includes(filterKey)) {
+          // removed filter?
+          [].push.apply(affectedChartIds, appliedFilters[filterKey].scope);
+        } else if (!appliedFilterKeys.includes(filterKey)) {
+          // added filter?
+          [].push.apply(affectedChartIds, filters[filterKey].scope);
+        } else if (
+          safeStringify(filters[filterKey].values) !==
+          safeStringify(appliedFilters[filterKey].values)
         ) {
-          changedFilterKey = key;
+          // changed filter field value?
+          [].push.apply(affectedChartIds, filters[filterKey].scope);
         }
+
+        const idSet = new Set(affectedChartIds);
+        this.refreshExcept([...idSet]);
       });
 
-      if (
-        !!changedFilterKey ||
-        currFilterKeys.length !== appliedFilterKeys.length // remove 1 or more filters
-      ) {
-        this.refreshExcept(changedFilterKey);
-        this.appliedFilters = filters;
-      }
+      this.appliedFilters = filters;
     }
 
     if (hasUnsavedChanges) {
@@ -157,35 +159,9 @@ class Dashboard extends React.PureComponent {
     return Object.values(this.props.charts);
   }
 
-  refreshExcept(filterKey) {
-    const { filters } = this.props;
-    const currentFilteredNames =
-      filterKey && filters[filterKey] ? Object.keys(filters[filterKey]) : [];
-    const filterImmuneSlices = this.props.dashboardInfo.metadata
-      .filterImmuneSlices;
-    const filterImmuneSliceFields = this.props.dashboardInfo.metadata
-      .filterImmuneSliceFields;
-
-    this.getAllCharts().forEach(chart => {
-      // filterKey is a string, filter_immune_slices array contains numbers
-      if (
-        String(chart.id) === filterKey ||
-        filterImmuneSlices.includes(chart.id)
-      ) {
-        return;
-      }
-
-      const filterImmuneSliceFieldsNames =
-        filterImmuneSliceFields[chart.id] || [];
-      // has filter-able field names
-      if (
-        currentFilteredNames.length === 0 ||
-        currentFilteredNames.some(
-          name => !filterImmuneSliceFieldsNames.includes(name),
-        )
-      ) {
-        this.props.actions.triggerQuery(true, chart.id);
-      }
+  refreshExcept(ids) {
+    ids.forEach(id => {
+      this.props.actions.triggerQuery(true, id);
     });
   }
 
