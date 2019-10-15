@@ -122,3 +122,13 @@ database configuration:
 
 Here, "version" should be the version of your Presto cluster. Support for this
 functionality was introduced in Presto 0.319.
+
+Fetching data programmatically
+------------------------------
+
+For some use cases, the Superset backend can be used programmatically by other
+applications. When retrieving results from asynchronous queries ran in SQL Lab
+from the results backend, the config `DISPLAY_MAX_ROW` will still be applied,
+even though the results might not necessarily be rendered in a display. In order
+to bypass the limit you can pass the query parameter `bypass_display_limit=true`
+when fetching results.
