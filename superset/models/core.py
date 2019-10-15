@@ -24,7 +24,7 @@ import logging
 import textwrap
 from typing import List
 
-from flask import escape, g, Markup, request
+from flask import current_app, escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -52,8 +52,9 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import EncryptedType
 import sqlparse
 
-from superset import app, db, db_engine_specs, is_feature_enabled, security_manager
+from superset import db_engine_specs
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.extensions import db, feature_flag_manager, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
@@ -62,7 +63,7 @@ from superset.utils import cache as cache_util, core as utils
 from superset.viz import viz_types
 from urllib import parse  # noqa
 
-config = app.config
+config = current_app.config
 custom_password_store = config.get("SQLALCHEMY_CUSTOM_PASSWORD_STORE")
 stats_logger = config.get("STATS_LOGGER")
 log_query = config.get("QUERY_LOGGER")
@@ -1310,7 +1311,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
 
 
 # events for updating tags
-if is_feature_enabled("TAGGING_SYSTEM"):
+if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
     sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
     sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
     sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)

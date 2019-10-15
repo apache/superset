@@ -24,7 +24,7 @@ from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 
-from superset import security_manager
+from superset.extensions import security_manager
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 
 

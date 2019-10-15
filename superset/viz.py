@@ -46,8 +46,9 @@ from pandas.tseries.frequencies import to_offset
 import polyline
 import simplejson as json
 
-from superset import app, cache, get_css_manifest_files
+from flask import current_app
 from superset.exceptions import NullValueException, SpatialException
+from superset.extensions import cache_manager, manifest_processor
 from superset.utils import core as utils
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -57,7 +58,7 @@ from superset.utils.core import (
 )
 
 
-config = app.config
+config = current_app.config
 stats_logger = config.get("STATS_LOGGER")
 relative_start = config.get("DEFAULT_RELATIVE_START_TIME", "today")
 relative_end = config.get("DEFAULT_RELATIVE_END_TIME", "today")
@@ -394,8 +395,8 @@ class BaseViz(object):
         stacktrace = None
         df = None
         cached_dttm = datetime.utcnow().isoformat().split(".")[0]
-        if cache_key and cache and not self.force:
-            cache_value = cache.get(cache_key)
+        if cache_key and cache_manager.cache and not self.force:
+            cache_value = cache_manager.cache.get(cache_key)
             if cache_value:
                 stats_logger.incr("loaded_from_cache")
                 try:
@@ -429,7 +430,7 @@ class BaseViz(object):
             if (
                 is_loaded
                 and cache_key
-                and cache
+                and cache_manager.cache
                 and self.status != utils.QueryStatus.FAILED
             ):
                 try:
@@ -445,13 +446,13 @@ class BaseViz(object):
                     )
 
                     stats_logger.incr("set_cache_key")
-                    cache.set(cache_key, cache_value, timeout=self.cache_timeout)
+                    cache_manager.cache.set(cache_key, cache_value, timeout=self.cache_timeout)
                 except Exception as e:
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
                     logging.warning("Could not cache key {}".format(cache_key))
                     logging.exception(e)
-                    cache.delete(cache_key)
+                    cache_manager.cache.delete(cache_key)
         return {
             "cache_key": self._any_cache_key,
             "cached_dttm": self._any_cached_dttm,
@@ -735,7 +736,7 @@ class MarkupViz(BaseViz):
         code = self.form_data.get("code", "")
         if markup_type == "markdown":
             code = markdown(code)
-        return dict(html=code, theme_css=get_css_manifest_files("theme"))
+        return dict(html=code, theme_css=manifest_processor.get_css_manifest_files("theme"))
 
 
 class SeparatorViz(MarkupViz):
@@ -1292,7 +1293,7 @@ class MultiLineViz(NVD3Viz):
         fd = self.form_data
         # Late imports to avoid circular import issues
         from superset.models.core import Slice
-        from superset import db
+        from superset.extensions import db
 
         slice_ids1 = fd.get("line_charts")
         slices1 = db.session.query(Slice).filter(Slice.id.in_(slice_ids1)).all()
@@ -2094,7 +2095,7 @@ class DeckGLMultiLayer(BaseViz):
         fd = self.form_data
         # Late imports to avoid circular import issues
         from superset.models.core import Slice
-        from superset import db
+        from superset.extensions import db
 
         slice_ids = fd.get("deck_slices")
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
