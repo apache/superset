@@ -705,3 +705,9 @@ elif importlib.util.find_spec("superset_config"):
     except Exception:
         logging.exception("Found but failed to import local superset_config")
         raise
+
+
+# Note currently SIP-15 feature is WIP and should not be enabled.
+SIP_15_ENABLED = False
+SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
+SIP_15_TOAST_MESSAGE = 'Preview then save your chart using the new time range endpoints <a href="{url}" class="alert-link">here</a>.'

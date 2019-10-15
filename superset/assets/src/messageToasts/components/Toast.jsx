@@ -18,6 +18,7 @@
  */
 import { Alert } from 'react-bootstrap';
 import cx from 'classnames';
+import dompurify from 'dompurify';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -96,7 +97,7 @@ class Toast extends React.Component {
           toastType === DANGER_TOAST && 'toast--danger',
         )}
       >
-        {text}
+        <div dangerouslySetInnerHTML={{ __html: dompurify.sanitize(text) }} />
       </Alert>
     );
   }

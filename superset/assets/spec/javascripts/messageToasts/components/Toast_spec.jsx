@@ -43,7 +43,12 @@ describe('Toast', () => {
     const wrapper = setup();
     const alert = wrapper.find(Alert).dive();
 
-    expect(alert.childAt(1).text()).toBe(props.toast.text);
+    expect(
+      alert
+        .childAt(1)
+        .find('div')
+        .html(),
+    ).toBe(`<div>${props.toast.text}</div>`);
   });
 
   it('should call onCloseToast upon alert dismissal', done => {

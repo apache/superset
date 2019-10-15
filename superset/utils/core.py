@@ -1244,3 +1244,19 @@ def split(
             elif not quotes:
                 quotes = True
     yield s[i:]
+
+
+class TimeRangeEndpoint(str, Enum):
+    """
+    The time range endpoint types which represent inclusive, exclusive, or unknown.
+
+    Unknown represents endpoints which are ill-defined as though the interval may be
+    [start, end] the filter may behave like (start, end] due to mixed data types and
+    lexicographical ordering.
+
+    :see: https://github.com/apache/incubator-superset/issues/6360
+    """
+
+    EXCLUSIVE = "exclusive"
+    INCLUSIVE = "inclusive"
+    UNKNOWN = "unknown"
