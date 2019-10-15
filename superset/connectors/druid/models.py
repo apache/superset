@@ -128,7 +128,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     id = Column(Integer, primary_key=True)
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
-    cluster_name = Column(String(250), unique=True)
+    cluster_name = Column(String(250), unique=True, nullable=False)
     broker_host = Column(String(255))
     broker_port = Column(Integer, default=8082)
     broker_endpoint = Column(String(255), default="druid/v2")
@@ -480,7 +480,9 @@ class DruidDatasource(Model, BaseDatasource):
     is_hidden = Column(Boolean, default=False)
     filter_select_enabled = Column(Boolean, default=True)  # override default
     fetch_values_from = Column(String(100))
-    cluster_name = Column(String(250), ForeignKey("clusters.cluster_name"))
+    cluster_name = Column(
+        String(250), ForeignKey("clusters.cluster_name"), nullable=False
+    )
     cluster = relationship(
         "DruidCluster", backref="datasources", foreign_keys=[cluster_name]
     )
