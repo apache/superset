@@ -459,7 +459,6 @@ export function cloneQueryToNewTab(query) {
       queryLimit: sourceQueryEditor.queryLimit,
       maxRow: sourceQueryEditor.maxRow,
     };
-    console.log(query, queryEditor);
     return dispatch(addQueryEditor(queryEditor));
   };
 }
@@ -472,11 +471,13 @@ export function setActiveQueryEditor(queryEditor) {
 
     return sync
       .then(() => dispatch({ type: SET_ACTIVE_QUERY_EDITOR, queryEditor }))
-      .catch(() =>
-        dispatch(addDangerToast(t(
-          'An error occurred while setting the active tab. Please contat ' +
-          'your administrator.'))),
-      );
+      .catch((response) => {
+        if (response.status !== 404) {
+          return dispatch(addDangerToast(t(
+            'An error occurred while setting the active tab. Please contact ' +
+            'your administrator.')));
+        }
+      });
   };
 }
 
@@ -546,12 +547,9 @@ export function switchQueryEditor(queryEditor) {
             dispatch(fetchQueryResults(json.latest_query));
           }
         })
-      /*
         .catch(() =>
           dispatch(addDangerToast(t('An error occurred while fetching tab state'))),
         );
-        */
-        .catch(console.log);
     } else {
       dispatch(setActiveQueryEditor(queryEditor));
     }

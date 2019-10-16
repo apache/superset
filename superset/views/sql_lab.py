@@ -228,7 +228,10 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("<int:tab_state_id>/activate", methods=["POST"])
     def activate(self, tab_state_id):
-        if self._get_owner_id(tab_state_id) != int(g.user.get_id()):
+        owner_id = self._get_owner_id(tab_state_id)
+        if owner_id is None:
+            return Response(status=404)
+        if owner_id != int(g.user.get_id()):
             return Response(status=403)
 
         (

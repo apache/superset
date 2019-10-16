@@ -128,7 +128,7 @@ class TabbedSqlEditors extends React.PureComponent {
         isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
         latestQuery && latestQuery.resultsKey
       ) {
-        // results are no longer stored in localStorage, so they need to be
+        // when results are not stored in localStorage they need to be
         // fetched from the results backend (if configured)
         this.props.actions.fetchQueryResults(latestQuery);
       }
@@ -196,15 +196,12 @@ class TabbedSqlEditors extends React.PureComponent {
     };
     this.props.actions.addQueryEditor(qe);
   }
-  handleSelect(key, event) {
+  handleSelect(key) {
     if (key === 'add_tab') {
       this.newQueryEditor();
-    // ignore events from the 'Close tab' menu item
-    } else if (event.target.getAttribute('role') !== 'menuitem') {
+    } else {
       const queryEditor = this.props.queryEditors.find(qe => qe.id === key);
-      if (queryEditor) {
-        this.props.actions.switchQueryEditor(queryEditor);
-      }
+      this.props.actions.switchQueryEditor(queryEditor);
     }
   }
   removeQueryEditor(qe) {
