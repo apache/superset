@@ -128,7 +128,7 @@ functionality was introduced in Presto 0.319.
 Create Table As (CTAS)
 ''''''''''''''''''''''
 
-You can use ``CREATE TABLE AS SELECT ...`` statements on SQLLab this feature can be toggled on
+You can use ``CREATE TABLE AS SELECT ...`` statements on SQLLab. This feature can be toggled on
 and off at the database configuration level.
 
 Note that since ``CREATE TABLE..`` belongs to a SQL DDL category. Specifically on PostgreSQL, DDL is transactional,
