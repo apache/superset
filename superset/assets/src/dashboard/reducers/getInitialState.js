@@ -180,6 +180,7 @@ export default function(bootstrapData) {
           ...dashboardFilter,
           chartId: key,
           componentId,
+          filterName: slice.slice_name,
           directPathToFilter,
           columns,
           labels,
@@ -187,8 +188,6 @@ export default function(bootstrapData) {
           isDateFilter: Object.keys(columns).includes(TIME_RANGE),
         };
       }
-      buildActiveFilters(dashboardFilters);
-      buildFilterColorMap(dashboardFilters);
     }
 
     // sync layout names with current slice names in case a slice was edited
@@ -199,6 +198,8 @@ export default function(bootstrapData) {
       layout[layoutId].meta.sliceName = slice.slice_name;
     }
   });
+  buildActiveFilters(dashboardFilters);
+  buildFilterColorMap(dashboardFilters);
 
   // store the header as a layout component so we can undo/redo changes
   layout[DASHBOARD_HEADER_ID] = {

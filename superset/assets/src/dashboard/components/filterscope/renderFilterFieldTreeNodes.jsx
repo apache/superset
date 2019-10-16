@@ -16,18 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './variables.less';
+import React from 'react';
 
-@import './builder.less';
-@import './builder-sidepane.less';
-@import './buttons.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-scope-selector.less';
-@import './filter-indicator.less';
-@import './filter-indicator-tooltip.less';
-@import './grid.less';
-@import './hover-menu.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+import FilterFieldItem from './FilterFieldItem';
+import { getFilterColorMap } from '../../util/dashboardFiltersColorMap';
+
+export default function renderFilterFieldTreeNodes({ nodes, activeKey }) {
+  if (nodes.length === 0) {
+    return [];
+  }
+
+  return nodes.map(node => ({
+    ...node,
+    children: node.children.map(child => {
+      const { label, value } = child;
+      const colorCode = getFilterColorMap()[value];
+      return {
+        ...child,
+        label: (
+          <FilterFieldItem
+            isSelected={value === activeKey}
+            label={label}
+            colorCode={colorCode}
+          />
+        ),
+      };
+    }),
+  }));
+}
