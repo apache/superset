@@ -32,15 +32,7 @@ import pandas as pd
 import psycopg2
 import sqlalchemy as sqla
 
-from superset import (
-    app,
-    dataframe,
-    db,
-    jinja_context,
-    results_backend_use_msgpack,
-    security_manager,
-    sql_lab,
-)
+from superset import app, dataframe, db, jinja_context, security_manager, sql_lab
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
@@ -761,6 +753,7 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(f"/superset/select_star/{examples_db.id}/birth_names")
         self.assertIn("gender", resp)
 
+    @mock.patch("superset.views.core.results_backend_use_msgpack", False)
     @mock.patch("superset.views.core.results_backend")
     @mock.patch("superset.views.core.db")
     def test_display_limit(self, mock_superset_db, mock_results_backend):
@@ -778,12 +771,12 @@ class CoreTests(SupersetTestCase):
             "query": {"rows": 100},
             "data": data,
         }
-        serialized_payload = sql_lab._serialize_payload(
-            payload, results_backend_use_msgpack
-        )
+        # do not apply msgpack serialization
+        serialized_payload = sql_lab._serialize_payload(payload, False)
         compressed = utils.zlib_compress(serialized_payload)
         mock_results_backend.get.return_value = compressed
 
+        app.config["RESULTS_BACKEND_USE_MSGPACK"] = False
         app.config["DISPLAY_MAX_ROW"] = 10000
         result = json.loads(self.get_resp("/superset/results/1/"))
         expected = {"status": "success", "query": {"rows": 100}, "data": data}
