@@ -21,6 +21,7 @@
   ],
   "author": "Superset",
   "license": "Apache-2.0",
+  "private": true,
   "bugs": {
     "url": "https://github.com/apache-superset/superset-ui-plugins/issues"
   },

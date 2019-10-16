@@ -5,7 +5,7 @@ import Input from '@airbnb/lunar/lib/components/Input';
 import withStyles, { WithStylesProps } from '@airbnb/lunar/lib/composers/withStyles';
 import { Renderers, ParentRow, ColumnMetadata } from '@airbnb/lunar/lib/components/DataTable/types';
 import dompurify from 'dompurify';
-import { getRenderer, ColumnType, heightType, Cell } from './renderer';
+import { getRenderer, ColumnType, Cell } from './renderer';
 
 type Props = {
   data: ParentRow[];
@@ -40,7 +40,7 @@ const CHAR_WIDTH = 10;
 
 const CELL_PADDING = 32;
 
-const MAX_COLUMN_WIDTH = 500;
+const MAX_COLUMN_WIDTH = 300;
 
 export type TableProps = Props & Readonly<typeof defaultProps>;
 
@@ -59,7 +59,7 @@ function getCellHash(cell: Cell) {
   return `${cell.key}#${cell.value}`;
 }
 
-function getText(value: string | number) {
+function getText(value: unknown) {
   if (typeof value === 'string') {
     const span = document.createElement('span');
     const sanitizedString = dompurify.sanitize(value);
@@ -251,7 +251,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
           keys={keys}
           columnMetadata={columnMetadata}
           zebra
-          rowHeight={heightType}
+          dynamicRowHeight
           renderers={renderers}
           height={tableHeight}
           width={Math.max(calculatedWidth, width)}

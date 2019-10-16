@@ -46,11 +46,11 @@ type Props = {
   Readonly<typeof defaultProps>;
 
 export default class BoxPlot extends React.PureComponent<Props> {
-  static defaultProps = defaultProps;
-
   private createEncoder = createEncoderSelector(Encoder);
 
   private createMargin = createMarginSelector();
+
+  static defaultProps = defaultProps;
 
   constructor(props: Props) {
     super(props);
