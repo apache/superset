@@ -799,6 +799,8 @@ class CoreTests(SupersetTestCase):
         expected = {"status": "success", "query": {"rows": 100}, "data": data}
         self.assertEqual(result, expected)
 
+        app.config["DISPLAY_MAX_ROW"] = 10000
+
     def test_results_default_deserialization(self):
         use_new_deserialization = False
         data = [("a", 4, 4.0, "2019-08-18T16:39:16.660000")]
