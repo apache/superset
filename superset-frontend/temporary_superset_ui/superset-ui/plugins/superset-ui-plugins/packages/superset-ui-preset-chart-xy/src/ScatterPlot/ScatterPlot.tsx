@@ -55,11 +55,11 @@ export interface EncodedPoint {
 }
 
 export default class ScatterPlot extends PureComponent<Props> {
-  static defaultProps = defaultProps;
-
   private createEncoder = createEncoderSelector(Encoder);
 
   private createMargin = createMarginSelector();
+
+  static defaultProps = defaultProps;
 
   constructor(props: Props) {
     super(props);

@@ -17,8 +17,18 @@ keys.forEach((key, i) => {
     .join('');
 });
 item.ds = '2019-09-09';
-item.html = '<a href="www.google.com" target="_blank">Link Test</a>';
+
+const getHTML = () => {
+  const randomText = Array(Math.floor(Math.random() * 20))
+    .fill('very')
+    .join(' ');
+
+  return `<a href="www.google.com" target="_blank">Link Test with a ${randomText} long title</a>`;
+};
 
 export default Array(ROW_COUNT)
   .fill(0)
-  .map(_ => ({ ...item }));
+  .map(_ => ({
+    ...item,
+    html: getHTML(),
+  }));

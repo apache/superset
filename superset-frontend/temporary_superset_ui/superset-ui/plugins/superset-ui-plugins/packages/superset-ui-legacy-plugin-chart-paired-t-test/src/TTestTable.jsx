@@ -59,6 +59,7 @@ class TTestTable extends React.Component {
     };
   }
 
+  // eslint-disable-next-line react/no-deprecated
   componentWillMount() {
     const { control } = this.state;
     this.computeTTest(control); // initially populate table

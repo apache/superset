@@ -5,7 +5,7 @@
 import React, { CSSProperties } from 'react';
 import { HEIGHT_TO_PX } from '@airbnb/lunar/lib/components/DataTable/constants';
 import { RendererProps } from '@airbnb/lunar/lib/components/DataTable/types';
-import Interweave from '@airbnb/lunar/lib/components/Interweave';
+import dompurify from 'dompurify';
 
 const NEGATIVE_COLOR = '#FFA8A8';
 const POSITIVE_COLOR = '#ced4da';
@@ -49,7 +49,10 @@ export const getRenderer = ({
   handleCellSelected: (cell: Cell) => any;
 }) => (props: RendererProps) => {
   const { keyName } = props;
-  const value = props.row.rowData.data[keyName];
+  let value = props.row.rowData.data[keyName];
+  if (!column.format) {
+    value = dompurify.sanitize(value as string);
+  }
   const isMetric = column.type === 'metric';
   let Parent;
 
@@ -57,15 +60,14 @@ export const getRenderer = ({
 
   const boxStyle: CSSProperties = {
     backgroundColor:
-      enableFilter && isSelected({ key: keyName, value }) ? SELECTION_COLOR : undefined,
+      enableFilter && isSelected({ key: keyName as string, value }) ? SELECTION_COLOR : undefined,
     cursor: cursorStyle,
-    margin: '0px -16px',
+    margin: '4px -16px',
   };
 
   const boxContainerStyle: CSSProperties = {
     alignItems: 'center',
     display: 'flex',
-    height: HEIGHT_TO_PX[heightType],
     margin: '0px 16px',
     position: 'relative',
     textAlign: isMetric ? 'right' : 'left',
@@ -80,18 +82,19 @@ export const getRenderer = ({
   if (isMetric) {
     let left = 0;
     let width = 0;
+    const numericValue = value as number;
     if (alignPositiveNegative) {
       width = Math.abs(
-        Math.round((value / Math.max(column.maxValue!, Math.abs(column.minValue!))) * 100),
+        Math.round((numericValue / Math.max(column.maxValue!, Math.abs(column.minValue!))) * 100),
       );
     } else {
       const posExtent = Math.abs(Math.max(column.maxValue!, 0));
       const negExtent = Math.abs(Math.min(column.minValue!, 0));
       const tot = posExtent + negExtent;
-      left = Math.round((Math.min(negExtent + value, negExtent) / tot) * 100);
-      width = Math.round((Math.abs(value) / tot) * 100);
+      left = Math.round((Math.min(negExtent + numericValue, negExtent) / tot) * 100);
+      width = Math.round((Math.abs(numericValue) / tot) * 100);
     }
-    const color = colorPositiveNegative && value < 0 ? NEGATIVE_COLOR : POSITIVE_COLOR;
+    const color = colorPositiveNegative && numericValue < 0 ? NEGATIVE_COLOR : POSITIVE_COLOR;
 
     Parent = ({ children }: { children: React.ReactNode }) => {
       const barStyle: CSSProperties = {
@@ -122,12 +125,19 @@ export const getRenderer = ({
         isMetric
           ? null
           : handleCellSelected({
-              key: keyName,
+              key: keyName as string,
               value,
             })
       }
     >
-      <Parent>{column.format ? column.format(value) : <Interweave content={value} />}</Parent>
+      <Parent>
+        {column.format ? (
+          column.format(value)
+        ) : (
+          // eslint-disable-next-line react/no-danger
+          <div dangerouslySetInnerHTML={{ __html: value as string }} />
+        )}
+      </Parent>
     </div>
   );
 };
