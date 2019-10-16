@@ -80,8 +80,6 @@ export interface SeriesValue {
 const CIRCLE_STYLE = { strokeWidth: 1.5 };
 
 export default class LineChart extends PureComponent<Props> {
-  static defaultProps = defaultProps;
-
   private createEncoder = createEncoderSelector(Encoder);
 
   private createAllSeries = createSelector(
@@ -128,6 +126,7 @@ export default class LineChart extends PureComponent<Props> {
 
   private createMargin = createMarginSelector();
 
+  static defaultProps = defaultProps;
   constructor(props: Props) {
     super(props);
 
