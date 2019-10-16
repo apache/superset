@@ -32,7 +32,15 @@ import pandas as pd
 import psycopg2
 import sqlalchemy as sqla
 
-from superset import app, dataframe, db, jinja_context, security_manager, sql_lab
+from superset import (
+    app,
+    dataframe,
+    db,
+    jinja_context,
+    results_backend_use_msgpack,
+    security_manager,
+    sql_lab,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
@@ -753,14 +761,16 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(f"/superset/select_star/{examples_db.id}/birth_names")
         self.assertIn("gender", resp)
 
-    @mock.patch("superset.results_backend.get")
+    @mock.patch("superset.results_backend")
     @mock.patch("superset.views.core.db")
-    def test_display_limit(self, mock_superset_db, mock_results_backend_get):
+    def test_display_limit(self, mock_superset_db, mock_results_backend):
         query_mock = mock.Mock()
         query_mock.sql = "SELECT *"
         query_mock.database = 1
         query_mock.schema = "superset"
-        mock_superset_db.session.query().filter_by().one_or_none.return_value = query_mock
+        mock_superset_db.session.query().filter_by().one_or_none.return_value = (
+            query_mock
+        )
 
         data = [{"col_0": i} for i in range(100)]
         payload = {
@@ -768,9 +778,11 @@ class CoreTests(SupersetTestCase):
             "query": {"rows": 100},
             "data": data,
         }
-        serialized_payload = sql_lab._serialize_payload(payload, False)
+        serialized_payload = sql_lab._serialize_payload(
+            payload, results_backend_use_msgpack
+        )
         compressed = utils.zlib_compress(serialized_payload)
-        mock_results_backend_get.return_value = compressed
+        mock_results_backend.get.return_value = compressed
 
         app.config["DISPLAY_MAX_ROW"] = 10000
         result = json.loads(self.get_resp("/superset/results/1/"))
@@ -780,10 +792,17 @@ class CoreTests(SupersetTestCase):
         app.config["DISPLAY_MAX_ROW"] = 1
         limited_data = data[:1]
         result = json.loads(self.get_resp("/superset/results/1/"))
-        expected = {"status": "success", "query": {"rows": 100}, "data": limited_data, "displayLimitReached": True}
+        expected = {
+            "status": "success",
+            "query": {"rows": 100},
+            "data": limited_data,
+            "displayLimitReached": True,
+        }
         self.assertEqual(result, expected)
 
-        result = json.loads(self.get_resp("/superset/results/1/?bypass_display_limit=true"))
+        result = json.loads(
+            self.get_resp("/superset/results/1/?bypass_display_limit=true")
+        )
         expected = {"status": "success", "query": {"rows": 100}, "data": data}
         self.assertEqual(result, expected)
 
