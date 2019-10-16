@@ -761,7 +761,7 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(f"/superset/select_star/{examples_db.id}/birth_names")
         self.assertIn("gender", resp)
 
-    @mock.patch("superset.results_backend")
+    @mock.patch("superset.views.core.results_backend")
     @mock.patch("superset.views.core.db")
     def test_display_limit(self, mock_superset_db, mock_results_backend):
         query_mock = mock.Mock()
