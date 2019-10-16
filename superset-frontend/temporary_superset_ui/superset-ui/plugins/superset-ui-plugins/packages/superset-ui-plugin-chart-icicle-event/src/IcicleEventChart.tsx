@@ -64,6 +64,8 @@ function defaultContentRenderer(
 }
 
 export default class IcicleEventChart extends Component<Props> {
+  private chartRef = createRef<HTMLDivElement>();
+
   static defaultProps = {
     boxMargin: {
       x: 1,
@@ -72,8 +74,6 @@ export default class IcicleEventChart extends Component<Props> {
     color: (name: string) => 'pink',
     contentRenderer: defaultContentRenderer,
   };
-
-  private chartRef = createRef<HTMLDivElement>();
 
   constructor(props: Props) {
     super(props);
