@@ -301,7 +301,7 @@ describe('async actions', () => {
 
     beforeAll(() => {
       isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled')
-        .mockImplementation(feature ==> feature === 'SQLLAB_BACKEND_PERSISTENCE');
+        .mockImplementation(feature => feature === 'SQLLAB_BACKEND_PERSISTENCE');
     });
 
     afterAll(() => {

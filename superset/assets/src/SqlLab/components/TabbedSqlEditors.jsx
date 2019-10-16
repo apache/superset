@@ -170,6 +170,9 @@ class TabbedSqlEditors extends React.PureComponent {
     }
   }
   activeQueryEditor() {
+    if (this.props.tabHistory.length === 0) {
+      return this.props.queryEditors[0];
+    }
     const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
     return this.props.queryEditors.find(qe => qe.id === qeid) || null;
   }

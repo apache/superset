@@ -477,6 +477,7 @@ export function setActiveQueryEditor(queryEditor) {
             'An error occurred while setting the active tab. Please contact ' +
             'your administrator.')));
         }
+        return dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor });
       });
   };
 }
