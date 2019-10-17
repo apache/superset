@@ -16,18 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './variables.less';
+export function getDashboardFilterKey(chartId, column) {
+  return `${chartId}_${column}`;
+}
 
-@import './builder.less';
-@import './builder-sidepane.less';
-@import './buttons.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-scope-selector.less';
-@import './filter-indicator.less';
-@import './filter-indicator-tooltip.less';
-@import './grid.less';
-@import './hover-menu.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+export function getDashboardFilterByKey(key) {
+  const [chartId, ...parts] = key.split('_');
+  const columnName = parts.slice().join('_');
+  return [parseInt(chartId, 10), columnName];
+}
