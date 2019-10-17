@@ -23,6 +23,12 @@ assists people when migrating to a new version.
 
 ## Next Version
 
+* [8370](https://github.com/apache/incubator-superset/pull/8370): Deprecates
+  the `HTTP_HEADERS` variable in favor of `DEFAULT_HTTP_HEADERS` and
+  `OVERRIDE_HTTP_HEADERS`. To retain the same behavior you should use
+  `OVERRIDE_HTTP_HEADERS` instead of `HTTP_HEADERS`. `HTTP_HEADERS` will still
+  work but may be removed in a future update.
+
 * We're deprecating the concept of "restricted metric", this feature
   was not fully working anyhow.
 * [8117](https://github.com/apache/incubator-superset/pull/8117): If you are
