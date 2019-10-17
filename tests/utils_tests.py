@@ -76,6 +76,8 @@ def mock_parse_human_datetime(s):
         return datetime(2018, 1, 1)
     elif s == "2018-12-31T23:59:59":
         return datetime(2018, 12, 31, 23, 59, 59)
+    elif s == "Year to date":
+        return datetime(2016, 1, 1)
 
 
 def mock_to_adhoc(filt, expressionType="SIMPLE", clause="where"):
@@ -693,6 +695,10 @@ class UtilsTestCase(unittest.TestCase):
 
         result = get_since_until("Last week", relative_start="now", relative_end="now")
         expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
+        self.assertEqual(result, expected)
+
+        result = get_since_until("Year to date", since="311 days", until="today")
+        expected = datetime(2016, 1, 1), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
         with self.assertRaises(ValueError):
