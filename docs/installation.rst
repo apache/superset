@@ -579,6 +579,9 @@ object gets unpacked into the
 while the ``metadata_params`` get unpacked into the
 `sqlalchemy.MetaData <https://docs.sqlalchemy.org/en/rel_1_2/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
 
+.. note:: If your using CTAS on SQLLab and PostgreSQL
+    take a look at :ref:`ref_ctas_engine_config` for specific ``engine_params``.
+
 
 Schemas (Postgres & Redshift)
 -----------------------------
