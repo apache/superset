@@ -24,6 +24,7 @@ import cx from 'classnames';
 import Button from './Button';
 
 const propTypes = {
+  dialogClassName: PropTypes.string,
   animation: PropTypes.bool,
   triggerNode: PropTypes.node.isRequired,
   modalTitle: PropTypes.node,
@@ -72,6 +73,7 @@ export default class ModalTrigger extends React.Component {
   renderModal() {
     return (
       <Modal
+        dialogClassName={this.props.dialogClassName}
         animation={this.props.animation}
         show={this.state.showModal}
         onHide={this.close}

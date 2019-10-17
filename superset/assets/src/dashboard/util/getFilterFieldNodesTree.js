@@ -18,34 +18,26 @@
  */
 import { getDashboardFilterKey } from './getDashboardFilterKey';
 
-// should be consistent with @badge-colors .less variable
-const FILTER_COLORS_COUNT = 20;
+export default function getFilterFieldNodesTree({
+  dashboardFilters = {},
+  isSingleEditMode = true,
+}) {
+  if (Object.keys(dashboardFilters).length === 0) {
+    return [];
+  }
 
-let filterColorMap = {};
-
-export function getFilterColorMap() {
-  return filterColorMap;
-}
-
-export function buildFilterColorMap(allDashboardFilters = {}) {
-  let filterColorIndex = 1;
-  filterColorMap = Object.values(allDashboardFilters).reduce(
-    (colorMap, filter) => {
-      const { chartId, columns } = filter;
-
-      Object.keys(columns)
-        .sort()
-        .forEach(column => {
-          const key = getDashboardFilterKey(chartId, column);
-          const colorCode = `badge-${filterColorIndex % FILTER_COLORS_COUNT}`;
-          /* eslint-disable no-param-reassign */
-          colorMap[key] = colorCode;
-
-          filterColorIndex += 1;
-        });
-
-      return colorMap;
-    },
-    {},
-  );
+  return Object.values(dashboardFilters).map(dashboardFilter => {
+    const { chartId, filterName, columns, labels } = dashboardFilter;
+    const children = Object.keys(columns).map(column => ({
+      value: getDashboardFilterKey(chartId, column),
+      label: labels[column] || column,
+      showCheckbox: !isSingleEditMode,
+    }));
+    return {
+      value: chartId,
+      label: filterName,
+      children,
+      showCheckbox: !isSingleEditMode,
+    };
+  });
 }
