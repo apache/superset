@@ -1,0 +1,245 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+@import "../../../stylesheets/less/cosmo/variables.less";
+
+.filter-scope-container {
+  font-family: @font-family-sans-serif;
+  font-size: 14px;
+
+  .filter-scope-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    input {
+      flex: 0 0 200px;
+    }
+  }
+
+  .nav.nav-tabs {
+    border: none;
+  }
+}
+
+.filters-scope-selector {
+  margin: 20px -24px;
+  display: flex;
+  flex-direction: row;
+  position: relative;
+  border: 1px solid #ccc;
+  border-left: none;
+  border-right: none;
+
+  a, a:active, a:hover {
+    color: @almost-black;
+    text-decoration: none;
+  }
+
+  .filter-field-pane .edit-mode-toggle,
+  .filter-scope-pane .react-checkbox-tree .rct-icon.rct-icon-expand-all,
+  .filter-scope-pane .react-checkbox-tree .rct-icon.rct-icon-collapse-all {
+    font-size: 13px;
+    font-family: @font-family-sans-serif;
+    color: @brand-primary;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .filter-field-pane {
+    width: 40%;
+    padding: 16px 16px 16px 24px;
+    border-right: 1px solid #ccc;
+
+    .filter-container {
+      svg {
+        position: relative;
+        top: 2px;
+      }
+
+      label {
+        font-weight: normal;
+        margin: 0 0 0 8px;
+      }
+    }
+
+    .filter-field-item {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      padding: 0 30px;
+      margin-left: -30px;
+
+      &.is-selected {
+        border: 1px solid #aaa;
+        border-radius: 4px;
+        background-color: #eee;
+        margin-left: -31px;
+      }
+    }
+
+    .react-checkbox-tree {
+      ol ol {
+        padding: 0;
+      }
+
+      .rct-bare-label {
+        font-weight: bold;
+      }
+
+      .rct-text {
+        margin: 8px 0;
+      }
+    }
+  }
+
+  .filter-scope-pane {
+    flex: 1;
+    padding: 16px 24px 16px 16px;
+
+    .react-checkbox-tree {
+      flex-direction: column;
+    }
+  }
+
+  .react-checkbox-tree {
+    color: @almost-black;
+    font-size: 14px;
+
+    .filter-scope-type {
+      padding: 8px 0;
+      display: block;
+
+      &::before {
+        border: 1px solid @gray-light;
+        border-radius: 4px;
+        padding: 2px 4px;
+        font-size: 10px;
+        margin-right: 4px;
+        font-weight: 400;
+      }
+
+      &.chart {
+        &::before {
+          content: 'Chart';
+        }
+      }
+
+      &.root {
+        font-weight: 700;
+      }
+
+      &.tab {
+        font-weight: 700;
+
+        &::before {
+          content: 'Tab';
+        }
+      }
+    }
+
+    .rct-checkbox {
+      svg {
+        position: relative;
+        top: 3px;
+        width: 18px;
+      }
+    }
+
+    .rct-node-leaf {
+      .rct-bare-label {
+        &::before {
+          padding-left: 5px;
+        }
+      }
+    }
+
+    .rct-option .rct-icon {
+      &.rct-icon-expand-all {
+        &::before {
+          content: 'Expand all';
+        }
+      }
+
+      &.rct-icon-collapse-all {
+        &::before {
+          content: 'Collapse all';
+        }
+      }
+    }
+
+    .rct-options {
+      text-align: left;
+    }
+
+    .rct-text {
+      margin: 0;
+      display: flex;
+    }
+
+    .rct-title {
+      display: block;
+    }
+
+    // disable style from react-checkbox-tress.css
+    .rct-node-clickable:hover,
+    .rct-node-clickable:focus,
+    label:hover,
+    label:active {
+      background: none !important;
+    }
+  }
+
+  .multi-edit-mode {
+    &.filter-scope-pane {
+      .rct-node.rct-node-leaf .filter-scope-type.filter_box {
+        display: none;
+      }
+    }
+
+    &.filter-text {
+      display: none;
+    }
+
+    .filter-field-item {
+      padding: 0 50px;
+      margin-left: -50px;
+
+      &.is-selected {
+        margin-left: -51px;
+      }
+    }
+  }
+
+  .scope-search {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    padding: 4px 8px 4px 8px;
+    font-size: 13px;
+    outline: none;
+
+    &:focus {
+      border: 1px solid @brand-primary;
+    }
+  }
+}

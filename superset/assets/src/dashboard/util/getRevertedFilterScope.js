@@ -16,18 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './variables.less';
+export default function getRevertedFilterScope({
+  checked,
+  checkedFilterFields,
+  filterScopeMap,
+}) {
+  const checkedChartIdsByFilterField = checked.reduce((map, value) => {
+    const [chartId, filterField] = value.split(':');
+    return {
+      ...map,
+      [filterField]: (map[filterField] || []).concat(parseInt(chartId, 10)),
+    };
+  }, {});
 
-@import './builder.less';
-@import './builder-sidepane.less';
-@import './buttons.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-scope-selector.less';
-@import './filter-indicator.less';
-@import './filter-indicator-tooltip.less';
-@import './grid.less';
-@import './hover-menu.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+  return checkedFilterFields.reduce(
+    (map, filterField) => ({
+      ...map,
+      [filterField]: {
+        ...filterScopeMap[filterField],
+        checked: checkedChartIdsByFilterField[filterField],
+      },
+    }),
+    {},
+  );
+}
