@@ -219,6 +219,8 @@ class TableColumn(Model, BaseColumn):
             return "'{}'".format(dttm.strftime(tf))
         else:
             s = self.table.database.db_engine_spec.convert_dttm(self.type or "", dttm)
+
+            # TODO(john-bodley): SIP-15 will explicitly require a type conversion.
             return s or "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S.%f"))
 
 
