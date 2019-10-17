@@ -16,6 +16,8 @@
 # under the License.
 # pylint: disable=C,R,W
 
+from typing import Callable, List
+
 
 class PolygonEncoding:
 
@@ -26,13 +28,9 @@ class PolygonEncoding:
         return [cls.__name__, cls.name]
 
     @classmethod
-    def get_deser(cls, codes, cache):
+    def get_deser(cls, codes: List[str], cache) -> Callable[[str], str]:
         polygons = dict(zip(codes, cls.to_polygon(codes, cache)))
-
-        def deser(code):
-            return polygons[code]
-
-        return deser
+        return polygons.__getitem__
 
     @classmethod
     def to_location(cls, codes, cache):
