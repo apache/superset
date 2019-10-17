@@ -17,14 +17,14 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { height, width, datasource, formData, queryData } = chartProps;
-  const { records, columns } = queryData.data;
+  const { height, width, formData, queryData } = chartProps;
+  const { records } = queryData.data;
   return {
     height,
     width,
     data: records,
-    allColumnsX:formData.allColumnsX ,
-    allColumnsY:formData.allColumnsY,
-    allColumns:formData.allColumns
+    allColumnsX: formData.allColumnsX,
+    allColumnsY: formData.allColumnsY,
+    allColumns: formData.allColumns,
   };
 }

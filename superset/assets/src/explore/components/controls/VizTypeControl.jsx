@@ -53,7 +53,7 @@ const DEFAULT_ORDER = [
   'mapbox', 'kepler', 'cal_heatmap', 'rose', 'bubble', 'deck_geojson',
   'horizon', 'markup', 'deck_multi', 'compare', 'partition', 'event_flow',
   'deck_path', 'directed_force', 'world_map', 'paired_ttest', 'para',
-  'iframe', 'country_map','grid_gallery'
+  'iframe', 'country_map', 'grid_gallery',
 ];
 
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);

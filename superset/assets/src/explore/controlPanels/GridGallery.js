@@ -31,7 +31,6 @@ export default {
         ['row_limit'],
         ['order_by_cols'],
         ['adhoc_filters'],
-        
       ],
     },
   ],
@@ -44,9 +43,9 @@ export default {
         label: 'Title Column',
         description: t('Column to display Title of Images'),
     },
-    all_columns:{
+    all_columns: {
       label: 'Extra Data Columns',
       description: t('Columns to display extra info about images on hover'),
-    }
+    },
   },
 };

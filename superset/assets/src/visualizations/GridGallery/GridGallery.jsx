@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes, { array } from 'prop-types';
-import Mustache from 'mustache';
+import PropTypes from 'prop-types';
 import Gallery from 'react-grid-gallery';
 
 import './GridGallery.css';
@@ -37,34 +36,34 @@ const defaultProps = {
   data: undefined,
   allColumnsY: undefined,
   allColumnsX: undefined,
-  allColumns: []
+  allColumns: [],
 };
 
 const captionStyle = {
-  backgroundColor: "rgba(0, 0, 0, 0.8)",
-  maxHeight: "240px",
-  overflow: "hidden",
-  position: "absolute",
-  bottom: "0",
-  width: "100%",
-  color: "white",
-  padding: "2px",
-  fontSize: "90%",
+  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  maxHeight: '240px',
+  overflow: 'hidden',
+  position: 'absolute',
+  bottom: '0',
+  width: '100%',
+  color: 'white',
+  padding: '2px',
+  fontSize: '90%',
 };
 
 const customTagStyle = {
-  wordWrap: "break-word",
-  display: "grid",
-  backgroundColor: "white",
-  height: "auto",
-  fontSize: "75%",
-  fontWeight: "600",
-  lineHeight: "1",
-  padding: ".2em .6em .3em",
-  borderRadius: ".25em",
-  color: "black",
-  verticalAlign: "baseline",
-  margin: "2px"
+  wordWrap: 'break-word',
+  display: 'grid',
+  backgroundColor: 'white',
+  height: 'auto',
+  fontSize: '75%',
+  fontWeight: '600',
+  lineHeight: '1',
+  padding: '.2em .6em .3em',
+  borderRadius: '.25em',
+  color: 'black',
+  verticalAlign: 'baseline',
+  margin: '2px',
 };
 
 class GridGallery extends React.PureComponent {
@@ -73,13 +72,13 @@ class GridGallery extends React.PureComponent {
   setCustomTags(i) {
     return (
       i.tags.map((t) => {
-        return (<div
+        return ( <div
           key={t.value}
           style={customTagStyle}>
           {t.title}:{t.value}
-        </div>);
-      })
-    );
+        </div>
+      )}
+    ))
   }
 
   render() {
@@ -93,15 +92,16 @@ class GridGallery extends React.PureComponent {
       allColumns,
     } = this.props;
     const imagewd = width / 3
-    let images = [];
+    const style = { overflow: 'auto', height: '100%', width: '100%', display: 'inline-table' };
+    var images = [];
 
     const getTags = (data) => {
-      let tags = []
+      var tags = []
       allColumns.forEach(col => {
         tags.push({ 'title': col, 'value': data[col] })
       });
       return tags;
-    }
+    };
 
 
     data.forEach(element => {
@@ -113,7 +113,7 @@ class GridGallery extends React.PureComponent {
           tags: getTags(element),
           thumbnailCaption: element[allColumnsY],
         }
-      )
+      );
 
     });
 
@@ -126,8 +126,6 @@ class GridGallery extends React.PureComponent {
         </div>);
       return i;
     });
-
-    var style = { 'overflow': 'auto', 'height': '100%', 'width': '100%', 'display': 'inline-table' }
 
     return (
       <div style={style} >
