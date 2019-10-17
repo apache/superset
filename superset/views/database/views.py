@@ -21,21 +21,20 @@ from flask import flash, redirect
 from flask_appbuilder import SimpleFormView
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import gettext as __
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
+import superset.models.core as models
 from superset import app, appbuilder, security_manager
 from superset.connectors.sqla.models import SqlaTable
-import superset.models.core as models
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
+
 from . import DatabaseMixin, sqlalchemy_uri_validator
 from .forms import CsvToDatabaseForm
-
 
 config = app.config
 stats_logger = config.get("STATS_LOGGER")
@@ -48,9 +47,7 @@ def sqlalchemy_uri_form_validator(form: DynamicForm, field: StringField) -> None
     sqlalchemy_uri_validator(field.data, exception=ValidationError)
 
 
-class DatabaseView(
-    DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin
-):  # noqa
+class DatabaseView(DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.Database)
 
     add_template = "superset/models/database/add.html"

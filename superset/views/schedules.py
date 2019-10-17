@@ -15,17 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-
 import enum
+from typing import Optional, Type
 
+import simplejson as json
 from croniter import croniter
 from flask import flash, g
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
-from flask_babel import gettext as __
-from flask_babel import lazy_gettext as _
-import simplejson as json
+from flask_babel import gettext as __, lazy_gettext as _
 from wtforms import BooleanField, StringField
 
 from superset import app, appbuilder, db, security_manager
@@ -39,13 +38,14 @@ from superset.models.schedules import (
 from superset.tasks.schedules import schedule_email_report
 from superset.utils.core import get_email_address_list, json_iso_dttm_ser
 from superset.views.core import json_success
+
 from .base import DeleteMixin, SupersetModelView
 
 
 class EmailScheduleView(SupersetModelView, DeleteMixin):
     _extra_data = {"test_email": False, "test_email_recipients": None}
-    schedule_type = None
-    schedule_type_model = None
+    schedule_type: Optional[Type] = None
+    schedule_type_model: Optional[Type] = None
 
     page_size = 20
 
@@ -150,7 +150,7 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
 
 
 class DashboardEmailScheduleView(EmailScheduleView):
-    schedule_type = ScheduleType.dashboard.name
+    schedule_type = ScheduleType.dashboard.value
     schedule_type_model = Dashboard
 
     add_title = _("Schedule Email Reports for Dashboards")
@@ -209,7 +209,7 @@ class DashboardEmailScheduleView(EmailScheduleView):
 
 
 class SliceEmailScheduleView(EmailScheduleView):
-    schedule_type = ScheduleType.slice.name
+    schedule_type = ScheduleType.slice.value
     schedule_type_model = Slice
     add_title = _("Schedule Email Reports for Charts")
     edit_title = add_title

@@ -21,13 +21,14 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
-from collections import OrderedDict
 import imp
 import importlib.util
 import json
 import logging
 import os
 import sys
+from collections import OrderedDict
+from typing import Any, Callable, Dict, List
 
 from celery.schedules import crontab
 from dateutil import tz
@@ -93,7 +94,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
 # Your App secret key
-SECRET_KEY = "\2\1thisismyscretkey\1\2\e\y\y\h"  # noqa
+SECRET_KEY = "\2\1thisismyscretkey\1\2\e\y\y\h"
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
@@ -262,12 +263,12 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # IMG_SIZE = (300, 200, True)
 
 CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24
-CACHE_CONFIG = {"CACHE_TYPE": "null"}
+CACHE_CONFIG: Dict[str, Any] = {"CACHE_TYPE": "null"}
 TABLE_NAMES_CACHE_CONFIG = {"CACHE_TYPE": "null"}
 
 # CORS Options
 ENABLE_CORS = False
-CORS_OPTIONS = {}
+CORS_OPTIONS: Dict[Any, Any] = {}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
@@ -292,13 +293,13 @@ CSV_EXPORT = {"encoding": "utf-8"}
 # time grains in superset/db_engine_specs.builtin_time_grains).
 # For example: to disable 1 second time grain:
 # TIME_GRAIN_BLACKLIST = ['PT1S']
-TIME_GRAIN_BLACKLIST = []
+TIME_GRAIN_BLACKLIST: List[str] = []
 
 # Additional time grains to be supported using similar definitions as in
 # superset/db_engine_specs.builtin_time_grains.
 # For example: To add a new 2 second time grain:
 # TIME_GRAIN_ADDONS = {'PT2S': '2 second'}
-TIME_GRAIN_ADDONS = {}
+TIME_GRAIN_ADDONS: Dict[str, str] = {}
 
 # Implementation of additional time grains per engine.
 # For example: To implement 2 second time grain on clickhouse engine:
@@ -307,7 +308,7 @@ TIME_GRAIN_ADDONS = {}
 #         'PT2S': 'toDateTime(intDiv(toUInt32(toDateTime({col})), 2)*2)'
 #     }
 # }
-TIME_GRAIN_ADDON_FUNCTIONS = {}
+TIME_GRAIN_ADDON_FUNCTIONS: Dict[str, Dict[str, str]] = {}
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
@@ -315,13 +316,13 @@ TIME_GRAIN_ADDON_FUNCTIONS = {}
 #  VIZ_TYPE_BLACKLIST = ['pivot_table', 'treemap']
 # ---------------------------------------------------
 
-VIZ_TYPE_BLACKLIST = []
+VIZ_TYPE_BLACKLIST: List[str] = []
 
 # ---------------------------------------------------
 # List of data sources not to be refreshed in druid cluster
 # ---------------------------------------------------
 
-DRUID_DATA_SOURCE_BLACKLIST = []
+DRUID_DATA_SOURCE_BLACKLIST: List[str] = []
 
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered
@@ -332,8 +333,8 @@ DEFAULT_MODULE_DS_MAP = OrderedDict(
         ("superset.connectors.druid.models", ["DruidDatasource"]),
     ]
 )
-ADDITIONAL_MODULE_DS_MAP = {}
-ADDITIONAL_MIDDLEWARE = []
+ADDITIONAL_MODULE_DS_MAP: Dict[str, List[str]] = {}
+ADDITIONAL_MIDDLEWARE: List[Callable] = []
 
 # 1) https://docs.python-guide.org/writing/logging/
 # 2) https://docs.python.org/2/library/logging.config.html
@@ -441,8 +442,8 @@ CELERY_CONFIG = CeleryConfig
 # within the app
 # OVERRIDE_HTTP_HEADERS: sets override values for HTTP headers. These values will
 # override anything set within the app
-DEFAULT_HTTP_HEADERS = {}
-OVERRIDE_HTTP_HEADERS = {}
+DEFAULT_HTTP_HEADERS: Dict[str, Any] = {}
+OVERRIDE_HTTP_HEADERS: Dict[str, Any] = {}
 
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
@@ -492,7 +493,7 @@ UPLOADED_CSV_HIVE_NAMESPACE = None
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
 # dictionary.
-JINJA_CONTEXT_ADDONS = {}
+JINJA_CONTEXT_ADDONS: Dict[str, Callable] = {}
 
 # Roles that are controlled by the API / Superset and should not be changes
 # by humans.
@@ -521,7 +522,7 @@ SMTP_PASSWORD = "superset"
 SMTP_MAIL_FROM = "superset@superset.com"
 
 if not CACHE_DEFAULT_TIMEOUT:
-    CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get("CACHE_DEFAULT_TIMEOUT")
+    CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get("CACHE_DEFAULT_TIMEOUT")  # type: ignore
 
 # Whether to bump the logging level to ERROR on the flask_appbuilder package
 # Set to False if/when debugging FAB related issues like
@@ -541,12 +542,12 @@ PERMISSION_INSTRUCTIONS_LINK = ""
 
 # Integrate external Blueprints to the app by passing them to your
 # configuration. These blueprints will get integrated in the app
-BLUEPRINTS = []
+BLUEPRINTS: List[Callable] = []
 
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
-TRACKING_URL_TRANSFORMER = lambda x: x  # noqa: E731
+TRACKING_URL_TRANSFORMER = lambda x: x
 
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = 5
@@ -629,7 +630,7 @@ EMAIL_REPORTS_WEBDRIVER = "firefox"
 WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
 
 # Any config options to be passed as-is to the webdriver
-WEBDRIVER_CONFIGURATION = {}
+WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {}
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
@@ -697,8 +698,8 @@ if CONFIG_PATH_ENV_VAR in os.environ:
         raise
 elif importlib.util.find_spec("superset_config"):
     try:
-        from superset_config import *  # noqa pylint: disable=import-error
-        import superset_config  # noqa pylint: disable=import-error
+        from superset_config import *  # pylint: disable=import-error
+        import superset_config  # pylint: disable=import-error
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

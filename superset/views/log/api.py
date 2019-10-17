@@ -17,8 +17,9 @@
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset import app, appbuilder
 import superset.models.core as models
+from superset import app, appbuilder
+
 from . import LogMixin
 
 

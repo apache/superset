@@ -18,6 +18,7 @@
 import json
 
 from superset import db
+
 from .helpers import Dash, get_slice_json, merge_slice, Slice, TBL, update_slice_ids
 
 COLOR_RED = {"r": 205, "g": 0, "b": 3, "a": 0.82}

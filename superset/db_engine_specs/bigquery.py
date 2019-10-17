@@ -14,9 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
 import hashlib
 import re
+from datetime import datetime
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
@@ -68,7 +68,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
         data = super(BigQueryEngineSpec, cls).fetch_data(cursor, limit)
         if data and type(data[0]).__name__ == "Row":
-            data = [r.values() for r in data]
+            data = [r.values() for r in data]  # type: ignore
         return data
 
     @staticmethod

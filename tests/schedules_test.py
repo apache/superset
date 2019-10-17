@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime, timedelta
 import unittest
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, PropertyMock
 
 from flask_babel import gettext as __
@@ -35,6 +35,7 @@ from superset.tasks.schedules import (
     deliver_slice,
     next_schedules,
 )
+
 from .utils import read_fixture
 
 

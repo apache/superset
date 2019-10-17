@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# noqa: T484
 import abc
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -50,16 +49,14 @@ class DefaultLoggingConfigurator(LoggingConfigurator):
             )  # pylint: disable=no-member
             superset_logger.setLevel(logging.INFO)  # pylint: disable=no-member
 
-        logging.getLogger("pyhive.presto").setLevel(logging.INFO)  # noqa: T484
+        logging.getLogger("pyhive.presto").setLevel(logging.INFO)
 
-        logging.basicConfig(format=app_config.get("LOG_FORMAT"))  # noqa: T484
-        logging.getLogger().setLevel(app_config.get("LOG_LEVEL"))  # noqa: T484
+        logging.basicConfig(format=app_config["LOG_FORMAT"])
+        logging.getLogger().setLevel(app_config["LOG_LEVEL"])
 
         if app_config.get("ENABLE_TIME_ROTATE"):
-            logging.getLogger().setLevel(  # noqa: T484
-                app_config.get("TIME_ROTATE_LOG_LEVEL")
-            )
-            handler = TimedRotatingFileHandler(  # noqa: T484
+            logging.getLogger().setLevel(app_config["TIME_ROTATE_LOG_LEVEL"])
+            handler = TimedRotatingFileHandler(  # type: ignore
                 app_config.get("FILENAME"),
                 when=app_config.get("ROLLOVER"),
                 interval=app_config.get("INTERVAL"),

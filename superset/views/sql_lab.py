@@ -17,18 +17,18 @@
 # pylint: disable=C,R,W
 from typing import Callable
 
+import simplejson as json
 from flask import g, redirect
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
-from flask_babel import gettext as __
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
-import simplejson as json
 
 from superset import appbuilder, get_feature_flags, security_manager
 from superset.models.sql_lab import Query, SavedQuery
 from superset.utils import core as utils
+
 from .base import BaseSupersetView, DeleteMixin, SupersetFilter, SupersetModelView
 
 

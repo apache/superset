@@ -25,8 +25,7 @@ from flask_appbuilder.actions import action
 from flask_appbuilder.fieldwidgets import Select2Widget
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
-from flask_babel import gettext as __
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
 
@@ -41,12 +40,13 @@ from superset.views.base import (
     SupersetModelView,
     YamlExportMixin,
 )
+
 from . import models
 
 logger = logging.getLogger(__name__)
 
 
-class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
+class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.TableColumn)
 
     list_title = _("Columns")
@@ -162,7 +162,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 
-class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
+class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.SqlMetric)
 
     list_title = _("Metrics")
@@ -224,7 +224,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
+class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.SqlaTable)
 
     list_title = _("Tables")

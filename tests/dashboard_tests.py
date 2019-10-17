@@ -24,6 +24,7 @@ from sqlalchemy import func
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
+
 from .base_tests import SupersetTestCase
 
 

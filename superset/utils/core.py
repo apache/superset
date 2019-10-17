@@ -16,13 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 """Utility functions used across Superset"""
-from datetime import date, datetime, time, timedelta
 import decimal
-from email.mime.application import MIMEApplication
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.utils import formatdate
 import errno
 import functools
 import json
@@ -30,32 +24,32 @@ import logging
 import os
 import signal
 import smtplib
-from time import struct_time
 import traceback
-from typing import Iterator, List, NamedTuple, Optional, Tuple, Union
-from urllib.parse import unquote_plus
 import uuid
 import zlib
+from datetime import date, datetime, time, timedelta
+from email.mime.application import MIMEApplication
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import formatdate
+from time import struct_time
+from typing import Iterator, List, NamedTuple, Optional, Tuple, Union
+from urllib.parse import unquote_plus
 
 import bleach
 import celery
-from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
-from flask import current_app, flash, Flask, g, Markup, render_template
-from flask_appbuilder.security.sqla.models import User
-from flask_babel import gettext as __
-from flask_babel import lazy_gettext as _
-from flask_caching import Cache
 import markdown as md
 import numpy
 import pandas as pd
 import parsedatetime
-
-try:
-    from pydruid.utils.having import Having
-except ImportError:
-    pass
 import sqlalchemy as sa
+from dateutil.parser import parse
+from dateutil.relativedelta import relativedelta
+from flask import current_app, flash, Flask, g, Markup, render_template
+from flask_appbuilder.security.sqla.models import User
+from flask_babel import gettext as __, lazy_gettext as _
+from flask_caching import Cache
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.sql.type_api import Variant
@@ -63,6 +57,11 @@ from sqlalchemy.types import TEXT, TypeDecorator
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
 from superset.utils.dates import datetime_to_epoch, EPOCH
+
+try:
+    from pydruid.utils.having import Having
+except ImportError:
+    pass
 
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -105,7 +104,7 @@ def flasher(msg, severity=None):
             logging.info(msg)
 
 
-class _memoized:  # noqa
+class _memoized:
     """Decorator that caches a function's return value each time it is called
 
     If called later with the same arguments, the cached value is returned, and
@@ -1048,23 +1047,23 @@ def get_since_until(
     relative_end = parse_human_datetime(relative_end if relative_end else "today")
     common_time_frames = {
         "Last day": (
-            relative_start - relativedelta(days=1),  # noqa: T400
+            relative_start - relativedelta(days=1),  # type: ignore
             relative_end,
         ),
         "Last week": (
-            relative_start - relativedelta(weeks=1),  # noqa: T400
+            relative_start - relativedelta(weeks=1),  # type: ignore
             relative_end,
         ),
         "Last month": (
-            relative_start - relativedelta(months=1),  # noqa: T400
+            relative_start - relativedelta(months=1),  # type: ignore
             relative_end,
         ),
         "Last quarter": (
-            relative_start - relativedelta(months=3),  # noqa: T400
+            relative_start - relativedelta(months=3),  # type: ignore
             relative_end,
         ),
         "Last year": (
-            relative_start - relativedelta(years=1),  # noqa: T400
+            relative_start - relativedelta(years=1),  # type: ignore
             relative_end,
         ),
     }
@@ -1083,13 +1082,15 @@ def get_since_until(
         else:
             rel, num, grain = time_range.split()
             if rel == "Last":
-                since = relative_start - relativedelta(  # noqa: T400
+                since = relative_start - relativedelta(  # type: ignore
                     **{grain: int(num)}
                 )
                 until = relative_end
             else:  # rel == 'Next'
                 since = relative_start
-                until = relative_end + relativedelta(**{grain: int(num)})  # noqa: T400
+                until = relative_end + relativedelta(  # type: ignore
+                    **{grain: int(num)}
+                )
     else:
         since = since or ""
         if since:
@@ -1099,13 +1100,13 @@ def get_since_until(
 
     if time_shift:
         time_delta = parse_past_timedelta(time_shift)
-        since = since if since is None else (since - time_delta)  # noqa: T400
-        until = until if until is None else (until - time_delta)  # noqa: T400
+        since = since if since is None else (since - time_delta)  # type: ignore
+        until = until if until is None else (until - time_delta)  # type: ignore
 
     if since and until and since > until:
         raise ValueError(_("From date cannot be larger than to date"))
 
-    return since, until  # noqa: T400
+    return since, until  # type: ignore
 
 
 def add_ago_to_since(since: str) -> str:

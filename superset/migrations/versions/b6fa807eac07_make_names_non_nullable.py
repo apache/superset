@@ -21,8 +21,8 @@ Revises: 1495eb914ad3
 Create Date: 2019-10-02 00:29:16.679272
 
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 from superset.utils.core import generic_find_fk_constraint_name
 

@@ -16,11 +16,13 @@
 # under the License.
 # pylint: disable=C,R,W
 """Package's main module!"""
-from copy import deepcopy
 import json
 import logging
 import os
+from copy import deepcopy
+from typing import Any, Dict
 
+import wtforms_json
 from flask import Flask, redirect
 from flask_appbuilder import AppBuilder, IndexView, SQLA
 from flask_appbuilder.baseviews import expose
@@ -28,7 +30,6 @@ from flask_compress import Compress
 from flask_migrate import Migrate
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
-import wtforms_json
 
 from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -45,14 +46,14 @@ if not os.path.exists(config.DATA_DIR):
     os.makedirs(config.DATA_DIR)
 
 app = Flask(__name__)
-app.config.from_object(CONFIG_MODULE)
+app.config.from_object(CONFIG_MODULE)  # type: ignore
 conf = app.config
 
 #################################################################
 # Handling manifest file logic at app start
 #################################################################
 MANIFEST_FILE = APP_DIR + "/static/assets/dist/manifest.json"
-manifest = {}
+manifest: Dict[Any, Any] = {}
 
 
 def parse_manifest_json():
@@ -103,7 +104,7 @@ def get_manifest():
 
 #################################################################
 
-for bp in conf.get("BLUEPRINTS"):
+for bp in conf["BLUEPRINTS"]:
     try:
         print("Registering blueprint: '{}'".format(bp.name))
         app.register_blueprint(bp)
@@ -129,7 +130,7 @@ tables_cache = setup_cache(app, conf.get("TABLE_NAMES_CACHE_CONFIG"))
 
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
-app.config.get("LOGGING_CONFIGURATOR").configure_logging(app.config, app.debug)
+app.config["LOGGING_CONFIGURATOR"].configure_logging(app.config, app.debug)
 
 if app.config.get("ENABLE_CORS"):
     from flask_cors import CORS
@@ -139,7 +140,9 @@ if app.config.get("ENABLE_CORS"):
 if app.config.get("ENABLE_PROXY_FIX"):
     from werkzeug.middleware.proxy_fix import ProxyFix
 
-    app.wsgi_app = ProxyFix(app.wsgi_app, **app.config.get("PROXY_FIX_CONFIG"))
+    app.wsgi_app = ProxyFix(  # type: ignore
+        app.wsgi_app, **app.config.get("PROXY_FIX_CONFIG")
+    )
 
 if app.config.get("ENABLE_CHUNK_ENCODING"):
 
@@ -154,16 +157,16 @@ if app.config.get("ENABLE_CHUNK_ENCODING"):
                 environ["wsgi.input_terminated"] = True
             return self.app(environ, start_response)
 
-    app.wsgi_app = ChunkedEncodingFix(app.wsgi_app)
+    app.wsgi_app = ChunkedEncodingFix(app.wsgi_app)  # type: ignore
 
-if app.config.get("UPLOAD_FOLDER"):
+if app.config["UPLOAD_FOLDER"]:
     try:
-        os.makedirs(app.config.get("UPLOAD_FOLDER"))
+        os.makedirs(app.config["UPLOAD_FOLDER"])
     except OSError:
         pass
 
-for middleware in app.config.get("ADDITIONAL_MIDDLEWARE"):
-    app.wsgi_app = middleware(app.wsgi_app)
+for middleware in app.config["ADDITIONAL_MIDDLEWARE"]:
+    app.wsgi_app = middleware(app.wsgi_app)  # type: ignore
 
 
 class MyIndexView(IndexView):
@@ -233,9 +236,9 @@ flask_app_mutator = app.config.get("FLASK_APP_MUTATOR")
 if flask_app_mutator:
     flask_app_mutator(app)
 
-from superset import views  # noqa
+from superset import views  # noqa isort:skip
 
 # Registering sources
-module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")
-module_datasource_map.update(app.config.get("ADDITIONAL_MODULE_DS_MAP"))
+module_datasource_map = app.config["DEFAULT_MODULE_DS_MAP"]
+module_datasource_map.update(app.config["ADDITIONAL_MODULE_DS_MAP"])
 ConnectorRegistry.register_sources(module_datasource_map)

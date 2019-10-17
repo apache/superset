@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
 import logging
 import os
 import re
 import time
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
@@ -415,7 +415,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return configuration
 
     @staticmethod
-    def execute(
+    def execute(  # type: ignore
         cursor, query: str, async_: bool = False
     ):  # pylint: disable=arguments-differ
         kwargs = {"async": async_}
