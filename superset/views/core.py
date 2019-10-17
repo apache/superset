@@ -2459,8 +2459,9 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/results/<key>/")
+    @expose("/results/<key>/<int:rows>")
     @event_logger.log_this
-    def results(self, key):
+    def results(self, key, rows=None):
         """Serves a key off of the results backend"""
         if not results_backend:
             return json_error_response("Results backend isn't configured")
@@ -2495,8 +2496,8 @@ class Superset(BaseSupersetView):
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
         obj = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
 
-        if not request.args.get("bypass_display_limit"):
-            obj = apply_display_max_row_limit(obj)
+        if rows is not None:
+            obj = apply_display_max_row_limit(obj, rows)
 
         return json_success(
             json.dumps(obj, default=utils.json_iso_dttm_ser, ignore_nan=True)

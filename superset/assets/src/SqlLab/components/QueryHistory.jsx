@@ -26,6 +26,7 @@ import QueryTable from './QueryTable';
 const propTypes = {
   queries: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired,
+  displayLimit: PropTypes.number.isRequired,
 };
 
 const QueryHistory = (props) => {
@@ -38,6 +39,7 @@ const QueryHistory = (props) => {
         ]}
         queries={props.queries}
         actions={props.actions}
+        displayLimit={props.displayLimit}
       />
     );
   }

@@ -32,6 +32,7 @@ import TabStatusIcon from './TabStatusIcon';
 const propTypes = {
   actions: PropTypes.object.isRequired,
   defaultDbId: PropTypes.number,
+  displayLimit: PropTypes.number,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
   databases: PropTypes.object.isRequired,
@@ -251,6 +252,7 @@ class TabbedSqlEditors extends React.PureComponent {
               hideLeftBar={this.state.hideLeftBar}
               defaultQueryLimit={this.props.defaultQueryLimit}
               maxRow={this.props.maxRow}
+              displayLimit={this.props.displayLimit}
               saveQueryWarning={this.props.saveQueryWarning}
               scheduleQueryWarning={this.props.scheduleQueryWarning}
             />
@@ -293,6 +295,7 @@ function mapStateToProps({ sqlLab, common }) {
     tabHistory: sqlLab.tabHistory,
     tables: sqlLab.tables,
     defaultDbId: sqlLab.defaultDbId,
+    displayLimit: common.conf.DISPLAY_MAX_ROW,
     offline: sqlLab.offline,
     defaultQueryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     maxRow: common.conf.SQL_MAX_ROW,

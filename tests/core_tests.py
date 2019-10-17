@@ -772,19 +772,20 @@ class CoreTests(SupersetTestCase):
             "data": data,
         }
         # do not apply msgpack serialization
+        use_msgpack = app.config["RESULTS_BACKEND_USE_MSGPACK"]
+        app.config["RESULTS_BACKEND_USE_MSGPACK"] = False
         serialized_payload = sql_lab._serialize_payload(payload, False)
         compressed = utils.zlib_compress(serialized_payload)
         mock_results_backend.get.return_value = compressed
 
-        app.config["RESULTS_BACKEND_USE_MSGPACK"] = False
-        app.config["DISPLAY_MAX_ROW"] = 10000
-        result = json.loads(self.get_resp("/superset/results/1/"))
+        # get all results
+        result = json.loads(self.get_resp("/superset/results/key/"))
         expected = {"status": "success", "query": {"rows": 100}, "data": data}
         self.assertEqual(result, expected)
 
-        app.config["DISPLAY_MAX_ROW"] = 1
+        # limit results to 1
         limited_data = data[:1]
-        result = json.loads(self.get_resp("/superset/results/1/"))
+        result = json.loads(self.get_resp("/superset/results/key/1"))
         expected = {
             "status": "success",
             "query": {"rows": 100},
@@ -793,13 +794,7 @@ class CoreTests(SupersetTestCase):
         }
         self.assertEqual(result, expected)
 
-        result = json.loads(
-            self.get_resp("/superset/results/1/?bypass_display_limit=true")
-        )
-        expected = {"status": "success", "query": {"rows": 100}, "data": data}
-        self.assertEqual(result, expected)
-
-        app.config["DISPLAY_MAX_ROW"] = 10000
+        app.config["RESULTS_BACKEND_USE_MSGPACK"] = use_msgpack
 
     def test_results_default_deserialization(self):
         use_new_deserialization = False
