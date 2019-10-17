@@ -3076,10 +3076,17 @@ appbuilder.add_separator("Sources")
 
 
 @app.after_request
-def apply_http_headers(response):
+def apply_http_headers(response: Response):
     """Applies the configuration's http headers to all responses"""
-    for k, v in config.get("HTTP_HEADERS").items():
-        response.headers[k] = v
+
+    # HTTP_HEADERS is deprecated, this provides backwards compatibility
+    response.headers.extend(
+        {**config["OVERRIDE_HTTP_HEADERS"], **config.get("HTTP_HEADERS", {})}
+    )
+
+    for k, v in config["DEFAULT_HTTP_HEADERS"].items():
+        if k not in response.headers:
+            response.headers[k] = v
     return response
 
 
