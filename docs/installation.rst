@@ -402,6 +402,9 @@ Here's a list of some of the recommended packages.
 | Vertica          | ``pip install                         |  ``vertica+vertica_python://``                  |
 |                  | sqlalchemy-vertica-python``           |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
+| Hana             | ``pip install hdbcli``                |  ``hana://``                  |
+|                  | ``pip install sqlalchemy-hana-0.4.0`` |                                                 |
++------------------+---------------------------------------+-------------------------------------------------+
 
 Note that many other databases are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
@@ -492,6 +495,13 @@ If you are using JDBC to connect to Drill, the connection string looks like this
 
 For a complete tutorial about how to use Apache Drill with Superset, see this tutorial:
 `Visualize Anything with Superset and Drill <http://thedataist.com/visualize-anything-with-superset-and-drill/>`_
+
+Hana
+---------
+   The connection string for Hana looks like this ::
+
+    hana://{username}:{password}@{host}:{port}
+
 
 Caching
 -------

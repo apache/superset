@@ -17,3 +17,5 @@
 sphinx==2.1.2
 sphinx_autodoc_typehints==1.6.0
 sphinx-rtd-theme==0.4.3
+hdbcli==2.4.162
+sqlalchemy-hana==0.4.0

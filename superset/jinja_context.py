@@ -204,6 +204,7 @@ class BaseTemplateProcessor:
             "cache_key_wrapper": CacheKeyWrapper(extra_cache_keys).cache_key_wrapper,
             "filter_values": filter_values,
             "form_data": {},
+            "get_data_permission": get_data_permission,
         }
         self.context.update(kwargs)
         self.context.update(BASE_CONTEXT)
@@ -288,3 +289,15 @@ for k in keys:
 def get_template_processor(database, table=None, query=None, **kwargs):
     TP = template_processors.get(database.backend, BaseTemplateProcessor)
     return TP(database=database, table=table, query=query, **kwargs)
+
+def get_data_permission(sql_statement: str) -> List[str]:
+    from superset import db
+    from superset.models import core as models
+    import pandas as pd
+    from superset.sql_parse import ParsedQuery
+    database = db.session.query(models.Database).filter_by(database_name='main').first()
+    engine = database.sqlalchemy_uri_decrypted
+    parsed_query = ParsedQuery(sql_statement)
+    sql = parsed_query.stripped()
+    df = pd.read_sql(sql=sql, con=engine, params=[g.user.username])
+    return list(set(df.iloc[:, 0].values.tolist()))
