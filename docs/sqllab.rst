@@ -122,3 +122,22 @@ database configuration:
 
 Here, "version" should be the version of your Presto cluster. Support for this
 functionality was introduced in Presto 0.319.
+
+.. _ref_ctas_engine_config:
+
+Create Table As (CTAS)
+''''''''''''''''''''''
+
+You can use ``CREATE TABLE AS SELECT ...`` statements on SQLLab. This feature can be toggled on
+and off at the database configuration level.
+
+Note that since ``CREATE TABLE..`` belongs to a SQL DDL category. Specifically on PostgreSQL, DDL is transactional,
+this means that to properly use this feature you have to set ``autocommit`` to true on your engine parameters:
+
+.. code-block:: json
+
+    {
+        ...
+        "engine_params": {"isolation_level":"AUTOCOMMIT"},
+        ...
+    }
