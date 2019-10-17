@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@data-ui/event-flow": "^0.0.80",
+    "@data-ui/event-flow": "^0.0.81",
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
