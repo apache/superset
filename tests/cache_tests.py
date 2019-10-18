@@ -19,6 +19,7 @@ import json
 
 from superset import cache, db
 from superset.utils.core import QueryStatus
+
 from .base_tests import SupersetTestCase
 
 

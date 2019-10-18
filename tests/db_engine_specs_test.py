@@ -38,6 +38,7 @@ from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.models.core import Database
 from superset.utils.core import get_example_database
+
 from .base_tests import SupersetTestCase
 
 
@@ -764,7 +765,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         result = str(expr.compile(dialect=postgresql.dialect()))
         self.assertEqual(
             result,
-            "DATE_TRUNC('year', (timestamp 'epoch' + lower_case * interval '1 second'))",  # noqa ignore: E50
+            "DATE_TRUNC('year', (timestamp 'epoch' + lower_case * interval '1 second'))",
         )
 
     def test_pg_time_expression_mixed_case_column_1y_grain(self):
@@ -792,7 +793,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEqual(
             result,
             'DATETIMECONVERT(tstamp, "1:SECONDS:EPOCH", "1:SECONDS:EPOCH", "1:MONTHS")',
-        )  # noqa
+        )
 
     def test_column_datatype_to_string(self):
         example_db = get_example_database()

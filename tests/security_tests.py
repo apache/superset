@@ -20,6 +20,7 @@ from unittest.mock import Mock, patch
 
 from superset import app, appbuilder, security_manager, viz
 from superset.exceptions import SupersetSecurityException
+
 from .base_tests import SupersetTestCase
 
 

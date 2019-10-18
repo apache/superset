@@ -50,14 +50,14 @@ def sqlalchemy_uri_validator(
 
 
 class DatabaseFilter(SupersetFilter):
-    def apply(self, query, func):  # noqa
+    def apply(self, query, func):
         if security_manager.all_database_access():
             return query
         perms = self.get_view_menus("database_access")
         return query.filter(self.model.perm.in_(perms))
 
 
-class DatabaseMixin:  # noqa
+class DatabaseMixin:
     list_title = _("Databases")
     show_title = _("Show Database")
     add_title = _("Add Database")

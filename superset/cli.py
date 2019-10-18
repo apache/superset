@@ -16,17 +16,17 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from datetime import datetime
 import logging
+from datetime import datetime
 from subprocess import Popen
 from sys import stdout
 
 import click
+import yaml
 from colorama import Fore, Style
 from flask import g
 from flask_appbuilder import Model
 from pathlib2 import Path
-import yaml
 
 from superset import app, appbuilder, db, examples, security_manager
 from superset.common.tags import add_favorites, add_owners, add_types
