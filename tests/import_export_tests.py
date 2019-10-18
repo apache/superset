@@ -26,6 +26,7 @@ from superset.connectors.druid.models import DruidColumn, DruidDatasource, Druid
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models import core as models
 from superset.utils import core as utils
+
 from .base_tests import SupersetTestCase
 
 
@@ -251,7 +252,7 @@ class ImportExportTests(SupersetTestCase):
         self.login("admin")
         birth_dash = self.get_dash_by_slug("births")
         world_health_dash = self.get_dash_by_slug("world_health")
-        export_dash_url = "/dashboard/export_dashboards_form?id={}&id={}&action=go".format(  # noqa ignore: E50
+        export_dash_url = "/dashboard/export_dashboards_form?id={}&id={}&action=go".format(
             birth_dash.id, world_health_dash.id
         )
         resp = self.client.get(export_dash_url)

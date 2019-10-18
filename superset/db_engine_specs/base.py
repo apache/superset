@@ -15,16 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument
-from contextlib import closing
-from datetime import datetime
 import hashlib
 import os
 import re
+from contextlib import closing
+from datetime import datetime
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING, Union
 
+import pandas as pd
+import sqlparse
 from flask import g
 from flask_babel import lazy_gettext as _
-import pandas as pd
 from sqlalchemy import column, DateTime, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
@@ -34,7 +35,6 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
 from sqlalchemy.types import TypeEngine
-import sqlparse
 from werkzeug.utils import secure_filename
 
 from superset import app, db, sql_parse
@@ -339,7 +339,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sql
 
     @classmethod
-    def get_limit_from_sql(cls, sql: str) -> int:
+    def get_limit_from_sql(cls, sql: str) -> Optional[int]:
         """
         Extract limit from SQL query
 

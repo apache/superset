@@ -15,12 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
-from datetime import datetime
 import json
 import unittest
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 from superset import db, security_manager
+
+from .base_tests import SupersetTestCase
 
 try:
     from superset.connectors.druid.models import (
@@ -31,7 +33,6 @@ try:
     )
 except ImportError:
     pass
-from .base_tests import SupersetTestCase
 
 
 class PickableMock(Mock):
@@ -94,7 +95,7 @@ GB_RESULT_SET = [
     },
 ]
 
-DruidCluster.get_druid_version = lambda _: "0.9.1"
+DruidCluster.get_druid_version = lambda _: "0.9.1"  # type: ignore
 
 
 class DruidTests(SupersetTestCase):
@@ -125,6 +126,13 @@ class DruidTests(SupersetTestCase):
             .first()
         )
         if cluster:
+            for datasource in (
+                db.session.query(DruidDatasource)
+                .filter_by(cluster_name=cluster.cluster_name)
+                .all()
+            ):
+                db.session.delete(datasource)
+
             db.session.delete(cluster)
         db.session.commit()
 
@@ -297,13 +305,17 @@ class DruidTests(SupersetTestCase):
         db.session.merge(cluster)
 
         gamma_ds = self.get_or_create(
-            DruidDatasource, {"datasource_name": "datasource_for_gamma"}, db.session
+            DruidDatasource,
+            {"datasource_name": "datasource_for_gamma", "cluster": cluster},
+            db.session,
         )
         gamma_ds.cluster = cluster
         db.session.merge(gamma_ds)
 
         no_gamma_ds = self.get_or_create(
-            DruidDatasource, {"datasource_name": "datasource_not_for_gamma"}, db.session
+            DruidDatasource,
+            {"datasource_name": "datasource_not_for_gamma", "cluster": cluster},
+            db.session,
         )
         no_gamma_ds.cluster = cluster
         db.session.merge(no_gamma_ds)
@@ -340,6 +352,13 @@ class DruidTests(SupersetTestCase):
             .first()
         )
         if cluster:
+            for datasource in (
+                db.session.query(DruidDatasource)
+                .filter_by(cluster_name=cluster.cluster_name)
+                .all()
+            ):
+                db.session.delete(datasource)
+
             db.session.delete(cluster)
         db.session.commit()
 

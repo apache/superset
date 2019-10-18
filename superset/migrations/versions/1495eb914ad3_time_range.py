@@ -14,25 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Time grain SQLA
+"""time range
 
-Revision ID: c5756bec8b47
-Revises: e502db2af7be
-Create Date: 2018-06-04 11:12:59.878742
+Revision ID: 1495eb914ad3
+Revises: 258b5280a45e
+Create Date: 2019-10-10 13:52:54.544475
 
 """
-
-# revision identifiers, used by Alembic.
-revision = "c5756bec8b47"
-down_revision = "e502db2af7be"
-
 import json
+import logging
 
 from alembic import op
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.legacy import update_time_range
+
+# revision identifiers, used by Alembic.
+revision = "1495eb914ad3"
+down_revision = "258b5280a45e"
 
 Base = declarative_base()
 
@@ -50,16 +51,13 @@ def upgrade():
 
     for slc in session.query(Slice).all():
         try:
-            params = json.loads(slc.params)
-
-            if params.get("time_grain_sqla") == "Time Column":
-                params["time_grain_sqla"] = None
-                slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
-            pass
+            form_data = json.loads(slc.params)
+            update_time_range(form_data)
+            slc.params = json.dumps(form_data, sort_keys=True)
+        except Exception as ex:
+            logging.exception(ex)
 
     session.commit()
-    session.close()
 
 
 def downgrade():
@@ -68,13 +66,21 @@ def downgrade():
 
     for slc in session.query(Slice).all():
         try:
-            params = json.loads(slc.params)
+            form_data = json.loads(slc.params)
 
-            if params.get("time_grain_sqla") is None:
-                params["time_grain_sqla"] = "Time Column"
-                slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
-            pass
+            if "time_range" in form_data:
+
+                # Note defaults and relative dates are not compatible with since/until
+                # and thus the time range is persisted.
+                try:
+                    since, until = form_data["time_range"].split(" : ")
+                    form_data["since"] = since
+                    form_data["until"] = until
+                    del form_data["time_range"]
+                    slc.params = json.dumps(form_data, sort_keys=True)
+                except ValueError:
+                    pass
+        except Exception as ex:
+            logging.exception(ex)
 
     session.commit()
-    session.close()

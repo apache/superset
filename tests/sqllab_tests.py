@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Sql Lab"""
-from datetime import datetime, timedelta
 import json
+from datetime import datetime, timedelta
 
 import prison
 
@@ -25,6 +25,7 @@ from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.utils.core import datetime_to_epoch, get_example_database
+
 from .base_tests import SupersetTestCase
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"

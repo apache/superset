@@ -17,8 +17,9 @@
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset import appbuilder
 import superset.models.core as models
+from superset import appbuilder
+
 from . import DatabaseFilter, DatabaseMixin, sqlalchemy_uri_validator
 
 

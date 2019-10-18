@@ -15,16 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=R
+import simplejson as json
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
-import simplejson as json
 
+import superset.models.core as models
 from superset import appbuilder, db, event_logger, security_manager
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
-import superset.models.core as models
 from superset.utils import core as utils
+
 from .base import api, BaseSupersetView, handle_api_exception
 
 

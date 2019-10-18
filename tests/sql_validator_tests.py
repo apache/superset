@@ -27,6 +27,7 @@ from superset.sql_validators.presto_db import (
     PrestoDBSQLValidator,
     PrestoSQLValidationError,
 )
+
 from .base_tests import SupersetTestCase
 
 PRESTO_TEST_FEATURE_FLAGS = {
@@ -119,7 +120,7 @@ class PrestoValidatorTests(SupersetTestCase):
 
     def setUp(self):
         self.validator = PrestoDBSQLValidator
-        self.database = MagicMock()  # noqa
+        self.database = MagicMock()
         self.database_engine = self.database.get_sqla_engine.return_value
         self.database_conn = self.database_engine.raw_connection.return_value
         self.database_cursor = self.database_conn.cursor.return_value

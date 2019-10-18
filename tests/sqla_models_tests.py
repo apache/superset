@@ -17,6 +17,7 @@
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.utils.core import get_example_database
+
 from .base_tests import SupersetTestCase
 
 
@@ -43,7 +44,11 @@ class DatabaseModelTestCase(SupersetTestCase):
 
     def test_has_extra_cache_keys(self):
         query = "SELECT '{{ cache_key_wrapper('user_1') }}' as user"
-        table = SqlaTable(sql=query, database=get_example_database())
+        table = SqlaTable(
+            table_name="test_has_extra_cache_keys_table",
+            sql=query,
+            database=get_example_database(),
+        )
         query_obj = {
             "granularity": None,
             "from_dttm": None,
@@ -60,7 +65,11 @@ class DatabaseModelTestCase(SupersetTestCase):
 
     def test_has_no_extra_cache_keys(self):
         query = "SELECT 'abc' as user"
-        table = SqlaTable(sql=query, database=get_example_database())
+        table = SqlaTable(
+            table_name="test_has_no_extra_cache_keys_table",
+            sql=query,
+            database=get_example_database(),
+        )
         query_obj = {
             "granularity": None,
             "from_dttm": None,
