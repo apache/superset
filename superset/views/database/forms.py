@@ -33,7 +33,7 @@ config = app.config
 
 class CsvToDatabaseForm(DynamicForm):
     # pylint: disable=E0211
-    def csv_allowed_dbs():
+    def csv_allowed_dbs():  # type: ignore
         csv_allowed_dbs = []
         csv_enabled_dbs = (
             db.session.query(models.Database).filter_by(allow_csv_upload=True).all()

@@ -24,6 +24,7 @@ from sqlalchemy.sql import column
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.utils.core import get_example_database
+
 from .helpers import (
     config,
     Dash,

@@ -24,6 +24,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid.models import DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
+
 from .base_tests import SupersetTestCase
 
 ROLE_TABLES_PERM_DATA = {

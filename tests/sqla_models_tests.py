@@ -17,6 +17,7 @@
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.utils.core import get_example_database
+
 from .base_tests import SupersetTestCase
 
 

@@ -15,12 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W,no-init
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import enum
+from typing import Optional
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String
@@ -28,7 +26,6 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
 from superset.models.helpers import AuditMixinNullable
-
 
 Session = sessionmaker(autoflush=False)
 
@@ -109,7 +106,7 @@ def get_object_type(class_name):
 
 class ObjectUpdater(object):
 
-    object_type = None
+    object_type: Optional[str] = None
 
     @classmethod
     def get_owners_ids(cls, target):

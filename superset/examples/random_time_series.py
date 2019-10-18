@@ -20,6 +20,7 @@ from sqlalchemy import DateTime
 
 from superset import db
 from superset.utils import core as utils
+
 from .helpers import config, get_example_data, get_slice_json, merge_slice, Slice, TBL
 
 

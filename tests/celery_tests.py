@@ -29,8 +29,8 @@ from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
-from .base_tests import SupersetTestCase
 
+from .base_tests import SupersetTestCase
 
 BASE_DIR = app.config.get("BASE_DIR")
 CELERY_SLEEP_TIME = 5

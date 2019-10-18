@@ -16,8 +16,7 @@
 # under the License.
 from flask import json
 
-from superset import app
-from superset import jinja_context
+from superset import app, jinja_context
 from tests.base_tests import SupersetTestCase
 
 

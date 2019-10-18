@@ -14,14 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from collections import defaultdict, deque
-from contextlib import closing
-from datetime import datetime
-from distutils.version import StrictVersion
 import logging
 import re
 import textwrap
 import time
+from collections import defaultdict, deque
+from contextlib import closing
+from datetime import datetime
+from distutils.version import StrictVersion
 from typing import Any, cast, Dict, List, Optional, Tuple, TYPE_CHECKING
 from urllib import parse
 
@@ -787,14 +787,14 @@ class PrestoEngineSpec(BaseEngineSpec):
         limit_clause = "LIMIT {}".format(limit) if limit else ""
         order_by_clause = ""
         if order_by:
-            l = []  # noqa: E741
+            l = []
             for field, desc in order_by:
                 l.append(field + " DESC" if desc else "")
             order_by_clause = "ORDER BY " + ", ".join(l)
 
         where_clause = ""
         if filters:
-            l = []  # noqa: E741
+            l = []
             for field, value in filters.items():
                 l.append(f"{field} = '{value}'")
             where_clause = "WHERE " + " AND ".join(l)
@@ -824,7 +824,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     def where_latest_partition(  # pylint: disable=too-many-arguments
         cls,
         table_name: str,
-        schema: str,
+        schema: Optional[str],
         database,
         query: Select,
         columns: Optional[List] = None,
@@ -856,7 +856,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def latest_partition(
-        cls, table_name: str, schema: str, database, show_first: bool = False
+        cls, table_name: str, schema: Optional[str], database, show_first: bool = False
     ):
         """Returns col name and the latest (max) partition value for a table
 
