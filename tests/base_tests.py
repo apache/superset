@@ -20,8 +20,8 @@ import json
 import unittest
 from unittest.mock import Mock, patch
 
-from flask_appbuilder.security.sqla import models as ab_models
 import pandas as pd
+from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource

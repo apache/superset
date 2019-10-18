@@ -14,17 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import uuid
 from datetime import datetime
 from unittest.mock import Mock, patch
-import uuid
 
 import numpy as np
 import pandas as pd
 
+import superset.viz as viz
 from superset import app
 from superset.exceptions import SpatialException
 from superset.utils.core import DTTM_ALIAS
-import superset.viz as viz
+
 from .base_tests import SupersetTestCase
 from .utils import load_fixture
 

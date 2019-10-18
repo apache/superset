@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
 import re
+from datetime import datetime
 from typing import List, Optional, Tuple
 
 from sqlalchemy.engine.interfaces import Dialect
@@ -26,7 +26,6 @@ from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 class MssqlEngineSpec(BaseEngineSpec):
     engine = "mssql"
-    epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"
     limit_method = LimitMethod.WRAP_SQL
     max_column_name_length = 128
 
@@ -47,6 +46,10 @@ class MssqlEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
+    def epoch_to_dttm(cls):
+        return "dateadd(S, {col}, '1970-01-01')"
+
+    @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
         return "CONVERT(DATETIME, '{}', 126)".format(dttm.isoformat())
 
@@ -54,7 +57,7 @@ class MssqlEngineSpec(BaseEngineSpec):
     def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
         data = super().fetch_data(cursor, limit)
         if data and type(data[0]).__name__ == "Row":
-            data = [[elem for elem in r] for r in data]
+            data = [tuple(row) for row in data]
         return data
 
     column_types = [

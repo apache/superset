@@ -19,7 +19,6 @@ from sqlalchemy import types
 from sqlalchemy.sql.sqltypes import Integer
 from sqlalchemy.sql.type_api import TypeEngine
 
-
 # _compiler_dispatch is defined to help with type compilation
 
 

@@ -14,15 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import unittest
+import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-import unittest
 from unittest.mock import patch
-import uuid
 
+import numpy
 from flask import Flask
 from flask_caching import Cache
-import numpy
 from sqlalchemy.exc import ArgumentError
 
 from superset import app, db, security_manager

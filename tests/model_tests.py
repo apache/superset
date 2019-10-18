@@ -23,6 +23,7 @@ from sqlalchemy.engine.url import make_url
 from superset import app
 from superset.models.core import Database
 from superset.utils.core import get_example_database, QueryStatus
+
 from .base_tests import SupersetTestCase
 
 

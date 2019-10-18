@@ -15,21 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from datetime import datetime, timedelta
 import logging
 import pickle as pkl
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 
-from superset import app, cache
-from superset import db
+from superset import app, cache, db
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.core import DTTM_ALIAS
+
 from .query_object import QueryObject
 
 config = app.config
@@ -59,8 +59,10 @@ class QueryContext:
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
     ) -> None:
-        self.datasource = ConnectorRegistry.get_datasource(
-            datasource.get("type"), int(datasource.get("id")), db.session  # noqa: T400
+        self.datasource = ConnectorRegistry.get_datasource(  # type: ignore
+            datasource.get("type"),  # type: ignore
+            int(datasource.get("id")),  # type: ignore
+            db.session,
         )
         self.queries = list(map(lambda query_obj: QueryObject(**query_obj), queries))
 

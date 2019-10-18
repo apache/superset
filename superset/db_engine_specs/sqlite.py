@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 from sqlalchemy.engine.reflection import Inspector
 
@@ -83,7 +83,7 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_table_names(
-        cls, database: "Database", inspector: Inspector, schema: str
+        cls, database: "Database", inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())
