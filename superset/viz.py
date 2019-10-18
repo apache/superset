@@ -20,31 +20,31 @@
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
-from collections import defaultdict, OrderedDict
 import copy
-from datetime import datetime, timedelta
-from functools import reduce
 import hashlib
 import inspect
-from itertools import product
 import logging
 import math
 import pickle as pkl
 import re
-from typing import Any, Dict, List, Optional
 import uuid
+from collections import defaultdict, OrderedDict
+from datetime import datetime, timedelta
+from functools import reduce
+from itertools import product
+from typing import Any, Dict, List, Optional
 
+import geohash
+import numpy as np
+import pandas as pd
+import polyline
+import simplejson as json
 from dateutil import relativedelta as rdelta
 from flask import request
 from flask_babel import lazy_gettext as _
-import geohash
 from geopy.point import Point
 from markdown import markdown
-import numpy as np
-import pandas as pd
 from pandas.tseries.frequencies import to_offset
-import polyline
-import simplejson as json
 
 from superset import app, cache, get_css_manifest_files
 from superset.exceptions import NullValueException, SpatialException
@@ -55,7 +55,6 @@ from superset.utils.core import (
     merge_extra_filters,
     to_adhoc,
 )
-
 
 config = app.config
 stats_logger = config.get("STATS_LOGGER")
@@ -686,7 +685,7 @@ class PivotTableViz(BaseViz):
 
         # Ensure that Pandas's sum function mimics that of SQL.
         if aggfunc == "sum":
-            aggfunc = lambda x: x.sum(min_count=1)  # noqa: E731
+            aggfunc = lambda x: x.sum(min_count=1)
 
         groupby = self.form_data.get("groupby")
         columns = self.form_data.get("columns")
@@ -1525,7 +1524,7 @@ class DistributionBarViz(DistributionPieViz):
     is_timeseries = False
 
     def query_obj(self):
-        d = super().query_obj()  # noqa
+        d = super().query_obj()
         fd = self.form_data
         if len(d["groupby"]) < len(fd.get("groupby") or []) + len(
             fd.get("columns") or []
@@ -2771,6 +2770,6 @@ viz_types = {
     if (
         inspect.isclass(o)
         and issubclass(o, BaseViz)
-        and o.viz_type not in config.get("VIZ_TYPE_BLACKLIST")
+        and o.viz_type not in config["VIZ_TYPE_BLACKLIST"]
     )
 }

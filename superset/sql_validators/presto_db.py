@@ -15,9 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from contextlib import closing
 import logging
 import time
+from contextlib import closing
 from typing import Any, Dict, List, Optional
 
 from flask import g

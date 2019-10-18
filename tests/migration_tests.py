@@ -20,6 +20,7 @@ from superset.migrations.versions.fb13d49b72f9_better_filters import (
     Slice,
     upgrade_slice,
 )
+
 from .base_tests import SupersetTestCase
 
 

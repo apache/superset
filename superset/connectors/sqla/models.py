@@ -15,17 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from collections import OrderedDict
-from datetime import datetime
 import logging
 import re
+from collections import OrderedDict
+from datetime import datetime
 from typing import Any, Dict, List, NamedTuple, Optional, Union
 
+import pandas as pd
+import sqlalchemy as sa
+import sqlparse
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
-import pandas as pd
-import sqlalchemy as sa
 from sqlalchemy import (
     and_,
     asc,
@@ -47,7 +48,6 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
-import sqlparse
 
 from superset import app, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -126,7 +126,7 @@ class TableColumn(Model, BaseColumn):
     expression = Column(Text)
     python_date_format = Column(String(255))
 
-    export_fields = (
+    export_fields = [
         "table_id",
         "column_name",
         "verbose_name",
@@ -138,7 +138,7 @@ class TableColumn(Model, BaseColumn):
         "expression",
         "description",
         "python_date_format",
-    )
+    ]
 
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
     export_parent = "table"
@@ -162,7 +162,7 @@ class TableColumn(Model, BaseColumn):
         self, start_dttm: DateTime, end_dttm: DateTime
     ) -> ColumnElement:
         col = self.get_sqla_col(label="__time")
-        l = []  # noqa: E741
+        l = []
         if start_dttm:
             l.append(col >= text(self.dttm_sql_literal(start_dttm)))
         if end_dttm:
@@ -238,7 +238,7 @@ class SqlMetric(Model, BaseMetric):
     )
     expression = Column(Text, nullable=False)
 
-    export_fields = (
+    export_fields = [
         "metric_name",
         "verbose_name",
         "metric_type",
@@ -247,7 +247,7 @@ class SqlMetric(Model, BaseMetric):
         "description",
         "d3format",
         "warning_text",
-    )
+    ]
     update_from_object_fields = list(
         [s for s in export_fields if s not in ("table_id",)]
     )
@@ -325,7 +325,7 @@ class SqlaTable(Model, BaseDatasource):
 
     baselink = "tablemodelview"
 
-    export_fields = (
+    export_fields = [
         "table_name",
         "main_dttm_col",
         "description",
@@ -339,7 +339,7 @@ class SqlaTable(Model, BaseDatasource):
         "template_params",
         "filter_select_enabled",
         "fetch_values_predicate",
-    )
+    ]
     update_from_object_fields = [
         f for f in export_fields if f not in ("table_name", "database_id")
     ]
@@ -427,7 +427,7 @@ class SqlaTable(Model, BaseDatasource):
         return ("[{obj.database}].[{obj.table_name}]" "(id:{obj.id})").format(obj=self)
 
     @property
-    def name(self) -> str:
+    def name(self) -> str:  # type: ignore
         if not self.schema:
             return self.table_name
         return "{}.{}".format(self.schema, self.table_name)
@@ -440,7 +440,7 @@ class SqlaTable(Model, BaseDatasource):
 
     @property
     def dttm_cols(self) -> List:
-        l = [c.column_name for c in self.columns if c.is_dttm]  # noqa: E741
+        l = [c.column_name for c in self.columns if c.is_dttm]
         if self.main_dttm_col and self.main_dttm_col not in l:
             l.append(self.main_dttm_col)
         return l
@@ -618,7 +618,7 @@ class SqlaTable(Model, BaseDatasource):
         granularity,
         from_dttm,
         to_dttm,
-        filter=None,  # noqa
+        filter=None,
         is_timeseries=True,
         timeseries_limit=15,
         timeseries_limit_metric=None,
@@ -759,7 +759,7 @@ class SqlaTable(Model, BaseDatasource):
                 if op in ("in", "not in"):
                     cond = col_obj.get_sqla_col().in_(eq)
                     if "<NULL>" in eq:
-                        cond = or_(cond, col_obj.get_sqla_col() == None)  # noqa
+                        cond = or_(cond, col_obj.get_sqla_col() == None)
                     if op == "not in":
                         cond = ~cond
                     where_clause_and.append(cond)
@@ -781,9 +781,9 @@ class SqlaTable(Model, BaseDatasource):
                     elif op == "LIKE":
                         where_clause_and.append(col_obj.get_sqla_col().like(eq))
                     elif op == "IS NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() == None)  # noqa
+                        where_clause_and.append(col_obj.get_sqla_col() == None)
                     elif op == "IS NOT NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() != None)  # noqa
+                        where_clause_and.append(col_obj.get_sqla_col() != None)
         if extras:
             where = extras.get("where")
             if where:
@@ -976,7 +976,7 @@ class SqlaTable(Model, BaseDatasource):
                 ).format(self.table_name)
             )
 
-        M = SqlMetric  # noqa
+        M = SqlMetric
         metrics = []
         any_date_col = None
         db_engine_spec = self.database.db_engine_spec

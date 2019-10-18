@@ -21,6 +21,7 @@ from flask_appbuilder.security.decorators import has_access
 
 from superset import appbuilder, db
 from superset.models import core as models
+
 from .base import BaseSupersetView
 
 
