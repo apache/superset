@@ -37,8 +37,7 @@ from sqlalchemy.types import TypeEngine
 import sqlparse
 from werkzeug.utils import secure_filename
 
-from superset import sql_parse
-from superset.extensions import db
+from superset import app, db, sql_parse
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -53,7 +52,11 @@ class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
     duration: Optional[str]
 
 
+config = app.config
+
+
 QueryStatus = utils.QueryStatus
+config = app.config
 
 builtin_time_grains: Dict[Optional[str], str] = {
     None: "Time Column",

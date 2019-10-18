@@ -34,7 +34,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, relationship
 
-from superset.extensions import security_manager
+from superset import security_manager
 from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.tags import QueryUpdater
 from superset.utils.core import QueryStatus, user_label

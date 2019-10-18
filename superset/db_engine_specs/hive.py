@@ -22,7 +22,6 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
-from flask import current_app
 from sqlalchemy import Column
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
@@ -31,12 +30,13 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql.expression import ColumnClause, Select
 from werkzeug.utils import secure_filename
 
+from superset import app, conf
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.utils import core as utils
 
 QueryStatus = utils.QueryStatus
-conf = current_app.config
+config = app.config
 
 tracking_url_trans = conf.get("TRACKING_URL_TRANSFORMER")
 hive_poll_interval = conf.get("HIVE_POLL_INTERVAL")
@@ -62,11 +62,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         r"map = (?P<map_progress>[0-9]+)%.*"
         r"reduce = (?P<reduce_progress>[0-9]+)%.*"
     )
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.tracking_url_trans = conf.get("TRACKING_URL_TRANSFORMER")
-        self.hive_poll_interval = conf.get("HIVE_POLL_INTERVAL")
 
     @classmethod
     def patch(cls):

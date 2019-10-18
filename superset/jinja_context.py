@@ -25,10 +25,12 @@ from typing import Any, List, Optional, Tuple
 import uuid
 
 from dateutil.relativedelta import relativedelta
-from flask import current_app, g, request
+from flask import g, request
 from jinja2.sandbox import SandboxedEnvironment
 
-config = current_app.config
+from superset import app
+
+config = app.config
 BASE_CONTEXT = {
     "datetime": datetime,
     "random": random,

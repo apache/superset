@@ -28,8 +28,8 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 
+from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
-from superset.extensions import appbuilder, db, security_manager
 from superset.utils import core as utils
 from superset.views.base import (
     DatasourceFilter,

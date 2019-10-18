@@ -32,9 +32,9 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql.expression import ColumnClause, Select
 
+from superset import app, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
-from superset.extensions import feature_flag_manager, security_manager
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pylint: disable=unused-import
 
 QueryStatus = utils.QueryStatus
+config = app.config
 
 # map between Presto types and Pandas
 pandas_dtype_map = {
@@ -134,7 +135,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         cls, database: "Database", inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         tables = super().get_table_names(database, inspector, schema)
-        if not feature_flag_manager.is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
+        if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
             return tables
 
         views = set(cls.get_view_names(database, inspector, schema))
@@ -151,7 +152,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         and get_view_names() is not implemented in sqlalchemy_presto.py
         https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
         """
-        if not feature_flag_manager.is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
+        if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
             return []
 
         if schema:
@@ -335,7 +336,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         for column in columns:
             try:
                 # parse column if it is a row or array
-                if feature_flag_manager.is_feature_enabled("PRESTO_EXPAND_DATA") and (
+                if is_feature_enabled("PRESTO_EXPAND_DATA") and (
                     "array" in column.Type or "row" in column.Type
                 ):
                     structural_column_index = len(result)
@@ -422,7 +423,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         """
         cols = cols or []
         presto_cols = cols
-        if feature_flag_manager.is_feature_enabled("PRESTO_EXPAND_DATA") and show_cols:
+        if is_feature_enabled("PRESTO_EXPAND_DATA") and show_cols:
             dot_regex = r"\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
             presto_cols = [
                 col for col in presto_cols if not re.search(dot_regex, col["name"])
@@ -576,7 +577,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         :return: list of all columns(selected columns and their nested fields),
                  expanded data set, listed of nested fields
         """
-        if not feature_flag_manager.is_feature_enabled("PRESTO_EXPAND_DATA"):
+        if not is_feature_enabled("PRESTO_EXPAND_DATA"):
             return columns, data, []
 
         # process each column, unnesting ARRAY types and
