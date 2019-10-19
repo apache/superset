@@ -63,22 +63,22 @@ work on a new phase of the release process to make sure you aren't releasing
 the wrong files/using wrong names:
 
 ```bash
-    # Set VERSION to the release being prepared, e.g. 0.34.1.
-    export VERSION=XX.YY.ZZ
+    # Set SUPERSET_VERSION to the release being prepared, e.g. 0.34.1.
+    export SUPERSET_VERSION=XX.YY.ZZ
     # Set RC to the release candindate number. Replacing QQ below with 1
     # indicates rc1 i.e. first vote on version above (0.34.1rc1)
-    export RC=QQ
+    export SUPERSET_RC=QQ
 ```
 
 Then you can generate other derived environment variables that are used
 throughout the release process:
 
 ```bash
-    export VERSION_RC=${VERSION}rc${RC}
-    export RELEASE=apache-superset-incubating-${VERSION}
-    export RELEASE_RC=apache-superset-incubating-${VERSION_RC}
-    export RELEASE_TARBALL=${RELEASE}-source.tar.gz
-    export RELEASE_RC_TARBALL=${RELEASE_RC}-source.tar.gz
+    export SUPERSET_VERSION_RC=${SUPERSET_VERSION}rc${SUPERSET_RC}
+    export SUPERSET_RELEASE=apache-superset-incubating-${SUPERSET_VERSION}
+    export SUPERSET_RELEASE_RC=apache-superset-incubating-${SUPERSET_VERSION_RC}
+    export SUPERSET_RELEASE_TARBALL=${SUPERSET_RELEASE}-source.tar.gz
+    export SUPERSET_RELEASE_RC_TARBALL=${SUPERSET_RELEASE_RC}-source.tar.gz
 ```
 
 ## Preparing the release candidate
@@ -90,7 +90,7 @@ prerequisites are in order:
 ```bash
     # Go to the root directory of the repo, e.g. `~/src/incubator-superset`
     cd ~/src/incubator-superset/
-    export REPO_DIR=$(pwd)
+    export SUPERSET_REPO_DIR=$(pwd)
     # make sure you're on the correct branch (e.g. 0.34)
     git branch
 ```
@@ -100,22 +100,27 @@ to `VERSION` above (`0.34.1` in example above), and has been committed to the
 branch.
 
 ```bash
-    grep $(VERSION) superset/assets/package.json
+    grep ${SUPERSET_VERSION} superset/assets/package.json
 ```
+
+If nothing shows up, either the version isn't correctly set in `package.json`,
+or the environment variable is misconfigured.
 
 ### Crafting tarball and signatures
 
 Now let's craft a source release
 ```bash
     # Let's create a git tag
-    git tag -f ${VERSION_RC}
+    git tag -f ${SUPERSET_VERSION_RC}
 
     # Create the target folder
-    mkdir -p ~/svn/superset_dev/${VERSION_RC}/
+    mkdir -p ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
     git archive \
-        --format=tar.gz ${VERSION_RC} \
-        --prefix="${RELEASE_RC}/" \
-        -o ~/svn/superset_dev/${VERSION}/${RELEASE_TARBALL}
+        --format=tar.gz ${SUPERSET_VERSION_RC} \
+        --prefix="${SUPERSET_RELEASE}/" \
+        -o /tmp/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
+
+        -o ~/svn/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_TARBALL}
 
     cd ~/svn/superset_dev/${VERSION}/
     ${REPO_DIR}/scripts/sign.sh ${RELEASE}-source.tar.gz
