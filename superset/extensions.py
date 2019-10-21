@@ -17,6 +17,7 @@
 
 import os
 
+from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
 from flask_migrate import Migrate
 from flask_talisman import Talisman
@@ -30,6 +31,7 @@ from superset.utils.results_backend_manager import ResultsBackendManager
 
 APP_DIR = os.path.dirname(__file__)
 
+app = Flask(__name__)
 appbuilder = AppBuilder(update_perms=False)
 cache_manager = CacheManager()
 db = SQLA()
