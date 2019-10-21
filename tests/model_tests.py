@@ -36,29 +36,29 @@ class DatabaseModelTestCase(SupersetTestCase):
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
         db = make_url(model.get_sqla_engine().url).database
-        self.assertEquals("hive/default", db)
+        self.assertEqual("hive/default", db)
 
         db = make_url(model.get_sqla_engine(schema="core_db").url).database
-        self.assertEquals("hive/core_db", db)
+        self.assertEqual("hive/core_db", db)
 
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
         db = make_url(model.get_sqla_engine().url).database
-        self.assertEquals("hive", db)
+        self.assertEqual("hive", db)
 
         db = make_url(model.get_sqla_engine(schema="core_db").url).database
-        self.assertEquals("hive/core_db", db)
+        self.assertEqual("hive/core_db", db)
 
     def test_database_schema_postgres(self):
         sqlalchemy_uri = "postgresql+psycopg2://postgres.airbnb.io:5439/prod"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
         db = make_url(model.get_sqla_engine().url).database
-        self.assertEquals("prod", db)
+        self.assertEqual("prod", db)
 
         db = make_url(model.get_sqla_engine(schema="foo").url).database
-        self.assertEquals("prod", db)
+        self.assertEqual("prod", db)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
@@ -70,10 +70,10 @@ class DatabaseModelTestCase(SupersetTestCase):
         sqlalchemy_uri = "hive://hive@hive.airbnb.io:10000/default?auth=NOSASL"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
         db = make_url(model.get_sqla_engine().url).database
-        self.assertEquals("default", db)
+        self.assertEqual("default", db)
 
         db = make_url(model.get_sqla_engine(schema="core_db").url).database
-        self.assertEquals("core_db", db)
+        self.assertEqual("core_db", db)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
@@ -83,10 +83,10 @@ class DatabaseModelTestCase(SupersetTestCase):
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
         db = make_url(model.get_sqla_engine().url).database
-        self.assertEquals("superset", db)
+        self.assertEqual("superset", db)
 
         db = make_url(model.get_sqla_engine(schema="staging").url).database
-        self.assertEquals("staging", db)
+        self.assertEqual("staging", db)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
@@ -98,11 +98,11 @@ class DatabaseModelTestCase(SupersetTestCase):
 
         model.impersonate_user = True
         user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
-        self.assertEquals(example_user, user_name)
+        self.assertEqual(example_user, user_name)
 
         model.impersonate_user = False
         user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
-        self.assertNotEquals(example_user, user_name)
+        self.assertNotEqual(example_user, user_name)
 
     def test_select_star(self):
         db = get_example_database()
@@ -154,20 +154,20 @@ class DatabaseModelTestCase(SupersetTestCase):
 
         if main_db.backend == "mysql":
             df = main_db.get_df("SELECT 1", None)
-            self.assertEquals(df.iat[0, 0], 1)
+            self.assertEqual(df.iat[0, 0], 1)
 
             df = main_db.get_df("SELECT 1;", None)
-            self.assertEquals(df.iat[0, 0], 1)
+            self.assertEqual(df.iat[0, 0], 1)
 
     def test_multi_statement(self):
         main_db = get_example_database()
 
         if main_db.backend == "mysql":
             df = main_db.get_df("USE superset; SELECT 1", None)
-            self.assertEquals(df.iat[0, 0], 1)
+            self.assertEqual(df.iat[0, 0], 1)
 
             df = main_db.get_df("USE superset; SELECT ';';", None)
-            self.assertEquals(df.iat[0, 0], ";")
+            self.assertEqual(df.iat[0, 0], ";")
 
 
 class SqlaTableModelTestCase(SupersetTestCase):
@@ -175,19 +175,19 @@ class SqlaTableModelTestCase(SupersetTestCase):
         tbl = self.get_table_by_name("birth_names")
         ds_col = tbl.get_column("ds")
         sqla_literal = ds_col.get_timestamp_expression(None)
-        self.assertEquals(str(sqla_literal.compile()), "ds")
+        self.assertEqual(str(sqla_literal.compile()), "ds")
 
         sqla_literal = ds_col.get_timestamp_expression("P1D")
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
-            self.assertEquals(compiled, "DATE(ds)")
+            self.assertEqual(compiled, "DATE(ds)")
 
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
-            self.assertEquals(compiled, "DATE(DATE_ADD(ds, 1))")
+            self.assertEqual(compiled, "DATE(DATE_ADD(ds, 1))")
         ds_col.expression = prev_ds_expr
 
     def test_get_timestamp_expression_epoch(self):
@@ -199,20 +199,20 @@ class SqlaTableModelTestCase(SupersetTestCase):
         sqla_literal = ds_col.get_timestamp_expression(None)
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
-            self.assertEquals(compiled, "from_unixtime(ds)")
+            self.assertEqual(compiled, "from_unixtime(ds)")
 
         ds_col.python_date_format = "epoch_s"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
-            self.assertEquals(compiled, "DATE(from_unixtime(ds))")
+            self.assertEqual(compiled, "DATE(from_unixtime(ds))")
 
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
-            self.assertEquals(compiled, "DATE(from_unixtime(DATE_ADD(ds, 1)))")
+            self.assertEqual(compiled, "DATE(from_unixtime(DATE_ADD(ds, 1)))")
         ds_col.expression = prev_ds_expr
 
     def query_with_expr_helper(self, is_timeseries, inner_join=True):
