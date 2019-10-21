@@ -172,17 +172,21 @@ class BaseSupersetView(BaseView):
     def menu_data(self):
         menu = appbuilder.menu.get_data()
         root_path = "#"
+        logo_target_path = ""
         if not g.user.is_anonymous:
             try:
-                logo_target_path = appbuilder.app.config.get(
-                    "LOGO_TARGET_PATH"
-                ) or "/profile/{}/".format(g.user.username)
-                if logo_target_path.startswith("/"):
-                    root_path = "/superset{}".format(logo_target_path)
-                else:
-                    root_path = logo_target_path
+                logo_target_path = (
+                    appbuilder.app.config.get("LOGO_TARGET_PATH")
+                    or f"/profile/{g.user.username}/"
+                )
+            # when user object has no username
             except NameError as e:
                 logging.exception(e)
+
+            if logo_target_path.startswith("/"):
+                root_path = f"/superset{logo_target_path}"
+            else:
+                root_path = logo_target_path
 
         languages = {}
         for lang in appbuilder.languages:
@@ -201,14 +205,12 @@ class BaseSupersetView(BaseView):
                 "bug_report_url": appbuilder.app.config.get("BUG_REPORT_URL"),
                 "documentation_url": appbuilder.app.config.get("DOCUMENTATION_URL"),
                 "languages": languages,
-                "show_language_picker": appbuilder.app.config.get(
-                    "SHOW_TRANSLATION_PICKER", True
-                ),
+                "show_language_picker": len(languages.keys()) > 1,
                 "user_is_anonymous": g.user.is_anonymous,
                 "user_info_url": appbuilder.get_url_for_userinfo,
                 "user_logout_url": appbuilder.get_url_for_logout,
                 "user_login_url": appbuilder.get_url_for_login,
-                "locale": session["locale"] or "en",
+                "locale": session.get("locale", "en"),
             },
         }
 
