@@ -50,7 +50,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """.split(
             "\n"
         )
-        self.assertEquals(0, HiveEngineSpec.progress(log))
+        self.assertEqual(0, HiveEngineSpec.progress(log))
 
     def test_number_of_jobs_progress(self):
         log = """
@@ -58,7 +58,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """.split(
             "\n"
         )
-        self.assertEquals(0, HiveEngineSpec.progress(log))
+        self.assertEqual(0, HiveEngineSpec.progress(log))
 
     def test_job_1_launched_progress(self):
         log = """
@@ -67,7 +67,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """.split(
             "\n"
         )
-        self.assertEquals(0, HiveEngineSpec.progress(log))
+        self.assertEqual(0, HiveEngineSpec.progress(log))
 
     def test_job_1_launched_stage_1_0_progress(self):
         log = """
@@ -77,7 +77,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """.split(
             "\n"
         )
-        self.assertEquals(0, HiveEngineSpec.progress(log))
+        self.assertEqual(0, HiveEngineSpec.progress(log))
 
     def test_job_1_launched_stage_1_map_40_progress(self):
         log = """
@@ -88,7 +88,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """.split(
             "\n"
         )
-        self.assertEquals(10, HiveEngineSpec.progress(log))
+        self.assertEqual(10, HiveEngineSpec.progress(log))
 
     def test_job_1_launched_stage_1_map_80_reduce_40_progress(self):
         log = """
@@ -100,7 +100,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """.split(
             "\n"
         )
-        self.assertEquals(30, HiveEngineSpec.progress(log))
+        self.assertEqual(30, HiveEngineSpec.progress(log))
 
     def test_job_1_launched_stage_2_stages_progress(self):
         log = """
@@ -114,7 +114,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """.split(
             "\n"
         )
-        self.assertEquals(12, HiveEngineSpec.progress(log))
+        self.assertEqual(12, HiveEngineSpec.progress(log))
 
     def test_job_2_launched_stage_2_stages_progress(self):
         log = """
@@ -127,7 +127,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """.split(
             "\n"
         )
-        self.assertEquals(60, HiveEngineSpec.progress(log))
+        self.assertEqual(60, HiveEngineSpec.progress(log))
 
     def test_hive_error_msg(self):
         msg = (
@@ -136,7 +136,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             ":5 Table not found 'fact_ridesfdslakj'\", statusCode=3, "
             "sqlState='42S02', errorCode=10001)){...}"
         )
-        self.assertEquals(
+        self.assertEqual(
             (
                 "hive error: Error while compiling statement: FAILED: "
                 "SemanticException [Error 10001]: Line 4:5 "
@@ -146,14 +146,14 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         )
 
         e = Exception("Some string that doesn't match the regex")
-        self.assertEquals(f"hive error: {e}", HiveEngineSpec.extract_error_message(e))
+        self.assertEqual(f"hive error: {e}", HiveEngineSpec.extract_error_message(e))
 
         msg = (
             "errorCode=10001, "
             'errorMessage="Error while compiling statement"), operationHandle'
             '=None)"'
         )
-        self.assertEquals(
+        self.assertEqual(
             ("hive error: Error while compiling statement"),
             HiveEngineSpec.extract_error_message(Exception(msg)),
         )
@@ -166,7 +166,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
     ):
         main = self.get_generic_database()
         limited = engine_spec_class.apply_limit_to_sql(sql, limit, main)
-        self.assertEquals(expected_sql, limited)
+        self.assertEqual(expected_sql, limited)
 
     def test_extract_limit_from_query(self, engine_spec_class=MySQLEngineSpec):
         q0 = "select * from table"
@@ -260,17 +260,17 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
     )
     def test_get_datatype_mysql(self):
-        self.assertEquals("TINY", MySQLEngineSpec.get_datatype(1))
-        self.assertEquals("VARCHAR", MySQLEngineSpec.get_datatype(15))
+        self.assertEqual("TINY", MySQLEngineSpec.get_datatype(1))
+        self.assertEqual("VARCHAR", MySQLEngineSpec.get_datatype(15))
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
     )
     def test_get_datatype_presto(self):
-        self.assertEquals("STRING", PrestoEngineSpec.get_datatype("string"))
+        self.assertEqual("STRING", PrestoEngineSpec.get_datatype("string"))
 
     def test_get_datatype(self):
-        self.assertEquals("VARCHAR", BaseEngineSpec.get_datatype("VARCHAR"))
+        self.assertEqual("VARCHAR", BaseEngineSpec.get_datatype("VARCHAR"))
 
     def test_limit_with_implicit_offset(self):
         self.sql_limit_regex(
@@ -343,7 +343,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 self.assertSetEqual(defined_grains, intersection, engine)
 
     def test_presto_get_view_names_return_empty_list(self):
-        self.assertEquals(
+        self.assertEqual(
             [], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY)
         )
 
@@ -652,7 +652,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEqual("SELECT  \nWHERE ds = '01-01-19' AND hour = 1", query_result)
 
     def test_hive_get_view_names_return_empty_list(self):
-        self.assertEquals(
+        self.assertEqual(
             [], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY)
         )
 
@@ -807,4 +807,4 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             expected = ["VARCHAR(255)", "VARCHAR(255)", "DOUBLE PRECISION"]
         else:
             expected = ["VARCHAR(255)", "VARCHAR(255)", "FLOAT"]
-        self.assertEquals(col_names, expected)
+        self.assertEqual(col_names, expected)

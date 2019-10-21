@@ -130,7 +130,7 @@ class RequestAccessTests(SupersetTestCase):
             content_type="application/json",
             follow_redirects=True,
         )
-        self.assertNotEquals(405, response.status_code)
+        self.assertNotEqual(405, response.status_code)
 
     def test_override_role_permissions_1_table(self):
         response = self.client.post(
@@ -138,15 +138,15 @@ class RequestAccessTests(SupersetTestCase):
             data=json.dumps(ROLE_TABLES_PERM_DATA),
             content_type="application/json",
         )
-        self.assertEquals(201, response.status_code)
+        self.assertEqual(201, response.status_code)
 
         updated_override_me = security_manager.find_role("override_me")
-        self.assertEquals(1, len(updated_override_me.permissions))
+        self.assertEqual(1, len(updated_override_me.permissions))
         birth_names = self.get_table_by_name("birth_names")
-        self.assertEquals(
+        self.assertEqual(
             birth_names.perm, updated_override_me.permissions[0].view_menu.name
         )
-        self.assertEquals(
+        self.assertEqual(
             "datasource_access", updated_override_me.permissions[0].permission.name
         )
 
@@ -156,26 +156,26 @@ class RequestAccessTests(SupersetTestCase):
             data=json.dumps(ROLE_ALL_PERM_DATA),
             content_type="application/json",
         )
-        self.assertEquals(201, response.status_code)
+        self.assertEqual(201, response.status_code)
 
         updated_role = security_manager.find_role("override_me")
         perms = sorted(updated_role.permissions, key=lambda p: p.view_menu.name)
         druid_ds_1 = self.get_druid_ds_by_name("druid_ds_1")
-        self.assertEquals(druid_ds_1.perm, perms[0].view_menu.name)
-        self.assertEquals("datasource_access", perms[0].permission.name)
+        self.assertEqual(druid_ds_1.perm, perms[0].view_menu.name)
+        self.assertEqual("datasource_access", perms[0].permission.name)
 
         druid_ds_2 = self.get_druid_ds_by_name("druid_ds_2")
-        self.assertEquals(druid_ds_2.perm, perms[1].view_menu.name)
-        self.assertEquals(
+        self.assertEqual(druid_ds_2.perm, perms[1].view_menu.name)
+        self.assertEqual(
             "datasource_access", updated_role.permissions[1].permission.name
         )
 
         birth_names = self.get_table_by_name("birth_names")
-        self.assertEquals(birth_names.perm, perms[2].view_menu.name)
-        self.assertEquals(
+        self.assertEqual(birth_names.perm, perms[2].view_menu.name)
+        self.assertEqual(
             "datasource_access", updated_role.permissions[2].permission.name
         )
-        self.assertEquals(3, len(perms))
+        self.assertEqual(3, len(perms))
 
     def test_override_role_permissions_drops_absent_perms(self):
         override_me = security_manager.find_role("override_me")
@@ -192,14 +192,14 @@ class RequestAccessTests(SupersetTestCase):
             data=json.dumps(ROLE_TABLES_PERM_DATA),
             content_type="application/json",
         )
-        self.assertEquals(201, response.status_code)
+        self.assertEqual(201, response.status_code)
         updated_override_me = security_manager.find_role("override_me")
-        self.assertEquals(1, len(updated_override_me.permissions))
+        self.assertEqual(1, len(updated_override_me.permissions))
         birth_names = self.get_table_by_name("birth_names")
-        self.assertEquals(
+        self.assertEqual(
             birth_names.perm, updated_override_me.permissions[0].view_menu.name
         )
-        self.assertEquals(
+        self.assertEqual(
             "datasource_access", updated_override_me.permissions[0].permission.name
         )
 
