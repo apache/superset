@@ -1,0 +1,49 @@
+{
+  "name": "@superset-ui/legacy-preset-chart-kepler",
+  "version": "0.1.0",
+  "description": "Superset Chart - kerpler.gl",
+  "sideEffects": true,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui-plugins-deckgl.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui-plugins-deckgl/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui-plugins-deckgl#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "kepler.gl": "1.1.8",
+    "lodash": "^4.17.15",
+    "mapbox-gl": "^0.53.0",
+    "prop-types": "^15.6.0",
+    "react-palm": "^3.1.2",
+    "shortid": "^2.2.15",
+    "styled-components": "^4.4.0",
+    "viewport-mercator-project": "^6.1.1"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart": "^0.12.0",
+    "@superset-ui/color": "^0.12.0",
+    "@superset-ui/connection": "^0.12.0",
+    "@superset-ui/core": "^0.12.0",
+    "@superset-ui/dimension": "^0.12.0",
+    "@superset-ui/number-format": "^0.12.0",
+    "@superset-ui/time-format": "^0.12.0",
+    "@superset-ui/translation": "^0.12.0",
+    "react": "^15 || ^16"
+  }
+}
