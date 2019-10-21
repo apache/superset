@@ -54,9 +54,9 @@ class CeleryConfig(object):
     if REDIS_DBNUMBER == '' or REDIS_DBNUMBER is None:
         REDIS_DBNUMBER = 1
     if REDIS_PASSWORD == '' or REDIS_PASSWORD is None:
-        CELERY_RESULT_BACKEND = 'redis://%s@%s:%s/%s' % (REDIS_PASSWORD, REDIS_HOST, REDIS_PORT, REDIS_DBNUMBER)
-    else:
         CELERY_RESULT_BACKEND = 'redis://%s:%s/%s' % (REDIS_HOST, REDIS_PORT, REDIS_DBNUMBER)
+    else:
+        CELERY_RESULT_BACKEND = 'redis://%s@%s:%s/%s' % (REDIS_PASSWORD, REDIS_HOST, REDIS_PORT, REDIS_DBNUMBER)
     CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
     CELERY_TASK_PROTOCOL = 1
 
