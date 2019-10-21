@@ -47,10 +47,11 @@ REDIS_HOST = get_env_variable('REDIS_HOST')
 REDIS_PORT = get_env_variable('REDIS_PORT')
 REDIS_PASSWORD = get_env_variable('REDIS_PASSWORD')
 REDIS_DBNUMBER = get_env_variable('REDIS_DBNUMBER')
+
 class CeleryConfig(object):
     BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
     CELERY_IMPORTS = ('superset.sql_lab', )
-    if REDIS_DBNUMBER == '' or REDIS_DNBUMBER is None:
+    if REDIS_DBNUMBER == '' or REDIS_DBNUMBER is None:
         REDIS_DBNUMBER = 1
     if REDIS_PASSWORD == '' or REDIS_PASSWORD is None:
         CELERY_RESULT_BACKEND = 'redis://%s@%s:%s/%s' % (REDIS_PASSWORD, REDIS_HOST, REDIS_PORT, REDIS_DBNUMBER)
