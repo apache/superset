@@ -1038,6 +1038,7 @@ def get_since_until(
         - Last month
         - Last quarter
         - Last year
+        - Year to date
         - No filter
         - Last X seconds/minutes/hours/days/weeks/months/years
         - Next X seconds/minutes/hours/days/weeks/months/years
@@ -1065,6 +1066,10 @@ def get_since_until(
         ),
         "Last year": (
             relative_start - relativedelta(years=1),  # noqa: T400
+            relative_end,
+        ),
+        "Year to date": (
+            relative_start - relativedelta(nlyearday=1),  # noqa: T400
             relative_end,
         ),
     }
