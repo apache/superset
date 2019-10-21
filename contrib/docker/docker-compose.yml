@@ -49,6 +49,8 @@ services:
       POSTGRES_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      # Change if your redis instance has password
+      REDIS_PASSWORD: ''
       # If using production, comment development volume below
       #SUPERSET_ENV: production
       SUPERSET_ENV: development

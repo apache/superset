@@ -45,12 +45,15 @@ SQLALCHEMY_DATABASE_URI = 'postgresql://%s:%s@%s:%s/%s' % (POSTGRES_USER,
 
 REDIS_HOST = get_env_variable('REDIS_HOST')
 REDIS_PORT = get_env_variable('REDIS_PORT')
-
+REDIS_PASSWORD = get_env_variable('REDIS_PASSWORD')
 
 class CeleryConfig(object):
     BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
     CELERY_IMPORTS = ('superset.sql_lab', )
-    CELERY_RESULT_BACKEND = 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
+    if REDIS_PASSWORD == '' or REDIS_PASSWORD is None:
+        CELERY_RESULT_BACKEND = 'redis://%s@%s:%s/1' % (REDIS_PASSWORD, REDIS_HOST, REDIS_PORT)
+    else:
+        CELERY_RESULT_BACKEND = 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
     CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
     CELERY_TASK_PROTOCOL = 1
 
