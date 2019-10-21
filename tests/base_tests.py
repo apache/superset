@@ -255,8 +255,8 @@ class SupersetTestCase(unittest.TestCase):
         self.assertFalse(is_feature_enabled("FOO"))
 
     def test_feature_flags(self):
-        self.assertEquals(is_feature_enabled("foo"), "bar")
-        self.assertEquals(is_feature_enabled("super"), "set")
+        self.assertEqual(is_feature_enabled("foo"), "bar")
+        self.assertEqual(is_feature_enabled("super"), "set")
 
     def get_dash_by_slug(self, dash_slug):
         sesh = db.session()

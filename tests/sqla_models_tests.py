@@ -25,22 +25,22 @@ class DatabaseModelTestCase(SupersetTestCase):
     def test_is_time_druid_time_col(self):
         """Druid has a special __time column"""
         col = TableColumn(column_name="__time", type="INTEGER")
-        self.assertEquals(col.is_dttm, None)
+        self.assertEqual(col.is_dttm, None)
         DruidEngineSpec.alter_new_orm_column(col)
-        self.assertEquals(col.is_dttm, True)
+        self.assertEqual(col.is_dttm, True)
 
         col = TableColumn(column_name="__not_time", type="INTEGER")
-        self.assertEquals(col.is_time, False)
+        self.assertEqual(col.is_time, False)
 
     def test_is_time_by_type(self):
         col = TableColumn(column_name="foo", type="DATE")
-        self.assertEquals(col.is_time, True)
+        self.assertEqual(col.is_time, True)
 
         col = TableColumn(column_name="foo", type="DATETIME")
-        self.assertEquals(col.is_time, True)
+        self.assertEqual(col.is_time, True)
 
         col = TableColumn(column_name="foo", type="STRING")
-        self.assertEquals(col.is_time, False)
+        self.assertEqual(col.is_time, False)
 
     def test_has_extra_cache_keys(self):
         query = "SELECT '{{ cache_key_wrapper('user_1') }}' as user"
