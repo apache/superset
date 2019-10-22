@@ -117,13 +117,11 @@ Now let's craft a source release
     mkdir -p ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
     git archive \
         --format=tar.gz ${SUPERSET_VERSION_RC} \
-        --prefix="${SUPERSET_RELEASE}/" \
-        -o /tmp/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
+        --prefix="${SUPERSET_RELEASE_RC}/" \
+        -o ~/svn/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
 
-        -o ~/svn/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_TARBALL}
-
-    cd ~/svn/superset_dev/${VERSION}/
-    ${REPO_DIR}/scripts/sign.sh ${RELEASE}-source.tar.gz
+    cd ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
+    ${SUPERSET_REPO_DIR}/scripts/sign.sh ${SUPERSET_RELEASE_RC}-source.tar.gz
 ```
 
 ### Shipping to SVN
@@ -132,8 +130,8 @@ Now let's ship this RC into svn's dev folder
 
 ```bash
     cd ~/svn/superset_dev/
-    svn add ${VERSION_RC}
-    svn commit -m "Release ${VERSION}"
+    svn add ${SUPERSET_VERSION_RC}
+    svn commit -m "Release ${SUPERSET_VERSION_RC}"
 ```
 
 Now you're ready to start the VOTE thread.
@@ -147,10 +145,12 @@ https://www.apache.org/info/verification.html
 Upon a successful vote (community AND IPMC), you'll have to copy the folder
 into the non-"dev/" folder.
 ```bash
-    cp -r ~/svn/superset_dev/${VERSION_RC}/ ~/svn/superset/${VERSION}/
+    cp -r ~/svn/superset_dev/${SUPERSET_VERSION_RC}/ ~/svn/superset/${SUPERSET_VERSION}/
     cd ~/svn/superset/
-    svn add ${VERSION}
-    svn commit -m "${VERSION}"
+    # Rename the RC (0.34.1rc1) to the actual version being released (0.34.1)
+    for f in ${SUPERSET_VERSION}/*; do mv "$f" "${f/${SUPERSET_VERSION_RC}/${SUPERSET_VERSION}}"; done
+    svn add ${SUPERSET_VERSION}
+    svn commit -m "Release ${SUPERSET_VERSION}"
 ```
 
 Now you can announce the release on the mailing list, make sure to use the
