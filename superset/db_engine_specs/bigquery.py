@@ -24,7 +24,6 @@ from sqlalchemy import literal_column
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
-
 pandas_dtype_map = {
     "STRING": "object",
     "BOOLEAN": "bool",
