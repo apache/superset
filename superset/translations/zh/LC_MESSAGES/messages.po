@@ -5006,6 +5006,10 @@ msgstr "查询搜索"
 msgid "Upload a CSV"
 msgstr "上传CSV文件"
 
+#: superset/views/core.py:3125
+msgid "Quick upload a CSV"
+msgstr "快速上传CSV文件"
+
 #: superset/views/sql_lab.py:25
 msgid "Status"
 msgstr "状态"
