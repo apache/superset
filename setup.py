@@ -115,7 +115,7 @@ setup(
         "mysql": ["mysqlclient==1.4.2.post1"],
         "postgres": ["psycopg2-binary==2.7.5"],
         "presto": ["pyhive[presto]>=0.4.0"],
-        "druid": ["pydruid==0.5.2", "requests==2.22.0"],
+        "druid": ["pydruid==0.5.7", "requests==2.22.0"],
     },
     python_requires="~=3.6",
     author="Apache Software Foundation",
