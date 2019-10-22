@@ -153,6 +153,16 @@ into the non-"dev/" folder.
     svn commit -m "Release ${SUPERSET_VERSION}"
 ```
 
+Then tag the final release:
+```bash
+    # Go to the root directory of the repo, e.g. `~/src/incubator-superset`
+    cd ~/src/incubator-superset/
+    # make sure you're on the correct branch (e.g. 0.34)
+    git branch
+    # Create the release tag
+    git tag -f ${SUPERSET_VERSION}
+```
+
 Now you can announce the release on the mailing list, make sure to use the
 proper template
 
