@@ -55,7 +55,7 @@ export default function MenuObject({ label, icon, childs, url, index }) {
             eventKey={parseFloat(`${index}.${index1}`)}
           >
             <i className={`fa ${child.icon}`} />
-            {child.label}
+            &nbsp; {child.label}
           </MenuItem>
         ),
       )}
