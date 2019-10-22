@@ -27,7 +27,7 @@ synchronous communications, we tend to use the `#apache-releases` channel
 on the Superset Slack. People crafting releases and those interested in
 partaking in the process should join the channel.
 
-## Release setup
+## Release setup (First Time Only)
 
 First you need to setup a few things. This is a one-off and doesn't
 need to be done at every release.
