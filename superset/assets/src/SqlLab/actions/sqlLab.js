@@ -221,7 +221,7 @@ export function fetchQueryResults(query, displayLimit) {
     dispatch(requestQueryResults(query));
 
     return SupersetClient.get({
-      endpoint: `/superset/results/${query.resultsKey}/${displayLimit}`,
+      endpoint: `/superset/results/${query.resultsKey}/?rows=${displayLimit}`,
       parseMethod: 'text',
     })
       .then(({ text = '{}' }) => {

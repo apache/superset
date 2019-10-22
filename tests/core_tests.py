@@ -785,7 +785,7 @@ class CoreTests(SupersetTestCase):
 
         # limit results to 1
         limited_data = data[:1]
-        result = json.loads(self.get_resp("/superset/results/key/1"))
+        result = json.loads(self.get_resp("/superset/results/key/?rows=1"))
         expected = {
             "status": "success",
             "query": {"rows": 100},
