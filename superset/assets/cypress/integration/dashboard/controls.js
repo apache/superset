@@ -52,7 +52,7 @@ export default () => describe('top-level controls', () => {
     forceRefreshRequests.length = 0;
   });
 
-  it('should allow chart level refresh', () => {
+  it.skip('should allow chart level refresh', () => {
     cy.wait(sliceRequests);
     cy.get('.grid-container .world_map').should('be.exist');
     cy.get(`#slice_${mapId}-controls`).click();
