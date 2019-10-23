@@ -96,7 +96,7 @@ prerequisites are in order:
 ```
 
 Make sure the version number under `superset/assets/package.json` corresponds
-to `VERSION` above (`0.34.1` in example above), and has been committed to the
+to `SUPERSET_VERSION` above (`0.34.1` in example above), and has been committed to the
 branch.
 
 ```bash
@@ -178,11 +178,10 @@ section for the new release.
 To make a working build given a tarball
 ```bash
 # Building a docker from a tarball
-VERSION=0.33.0rc2 && \
-docker build -t apache-superset:$VERSION -f Dockerfile.from_tarball . --build-arg VERSION=$VERSION
+docker build -t apache-superset:${SUPERSET_VERSION_RC} -f Dockerfile.from_tarball . --build-arg VERSION=${SUPERSET_VERSION_RC}
 
 # testing the resulting docker
-docker run -p 5001:8088 apache-superset:$VERSION
+docker run -p 5001:8088 apache-superset:${SUPERSET_VERSION_RC}
 # you should be able to access localhost:5001 on your browser
 # login using admin/admin
 ```
