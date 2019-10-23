@@ -62,9 +62,8 @@ Finally bump the version number on `superset/static/assets/package.json` ::
 
     "version": "0.35.0rc1"
 
-Then git tag the version and push
- 
- 
+Commit the change with the version number, then git tag the version and push
+
 ## Crafting tarball and signatures
 
 Now let's craft a source release
