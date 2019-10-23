@@ -31,15 +31,20 @@ from superset.models import core as models
 config = app.config
 
 
-class CsvToDatabaseForm(DynamicForm):
+class BaseCsvToDatabaseForm(DynamicForm):
     # pylint: disable=E0211
-    def csv_allowed_dbs():
+    def csv_allowed_dbs(Form, insert_default_db=False):
         csv_allowed_dbs = []
+        if insert_default_db:
+            default_db = models.Database()
+            default_db.id = -1
+            default_db.database_name = "In a new database"
+            csv_allowed_dbs.append(default_db)
         csv_enabled_dbs = (
             db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
         )
         for csv_enabled_db in csv_enabled_dbs:
-            if CsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):
+            if Form.at_least_one_schema_is_allowed(csv_enabled_db):
                 csv_allowed_dbs.append(csv_enabled_db)
         return csv_allowed_dbs
 
@@ -80,6 +85,12 @@ class CsvToDatabaseForm(DynamicForm):
         ):
             return True
         return False
+
+
+class CsvToDatabaseForm(BaseCsvToDatabaseForm):
+    # pylint: disable=E0211
+    def csv_allowed_dbs():
+        super(CsvToDatabaseForm).csv_allowed_dbs(CsvToDatabaseForm, False)
 
     name = StringField(
         _("Table Name"),
@@ -199,59 +210,11 @@ class CsvToDatabaseForm(DynamicForm):
         widget=BS3TextFieldWidget(),
     )
 
+
 class QuickCsvToDatabaseForm(DynamicForm):
     # pylint: disable=E0211
     def csv_allowed_dbs():
-        default_db = models.Database()
-        default_db.id = -1
-        default_db.database_name = "In a new database"
-        csv_allowed_dbs = []
-        csv_enabled_dbs = (
-            db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
-        )
-        csv_enabled_dbs.insert(0, default_db)
-        for csv_enabled_db in csv_enabled_dbs:
-            if QuickCsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):
-                csv_allowed_dbs.append(csv_enabled_db)
-        return csv_allowed_dbs
-
-    @staticmethod
-    def at_least_one_schema_is_allowed(database):
-        """
-        If the user has access to the database or all datasource
-            1. if schemas_allowed_for_csv_upload is empty
-                a) if database does not support schema
-                    user is able to upload csv without specifying schema name
-                b) if database supports schema
-                    user is able to upload csv to any schema
-            2. if schemas_allowed_for_csv_upload is not empty
-                a) if database does not support schema
-                    This situation is impossible and upload will fail
-                b) if database supports schema
-                    user is able to upload to schema in schemas_allowed_for_csv_upload
-        elif the user does not access to the database or all datasource
-            1. if schemas_allowed_for_csv_upload is empty
-                a) if database does not support schema
-                    user is unable to upload csv
-                b) if database supports schema
-                    user is unable to upload csv
-            2. if schemas_allowed_for_csv_upload is not empty
-                a) if database does not support schema
-                    This situation is impossible and user is unable to upload csv
-                b) if database supports schema
-                    user is able to upload to schema in schemas_allowed_for_csv_upload
-        """
-        if (
-            security_manager.database_access(database)
-            or security_manager.all_datasource_access()
-        ):
-            return True
-        schemas = database.get_schema_access_for_csv_upload()
-        if schemas and security_manager.schemas_accessible_by_user(
-            database, schemas, False
-        ):
-            return True
-        return False
+        super(QuickCsvToDatabaseForm).csv_allowed_dbs(QuickCsvToDatabaseForm, True)
 
     name = StringField(
         _("Table Name"),
@@ -259,14 +222,14 @@ class QuickCsvToDatabaseForm(DynamicForm):
         validators=[DataRequired()],
         widget=BS3TextFieldWidget(),
     )
-    csv_file = FileField( # TODO: Replace DropDown with Drag&Drop
+    csv_file = FileField(  # TODO: Replace DropDown with Drag&Drop
         _("CSV File"),
         description=_("Select a CSV file to be uploaded to a database."),
         validators=[FileRequired(), FileAllowed(["csv"], _("CSV Files Only!"))],
     )
-    con = QuerySelectField( # TODO: Add default option (new Database)
+    con = QuerySelectField(  # TODO: Add default option (new Database)
         _("Database"),
-        query_factory=csv_allowed_dbs, 
+        query_factory=csv_allowed_dbs,
         get_pk=lambda a: a.id,
         get_label=lambda a: a.database_name,
     )
