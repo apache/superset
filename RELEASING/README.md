@@ -48,10 +48,29 @@ need to be done at every release.
     svn commit -m "Add PGP keys of new Superset committer"
 ```
 
+## Crafting a source release
+
+When crafting a new minor or major release we create 
+a branch named with the release MAJOR.MINOR version.
+This new branch will hold all PATCH and release candidates 
+that belong to the MAJOR.MINOR version.
+
+The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
+Then (if needed) apply all cherries that will make the PATCH
+
+Finally bump the version number on `superset/static/assets/package.json` ::
+
+    "version": "0.35.0rc1"
+
+Then git tag the version and push
+ 
+ 
 ## Crafting tarball and signatures
 
 Now let's craft a source release
 ```bash
+    # Set your Apache GPG key name
+    export FULLNAME="Maxime Beauchemin"
     # Assuming these commands are executed from the root of the repo
     export REPO_DIR=$(pwd)
     # Set VERSION to the release being prepared (rc1 for first vote on version)
@@ -70,7 +89,10 @@ Now let's craft a source release
         -o ~/svn/superset_dev/${VERSION}/${RELEASE_TARBALL}
 
     cd ~/svn/superset_dev/${VERSION}/
-    ${REPO_DIR}/scripts/sign.sh ${RELEASE}-source.tar.gz
+    ${REPO_DIR}/scripts/sign.sh "${RELEASE_TARBALL}" "${FULLNAME}"
+
+    # To verify to signature
+    gpg --verify "${RELEASE_TARBALL}".asc "${RELEASE_TARBALL}"
 ```
 
 ## Shipping to SVN
