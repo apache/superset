@@ -104,7 +104,7 @@ class SupersetSecurityManager(SecurityManager):
 
     ALPHA_ONLY_VIEW_MENUS = {
         "Upload a CSV",
-        "Quick upload a CSV"
+        "Quick upload a CSV",
     }
 
     ADMIN_ONLY_PERMISSIONS = {
