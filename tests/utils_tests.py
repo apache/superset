@@ -130,6 +130,7 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEqual(parse_human_timedelta("now"), timedelta(0))
         self.assertEqual(parse_human_timedelta("1 year"), timedelta(366))
         self.assertEqual(parse_human_timedelta("-1 year"), timedelta(-365))
+        self.assertEqual(parse_human_timedelta(None), timedelta(0))
 
     @patch("superset.utils.core.datetime")
     def test_parse_past_timedelta(self, mock_datetime):
