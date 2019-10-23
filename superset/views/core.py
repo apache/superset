@@ -2135,6 +2135,25 @@ class Superset(BaseSupersetView):
             return json_success(json.dumps({"published": dash.published}))
 
     @has_access
+    @expose("/quickupload")
+    def quickupload(self):
+        bootstrap_data = {
+            "test": True,
+            "common": self.common_bootstrap_payload(),
+        }
+
+        if request.args.get("json") == "true":
+            return json_success(json.dumps(bootstrap_data))
+
+        return self.render_template(
+            "superset/quickupload.html",
+            entry="quickupload",
+            standalone_mode=False,
+            title="Quick Upload a CSV",
+            bootstrap_data=json.dumps(bootstrap_data),
+        )
+
+    @has_access
     @expose("/dashboard/<dashboard_id>/")
     def dashboard(self, dashboard_id):
         """Server side rendering for a dashboard"""
