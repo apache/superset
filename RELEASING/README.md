@@ -22,6 +22,11 @@ under the License.
 You'll probably want to run these commands manually and understand what
 they do prior to doing so.
 
+For coordinating on releases, on more operational topics that require more
+synchronous communications, we tend to use the `#apache-releases` channel
+on the Superset Slack. People crafting releases and those interested in
+partaking in the process should join the channel.
+
 ## Release setup
 
 First you need to setup a few things. This is a one-off and doesn't
