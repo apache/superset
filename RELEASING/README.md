@@ -27,7 +27,7 @@ synchronous communications, we tend to use the `#apache-releases` channel
 on the Superset Slack. People crafting releases and those interested in
 partaking in the process should join the channel.
 
-## Release setup
+## Release setup (First Time Only)
 
 First you need to setup a few things. This is a one-off and doesn't
 need to be done at every release.
@@ -53,56 +53,114 @@ need to be done at every release.
     svn commit -m "Add PGP keys of new Superset committer"
 ```
 
-## Crafting tarball and signatures
+## Setting up the release environment (do every time)
+
+As the vote process takes a minimum of 72h (community vote) + 72h (IPMC) vote,
+often stretching over several weeks calendar time if votes don't pass, chances are
+the same terminal session won't be used for crafting the release candidate and the
+final release. Therefore, it's a good idea to do the following every time you
+work on a new phase of the release process to make sure you aren't releasing
+the wrong files/using wrong names:
+
+```bash
+    # Set SUPERSET_VERSION to the release being prepared, e.g. 0.34.1.
+    export SUPERSET_VERSION=XX.YY.ZZ
+    # Set RC to the release candindate number. Replacing QQ below with 1
+    # indicates rc1 i.e. first vote on version above (0.34.1rc1)
+    export SUPERSET_RC=QQ
+```
+
+Then you can generate other derived environment variables that are used
+throughout the release process:
+
+```bash
+    export SUPERSET_VERSION_RC=${SUPERSET_VERSION}rc${SUPERSET_RC}
+    export SUPERSET_RELEASE=apache-superset-incubating-${SUPERSET_VERSION}
+    export SUPERSET_RELEASE_RC=apache-superset-incubating-${SUPERSET_VERSION_RC}
+    export SUPERSET_RELEASE_TARBALL=${SUPERSET_RELEASE}-source.tar.gz
+    export SUPERSET_RELEASE_RC_TARBALL=${SUPERSET_RELEASE_RC}-source.tar.gz
+```
+
+## Preparing the release candidate
+
+The first step of preparing an Apache Release is packaging a release candidate
+to be voted on. Start by going to the root of the repo and making sure the
+prerequisites are in order:
+
+```bash
+    # Go to the root directory of the repo, e.g. `~/src/incubator-superset`
+    cd ~/src/incubator-superset/
+    export SUPERSET_REPO_DIR=$(pwd)
+    # make sure you're on the correct branch (e.g. 0.34)
+    git branch
+```
+
+Make sure the version number under `superset/assets/package.json` corresponds
+to `SUPERSET_VERSION` above (`0.34.1` in example above), and has been committed to the
+branch.
+
+```bash
+    grep ${SUPERSET_VERSION} superset/assets/package.json
+```
+
+If nothing shows up, either the version isn't correctly set in `package.json`,
+or the environment variable is misconfigured.
+
+### Crafting tarball and signatures
 
 Now let's craft a source release
 ```bash
-    # Assuming these commands are executed from the root of the repo
-    export REPO_DIR=$(pwd)
-    # Set VERSION to the release being prepared (rc1 for first vote on version)
-    export VERSION=0.34.1rc1
-    export RELEASE=apache-superset-incubating-${VERSION}
-    export RELEASE_TARBALL=${RELEASE}-source.tar.gz
-
     # Let's create a git tag
-    git tag -f ${VERSION}
+    git tag -f ${SUPERSET_VERSION_RC}
 
     # Create the target folder
-    mkdir -p ~/svn/superset_dev/${VERSION}/
+    mkdir -p ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
     git archive \
-        --format=tar.gz ${VERSION} \
-        --prefix="${RELEASE}/" \
-        -o ~/svn/superset_dev/${VERSION}/${RELEASE_TARBALL}
+        --format=tar.gz ${SUPERSET_VERSION_RC} \
+        --prefix="${SUPERSET_RELEASE_RC}/" \
+        -o ~/svn/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
 
-    cd ~/svn/superset_dev/${VERSION}/
-    ${REPO_DIR}/scripts/sign.sh ${RELEASE}-source.tar.gz
+    cd ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
+    ${SUPERSET_REPO_DIR}/scripts/sign.sh ${SUPERSET_RELEASE_RC}-source.tar.gz
 ```
 
-## Shipping to SVN
+### Shipping to SVN
 
 Now let's ship this RC into svn's dev folder
 
 ```bash
     cd ~/svn/superset_dev/
-    svn add ${VERSION}
-    svn commit -m "${VERSION}"
+    svn add ${SUPERSET_VERSION_RC}
+    svn commit -m "Release ${SUPERSET_VERSION_RC}"
 ```
 
 Now you're ready to start the VOTE thread.
 
-## Validating a release
+### Validating a release
 
 https://www.apache.org/info/verification.html
 
 ## Publishing a successful release
 
-Upon a successful vote, you'll have to copy the folder into the non-"dev/"
-folder.
+Upon a successful vote (community AND IPMC), you'll have to copy the folder
+into the non-"dev/" folder.
 ```bash
-    cp -r ~/svn/superset_dev/${VERSION}/ ~/svn/superset/${VERSION}/
+    cp -r ~/svn/superset_dev/${SUPERSET_VERSION_RC}/ ~/svn/superset/${SUPERSET_VERSION}/
     cd ~/svn/superset/
-    svn add ${VERSION}
-    svn commit -m "${VERSION}"
+    # Rename the RC (0.34.1rc1) to the actual version being released (0.34.1)
+    for f in ${SUPERSET_VERSION}/*; do mv "$f" "${f/${SUPERSET_VERSION_RC}/${SUPERSET_VERSION}}"; done
+    svn add ${SUPERSET_VERSION}
+    svn commit -m "Release ${SUPERSET_VERSION}"
+```
+
+Then tag the final release:
+```bash
+    # Go to the root directory of the repo, e.g. `~/src/incubator-superset`
+    cd ~/src/incubator-superset/
+    # make sure you're on the correct branch (e.g. 0.34)
+    git branch
+    # Create the release tag
+    git tag -f ${SUPERSET_VERSION}
 ```
 
 Now you can announce the release on the mailing list, make sure to use the
@@ -120,11 +178,10 @@ section for the new release.
 To make a working build given a tarball
 ```bash
 # Building a docker from a tarball
-VERSION=0.33.0rc2 && \
-docker build -t apache-superset:$VERSION -f Dockerfile.from_tarball . --build-arg VERSION=$VERSION
+docker build -t apache-superset:${SUPERSET_VERSION_RC} -f Dockerfile.from_tarball . --build-arg VERSION=${SUPERSET_VERSION_RC}
 
 # testing the resulting docker
-docker run -p 5001:8088 apache-superset:$VERSION
+docker run -p 5001:8088 apache-superset:${SUPERSET_VERSION_RC}
 # you should be able to access localhost:5001 on your browser
 # login using admin/admin
 ```
