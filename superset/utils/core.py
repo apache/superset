@@ -291,7 +291,7 @@ class DashboardEncoder(json.JSONEncoder):
             return json.JSONEncoder(sort_keys=True).default(self, o)
 
 
-def parse_human_timedelta(s: str) -> timedelta:
+def parse_human_timedelta(s: Optional[str]) -> timedelta:
     """
     Returns ``datetime.datetime`` from natural language time deltas
 
