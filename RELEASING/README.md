@@ -88,7 +88,7 @@ Now let's craft a source release
         -o ~/svn/superset_dev/${VERSION}/${RELEASE_TARBALL}
 
     cd ~/svn/superset_dev/${VERSION}/
-    ${REPO_DIR}/scripts/sign.sh "${RELEASE_TARBALL}" "${FULLNAME}"
+    "${REPO_DIR}"/scripts/sign.sh "${RELEASE_TARBALL}" "${FULLNAME}"
 
     # To verify to signature
     gpg --verify "${RELEASE_TARBALL}".asc "${RELEASE_TARBALL}"
