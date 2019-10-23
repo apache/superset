@@ -70,7 +70,7 @@ class DashboardTests(SupersetTestCase):
         resp = self.get_resp(url)
         self.assertIn("[ untitled dashboard ]", resp)
         dash_count_after = db.session.query(func.count(models.Dashboard.id)).first()[0]
-        self.assertEquals(dash_count_before + 1, dash_count_after)
+        self.assertEqual(dash_count_before + 1, dash_count_after)
 
     def test_dashboard_modes(self):
         self.login(username="admin")
