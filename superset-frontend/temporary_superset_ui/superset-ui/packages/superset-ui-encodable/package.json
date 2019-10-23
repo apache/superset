@@ -35,9 +35,9 @@
     "d3-scale": "^3.0.1",
     "d3-time": "^1.0.11",
     "lodash": "^4.17.15",
-    "vega": "^5.4.0",
-    "vega-expression": "^2.6.0",
-    "vega-lite": "^3.4.0"
+    "vega": "5.6.0",
+    "vega-expression": "^2.6.2",
+    "vega-lite": "3.4.0"
   },
   "peerDependencies": {
     "@superset-ui/color": "^0.12.0",
