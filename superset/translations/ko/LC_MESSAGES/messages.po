@@ -3986,6 +3986,9 @@ msgstr "Query 검색"
 msgid "Upload a CSV"
 msgstr "CSV 업로드"
 
+msgid "Quick upload a CSV"
+msgstr "빠른 CSV 업로드"
+
 msgid "Status"
 msgstr "상태"
 

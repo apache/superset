@@ -4701,6 +4701,10 @@ msgstr "Ricerca Query"
 msgid "Upload a CSV"
 msgstr ""
 
+#: superset/views/core.py:3125
+msgid "Quick upload a CSV"
+msgstr ""
+
 #: superset/views/sql_lab.py:18
 msgid "Status"
 msgstr ""

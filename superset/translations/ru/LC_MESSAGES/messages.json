@@ -3097,6 +3097,9 @@
          "Upload a CSV": [
             "Загрузить CSV"
          ],
+         "Quick upload a CSV": [
+            "Быстрая загрузка CSV"
+         ],
          "Status": [
             "Статус"
          ],
