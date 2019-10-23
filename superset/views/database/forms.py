@@ -32,22 +32,6 @@ config = app.config
 
 
 class BaseCsvToDatabaseForm(DynamicForm):
-    # pylint: disable=E0211
-    def csv_allowed_dbs(Form, insert_default_db=False):
-        csv_allowed_dbs = []
-        if insert_default_db:
-            default_db = models.Database()
-            default_db.id = -1
-            default_db.database_name = "In a new database"
-            csv_allowed_dbs.append(default_db)
-        csv_enabled_dbs = (
-            db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
-        )
-        for csv_enabled_db in csv_enabled_dbs:
-            if Form.at_least_one_schema_is_allowed(csv_enabled_db):
-                csv_allowed_dbs.append(csv_enabled_db)
-        return csv_allowed_dbs
-
     @staticmethod
     def at_least_one_schema_is_allowed(database):
         """
@@ -90,7 +74,14 @@ class BaseCsvToDatabaseForm(DynamicForm):
 class CsvToDatabaseForm(BaseCsvToDatabaseForm):
     # pylint: disable=E0211
     def csv_allowed_dbs():
-        super(CsvToDatabaseForm).csv_allowed_dbs(CsvToDatabaseForm, False)
+        csv_allowed_dbs = []
+        csv_enabled_dbs = (
+            db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
+        )
+        for csv_enabled_db in csv_enabled_dbs:
+            if CsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):
+                csv_allowed_dbs.append(csv_enabled_db)
+        return csv_allowed_dbs
 
     name = StringField(
         _("Table Name"),
@@ -211,10 +202,21 @@ class CsvToDatabaseForm(BaseCsvToDatabaseForm):
     )
 
 
-class QuickCsvToDatabaseForm(DynamicForm):
+class QuickCsvToDatabaseForm(BaseCsvToDatabaseForm):
     # pylint: disable=E0211
     def csv_allowed_dbs():
-        super(QuickCsvToDatabaseForm).csv_allowed_dbs(QuickCsvToDatabaseForm, True)
+        csv_allowed_dbs = []
+        default_db = models.Database()
+        default_db.id = -1
+        default_db.database_name = "In a new database"
+        csv_allowed_dbs.append(default_db)
+        csv_enabled_dbs = (
+            db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
+        )
+        for csv_enabled_db in csv_enabled_dbs:
+            if QuickCsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):
+                csv_allowed_dbs.append(csv_enabled_db)
+        return csv_allowed_dbs
 
     name = StringField(
         _("Table Name"),
