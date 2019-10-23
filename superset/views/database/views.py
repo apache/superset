@@ -23,6 +23,7 @@ from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
+from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 from wtforms.fields import StringField
@@ -187,7 +188,7 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
         database = form.con.data
         schema_name = ""
 
-        if not database.id == -1 and self.is_schema_allowed(database, schema_name):
+        if not database.id == -1 and not self.is_schema_allowed(database, schema_name):
             self.flash_schema_message_and_redirect(
                 "/quickcsvtodatabaseview/form", database, schema_name
             )
@@ -195,8 +196,20 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
         csv_filename = form.csv_file.data.filename
+        dbname = csv_filename[:-4]
         path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
+        cwd = os.getcwd()
+        if os.path.isfile(cwd + "/" + dbname + ".db"):
+            message = _(
+                "Database {0} already exists, please choose a different name".format(
+                    dbname
+                )
+            )
+            flash(message, "danger")
+            return redirect("/quickcsvtodatabaseview/form")
         try:
+            engine = create_engine("sqlite:////" + cwd + "/" + dbname + ".db")
+            engine.connect()
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             csv_file.save(path)
             table = SqlaTable(table_name=form.name.data)
@@ -205,6 +218,7 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
             table.database.db_engine_spec.create_table_from_csv(form, table)
         except Exception as e:
             try:
+                os.remove(cwd + "/" + dbname + ".db")
                 os.remove(path)
             except OSError:
                 pass
