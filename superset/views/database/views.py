@@ -34,7 +34,7 @@ import superset.models.core as models
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 from . import DatabaseMixin, sqlalchemy_uri_validator
-from .forms import CsvToDatabaseForm
+from .forms import CsvToDatabaseForm, QuickCsvToDatabaseForm
 
 
 config = app.config
@@ -83,7 +83,28 @@ appbuilder.add_view(
 )
 
 
-class CsvToDatabaseView(SimpleFormView):
+class BaseCsvToDatabaseView(SimpleFormView):
+    def is_schema_allowed(self, database, schema):
+        if not database.allow_csv_upload:
+            return False
+        schemas = database.get_schema_access_for_csv_upload()
+        if schemas:
+            return schema in schemas
+        return (
+            security_manager.database_access(database)
+            or security_manager.all_datasource_access()
+        )
+
+    def flash_schema_message_and_redirect(self, url, database, schema_name):
+        message = _(
+            'Database "{0}" Schema "{1}" is not allowed for csv uploads. '
+            "Please contact Superset Admin".format(database.database_name, schema_name)
+        )
+        flash(message, "danger")
+        return redirect(url)
+
+
+class CsvToDatabaseView(BaseCsvToDatabaseView):
     form = CsvToDatabaseForm
     form_template = "superset/form_view/csv_to_database_view/edit.html"
     form_title = _("CSV to Database configuration")
@@ -104,14 +125,9 @@ class CsvToDatabaseView(SimpleFormView):
         schema_name = form.schema.data or ""
 
         if not self.is_schema_allowed(database, schema_name):
-            message = _(
-                'Database "{0}" Schema "{1}" is not allowed for csv uploads. '
-                "Please contact Superset Admin".format(
-                    database.database_name, schema_name
-                )
+            self.flash_schema_message_and_redirect(
+                "/csvtodatabaseview/form", database, schema_name
             )
-            flash(message, "danger")
-            return redirect("/csvtodatabaseview/form")
 
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
@@ -151,19 +167,71 @@ class CsvToDatabaseView(SimpleFormView):
         stats_logger.incr("successful_csv_upload")
         return redirect("/tablemodelview/list/")
 
-    def is_schema_allowed(self, database, schema):
-        if not database.allow_csv_upload:
-            return False
-        schemas = database.get_schema_access_for_csv_upload()
-        if schemas:
-            return schema in schemas
-        return (
-            security_manager.database_access(database)
-            or security_manager.all_datasource_access()
-        )
-
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
+
+
+class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
+    form = QuickCsvToDatabaseForm
+    form_template = "superset/form_view/quick_csv_to_database_view/quick_edit.html"
+    form_title = _("Quick CSV to Database configuration")
+    add_columns = ["database", "schema", "table_name"]
+
+    def form_get(self, form):
+        form.sep.data = ","
+        form.header.data = 0
+        form.decimal.data = "."
+        form.if_exists.data = "fail"
+
+    def form_post(self, form):
+        database = form.con.data
+        schema_name = ""
+
+        if not database.id == -1 and self.is_schema_allowed(database, schema_name):
+            self.flash_schema_message_and_redirect(
+                "/quickcsvtodatabaseview/form", database, schema_name
+            )
+
+        csv_file = form.csv_file.data
+        form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
+        csv_filename = form.csv_file.data.filename
+        path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
+        try:
+            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
+            csv_file.save(path)
+            table = SqlaTable(table_name=form.name.data)
+            table.database = form.data.get("con")
+            table.database_id = table.database.id
+            table.database.db_engine_spec.create_table_from_csv(form, table)
+        except Exception as e:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+            message = (
+                "Table name {} already exists. Please pick another".format(
+                    form.name.data
+                )
+                if isinstance(e, IntegrityError)
+                else str(e)
+            )
+            flash(message, "danger")
+            stats_logger.incr("failed_csv_upload")
+            return redirect("/quickcsvtodatabaseview/form")
+
+        os.remove(path)
+        # Go back to welcome page / splash screen
+        db_name = table.database.database_name
+        message = _(
+            'CSV file "{0}" uploaded to table "{1}" in '
+            'database "{2}"'.format(csv_filename, form.name.data, db_name)
+        )
+        flash(message, "info")
+        stats_logger.incr("successful_csv_upload")
+        return redirect("/tablemodelview/list/")
+
+
+appbuilder.add_view_no_menu(QuickCsvToDatabaseView)
 
 
 class DatabaseTablesAsync(DatabaseView):
