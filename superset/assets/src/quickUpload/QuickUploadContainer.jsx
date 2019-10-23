@@ -29,6 +29,7 @@ export default class QuickUploadContainer extends React.PureComponent {
     return (
       <div className="container quickupload">
        <p>Test</p>
+        <p>Test 2</p>
       </div>
     );
   }
