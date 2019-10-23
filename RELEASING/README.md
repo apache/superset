@@ -90,6 +90,7 @@ Then you can generate other derived environment variables that are used
 throughout the release process:
 
 ```bash
+    export FULLNAME="Maxime Beauchemin"
     export SUPERSET_VERSION_RC=${SUPERSET_VERSION}rc${SUPERSET_RC}
     export SUPERSET_RELEASE=apache-superset-incubating-${SUPERSET_VERSION}
     export SUPERSET_RELEASE_RC=apache-superset-incubating-${SUPERSET_VERSION_RC}
@@ -137,10 +138,10 @@ Now let's craft a source release
         -o ~/svn/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
 
     cd ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
-    ${SUPERSET_REPO_DIR}/scripts/sign.sh "${RELEASE_TARBALL}" "${FULLNAME}"
+    ${SUPERSET_REPO_DIR}/scripts/sign.sh "${SUPERSET_RELEASE_RC_TARBALL}" "${FULLNAME}"
 
     # To verify to signature
-    gpg --verify "${RELEASE_TARBALL}".asc "${RELEASE_TARBALL}"
+    gpg --verify "${SUPERSET_RELEASE_RC_TARBALL}".asc "${SUPERSET_RELEASE_RC_TARBALL}"
 
 ```
 
