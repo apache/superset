@@ -283,7 +283,11 @@ class DashboardEncoder(json.JSONEncoder):
     # pylint: disable=E0202
     def default(self, o):
         try:
-            vals = {k: v for k, v in o.__dict__.items() if k not in ("_sa_instance_state", "password")}
+            vals = {
+                k: v
+                for k, v in o.__dict__.items()
+                if k not in ("_sa_instance_state", "password")
+            }
             return {"__{}__".format(o.__class__.__name__): vals}
         except Exception:
             if type(o) == datetime:
