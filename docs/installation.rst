@@ -843,7 +843,7 @@ have the same configuration.
 
 * To start a Celery worker to leverage the configuration run: ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
+    celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c 4
 
 * To start a job which schedules periodic background jobs, run ::
 
