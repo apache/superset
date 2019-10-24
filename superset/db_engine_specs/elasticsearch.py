@@ -45,4 +45,3 @@ class ElasticSearchEngineSpec(BaseEngineSpec):
         if target_type.upper() in ("DATETIME", "DATE"):
             return f"'{dttm.isoformat()}'"
         return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
-
