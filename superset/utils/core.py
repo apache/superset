@@ -33,6 +33,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
+from enum import Enum
 from time import struct_time
 from typing import Iterator, List, NamedTuple, Optional, Tuple, Union
 from urllib.parse import unquote_plus
