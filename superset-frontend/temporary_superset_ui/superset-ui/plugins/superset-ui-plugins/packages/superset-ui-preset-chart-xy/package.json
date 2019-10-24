@@ -21,7 +21,6 @@
   ],
   "author": "Superset",
   "license": "Apache-2.0",
-  "private": true,
   "bugs": {
     "url": "https://github.com/apache-superset/superset-ui-plugins/issues"
   },
@@ -45,8 +44,8 @@
     "lodash": "^4.17.11",
     "prop-types": "^15.6.2",
     "reselect": "^4.0.0",
-    "vega": "^5.2.0",
-    "vega-lite": "^3.1.0"
+    "vega": "5.6.0",
+    "vega-lite": "^3.4.0"
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.12.0",
