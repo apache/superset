@@ -210,7 +210,7 @@ class DatabaseMixin:
         "changed_on_": _("Last Changed"),
         "sqlalchemy_uri": _("SQLAlchemy URI"),
         "cache_timeout": _("Chart Cache Timeout"),
-        "extra":_("Extra"),
+        "extra": _("Extra"),
         "encrypted_extra": ("Secure Extra"),
         "allow_run_async": _("Asynchronous Query Execution"),
         "impersonate_user": _("Impersonate the logged on user"),
@@ -269,4 +269,6 @@ class DatabaseMixin:
         try:
             extra = db.get_encrypted_extra()
         except Exception as e:
-            raise Exception("Secure Extra field cannot be decoded as JSON. {}".format(str(e)))
+            raise Exception(
+                "Secure Extra field cannot be decoded as JSON. {}".format(str(e))
+            )
