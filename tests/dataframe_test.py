@@ -26,16 +26,16 @@ from .base_tests import SupersetTestCase
 
 class SupersetDataFrameTestCase(SupersetTestCase):
     def test_dedup(self):
-        self.assertEquals(dedup(["foo", "bar"]), ["foo", "bar"])
-        self.assertEquals(
+        self.assertEqual(dedup(["foo", "bar"]), ["foo", "bar"])
+        self.assertEqual(
             dedup(["foo", "bar", "foo", "bar", "Foo"]),
             ["foo", "bar", "foo__1", "bar__1", "Foo"],
         )
-        self.assertEquals(
+        self.assertEqual(
             dedup(["foo", "bar", "bar", "bar", "Bar"]),
             ["foo", "bar", "bar__1", "bar__2", "Bar"],
         )
-        self.assertEquals(
+        self.assertEqual(
             dedup(["foo", "bar", "bar", "bar", "Bar"], case_sensitive=False),
             ["foo", "bar", "bar__1", "bar__2", "Bar__3"],
         )
@@ -97,14 +97,14 @@ class SupersetDataFrameTestCase(SupersetTestCase):
 
     def test_is_date(self):
         f = SupersetDataFrame.is_date
-        self.assertEquals(f(np.dtype("M"), ""), True)
-        self.assertEquals(f(np.dtype("f"), "DATETIME"), True)
-        self.assertEquals(f(np.dtype("i"), "TIMESTAMP"), True)
-        self.assertEquals(f(None, "DATETIME"), True)
-        self.assertEquals(f(None, "TIMESTAMP"), True)
+        self.assertEqual(f(np.dtype("M"), ""), True)
+        self.assertEqual(f(np.dtype("f"), "DATETIME"), True)
+        self.assertEqual(f(np.dtype("i"), "TIMESTAMP"), True)
+        self.assertEqual(f(None, "DATETIME"), True)
+        self.assertEqual(f(None, "TIMESTAMP"), True)
 
-        self.assertEquals(f(None, ""), False)
-        self.assertEquals(f(np.dtype(np.int32), ""), False)
+        self.assertEqual(f(None, ""), False)
+        self.assertEqual(f(np.dtype(np.int32), ""), False)
 
     def test_dedup_with_data(self):
         data = [("a", 1), ("a", 2)]

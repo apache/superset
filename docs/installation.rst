@@ -192,7 +192,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    superset run -p 8080 --with-threads --reload --debugger
+    superset run -p 8088 --with-threads --reload --debugger
 
 After installation, you should be able to point your browser to the right
 hostname:port `http://localhost:8088 <http://localhost:8088>`_, login using
