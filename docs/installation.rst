@@ -888,6 +888,9 @@ cache store when upgrading an existing environment.
   entire setup. If not, background jobs can get scheduled multiple times
   resulting in weird behaviors like duplicate delivery of reports,
   higher than expected load / traffic etc.
+  
+* SQL Lab will only run your queries asynchronously if you enable 
+  "Asynchronous Query Execution" in your database settings.
 
 
 Email Reports
