@@ -90,7 +90,8 @@ Then you can generate other derived environment variables that are used
 throughout the release process:
 
 ```bash
-    export FULLNAME="Maxime Beauchemin"
+    # Replace FULLNAME with your PGP key name for Apache
+    export FULLNAME="YOURFULLNAMEHERE"
     export SUPERSET_VERSION_RC=${SUPERSET_VERSION}rc${SUPERSET_RC}
     export SUPERSET_RELEASE=apache-superset-incubating-${SUPERSET_VERSION}
     export SUPERSET_RELEASE_RC=apache-superset-incubating-${SUPERSET_VERSION_RC}
