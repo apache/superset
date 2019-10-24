@@ -96,7 +96,7 @@ Features
 Databases
 ---------
 
-The following RDBMS are currently suppored:
+The following RDBMS are currently supported:
 
 - `Amazon Athena <https://aws.amazon.com/athena/>`_
 - `Amazon Redshift <https://aws.amazon.com/redshift/>`_
