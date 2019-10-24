@@ -222,6 +222,7 @@ class DatabaseMixin:
 
     def _pre_add_update(self, db):
         self.check_extra(db)
+        self.check_encrypted_extra(db)
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.add_permission_view_menu("database_access", db.perm)
         # adding a new database we always want to force refresh schema list
@@ -268,5 +269,4 @@ class DatabaseMixin:
         try:
             extra = db.get_encrypted_extra()
         except Exception as e:
-            raise Exception("Secure Extra field cannot be decoded by JSON. {}".format(str(e)))
-
+            raise Exception("Secure Extra field cannot be decoded as JSON. {}".format(str(e)))
