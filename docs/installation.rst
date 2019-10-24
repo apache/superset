@@ -466,7 +466,7 @@ But, to use visualizations for multiple indices you need to create an alias inde
     ]
 }
 
-Then register you table with the ``alias`` name ``logstasg_all``
+Then register your table with the ``alias`` name ``logstasg_all``
 
 Snowflake
 ---------
