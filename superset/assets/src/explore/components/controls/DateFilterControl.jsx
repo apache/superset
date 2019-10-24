@@ -67,8 +67,15 @@ const COMMON_TIME_FRAMES = [
 const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
 
 const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
-const DEFAULT_SINCE = moment().startOf('day').subtract(7, 'days').format(MOMENT_FORMAT);
-const DEFAULT_UNTIL = moment().startOf('day').format(MOMENT_FORMAT);
+const DEFAULT_SINCE = moment()
+  .utc()
+  .startOf('day')
+  .subtract(7, 'days')
+  .format(MOMENT_FORMAT);
+const DEFAULT_UNTIL = moment()
+  .utc()
+  .startOf('day')
+  .format(MOMENT_FORMAT);
 const SEPARATOR = ' : ';
 const FREEFORM_TOOLTIP = t(
   'Superset supports smart date parsing. Strings like `last sunday` or ' +
@@ -116,8 +123,12 @@ function getStateFromCommonTimeFrame(value) {
     tab: TABS.DEFAULTS,
     type: TYPES.DEFAULTS,
     common: value,
-    since: moment().startOf('day').subtract(1, units).format(MOMENT_FORMAT),
-    until: moment().startOf('day').format(MOMENT_FORMAT),
+    since: moment()
+      .utc()
+      .startOf('day')
+      .subtract(1, units)
+      .format(MOMENT_FORMAT),
+    until: moment().utc().startOf('day').format(MOMENT_FORMAT),
   };
 }
 
@@ -126,13 +137,15 @@ function getStateFromCustomRange(value) {
   let since;
   let until;
   if (rel === RELATIVE_TIME_OPTIONS.LAST) {
-    until = moment().startOf('day').format(MOMENT_FORMAT);
+    until = moment().utc().startOf('day').format(MOMENT_FORMAT);
     since = moment()
+      .utc()
       .startOf('day')
       .subtract(num, grain)
       .format(MOMENT_FORMAT);
   } else {
     until = moment()
+      .utc()
       .startOf('day')
       .add(num, grain)
       .format(MOMENT_FORMAT);

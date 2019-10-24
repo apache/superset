@@ -951,6 +951,14 @@ export const controls = {
     freeForm: true,
     label: t('Time range'),
     default: t('Last week'),
+    description: t(
+      'The time range for the visualization. All relative times, e.g. "Last month", ' +
+      '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
+      'local time (sans timezone). All tooltips and placeholder times are expressed ' +
+      'in UTC (sans timezone). The timestamps are then evaluated by the database ' +
+      'using the engine\'s local timezone. Note one can explicitly set the timezone ' +
+      'per the ISO 8601 format if specifying either the start and/or end time.',
+    ),
   },
 
   max_bubble_size: {
