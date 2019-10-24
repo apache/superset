@@ -39,7 +39,7 @@ def sqlalchemy_uri_validator(
     """
     try:
         make_url(uri.strip())
-    except ArgumentError:
+    except (ArgumentError, AttributeError):
         raise exception(
             _(
                 "Invalid connnection string, a valid string follows: "
