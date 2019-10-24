@@ -17,7 +17,6 @@
 from sqlalchemy import column
 
 from superset.db_engine_specs.pinot import PinotEngineSpec
-
 from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
 
