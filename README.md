@@ -16,9 +16,8 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-Superset
+Superset	
 =========
-
 [![Build Status](https://travis-ci.org/apache/incubator-superset.svg?branch=master)](https://travis-ci.org/apache/incubator-superset)
 [![PyPI version](https://badge.fury.io/py/superset.svg)](https://badge.fury.io/py/superset)
 [![Coverage Status](https://codecov.io/github/apache/incubator-superset/coverage.svg?branch=master)](https://codecov.io/github/apache/incubator-superset)
@@ -37,6 +36,52 @@ Superset
 business intelligence web application
 
 [this project used to be named **Caravel**, and **Panoramix** in the past]
+
+
+# Installation & Configuration
+
+<details>
+  <summary><b>Start with python virtual environment</b></summary>
+  <li>Clone the repo
+  <li>Export all env variables present in .env.sample file
+  <li>python3 -m venv venv
+  <li>source venv/bin/activate
+  <li>pip install -r requirements.txt
+  <li>pip install -r requirements-dev.txt
+  <li>pip install -e .
+  <li>fabmanager create-admin --app superset (Required only once per db)
+  <li>superset db upgrade (It will initialize the database. It needs not to be run everytime)
+  <li>superset init (It creates/fixes default roles and permissions. It needs not to be run everytime)
+  <li>superset load_examples (Optional. Run only to load sample dashboards)
+  <li>FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+  <li>cd superset/assets
+  <li>npm install
+  <li>npm run dev-server --watch
+</details>
+  OR
+<details>
+  <summary> <b>Start with Docker</b> </summary>
+<li>Clone the repo</li>
+<li>Create `.env` and fill all the required variable present `.env.sample` file</li>
+<li>docker-compose build</li>
+<li>docker-compose up</li>
+</details>
+
+Login
+-----
+ * Login into AIS
+ * Fetch `API_KEY` from local storage
+ * Append it into your dashboard URL (For example: http://localhost:9000/login/?authToken=<API_KEY>)
+
+Roles
+-----
+  Admin
+  -----
+  Admins have all possible rights, including granting or revoking rights from other users and altering other people’s slices and dashboards.
+
+  Gamma
+  -----
+  Gamma users have limited access. They can only consume data coming from data sources they have been given access to through another complementary role. They only have access to view the slices and dashboards made from data sources that they have access to. Currently Gamma users are not able to alter or add data sources.
 
 
 Screenshots & Gifs
@@ -115,10 +160,6 @@ latency (real-time) data ingestion, flexible data exploration,
 and fast data aggregation. Existing Druid deployments have scaled to
 trillions of events and petabytes of data. Druid is best used to
 power analytic dashboards and applications.*
-
-
-Installation & Configuration
-----------------------------
 
 [See in the documentation](https://superset.incubator.apache.org/installation.html)
 
