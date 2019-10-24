@@ -42,6 +42,10 @@ docker-compose up
 After several minutes for superset initialization to finish, you can open a browser and view [`http://localhost:8088`](http://localhost:8088) 
 to start your journey.
 
+## Map Visualization
+To correctly display map visualizations (deck.gl or Mapbox), it is necessary to provide a valid Mapbox access token. To do this,
+modify the `docker-compose.yml` file to include the `MAPBOX_API_KEY` environment variable in the `superset` service.
+
 ## Developing
 
 While running, the container server will reload on modification of the superset python and javascript source code.
