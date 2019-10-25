@@ -175,7 +175,9 @@ def get_datasource_info(
     return datasource_id, datasource_type
 
 
-def apply_display_max_row_limit(sql_results: Dict[str, Any]) -> Dict[str, Any]:
+def apply_display_max_row_limit(
+    sql_results: Dict[str, Any], rows: Optional[int] = None
+) -> Dict[str, Any]:
     """
     Given a `sql_results` nested structure, applies a limit to the number of rows
 
@@ -187,7 +189,7 @@ def apply_display_max_row_limit(sql_results: Dict[str, Any]) -> Dict[str, Any]:
     :param sql_results: The results of a sql query from sql_lab.get_sql_results
     :returns: The mutated sql_results structure
     """
-    display_limit = app.config.get("DISPLAY_MAX_ROW")
+    display_limit = rows or app.config.get("DISPLAY_MAX_ROW")
     if (
         display_limit
         and sql_results["status"] == QueryStatus.SUCCESS

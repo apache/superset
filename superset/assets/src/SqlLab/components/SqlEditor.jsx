@@ -71,6 +71,7 @@ const propTypes = {
   hideLeftBar: PropTypes.bool,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
+  displayLimit: PropTypes.number.isRequired,
   saveQueryWarning: PropTypes.string,
   scheduleQueryWarning: PropTypes.string,
 };
@@ -327,6 +328,7 @@ class SqlEditor extends React.PureComponent {
           dataPreviewQueries={this.props.dataPreviewQueries}
           actions={this.props.actions}
           height={southPaneHeight}
+          displayLimit={this.props.displayLimit}
         />
       </Split>
     );
