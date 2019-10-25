@@ -132,19 +132,19 @@ migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
 app.config["LOGGING_CONFIGURATOR"].configure_logging(app.config, app.debug)
 
-if app.config.get("ENABLE_CORS"):
+if app.config["ENABLE_CORS"]:
     from flask_cors import CORS
 
-    CORS(app, **app.config.get("CORS_OPTIONS"))
+    CORS(app, **app.config["CORS_OPTIONS"])
 
-if app.config.get("ENABLE_PROXY_FIX"):
+if app.config["ENABLE_PROXY_FIX"]:
     from werkzeug.middleware.proxy_fix import ProxyFix
 
     app.wsgi_app = ProxyFix(  # type: ignore
-        app.wsgi_app, **app.config.get("PROXY_FIX_CONFIG")
+        app.wsgi_app, **app.config["PROXY_FIX_CONFIG"]
     )
 
-if app.config.get("ENABLE_CHUNK_ENCODING"):
+if app.config["ENABLE_CHUNK_ENCODING"]:
 
     class ChunkedEncodingFix(object):
         def __init__(self, app):
@@ -175,7 +175,7 @@ class MyIndexView(IndexView):
         return redirect("/superset/welcome")
 
 
-custom_sm = app.config.get("CUSTOM_SECURITY_MANAGER") or SupersetSecurityManager
+custom_sm = app.config["CUSTOM_SECURITY_MANAGER"] or SupersetSecurityManager
 if not issubclass(custom_sm, SupersetSecurityManager):
     raise Exception(
         """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
@@ -195,21 +195,21 @@ with app.app_context():
 
 security_manager = appbuilder.sm
 
-results_backend = app.config.get("RESULTS_BACKEND")
-results_backend_use_msgpack = app.config.get("RESULTS_BACKEND_USE_MSGPACK")
+results_backend = app.config["RESULTS_BACKEND"]
+results_backend_use_msgpack = app.config["RESULTS_BACKEND_USE_MSGPACK"]
 
 # Merge user defined feature flags with default feature flags
-_feature_flags = app.config.get("DEFAULT_FEATURE_FLAGS") or {}
-_feature_flags.update(app.config.get("FEATURE_FLAGS") or {})
+_feature_flags = app.config["DEFAULT_FEATURE_FLAGS"] or {}
+_feature_flags.update(app.config["FEATURE_FLAGS"])
 
 # Event Logger
 event_logger = get_event_logger_from_cfg_value(
-    app.config.get("EVENT_LOGGER", DBEventLogger())
+    app.config["EVENT_LOGGER"] or DBEventLogger()
 )
 
 
 def get_feature_flags():
-    GET_FEATURE_FLAGS_FUNC = app.config.get("GET_FEATURE_FLAGS_FUNC")
+    GET_FEATURE_FLAGS_FUNC = app.config["GET_FEATURE_FLAGS_FUNC"]
     if GET_FEATURE_FLAGS_FUNC:
         return GET_FEATURE_FLAGS_FUNC(deepcopy(_feature_flags))
     return _feature_flags
@@ -232,7 +232,7 @@ if app.config["TALISMAN_ENABLED"]:
 
 # Hook that provides administrators a handle on the Flask APP
 # after initialization
-flask_app_mutator = app.config.get("FLASK_APP_MUTATOR")
+flask_app_mutator = app.config["FLASK_APP_MUTATOR"]
 if flask_app_mutator:
     flask_app_mutator(app)
 

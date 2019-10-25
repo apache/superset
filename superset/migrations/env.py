@@ -34,7 +34,7 @@ logger = logging.getLogger("alembic.env")
 
 
 config.set_main_option(
-    "sqlalchemy.url", current_app.config.get("SQLALCHEMY_DATABASE_URI")
+    "sqlalchemy.url", current_app.config["SQLALCHEMY_DATABASE_URI"]
 )
 target_metadata = Base.metadata  # pylint: disable=no-member
 

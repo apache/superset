@@ -122,16 +122,16 @@ class HiveEngineSpec(PrestoEngineSpec):
         table_name = form.name.data
         schema_name = form.schema.data
 
-        if config.get("UPLOADED_CSV_HIVE_NAMESPACE"):
+        if config["UPLOADED_CSV_HIVE_NAMESPACE"]:
             if "." in table_name or schema_name:
                 raise Exception(
                     "You can't specify a namespace. "
                     "All tables will be uploaded to the `{}` namespace".format(
-                        config.get("HIVE_NAMESPACE")
+                        config["HIVE_NAMESPACE"]
                     )
                 )
             full_table_name = "{}.{}".format(
-                config.get("UPLOADED_CSV_HIVE_NAMESPACE"), table_name
+                config["UPLOADED_CSV_HIVE_NAMESPACE"], table_name
             )
         else:
             if "." in table_name and schema_name:

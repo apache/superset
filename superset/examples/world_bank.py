@@ -104,7 +104,7 @@ def load_world_bank_health_n_pop(only_metadata=False, force=False):
         "groupby": [],
         "metric": "sum__SP_POP_TOTL",
         "metrics": ["sum__SP_POP_TOTL"],
-        "row_limit": config.get("ROW_LIMIT"),
+        "row_limit": config["ROW_LIMIT"],
         "since": "2014-01-01",
         "until": "2014-01-02",
         "time_range": "2014-01-01 : 2014-01-02",

@@ -30,7 +30,7 @@ from superset.legacy import update_time_range
 from superset.utils.core import QueryStatus
 
 FORM_DATA_KEY_BLACKLIST: List[str] = []
-if not app.config.get("ENABLE_JAVASCRIPT_CONTROLS"):
+if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
     FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
@@ -187,7 +187,7 @@ def apply_display_max_row_limit(sql_results: Dict[str, Any]) -> Dict[str, Any]:
     :param sql_results: The results of a sql query from sql_lab.get_sql_results
     :returns: The mutated sql_results structure
     """
-    display_limit = app.config.get("DISPLAY_MAX_ROW")
+    display_limit = app.config["DISPLAY_MAX_ROW"]
     if (
         display_limit
         and sql_results["status"] == QueryStatus.SUCCESS

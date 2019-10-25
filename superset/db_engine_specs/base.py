@@ -183,7 +183,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ret_list = []
         time_grain_functions = cls.get_time_grain_functions()
         time_grains = builtin_time_grains.copy()
-        time_grains.update(config.get("TIME_GRAIN_ADDONS", {}))
+        time_grains.update(config["TIME_GRAIN_ADDONS"])
         for duration, func in time_grain_functions.items():
             if duration in time_grains:
                 name = time_grains[duration]
@@ -200,9 +200,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
         time_grain_functions = cls._time_grain_functions.copy()
-        grain_addon_functions = config.get("TIME_GRAIN_ADDON_FUNCTIONS", {})
+        grain_addon_functions = config["TIME_GRAIN_ADDON_FUNCTIONS"]
         time_grain_functions.update(grain_addon_functions.get(cls.engine, {}))
-        blacklist: List[str] = config.get("TIME_GRAIN_BLACKLIST", [])
+        blacklist: List[str] = config["TIME_GRAIN_BLACKLIST"]
         for key in blacklist:
             time_grain_functions.pop(key)
         return time_grain_functions
