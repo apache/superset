@@ -930,14 +930,14 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
         viz_instance = viz.BaseDeckGLViz(datasource, form_data)
 
         coord = viz_instance.parse_coordinates("1.23, 3.21")
-        self.assertEquals(coord, (1.23, 3.21))
+        self.assertEqual(coord, (1.23, 3.21))
 
         coord = viz_instance.parse_coordinates("1.23 3.21")
-        self.assertEquals(coord, (1.23, 3.21))
+        self.assertEqual(coord, (1.23, 3.21))
 
-        self.assertEquals(viz_instance.parse_coordinates(None), None)
+        self.assertEqual(viz_instance.parse_coordinates(None), None)
 
-        self.assertEquals(viz_instance.parse_coordinates(""), None)
+        self.assertEqual(viz_instance.parse_coordinates(""), None)
 
     def test_parse_coordinates_raises(self):
         form_data = load_fixture("deck_path_form_data.json")

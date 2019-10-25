@@ -14,11 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# first bump up package.json manually, commit and tag
+# Make sure you've followed the instructions on `RELEASING/README.md`
+# and are on the correct branch
+cd ${SUPERSET_REPO_DIR}
+git branch
 rm superset/assets/dist/*
 cd superset/assets/
-npm run build
+npm ci && npm run build
 cd ../..
 python setup.py sdist
-echo "RUN: twine upload dist/superset-{VERSION}.tar.gz"
-
+echo "RUN: twine upload dist/apache-superset-{SUPERSET_VERSION}.tar.gz"

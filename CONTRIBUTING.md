@@ -24,6 +24,7 @@ little bit helps, and credit will always be given.
 
 ## Table of Contents
 
+- [Orientation](#orientation)
 - [Types of Contributions](#types-of-contributions)
   - [Report Bugs](#report-bugs)
   - [Submit Ideas or Feature Requests](#submit-ideas-or-feature-requests)
@@ -53,6 +54,34 @@ little bit helps, and credit will always be given.
   - [Adding a DB migration](#adding-a-db-migration)
   - [Merging DB migrations](#merging-db-migrations)
   - [SQL Lab Async](#sql-lab-async)
+
+
+## Orientation
+
+Here's a list of repositories that contain Superset-related packages:
+
+- [apache/incubator-superset](https://github.com/apache/incubator-superset)
+  is the main repository containing the `apache-superset` Python package
+  distributed on
+  [pypi](https://pypi.org/project/apache-superset/). This repository
+  also includes Superset's main Javascript bundles and react apps under
+  the [superset/assets](https://github.com/apache/incubator-superset/tree/master/superset/assets)
+  folder.
+- [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui)
+  contains core Superset's
+  [npm packages](https://github.com/apache-superset/superset-ui/tree/master/packages).
+  These packages are shared across the React apps in the main repository,
+  and in visualization plugins.
+- [apache-superset/superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins)
+  contains the code for the default visualizations that ship with Superset
+  and are maintained by the core community.
+- [apache-superset/superset-ui-plugins-deckgl](https://github.com/apache-superset/superset-ui-plugins-deckgl)
+  contains the code for the geospatial visualizations that ship with Superset
+  and are maintained by the core community.
+- [github.com/apache-superset](https://github.com/apache-superset) is the
+  Github organization under which we manage Superset-related
+  small tools, forks and Superset-related experimental ideas.
+
 
 ## Types of Contributions
 

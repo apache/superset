@@ -37,4 +37,4 @@ class MigrationTestCase(SupersetTestCase):
         self.assertIn("filter_configs", params)
 
         cfg = params["filter_configs"][0]
-        self.assertEquals(cfg.get("metric"), "foo")
+        self.assertEqual(cfg.get("metric"), "foo")
