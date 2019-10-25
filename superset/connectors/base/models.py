@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
@@ -35,15 +35,17 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     # ---------------------------------------------------------------
     # class attributes to define when deriving BaseDatasource
     # ---------------------------------------------------------------
-    __tablename__ = None  # {connector_name}_datasource
-    type = None  # datasoure type, str to be defined when deriving this class
-    baselink = None  # url portion pointing to ModelView endpoint
-    column_class = None  # link to derivative of BaseColumn
-    metric_class = None  # link to derivative of BaseMetric
+    __tablename__: Optional[str] = None  # {connector_name}_datasource
+    type: Optional[  # datasoure type, str to be defined when deriving this class
+        str
+    ] = None
+    baselink: Optional[str] = None  # url portion pointing to ModelView endpoint
+    column_class: Optional[Type] = None  # link to derivative of BaseColumn
+    metric_class: Optional[Type] = None  # link to derivative of BaseMetric
     owner_class = None
 
     # Used to do code highlighting when displaying the query in the UI
-    query_language = None
+    query_language: Optional[str] = None
 
     name = None  # can be a Column or a property pointing to one
 
@@ -341,7 +343,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 class BaseColumn(AuditMixinNullable, ImportMixin):
     """Interface for column"""
 
-    __tablename__ = None  # {connector_name}_column
+    __tablename__: Optional[str] = None  # {connector_name}_column
 
     id = Column(Integer, primary_key=True)
     column_name = Column(String(255), nullable=False)
@@ -411,7 +413,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
 
     """Interface for Metrics"""
 
-    __tablename__ = None  # {connector_name}_metric
+    __tablename__: Optional[str] = None  # {connector_name}_metric
 
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(255), nullable=False)

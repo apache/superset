@@ -17,9 +17,10 @@
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset import appbuilder
 import superset.models.core as models
-from . import DatabaseFilter, DatabaseMixin
+from superset import appbuilder
+
+from . import DatabaseFilter, DatabaseMixin, sqlalchemy_uri_validator
 
 
 class DatabaseRestApi(DatabaseMixin, ModelRestApi):
@@ -53,6 +54,7 @@ class DatabaseRestApi(DatabaseMixin, ModelRestApi):
     ]
     # Removes the local limit for the page size
     max_page_size = -1
+    validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
 
 
 appbuilder.add_api(DatabaseRestApi)

@@ -66,9 +66,9 @@ import {
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
+import { DEFAULT_VIEWPORT } from '../explore/components/controls/ViewportControl';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -1866,7 +1866,7 @@ export const controls = {
     renderTrigger: false,
     description: t('Parameters related to the view and perspective on the map'),
     // default is whole world mostly centered
-    default: defaultViewport,
+    default: DEFAULT_VIEWPORT,
     // Viewport changes shouldn't prompt user to re-run query
     dontRefreshOnChange: true,
   },

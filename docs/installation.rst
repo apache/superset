@@ -24,7 +24,7 @@ Getting Started
 Superset has deprecated support for Python ``2.*`` and supports
 only ``~=3.6`` to take advantage of the newer Python features and reduce
 the burden of supporting previous versions. We run our test suite
-against ``3.6``, but running on ``3.7`` **should** work as well.
+against ``3.6``, but ``3.7`` is fully supported as well.
 
 Cloud-native!
 -------------
@@ -192,7 +192,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    superset run -p 8080 --with-threads --reload --debugger
+    superset run -p 8088 --with-threads --reload --debugger
 
 After installation, you should be able to point your browser to the right
 hostname:port `http://localhost:8088 <http://localhost:8088>`_, login using
@@ -376,6 +376,8 @@ Here's a list of some of the recommended packages.
 | BigQuery         | ``pip install pybigquery``            | ``bigquery://``                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
++------------------+---------------------------------------+-------------------------------------------------+
+| Exasol           | ``pip install sqlalchemy-exasol``     | ``exa+pyodbc://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://``                                  |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -577,6 +579,9 @@ object gets unpacked into the
 while the ``metadata_params`` get unpacked into the
 `sqlalchemy.MetaData <https://docs.sqlalchemy.org/en/rel_1_2/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
 
+.. note:: If your using CTAS on SQLLab and PostgreSQL
+    take a look at :ref:`ref_ctas_engine_config` for specific ``engine_params``.
+
 
 Schemas (Postgres & Redshift)
 -----------------------------
@@ -658,6 +663,25 @@ it in the ``extra`` parameter::
         "version": "0.123"
     }
 
+
+Exasol
+---------
+
+The connection string for Exasol looks like this ::
+
+    exa+pyodbc://{user}:{password}@{host}
+
+*Note*: It's required to have Exasol ODBC drivers installed for the sqlalchemy dialect to work properly. Exasol ODBC Drivers available are here: https://www.exasol.com/portal/display/DOWNLOAD/Exasol+Download+Section
+
+Example config (odbcinst.ini can be left empty) ::
+
+    $ cat $/.../path/to/odbc.ini
+    [EXAODBC]
+    DRIVER = /.../path/to/driver/EXASOL_driver.so
+    EXAHOST = host:8563
+    EXASCHEMA = main
+
+See `SQLAlchemy for Exasol <https://github.com/blue-yonder/sqlalchemy_exasol>`_.
 
 CORS
 ----
@@ -819,7 +843,7 @@ have the same configuration.
 
 * To start a Celery worker to leverage the configuration run: ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
+    celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c 4
 
 * To start a job which schedules periodic background jobs, run ::
 
@@ -864,6 +888,9 @@ cache store when upgrading an existing environment.
   entire setup. If not, background jobs can get scheduled multiple times
   resulting in weird behaviors like duplicate delivery of reports,
   higher than expected load / traffic etc.
+  
+* SQL Lab will only run your queries asynchronously if you enable 
+  "Asynchronous Query Execution" in your database settings.
 
 
 Email Reports

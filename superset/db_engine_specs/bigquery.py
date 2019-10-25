@@ -14,15 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
 import hashlib
 import re
+from datetime import datetime
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 from sqlalchemy import literal_column
 
 from superset.db_engine_specs.base import BaseEngineSpec
+
+pandas_dtype_map = {
+    "STRING": "object",
+    "BOOLEAN": "bool",
+    "INTEGER": "Int64",
+    "FLOAT": "float64",
+    "TIMESTAMP": "datetime64[ns]",
+    "DATETIME": "datetime64[ns]",
+    "DATE": "object",
+    "BYTES": "object",
+    "TIME": "object",
+    "RECORD": "object",
+    "NUMERIC": "object",
+}
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
@@ -68,7 +82,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
         data = super(BigQueryEngineSpec, cls).fetch_data(cursor, limit)
         if data and type(data[0]).__name__ == "Row":
-            data = [r.values() for r in data]
+            data = [r.values() for r in data]  # type: ignore
         return data
 
     @staticmethod
@@ -183,3 +197,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
             if key in kwargs:
                 gbq_kwargs[key] = kwargs[key]
         pandas_gbq.to_gbq(df, **gbq_kwargs)
+
+    @classmethod
+    def get_pandas_dtype(cls, cursor_description: List[tuple]) -> Dict[str, str]:
+        return {
+            col[0]: pandas_dtype_map.get(col[1], "object") for col in cursor_description
+        }
