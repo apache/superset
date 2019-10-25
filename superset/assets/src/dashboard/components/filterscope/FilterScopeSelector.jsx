@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { Button } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import { safeStringify } from '../../../utils/safeStringify';
 
 import getFilterScopeNodesTree from '../../util/getFilterScopeNodesTree';
 import getFilterFieldNodesTree from '../../util/getFilterFieldNodesTree';
@@ -216,7 +217,7 @@ export default class FilterScopeSelector extends React.PureComponent {
       isSingleEditMode,
       checkedFilterFields,
     });
-    const activeKey = `[${checkedFilterFields.join(',')}]`;
+    const activeKey = safeStringify(checkedFilterFields);
     const checkedChartIdSet = new Set();
     checkedFilterFields.forEach(filterField => {
       (filterScopeMap[filterField].checked || []).forEach(chartId => {
@@ -249,9 +250,21 @@ export default class FilterScopeSelector extends React.PureComponent {
     this.setState({ searchText: e.target.value }, this.filterTree);
   }
 
-  onChangeFilterField(activeKey) {
-    if (this.allfilterFields.includes(activeKey)) {
-      this.setState({ activeKey });
+  onChangeFilterField(nextActiveKey) {
+    const {
+      isSingleEditMode,
+      activeKey: currentActiveKey,
+      checkedFilterFields,
+    } = this.state;
+
+    // multi-edit mode: if user click on the single filter field,
+    // will show filter scope for the single field.
+    // if user click on the same filter filed again,
+    // will toggle activeKey back to group selected fields
+    if (!isSingleEditMode && nextActiveKey === currentActiveKey) {
+      this.onCheckFilterField(checkedFilterFields);
+    } else if (this.allfilterFields.includes(nextActiveKey)) {
+      this.setState({ activeKey: nextActiveKey });
     }
   }
 
@@ -395,6 +408,10 @@ export default class FilterScopeSelector extends React.PureComponent {
       isSingleEditMode,
       searchText,
     } = this.state;
+
+    const [chartId] = isSingleEditMode
+      ? getDashboardFilterByKey(activeKey)
+      : [0];
     return (
       <React.Fragment>
         <input
@@ -412,6 +429,8 @@ export default class FilterScopeSelector extends React.PureComponent {
           expanded={filterScopeMap[activeKey].expanded}
           onCheck={this.onCheckFilterScope}
           onExpand={this.onExpandFilterScope}
+          // hide checkbox for selected filter field itself
+          selectedFilterId={chartId}
         />
       </React.Fragment>
     );
@@ -434,13 +453,31 @@ export default class FilterScopeSelector extends React.PureComponent {
   }
 
   render() {
-    const { showSelector, isSingleEditMode } = this.state;
+    const { dashboardFilters } = this.props;
+    const { showSelector, isSingleEditMode, activeKey } = this.state;
+    const isSingleValue = activeKey.indexOf('[') === -1;
+    const currentFilterLabels = []
+      .concat(isSingleValue ? activeKey : JSON.parse(activeKey))
+      .map(key => {
+        const [chartId, column] = getDashboardFilterByKey(key);
+        return dashboardFilters[chartId].labels[column] || column;
+      });
 
     return (
       <React.Fragment>
         <div className="filter-scope-container">
           <div className="filter-scope-header">
             <h4>{t('Configure filter scopes')}</h4>
+            <div
+              className={cx('selected-fields', {
+                'multi-edit-mode': !isSingleEditMode,
+              })}
+            >
+              {`Batch editing ${currentFilterLabels.length} filters: `}
+              <span className="selected-scopes">
+                {currentFilterLabels.join(', ')}
+              </span>
+            </div>
           </div>
 
           {!showSelector && <div>There is no filter in this dashboard</div>}
