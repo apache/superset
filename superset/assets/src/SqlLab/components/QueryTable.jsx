@@ -37,6 +37,7 @@ const propTypes = {
   queries: PropTypes.array,
   onUserClicked: PropTypes.func,
   onDbClicked: PropTypes.func,
+  displayLimit: PropTypes.number.isRequired,
 };
 const defaultProps = {
   columns: ['started', 'duration', 'rows'],
@@ -81,8 +82,8 @@ class QueryTable extends React.PureComponent {
   openQueryInNewTab(query) {
     this.props.actions.cloneQueryToNewTab(query);
   }
-  openAsyncResults(query) {
-    this.props.actions.fetchQueryResults(query);
+  openAsyncResults(query, displayLimit) {
+    this.props.actions.fetchQueryResults(query, displayLimit);
   }
   clearQueryResults(query) {
     this.props.actions.clearQueryResults(query);
@@ -151,10 +152,16 @@ class QueryTable extends React.PureComponent {
                 </Label>
               }
               modalTitle={t('Data preview')}
-              beforeOpen={this.openAsyncResults.bind(this, query)}
+              beforeOpen={this.openAsyncResults.bind(this, query, this.props.displayLimit)}
               onExit={this.clearQueryResults.bind(this, query)}
               modalBody={
-                <ResultSet showSql query={query} actions={this.props.actions} height={400} />
+                <ResultSet
+                  showSql
+                  query={query}
+                  actions={this.props.actions}
+                  height={400}
+                  displayLimit={this.props.displayLimit}
+                />
               }
             />
           );
