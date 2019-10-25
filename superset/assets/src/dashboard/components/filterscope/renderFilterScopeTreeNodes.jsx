@@ -17,8 +17,9 @@
  * under the License.
  */
 import React from 'react';
+import cx from 'classnames';
 
-export default function renderFilterScopeTreeNodes(nodes) {
+export default function renderFilterScopeTreeNodes(nodes, selectedFilterId) {
   if (nodes.length === 0) {
     return [];
   }
@@ -40,10 +41,17 @@ export default function renderFilterScopeTreeNodes(nodes) {
       };
     }
 
+    const { value } = currentNode;
     return {
       ...currentNode,
       label: (
-        <a className={`filter-scope-type ${type.toLowerCase()}`}>{label}</a>
+        <a
+          className={cx(`filter-scope-type ${type.toLowerCase()}`, {
+            'selected-filter': selectedFilterId === value,
+          })}
+        >
+          {label}
+        </a>
       ),
     };
   }
