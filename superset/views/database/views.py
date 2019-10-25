@@ -19,6 +19,7 @@ import os
 
 from flask import flash, redirect
 from flask_appbuilder import SimpleFormView
+from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __
@@ -26,14 +27,12 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
-from wtforms import IntegerField, BooleanField
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 from superset import app, appbuilder, security_manager, db
 from superset.connectors.sqla.models import SqlaTable
 import superset.models.core as models
-from superset.forms import CommaSeparatedListField
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 from . import DatabaseMixin, sqlalchemy_uri_validator
@@ -186,6 +185,28 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
     form_title = _("Quick CSV to Database configuration")
     add_columns = ["database", "schema", "table_name"]
 
+    def add(self, item, raise_exception=False):
+        try:
+            db.session.add(item)
+            db.session.commit()
+            # db.message = (as_unicode(self.add_row_message), "success")
+            return True
+        except IntegrityError as e:
+            self.message = (as_unicode(self.add_integrity_error_message), "warning")
+            self.session.rollback()
+            if raise_exception:
+                raise e
+            return False
+        except Exception as e:
+            # self.message = (
+            # as_unicode(self.general_error_message + " " + str(sys.exc_info()[0])),
+            # "danger",
+            # )
+            db.session.rollback()
+            if raise_exception:
+                raise e
+            return False
+
     def form_get(self, form):
         form.sep.data = ","
         form.header.data = 0
@@ -205,73 +226,80 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
         csv_filename = form.csv_file.data.filename
-        dbname = csv_filename[:-4]
         path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
-        cwd = os.getcwd()
-        if os.path.isfile(cwd + "/" + dbname + ".db"):
-            message = _(
-                "Database {0} already exists, please choose a different name".format(
-                    dbname
+        if database.id == -1:
+            dbname = csv_filename[:-4]
+            cwd = os.getcwd()
+            dbpath = cwd + "/" + dbname + ".db"
+            if os.path.isfile(dbpath):
+                message = _(
+                    "Database {0} already exists, please choose a different name".format(
+                        dbname
+                    )
                 )
-            )
-            flash(message, "danger")
-            return redirect("/quickcsvtodatabaseview/form")
-        try:
-            engine = create_engine("sqlite:////" + cwd + "/" + dbname + ".db")
-            engine.connect()
+                flash(message, "danger")
+                return redirect("/quickcsvtodatabaseview/form")
+            # try:
             dview = DatabaseView()
-            item = dview.datamodel.obj()
-            item.database_name = dbname
-            item.sqlalchemy_uri = "sqlite:////" + cwd + "/" + dbname + ".db"
-            item.allow_csv_upload = True
-            item.perm = dbname
-            # item.sqlalchemy_uri_decrypted = item.sqlalchemy_uri
-            dview.datamodel.add(item)
-            dbs = (
-                db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
-            )
-            for adb in dbs:
-                if adb.name == dbname:
-                    item = adb
-            form.con = item
+        if database.id == -1:
+            try:
+                dbname = csv_filename[:-4]
+                cwd = os.getcwd()
+                dbpath = cwd + "/" + dbname + ".db"
+                # Create Database and set the necessary attributes
+                engine = create_engine("sqlite:////" + dbpath)
+                engine.connect()
+                item = dview.datamodel.obj()
+                item.database_name = dbname
+                item.sqlalchemy_uri = "sqlite:////" + dbpath
+                item.allow_csv_upload = True
+                item.perm = dbname
+                dview.datamodel.add(item)
+                # db.session.add(item)
+                # self.add(item)
+                # Read database from databases
+                # still leads to SQLite3 programming error due to threads
+                dbs = (
+                    dview.datamodel.session.query(models.Database)
+                    .filter_by(allow_csv_upload=True)
+                    .all()  # filter_by(database_name=dbname).all()
+                )
 
-            dicta = {}
-            for key, value in form.data.items():
-                if key == "con":
-                    dicta[key] = item
-                    form.data.__setitem__(key, item)
-                    # form.data.__setattr__(key,item)
-                    form.data[key] = item
-                else:
-                    dicta[key] = value
-            # TODO create a Database OBject from the newly created database file
+                for adb in dbs:
+                    if adb.name == dbname:
+                        form.con = adb
+                # if len(dbs) != 1:
+                # raise Exception('Something went wrong when creating the database')
+                # form.con = dbs[0]
+            except Exception as e:
+                try:
+                    dview.datamodel.delete(item)
+                    os.remove(dbpath)
+                except OSError:
+                    pass
+                message = (
+                    "Database name {} already exists. Please pick another".format(
+                        dbname
+                    )
+                    if isinstance(e, IntegrityError)
+                    else str(e)
+                )
+                flash(message, "danger")
+                stats_logger.incr("failed_csv_upload")
+                return redirect("/quickcsvtodatabaseview/form")
+        try:
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             csv_file.save(path)
             table = SqlaTable(table_name=form.name.data)
-            # Set fields so that we don't get an exception when trying to parse them
-            form.mangle_dupe_cols = BooleanField()
-            form.mangle_dupe_cols.data = True
-            form.skiprows = IntegerField()
-            form.skiprows.data = None
-            form.index_col = IntegerField()
-            form.index_col.data = None
-            form.skipinitialspace = BooleanField()
-            form.skipinitialspace.data = True
-            form.nrows = IntegerField()
-            form.nrows.data = None
-            form.skip_blank_lines = BooleanField()
-            form.skip_blank_lines.data = True
-            form.parse_dates = CommaSeparatedListField()
-            form.parse_dates.data = None
-            form.infer_datetime_format = BooleanField()
-            form.infer_datetime_format.data = True
-
             table.database = form.con
             table.database_id = table.database.id
             table.database.db_engine_spec.alt_create_table_from_csv(form, table)
         except Exception as e:
             try:
-                os.remove(cwd + "/" + dbname + ".db")
+                # if database.id == -1:# TODO delete database
+                # dview.datamodel.delete()
+                # os.remove(dbpath)
+
                 os.remove(path)
             except OSError:
                 pass
