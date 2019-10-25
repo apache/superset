@@ -460,11 +460,11 @@ You can query multiple indices on SQLLab for example ::
 But, to use visualizations for multiple indices you need to create an alias index on your cluster ::
 
     POST /_aliases
-{
-    "actions" : [
-        { "add" : { "index" : "logstash-**", "alias" : "logstash_all" } }
-    ]
-}
+    {
+        "actions" : [
+            { "add" : { "index" : "logstash-**", "alias" : "logstash_all" } }
+        ]
+    }
 
 Then register your table with the ``alias`` name ``logstasg_all``
 
