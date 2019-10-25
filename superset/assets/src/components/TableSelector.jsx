@@ -43,6 +43,7 @@ const propTypes = {
   onChange: PropTypes.func,
   clearable: PropTypes.bool,
   handleError: PropTypes.func.isRequired,
+  forceDisableTableSelector: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -56,6 +57,7 @@ const defaultProps = {
   tableNameSticky: true,
   sqlLabMode: true,
   clearable: true,
+  forceDisableTableSelector: false,
 };
 
 export default class TableSelector extends React.PureComponent {
@@ -241,6 +243,7 @@ export default class TableSelector extends React.PureComponent {
     );
   }
   renderDatabaseSelect() {
+    const { forceDisableTableSelector } = this.props;
     return this.renderSelectRow(
       <AsyncSelect
         dataEndpoint={
@@ -264,9 +267,11 @@ export default class TableSelector extends React.PureComponent {
         mutator={this.dbMutator}
         placeholder={t('Select a database')}
         autoSelect
+        disabled={forceDisableTableSelector}
       />);
   }
   renderSchema() {
+    const { forceDisableTableSelector } = this.props;
     return this.renderSelectRow(
       <Select
         name="select-schema"
@@ -281,6 +286,7 @@ export default class TableSelector extends React.PureComponent {
         isLoading={this.state.schemaLoading}
         autosize={false}
         onChange={this.changeSchema}
+        disabled={forceDisableTableSelector}
       />,
       <RefreshLabel
         onClick={() => this.onDatabaseChange({ id: this.props.dbId }, true)}
@@ -289,6 +295,7 @@ export default class TableSelector extends React.PureComponent {
     );
   }
   renderTable() {
+    const { forceDisableTableSelector } = this.props;
     let tableSelectPlaceholder;
     let tableSelectDisabled = false;
     if (this.props.database && this.props.database.allow_multi_schema_metadata_fetch) {
@@ -305,6 +312,7 @@ export default class TableSelector extends React.PureComponent {
         isLoading={this.state.tableLoading}
         ignoreAccents={false}
         placeholder={t('Select table or type table name')}
+        disabled={forceDisableTableSelector}
         autosize={false}
         onChange={this.changeTable}
         options={options}
@@ -316,7 +324,7 @@ export default class TableSelector extends React.PureComponent {
           name="async-select-table"
           ref="selectTable"
           placeholder={tableSelectPlaceholder}
-          disabled={tableSelectDisabled}
+          disabled={forceDisableTableSelector || tableSelectDisabled}
           autosize={false}
           onChange={this.changeTable}
           value={this.state.tableName}

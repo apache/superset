@@ -235,6 +235,7 @@ export const controls = {
     mapStateToProps: (state, control, actions) => ({
       datasource: state.datasource,
       onDatasourceSave: actions ? actions.setDatasource : () => {},
+      canChangePhysicalTable: state.can_overwrite_datasource,
     }),
   },
 

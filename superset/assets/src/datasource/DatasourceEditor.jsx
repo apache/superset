@@ -194,9 +194,11 @@ const propTypes = {
   onChange: PropTypes.func,
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
+  canChangePhysicalTable: PropTypes.bool,
 };
 
 const defaultProps = {
+  canChangePhysicalTable: false,
   onChange: () => {},
 };
 
@@ -211,7 +213,7 @@ export class DatasourceEditor extends React.PureComponent {
       databaseColumns: props.datasource.columns.filter(col => !col.expression),
       calculatedColumns: props.datasource.columns.filter(col => !!col.expression),
       metadataLoading: false,
-      activeTabKey: 1,
+      activeTabKey: 4,
     };
 
     this.onChange = this.onChange.bind(this);
@@ -332,6 +334,7 @@ export class DatasourceEditor extends React.PureComponent {
 
   renderSettingsFieldset() {
     const datasource = this.state.datasource;
+    const { canChangePhysicalTable } = this.props;
     return (
       <Fieldset title={t('Basic')} item={datasource} onChange={this.onDatasourceChange}>
         {this.state.isSqla &&
@@ -349,6 +352,7 @@ export class DatasourceEditor extends React.PureComponent {
                 sqlLabMode={false}
                 clearable={false}
                 handleError={this.props.addDangerToast}
+                forceDisableTableSelector={!canChangePhysicalTable}
               />}
             descr={t(
               'The pointer to a physical table. Keep in mind that the chart is ' +
@@ -565,18 +569,22 @@ export class DatasourceEditor extends React.PureComponent {
   }
 
   render() {
-    const datasource = this.state.datasource;
+    const { datasource, activeTabKey } = this.state;
     return (
       <div className="Datasource">
         {this.renderErrors()}
         <Tabs
           id="table-tabs"
           onSelect={this.handleTabSelect}
-          defaultActiveKey={1}
+          defaultActiveKey={activeTabKey}
         >
           <Tab eventKey={1} title={t('Settings')}>
-            {this.state.activeTabKey === 1 &&
+            {activeTabKey === 1 &&
               <div>
+                <div className="change-warning well">
+                  <span>Be careful</span>. Changes to these settings can break all charts,
+                  including <span>charts owned by other people</span>.
+                </div>
                 <Col md={6}>
                   <FormContainer>
                     {this.renderSettingsFieldset()}
@@ -596,7 +604,7 @@ export class DatasourceEditor extends React.PureComponent {
             }
             eventKey={2}
           >
-            {this.state.activeTabKey === 2 &&
+            {activeTabKey === 2 &&
               <div>
                 <ColumnCollectionTable
                   columns={this.state.databaseColumns}
@@ -623,7 +631,7 @@ export class DatasourceEditor extends React.PureComponent {
               />}
             eventKey={3}
           >
-            {this.state.activeTabKey === 3 &&
+            {activeTabKey === 3 &&
               <ColumnCollectionTable
                 columns={this.state.calculatedColumns}
                 onChange={calculatedColumns => this.setColumns({ calculatedColumns })}
@@ -645,7 +653,7 @@ export class DatasourceEditor extends React.PureComponent {
             title={<CollectionTabTitle collection={datasource.metrics} title={t('Metrics')} />}
             eventKey={4}
           >
-            {this.state.activeTabKey === 4 && this.renderMetricCollection()}
+            {activeTabKey === 4 && this.renderMetricCollection()}
           </Tab>
         </Tabs>
       </div>

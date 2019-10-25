@@ -35,6 +35,7 @@ const propTypes = {
   onHide: PropTypes.func,
   onDatasourceSave: PropTypes.func,
   addSuccessToast: PropTypes.func.isRequired,
+  canChangePhysicalTable: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -42,6 +43,7 @@ const defaultProps = {
   onHide: () => {},
   onDatasourceSave: () => {},
   show: false,
+  canChangePhysicalTable: false,
 };
 
 class DatasourceModal extends React.PureComponent {
@@ -149,6 +151,7 @@ class DatasourceModal extends React.PureComponent {
             <DatasourceEditor
               datasource={this.props.datasource}
               onChange={this.onDatasourceChange}
+              canChangePhysicalTable={this.props.canChangePhysicalTable}
             />}
         </Modal.Body>
         <Modal.Footer>

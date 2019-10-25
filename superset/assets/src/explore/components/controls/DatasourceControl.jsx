@@ -42,12 +42,14 @@ const propTypes = {
   value: PropTypes.string,
   datasource: PropTypes.object.isRequired,
   onDatasourceSave: PropTypes.func,
+  canChangePhysicalTable: PropTypes.bool,
 };
 
 const defaultProps = {
   onChange: () => {},
   onDatasourceSave: () => {},
   value: null,
+  canChangePhysicalTable: false,
 };
 
 class DatasourceControl extends React.PureComponent {
@@ -116,23 +118,16 @@ class DatasourceControl extends React.PureComponent {
 
   render() {
     const { menuExpanded, showChangeDatasourceModal, showEditDatasourceModal } = this.state;
-    const { datasource, onChange, onDatasourceSave, value } = this.props;
+    const { datasource, onChange, onDatasourceSave, value, canChangePhysicalTable } = this.props;
     return (
       <div>
         <ControlHeader {...this.props} />
         <div className="btn-group label-dropdown">
-          <OverlayTrigger
-            placement="right"
-            overlay={
-              <Tooltip id={'error-tooltip'}>{t('Click to edit the datasource')}</Tooltip>
-            }
-          >
-            <div className="btn-group">
-              <Label onClick={this.toggleEditDatasourceModal} className="label-btn-label">
-                {datasource.name}
-              </Label>
-            </div>
-          </OverlayTrigger>
+          <div className="btn-group">
+            <Label>
+              {datasource.name}
+            </Label>
+          </div>
           <DropdownButton
             noCaret
             title={
@@ -145,9 +140,9 @@ class DatasourceControl extends React.PureComponent {
           >
             <MenuItem
               eventKey="3"
-              onClick={this.toggleEditDatasourceModal}
+              onClick={this.toggleChangeDatasourceModal}
             >
-              {t('Edit Datasource')}
+              {t('Change Datasource')}
             </MenuItem>
             {datasource.type === 'table' &&
               <MenuItem
@@ -160,9 +155,9 @@ class DatasourceControl extends React.PureComponent {
               </MenuItem>}
             <MenuItem
               eventKey="3"
-              onClick={this.toggleChangeDatasourceModal}
+              onClick={this.toggleEditDatasourceModal}
             >
-              {t('Change Datasource')}
+              {t('Edit Datasource')}
             </MenuItem>
           </DropdownButton>
           <OverlayTrigger
@@ -187,6 +182,7 @@ class DatasourceControl extends React.PureComponent {
           show={showEditDatasourceModal}
           onDatasourceSave={onDatasourceSave}
           onHide={this.toggleEditDatasourceModal}
+          canChangePhysicalTable={canChangePhysicalTable}
         />
         <ChangeDatasourceModal
           onDatasourceSave={onDatasourceSave}

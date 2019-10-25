@@ -1221,10 +1221,14 @@ class Superset(BaseSupersetView):
             )
 
         standalone = request.args.get("standalone") == "true"
+        user_roles = [role.name.lower() for role in get_user_roles()]
+        is_admin_role = "admin" in user_roles
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
             "can_overwrite": slice_overwrite_perm,
+            "can_overwrite_datasource": is_admin_role
+            or datasource.created_by_fk == user_id,
             "datasource": datasource.data,
             "form_data": form_data,
             "datasource_id": datasource_id,
