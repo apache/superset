@@ -269,6 +269,4 @@ class DatabaseMixin:
         try:
             extra = db.get_encrypted_extra()
         except Exception as e:
-            raise Exception(
-                f"Secure Extra field cannot be decoded as JSON. {str(e)}"
-            )
+            raise Exception(f"Secure Extra field cannot be decoded as JSON. {str(e)}")
