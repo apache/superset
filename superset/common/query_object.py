@@ -78,9 +78,7 @@ class QueryObject:
         )
         self.is_timeseries = is_timeseries
         self.time_range = time_range
-        self.time_shift = (
-            utils.parse_human_timedelta(time_shift) if time_shift else None
-        )
+        self.time_shift = utils.parse_human_timedelta(time_shift)
         self.groupby = groupby or []
 
         # Temporal solution for backward compatability issue

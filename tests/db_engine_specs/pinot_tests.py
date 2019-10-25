@@ -14,27 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
+from sqlalchemy import column
 
-from superset.migrations.versions.fb13d49b72f9_better_filters import (
-    Slice,
-    upgrade_slice,
-)
-
-from .base_tests import SupersetTestCase
+from superset.db_engine_specs.pinot import PinotEngineSpec
+from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
 
-class MigrationTestCase(SupersetTestCase):
-    def test_upgrade_slice(self):
-        slc = Slice(
-            slice_name="FOO",
-            viz_type="filter_box",
-            params=json.dumps(dict(metric="foo", groupby=["bar"])),
-        )
-        upgrade_slice(slc)
-        params = json.loads(slc.params)
-        self.assertNotIn("metric", params)
-        self.assertIn("filter_configs", params)
+class PinotTestCase(DbEngineSpecTestCase):
+    """ Tests pertaining to our Pinot database support """
 
-        cfg = params["filter_configs"][0]
-        self.assertEqual(cfg.get("metric"), "foo")
+    def test_pinot_time_expression_sec_one_1m_grain(self):
+        col = column("tstamp")
+        expr = PinotEngineSpec.get_timestamp_expr(col, "epoch_s", "P1M")
+        result = str(expr.compile())
+        self.assertEqual(
+            result,
+            'DATETIMECONVERT(tstamp, "1:SECONDS:EPOCH", "1:SECONDS:EPOCH", "1:MONTHS")',
+        )  # noqa
