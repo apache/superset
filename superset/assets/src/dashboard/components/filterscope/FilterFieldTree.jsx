@@ -47,6 +47,7 @@ export default function FilterFieldTree({
 }) {
   return (
     <CheckboxTree
+      showExpandAll
       showNodeIcon={false}
       expandOnClick
       nodes={renderFilterFieldTreeNodes({ nodes, activeKey })}
@@ -61,6 +62,8 @@ export default function FilterFieldTree({
         halfCheck: <CheckboxHalfchecked />,
         expandClose: <span className="rct-icon rct-icon-expand-close" />,
         expandOpen: <span className="rct-icon rct-icon-expand-open" />,
+        expandAll: <span className="rct-icon rct-icon-expand-all" />,
+        collapseAll: <span className="rct-icon rct-icon-collapse-all" />,
         parentClose: <span className="rct-icon rct-icon-parent-close" />,
         parentOpen: <span className="rct-icon rct-icon-parent-open" />,
         leaf: <span className="rct-icon rct-icon-leaf" />,

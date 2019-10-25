@@ -22,23 +22,28 @@
   font-family: @font-family-sans-serif;
   font-size: 14px;
 
-  .filter-scope-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    input {
-      flex: 0 0 200px;
-    }
-  }
-
   .nav.nav-tabs {
     border: none;
   }
 }
 
+.filter-scope-header {
+  h4 {
+    margin-top: 0;
+  }
+
+  .selected-fields {
+    margin: 12px 0 16px;
+    visibility: hidden;
+
+    &.multi-edit-mode {
+      visibility: visible;
+    }
+  }
+}
+
 .filters-scope-selector {
-  margin: 20px -24px;
+  margin: 10px -24px 20px -24px;
   display: flex;
   flex-direction: row;
   position: relative;
@@ -52,8 +57,8 @@
   }
 
   .filter-field-pane .edit-mode-toggle,
-  .filter-scope-pane .react-checkbox-tree .rct-icon.rct-icon-expand-all,
-  .filter-scope-pane .react-checkbox-tree .rct-icon.rct-icon-collapse-all {
+  .react-checkbox-tree .rct-icon.rct-icon-expand-all,
+  .react-checkbox-tree .rct-icon.rct-icon-collapse-all {
     font-size: 13px;
     font-family: @font-family-sans-serif;
     color: @brand-primary;
@@ -61,22 +66,27 @@
     &:hover {
       text-decoration: underline;
     }
+
+    &:focus {
+      outline: none;
+    }
   }
 
   .filter-field-pane {
+    position: relative;
     width: 40%;
     padding: 16px 16px 16px 24px;
     border-right: 1px solid #ccc;
 
-    .filter-container {
-      svg {
-        position: relative;
-        top: 2px;
-      }
+    .edit-mode-toggle {
+      position: absolute;
+      right: 24px;
+    }
 
+    .filter-container {
       label {
         font-weight: normal;
-        margin: 0 0 0 8px;
+        margin: 0 0 0 16px;
       }
     }
 
@@ -84,14 +94,14 @@
       height: 40px;
       display: flex;
       align-items: center;
-      padding: 0 30px;
-      margin-left: -30px;
+      padding: 0 24px;
+      margin-left: -24px;
 
       &.is-selected {
         border: 1px solid #aaa;
         border-radius: 4px;
         background-color: #eee;
-        margin-left: -31px;
+        margin-left: -25px;
       }
     }
 
@@ -111,15 +121,13 @@
   }
 
   .filter-scope-pane {
+    position: relative;
     flex: 1;
     padding: 16px 24px 16px 16px;
-
-    .react-checkbox-tree {
-      flex-direction: column;
-    }
   }
 
   .react-checkbox-tree {
+    flex-direction: column;
     color: @almost-black;
     font-size: 14px;
 
@@ -132,14 +140,19 @@
         border-radius: 4px;
         padding: 2px 4px;
         font-size: 10px;
-        margin-right: 4px;
+        margin-right: 8px;
         font-weight: 400;
       }
 
       &.chart {
+        font-weight: normal;
         &::before {
           content: 'Chart';
         }
+      }
+
+      &.selected-filter {
+        padding-left: 28px;
       }
 
       &.root {
@@ -187,6 +200,7 @@
 
     .rct-options {
       text-align: left;
+      margin-left: 0;
     }
 
     .rct-text {
@@ -196,6 +210,7 @@
 
     .rct-title {
       display: block;
+      font-weight: bold;
     }
 
     // disable style from react-checkbox-tress.css
