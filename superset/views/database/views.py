@@ -26,12 +26,14 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
+from wtforms import IntegerField, BooleanField
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
-from superset import app, appbuilder, security_manager
+from superset import app, appbuilder, security_manager, db
 from superset.connectors.sqla.models import SqlaTable
 import superset.models.core as models
+from superset.forms import CommaSeparatedListField
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 from . import DatabaseMixin, sqlalchemy_uri_validator
@@ -172,6 +174,12 @@ class CsvToDatabaseView(BaseCsvToDatabaseView):
 appbuilder.add_view_no_menu(CsvToDatabaseView)
 
 
+def create_connection(engine):
+    # TODO call the add API with default values, propagate Exceptions
+
+    pass
+
+
 class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
     form = QuickCsvToDatabaseForm
     form_template = "superset/form_view/quick_csv_to_database_view/quick_edit.html"
@@ -185,6 +193,7 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
         form.if_exists.data = "fail"
 
     def form_post(self, form):
+        # TODO only DB-file gets deleted, not actual DB
         database = form.con.data
         schema_name = ""
 
@@ -210,12 +219,56 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
         try:
             engine = create_engine("sqlite:////" + cwd + "/" + dbname + ".db")
             engine.connect()
+            dview = DatabaseView()
+            item = dview.datamodel.obj()
+            item.database_name = dbname
+            item.sqlalchemy_uri = "sqlite:////" + cwd + "/" + dbname + ".db"
+            item.allow_csv_upload = True
+            item.perm = dbname
+            # item.sqlalchemy_uri_decrypted = item.sqlalchemy_uri
+            dview.datamodel.add(item)
+            dbs = (
+                db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
+            )
+            for adb in dbs:
+                if adb.name == dbname:
+                    item = adb
+            form.con = item
+
+            dicta = {}
+            for key, value in form.data.items():
+                if key == "con":
+                    dicta[key] = item
+                    form.data.__setitem__(key, item)
+                    # form.data.__setattr__(key,item)
+                    form.data[key] = item
+                else:
+                    dicta[key] = value
+            # TODO create a Database OBject from the newly created database file
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             csv_file.save(path)
             table = SqlaTable(table_name=form.name.data)
-            table.database = form.data.get("con")
+            # Set fields so that we don't get an exception when trying to parse them
+            form.mangle_dupe_cols = BooleanField()
+            form.mangle_dupe_cols.data = True
+            form.skiprows = IntegerField()
+            form.skiprows.data = None
+            form.index_col = IntegerField()
+            form.index_col.data = None
+            form.skipinitialspace = BooleanField()
+            form.skipinitialspace.data = True
+            form.nrows = IntegerField()
+            form.nrows.data = None
+            form.skip_blank_lines = BooleanField()
+            form.skip_blank_lines.data = True
+            form.parse_dates = CommaSeparatedListField()
+            form.parse_dates.data = None
+            form.infer_datetime_format = BooleanField()
+            form.infer_datetime_format.data = True
+
+            table.database = form.con
             table.database_id = table.database.id
-            table.database.db_engine_spec.create_table_from_csv(form, table)
+            table.database.db_engine_spec.alt_create_table_from_csv(form, table)
         except Exception as e:
             try:
                 os.remove(cwd + "/" + dbname + ".db")

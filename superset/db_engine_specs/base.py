@@ -385,22 +385,61 @@ class BaseEngineSpec:
         """
         df.to_sql(**kwargs)
 
+    def _allowed_file(filename: str) -> bool:
+        # Only allow specific file extensions as specified in the config
+        extension = os.path.splitext(filename)[1]
+        return extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
+
+    @classmethod
+    def base_create_table_from_csv(cls, form, table):
+        """ Create table (including metadata in backend) from contents of a csv.
+                :param form: Parameters defining how to process data
+                :param table: Metadata of new table to be created
+                """
+
+    @classmethod
+    def alt_create_table_from_csv(cls, form, table):
+        filename = secure_filename(form.csv_file.data.filename)
+        if not cls._allowed_file(filename):
+            raise Exception("Invalid file type selected")
+        csv_to_df_kwargs = {
+            "filepath_or_buffer": filename,
+            "sep": form.sep.data,
+            "header": form.header.data if form.header.data else 0,
+            "index_col": None,
+            "mangle_dupe_cols": True,
+            "skipinitialspace": True,
+            "skiprows": None,
+            "nrows": None,
+            "skip_blank_lines": True,
+            "parse_dates": True,
+            "infer_datetime_format": True,
+            "chunksize": 10000,
+        }
+        df = cls.csv_to_df(**csv_to_df_kwargs)
+
+        df_to_sql_kwargs = {
+            "df": df,
+            "name": form.name.data,
+            "con": create_engine(form.con.sqlalchemy_uri_decrypted, echo=False),
+            "schema": None,
+            "if_exists": form.if_exists.data,
+            "index": False,
+            "index_label": None,
+            "chunksize": 10000,
+        }
+        cls.df_to_sql(**df_to_sql_kwargs)
+
+        table.user_id = g.user.id
+        table.schema = None
+        table.fetch_metadata()
+        db.session.add(table)
+        db.session.commit()
+
     @classmethod
     def create_table_from_csv(cls, form, table):
-        """ Create table (including metadata in backend) from contents of a csv.
-        :param form: Parameters defining how to process data
-        :param table: Metadata of new table to be created
-        """
-
-        def _allowed_file(filename: str) -> bool:
-            # Only allow specific file extensions as specified in the config
-            extension = os.path.splitext(filename)[1]
-            return (
-                extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
-            )
-
         filename = secure_filename(form.csv_file.data.filename)
-        if not _allowed_file(filename):
+        if not cls._allowed_file(filename):
             raise Exception("Invalid file type selected")
         csv_to_df_kwargs = {
             "filepath_or_buffer": filename,
