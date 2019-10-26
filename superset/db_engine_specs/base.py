@@ -37,7 +37,7 @@ from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextA
 from sqlalchemy.types import TypeEngine
 from werkzeug.utils import secure_filename
 
-from superset import app, db, sql_parse
+from superset import app, sql_parse
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -388,10 +388,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         df.to_sql(**kwargs)
 
     @classmethod
-    def create_table_from_csv(cls, form, table):
-        """ Create table (including metadata in backend) from contents of a csv.
+    def create_table_from_csv(cls, form) -> None:
+        """
+        Create table from contents of a csv. Note: this method does not create
+        metadata for the table.
+
         :param form: Parameters defining how to process data
-        :param table: Metadata of new table to be created
         """
 
         def _allowed_file(filename: str) -> bool:
@@ -431,12 +433,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "chunksize": 10000,
         }
         cls.df_to_sql(**df_to_sql_kwargs)
-
-        table.user_id = g.user.id
-        table.schema = form.schema.data
-        table.fetch_metadata()
-        db.session.add(table)
-        db.session.commit()
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:

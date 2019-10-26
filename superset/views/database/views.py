@@ -17,7 +17,7 @@
 # pylint: disable=C,R,W
 import os
 
-from flask import flash, redirect
+from flask import flash, g, redirect
 from flask_appbuilder import SimpleFormView
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -28,7 +28,7 @@ from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app, appbuilder, security_manager
+from superset import app, appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
@@ -117,19 +117,37 @@ class CsvToDatabaseView(SimpleFormView):
         try:
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             csv_file.save(path)
-            table = SqlaTable(table_name=form.name.data)
-            table.database = form.data.get("con")
-            table.database_id = table.database.id
-            table.database.db_engine_spec.create_table_from_csv(form, table)
+            table_name = form.name.data
+            database = form.data.get("con")
+
+            table = (
+                db.session.query(SqlaTable)
+                .filter_by(
+                    table_name=table_name,
+                    schema=form.schema.data,
+                    database_id=database.id,
+                )
+                .first()
+            )
+            if not table:
+                table = SqlaTable(table_name=table_name)
+                table.database = database
+                table.database_id = database.id
+                table.user_id = g.user.id
+                table.schema = form.schema.data
+                table.fetch_metadata()
+                db.session.add(table)
+
+            table.database.db_engine_spec.create_table_from_csv(form)
+            db.session.commit()
         except Exception as e:
+            db.session.rollback()
             try:
                 os.remove(path)
             except OSError:
                 pass
             message = (
-                "Table name {} already exists. Please pick another".format(
-                    form.name.data
-                )
+                f"Table name {form.name.data} already exists. Please pick another"
                 if isinstance(e, IntegrityError)
                 else str(e)
             )
