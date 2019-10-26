@@ -22,10 +22,12 @@ import { shallow } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
+import Select from 'react-virtualized-select';
 
 import DatasourceEditor from '../../../src/datasource/DatasourceEditor';
 import Field from '../../../src/CRUD/Field';
 import mockDatasource from '../../fixtures/mockDatasource';
+import TableSelector from '../../../src/components/TableSelector';
 
 const props = {
   datasource: mockDatasource['7__table'],
@@ -91,7 +93,30 @@ describe('DatasourceEditor', () => {
   });
 
   it('renders isSqla fields', () => {
+    wrapper.setState({ activeTabKey: 1 });
     expect(wrapper.state('isSqla')).toBe(true);
     expect(wrapper.find(Field).find({ fieldKey: 'fetch_values_predicate' }).exists()).toBe(true);
+  });
+
+  it('disable table selector', () => {
+    wrapper.setState({ activeTabKey: 1 });
+    expect(inst.props.canChangePhysicalTable).toBe(false);
+    const tableSelector = wrapper.find(Field).find({ fieldKey: 'tableSelector' });
+    const selectComponent = tableSelector.dive()
+      .find(TableSelector).dive()
+      .find(Select)
+      .first();
+    expect(selectComponent.props().disabled).toEqual(true);
+  });
+
+  it('enable table selector', () => {
+    wrapper.setProps({ canChangePhysicalTable: true });
+    wrapper.setState({ activeTabKey: 1 });
+    const tableSelector = wrapper.find(Field).find({ fieldKey: 'tableSelector' });
+    const selectComponent = tableSelector.dive()
+      .find(TableSelector).dive()
+      .find(Select)
+      .first();
+    expect(selectComponent.props().disabled).toEqual(false);
   });
 });
