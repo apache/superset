@@ -26,11 +26,13 @@ import logger from '../middleware/loggerMiddleware';
 import setupApp from '../setup/setupApp';
 import rootReducer from './reducers/index';
 import QuickUploadContainer from "./QuickUploadContainer";
+import './main.less';
 
 setupApp();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
+const databases = bootstrapData.databases;
 
 const store = createStore(
     rootReducer,

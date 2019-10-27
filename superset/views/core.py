@@ -2137,20 +2137,31 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/quickupload")
     def quickupload(self):
+        session = db.session()
+        Database = models.Database
+        databases = (
+            session.query(Database).filter(Database.allow_csv_upload is True).all()
+        )
+        databases_json = [models.DatabaseDto(-1, "In a new database")]
+        for database in databases:
+            databases_json.append(models.DatabaseDto(database.id, database.name))
+
         bootstrap_data = {
-            "test": True,
+            "databases": databases_json,
             "common": self.common_bootstrap_payload(),
         }
 
         if request.args.get("json") == "true":
-            return json_success(json.dumps(bootstrap_data))
+            return json_success(
+                json.dumps(bootstrap_data, default=lambda x: x.__dict__)
+            )
 
         return self.render_template(
             "superset/quickupload.html",
             entry="quickupload",
             standalone_mode=False,
             title="Quick Upload a CSV",
-            bootstrap_data=json.dumps(bootstrap_data),
+            bootstrap_data=json.dumps(bootstrap_data, default=lambda x: x.__dict__),
         )
 
     @has_access

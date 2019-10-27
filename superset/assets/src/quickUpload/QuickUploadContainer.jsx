@@ -26,11 +26,36 @@ export default class QuickUploadContainer extends React.PureComponent {
   }
 
   render() {
-    return (
-      <div className="container quickupload">
-       <p>Test</p>
-        <p>Test 2</p>
-      </div>
-    );
+    return <div className="container">
+        <div className="panel panel-primary">
+          <div className="panel-heading">
+            <h4 className="panel-title">CSV to Database configuration</h4>
+          </div>
+          <div id="Home" className="tab-pane active">
+            <form id="model_form" action method="post" enctype="multipart/form-data">
+              <div className="table-responsive">
+                <table className="table table-bordered">
+                  <tbody>
+                    <tr>
+                      <td className="col-lg-2">
+                        Table Name<strong style={{ color: "red" }}>
+                          *
+                        </strong>
+                      </td>
+                      <td>
+                        <input className="form-control" id="name" name="name" placeholder="Table Name" required type="text" />
+                        <span class="help-block">Name of the table to be created from csv data.</span>
+                      </td>
+                    </tr>
+                    <tr>
+
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>;
   }
 }
