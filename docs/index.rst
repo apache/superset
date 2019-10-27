@@ -153,7 +153,7 @@ Contents
     :maxdepth: 2
 
     installation
-    tutorial
+    tutorials
     security
     sqllab
     gallery
