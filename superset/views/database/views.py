@@ -102,10 +102,10 @@ class CsvToDatabaseView(SimpleFormView):
 
         if not self.is_schema_allowed(database, schema_name):
             message = _(
-                'Database "{0}" Schema "{1}" is not allowed for csv uploads. '
-                "Please contact Superset Admin".format(
-                    database.database_name, schema_name
-                )
+                'Database "%(database_name)s" schema "%(schema_name)s" '
+                "is not allowed for csv uploads. Please contact Superset Admin",
+                database_name=database.database_name,
+                schema_name=schema_name,
             )
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
@@ -130,6 +130,8 @@ class CsvToDatabaseView(SimpleFormView):
                 )
                 .first()
             )
+            if table:
+                table.fetch_metadata()
             if not table:
                 table = SqlaTable(table_name=table_name)
                 table.database = database
@@ -138,29 +140,35 @@ class CsvToDatabaseView(SimpleFormView):
                 table.schema = form.schema.data
                 table.fetch_metadata()
                 db.session.add(table)
-                db.session.commit()
-
+            db.session.commit()
         except Exception as e:
             db.session.rollback()
             try:
                 os.remove(path)
             except OSError:
                 pass
-            message = (
-                f"Table name {form.name.data} already exists. Please pick another"
-                if isinstance(e, IntegrityError)
-                else str(e)
+            message = _(
+                'Unable to upload CSV file "%(filename)s" to table '
+                '"%(table_name)s" in database "%(db_name)s". '
+                "Error message: %(error_msg)s",
+                filename=csv_filename,
+                table_name=form.name.data,
+                db_name=database.database_name,
+                error_msg=str(e),
             )
+
             flash(message, "danger")
             stats_logger.incr("failed_csv_upload")
             return redirect("/csvtodatabaseview/form")
 
         os.remove(path)
         # Go back to welcome page / splash screen
-        db_name = table.database.database_name
         message = _(
-            'CSV file "{0}" uploaded to table "{1}" in '
-            'database "{2}"'.format(csv_filename, form.name.data, db_name)
+            'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
+            'database "%(db_name)s"',
+            csv_filename=csv_filename,
+            table_name=form.name.data,
+            db_name=table.database.database_name,
         )
         flash(message, "info")
         stats_logger.incr("successful_csv_upload")
