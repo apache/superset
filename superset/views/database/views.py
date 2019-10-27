@@ -119,6 +119,7 @@ class CsvToDatabaseView(SimpleFormView):
             csv_file.save(path)
             table_name = form.name.data
             database = form.data.get("con")
+            database.db_engine_spec.create_table_from_csv(form)
 
             table = (
                 db.session.query(SqlaTable)
@@ -137,9 +138,8 @@ class CsvToDatabaseView(SimpleFormView):
                 table.schema = form.schema.data
                 table.fetch_metadata()
                 db.session.add(table)
+                db.session.commit()
 
-            table.database.db_engine_spec.create_table_from_csv(form)
-            db.session.commit()
         except Exception as e:
             db.session.rollback()
             try:
