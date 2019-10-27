@@ -18,14 +18,14 @@
  */
 import React from 'react';
 import thunk from 'redux-thunk';
-import {createStore, applyMiddleware, compose, combineReducers} from 'redux';
+import { createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import { hot } from 'react-hot-loader';
 import { initEnhancer } from '../reduxUtils';
 import logger from '../middleware/loggerMiddleware';
 import setupApp from '../setup/setupApp';
 import rootReducer from './reducers/index';
-import QuickUploadContainer from "./QuickUploadContainer";
+import QuickUploadContainer from './QuickUploadContainer';
 import './main.less';
 
 setupApp();
