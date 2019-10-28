@@ -397,7 +397,6 @@ class BaseEngineSpec:
                 :param table: Metadata of new table to be created
                 """
 
-    # TODO register as REST endpoint
     @classmethod
     def json_create_table_from_csv(cls, formdata, table):
         filename = secure_filename(formdata["csvFilename"])
@@ -406,15 +405,23 @@ class BaseEngineSpec:
         csv_to_df_kwargs = {
             "filepath_or_buffer": filename,
             "sep": formdata["sep"],
-            "header": formdata["header"] if formdata["header"] else 0,
-            "index_col": None,
-            "mangle_dupe_cols": True,
-            "skipinitialspace": True,
-            "skiprows": None,
-            "nrows": None,
-            "skip_blank_lines": True,
-            "parse_dates": True,
-            "infer_datetime_format": True,
+            "header": formdata["header"] if "header" in formdata else 0,
+            "index_col": formdata["index_col"] if "index_col" in formdata else None,
+            "mangle_dupe_cols": formdata["mangle"] if "mangle" in formdata else True,
+            "skipinitialspace": formdata["skipintial"]
+            if "skipinitial" in formdata
+            else True,
+            "skiprows": formdata["skiprows"] if "skiprows" in formdata else None,
+            "nrows": formdata["nrows"] if "nrows" in formdata else None,
+            "skip_blank_lines": formdata["skip_blank"]
+            if "skip_blank" in formdata
+            else True,
+            "parse_dates": formdata["parse_dates"]
+            if "parse_dates" in formdata
+            else True,
+            "infer_datetime_format": formdata["infer_datetime_format"]
+            if "infer_datetime_format" in formdata
+            else True,
             "chunksize": 10000,
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
@@ -423,10 +430,12 @@ class BaseEngineSpec:
             "df": df,
             "name": formdata["tableName"],  # form.name.data,
             "con": create_engine(formdata["sqlalchemyUriDecrypted"], echo=False),
-            "schema": None,
+            "schema": formdata["schema"] if "schema" in formdata else None,
             "if_exists": formdata["ifExists"],
-            "index": False,
-            "index_label": None,
+            "index": formdata["index"] if "index" in formdata else False,
+            "index_label": formdata["index_label"]
+            if "index_label" in formdata
+            else None,
             "chunksize": 10000,
         }
         cls.df_to_sql(**df_to_sql_kwargs)

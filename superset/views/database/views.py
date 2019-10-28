@@ -104,6 +104,7 @@ class BaseCsvToDatabaseView(SimpleFormView):
         flash(message, "danger")
         return redirect(url)
 
+    # TODO can be inlined when old upload is replaced with a react version as well
     def createdatabase(self, csv_filename):
         dbname = csv_filename[:-4]
         cwd = os.getcwd()
@@ -115,7 +116,8 @@ class BaseCsvToDatabaseView(SimpleFormView):
                 )
             )
             flash(message, "danger")
-            return redirect("/quickcsvtodatabaseview/form")
+            # propagate the exception
+            raise Exception
         dview = DatabaseView()
         try:
             # Create Database and set the necessary attributes
@@ -141,10 +143,10 @@ class BaseCsvToDatabaseView(SimpleFormView):
             )
             flash(message, "danger")
             stats_logger.incr("failed_csv_upload")
-            return redirect("/quickcsvtodatabaseview/form")
+            raise Exception
 
 
-# flash messages could be replaced by HTTP Codes
+# TODO register as REST endpoint
 class AddCsvEndpoint(BaseCsvToDatabaseView):
     def post(self, csv_file, json_data):
         formdata = json.load(json_data)
@@ -157,7 +159,9 @@ class AddCsvEndpoint(BaseCsvToDatabaseView):
             )
             flash(message, "danger")
             return redirect("/quickcsvtodatabaseview/form")
-
+        schema_name = formdata["schema"] if "schema" in formdata else ""
+        # TODO create unique filename if secure_filename() returns an empty name
+        csv_filename = secure_filename(csv_file.filename)
         if database_id != -1:
             dbs = db.session.query(models.Database).filter_by(Id=database_id).all()
             if len(dbs) != 1:
@@ -169,16 +173,17 @@ class AddCsvEndpoint(BaseCsvToDatabaseView):
                 return redirect("/quickcsvtodatabaseview/form")
             database = dbs[0]
 
-        schema_name = ""
-        if not database_id == -1 and not self.is_schema_allowed(database, schema_name):
-            self.flash_schema_message_and_redirect(
-                "/quickcsvtodatabaseview/form", database, schema_name
-            )
-        # TODO create unique filename if secure_filename() returns an empty name
-        csv_filename = secure_filename(csv_file.filename)
+            if not self.is_schema_allowed(database, schema_name):
+                self.flash_schema_message_and_redirect(
+                    "/quickcsvtodatabaseview/form", database, schema_name
+                )
+        else:
+            try:
+                database = self.createdatabase(csv_filename)
+            except Exception:
+                return redirect("/quickcsvtodatabaseview/form")
+
         path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
-        if database_id == -1:
-            database = self.createdatabase(csv_filename)
         try:
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             csv_file.save(path)
@@ -316,7 +321,10 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
         path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
         # to here
         if database.id == -1:
-            database = self.createdatabase(csv_filename)
+            try:
+                database = self.createdatabase(csv_filename)
+            except Exception:
+                return redirect("/quickcsvtodatabaseview/form")
         try:
             form.con.data = database
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
