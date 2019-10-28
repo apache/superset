@@ -24,8 +24,11 @@ import Button from "../Button";
 const propTypes = {
   isVisible: PropTypes.bool.isRequired,
   text: PropTypes.string,
+  separatorText: PropTypes.string,
   showButton: PropTypes.bool,
-  buttonText: PropTypes.string
+  buttonText: PropTypes.string,
+  showFileSelected: PropTypes.bool,
+  fileName: PropTypes.string
 };
 
 export default class DropArea extends React.PureComponent {
@@ -46,23 +49,44 @@ export default class DropArea extends React.PureComponent {
   }
 
   render() {
-    const { isVisible, text, showButton, buttonText } = this.props;
+    const {
+      isVisible,
+      text,
+      separatorText,
+      showButton,
+      buttonText,
+      showFileSelected,
+      fileName
+    } = this.props;
     const { hover } = this.state;
     return (
-      <div
-        className={`filedropper-container ${
-          isVisible ? "is-visible" : "is-not-visible"
-        } ${hover ? "filedropper-background-hover" : "filedropper-background"}`}
-        onDragOver={this.setHover}
-        onMouseOver={this.setHover}
-        onDragExit={this.unsetHover}
-        onMouseOut={this.unsetHover}
-      >
-        <i className="fa fa-upload" />
-        <div className="filedropper-title">{text ? text : "Drag & Drop"}</div>
-        <div className="filedropper-separatortext">or</div>
-        {(showButton === undefined || showButton) && (
-          <Button>{buttonText ? buttonText : "Click here"}</Button>
+      <div>
+        <div
+          className={`filedropper-container ${
+            isVisible ? "is-visible" : "is-not-visible"
+          } ${
+            hover ? "filedropper-background-hover" : "filedropper-background"
+          }`}
+          onDragOver={this.setHover}
+          onMouseOver={this.setHover}
+          onDragExit={this.unsetHover}
+          onMouseOut={this.unsetHover}
+        >
+          <i className="fa fa-upload" />
+          <div className="filedropper-title">{text ? text : "Drag & Drop"}</div>
+          {(showButton === undefined || showButton) && (
+            <>
+              <div className="filedropper-separatortext">
+                {separatorText ? separatorText : "or"}
+              </div>
+              <Button>{buttonText ? buttonText : "Click here"}</Button>
+            </>
+          )}
+        </div>
+        {showFileSelected ? (
+          <div>File: {fileName ? fileName : "No file chosen"}</div>
+        ) : (
+          <></>
         )}
       </div>
     );

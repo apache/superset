@@ -44,9 +44,9 @@ export default class FileDropper extends React.Component {
     this.handleFileInputChanged = this.handleFileInputChanged.bind(this);
     this.setFileRef = this.setFileRef.bind(this);
     this.fileChangeEventHandler = this.fileChangeEventHandler.bind(this);
-  }
 
-  fileRef = document.createElement("input");
+    this.fileRef = document.createElement("input");
+  }
 
   allowedMimeType(file) {
     const allowedMimeTypes = this.props.allowedMimeTypes || [];
