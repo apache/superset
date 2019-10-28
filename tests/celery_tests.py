@@ -37,7 +37,7 @@ CELERY_SLEEP_TIME = 5
 
 
 class CeleryConfig(object):
-    BROKER_URL = app.config["CELERY_RESULT_BACKEND"]
+    BROKER_URL = app.config["CELERY_CONFIG"].BROKER_URL
     CELERY_IMPORTS = ("superset.sql_lab",)
     CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
     CONCURRENCY = 1

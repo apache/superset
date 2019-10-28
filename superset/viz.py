@@ -1473,9 +1473,7 @@ class HistogramViz(BaseViz):
     def query_obj(self):
         """Returns the query object for this visualization"""
         d = super().query_obj()
-        d["row_limit"] = self.form_data.get(
-            "row_limit", int(config["VIZ_ROW_LIMIT"])
-        )
+        d["row_limit"] = self.form_data.get("row_limit", int(config["VIZ_ROW_LIMIT"]))
         numeric_columns = self.form_data.get("all_columns_x")
         if numeric_columns is None:
             raise Exception(_("Must have at least one numeric column specified"))

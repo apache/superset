@@ -123,9 +123,7 @@ class EmailSmtpTest(unittest.TestCase):
         mock_smtp_ssl.return_value = mock.Mock()
         msg = MIMEMultipart()
         utils.send_MIME_email("from", "to", msg, app.config, dryrun=False)
-        mock_smtp.assert_called_with(
-            app.config["SMTP_HOST"], app.config["SMTP_PORT"]
-        )
+        mock_smtp.assert_called_with(app.config["SMTP_HOST"], app.config["SMTP_PORT"])
         assert mock_smtp.return_value.starttls.called
         mock_smtp.return_value.login.assert_called_with(
             app.config["SMTP_USER"], app.config["SMTP_PASSWORD"]
@@ -156,9 +154,7 @@ class EmailSmtpTest(unittest.TestCase):
         mock_smtp_ssl.return_value = mock.Mock()
         utils.send_MIME_email("from", "to", MIMEMultipart(), app.config, dryrun=False)
         assert not mock_smtp_ssl.called
-        mock_smtp.assert_called_with(
-            app.config["SMTP_HOST"], app.config["SMTP_PORT"]
-        )
+        mock_smtp.assert_called_with(app.config["SMTP_HOST"], app.config["SMTP_PORT"])
         assert not mock_smtp.login.called
 
     @mock.patch("smtplib.SMTP_SSL")

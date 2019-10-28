@@ -373,9 +373,7 @@ def worker(workers):
     if workers:
         celery_app.conf.update(CELERYD_CONCURRENCY=workers)
     elif config["SUPERSET_CELERY_WORKERS"]:
-        celery_app.conf.update(
-            CELERYD_CONCURRENCY=config["SUPERSET_CELERY_WORKERS"]
-        )
+        celery_app.conf.update(CELERYD_CONCURRENCY=config["SUPERSET_CELERY_WORKERS"])
 
     worker = celery_app.Worker(optimization="fair")
     worker.start()

@@ -111,9 +111,7 @@ from .utils import (
 
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config["CACHE_DEFAULT_TIMEOUT"]
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config[
-    "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"
-]
+SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
 stats_logger = config["STATS_LOGGER"]
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
@@ -1273,9 +1271,7 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_MISSING_ERR)
         security_manager.assert_datasource_permission(datasource)
         payload = json.dumps(
-            datasource.values_for_column(
-                column, config["FILTER_SELECT_ROW_LIMIT"]
-            ),
+            datasource.values_for_column(column, config["FILTER_SELECT_ROW_LIMIT"]),
             default=utils.json_int_dttm_ser,
         )
         return json_success(payload)
