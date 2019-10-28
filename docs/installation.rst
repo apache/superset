@@ -377,6 +377,8 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
+| Elasticsearch    | ``pip install elasticsearch-dbapi``   | ``elasticsearch+http://``                               |
++------------------+---------------------------------------+-------------------------------------------------+
 | Exasol           | ``pip install sqlalchemy-exasol``     | ``exa+pyodbc://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://``                                  |
@@ -433,6 +435,38 @@ The connection string for BigQuery looks like this ::
     bigquery://{project_id}
 
 To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
+
+Elasticsearch
+-------------
+
+The connection string for Elasticsearch looks like this ::
+
+    elasticsearch+http://{user}:{password}@{host}:9200/
+
+Using HTTPS ::
+
+    elasticsearch+https://{user}:{password}@{host}:9200/
+
+
+Elasticsearch as a default limit of 10000 rows, so you can increase this limit on your cluster
+or set Superset's row limit on config ::
+
+    ROW_LIMIT = 10000
+
+You can query multiple indices on SQLLab for example ::
+
+    select timestamp, agent from "logstash-*"
+
+But, to use visualizations for multiple indices you need to create an alias index on your cluster ::
+
+    POST /_aliases
+    {
+        "actions" : [
+            { "add" : { "index" : "logstash-**", "alias" : "logstash_all" } }
+        ]
+    }
+
+Then register your table with the ``alias`` name ``logstasg_all``
 
 Snowflake
 ---------
