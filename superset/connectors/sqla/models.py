@@ -169,15 +169,19 @@ class TableColumn(Model, BaseColumn):
         col = self.get_sqla_col(label="__time")
         l = []
         if start_dttm:
-            l.append(col >= text(self.dttm_sql_literal(start_dttm)))
+            l.append(
+                col >= text(self.dttm_sql_literal(start_dttm, time_range_endpoints))
+            )
         if end_dttm:
             if (
                 time_range_endpoints
                 and time_range_endpoints[1] == utils.TimeRangeEndpoint.EXCLUSIVE
             ):
-                l.append(col < text(self.dttm_sql_literal(end_dttm)))
+                l.append(
+                    col < text(self.dttm_sql_literal(end_dttm, time_range_endpoints))
+                )
             else:
-                l.append(col <= text(self.dttm_sql_literal(end_dttm)))
+                l.append(col <= text(self.dttm_sql_literal(end_dttm, None)))
         return and_(*l)
 
     def get_timestamp_expression(
@@ -218,7 +222,13 @@ class TableColumn(Model, BaseColumn):
 
         return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
-    def dttm_sql_literal(self, dttm: DateTime) -> str:
+    def dttm_sql_literal(
+        self,
+        dttm: DateTime,
+        time_range_endpoints: Optional[
+            Tuple[utils.TimeRangeEndpoint, utils.TimeRangeEndpoint]
+        ],
+    ) -> str:
         """Convert datetime object to a SQL expression string"""
         sql = (
             self.table.database.db_engine_spec.convert_dttm(self.type, dttm)
@@ -230,6 +240,18 @@ class TableColumn(Model, BaseColumn):
             return sql
 
         tf = self.python_date_format
+
+        # Fallback to the default format (if defined) only if the SIP-15 time range
+        # endpoints, i.e., [start, end) are enabled.
+        if not tf and time_range_endpoints == (
+            utils.TimeRangeEndpoint.INCLUSIVE,
+            utils.TimeRangeEndpoint.EXCLUSIVE,
+        ):
+            tf = (
+                self.table.database.get_extra()
+                .get("python_date_format_by_column_name", {})
+                .get(self.column_name)
+            )
 
         if tf:
             if tf in ["epoch_ms", "epoch_s"]:
