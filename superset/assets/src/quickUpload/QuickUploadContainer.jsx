@@ -18,6 +18,7 @@
  */
 import React from "react";
 import PropTypes from "prop-types";
+import Asterisk from "src/components/Asterisk";
 import FileDropper from "src/components/FileDropper/FileDropper";
 import DropArea from "src/components/FileDropper/DropArea";
 import Select from "react-virtualized-select";
@@ -83,7 +84,7 @@ export default class QuickUploadContainer extends React.PureComponent {
                   <tbody>
                     <tr>
                       <td className='col-lg-2'>
-                        Table Name <strong style={{ color: "red" }}>*</strong>
+                        Table Name <Asterisk />
                       </td>
                       <td>
                         <input
@@ -101,7 +102,7 @@ export default class QuickUploadContainer extends React.PureComponent {
                     </tr>
                     <tr>
                       <td className='col-lg-2'>
-                        CSV File <strong style={{ color: "red" }}>*</strong>
+                        CSV File <Asterisk />
                       </td>
                       <td>
                         <FileDropper
@@ -148,7 +149,7 @@ export default class QuickUploadContainer extends React.PureComponent {
                     </tr>
                     <tr>
                       <td className='col-lg-2'>
-                        Delimiter <strong style={{ color: "red" }}>*</strong>
+                        Delimiter <Asterisk />
                       </td>
                       <td>
                         <input
@@ -167,7 +168,7 @@ export default class QuickUploadContainer extends React.PureComponent {
                     </tr>
                     <tr>
                       <td className='col-lg-2'>
-                        Table Exists <strong style={{ color: "red" }}>*</strong>
+                        Table Exists <Asterisk />
                       </td>
                       <td>
                         <Select

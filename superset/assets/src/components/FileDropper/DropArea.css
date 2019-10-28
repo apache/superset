@@ -1,7 +1,7 @@
 .filedropper-container {
-  height: 100%;
   width: 100%;
   min-width: 200px;
+  min-height: 100px;
   flex-direction: column;
   align-items: center;
   border: dashed 1px black;
