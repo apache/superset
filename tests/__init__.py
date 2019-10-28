@@ -14,3 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+"""
+TODO: Clean this up! The current pattern of accessing app props on package init means
+    that we need to ensure the creation of our Flask app BEFORE any tests load
+"""
+from superset.app import create_app
+create_app().app_context().push()

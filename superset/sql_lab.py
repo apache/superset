@@ -44,7 +44,7 @@ from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
-from superset.tasks.celery_app import app as celery_app
+from superset.extensions import celery_app
 from superset.utils.core import json_iso_dttm_ser, QueryStatus, sources, zlib_compress
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing

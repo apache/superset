@@ -246,11 +246,11 @@ class SupersetTestCase(unittest.TestCase):
             raise Exception("validate_sql failed")
         return resp
 
-    @patch.dict("superset._feature_flags", {"FOO": True}, clear=True)
+    @patch.dict("superset.extensions.feature_flag_manager._feature_flags", {"FOO": True}, clear=True)
     def test_existing_feature_flags(self):
         self.assertTrue(is_feature_enabled("FOO"))
 
-    @patch.dict("superset._feature_flags", {}, clear=True)
+    @patch.dict("superset.extensions.feature_flag_manager._feature_flags", {}, clear=True)
     def test_nonexistent_feature_flags(self):
         self.assertFalse(is_feature_enabled("FOO"))
 

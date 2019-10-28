@@ -45,7 +45,7 @@ from superset.models.schedules import (
     ScheduleType,
     SliceEmailReportFormat,
 )
-from superset.tasks.celery_app import app as celery_app
+from superset.extensions import celery_app
 from superset.utils.core import get_email_address_list, send_email_smtp
 
 # Globals

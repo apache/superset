@@ -817,19 +817,6 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
     return decompressed.decode("utf-8") if decode else decompressed
 
 
-_celery_app = None
-
-
-def get_celery_app(config):
-    global _celery_app
-    if _celery_app:
-        return _celery_app
-    _celery_app = celery.Celery()
-    _celery_app.config_from_object(config.get("CELERY_CONFIG"))
-    _celery_app.set_default()
-    return _celery_app
-
-
 def to_adhoc(filt, expressionType="SIMPLE", clause="where"):
     result = {
         "clause": clause.upper(),

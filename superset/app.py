@@ -31,8 +31,8 @@ from superset.extensions import (
     manifest_processor,
     migrate,
     results_backend_manager,
-    talisman
-)
+    talisman,
+    celery_app)
 from flask_wtf import CSRFProtect
 
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -93,6 +93,10 @@ class SupersetAppInitializer:
         """
         pass
 
+    def configure_celery(self) -> None:
+        celery_app.config_from_object(self.config.get("CELERY_CONFIG"))
+        celery_app.set_default()
+
     def init_views(self) -> None:
         # TODO - This should iterate over all views and register them with FAB...
         from superset import views  # noqa
@@ -121,6 +125,8 @@ class SupersetAppInitializer:
         self.pre_init()
 
         self.setup_db()
+
+        self.configure_celery()
 
         self.setup_event_logger()
 

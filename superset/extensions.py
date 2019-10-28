@@ -17,6 +17,7 @@
 
 import os
 
+import celery
 from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
 from flask_migrate import Migrate
@@ -31,9 +32,9 @@ from superset.utils.results_backend_manager import ResultsBackendManager
 
 APP_DIR = os.path.dirname(__file__)
 
-app = Flask(__name__)
 appbuilder = AppBuilder(update_perms=False)
 cache_manager = CacheManager()
+celery_app = celery.Celery()
 db = SQLA()
 _event_logger = {}
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
