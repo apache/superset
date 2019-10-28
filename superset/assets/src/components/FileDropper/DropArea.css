@@ -1,0 +1,38 @@
+.filedropper-container {
+  height: 100%;
+  width: 100%;
+  min-width: 200px;
+  flex-direction: column;
+  align-items: center;
+  border: dashed 1px black;
+  border-radius: 6px;
+  border-color: #ccc;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.is-visible {
+  display: flex;
+}
+
+.is-not-visible {
+  display: none;
+}
+
+.filedropper-background {
+  background-color: #f4f4f4;
+}
+
+.filedropper-background-hover {
+  background-color: #fafafa;
+}
+
+.filedropper-title {
+  font-weight: 700;
+  opacity: 0.5;
+}
+
+.filedropper-separatortext {
+  font-weight: 700;
+  opacity: 0.4;
+}
