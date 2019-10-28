@@ -48,6 +48,7 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
+from werkzeug.urls import Href
 
 import superset.models.core as models
 from superset import (
@@ -1071,7 +1072,6 @@ class Superset(BaseSupersetView):
         results = request.args.get("results") == "true"
         samples = request.args.get("samples") == "true"
         force = request.args.get("force") == "true"
-
         form_data = get_form_data()[0]
 
         try:
@@ -1143,8 +1143,39 @@ class Superset(BaseSupersetView):
     def explore(self, datasource_type=None, datasource_id=None):
         user_id = g.user.get_id() if g.user else None
         form_data, slc = get_form_data(use_slice_data=True)
-        error_redirect = "/chart/list/"
 
+        # Flash the SIP-15 message if the slice is owned by the current user and has not
+        # been updated, i.e., is not using the [start, end) interval.
+        if (
+            config["SIP_15_ENABLED"]
+            and slc
+            and g.user in slc.owners
+            and (
+                not form_data.get("time_range_endpoints")
+                or form_data["time_range_endpoints"]
+                != (
+                    utils.TimeRangeEndpoint.INCLUSIVE,
+                    utils.TimeRangeEndpoint.EXCLUSIVE,
+                )
+            )
+        ):
+            url = Href("/superset/explore/")(
+                {
+                    "form_data": json.dumps(
+                        {
+                            "slice_id": slc.id,
+                            "time_range_endpoints": (
+                                utils.TimeRangeEndpoint.INCLUSIVE.value,
+                                utils.TimeRangeEndpoint.EXCLUSIVE.value,
+                            ),
+                        }
+                    )
+                }
+            )
+
+            flash(Markup(config["SIP_15_TOAST_MESSAGE"].format(url=url)))
+
+        error_redirect = "/chart/list/"
         try:
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
