@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-import os
 import json
+import os
 
 from flask import flash, redirect
 from flask_appbuilder import SimpleFormView
@@ -29,7 +29,7 @@ from werkzeug.utils import secure_filename
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
-from superset import app, appbuilder, security_manager, db
+from superset import app, appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 import superset.models.core as models
 from superset.utils import core as utils

@@ -385,7 +385,7 @@ class BaseEngineSpec:
         """
         df.to_sql(**kwargs)
 
-    def _allowed_file(filename: str) -> bool:
+    def _allowed_file(self, filename: str) -> bool:
         # Only allow specific file extensions as specified in the config
         extension = os.path.splitext(filename)[1]
         return extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
