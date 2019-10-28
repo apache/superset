@@ -144,7 +144,8 @@ export default class FileDropper extends React.Component {
       >
         {this.props.children}
         <input
-          type="file"
+          type='file'
+          id='file'
           accept={allowedMimeTypes && allowedMimeTypes.join(",")}
           multiple={allowMultipleSelection ? allowMultipleSelection : false}
           ref={element => this.setFileRef(element)}
