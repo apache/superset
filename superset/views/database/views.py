@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 import os
+import json
 
 from flask import flash, redirect
 from flask_appbuilder import SimpleFormView
@@ -104,6 +105,114 @@ class BaseCsvToDatabaseView(SimpleFormView):
         return redirect(url)
 
 
+class REST_addCsvEndpoint(BaseCsvToDatabaseView):
+    def post(self, csv, json_data):
+        csv_file = csv
+        # assumption: json contains database_id
+        formdata = json.load(json_data)
+        database_id = formdata["database_id"]
+        if database_id != -1:
+            dbs = db.session.query(models.Database).filter_by(Id=database_id).all()
+            if len(dbs) != 1:
+                message = _(
+                    "Database inconsistency, several possible databases found, please contact your administrator "
+                    "(several Databases with the matching ID found"
+                )
+                flash(message, "danger")
+                return redirect("/quickcsvtodatabaseview/form")
+            database = dbs[0]
+
+        schema_name = ""
+        if not database_id == -1 and not self.is_schema_allowed(database, schema_name):
+            self.flash_schema_message_and_redirect(
+                "/quickcsvtodatabaseview/form", database, schema_name
+            )
+        csv_filename = secure_filename(csv_file.filename)
+        path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
+        # to here
+        if database_id == -1:
+            dbname = csv_filename[:-4]
+            cwd = os.getcwd()
+            dbpath = cwd + "/" + dbname + ".db"
+            if os.path.isfile(dbpath):
+                message = _(
+                    "Database file for {0} already exists, please choose a different name".format(
+                        dbname
+                    )
+                )
+                flash(message, "danger")
+                return redirect("/quickcsvtodatabaseview/form")
+            dview = DatabaseView()
+            try:
+                # Create Database and set the necessary attributes
+                item = dview.datamodel.obj()
+                item.database_name = dbname
+                item.sqlalchemy_uri = "sqlite:////" + dbpath
+                item.allow_csv_upload = True
+                item.perm = dbname
+                db.session.add(item)
+                # replace with .filter_by(name=dbname) ?
+                dbs = (
+                    db.session.query(models.Database)
+                    .filter_by(allow_csv_upload=True)
+                    .all()
+                )
+                for adb in dbs:
+                    if adb.name == dbname:
+                        database = adb
+                        continue
+            except Exception as e:
+                try:
+                    db.session.delete(item)
+                    os.remove(dbpath)
+                except OSError:
+                    pass
+                message = (
+                    "Database name {} already exists. Please pick another".format(
+                        dbname
+                    )
+                    if isinstance(e, IntegrityError)
+                    else str(e)
+                )
+                flash(message, "danger")
+                stats_logger.incr("failed_csv_upload")
+                return redirect("/quickcsvtodatabaseview/form")
+        try:
+            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
+            csv_file.save(path)
+            table = SqlaTable(table_name=formdata["tableName"])
+            table.database = database
+            table.database_id = table.database.id
+            table.database.db_engine_spec.alt_create_table_from_csv(formdata, table)
+        except Exception as e:
+            try:
+                # Decide whether to remove Database or not here
+                os.remove(path)
+            except OSError:
+                pass
+            message = (
+                "Table name {} already exists. Please pick another".format(
+                    formdata["tableName"]
+                )
+                if isinstance(e, IntegrityError)
+                else str(e)
+            )
+            flash(message, "danger")
+            stats_logger.incr("failed_csv_upload")
+            return redirect("/quickcsvtodatabaseview/form")
+
+        os.remove(path)
+        # Go back to welcome page / splash screen
+        db_name = table.database.database_name
+        message = _(
+            'CSV file "{0}" uploaded to table "{1}" in '
+            'database "{2}"'.format(csv_filename, formdata["tableName"], db_name)
+        )
+        flash(message, "info")
+        stats_logger.incr("successful_csv_upload")
+        return redirect("/tablemodelview/list/")
+
+
 class CsvToDatabaseView(BaseCsvToDatabaseView):
     form = CsvToDatabaseForm
     form_template = "superset/form_view/csv_to_database_view/edit.html"
@@ -182,29 +291,6 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
     form_template = "superset/form_view/quick_csv_to_database_view/quick_edit.html"
     form_title = _("Quick CSV to Database configuration")
     add_columns = ["database", "schema", "table_name"]
-    """
-    def add(self, item, raise_exception=False):
-        try:
-            db.session.add(item)
-            db.session.commit()
-            # db.message = (as_unicode(self.add_row_message), "success")
-            return True
-        except IntegrityError as e:
-            self.message = (as_unicode(self.add_integrity_error_message), "warning")
-            self.session.rollback()
-            if raise_exception:
-                raise e
-            return False
-        except Exception as e:
-            # self.message = (
-            # as_unicode(self.general_error_message + " " + str(sys.exc_info()[0])),
-            # "danger",
-            # )
-            db.session.rollback()
-            if raise_exception:
-                raise e
-            return False
-    """
 
     def form_get(self, form):
         form.sep.data = ","

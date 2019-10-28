@@ -397,6 +397,46 @@ class BaseEngineSpec:
                 :param table: Metadata of new table to be created
                 """
 
+    # TODO register as REST endpoint
+    @classmethod
+    def json_create_table_from_csv(cls, formdata, table):
+        filename = secure_filename(formdata["csvFilename"])
+        if not cls._allowed_file(filename):
+            raise Exception("Invalid file type selected")
+        csv_to_df_kwargs = {
+            "filepath_or_buffer": filename,
+            "sep": formdata["sep"],
+            "header": formdata["header"] if formdata["header"] else 0,
+            "index_col": None,
+            "mangle_dupe_cols": True,
+            "skipinitialspace": True,
+            "skiprows": None,
+            "nrows": None,
+            "skip_blank_lines": True,
+            "parse_dates": True,
+            "infer_datetime_format": True,
+            "chunksize": 10000,
+        }
+        df = cls.csv_to_df(**csv_to_df_kwargs)
+
+        df_to_sql_kwargs = {
+            "df": df,
+            "name": formdata["tableName"],  # form.name.data,
+            "con": create_engine(formdata["sqlalchemyUriDecrypted"], echo=False),
+            "schema": None,
+            "if_exists": formdata["ifExists"],
+            "index": False,
+            "index_label": None,
+            "chunksize": 10000,
+        }
+        cls.df_to_sql(**df_to_sql_kwargs)
+
+        table.user_id = g.user.id
+        table.schema = None
+        table.fetch_metadata()
+        db.session.add(table)
+        db.session.commit()
+
     @classmethod
     def alt_create_table_from_csv(cls, form, table):
         filename = secure_filename(form.csv_file.data.filename)
