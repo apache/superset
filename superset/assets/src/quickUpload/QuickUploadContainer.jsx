@@ -32,9 +32,14 @@ export default class QuickUploadContainer extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
+      tableName: "",
       file: undefined,
       selectedConnection: { label: "In a new database", value: 0 },
+      schema: "",
+      delimiter: ",",
       selectedTableExists: { label: "Fail", value: 0 },
+      headerRow: "0",
+      decimalCharacter: ".",
       tableExistsValues: [
         { label: "Fail", value: 0 },
         { label: "Replace", value: 1 },
@@ -44,6 +49,11 @@ export default class QuickUploadContainer extends React.PureComponent {
     this.setFile = this.setFile.bind(this);
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
     this.setTableExists = this.setTableExists.bind(this);
+    this.setTableName = this.setTableName.bind(this);
+    this.setSchema = this.setSchema.bind(this);
+    this.setDelimiter = this.setDelimiter.bind(this);
+    this.setHeaderRow = this.setHeaderRow.bind(this);
+    this.setDecimalCharacter = this.setDecimalCharacter.bind(this);
     this.getConnectionStrings = this.getConnectionStrings.bind(this);
   }
 
@@ -60,6 +70,33 @@ export default class QuickUploadContainer extends React.PureComponent {
 
   setTableExists(value) {
     this.setState({ selectedTableExists: value });
+  }
+
+  setTableName(event) {
+    const value = event.currentTarget.value;
+    console.log(value);
+    this.setState({ tableName: value });
+  }
+
+  setSchema(event) {
+    // TODO: Schema check from forms
+    const value = event.currentTarget.value;
+    this.setState({ schema: value });
+  }
+
+  setDelimiter(event) {
+    const value = event.currentTarget.value;
+    this.setState({ delimiter: value });
+  }
+
+  setHeaderRow(event) {
+    const value = event.currentTarget.value;
+    this.setState({ headerRow: value });
+  }
+
+  setDecimalCharacter(event) {
+    const value = event.currentTarget.value;
+    this.setState({ decimalCharacter: value });
   }
 
   getConnectionStrings() {
@@ -94,6 +131,8 @@ export default class QuickUploadContainer extends React.PureComponent {
                           placeholder='Table Name'
                           required
                           type='text'
+                          value={this.state.tableName}
+                          onChange={this.setTableName}
                         />
                         <span className='help-block'>
                           Name of the table to be created from csv data.
@@ -141,6 +180,8 @@ export default class QuickUploadContainer extends React.PureComponent {
                           name='schema'
                           placeholder='Schema'
                           type='text'
+                          value={this.state.schema}
+                          onChange={this.setSchema}
                         />
                         <span className='help-block'>
                           Specify a schema (if database flavor supports this)
@@ -159,7 +200,8 @@ export default class QuickUploadContainer extends React.PureComponent {
                           placeholder='Delimiter'
                           required
                           type='text'
-                          defaultValue=','
+                          value={this.state.delimiter}
+                          onChange={this.setDelimiter}
                         />
                         <span className='help-block'>
                           Delimiter used by CSV file (for whitespace use \s++)
@@ -192,7 +234,8 @@ export default class QuickUploadContainer extends React.PureComponent {
                           name='headerrow'
                           placeholder='Header Row'
                           type='text'
-                          defaultValue='0'
+                          value={this.state.headerRow}
+                          onChange={this.setHeaderRow}
                         />
                         <span className='help-block'>
                           Row containing the headers to use as column names (0
@@ -210,7 +253,8 @@ export default class QuickUploadContainer extends React.PureComponent {
                           name='decimal'
                           placeholder='Decimal Character'
                           type='text'
-                          defaultValue='.'
+                          value={this.state.decimalCharacter}
+                          onChange={this.setDecimalCharacter}
                         />
                         <span className='help-block'>
                           Character to interpret as decimal point.
