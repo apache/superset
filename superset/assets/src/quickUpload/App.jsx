@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from "react";
-import thunk from "redux-thunk";
-import { createStore, applyMiddleware, compose } from "redux";
-import { Provider } from "react-redux";
-import { hot } from "react-hot-loader";
-import { initEnhancer } from "../reduxUtils";
-import logger from "../middleware/loggerMiddleware";
-import setupApp from "../setup/setupApp";
-import rootReducer from "./reducers/index";
-import QuickUploadContainer from "./QuickUploadContainer";
-import "./main.less";
+import React from 'react';
+import thunk from 'redux-thunk';
+import { createStore, applyMiddleware, compose } from 'redux';
+import { Provider } from 'react-redux';
+import { hot } from 'react-hot-loader';
+import { initEnhancer } from '../reduxUtils';
+import logger from '../middleware/loggerMiddleware';
+import setupApp from '../setup/setupApp';
+import rootReducer from './reducers/index';
+import QuickUploadContainer from './QuickUploadContainer';
+import './main.less';
 
 setupApp();
 
-const appContainer = document.getElementById("app");
-const bootstrapData = JSON.parse(appContainer.getAttribute("data-bootstrap"));
+const appContainer = document.getElementById('app');
+const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 const databases = bootstrapData.databases;
 
 const store = createStore(
@@ -39,8 +39,8 @@ const store = createStore(
   {},
   compose(
     applyMiddleware(thunk, logger),
-    initEnhancer(false)
-  )
+    initEnhancer(false),
+  ),
 );
 
 const App = () => (

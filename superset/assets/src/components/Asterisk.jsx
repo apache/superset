@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from "react";
+import React from 'react';
 
 export default function Asterisk() {
-  return <strong style={{ color: "red" }}>*</strong>;
+  return <strong style={{ color: 'red' }}>*</strong>;
 }

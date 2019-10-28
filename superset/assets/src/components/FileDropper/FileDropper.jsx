@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from "react";
-import PropTypes from "prop-types";
-import "./FileDropper.css";
+import React from 'react';
+import PropTypes from 'prop-types';
+import './FileDropper.css';
 
 const propTypes = {
   onFileSelected: PropTypes.func.isRequired,
@@ -28,12 +28,13 @@ const propTypes = {
   disableClick: PropTypes.bool,
   allowMultipleSelection: PropTypes.bool,
   fileInputClassName: PropTypes.string,
-  onError: PropTypes.func
+  onError: PropTypes.func,
+  children: PropTypes.node,
 };
 
 export const ErrorStatus = {
   FileSizeExceeded: 1,
-  MimeTypeDisallowed: 2
+  MimeTypeDisallowed: 2,
 };
 
 export default class FileDropper extends React.Component {
@@ -45,7 +46,18 @@ export default class FileDropper extends React.Component {
     this.setFileRef = this.setFileRef.bind(this);
     this.fileChangeEventHandler = this.fileChangeEventHandler.bind(this);
 
-    this.fileRef = document.createElement("input");
+    this.fileRef = document.createElement('input');
+  }
+
+  componentWillUnmount() {
+    this.fileRef.removeEventListener('change', this.fileChangeEventHandler);
+  }
+
+  setFileRef(element) {
+    if (element && this.fileRef !== element) {
+      this.fileRef = element;
+      this.fileRef.addEventListener('change', this.fileChangeEventHandler);
+    }
   }
 
   allowedMimeType(file) {
@@ -66,7 +78,7 @@ export default class FileDropper extends React.Component {
         msg: `File type '${file.type}' is not allowed (${
           this.props.allowedMimeTypes
         }).`,
-        fileName: file.name
+        fileName: file.name,
       });
       return;
     }
@@ -77,7 +89,7 @@ export default class FileDropper extends React.Component {
         msg: `File size (${file.size}) exceeds maximum file size (${
           this.props.maxSize
         }).`,
-        fileName: file.name
+        fileName: file.name,
       });
       return;
     }
@@ -106,22 +118,11 @@ export default class FileDropper extends React.Component {
     }
   }
 
-  setFileRef(element) {
-    if (element && this.fileRef !== element) {
-      this.fileRef = element;
-      this.fileRef.addEventListener("change", this.fileChangeEventHandler);
-    }
-  }
-
   fileChangeEventHandler() {
     if (!this.fileRef.files || this.fileRef.files.length === 0) {
       return;
     }
     this.handleFileInputChanged(this.fileRef.files);
-  }
-
-  componentWillUnmount() {
-    this.fileRef.removeEventListener("change", this.fileChangeEventHandler);
   }
 
   render() {
@@ -130,27 +131,27 @@ export default class FileDropper extends React.Component {
       disableClick,
       allowMultipleSelection,
       className,
-      fileInputClassName
+      fileInputClassName,
     } = this.props;
     return (
       <div
         className={className}
         onClick={() => !disableClick && this.fileRef.click()}
         onDragOver={event => event.preventDefault()}
-        onDrop={event => {
+        onDrop={(event) => {
           this.handleFileInputChanged(event.dataTransfer.files);
           event.preventDefault();
         }}
       >
         {this.props.children}
         <input
-          type='file'
-          id='file'
-          accept={allowedMimeTypes && allowedMimeTypes.join(",")}
-          multiple={allowMultipleSelection ? allowMultipleSelection : false}
+          type="file"
+          id="file"
+          accept={allowedMimeTypes && allowedMimeTypes.join(',')}
+          multiple={allowMultipleSelection || false}
           ref={element => this.setFileRef(element)}
           className={`filedropper-input ${
-            fileInputClassName ? fileInputClassName : ""
+            fileInputClassName || ''
           }`}
         />
       </div>

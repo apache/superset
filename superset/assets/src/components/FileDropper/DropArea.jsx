@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from "react";
-import PropTypes from "prop-types";
-import "./DropArea.css";
-import Button from "../Button";
+import React from 'react';
+import PropTypes from 'prop-types';
+import './DropArea.css';
+import Button from '../Button';
 
 const propTypes = {
   isVisible: PropTypes.bool.isRequired,
@@ -28,14 +28,14 @@ const propTypes = {
   showButton: PropTypes.bool,
   buttonText: PropTypes.string,
   showFileSelected: PropTypes.bool,
-  fileName: PropTypes.string
+  fileName: PropTypes.string,
 };
 
 export default class DropArea extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      hover: false
+      hover: false,
     };
     this.setHover = this.setHover.bind(this);
     this.unsetHover = this.unsetHover.bind(this);
@@ -56,40 +56,40 @@ export default class DropArea extends React.PureComponent {
       showButton,
       buttonText,
       showFileSelected,
-      fileName
+      fileName,
     } = this.props;
     const { hover } = this.state;
     return (
       <div>
         <div
           className={`filedropper-container ${
-            isVisible ? "is-visible" : "is-not-visible"
+            isVisible ? 'is-visible' : 'is-not-visible'
           } ${
-            hover ? "filedropper-background-hover" : "filedropper-background"
+            hover ? 'filedropper-background-hover' : 'filedropper-background'
           }`}
           onDragOver={this.setHover}
           onMouseOver={this.setHover}
           onDragExit={this.unsetHover}
           onMouseOut={this.unsetHover}
         >
-          <i className='fa fa-upload' />
-          <div className='filedropper-title'>{text ? text : "Drag & Drop"}</div>
+          <i className="fa fa-upload" />
+          <div className="filedropper-title">{text || 'Drag & Drop'}</div>
           {(showButton === undefined || showButton) && (
             <>
-              <div className='filedropper-separatortext'>
-                {separatorText ? separatorText : "or"}
+              <div className="filedropper-separatortext">
+                {separatorText || 'or'}
               </div>
               <Button
-                tooltip={fileName ? fileName : "No file chosen"}
-                bsStyle='primary'
+                tooltip={fileName || 'No file chosen'}
+                bsStyle="primary"
               >
-                {buttonText ? buttonText : "Click here"}
+                {buttonText || 'Click here'}
               </Button>
             </>
           )}
         </div>
         {showFileSelected ? (
-          <div>File: {fileName ? fileName : "No file chosen"}</div>
+          <div>File: {fileName || 'No file chosen'}</div>
         ) : (
           <></>
         )}

@@ -16,39 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from "react";
-import PropTypes from "prop-types";
-import Asterisk from "src/components/Asterisk";
-import FileDropper from "src/components/FileDropper/FileDropper";
-import DropArea from "src/components/FileDropper/DropArea";
-import Select from "react-virtualized-select";
-import Button from "src/components/Button";
+import React from 'react';
+import PropTypes from 'prop-types';
+import Asterisk from 'src/components/Asterisk';
+import FileDropper from 'src/components/FileDropper/FileDropper';
+import DropArea from 'src/components/FileDropper/DropArea';
+import Select from 'react-virtualized-select';
+import Button from 'src/components/Button';
 
 const propTypes = {
-  databases: PropTypes.array.isRequired
+  databases: PropTypes.array.isRequired,
 };
 
 export default class QuickUploadContainer extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      tableName: "",
+      tableName: '',
       file: undefined,
-      selectedConnection: { label: "In a new database", value: 0 },
-      schema: "",
-      delimiter: ",",
-      selectedTableExists: { label: "Fail", value: 0 },
-      headerRow: "0",
-      decimalCharacter: ".",
+      selectedConnection: { label: 'In a new database', value: 0 },
+      schema: '',
+      delimiter: ',',
+      selectedTableExists: { label: 'Fail', value: 0 },
+      headerRow: '0',
+      decimalCharacter: '.',
       tableExistsValues: [
-        { label: "Fail", value: 0 },
-        { label: "Replace", value: 1 },
-        { label: "Append", value: 2 }
-      ] // TODO: Check if those values can be passed to this view
+        { label: 'Fail', value: 0 },
+        { label: 'Replace', value: 1 },
+        { label: 'Append', value: 2 },
+      ], // TODO: Check if those values can be passed to this view
     };
     this.setFile = this.setFile.bind(this);
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
     this.setTableExists = this.setTableExists.bind(this);
+    this.setUserInput = this.setUserInput.bind(this);
     this.setTableName = this.setTableName.bind(this);
     this.setSchema = this.setSchema.bind(this);
     this.setDelimiter = this.setDelimiter.bind(this);
@@ -59,9 +60,8 @@ export default class QuickUploadContainer extends React.PureComponent {
 
   setFile(file) {
     if (file) {
-      file = file[0];
+      this.setState({ file: file[0] });
     }
-    this.setState({ file: file });
   }
 
   setSelectedConnection(connection) {
@@ -72,97 +72,81 @@ export default class QuickUploadContainer extends React.PureComponent {
     this.setState({ selectedTableExists: value });
   }
 
-  setTableName(event) {
-    const value = event.currentTarget.value;
-    console.log(value);
-    this.setState({ tableName: value });
+  setUserInput(event) {
+    const name = event.target.name;
+    const value = event.target.value;
+    this.setState({ [name]: value });
   }
 
   setSchema(event) {
     // TODO: Schema check from forms
-    const value = event.currentTarget.value;
-    this.setState({ schema: value });
-  }
-
-  setDelimiter(event) {
-    const value = event.currentTarget.value;
-    this.setState({ delimiter: value });
-  }
-
-  setHeaderRow(event) {
-    const value = event.currentTarget.value;
-    this.setState({ headerRow: value });
-  }
-
-  setDecimalCharacter(event) {
-    const value = event.currentTarget.value;
-    this.setState({ decimalCharacter: value });
+    this.setUserInput(event);
   }
 
   getConnectionStrings() {
     const connections = [];
     this.props.databases.forEach((database, index) =>
-      connections.push({ label: database.name, value: index })
+      connections.push({ label: database.name, value: index }),
     );
     return connections;
   }
 
   render() {
     return (
-      <div className='container'>
-        <div className='panel panel-primary'>
-          <div className='panel-heading'>
-            <h4 className='panel-title'>CSV to Database configuration</h4>
+      <div className="container">
+        <div className="panel panel-primary">
+          <div className="panel-heading">
+            <h4 className="panel-title">CSV to Database configuration</h4>
           </div>
-          <div id='Home' className='tab-pane active'>
-            <form id='model_form' method='post' encType='multipart/form-data'>
-              <div className='table-responsive'>
-                <table className='table table-bordered'>
+          <div id="Home" className="tab-pane active">
+            <form id="model_form" method="post" encType="multipart/form-data">
+              <div className="table-responsive">
+                <table className="table table-bordered">
                   <tbody>
                     <tr>
-                      <td className='col-lg-2'>
+                      <td className="col-lg-2">
                         Table Name <Asterisk />
                       </td>
                       <td>
                         <input
-                          className='form-control'
-                          id='name'
-                          name='name'
-                          placeholder='Table Name'
+                          className="form-control"
+                          id="tableName"
+                          name="tableName"
+                          placeholder="Table Name"
                           required
-                          type='text'
+                          type="text"
                           value={this.state.tableName}
-                          onChange={this.setTableName}
+                          onChange={this.setUserInput}
                         />
-                        <span className='help-block'>
+                        <span className="help-block">
                           Name of the table to be created from csv data.
                         </span>
                       </td>
                     </tr>
                     <tr>
-                      <td className='col-lg-2'>
+                      <td className="col-lg-2">
                         CSV File <Asterisk />
                       </td>
                       <td>
                         <FileDropper
                           onFileSelected={this.setFile}
-                          allowedMimeTypes={["text/csv"]}
+                          allowedMimeTypes={['text/csv']}
                         >
                           <DropArea
-                            isVisible={true}
-                            showFileSelected={true}
+                            isVisible
+                            showFileSelected
                             fileName={
                               this.state.file ? this.state.file.name : undefined
                             }
                           />
                         </FileDropper>
-                        <span className='help-block'>
+                        <span className="help-block">
                           Select a CSV file to be uploaded to a database.
                         </span>
                       </td>
                     </tr>
                     <tr>
-                      <td className='col-lg-2'>Database</td>
+                      <td className="col-lg-2">Database</td>
                       <td>
                         <Select
                           value={this.state.selectedConnection}
@@ -172,44 +156,44 @@ export default class QuickUploadContainer extends React.PureComponent {
                       </td>
                     </tr>
                     <tr>
-                      <td className='col-lg-2'>Schema</td>
+                      <td className="col-lg-2">Schema</td>
                       <td>
                         <input
-                          className='form-control'
-                          id='schema'
-                          name='schema'
-                          placeholder='Schema'
-                          type='text'
+                          className="form-control"
+                          id="schema"
+                          name="schema"
+                          placeholder="Schema"
+                          type="text"
                           value={this.state.schema}
                           onChange={this.setSchema}
                         />
-                        <span className='help-block'>
+                        <span className="help-block">
                           Specify a schema (if database flavor supports this)
                         </span>
                       </td>
                     </tr>
                     <tr>
-                      <td className='col-lg-2'>
+                      <td className="col-lg-2">
                         Delimiter <Asterisk />
                       </td>
                       <td>
                         <input
-                          className='form-control'
-                          id='delimiter'
-                          name='delimiter'
-                          placeholder='Delimiter'
+                          className="form-control"
+                          id="delimiter"
+                          name="delimiter"
+                          placeholder="Delimiter"
                           required
-                          type='text'
+                          type="text"
                           value={this.state.delimiter}
-                          onChange={this.setDelimiter}
+                          onChange={this.setUserInput}
                         />
-                        <span className='help-block'>
+                        <span className="help-block">
                           Delimiter used by CSV file (for whitespace use \s++)
                         </span>
                       </td>
                     </tr>
                     <tr>
-                      <td className='col-lg-2'>
+                      <td className="col-lg-2">
                         Table Exists <Asterisk />
                       </td>
                       <td>
@@ -218,7 +202,7 @@ export default class QuickUploadContainer extends React.PureComponent {
                           onChange={this.setTableExists}
                           options={this.state.tableExistsValues}
                         />
-                        <span className='help-block'>
+                        <span className="help-block">
                           If table exists do one of the following: Fail (do
                           nothing), Replace (drop and recreate table) or Append
                           (insert data)
@@ -226,18 +210,18 @@ export default class QuickUploadContainer extends React.PureComponent {
                       </td>
                     </tr>
                     <tr>
-                      <td className='col-lg-2'>Header Row</td>
+                      <td className="col-lg-2">Header Row</td>
                       <td>
                         <input
-                          className='form-control'
-                          id='headerrow'
-                          name='headerrow'
-                          placeholder='Header Row'
-                          type='text'
+                          className="form-control"
+                          id="headerrow"
+                          name="headerrow"
+                          placeholder="Header Row"
+                          type="text"
                           value={this.state.headerRow}
-                          onChange={this.setHeaderRow}
+                          onChange={this.setUserInput}
                         />
-                        <span className='help-block'>
+                        <span className="help-block">
                           Row containing the headers to use as column names (0
                           is first line of data). Leave empty if there is no
                           header row.
@@ -245,18 +229,18 @@ export default class QuickUploadContainer extends React.PureComponent {
                       </td>
                     </tr>
                     <tr>
-                      <td className='col-lg-2'>Decimal Character</td>
+                      <td className="col-lg-2">Decimal Character</td>
                       <td>
                         <input
-                          className='form-control'
-                          id='decimal'
-                          name='decimal'
-                          placeholder='Decimal Character'
-                          type='text'
+                          className="form-control"
+                          id="decimal"
+                          name="decimal"
+                          placeholder="Decimal Character"
+                          type="text"
                           value={this.state.decimalCharacter}
-                          onChange={this.setDecimalCharacter}
+                          onChange={this.setUserInput}
                         />
-                        <span className='help-block'>
+                        <span className="help-block">
                           Character to interpret as decimal point.
                         </span>
                       </td>
@@ -264,12 +248,12 @@ export default class QuickUploadContainer extends React.PureComponent {
                   </tbody>
                 </table>
               </div>
-              <div className='well well-sm'>
-                <Button bsStyle='primary'>
-                  Save <i className='fa fa-save' />
+              <div className="well well-sm">
+                <Button bsStyle="primary">
+                  Save <i className="fa fa-save" />
                 </Button>
-                <Button href='/back'>
-                  Back <i className='fa fa-arrow-left' />
+                <Button href="/back">
+                  Back <i className="fa fa-arrow-left" />
                 </Button>
               </div>
             </form>
