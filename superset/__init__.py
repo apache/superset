@@ -35,7 +35,7 @@ from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
 from superset.utils.core import pessimistic_connection_handling, setup_cache
-from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.utils.log import get_event_logger_from_cfg_value
 
 wtforms_json.init()
 
@@ -199,13 +199,11 @@ results_backend = app.config["RESULTS_BACKEND"]
 results_backend_use_msgpack = app.config["RESULTS_BACKEND_USE_MSGPACK"]
 
 # Merge user defined feature flags with default feature flags
-_feature_flags = app.config["DEFAULT_FEATURE_FLAGS"] or {}
+_feature_flags = app.config["DEFAULT_FEATURE_FLAGS"]
 _feature_flags.update(app.config["FEATURE_FLAGS"])
 
 # Event Logger
-event_logger = get_event_logger_from_cfg_value(
-    app.config["EVENT_LOGGER"] or DBEventLogger()
-)
+event_logger = get_event_logger_from_cfg_value(app.config["EVENT_LOGGER"])
 
 
 def get_feature_flags():
