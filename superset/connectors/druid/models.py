@@ -168,9 +168,6 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         return f"{base_url}/{self.broker_endpoint}"
 
     try:
-        # This will actually return a PyDruid type, but using that
-        # type declaration here will cause Superset to crash when
-        # the pydruid library is not installed.
         def get_pydruid_client(self) -> PyDruid:
             cli = PyDruid(
                 self.get_base_url(self.broker_host, self.broker_port),
