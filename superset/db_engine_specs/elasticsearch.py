@@ -44,4 +44,4 @@ class ElasticSearchEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
         if target_type.upper() in ("DATETIME", "DATE"):
             return f"'{dttm.isoformat()}'"
-        return f"\'{dttm.strftime('%Y-%m-%d %H:%M:%S')}\'"
+        return f"'{dttm.strftime('%Y-%m-%d %H:%M:%S')}'"
