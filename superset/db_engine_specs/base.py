@@ -398,7 +398,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
-            extension = os.path.splitext(filename)[1]
+            extension = os.path.splitext(filename)[1].lower()
             return (
                 extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
             )

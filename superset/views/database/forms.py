@@ -92,7 +92,13 @@ class CsvToDatabaseForm(DynamicForm):
         description=_("Select a CSV file to be uploaded to a database."),
         validators=[
             FileRequired(),
-            FileAllowed(config["ALLOWED_EXTENSIONS"], _("CSV Files Only!")),
+            FileAllowed(
+                config["ALLOWED_EXTENSIONS"],
+                _(
+                    "Only following file extensions allowed: %(allowed_extensions)s",
+                    allowed_extensions=", ".join(config["ALLOWED_EXTENSIONS"]),
+                ),
+            ),
         ],
     )
     con = QuerySelectField(

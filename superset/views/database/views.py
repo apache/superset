@@ -103,7 +103,7 @@ class CsvToDatabaseView(SimpleFormView):
         if not self.is_schema_allowed(database, schema_name):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
-                "is not allowed for csv uploads. Please contact Superset Admin",
+                "is not allowed for csv uploads. Please contact your Superset Admin.",
                 database_name=database.database_name,
                 schema_name=schema_name,
             )
