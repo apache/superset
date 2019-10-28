@@ -167,13 +167,22 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         base_url = self.get_base_url(self.broker_host, self.broker_port)
         return f"{base_url}/{self.broker_endpoint}"
 
-    def get_pydruid_client(self) -> PyDruid:
-        cli = PyDruid(
-            self.get_base_url(self.broker_host, self.broker_port), self.broker_endpoint
-        )
-        if self.broker_user and self.broker_pass:
-            cli.set_basic_auth_credentials(self.broker_user, self.broker_pass)
-        return cli
+    try:
+        # This will actually return a PyDruid type, but using that
+        # type declaration here will cause Superset to crash when
+        # the pydruid library is not installed.
+        def get_pydruid_client(self) -> PyDruid:
+            cli = PyDruid(
+                self.get_base_url(self.broker_host, self.broker_port),
+                self.broker_endpoint,
+            )
+            if self.broker_user and self.broker_pass:
+                cli.set_basic_auth_credentials(self.broker_user, self.broker_pass)
+            return cli
+
+    except NameError:
+        # PyDruid may not have been imported
+        pass
 
     def get_datasources(self) -> List[str]:
         endpoint = self.get_base_broker_url() + "/datasources"
@@ -828,34 +837,40 @@ class DruidDatasource(Model, BaseDatasource):
             )
         return granularity
 
-    @staticmethod
-    def get_post_agg(mconf: Dict) -> Postaggregator:
-        """
-        For a metric specified as `postagg` returns the
-        kind of post aggregation for pydruid.
-        """
-        if mconf.get("type") == "javascript":
-            return JavascriptPostAggregator(
-                name=mconf.get("name", ""),
-                field_names=mconf.get("fieldNames", []),
-                function=mconf.get("function", ""),
-            )
-        elif mconf.get("type") == "quantile":
-            return Quantile(mconf.get("name", ""), mconf.get("probability", ""))
-        elif mconf.get("type") == "quantiles":
-            return Quantiles(mconf.get("name", ""), mconf.get("probabilities", ""))
-        elif mconf.get("type") == "fieldAccess":
-            return Field(mconf.get("name"))
-        elif mconf.get("type") == "constant":
-            return Const(mconf.get("value"), output_name=mconf.get("name", ""))
-        elif mconf.get("type") == "hyperUniqueCardinality":
-            return HyperUniqueCardinality(mconf.get("name"))
-        elif mconf.get("type") == "arithmetic":
-            return Postaggregator(
-                mconf.get("fn", "/"), mconf.get("fields", []), mconf.get("name", "")
-            )
-        else:
-            return CustomPostAggregator(mconf.get("name", ""), mconf)
+    try:
+
+        @staticmethod
+        def get_post_agg(mconf: Dict) -> Postaggregator:
+            """
+            For a metric specified as `postagg` returns the
+            kind of post aggregation for pydruid.
+            """
+            if mconf.get("type") == "javascript":
+                return JavascriptPostAggregator(
+                    name=mconf.get("name", ""),
+                    field_names=mconf.get("fieldNames", []),
+                    function=mconf.get("function", ""),
+                )
+            elif mconf.get("type") == "quantile":
+                return Quantile(mconf.get("name", ""), mconf.get("probability", ""))
+            elif mconf.get("type") == "quantiles":
+                return Quantiles(mconf.get("name", ""), mconf.get("probabilities", ""))
+            elif mconf.get("type") == "fieldAccess":
+                return Field(mconf.get("name"))
+            elif mconf.get("type") == "constant":
+                return Const(mconf.get("value"), output_name=mconf.get("name", ""))
+            elif mconf.get("type") == "hyperUniqueCardinality":
+                return HyperUniqueCardinality(mconf.get("name"))
+            elif mconf.get("type") == "arithmetic":
+                return Postaggregator(
+                    mconf.get("fn", "/"), mconf.get("fields", []), mconf.get("name", "")
+                )
+            else:
+                return CustomPostAggregator(mconf.get("name", ""), mconf)
+
+    except NameError:
+        # pydruid may not have been imported
+        pass
 
     @staticmethod
     def find_postaggs_for(
@@ -1440,171 +1455,191 @@ class DruidDatasource(Model, BaseDatasource):
                 raise Exception(_("Unsupported extraction function: " + ext_type))
         return (col, extraction_fn)
 
-    @classmethod
-    def get_filters(cls, raw_filters, num_cols, columns_dict) -> Filter:
-        """Given Superset filter data structure, returns pydruid Filter(s)"""
-        filters = None
-        for flt in raw_filters:
-            col = flt.get("col")
-            op = flt.get("op")
-            eq = flt.get("val")
-            if (
-                not col
-                or not op
-                or (eq is None and op not in ("IS NULL", "IS NOT NULL"))
-            ):
-                continue
+    try:
 
-            # Check if this dimension uses an extraction function
-            # If so, create the appropriate pydruid extraction object
-            column_def = columns_dict.get(col)
-            dim_spec = column_def.dimension_spec if column_def else None
-            extraction_fn = None
-            if dim_spec and "extractionFn" in dim_spec:
-                (col, extraction_fn) = DruidDatasource._create_extraction_fn(dim_spec)
-
-            cond = None
-            is_numeric_col = col in num_cols
-            is_list_target = op in ("in", "not in")
-            eq = cls.filter_values_handler(
-                eq,
-                is_list_target=is_list_target,
-                target_column_is_numeric=is_numeric_col,
-            )
-
-            # For these two ops, could have used Dimension,
-            # but it doesn't support extraction functions
-            if op == "==":
-                cond = Filter(
-                    dimension=col, value=eq, extraction_function=extraction_fn
-                )
-            elif op == "!=":
-                cond = ~Filter(
-                    dimension=col, value=eq, extraction_function=extraction_fn
-                )
-            elif op in ("in", "not in"):
-                fields = []
-                # ignore the filter if it has no value
-                if not len(eq):
+        @classmethod
+        def get_filters(cls, raw_filters, num_cols, columns_dict) -> Filter:
+            """Given Superset filter data structure, returns pydruid Filter(s)"""
+            filters = None
+            for flt in raw_filters:
+                col = flt.get("col")
+                op = flt.get("op")
+                eq = flt.get("val")
+                if (
+                    not col
+                    or not op
+                    or (eq is None and op not in ("IS NULL", "IS NOT NULL"))
+                ):
                     continue
-                # if it uses an extraction fn, use the "in" operator
-                # as Dimension isn't supported
-                elif extraction_fn is not None:
-                    cond = Filter(
-                        dimension=col,
-                        values=eq,
-                        type="in",
-                        extraction_function=extraction_fn,
+
+                # Check if this dimension uses an extraction function
+                # If so, create the appropriate pydruid extraction object
+                column_def = columns_dict.get(col)
+                dim_spec = column_def.dimension_spec if column_def else None
+                extraction_fn = None
+                if dim_spec and "extractionFn" in dim_spec:
+                    (col, extraction_fn) = DruidDatasource._create_extraction_fn(
+                        dim_spec
                     )
-                elif len(eq) == 1:
-                    cond = Dimension(col) == eq[0]
+
+                cond = None
+                is_numeric_col = col in num_cols
+                is_list_target = op in ("in", "not in")
+                eq = cls.filter_values_handler(
+                    eq,
+                    is_list_target=is_list_target,
+                    target_column_is_numeric=is_numeric_col,
+                )
+
+                # For these two ops, could have used Dimension,
+                # but it doesn't support extraction functions
+                if op == "==":
+                    cond = Filter(
+                        dimension=col, value=eq, extraction_function=extraction_fn
+                    )
+                elif op == "!=":
+                    cond = ~Filter(
+                        dimension=col, value=eq, extraction_function=extraction_fn
+                    )
+                elif op in ("in", "not in"):
+                    fields = []
+                    # ignore the filter if it has no value
+                    if not len(eq):
+                        continue
+                    # if it uses an extraction fn, use the "in" operator
+                    # as Dimension isn't supported
+                    elif extraction_fn is not None:
+                        cond = Filter(
+                            dimension=col,
+                            values=eq,
+                            type="in",
+                            extraction_function=extraction_fn,
+                        )
+                    elif len(eq) == 1:
+                        cond = Dimension(col) == eq[0]
+                    else:
+                        for s in eq:
+                            fields.append(Dimension(col) == s)
+                        cond = Filter(type="or", fields=fields)
+                    if op == "not in":
+                        cond = ~cond
+                elif op == "regex":
+                    cond = Filter(
+                        extraction_function=extraction_fn,
+                        type="regex",
+                        pattern=eq,
+                        dimension=col,
+                    )
+
+                # For the ops below, could have used pydruid's Bound,
+                # but it doesn't support extraction functions
+                elif op == ">=":
+                    cond = Filter(
+                        type="bound",
+                        extraction_function=extraction_fn,
+                        dimension=col,
+                        lowerStrict=False,
+                        upperStrict=False,
+                        lower=eq,
+                        upper=None,
+                        alphaNumeric=is_numeric_col,
+                    )
+                elif op == "<=":
+                    cond = Filter(
+                        type="bound",
+                        extraction_function=extraction_fn,
+                        dimension=col,
+                        lowerStrict=False,
+                        upperStrict=False,
+                        lower=None,
+                        upper=eq,
+                        alphaNumeric=is_numeric_col,
+                    )
+                elif op == ">":
+                    cond = Filter(
+                        type="bound",
+                        extraction_function=extraction_fn,
+                        lowerStrict=True,
+                        upperStrict=False,
+                        dimension=col,
+                        lower=eq,
+                        upper=None,
+                        alphaNumeric=is_numeric_col,
+                    )
+                elif op == "<":
+                    cond = Filter(
+                        type="bound",
+                        extraction_function=extraction_fn,
+                        upperStrict=True,
+                        lowerStrict=False,
+                        dimension=col,
+                        lower=None,
+                        upper=eq,
+                        alphaNumeric=is_numeric_col,
+                    )
+                elif op == "IS NULL":
+                    cond = Dimension(col) is None
+                elif op == "IS NOT NULL":
+                    cond = Dimension(col) is not None
+
+                if filters:
+                    filters = Filter(type="and", fields=[cond, filters])
                 else:
-                    for s in eq:
-                        fields.append(Dimension(col) == s)
-                    cond = Filter(type="or", fields=fields)
-                if op == "not in":
-                    cond = ~cond
-            elif op == "regex":
-                cond = Filter(
-                    extraction_function=extraction_fn,
-                    type="regex",
-                    pattern=eq,
-                    dimension=col,
-                )
+                    filters = cond
 
-            # For the ops below, could have used pydruid's Bound,
-            # but it doesn't support extraction functions
-            elif op == ">=":
-                cond = Filter(
-                    type="bound",
-                    extraction_function=extraction_fn,
-                    dimension=col,
-                    lowerStrict=False,
-                    upperStrict=False,
-                    lower=eq,
-                    upper=None,
-                    alphaNumeric=is_numeric_col,
-                )
-            elif op == "<=":
-                cond = Filter(
-                    type="bound",
-                    extraction_function=extraction_fn,
-                    dimension=col,
-                    lowerStrict=False,
-                    upperStrict=False,
-                    lower=None,
-                    upper=eq,
-                    alphaNumeric=is_numeric_col,
-                )
-            elif op == ">":
-                cond = Filter(
-                    type="bound",
-                    extraction_function=extraction_fn,
-                    lowerStrict=True,
-                    upperStrict=False,
-                    dimension=col,
-                    lower=eq,
-                    upper=None,
-                    alphaNumeric=is_numeric_col,
-                )
-            elif op == "<":
-                cond = Filter(
-                    type="bound",
-                    extraction_function=extraction_fn,
-                    upperStrict=True,
-                    lowerStrict=False,
-                    dimension=col,
-                    lower=None,
-                    upper=eq,
-                    alphaNumeric=is_numeric_col,
-                )
-            elif op == "IS NULL":
-                cond = Dimension(col) is None
-            elif op == "IS NOT NULL":
-                cond = Dimension(col) is not None
+            return filters
 
-            if filters:
-                filters = Filter(type="and", fields=[cond, filters])
-            else:
-                filters = cond
+    except NameError:
+        # pydruid may not have been imported
+        pass
 
-        return filters
+    try:
 
-    def _get_having_obj(self, col: str, op: str, eq: str) -> Having:
-        cond = None
-        if op == "==":
-            if col in self.column_names:
-                cond = DimSelector(dimension=col, value=eq)
-            else:
-                cond = Aggregation(col) == eq
-        elif op == ">":
-            cond = Aggregation(col) > eq
-        elif op == "<":
-            cond = Aggregation(col) < eq
-
-        return cond
-
-    def get_having_filters(self, raw_filters: List[Dict]) -> Having:
-        filters = None
-        reversed_op_map = {"!=": "==", ">=": "<", "<=": ">"}
-
-        for flt in raw_filters:
-            if not all(f in flt for f in ["col", "op", "val"]):
-                continue
-            col = flt["col"]
-            op = flt["op"]
-            eq = flt["val"]
+        def _get_having_obj(self, col: str, op: str, eq: str) -> Having:
             cond = None
-            if op in ["==", ">", "<"]:
-                cond = self._get_having_obj(col, op, eq)
-            elif op in reversed_op_map:
-                cond = ~self._get_having_obj(col, reversed_op_map[op], eq)
+            if op == "==":
+                if col in self.column_names:
+                    cond = DimSelector(dimension=col, value=eq)
+                else:
+                    cond = Aggregation(col) == eq
+            elif op == ">":
+                cond = Aggregation(col) > eq
+            elif op == "<":
+                cond = Aggregation(col) < eq
 
-            if filters:
-                filters = filters & cond
-            else:
-                filters = cond
-        return filters
+            return cond
+
+    except NameError:
+        # pydruid may not have been imported
+        pass
+
+    try:
+
+        def get_having_filters(self, raw_filters: List[Dict]) -> Having:
+            filters = None
+            reversed_op_map = {"!=": "==", ">=": "<", "<=": ">"}
+
+            for flt in raw_filters:
+                if not all(f in flt for f in ["col", "op", "val"]):
+                    continue
+                col = flt["col"]
+                op = flt["op"]
+                eq = flt["val"]
+                cond = None
+                if op in ["==", ">", "<"]:
+                    cond = self._get_having_obj(col, op, eq)
+                elif op in reversed_op_map:
+                    cond = ~self._get_having_obj(col, reversed_op_map[op], eq)
+
+                if filters:
+                    filters = filters & cond
+                else:
+                    filters = cond
+            return filters
+
+    except NameError:
+        # pydruid may not have been imported
+        pass
 
     @classmethod
     def query_datasources_by_name(
