@@ -37,6 +37,7 @@ import AsyncSelect from '../../components/AsyncSelect';
 const propTypes = {
   actions: PropTypes.object.isRequired,
   height: PropTypes.string.isRequired,
+  displayLimit: PropTypes.number.isRequired,
 };
 
 class QuerySearch extends React.PureComponent {
@@ -270,6 +271,7 @@ class QuerySearch extends React.PureComponent {
                 onDbClicked={this.onDbClicked}
                 queries={this.state.queriesArray}
                 actions={this.props.actions}
+                displayLimit={this.props.displayLimit}
               />
             </div>
           )}
