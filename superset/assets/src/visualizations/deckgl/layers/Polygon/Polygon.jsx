@@ -34,10 +34,7 @@ import sandboxedEval from '../../../../modules/sandbox';
 
 const DOUBLE_CLICK_TRESHOLD = 250;  // milliseconds
 
-function getPoints(features, lineType) {
-  if (lineType === 'zipcode' || lineType === 'fsa') {
-    return features.map(d => d.polygon).flat().flat();
-  }
+function getPoints(features) {
   return features.map(d => d.polygon).flat();
 }
 
@@ -97,7 +94,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, selected, o
     }
     return baseColor;
   };
-  const tooltipContentGenerator = (fd.line_column && fd.metric && ['geohash', 'zipcode', 'fsa'].indexOf(fd.line_type) >= 0)
+  const tooltipContentGenerator = (fd.line_column && fd.metric && fd.line_type === 'geohash')
     ? setTooltipContent(fd)
     : undefined;
   return new PolygonLayer({
@@ -170,7 +167,7 @@ class DeckGLPolygon extends React.Component {
     } = getPlaySliderParams(timestamps, granularity);
 
     const viewport = props.formData.autozoom
-      ? fitViewport(props.viewport, getPoints(features, props.payload.form_data.line_type))
+      ? fitViewport(props.viewport, getPoints(features))
       : props.viewport;
 
     return {
