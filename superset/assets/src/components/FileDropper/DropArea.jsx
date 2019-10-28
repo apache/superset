@@ -72,14 +72,19 @@ export default class DropArea extends React.PureComponent {
           onDragExit={this.unsetHover}
           onMouseOut={this.unsetHover}
         >
-          <i className="fa fa-upload" />
-          <div className="filedropper-title">{text ? text : "Drag & Drop"}</div>
+          <i className='fa fa-upload' />
+          <div className='filedropper-title'>{text ? text : "Drag & Drop"}</div>
           {(showButton === undefined || showButton) && (
             <>
-              <div className="filedropper-separatortext">
+              <div className='filedropper-separatortext'>
                 {separatorText ? separatorText : "or"}
               </div>
-              <Button>{buttonText ? buttonText : "Click here"}</Button>
+              <Button
+                tooltip={fileName ? fileName : "No file chosen"}
+                bsStyle='primary'
+              >
+                {buttonText ? buttonText : "Click here"}
+              </Button>
             </>
           )}
         </div>
