@@ -184,7 +184,7 @@ def refresh_druid(datasource, merge):
 @click.option(
     "--path",
     "-p",
-    help="Path to a single JSON file or path containing multiple JSON files"
+    help="Path to a single JSON file or path containing multiple JSON "
     "files to import (*.json)",
 )
 @click.option(

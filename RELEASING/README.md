@@ -45,13 +45,29 @@ need to be done at every release.
 
 
     # Add your GPG pub key to KEYS file. Replace "Maxime Beauchemin" with your name
-    export FULLNAME="Maxime Beauchemin"
-    (gpg --list-sigs $FULLNAME && gpg --armor --export $FULLNAME ) >> KEYS
+    export SUPERSET_PGP_FULLNAME="Maxime Beauchemin"
+    (gpg --list-sigs "${SUPERSET_PGP_FULLNAME}" && gpg --armor --export "${SUPERSET_PGP_FULLNAME}" ) >> KEYS
 
 
     # Commit the changes
     svn commit -m "Add PGP keys of new Superset committer"
 ```
+
+## Crafting a source release
+
+When crafting a new minor or major release we create 
+a branch named with the release MAJOR.MINOR version.
+This new branch will hold all PATCH and release candidates 
+that belong to the MAJOR.MINOR version.
+
+The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
+Then (if needed) apply all cherries that will make the PATCH
+
+Finally bump the version number on `superset/static/assets/package.json` ::
+
+    "version": "0.35.0rc1"
+
+Commit the change with the version number, then git tag the version and push
 
 ## Setting up the release environment (do every time)
 
@@ -74,6 +90,8 @@ Then you can generate other derived environment variables that are used
 throughout the release process:
 
 ```bash
+    # Replace SUPERSET_PGP_FULLNAME with your PGP key name for Apache
+    export SUPERSET_PGP_FULLNAME="YOURFULLNAMEHERE"
     export SUPERSET_VERSION_RC=${SUPERSET_VERSION}rc${SUPERSET_RC}
     export SUPERSET_RELEASE=apache-superset-incubating-${SUPERSET_VERSION}
     export SUPERSET_RELEASE_RC=apache-superset-incubating-${SUPERSET_VERSION_RC}
@@ -121,7 +139,11 @@ Now let's craft a source release
         -o ~/svn/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
 
     cd ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
-    ${SUPERSET_REPO_DIR}/scripts/sign.sh ${SUPERSET_RELEASE_RC}-source.tar.gz
+    ${SUPERSET_REPO_DIR}/scripts/sign.sh "${SUPERSET_RELEASE_RC_TARBALL}" "${SUPERSET_PGP_FULLNAME}"
+
+    # To verify to signature
+    gpg --verify "${SUPERSET_RELEASE_RC_TARBALL}".asc "${SUPERSET_RELEASE_RC_TARBALL}"
+
 ```
 
 ### Shipping to SVN
