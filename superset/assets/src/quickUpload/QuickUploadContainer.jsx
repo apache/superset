@@ -38,40 +38,43 @@ export default class QuickUploadContainer extends React.PureComponent {
 
   render() {
     return (
-      <div className="container">
-        <div className="panel panel-primary">
-          <div className="panel-heading">
-            <h4 className="panel-title">CSV to Database configuration</h4>
+      <div className='container'>
+        <div className='panel panel-primary'>
+          <div className='panel-heading'>
+            <h4 className='panel-title'>CSV to Database configuration</h4>
           </div>
-          <div id="Home" className="tab-pane active">
-            <form id="model_form" method="post" encType="multipart/form-data">
-              <div className="table-responsive">
-                <table className="table table-bordered">
+          <div id='Home' className='tab-pane active'>
+            <form id='model_form' method='post' encType='multipart/form-data'>
+              <div className='table-responsive'>
+                <table className='table table-bordered'>
                   <tbody>
                     <tr>
-                      <td className="col-lg-2">
+                      <td className='col-lg-2'>
                         Table Name<strong style={{ color: "red" }}>*</strong>
                       </td>
                       <td>
                         <input
-                          className="form-control"
-                          id="name"
-                          name="name"
-                          placeholder="Table Name"
+                          className='form-control'
+                          id='name'
+                          name='name'
+                          placeholder='Table Name'
                           required
-                          type="text"
+                          type='text'
                         />
-                        <span className="help-block">
+                        <span className='help-block'>
                           Name of the table to be created from csv data.
                         </span>
                       </td>
                     </tr>
                     <tr>
-                      <td className="col-lg-2">
+                      <td className='col-lg-2'>
                         CSV File<strong style={{ color: "red" }}>*</strong>
                       </td>
                       <td>
-                        <FileDropper onFileSelected={this.setFile}>
+                        <FileDropper
+                          onFileSelected={this.setFile}
+                          allowedMimeTypes={["text/csv"]}
+                        >
                           <DropArea
                             isVisible={true}
                             showFileSelected={true}
@@ -80,7 +83,7 @@ export default class QuickUploadContainer extends React.PureComponent {
                             }
                           />
                         </FileDropper>
-                        <span className="help-block">
+                        <span className='help-block'>
                           Select a CSV file to be uploaded to a database.
                         </span>
                       </td>
