@@ -421,7 +421,7 @@ class BaseEngineSpec:
         df_to_sql_kwargs = {
             "df": df,
             "name": form.name.data,
-            "con": create_engine(form.con.sqlalchemy_uri_decrypted, echo=False),
+            "con": create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
             "schema": None,
             "if_exists": form.if_exists.data,
             "index": False,

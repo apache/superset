@@ -24,7 +24,6 @@ from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 from wtforms.fields import StringField
@@ -247,27 +246,30 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
                 cwd = os.getcwd()
                 dbpath = cwd + "/" + dbname + ".db"
                 # Create Database and set the necessary attributes
-                engine = create_engine("sqlite:////" + dbpath)
-                engine.connect()
+                # engine = create_engine("sqlite:////" + dbpath)
+                # engine.connect()
                 item = dview.datamodel.obj()
                 item.database_name = dbname
                 item.sqlalchemy_uri = "sqlite:////" + dbpath
                 item.allow_csv_upload = True
                 item.perm = dbname
-                dview.datamodel.add(item)
-                # db.session.add(item)
+                # dview.datamodel.add(item)
+                # form.con.data = item
+                # self.form_post(form)
+                db.session.add(item)
                 # self.add(item)
                 # Read database from databases
                 # still leads to SQLite3 programming error due to threads
                 dbs = (
-                    dview.datamodel.session.query(models.Database)
+                    # dview.datamodel
+                    db.session.query(models.Database)
                     .filter_by(allow_csv_upload=True)
                     .all()  # filter_by(database_name=dbname).all()
                 )
 
                 for adb in dbs:
                     if adb.name == dbname:
-                        form.con = adb
+                        form.con.data = adb
                 # if len(dbs) != 1:
                 # raise Exception('Something went wrong when creating the database')
                 # form.con = dbs[0]
@@ -291,7 +293,7 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             csv_file.save(path)
             table = SqlaTable(table_name=form.name.data)
-            table.database = form.con
+            table.database = form.data.get("con")  # form.con.data
             table.database_id = table.database.id
             table.database.db_engine_spec.alt_create_table_from_csv(form, table)
         except Exception as e:
@@ -300,7 +302,7 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
                 # dview.datamodel.delete()
                 # os.remove(dbpath)
 
-                os.remove(path)
+                os.remove(dbpath)
             except OSError:
                 pass
             message = (
