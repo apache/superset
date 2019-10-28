@@ -368,7 +368,7 @@ export default class DateFilterControl extends React.Component {
           placement="left"
           overlay={
             <Tooltip id={`tooltip-${timeFrame}`}>
-              {nextState.since} {endpoints ? `(${endpoints[0]})` : ''}<br />{nextState.until} {endpoints ? `(${endpoints[1]})` : ''}
+              {nextState.since} {endpoints && `(${endpoints[0]})`}<br />{nextState.until} {endpoints && `(${endpoints[1]})`}
             </Tooltip>
           }
         >
@@ -511,7 +511,14 @@ export default class DateFilterControl extends React.Component {
   render() {
     let value = this.props.value || defaultProps.value;
     const endpoints = this.props.endpoints;
-    value = value.split(SEPARATOR).map((v, idx) => ISO_8601_REGEX_MATCH.test(v) ? v.replace('T00:00:00', '') + (endpoints ? ` (${endpoints[idx]})` : '') : v || (idx === 0 ? '-∞' : '∞')).join(SEPARATOR);
+    value = value
+      .split(SEPARATOR)
+      .map((v, idx) =>
+        ISO_8601_REGEX_MATCH.test(v)
+          ? v.replace('T00:00:00', '') + (endpoints ? ` (${endpoints[idx]})` : '')
+          : v || (idx === 0 ? '-∞' : '∞'),
+      )
+      .join(SEPARATOR);
     return (
       <div>
         <ControlHeader {...this.props} />
