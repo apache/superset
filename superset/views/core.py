@@ -2504,11 +2504,12 @@ class Superset(BaseSupersetView):
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
         obj = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
 
-        if not request.args.get("bypass_display_limit"):
-            obj = apply_display_max_row_limit(obj)
-
         return json_success(
-            json.dumps(obj, default=utils.json_iso_dttm_ser, ignore_nan=True)
+            json.dumps(
+                apply_display_max_row_limit(obj),
+                default=utils.json_iso_dttm_ser,
+                ignore_nan=True,
+            )
         )
 
     @has_access_api
