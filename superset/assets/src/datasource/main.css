@@ -26,6 +26,6 @@
     color: #FE4A49;
 }
 
-.Datasource .change-warning span {
+.Datasource .change-warning .bold {
     font-weight: bold;
 }

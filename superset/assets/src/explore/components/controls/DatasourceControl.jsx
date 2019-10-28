@@ -123,11 +123,18 @@ class DatasourceControl extends React.PureComponent {
       <div>
         <ControlHeader {...this.props} />
         <div className="btn-group label-dropdown">
-          <div className="btn-group">
-            <Label>
-              {datasource.name}
-            </Label>
-          </div>
+          <OverlayTrigger
+            placement="right"
+            overlay={
+              <Tooltip id={'error-tooltip'}>{t('Click to change the datasource')}</Tooltip>
+            }
+          >
+            <div className="btn-group">
+              <Label onClick={this.toggleChangeDatasourceModal} className="label-btn-label">
+                {datasource.name}
+              </Label>
+            </div>
+          </OverlayTrigger>
           <DropdownButton
             noCaret
             title={

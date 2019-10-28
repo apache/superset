@@ -93,13 +93,13 @@ describe('DatasourceEditor', () => {
   });
 
   it('renders isSqla fields', () => {
-    wrapper.setState({ activeTabKey: 1 });
+    wrapper.setState({ activeTabKey: 4 });
     expect(wrapper.state('isSqla')).toBe(true);
     expect(wrapper.find(Field).find({ fieldKey: 'fetch_values_predicate' }).exists()).toBe(true);
   });
 
   it('disable table selector', () => {
-    wrapper.setState({ activeTabKey: 1 });
+    wrapper.setState({ activeTabKey: 4 });
     expect(inst.props.canChangePhysicalTable).toBe(false);
     const tableSelector = wrapper.find(Field).find({ fieldKey: 'tableSelector' });
     const selectComponent = tableSelector.dive()
@@ -111,7 +111,7 @@ describe('DatasourceEditor', () => {
 
   it('enable table selector', () => {
     wrapper.setProps({ canChangePhysicalTable: true });
-    wrapper.setState({ activeTabKey: 1 });
+    wrapper.setState({ activeTabKey: 4 });
     const tableSelector = wrapper.find(Field).find({ fieldKey: 'tableSelector' });
     const selectComponent = tableSelector.dive()
       .find(TableSelector).dive()

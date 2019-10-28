@@ -213,7 +213,7 @@ export class DatasourceEditor extends React.PureComponent {
       databaseColumns: props.datasource.columns.filter(col => !col.expression),
       calculatedColumns: props.datasource.columns.filter(col => !!col.expression),
       metadataLoading: false,
-      activeTabKey: 4,
+      activeTabKey: 1,
     };
 
     this.onChange = this.onChange.bind(this);
@@ -410,6 +410,7 @@ export class DatasourceEditor extends React.PureComponent {
 
   renderAdvancedFieldset() {
     const datasource = this.state.datasource;
+    const { canChangePhysicalTable } = this.props;
     return (
       <Fieldset title={t('Advanced')} item={datasource} onChange={this.onDatasourceChange}>
         { this.state.isSqla &&
@@ -420,7 +421,7 @@ export class DatasourceEditor extends React.PureComponent {
               'When specifying SQL, the datasource acts as a view. ' +
               'Superset will use this statement as a subquery while grouping and filtering ' +
               'on the generated parent queries.')}
-            control={<TextAreaControl language="sql" offerEditInModal={false} />}
+            control={<TextAreaControl language="sql" offerEditInModal={false} readOnly={!canChangePhysicalTable} />}
           />
         }
         { this.state.isDruid &&
@@ -578,25 +579,11 @@ export class DatasourceEditor extends React.PureComponent {
           onSelect={this.handleTabSelect}
           defaultActiveKey={activeTabKey}
         >
-          <Tab eventKey={1} title={t('Settings')}>
-            {activeTabKey === 1 &&
-              <div>
-                <div className="change-warning well">
-                  <span>Be careful</span>. Changes to these settings can break all charts,
-                  including <span>charts owned by other people</span>.
-                </div>
-                <Col md={6}>
-                  <FormContainer>
-                    {this.renderSettingsFieldset()}
-                  </FormContainer>
-                </Col>
-                <Col md={6}>
-                  <FormContainer>
-                    {this.renderAdvancedFieldset()}
-                  </FormContainer>
-                </Col>
-              </div>
-            }
+          <Tab
+            title={<CollectionTabTitle collection={datasource.metrics} title={t('Metrics')} />}
+            eventKey={1}
+          >
+            {activeTabKey === 1 && this.renderMetricCollection()}
           </Tab>
           <Tab
             title={
@@ -649,11 +636,25 @@ export class DatasourceEditor extends React.PureComponent {
               />
             }
           </Tab>
-          <Tab
-            title={<CollectionTabTitle collection={datasource.metrics} title={t('Metrics')} />}
-            eventKey={4}
-          >
-            {activeTabKey === 4 && this.renderMetricCollection()}
+          <Tab eventKey={4} title={t('Settings')}>
+            {activeTabKey === 4 &&
+            <div>
+              <div className="change-warning well">
+                <span className="bold">{t('Be careful.')} </span>
+                {t('Changing these settings will affect all charts using this datasource, including charts owned by other people.')}
+              </div>
+              <Col md={6}>
+                <FormContainer>
+                  {this.renderSettingsFieldset()}
+                </FormContainer>
+              </Col>
+              <Col md={6}>
+                <FormContainer>
+                  {this.renderAdvancedFieldset()}
+                </FormContainer>
+              </Col>
+            </div>
+            }
           </Tab>
         </Tabs>
       </div>
