@@ -434,10 +434,13 @@ The connection string for BigQuery looks like this ::
 
     bigquery://{project_id}
 
-Additionally, you will need to configure authentication via a Service Account. Create your Service Account via the
-Google Cloud Platform control panel, provide it access to the appropriate BigQuery datasets, and download the
-JSON configuration file for the service account. In Superset, Add a JSON blob to the "Secure Extra"
-field in the database configuration page with the following format ::
+Additionally, you will need to configure authentication via a
+Service Account. Create your Service Account via the Google
+Cloud Platform control panel, provide it access to the appropriate
+BigQuery datasets, and download the JSON configuration file
+for the service account. In Superset, Add a JSON blob to
+the "Secure Extra" field in the database configuration page
+with the following format ::
 
     {
         "credentials_info": <contents of credentials JSON file>
