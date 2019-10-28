@@ -19,7 +19,6 @@ import os
 
 from flask import flash, redirect
 from flask_appbuilder import SimpleFormView
-from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __
@@ -183,7 +182,7 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
     form_template = "superset/form_view/quick_csv_to_database_view/quick_edit.html"
     form_title = _("Quick CSV to Database configuration")
     add_columns = ["database", "schema", "table_name"]
-
+    """
     def add(self, item, raise_exception=False):
         try:
             db.session.add(item)
@@ -205,6 +204,7 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
             if raise_exception:
                 raise e
             return False
+    """
 
     def form_get(self, form):
         form.sep.data = ","
@@ -213,69 +213,58 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
         form.if_exists.data = "fail"
 
     def form_post(self, form):
-        # TODO only DB-file gets deleted, not actual DB
+        # NOTE when debugging, this fails due to Sqlite3 ProgrammingError,
+        # objects created in different thread cannot be used
+        # TODO Test if Exception handling works
+        # Duplicate from here
         database = form.con.data
         schema_name = ""
-
         if not database.id == -1 and not self.is_schema_allowed(database, schema_name):
             self.flash_schema_message_and_redirect(
                 "/quickcsvtodatabaseview/form", database, schema_name
             )
-
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
         csv_filename = form.csv_file.data.filename
         path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
+        # to here
         if database.id == -1:
             dbname = csv_filename[:-4]
             cwd = os.getcwd()
             dbpath = cwd + "/" + dbname + ".db"
             if os.path.isfile(dbpath):
                 message = _(
-                    "Database {0} already exists, please choose a different name".format(
+                    "Database file for {0} already exists, please choose a different name".format(
                         dbname
                     )
                 )
                 flash(message, "danger")
                 return redirect("/quickcsvtodatabaseview/form")
-            # try:
             dview = DatabaseView()
-        if database.id == -1:
             try:
                 dbname = csv_filename[:-4]
                 cwd = os.getcwd()
                 dbpath = cwd + "/" + dbname + ".db"
                 # Create Database and set the necessary attributes
-                # engine = create_engine("sqlite:////" + dbpath)
-                # engine.connect()
                 item = dview.datamodel.obj()
                 item.database_name = dbname
                 item.sqlalchemy_uri = "sqlite:////" + dbpath
                 item.allow_csv_upload = True
                 item.perm = dbname
-                # dview.datamodel.add(item)
-                # form.con.data = item
-                # self.form_post(form)
                 db.session.add(item)
-                # self.add(item)
-                # Read database from databases
-                # still leads to SQLite3 programming error due to threads
+                # replace with .filter_by(name=dbname) ?
                 dbs = (
-                    # dview.datamodel
                     db.session.query(models.Database)
                     .filter_by(allow_csv_upload=True)
-                    .all()  # filter_by(database_name=dbname).all()
+                    .all()
                 )
-
                 for adb in dbs:
                     if adb.name == dbname:
                         form.con.data = adb
-                # if len(dbs) != 1:
-                # raise Exception('Something went wrong when creating the database')
-                # form.con = dbs[0]
+                        continue
             except Exception as e:
                 try:
-                    dview.datamodel.delete(item)
+                    db.session.delete(item)
                     os.remove(dbpath)
                 except OSError:
                     pass
@@ -298,11 +287,8 @@ class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
             table.database.db_engine_spec.alt_create_table_from_csv(form, table)
         except Exception as e:
             try:
-                # if database.id == -1:# TODO delete database
-                # dview.datamodel.delete()
-                # os.remove(dbpath)
-
-                os.remove(dbpath)
+                # Decide whether to remove Database or not here
+                os.remove(path)
             except OSError:
                 pass
             message = (
