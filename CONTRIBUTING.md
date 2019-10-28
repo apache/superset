@@ -109,7 +109,7 @@ For large features or major changes to codebase, please create **Superset Improv
 
 ### Fix Bugs
 
-Look through the GitHub issues. Issues tagged with `#bug` is
+Look through the GitHub issues. Issues tagged with `#bug` are
 open to whoever wants to implement it.
 
 ### Implement Features
