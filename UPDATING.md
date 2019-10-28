@@ -23,6 +23,9 @@ assists people when migrating to a new version.
 
 ## Next Version
 
+* [8450](https://github.com/apache/incubator-superset/pull/8450): The time ranger picker
+now uses UTC for the tooltips and default placeholder timestamps (sans timezone).
+
 * [8370](https://github.com/apache/incubator-superset/pull/8370): Deprecates
   the `HTTP_HEADERS` variable in favor of `DEFAULT_HTTP_HEADERS` and
   `OVERRIDE_HTTP_HEADERS`. To retain the same behavior you should use
