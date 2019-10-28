@@ -1242,7 +1242,7 @@ Then we can add this two lines to ``superset_config.py``:
   CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 
 Feature Flags
----------------------------
+-------------
 
 Because of a wide variety of users, Superset has some features that are not enabled by default. For example, some users have stronger security restrictions, while some others may not. So Superset allow users to enable or disable some features by config. For feature owners, you can add optional functionalities in Superset, but will be only affected by a subset of users.
 
@@ -1267,3 +1267,16 @@ Here is a list of flags and descriptions:
 * PRESTO_EXPAND_DATA
 
   * When this feature is enabled, nested types in Presto will be expanded into extra columns and/or arrays. This is experimental, and doesn't work with all nested types.
+
+
+SIP-15
+------
+
+`SIP-15 <https://github.com/apache/incubator-superset/issues/6360>`_ aims to ensure that time intervals are handled in a consistent and transparent manner for both the Druid and SQLAlchemy connectors.
+
+Prior to SIP-15 SQLAlchemy used inclusive endpoints however these may behave like exclusive depending on the time column (refer to the SIP for details) and thus the endpoint behavior could be unknown. To aid with transparency the current endpoint behavior is explicitly called out in the chart time range (post SIP-15 this will be [start, end) for all connectors and databases). One can override the defaults on a per database level via the ``extra``
+parameter ::
+
+    {
+        "time_range_endpoints": ["inclusive", "inclusive"]
+    }

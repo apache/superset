@@ -302,11 +302,12 @@ class BaseViz(object):
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
         extras = {
-            "where": form_data.get("where", ""),
+            "druid_time_origin": form_data.get("druid_time_origin", ""),
             "having": form_data.get("having", ""),
             "having_druid": form_data.get("having_filters", []),
             "time_grain_sqla": form_data.get("time_grain_sqla", ""),
-            "druid_time_origin": form_data.get("druid_time_origin", ""),
+            "time_range_endpoints": form_data.get("time_range_endpoints"),
+            "where": form_data.get("where", ""),
         }
 
         d = {
