@@ -439,15 +439,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         db.session.commit()
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         """
-        Convert DateTime object to sql expression
+        Convert Python datetime object to a SQL expression
 
-        :param target_type: Target type of expression
-        :param dttm: DateTime object
-        :return: SQL expression
+        :param target_type: The target type of expression
+        :param dttm: The datetime object
+        :return: The SQL expression
         """
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+        return None
 
     @classmethod
     def get_all_datasource_names(
