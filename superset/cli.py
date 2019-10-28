@@ -25,23 +25,34 @@ import click
 import yaml
 from colorama import Fore, Style
 from flask import g
+from flask.cli import FlaskGroup, with_appcontext
 from flask_appbuilder import Model
 from pathlib2 import Path
 
-from superset import app, appbuilder, db, examples, security_manager
-from superset.common.tags import add_favorites, add_owners, add_types
-from superset.utils import core as utils, dashboard_import_export, dict_import_export
+# from superset import app, appbuilder, db, examples, security_manager, create_app
+# from superset.common.tags import add_favorites, add_owners, add_types
+# from superset.extensions import celery_app
+# from superset.utils import core as utils, dashboard_import_export, dict_import_export
 
-config = app.config
-celery_app = utils.get_celery_app(config)
+#config = app.config
+
+from superset import app, appbuilder, security_manager
+from superset.app import create_app
+from superset.extensions import celery_app, db
+from superset.utils import core as utils
 
 
-@app.shell_context_processor
-def make_shell_context():
-    return dict(app=app, db=db)
+@click.group(cls=FlaskGroup, create_app=create_app)
+@with_appcontext
+def superset():
+    """This is a management script for the Superset application."""
+    @app.shell_context_processor
+    def make_shell_context():
+        return dict(app=app, db=db)
 
 
-@app.cli.command()
+@superset.command()
+@with_appcontext
 def init():
     """Inits the Superset application"""
     utils.get_example_database()
@@ -49,7 +60,7 @@ def init():
     security_manager.sync_role_definitions()
 
 
-@app.cli.command()
+@superset.command()
 @click.option("--verbose", "-v", is_flag=True, help="Show extra information")
 def version(verbose):
     """Prints the current version number"""
@@ -125,7 +136,7 @@ def load_examples_run(load_test_data, only_metadata=False, force=False):
     examples.load_tabbed_dashboard(only_metadata)
 
 
-@app.cli.command()
+@superset.command()
 @click.option("--load-test-data", "-t", is_flag=True, help="Load additional test data")
 @click.option(
     "--only-metadata", "-m", is_flag=True, help="Only load metadata, skip actual data"
@@ -138,7 +149,7 @@ def load_examples(load_test_data, only_metadata=False, force=False):
     load_examples_run(load_test_data, only_metadata, force)
 
 
-@app.cli.command()
+@superset.command()
 @click.option("--database_name", "-d", help="Database name to change")
 @click.option("--uri", "-u", help="Database URI to change")
 def set_database_uri(database_name, uri):
@@ -146,7 +157,7 @@ def set_database_uri(database_name, uri):
     utils.get_or_create_db(database_name, uri)
 
 
-@app.cli.command()
+@superset.command()
 @click.option(
     "--datasource",
     "-d",
@@ -176,7 +187,7 @@ def refresh_druid(datasource, merge):
     session.commit()
 
 
-@app.cli.command()
+@superset.command()
 @click.option(
     "--path",
     "-p",
@@ -218,7 +229,7 @@ def import_dashboards(path, recursive, username):
             logging.error(e)
 
 
-@app.cli.command()
+@superset.command()
 @click.option(
     "--dashboard-file", "-f", default=None, help="Specify the the file to export to"
 )
@@ -236,7 +247,7 @@ def export_dashboards(print_stdout, dashboard_file):
             data_stream.write(data)
 
 
-@app.cli.command()
+@superset.command()
 @click.option(
     "--path",
     "-p",
@@ -284,7 +295,7 @@ def import_datasources(path, sync, recursive):
             logging.error(e)
 
 
-@app.cli.command()
+@superset.command()
 @click.option(
     "--datasource-file", "-f", default=None, help="Specify the the file to export to"
 )
@@ -323,7 +334,7 @@ def export_datasources(
             yaml.safe_dump(data, data_stream, default_flow_style=False)
 
 
-@app.cli.command()
+@superset.command()
 @click.option(
     "--back-references",
     "-b",
@@ -337,7 +348,7 @@ def export_datasource_schema(back_references):
     yaml.safe_dump(data, stdout, default_flow_style=False)
 
 
-@app.cli.command()
+@superset.command()
 def update_datasources_cache():
     """Refresh sqllab datasources cache"""
     from superset.models.core import Database
@@ -356,7 +367,7 @@ def update_datasources_cache():
                 print("{}".format(str(e)))
 
 
-@app.cli.command()
+@superset.command()
 @click.option(
     "--workers", "-w", type=int, help="Number of celery server workers to fire up"
 )
@@ -377,7 +388,7 @@ def worker(workers):
     worker.start()
 
 
-@app.cli.command()
+@superset.command()
 @click.option(
     "-p", "--port", default="5555", help="Port on which to start the Flower process"
 )
@@ -407,7 +418,7 @@ def flower(port, address):
     Popen(cmd, shell=True).wait()
 
 
-@app.cli.command()
+@superset.command()
 def load_test_users():
     """
     Loads admin, alpha, and gamma user for testing purposes
@@ -424,7 +435,7 @@ def load_test_users_run():
 
     Syncs permissions for those users/roles
     """
-    if config.get("TESTING"):
+    if app.config.get("TESTING"):
 
         sm = security_manager
 
@@ -461,7 +472,7 @@ def load_test_users_run():
         sm.get_session.commit()
 
 
-@app.cli.command()
+@superset.command()
 def sync_tags():
     """Rebuilds special tags (owner, type, favorited by)."""
     # pylint: disable=no-member

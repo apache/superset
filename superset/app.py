@@ -106,6 +106,7 @@ class SupersetAppInitializer:
         Runs init logic in the context of the app
         """
         self.configure_fab()
+        self.configure_data_sources()
 
         # self.configure_data_sources()
 
