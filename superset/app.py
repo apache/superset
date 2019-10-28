@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_app():
-
+    app = Flask(__name__)
 
     try:
         # Allow user to override our config completely

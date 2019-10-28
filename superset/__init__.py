@@ -34,7 +34,7 @@ from superset.extensions import (
 from superset.security import SupersetSecurityManager
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
-app = create_app()
+app = flask_current_app
 appbuilder = ab
 cache = LocalProxy(lambda: ext_cache_manager.cache)
 conf = LocalProxy(lambda: flask_current_app.config)

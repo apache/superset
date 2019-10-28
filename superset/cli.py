@@ -36,10 +36,6 @@ config = app.config
 celery_app = utils.get_celery_app(config)
 
 
-def create_app(script_info=None):
-    return app
-
-
 @app.shell_context_processor
 def make_shell_context():
     return dict(app=app, db=db)
