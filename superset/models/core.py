@@ -748,6 +748,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     """
         ),
     )
+    encrypted_extra = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
     export_fields = [
@@ -902,6 +903,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             d = params.get("connect_args", {})
             d["configuration"] = configuration
             params["connect_args"] = d
+
+        params.update(self.get_encrypted_extra())
 
         DB_CONNECTION_MUTATOR = config.get("DB_CONNECTION_MUTATOR")
         if DB_CONNECTION_MUTATOR:
@@ -1145,10 +1148,20 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         if self.extra:
             try:
                 extra = json.loads(self.extra)
-            except Exception as e:
+            except json.JSONDecodeError as e:
                 logging.error(e)
                 raise e
         return extra
+
+    def get_encrypted_extra(self):
+        encrypted_extra = {}
+        if self.encrypted_extra:
+            try:
+                encrypted_extra = json.loads(self.encrypted_extra)
+            except json.JSONDecodeError as e:
+                logging.error(e)
+                raise e
+        return encrypted_extra
 
     def get_table(self, table_name, schema=None):
         extra = self.get_extra()
