@@ -27,7 +27,7 @@ from superset import app, db, viz
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.legacy import update_time_range
-from superset.utils.core import QueryStatus
+from superset.utils.core import QueryStatus, TimeRangeEndpoint
 
 FORM_DATA_KEY_BLACKLIST: List[str] = []
 if not app.config.get("ENABLE_JAVASCRIPT_CONTROLS"):
@@ -135,6 +135,9 @@ def get_form_data(slice_id=None, use_slice_data=False):
 
     update_time_range(form_data)
 
+    if app.config["SIP_15_ENABLED"]:
+        form_data["time_range_endpoints"] = get_time_range_endpoints(form_data, slc)
+
     return form_data, slc
 
 
@@ -198,3 +201,41 @@ def apply_display_max_row_limit(
         sql_results["data"] = sql_results["data"][:display_limit]
         sql_results["displayLimitReached"] = True
     return sql_results
+
+
+def get_time_range_endpoints(
+    form_data: Dict[str, Any], slc: Optional[models.Slice]
+) -> Optional[Tuple[TimeRangeEndpoint, TimeRangeEndpoint]]:
+    """
+    Get the slice aware time range endpoints falling back to the SQL database specific
+    definition or default if not defined.
+
+    For SIP-15 all new slices use the [start, end) interval which is consistent with the
+    Druid REST API.
+
+    :param form_data: The form-data
+    :param slc: The chart
+    :returns: The time range endpoints tuple
+    """
+
+    time_range_endpoints = form_data.get("time_range_endpoints")
+
+    if time_range_endpoints:
+        return time_range_endpoints
+
+    try:
+        _, datasource_type = get_datasource_info(None, None, form_data)
+    except SupersetException:
+        return None
+
+    if datasource_type == "table":
+        if slc:
+            endpoints = slc.datasource.database.get_extra().get("time_range_endpoints")
+
+            if not endpoints:
+                endpoints = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
+
+            start, end = endpoints
+            return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
+
+    return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
