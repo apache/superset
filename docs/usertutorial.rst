@@ -1,4 +1,19 @@
+..  Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
 
+..    http://www.apache.org/licenses/LICENSE-2.0
+
+..  Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
 
 Exploring data with Apache Superset
 ===================================
@@ -25,16 +40,16 @@ Download the data for this tutorial to your computer from `Github
 
 In the top menu, select **Sources > Upload a CSV**.
 
-.. image:: images/user-tutorial/upload_a_csv.png
+.. image:: images/usertutorial/upload_a_csv.png
 
 Then, enter the **Table name** as tutorial_flights and select the **CSV file**
 from your computer.
 
-.. image:: images/user-tutorial/csv_to_database_configuration.png
+.. image:: images/usertutorial/csv_to_database_configuration.png
 
 Next enter the text Travel Date into the **Parse Dates** field.
 
-.. image:: images/user-tutorial/parse_dates_column.png
+.. image:: images/usertutorial/parse_dates_column.png
 
 Leaving all the other options in their default settings, select **Save** at
 the bottom of the page.
@@ -48,16 +63,16 @@ number of flights and cost per travel class.
 
 To create a new chart, select the **New** **>** **Chart**.
 
-.. image:: images/user-tutorial/add_new_chart.png
+.. image:: images/usertutorial/add_new_chart.png
 
 Once in the **Create a new chart** dialogue, select tutorial_flights
 from the **Chose a datasource** dropdown.
 
-.. image:: images/user-tutorial/add_new_chart.png
+.. image:: images/usertutorial/add_new_chart.png
 
 Next, select the visualization type as Table.
 
-.. image:: images/user-tutorial/chose_a_datasource.png
+.. image:: images/usertutorial/chose_a_datasource.png
 
 Then, select **Create new chart** to go into the chart view.
 
@@ -67,7 +82,7 @@ we want to look at all the data in the dataset. No problem - within the
 **Last week** **> No filter**, with a final **OK** to confirm your
 selection.
 
-.. image:: images/user-tutorial/no_filter_on_time_filter.png
+.. image:: images/usertutorial/no_filter_on_time_filter.png
 
 Now, we want to specify the rows in our table by using the **Group by**
 option. Since in this example, we want to understand different Travel
@@ -80,11 +95,11 @@ have a row per flight), is already there. To add cost, within
 **Metrics**, select Cost. **Save** the default aggregation
 option, which is to sum the column.
 
-.. image:: images/user-tutorial/sum_cost_column.png
+.. image:: images/usertutorial/sum_cost_column.png
 
 Finally, select **Run Query** to see the results of the table.
 
-.. image:: images/user-tutorial/tutorial_table.png
+.. image:: images/usertutorial/tutorial_table.png
 
 Congratulations, you have created your first visualization in Apache Superset!
 
@@ -95,7 +110,7 @@ again through the **Charts** screen, accessible in the top menu). Similarly,
 select **Add to new dashboard** and enter Tutorial Dashboard. Finally,
 select **Save & go to dashboard**.
 
-.. image:: images/user-tutorial/save_tutorial_table.png
+.. image:: images/usertutorial/save_tutorial_table.png
 
 Dashboard basics
 ----------------
@@ -111,7 +126,7 @@ section. Select **Edit dashboard** and then hover over the table. By
 selecting the bottom right hand corner of the table (the cursor will
 change too), you can resize it by dragging and dropping.
 
-.. image:: images/user-tutorial/resize_tutorial_table_on_dashboard.png
+.. image:: images/usertutorial/resize_tutorial_table_on_dashboard.png
 
 Finally, save your changes by selecting **Save changes** in the top
 right.
@@ -140,7 +155,7 @@ January 2011 and 30\ :sup:`th` June 2011 respectively by either entering
 directly the dates or using the calendar widget (by selecting the month
 name and then the year, you can move more quickly to far away dates).
 
-.. image:: images/user-tutorial/select_dates_pivot_table.png
+.. image:: images/usertutorial/select_dates_pivot_table.png
 
 Next, within the **Query** section, remove the default COUNT(*) and add
 Cost, keeping the default SUM aggregate. Note that
@@ -154,7 +169,7 @@ Column and Time Grain selections we defined in the Time section.
 Within **Columns**, select first Department and then Travel Class. All set
 – let’s **Run Query** to see some data!
 
-.. image:: images/user-tutorial/tutorial_pivot_table.png
+.. image:: images/usertutorial/tutorial_pivot_table.png
 
 You should see months in the rows and Department and Travel Class in the
 columns. To get this in our dashboard, select **Save,** name the chart
@@ -177,7 +192,7 @@ Within **Metrics**, remove the default COUNT(*) and add Cost. This
 time, we want to change how this column is aggregated to show the mean value:
 we can do this by selecting **AVG** in the **aggregate** dropdown.
 
-.. image:: images/user-tutorial/average_aggregate_for_cost.png
+.. image:: images/usertutorial/average_aggregate_for_cost.png
 
 Next, select **Run Query** to show the data on the
 chart.
@@ -198,7 +213,7 @@ pane, try changing the **Color Scheme**, removing the range filter by
 selecting No in the **Show Range Filter** drop down and adding some
 labels using **X Axis Label** and **Y Axis Label**.
 
-.. image:: images/user-tutorial/tutorial_line_chart.png
+.. image:: images/usertutorial/tutorial_line_chart.png
 
 Once you’re done, **Save** as Tutorial Line Chart, use **Add chart to
 existing dashboard** to add this chart to the previous ones on the
@@ -216,7 +231,7 @@ Within the Insert components pane, drag and drop a **Markdown** box on
 the dashboard. Look for the blue lines which indicate the anchor where
 the box will go.
 
-.. image:: images/user-tutorial/blue_bar_insert_component.png
+.. image:: images/usertutorial/blue_bar_insert_component.png
 
 Now, to edit the text, select the box. You can enter text, in markdown
 format (see
@@ -224,7 +239,7 @@ format (see
 for more information about this format). You can toggle between
 **Edit** and **Preview** using the menu on the top of the box.
 
-.. image:: images/user-tutorial/markdown.png
+.. image:: images/usertutorial/markdown.png
 
 To exit, select any other part of the dashboard. Finally, don’t forget
 to keep your changes using **Save changes**.
@@ -254,7 +269,7 @@ a preview of our filter.
 
 Next, remove the date filter by unchecking the **Date Filter** checkbox.
 
-.. image:: images/user-tutorial/filter_on_origin_country.png
+.. image:: images/usertutorial/filter_on_origin_country.png
 
 Finally, select **Save**, naming the chart as Tutorial Filter, add the
 chart to our existing Tutorial Dashboard and then **Save & go to
@@ -275,7 +290,7 @@ select **Draft** next to the title of your dashboard on the top left to change
 your dashboard to be in Published state. You can also favorite this dashboard
 by selecting the star.
 
-.. image:: images/user-tutorial/publish_dashboard.png
+.. image:: images/usertutorial/publish_dashboard.png
 
 
 Taking your dashboard further
@@ -303,7 +318,7 @@ create a new annotation by selecting the green plus sign. Then, select the
 Volcanic Eruptions layer, add a short description Grímsvötn and the eruption
 dates (23-25 May 2011) before finally saving.
 
-.. image:: images/user-tutorial/edit_annotation.png
+.. image:: images/usertutorial/edit_annotation.png
 
 Then, navigate to the line chart by going to **Charts** then selecting Tutorial
 Line Chart from the list. Next, go to the **Annotations and Layers** section
@@ -312,11 +327,11 @@ Annotation Layer as Volcanic Eruptions, change the **Annotation Layer Type** to
 Event, the **Annotation Source** as Superset annotation, and then the
 **Annotation Layer** as Volcanic Eruptions. 
 
-.. image:: images/user-tutorial/annotation_settings.png
+.. image:: images/usertutorial/annotation_settings.png
 
 Select **Apply** to see your annotation shown on the chart.
 
-.. image:: images/user-tutorial/annotation.png
+.. image:: images/usertutorial/annotation.png
 
 If you wish, you can change how your annotation looks by changing the settings
 in the **Display configuration** section. Otherwise, select **OK** and finally
@@ -357,7 +372,7 @@ Next, in the query section, change the Metrics to the sum of Cost. Select
 **Run Query** to show the chart. You should see the total cost per day for
 each month in October 2011.
 
-.. image:: images/user-tutorial/advanced_analytics_base.png
+.. image:: images/usertutorial/advanced_analytics_base.png
 
 Finally, save the visualization as Tutorial Advanced Analytics Base, adding
 it to the Tutorial Dashboard.
@@ -380,7 +395,7 @@ After displaying the chart by selecting **Run Query** you will see that the
 data is less variable and that the series starts later as the ramp up period is
 excluded.
 
-.. image:: images/user-tutorial/rolling_mean.png
+.. image:: images/usertutorial/rolling_mean.png
 
 Save the chart as Tutorial Rolling Mean and add it to the Tutorial
 Dashboard.
@@ -399,13 +414,13 @@ the **Time Shift** by typing in "minus 1 week" (note this box accepts input
 in natural language). **Run Query** to see the new chart, which has an
 additional series with the same values, shifted a week back in time.
 
-.. image:: images/user-tutorial/time_comparison_two_series.png
+.. image:: images/usertutorial/time_comparison_two_series.png
 
 Then, change the **Calculation type** to Absolute difference and select **Run
 Query**. We can now see only one series again, this time showing the difference
 between the two series we saw previously.
 
-.. image:: images/user-tutorial/time_comparison_absolute_difference.png
+.. image:: images/usertutorial/time_comparison_absolute_difference.png
 
 Save the chart as Tutorial Time Comparison and add it to the Tutorial
 Dashboard.
@@ -422,7 +437,7 @@ Next, in the **Python Functions** subsection of **Advanced Analytics**, enter
 and show the chart by selecting
 **Run Query**.
 
-.. image:: images/user-tutorial/resample.png
+.. image:: images/usertutorial/resample.png
 
 Note that now we have a single data point every 7 days. In our case, the value
 showed corresponds to the median value within the seven daily data points. For
