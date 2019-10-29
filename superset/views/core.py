@@ -2601,7 +2601,7 @@ class Superset(BaseSupersetView):
                 store_results=not query.select_as_cta,
                 user_name=g.user.username if g.user else None,
                 start_time=now_as_float(),
-                expand_data=expand_data
+                expand_data=expand_data,
             )
         except Exception as e:
             logging.exception(f"Query {query.id}: {e}")
@@ -2645,7 +2645,7 @@ class Superset(BaseSupersetView):
                     rendered_query,
                     return_results=True,
                     user_name=g.user.username if g.user else None,
-                    expand_data=expand_data
+                    expand_data=expand_data,
                 )
 
             payload = json.dumps(
@@ -2758,8 +2758,11 @@ class Superset(BaseSupersetView):
         limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
         query.limit = min(lim for lim in limits if lim is not None)
 
-        # Flag for whether or not to expand data (feature that will expand Presto row objects and arrays)
-        expand_data: bool = is_feature_enabled("PRESTO_EXPAND_DATA") and request.json.get("expand_data")
+        # Flag for whether or not to expand data
+        # (feature that will expand Presto row objects and arrays)
+        expand_data: bool = is_feature_enabled(
+            "PRESTO_EXPAND_DATA"
+        ) and request.json.get("expand_data")
 
         # Async request.
         if async_flag:

@@ -148,7 +148,7 @@ def get_sql_results(
     store_results=False,
     user_name=None,
     start_time=None,
-    expand_data=False
+    expand_data=False,
 ):
     """Executes the sql query returns the results."""
     with session_scope(not ctask.request.called_directly) as session:
@@ -305,7 +305,7 @@ def execute_sql_statements(
     user_name=None,
     session=None,
     start_time=None,
-    expand_data=False
+    expand_data=False,
 ):
     """Executes the sql query returns the results."""
     if store_results and start_time:
