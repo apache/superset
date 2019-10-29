@@ -64,13 +64,13 @@ export default function getFilterScopeNodesTree({
     let children = [];
     if (currentNode.children && currentNode.children.length) {
       currentNode.children.forEach(child => {
-        const cNode = traverse(components[child]);
+        const childNodeTree = traverse(components[child]);
 
         const childType = components[child].type;
         if (FILTER_SCOPE_CONTAINER_TYPES.includes(childType)) {
-          children.push(cNode);
+          children.push(childNodeTree);
         } else {
-          children = children.concat(cNode);
+          children = children.concat(childNodeTree);
         }
       });
     }

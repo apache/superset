@@ -105,6 +105,30 @@ export const dashboardInfoPropShape = PropTypes.shape({
   userId: PropTypes.string.isRequired,
 });
 
+/* eslint-disable-next-line  no-undef */
+const lazyFunction = f => () => f().apply(this, arguments);
+
+const leafType = PropTypes.shape({
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  label: PropTypes.string.isRequired,
+});
+
+const parentShape = {
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  label: PropTypes.string.isRequired,
+  children: PropTypes.arrayOf(
+    PropTypes.oneOfType([
+      PropTypes.shape(lazyFunction(() => parentShape)),
+      leafType,
+    ]),
+  ),
+};
+
+export const filterScopeSelectorTreeNodePropShape = PropTypes.oneOfType([
+  PropTypes.shape(parentShape),
+  leafType,
+]);
+
 export const loadStatsPropShape = PropTypes.objectOf(
   PropTypes.shape({
     didLoad: PropTypes.bool.isRequired,

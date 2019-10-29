@@ -19,7 +19,6 @@
 @import "../../../stylesheets/less/cosmo/variables.less";
 
 .filter-scope-container {
-  font-family: @font-family-sans-serif;
   font-size: 14px;
 
   .nav.nav-tabs {
@@ -116,6 +115,7 @@
 
       .rct-text {
         margin: 8px 0;
+        height: 30px;
       }
     }
   }
@@ -135,7 +135,7 @@
       padding: 8px 0;
       display: block;
 
-      &::before {
+      .type-indicator {
         border: 1px solid @gray-light;
         border-radius: 4px;
         padding: 2px 4px;
@@ -146,9 +146,6 @@
 
       &.chart {
         font-weight: normal;
-        &::before {
-          content: 'Chart';
-        }
       }
 
       &.selected-filter {
@@ -161,10 +158,6 @@
 
       &.tab {
         font-weight: 700;
-
-        &::before {
-          content: 'Tab';
-        }
       }
     }
 
@@ -213,7 +206,7 @@
       font-weight: bold;
     }
 
-    // disable style from react-checkbox-tress.css
+    // disable style from react-checkbox-trees.css
     .rct-node-clickable:hover,
     .rct-node-clickable:focus,
     label:hover,
@@ -234,7 +227,7 @@
     }
 
     .filter-field-item {
-      padding: 0 50px;
+      padding: 0 16px 0 50px;
       margin-left: -50px;
 
       &.is-selected {

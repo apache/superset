@@ -304,7 +304,7 @@ class FilterBox extends React.Component {
   }
 
   renderFilterBadge(chartId, column) {
-    const colorKey = getDashboardFilterKey(chartId, column);
+    const colorKey = getDashboardFilterKey({ chartId, column });
     const filterColorMap = getFilterColorMap();
     const colorCode = filterColorMap[colorKey];
 

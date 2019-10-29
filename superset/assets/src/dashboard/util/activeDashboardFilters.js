@@ -17,7 +17,7 @@
  * under the License.
  */
 let activeFilters = {};
-let allFilterIds = [];
+let allFilterBoxChartIds = [];
 
 export function getActiveFilters() {
   return activeFilters;
@@ -28,17 +28,17 @@ export function getActiveFilters() {
 // after we make filterbox a dashboard build-in component,
 // will not need this check anymore
 export function isFilterBox(chartId) {
-  return allFilterIds.includes(chartId);
+  return allFilterBoxChartIds.includes(chartId);
 }
 
-export function getAllFilterIds() {
-  return allFilterIds;
+export function getAllFilterBoxChartIds() {
+  return allFilterBoxChartIds;
 }
 
 // non-empty filters from dashboardFilters,
 // this function does not take into account: filter immune or filter scope settings
 export function buildActiveFilters(allDashboardFilters = {}) {
-  allFilterIds = Object.values(allDashboardFilters).map(
+  allFilterBoxChartIds = Object.values(allDashboardFilters).map(
     filter => filter.chartId,
   );
 
