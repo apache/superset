@@ -31,18 +31,7 @@ from superset.models import core as models
 config = app.config
 
 
-class CsvToDatabaseForm(DynamicForm):
-    # pylint: disable=E0211
-    def csv_allowed_dbs():
-        csv_allowed_dbs = []
-        csv_enabled_dbs = (
-            db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
-        )
-        for csv_enabled_db in csv_enabled_dbs:
-            if CsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):
-                csv_allowed_dbs.append(csv_enabled_db)
-        return csv_allowed_dbs
-
+class BaseCsvToDatabaseForm(DynamicForm):
     @staticmethod
     def at_least_one_schema_is_allowed(database):
         """
@@ -80,6 +69,19 @@ class CsvToDatabaseForm(DynamicForm):
         ):
             return True
         return False
+
+
+class CsvToDatabaseForm(BaseCsvToDatabaseForm):
+    # pylint: disable=E0211
+    def csv_allowed_dbs():
+        csv_allowed_dbs = []
+        csv_enabled_dbs = (
+            db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
+        )
+        for csv_enabled_db in csv_enabled_dbs:
+            if CsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):
+                csv_allowed_dbs.append(csv_enabled_db)
+        return csv_allowed_dbs
 
     name = StringField(
         _("Table Name"),
@@ -196,5 +198,77 @@ class CsvToDatabaseForm(DynamicForm):
             "and Dataframe Index is True, Index Names are used."
         ),
         validators=[Optional()],
+        widget=BS3TextFieldWidget(),
+    )
+
+
+class QuickCsvToDatabaseForm(BaseCsvToDatabaseForm):
+    # pylint: disable=E0211
+    def csv_allowed_dbs():
+        csv_allowed_dbs = []
+        default_db = models.Database()
+        default_db.id = -1
+        default_db.database_name = "In a new database"
+        csv_allowed_dbs.append(default_db)
+        csv_enabled_dbs = (
+            db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
+        )
+        for csv_enabled_db in csv_enabled_dbs:
+            if QuickCsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):
+                csv_allowed_dbs.append(csv_enabled_db)
+        return csv_allowed_dbs
+
+    name = StringField(
+        _("Table Name"),
+        description=_("Name of table to be created from csv data."),
+        validators=[DataRequired()],
+        widget=BS3TextFieldWidget(),
+    )
+    csv_file = FileField(  # TODO: Replace DropDown with Drag&Drop
+        _("CSV File"),
+        description=_("Select a CSV file to be uploaded to a database."),
+        validators=[FileRequired(), FileAllowed(["csv"], _("CSV Files Only!"))],
+    )
+    con = QuerySelectField(  # TODO: Add default option (new Database)
+        _("Database"),
+        query_factory=csv_allowed_dbs,
+        get_pk=lambda a: a.id,
+        get_label=lambda a: a.database_name,
+    )
+    sep = StringField(
+        _("Delimiter"),
+        description=_("Delimiter used by CSV file (for whitespace use \\s+)."),
+        validators=[DataRequired()],
+        widget=BS3TextFieldWidget(),
+    )
+    if_exists = SelectField(
+        _("Table Exists"),
+        description=_(
+            "If table exists do one of the following: "
+            "Fail (do nothing), Replace (drop and recreate table) "
+            "or Append (insert data)."
+        ),
+        choices=[
+            ("fail", _("Fail")),
+            ("replace", _("Replace")),
+            ("append", _("Append")),
+        ],
+        validators=[DataRequired()],
+    )
+    header = IntegerField(
+        _("Header Row"),
+        description=_(
+            "Row containing the headers to use as "
+            "column names (0 is first line of data). "
+            "Leave empty if there is no header row."
+        ),
+        validators=[Optional(), NumberRange(min=0)],
+        widget=BS3TextFieldWidget(),
+    )
+    decimal = StringField(
+        _("Decimal Character"),
+        default=".",
+        description=_("Character to interpret as decimal point."),
+        validators=[Optional(), Length(min=1, max=1)],
         widget=BS3TextFieldWidget(),
     )
