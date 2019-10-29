@@ -242,7 +242,6 @@ class AddCsvEndpoint(BaseCsvToDatabaseView):
         database_id = formdata["database_id"]
         # check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
         # this beforehand
-
         if not database_id.isdigit():
             message = _(
                 "possible tampering detected, non-numeral character in database-id"
@@ -263,8 +262,7 @@ class AddCsvEndpoint(BaseCsvToDatabaseView):
                 )
         else:
             try:
-                db_name = secure_filename(["db_name"])
-
+                db_name = secure_filename(formdata["db_name"])
                 database = self.createdatabase(db_name)
             except Exception:
                 return redirect("/quickcsvtodatabaseview/form")
