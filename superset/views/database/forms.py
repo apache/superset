@@ -95,7 +95,8 @@ class CsvToDatabaseForm(DynamicForm):
             FileAllowed(
                 config["ALLOWED_EXTENSIONS"],
                 _(
-                    "Only following file extensions allowed: %(allowed_extensions)s",
+                    "Only the following file extensions are allowed: "
+                    "%(allowed_extensions)s",
                     allowed_extensions=", ".join(config["ALLOWED_EXTENSIONS"]),
                 ),
             ),
