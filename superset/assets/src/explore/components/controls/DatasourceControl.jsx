@@ -124,11 +124,11 @@ class DatasourceControl extends React.PureComponent {
           <OverlayTrigger
             placement="right"
             overlay={
-              <Tooltip id={'error-tooltip'}>{t('Click to edit the datasource')}</Tooltip>
+              <Tooltip id={'error-tooltip'}>{t('Click to change the datasource')}</Tooltip>
             }
           >
             <div className="btn-group">
-              <Label onClick={this.toggleEditDatasourceModal} className="label-btn-label">
+              <Label onClick={this.toggleChangeDatasourceModal} className="label-btn-label">
                 {datasource.name}
               </Label>
             </div>
@@ -145,9 +145,9 @@ class DatasourceControl extends React.PureComponent {
           >
             <MenuItem
               eventKey="3"
-              onClick={this.toggleEditDatasourceModal}
+              onClick={this.toggleChangeDatasourceModal}
             >
-              {t('Edit Datasource')}
+              {t('Change Datasource')}
             </MenuItem>
             {datasource.type === 'table' &&
               <MenuItem
@@ -160,9 +160,9 @@ class DatasourceControl extends React.PureComponent {
               </MenuItem>}
             <MenuItem
               eventKey="3"
-              onClick={this.toggleChangeDatasourceModal}
+              onClick={this.toggleEditDatasourceModal}
             >
-              {t('Change Datasource')}
+              {t('Edit Datasource')}
             </MenuItem>
           </DropdownButton>
           <OverlayTrigger
