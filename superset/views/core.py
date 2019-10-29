@@ -2135,13 +2135,11 @@ class Superset(BaseSupersetView):
             return json_success(json.dumps({"published": dash.published}))
 
     @has_access
-    @expose("/quickupload")
-    def quickupload(self):
+    @expose("/csvtodatabase")
+    def csvtodatabase(self):
         session = db.session()
         Database = models.Database
-        databases = (
-            session.query(Database).filter(Database.allow_csv_upload is True).all()
-        )
+        databases = session.query(Database).filter_by(allow_csv_upload=True).all()
         databases_json = [models.DatabaseDto(-1, "In a new database")]
         for database in databases:
             databases_json.append(models.DatabaseDto(database.id, database.name))
@@ -2159,10 +2157,10 @@ class Superset(BaseSupersetView):
             )
 
         return self.render_template(
-            "superset/quickupload.html",
-            entry="quickupload",
+            "superset/csv_to_database.html",
+            entry="csvToDatabase",
             standalone_mode=False,
-            title="Quick Upload a CSV",
+            title="CSV to Database configuration",
             bootstrap_data=json.dumps(bootstrap_data, default=lambda x: x.__dict__),
         )
 

@@ -119,7 +119,7 @@ const config = {
     sqllab: addPreamble('/src/SqlLab/index.jsx'),
     welcome: addPreamble('/src/welcome/index.jsx'),
     profile: addPreamble('/src/profile/index.jsx'),
-    quickupload: addPreamble('/src/CsvToDatabase/index.jsx'),
+    csvToDatabase: addPreamble('/src/CsvToDatabase/index.jsx'),
     showSavedQuery: [path.join(APP_DIR, '/src/showSavedQuery/index.jsx')],
   },
   output,
