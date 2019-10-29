@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-import os
 from contextlib import closing
 from datetime import datetime, timedelta
 import logging
+import os
 import re
 from typing import Dict, List, Optional, Union  # noqa: F401
 from urllib import parse
@@ -47,7 +47,7 @@ import pandas as pd
 import pyarrow as pa
 import simplejson as json
 from sqlalchemy import and_, or_, select
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
@@ -3145,6 +3145,25 @@ class Superset(BaseSupersetView):
             flash(message, "danger")
             stats_logger.incr("failed_csv_upload")
             raise Exception
+
+    def is_schema_allowed(self, database, schema):
+        if not database.allow_csv_upload:
+            return False
+        schemas = database.get_schema_access_for_csv_upload()
+        if schemas:
+            return schema in schemas
+        return (
+            security_manager.database_access(database)
+            or security_manager.all_datasource_access()
+        )
+
+    def flash_schema_message_and_redirect(self, url, database, schema_name):
+        message = _(
+            'Database "{0}" Schema "{1}" is not allowed for csv uploads. '
+            "Please contact Superset Admin".format(database.database_name, schema_name)
+        )
+        flash(message, "danger")
+        return redirect(url)
 
     @api
     @has_access_api

@@ -32,12 +32,7 @@ from superset import app, appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 import superset.models.core as models
 from superset.utils import core as utils
-from superset.views.base import (
-    DeleteMixin,
-    SupersetModelView,
-    YamlExportMixin,
-    BaseSupersetView,
-)
+from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 from . import DatabaseMixin, sqlalchemy_uri_validator
 from .forms import CsvToDatabaseForm, QuickCsvToDatabaseForm
 
@@ -153,7 +148,7 @@ class BaseCsvToDatabaseView(SimpleFormView):
 # TODO register as REST endpoint
 
 
-class AddCsvEndpoint(BaseSupersetView):
+class AddCsvEndpoint(BaseCsvToDatabaseView):
     __dbpath = ""
     __path = ""
 
