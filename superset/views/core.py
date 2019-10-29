@@ -2410,6 +2410,11 @@ class Superset(BaseSupersetView):
         except Exception as e:
             return json_error_response(str(e))
 
+        spec = mydb.db_engine_spec
+        query_cost_formatters = get_feature_flags().get("QUERY_COST_FORMATTER", {})
+        query_cost_formatter = query_cost_formatters.get(spec.engine, spec.query_cost_formatter)
+        cost = query_cost_formatter(cost)
+
         return json_success(json.dumps(cost))
 
     @expose("/theme/")
