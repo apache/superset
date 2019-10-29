@@ -15,10 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-import json
 import os
 
-from flask import flash, redirect
+from flask import flash, redirect, request
 from flask_appbuilder import SimpleFormView
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -33,7 +32,12 @@ from superset import app, appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 import superset.models.core as models
 from superset.utils import core as utils
-from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
+from superset.views.base import (
+    DeleteMixin,
+    SupersetModelView,
+    YamlExportMixin,
+    BaseSupersetView,
+)
 from . import DatabaseMixin, sqlalchemy_uri_validator
 from .forms import CsvToDatabaseForm, QuickCsvToDatabaseForm
 
@@ -149,7 +153,7 @@ class BaseCsvToDatabaseView(SimpleFormView):
 # TODO register as REST endpoint
 
 
-class AddCsvEndpoint(BaseCsvToDatabaseView):
+class AddCsvEndpoint(BaseSupersetView):
     __dbpath = ""
     __path = ""
 
@@ -237,8 +241,10 @@ class AddCsvEndpoint(BaseCsvToDatabaseView):
             stats_logger.incr("failed_csv_upload")
             raise Exception
 
-    def post(self, csv_file, json_data):
-        formdata = json.load(json_data)
+    def add(self, csv_file, json_data):
+        # TODO get file from request
+        formdata = request.json
+        # formdata = json.load(json_data)
         database_id = formdata["database_id"]
         # check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
         # this beforehand

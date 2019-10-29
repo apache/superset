@@ -393,6 +393,57 @@ class BaseEngineSpec:
                 """
 
     @classmethod
+    def create_table_from_csv(cls, form, table):
+        """ Create table (including metadata in backend) from contents of a csv.
+        :param form: Parameters defining how to process data
+        :param table: Metadata of new table to be created
+        """
+
+        def _allowed_file(filename: str) -> bool:
+            # Only allow specific file extensions as specified in the config
+            extension = os.path.splitext(filename)[1]
+            return (
+                extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
+            )
+
+        filename = secure_filename(form.csv_file.data.filename)
+        if not _allowed_file(filename):
+            raise Exception("Invalid file type selected")
+        csv_to_df_kwargs = {
+            "filepath_or_buffer": filename,
+            "sep": form.sep.data,
+            "header": form.header.data if form.header.data else 0,
+            "index_col": form.index_col.data,
+            "mangle_dupe_cols": form.mangle_dupe_cols.data,
+            "skipinitialspace": form.skipinitialspace.data,
+            "skiprows": form.skiprows.data,
+            "nrows": form.nrows.data,
+            "skip_blank_lines": form.skip_blank_lines.data,
+            "parse_dates": form.parse_dates.data,
+            "infer_datetime_format": form.infer_datetime_format.data,
+            "chunksize": 10000,
+        }
+        df = cls.csv_to_df(**csv_to_df_kwargs)
+
+        df_to_sql_kwargs = {
+            "df": df,
+            "name": form.name.data,
+            "con": create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
+            "schema": form.schema.data,
+            "if_exists": form.if_exists.data,
+            "index": form.index.data,
+            "index_label": form.index_label.data,
+            "chunksize": 10000,
+        }
+        cls.df_to_sql(**df_to_sql_kwargs)
+
+        table.user_id = g.user.id
+        table.schema = form.schema.data
+        table.fetch_metadata()
+        db.session.add(table)
+        db.session.commit()
+
+    @classmethod
     def json_create_table_from_csv(cls, formdata, table):
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
