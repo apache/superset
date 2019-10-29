@@ -102,7 +102,7 @@ class SupersetSecurityManager(SecurityManager):
         "Security",
     } | USER_MODEL_VIEWS
 
-    ALPHA_ONLY_VIEW_MENUS = {"Upload a CSV", "Quick upload a CSV"}
+    ALPHA_ONLY_VIEW_MENUS = {"Upload a CSV"}
 
     ADMIN_ONLY_PERMISSIONS = {
         "can_sql_json",  # TODO: move can_sql_json to sql_lab role

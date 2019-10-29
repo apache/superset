@@ -3115,22 +3115,13 @@ appbuilder.add_link(
 appbuilder.add_link(
     "Upload a CSV",
     label=__("Upload a CSV"),
-    href="/csvtodatabaseview/form",
+    href="/superset/csvtodatabase",
     icon="fa-upload",
     category="Sources",
     category_label=__("Sources"),
     category_icon="fa-wrench",
 )
 
-appbuilder.add_link(
-    "Quick Upload a CSV",
-    label=__("Quick upload a CSV"),
-    href="/quickcsvtodatabaseview/form",
-    icon="fa-upload",
-    category="Sources",
-    category_label=__("Sources"),
-    category_icon="fa-wrench",
-)
 appbuilder.add_separator("Sources")
 
 
