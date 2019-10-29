@@ -238,7 +238,7 @@ DEFAULT_FEATURE_FLAGS = {
 }
 
 # This is merely a default.
-FEATURE_FLAGS = {}
+FEATURE_FLAGS: Dict[str, bool] = {}
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
