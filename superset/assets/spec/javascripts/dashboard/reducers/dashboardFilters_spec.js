@@ -22,7 +22,9 @@ import {
   REMOVE_FILTER,
   CHANGE_FILTER,
 } from '../../../../src/dashboard/actions/dashboardFilters';
-import dashboardFiltersReducer from '../../../../src/dashboard/reducers/dashboardFilters';
+import dashboardFiltersReducer, {
+  DASHBOARD_FILTER_SCOPE_GLOBAL,
+} from '../../../../src/dashboard/reducers/dashboardFilters';
 import {
   emptyFilters,
   dashboardFilters,
@@ -33,10 +35,8 @@ import {
   column,
 } from '../fixtures/mockSliceEntities';
 import { filterComponent } from '../fixtures/mockDashboardLayout';
-import { DASHBOARD_ROOT_ID } from '../../../../src/dashboard/util/constants';
 
-// disable broken unit tests by now, will fix it in another PR
-xdescribe('dashboardFilters reducer', () => {
+describe('dashboardFilters reducer', () => {
   const form_data = sliceEntitiesForDashboard.slices[filterId].form_data;
   const component = filterComponent;
   const directPathToFilter = (component.parents || []).slice();
@@ -55,7 +55,7 @@ xdescribe('dashboardFilters reducer', () => {
         chartId: filterId,
         componentId: component.id,
         directPathToFilter,
-        scope: 'ROOT_ID',
+        filterName: component.meta.sliceName,
         isDateFilter: false,
         isInstantFilter: !!form_data.instant_filtering,
         columns: {
@@ -63,6 +63,9 @@ xdescribe('dashboardFilters reducer', () => {
         },
         labels: {
           [column]: column,
+        },
+        scopes: {
+          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
         },
       },
     });
@@ -84,7 +87,6 @@ xdescribe('dashboardFilters reducer', () => {
         chartId: filterId,
         componentId: component.id,
         directPathToFilter,
-        scopes: {},
         isDateFilter: false,
         isInstantFilter: !!form_data.instant_filtering,
         columns: {
@@ -93,6 +95,9 @@ xdescribe('dashboardFilters reducer', () => {
         },
         labels: {
           [column]: column,
+        },
+        scopes: {
+          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
         },
       },
     });
@@ -114,7 +119,6 @@ xdescribe('dashboardFilters reducer', () => {
         chartId: filterId,
         componentId: component.id,
         directPathToFilter,
-        scope: DASHBOARD_ROOT_ID,
         isDateFilter: false,
         isInstantFilter: !!form_data.instant_filtering,
         columns: {
@@ -123,6 +127,9 @@ xdescribe('dashboardFilters reducer', () => {
         },
         labels: {
           [column]: column,
+        },
+        scopes: {
+          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
         },
       },
     });

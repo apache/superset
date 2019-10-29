@@ -21,26 +21,46 @@ import PropTypes from 'prop-types';
 import CheckboxTree from 'react-checkbox-tree';
 
 import 'react-checkbox-tree/lib/react-checkbox-tree.css';
-import CheckboxChecked from '../../../components/CheckboxChecked';
-import CheckboxUnchecked from '../../../components/CheckboxUnchecked';
-import CheckboxHalfchecked from '../../../components/CheckboxHalfchecked';
+import {
+  CheckboxChecked,
+  CheckboxUnchecked,
+  CheckboxHalfChecked,
+} from '../../../components/CheckboxIcons';
 import renderFilterFieldTreeNodes from './renderFilterFieldTreeNodes';
+import { filterScopeSelectorTreeNodePropShape } from '../../util/propShapes';
 
 const propTypes = {
   activeKey: PropTypes.string.isRequired,
-  nodes: PropTypes.arrayOf(PropTypes.object).isRequired,
-  checked: PropTypes.arrayOf(PropTypes.string).isRequired,
-  expanded: PropTypes.arrayOf(PropTypes.string).isRequired,
+  nodes: PropTypes.arrayOf(filterScopeSelectorTreeNodePropShape).isRequired,
+  checked: PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  ).isRequired,
+  expanded: PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  ).isRequired,
   onCheck: PropTypes.func.isRequired,
   onExpand: PropTypes.func.isRequired,
   onClick: PropTypes.func.isRequired,
 };
 
+const FILTER_FIELD_CHECKBOX_TREE_ICONS = {
+  check: <CheckboxChecked />,
+  uncheck: <CheckboxUnchecked />,
+  halfCheck: <CheckboxHalfChecked />,
+  expandClose: <span className="rct-icon rct-icon-expand-close" />,
+  expandOpen: <span className="rct-icon rct-icon-expand-open" />,
+  expandAll: <span className="rct-icon rct-icon-expand-all" />,
+  collapseAll: <span className="rct-icon rct-icon-collapse-all" />,
+  parentClose: <span className="rct-icon rct-icon-parent-close" />,
+  parentOpen: <span className="rct-icon rct-icon-parent-open" />,
+  leaf: <span className="rct-icon rct-icon-leaf" />,
+};
+
 export default function FilterFieldTree({
-  activeKey,
-  nodes,
-  checked,
-  expanded,
+  activeKey = '',
+  nodes = [],
+  checked = [],
+  expanded = [],
   onClick,
   onCheck,
   onExpand,
@@ -56,18 +76,7 @@ export default function FilterFieldTree({
       onClick={onClick}
       onCheck={onCheck}
       onExpand={onExpand}
-      icons={{
-        check: <CheckboxChecked />,
-        uncheck: <CheckboxUnchecked />,
-        halfCheck: <CheckboxHalfchecked />,
-        expandClose: <span className="rct-icon rct-icon-expand-close" />,
-        expandOpen: <span className="rct-icon rct-icon-expand-open" />,
-        expandAll: <span className="rct-icon rct-icon-expand-all" />,
-        collapseAll: <span className="rct-icon rct-icon-collapse-all" />,
-        parentClose: <span className="rct-icon rct-icon-parent-close" />,
-        parentOpen: <span className="rct-icon rct-icon-parent-open" />,
-        leaf: <span className="rct-icon rct-icon-leaf" />,
-      }}
+      icons={FILTER_FIELD_CHECKBOX_TREE_ICONS}
     />
   );
 }

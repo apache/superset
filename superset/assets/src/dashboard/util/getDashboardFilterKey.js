@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export function getDashboardFilterKey(chartId, column) {
+export function getDashboardFilterKey({ chartId, column }) {
   return `${chartId}_${column}`;
 }
 
-export function getDashboardFilterByKey(key) {
+export function getChartIdAndColumnFromFilterKey(key) {
   const [chartId, ...parts] = key.split('_');
-  const columnName = parts.slice().join('_');
-  return [parseInt(chartId, 10), columnName];
+  const column = parts.slice().join('_');
+  return { chartId: parseInt(chartId, 10), column };
 }

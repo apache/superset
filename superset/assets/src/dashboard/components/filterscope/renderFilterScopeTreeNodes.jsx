@@ -18,43 +18,53 @@
  */
 import React from 'react';
 import cx from 'classnames';
+import { t } from '@superset-ui/translation';
 
-export default function renderFilterScopeTreeNodes(nodes, selectedFilterId) {
-  if (nodes.length === 0) {
-    return [];
+import { DASHBOARD_ROOT_TYPE } from '../../util/componentTypes';
+
+function traverse({ currentNode, selectedFilterId }) {
+  if (!currentNode) {
+    return null;
   }
 
-  function traverse(currentNode) {
-    if (!currentNode) {
-      return null;
-    }
-
-    const { label, type, children } = currentNode;
-    if (children && children.length) {
-      const updatedChildren = children.map(child => traverse(child));
-      return {
-        ...currentNode,
-        label: (
-          <a className={`filter-scope-type ${type.toLowerCase()}`}>{label}</a>
-        ),
-        children: updatedChildren,
-      };
-    }
-
-    const { value } = currentNode;
+  const { label, type, children } = currentNode;
+  if (children && children.length) {
+    const updatedChildren = children.map(child =>
+      traverse({ currentNode: child, selectedFilterId }),
+    );
     return {
       ...currentNode,
       label: (
-        <a
-          className={cx(`filter-scope-type ${type.toLowerCase()}`, {
-            'selected-filter': selectedFilterId === value,
-          })}
-        >
+        <a className={`filter-scope-type ${type.toLowerCase()}`}>
+          {type !== DASHBOARD_ROOT_TYPE && (
+            <span className="type-indicator">{t(type)}</span>
+          )}
           {label}
         </a>
       ),
+      children: updatedChildren,
     };
   }
 
-  return nodes.map(node => traverse(node));
+  const { value } = currentNode;
+  return {
+    ...currentNode,
+    label: (
+      <a
+        className={cx(`filter-scope-type ${type.toLowerCase()}`, {
+          'selected-filter': selectedFilterId === value,
+        })}
+      >
+        <span className="type-indicator">{t(type)}</span>
+        {label}
+      </a>
+    ),
+  };
+}
+
+export default function renderFilterScopeTreeNodes({
+  nodes = [],
+  selectedFilterId = 0,
+}) {
+  return nodes.map(node => traverse({ currentNode: node, selectedFilterId }));
 }

@@ -30,24 +30,21 @@ export default class FilterScopeModal extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    this.modal = null;
+    this.modal = React.createRef();
     this.close = this.close.bind(this);
-    this.setModalRef = this.setModalRef.bind(this);
-  }
-
-  setModalRef(ref) {
-    this.modal = ref;
   }
 
   close() {
-    this.modal.close();
+    if (this.modal) {
+      this.modal.current.close();
+    }
   }
 
   render() {
     return (
       <ModalTrigger
         dialogClassName="filter-scope-modal"
-        ref={this.setModalRef}
+        ref={this.modal}
         triggerNode={this.props.triggerNode}
         modalBody={
           <div className="dashboard-modal filter-scope">

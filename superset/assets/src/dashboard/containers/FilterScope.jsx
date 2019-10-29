@@ -29,7 +29,6 @@ function mapStateToProps({ dashboardLayout, dashboardFilters, dashboardInfo }) {
     filterImmuneSliceFields:
       dashboardInfo.metadata.filterImmuneSliceFields || {},
     layout: dashboardLayout.present,
-    // closeModal: ownProps.onCloseModal,
   };
 }
 

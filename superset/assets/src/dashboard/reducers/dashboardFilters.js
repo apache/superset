@@ -27,6 +27,12 @@ import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
 import { buildFilterColorMap } from '../util/dashboardFiltersColorMap';
 import { buildActiveFilters } from '../util/activeDashboardFilters';
+import { DASHBOARD_ROOT_ID } from '../util/constants';
+
+export const DASHBOARD_FILTER_SCOPE_GLOBAL = {
+  scope: [DASHBOARD_ROOT_ID],
+  immune: [],
+};
 
 export const dashboardFilter = {
   chartId: 0,
@@ -45,6 +51,13 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
     [ADD_FILTER]() {
       const { chartId, component, form_data } = action;
       const { columns, labels } = getFilterConfigsFromFormdata(form_data);
+      const scopes = Object.keys(columns).reduce(
+        (map, column) => ({
+          ...map,
+          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
+        }),
+        {},
+      );
       const directPathToFilter = component
         ? (component.parents || []).slice().concat(component.id)
         : [];
@@ -57,6 +70,7 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
         directPathToFilter,
         columns,
         labels,
+        scopes,
         isInstantFilter: !!form_data.instant_filtering,
         isDateFilter: Object.keys(columns).includes(TIME_RANGE),
       };
