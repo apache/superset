@@ -687,7 +687,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         raise Exception("Database does not support cost estimation")
 
     @classmethod
-    def query_cost_formatter(cls, raw_cost: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    def query_cost_formatter(
+        cls, raw_cost: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
         """
         Format cost estimate.
 

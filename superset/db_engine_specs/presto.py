@@ -480,7 +480,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         return result["estimate"]
 
     @classmethod
-    def query_cost_formatter(cls, raw_cost: List[Dict[str, float]]) -> List[Dict[str, str]]:
+    def query_cost_formatter(
+        cls, raw_cost: List[Dict[str, float]]
+    ) -> List[Dict[str, str]]:
         """
         Format cost estimate.
 

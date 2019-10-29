@@ -123,6 +123,29 @@ database configuration:
 Here, "version" should be the version of your Presto cluster. Support for this
 functionality was introduced in Presto 0.319.
 
+You also need to enable the feature flag in your `superset_config.py`, and you
+can optionally specify a custom formatter. Eg:
+
+.. code-block:: python
+
+	def presto_query_cost_formatter(result):
+        # convert cost to dollars
+		cpu_coefficient = 1e-12
+		network_coefficient = 1e-12
+
+		cost = 0
+		for row in result:
+			cost += row.get("cpuCost", 0) * cpu_coefficient
+			cost += row.get("networkCost", 0) * network_coefficient
+
+		return [{"Cost": f"US$ {cost:.2f}"}]
+
+
+	DEFAULT_FEATURE_FLAGS = {
+		"ESTIMATE_QUERY_COST": True,
+		"QUERY_COST_FORMATTERS_BY_ENGINE": {"presto": presto_query_cost_formatter},
+	}
+
 .. _ref_ctas_engine_config:
 
 Create Table As (CTAS)
