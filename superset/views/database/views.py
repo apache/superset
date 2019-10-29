@@ -153,7 +153,7 @@ class AddCsvEndpoint(BaseCsvToDatabaseView):
     __dbpath = ""
     __path = ""
 
-    def check_and_save_csv(csv_file, csv_filename):
+    def check_and_save_csv(self, csv_file, csv_filename):
         __path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
         try:
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
@@ -170,10 +170,9 @@ class AddCsvEndpoint(BaseCsvToDatabaseView):
             return table
         except Exception as e:
             try:
-                # TODO Decide whether to remove Database and db file as well here
                 if database_id == -1:
                     os.remove(self.__dbpath)
-                    db.session.remove(database)
+                    db.session.delete(database)
                 os.remove(self.__path)
             except OSError:
                 pass
@@ -188,7 +187,7 @@ class AddCsvEndpoint(BaseCsvToDatabaseView):
             stats_logger.incr("failed_csv_upload")
             return redirect("/quickcsvtodatabaseview/form")
 
-    def getdatabasebyid(database_id):
+    def getdatabasebyid(self, database_id):
 
         dbs = db.session.query(models.Database).filter_by(Id=database_id).all()
         if len(dbs) != 1:
@@ -251,7 +250,6 @@ class AddCsvEndpoint(BaseCsvToDatabaseView):
             flash(message, "danger")
             return redirect("/quickcsvtodatabaseview/form")
         schema_name = formdata["schema"] if "schema" in formdata else ""
-        # TODO create unique filename if secure_filename() returns an empty name
         csv_filename = secure_filename(csv_file.filename)
         if len(csv_filename) == 0:
             message = _("Filename is not allowed")
@@ -271,7 +269,7 @@ class AddCsvEndpoint(BaseCsvToDatabaseView):
             except Exception:
                 return redirect("/quickcsvtodatabaseview/form")
         self.check_and_save_csv(csv_file, csv_filename)
-        table = self.createtable(self, formdata, database, database_id)
+        table = self.createtable(formdata, database, database_id)
         os.remove(self.__path)
         # Go back to welcome page / splash screen
         db_name = table.database.database_name
@@ -349,12 +347,6 @@ class CsvToDatabaseView(BaseCsvToDatabaseView):
 
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
-
-
-def create_connection(engine):
-    # TODO call the add API with default values, propagate Exceptions
-
-    pass
 
 
 class QuickCsvToDatabaseView(BaseCsvToDatabaseView):
