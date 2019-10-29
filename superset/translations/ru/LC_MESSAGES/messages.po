@@ -4806,10 +4806,6 @@ msgstr "Поиск запросов"
 msgid "Upload a CSV"
 msgstr "Загрузить CSV"
 
-#: superset/views/core.py:3125
-msgid "Quick upload a CSV"
-msgstr "Быстрая загрузка CSV"
-
 #: superset/views/sql_lab.py:18
 msgid "Status"
 msgstr "Статус"
