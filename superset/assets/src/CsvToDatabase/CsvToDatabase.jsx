@@ -28,7 +28,7 @@ const propTypes = {
   databases: PropTypes.array.isRequired,
 };
 
-export default class QuickUploadContainer extends React.PureComponent {
+export default class CsvToDatabase extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -50,11 +50,7 @@ export default class QuickUploadContainer extends React.PureComponent {
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
     this.setTableExists = this.setTableExists.bind(this);
     this.setUserInput = this.setUserInput.bind(this);
-    this.setTableName = this.setTableName.bind(this);
     this.setSchema = this.setSchema.bind(this);
-    this.setDelimiter = this.setDelimiter.bind(this);
-    this.setHeaderRow = this.setHeaderRow.bind(this);
-    this.setDecimalCharacter = this.setDecimalCharacter.bind(this);
     this.getConnectionStrings = this.getConnectionStrings.bind(this);
   }
 
@@ -152,6 +148,7 @@ export default class QuickUploadContainer extends React.PureComponent {
                           value={this.state.selectedConnection}
                           onChange={this.setSelectedConnection}
                           options={this.getConnectionStrings()}
+                          clearable={false}
                         />
                       </td>
                     </tr>
@@ -201,6 +198,7 @@ export default class QuickUploadContainer extends React.PureComponent {
                           value={this.state.selectedTableExists}
                           onChange={this.setTableExists}
                           options={this.state.tableExistsValues}
+                          clearable={false}
                         />
                         <span className="help-block">
                           If table exists do one of the following: Fail (do
@@ -214,10 +212,10 @@ export default class QuickUploadContainer extends React.PureComponent {
                       <td>
                         <input
                           className="form-control"
-                          id="headerrow"
-                          name="headerrow"
+                          id="headerRow"
+                          name="headerRow"
                           placeholder="Header Row"
-                          type="text"
+                          type="number"
                           value={this.state.headerRow}
                           onChange={this.setUserInput}
                         />
@@ -233,8 +231,8 @@ export default class QuickUploadContainer extends React.PureComponent {
                       <td>
                         <input
                           className="form-control"
-                          id="decimal"
-                          name="decimal"
+                          id="decimalCharacter"
+                          name="decimalCharacter"
                           placeholder="Decimal Character"
                           type="text"
                           value={this.state.decimalCharacter}
@@ -264,4 +262,4 @@ export default class QuickUploadContainer extends React.PureComponent {
   }
 }
 
-QuickUploadContainer.propTypes = propTypes;
+CsvToDatabase.propTypes = propTypes;

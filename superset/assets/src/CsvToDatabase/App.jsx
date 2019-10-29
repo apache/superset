@@ -25,7 +25,7 @@ import { initEnhancer } from '../reduxUtils';
 import logger from '../middleware/loggerMiddleware';
 import setupApp from '../setup/setupApp';
 import rootReducer from './reducers/index';
-import QuickUploadContainer from './QuickUploadContainer';
+import CsvToDatabase from './CsvToDatabase';
 import './main.less';
 
 setupApp();
@@ -45,7 +45,7 @@ const store = createStore(
 
 const App = () => (
   <Provider store={store}>
-    <QuickUploadContainer databases={databases} />
+    <CsvToDatabase databases={databases} />
   </Provider>
 );
 
