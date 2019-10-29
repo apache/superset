@@ -29,7 +29,7 @@ export default function getFilterScopeParentNodes(nodes, depthLimit = 0) {
     }
   };
 
-  if (nodes && nodes.length) {
+  if (nodes && nodes.length > 0) {
     nodes.forEach(node => {
       traverse(node, 0);
     });

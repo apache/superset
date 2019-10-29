@@ -36,7 +36,7 @@ export function buildFilterColorMap(allDashboardFilters = {}) {
       Object.keys(columns)
         .sort()
         .forEach(column => {
-          const key = getDashboardFilterKey(chartId, column);
+          const key = getDashboardFilterKey({ chartId, column });
           const colorCode = `badge-${filterColorIndex % FILTER_COLORS_COUNT}`;
           /* eslint-disable no-param-reassign */
           colorMap[key] = colorCode;

@@ -22,14 +22,10 @@ export default function getFilterFieldNodesTree({
   dashboardFilters = {},
   isSingleEditMode = true,
 }) {
-  if (Object.keys(dashboardFilters).length === 0) {
-    return [];
-  }
-
   return Object.values(dashboardFilters).map(dashboardFilter => {
     const { chartId, filterName, columns, labels } = dashboardFilter;
     const children = Object.keys(columns).map(column => ({
-      value: getDashboardFilterKey(chartId, column),
+      value: getDashboardFilterKey({ chartId, column }),
       label: labels[column] || column,
       showCheckbox: !isSingleEditMode,
     }));

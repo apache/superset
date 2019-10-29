@@ -90,7 +90,10 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
           !filterImmuneSlices.includes(currentChartId)
         ) {
           Object.keys(columns).forEach(name => {
-            const colorMapKey = getDashboardFilterKey(chartId, name);
+            const colorMapKey = getDashboardFilterKey({
+              chartId,
+              column: name,
+            });
             const directPathToLabel = directPathToFilter.slice();
             directPathToLabel.push(`LABEL-${name}`);
             const indicator = {
