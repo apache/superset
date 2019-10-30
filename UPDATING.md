@@ -72,16 +72,18 @@ which adds missing non-nullable fields to the `datasources` table. Depending on
 the integrity of the data, manual intervention may be required.
 
 * [5452](https://github.com/apache/incubator-superset/pull/5452): a change
-which adds missing non-nullable fields and uniqueness constraints to the
-`columns`and `table_columns` tables. Depending on the integrity of the data,
-manual intervention may be required.
+which adds missing non-nullable fields and uniqueness constraints (which may be 
+case insensitive depending on your database configuration) to the `columns`and 
+`table_columns` tables. Depending on the integrity of the data, manual 
+intervention may be required.
 * `fabmanager` command line is deprecated since Flask-AppBuilder 2.0.0, use
 the new `flask fab <command>` integrated with *Flask cli*.
 * `SUPERSET_UPDATE_PERMS` environment variable was replaced by
 `FAB_UPDATE_PERMS` config boolean key. To disable automatic
 creation of permissions set `FAB_UPDATE_PERMS = False` on config.
 * [5453](https://github.com/apache/incubator-superset/pull/5453): a change
-which adds missing non-nullable fields and uniqueness constraints to the metrics
+which adds missing non-nullable fields and uniqueness constraints (which may be 
+case insensitive depending on your database configuration) to the metrics
 and sql_metrics tables. Depending on the integrity of the data, manual
 intervention may be required.
 * [7616](https://github.com/apache/incubator-superset/pull/7616): this bug fix
