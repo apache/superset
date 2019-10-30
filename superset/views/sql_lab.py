@@ -221,6 +221,8 @@ class TabStateView(BaseSupersetView):
             return Response(status=403)
 
         tab_state = db.session.query(TabState).filter_by(id=tab_state_id).first()
+        if tab_state is None:
+            return Response(status=404)
         return json_success(
             json.dumps(tab_state.to_dict(), default=utils.json_iso_dttm_ser)
         )
