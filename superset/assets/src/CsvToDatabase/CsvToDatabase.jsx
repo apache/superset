@@ -23,6 +23,8 @@ import FileDropper from 'src/components/FileDropper/FileDropper';
 import DropArea from 'src/components/FileDropper/DropArea';
 import Select from 'react-virtualized-select';
 import Button from 'src/components/Button';
+import AdvancedOptions from "../components/AdvancedOptions/AdvancedOptions";
+import Checkbox from "../components/Checkbox"
 
 const propTypes = {
   databases: PropTypes.array.isRequired,
@@ -45,6 +47,16 @@ export default class CsvToDatabase extends React.PureComponent {
         { label: 'Replace', value: 1 },
         { label: 'Append', value: 2 },
       ], // TODO: Check if those values can be passed to this view
+      indexColumn: '',
+      mangleDuplicateColumns: true,
+      skipInitialSpace: false,
+      skipRows: '',
+      rowsToRead: '',
+      skipBlankLines: true,
+      parseDates: '',
+      inferDatetimeFormat: true,
+      dataframeIndex: false,
+      columnLabels: '',
     };
     this.setFile = this.setFile.bind(this);
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
@@ -71,6 +83,10 @@ export default class CsvToDatabase extends React.PureComponent {
   setUserInput(event) {
     const name = event.target.name;
     const value = event.target.value;
+    this.setState({ [name]: value });
+  }
+
+  setCheckboxValue(name, value) {
     this.setState({ [name]: value });
   }
 
@@ -142,7 +158,9 @@ export default class CsvToDatabase extends React.PureComponent {
                       </td>
                     </tr>
                     <tr>
-                      <td className="col-lg-2">Database</td>
+                      <td className="col-lg-2">
+                        Database <Asterisk />
+                      </td>
                       <td>
                         <Select
                           value={this.state.selectedConnection}
@@ -245,6 +263,177 @@ export default class CsvToDatabase extends React.PureComponent {
                     </tr>
                   </tbody>
                 </table>
+                <AdvancedOptions>
+                  <table className="table table-bordered">
+                    <tbody>
+                      <tr>
+                        <td className="col-lg-2">
+                          Index Column
+                        </td>
+                        <td>
+                          <input
+                            className="form-control"
+                            id="indexColumn"
+                            name="indexColumn"
+                            placeholder="Index Column"
+                            type="text"
+                            value={this.state.indexColumn}
+                            onChange={this.setUserInput}
+                          />
+                          <span className="help-block">
+                            Column to use as the row labels of the dataframe. Leave empty if no index column.
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="col-lg-2">
+                          Mangle Duplicate Columns
+                        </td>
+                        <td>
+                          <Checkbox
+                            checked={this.state.mangleDuplicateColumns}
+                            onChange={v => this.setCheckboxValue("mangleDuplicateColumns", v)}
+                          />
+                          <span className="help-block">
+                            Specify duplicate columns as "X.0, X.1".
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="col-lg-2">
+                          Skip Initial Space
+                        </td>
+                        <td>
+                          <Checkbox
+                            checked={this.state.skipInitialSpace}
+                            onChange={v => this.setCheckboxValue("skipInitialSpace", v)}
+                          />
+                          <span className="help-block">
+                            Skip spaces after delimiter.
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="col-lg-2">
+                          Skip Rows
+                        </td>
+                        <td>
+                          <input
+                            className="form-control"
+                            id="skipRows"
+                            name="skipRows"
+                            placeholder="Skip Rows"
+                            type="number"
+                            value={this.state.skipRows}
+                            onChange={this.setUserInput}
+                          />
+                          <span className="help-block">
+                            Number of rows to skip at start of file.
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="col-lg-2">
+                          Rows to Read
+                        </td>
+                        <td>
+                          <input
+                            className="form-control"
+                            id="rowsToRead"
+                            name="rowsToRead"
+                            placeholder="Rows to Read"
+                            type="number"
+                            value={this.state.rowsToRead}
+                            onChange={this.setUserInput}
+                          />
+                          <span className="help-block">
+                            Number of rows of file to read.
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="col-lg-2">
+                          Skip Blank Lines
+                        </td>
+                        <td>
+                          <Checkbox
+                            checked={this.state.skipBlankLines}
+                            onChange={v => this.setCheckboxValue("skipBlankLines", v)}
+                          />
+                          <span className="help-block">
+                            Skip blank lines rather than interpreting them as NaN values.
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="col-lg-2">
+                          Parse Dates
+                        </td>
+                        <td>
+                          <input
+                            className="form-control"
+                            id="parseDates"
+                            name="parseDates"
+                            placeholder="Parse Dates"
+                            type="text"
+                            value={this.state.parseDates}
+                            onChange={this.setUserInput}
+                          />
+                          <span className="help-block">
+                            A comma separated list of columns that should be parsed as dates.
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="col-lg-2">
+                          Infer Datetime Format
+                        </td>
+                        <td>
+                          <Checkbox
+                            checked={this.state.inferDatetimeFormat}
+                            onChange={v => this.setCheckboxValue("inferDatetimeFormat", v)}
+                          />
+                          <span className="help-block">
+                            Use Pandas to interpret the datetime format automatically.
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="col-lg-2">
+                          Dataframe Index
+                        </td>
+                        <td>
+                          <Checkbox
+                            checked={this.state.dataframeIndex}
+                            onChange={v => this.setCheckboxValue("dataframeIndex", v)}
+                          />
+                          <span className="help-block">
+                            Write dataframe index as a column.
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="col-lg-2">
+                          Column Label(s)
+                        </td>
+                        <td>
+                          <input
+                            className="form-control"
+                            id="columnLabels"
+                            name="columnLabels"
+                            placeholder="Column Label(s)"
+                            type="text"
+                            value={this.state.columnLabels}
+                            onChange={this.setUserInput}
+                          />
+                          <span className="help-block">
+                            Column label for index column(s). If None is given and Dataframe Index is True, Index Names are used.
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </AdvancedOptions>
               </div>
               <div className="well well-sm">
                 <Button bsStyle="primary">
