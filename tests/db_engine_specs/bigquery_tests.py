@@ -37,3 +37,20 @@ class BigQueryTestCase(DbEngineSpecTestCase):
         label = BigQueryEngineSpec.make_label_compatible(column("12345_col").name)
         label_expected = "_12345_col_8d390"
         self.assertEqual(label, label_expected)
+
+    def test_convert_dttm(self):
+        dttm = self.get_dttm()
+
+        self.assertEqual(
+            BigQueryEngineSpec.convert_dttm("DATE", dttm), "CAST('2019-01-02' AS DATE)"
+        )
+
+        self.assertEqual(
+            BigQueryEngineSpec.convert_dttm("DATETIME", dttm),
+            "CAST('2019-01-02T03:04:05.678900' AS DATETIME)",
+        )
+
+        self.assertEqual(
+            BigQueryEngineSpec.convert_dttm("TIMESTAMP", dttm),
+            "CAST('2019-01-02T03:04:05.678900' AS TIMESTAMP)",
+        )
