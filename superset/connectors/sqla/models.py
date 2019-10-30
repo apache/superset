@@ -563,7 +563,7 @@ class SqlaTable(Model, BaseDatasource):
         """Apply config's SQL_QUERY_MUTATOR
 
         Typically adds comments to the query with context"""
-        SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR")
+        SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
         if SQL_QUERY_MUTATOR:
             username = utils.get_username()
             sql = SQL_QUERY_MUTATOR(sql, username, security_manager, self.database)
