@@ -260,7 +260,7 @@ class CeleryTestCase(SupersetTestCase):
             db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
         ) as expand_data:
             data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-                cdf, db_engine_spec, False
+                cdf, db_engine_spec, False, True
             )
             expand_data.assert_called_once()
 

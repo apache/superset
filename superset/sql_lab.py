@@ -148,6 +148,7 @@ def get_sql_results(
     store_results=False,
     user_name=None,
     start_time=None,
+    expand_data=False,
 ):
     """Executes the sql query returns the results."""
     with session_scope(not ctask.request.called_directly) as session:
@@ -162,6 +163,7 @@ def get_sql_results(
                 user_name,
                 session=session,
                 start_time=start_time,
+                expand_data=expand_data,
             )
         except Exception as e:
             logging.exception(f"Query {query_id}: {e}")
@@ -264,6 +266,7 @@ def _serialize_and_expand_data(
     cdf: SupersetDataFrame,
     db_engine_spec: BaseEngineSpec,
     use_msgpack: Optional[bool] = False,
+    expand_data: bool = False,
 ) -> Tuple[Union[bytes, str], list, list, list]:
     selected_columns: list = cdf.columns or []
     expanded_columns: list
@@ -282,9 +285,13 @@ def _serialize_and_expand_data(
         all_columns, expanded_columns = (selected_columns, [])
     else:
         data = cdf.data or []
-        all_columns, data, expanded_columns = db_engine_spec.expand_data(
-            selected_columns, data
-        )
+        if expand_data:
+            all_columns, data, expanded_columns = db_engine_spec.expand_data(
+                selected_columns, data
+            )
+        else:
+            all_columns = selected_columns
+            expanded_columns = []
 
     return (data, selected_columns, all_columns, expanded_columns)
 
@@ -298,6 +305,7 @@ def execute_sql_statements(
     user_name=None,
     session=None,
     start_time=None,
+    expand_data=False,
 ):
     """Executes the sql query returns the results."""
     if store_results and start_time:
@@ -371,7 +379,7 @@ def execute_sql_statements(
     query.end_time = now_as_float()
 
     data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
-        cdf, db_engine_spec, store_results and results_backend_use_msgpack
+        cdf, db_engine_spec, store_results and results_backend_use_msgpack, expand_data
     )
 
     payload.update(
