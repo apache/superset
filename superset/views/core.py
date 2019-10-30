@@ -1153,10 +1153,10 @@ class Superset(BaseSupersetView):
             and (
                 not form_data.get("time_range_endpoints")
                 or form_data["time_range_endpoints"]
-                != (
+                != [
                     utils.TimeRangeEndpoint.INCLUSIVE,
                     utils.TimeRangeEndpoint.EXCLUSIVE,
-                )
+                ]
             )
         ):
             url = Href("/superset/explore/")(
@@ -1164,10 +1164,10 @@ class Superset(BaseSupersetView):
                     "form_data": json.dumps(
                         {
                             "slice_id": slc.id,
-                            "time_range_endpoints": (
+                            "time_range_endpoints": [
                                 utils.TimeRangeEndpoint.INCLUSIVE.value,
                                 utils.TimeRangeEndpoint.EXCLUSIVE.value,
-                            ),
+                            ],
                         }
                     )
                 }
