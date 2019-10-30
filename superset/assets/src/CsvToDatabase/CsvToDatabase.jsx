@@ -50,9 +50,9 @@ export class CsvToDatabase extends React.PureComponent {
       headerRow: 0,
       decimalCharacter: '.',
       tableExistsValues: [
-        { label: 'Fail', value: 'fail' },
-        { label: 'Replace', value: 'replace' },
-        { label: 'Append', value: 'append' },
+        { label: 'Fail', value: 'Fail' },
+        { label: 'Replace', value: 'Replace' },
+        { label: 'Append', value: 'Append' },
       ], // TODO: Check if those values can be passed to this view
       indexColumn: "",
       mangleDuplicateColumns: true,
