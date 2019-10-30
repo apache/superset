@@ -2581,7 +2581,7 @@ class Superset(BaseSupersetView):
             return json_error_response(f"{msg}")
 
     def _sql_json_async(
-        self, session: Session, rendered_query: str, query: Query
+        self, session: Session, rendered_query: str, query: Query, expand_data: bool
     ) -> str:
         """
             Send SQL JSON query to celery workers
@@ -2601,6 +2601,7 @@ class Superset(BaseSupersetView):
                 store_results=not query.select_as_cta,
                 user_name=g.user.username if g.user else None,
                 start_time=now_as_float(),
+                expand_data=expand_data,
             )
         except Exception as e:
             logging.exception(f"Query {query.id}: {e}")
@@ -2625,7 +2626,7 @@ class Superset(BaseSupersetView):
         return resp
 
     def _sql_json_sync(
-        self, session: Session, rendered_query: str, query: Query
+        self, session: Session, rendered_query: str, query: Query, expand_data: bool
     ) -> str:
         """
             Execute SQL query (sql json)
@@ -2644,6 +2645,7 @@ class Superset(BaseSupersetView):
                     rendered_query,
                     return_results=True,
                     user_name=g.user.username if g.user else None,
+                    expand_data=expand_data,
                 )
 
             payload = json.dumps(
@@ -2756,11 +2758,17 @@ class Superset(BaseSupersetView):
         limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
         query.limit = min(lim for lim in limits if lim is not None)
 
+        # Flag for whether or not to expand data
+        # (feature that will expand Presto row objects and arrays)
+        expand_data: bool = is_feature_enabled(
+            "PRESTO_EXPAND_DATA"
+        ) and request.json.get("expand_data")
+
         # Async request.
         if async_flag:
-            return self._sql_json_async(session, rendered_query, query)
+            return self._sql_json_async(session, rendered_query, query, expand_data)
         # Sync request.
-        return self._sql_json_sync(session, rendered_query, query)
+        return self._sql_json_sync(session, rendered_query, query, expand_data)
 
     @has_access
     @expose("/csv/<client_id>")
