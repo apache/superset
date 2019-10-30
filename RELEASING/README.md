@@ -19,11 +19,12 @@ under the License.
 
 # Apache Releases
 
-You'll probably want to run these commands manually and understand what
+Until things settle and we create scripts that streamline this,
+you'll probably want to run these commands manually and understand what
 they do prior to doing so.
 
-For coordinating on releases, on more operational topics that require more
-synchronous communications, we tend to use the `#apache-releases` channel
+For coordinating on releases, on operational topics that require more
+synchronous communications, we recommend using the `#apache-releases` channel
 on the Superset Slack. People crafting releases and those interested in
 partaking in the process should join the channel.
 
@@ -156,7 +157,29 @@ Now let's ship this RC into svn's dev folder
     svn commit -m "Release ${SUPERSET_VERSION_RC}"
 ```
 
-Now you're ready to start the VOTE thread.
+### Voting
+Now you're ready to start the [VOTE] thread. Here's an example of a
+previous release vote thread:
+https://lists.apache.org/thread.html/e60f080ebdda26896214f7d3d5be1ccadfab95d48fbe813252762879@<dev.superset.apache.org>
+
+Once 3+ binding votes (by PMC members) have been cast and at
+least 72 hours have past, you can post a [RESULT] thread:
+https://lists.apache.org/thread.html/50a6b134d66b86b237d5d7bc89df1b567246d125a71394d78b45f9a8@%3Cdev.superset.apache.org%3E
+
+Following the result thread, yet another [VOTE] thread should be
+started at general@incubator.apache.org.
+
+### Publishing a Convenience Release to PyPI
+From the root of the repo running ./pypi_push.sh will build the
+Javascript bundle and echo the twine command allowing you to publish
+to PyPI. You may need to ask a fellow committer to grant
+you access to it if you don't have access already. Make sure to create
+an account first if you don't have one, and reference your username
+while requesting access to push packages.
+
+### Announcing
+
+Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
 
 ### Validating a release
 
