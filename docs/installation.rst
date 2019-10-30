@@ -997,7 +997,7 @@ To send emails you need to configure SMTP settings in your configuration file. e
 
     SMTP_HOST = "email-smtp.eu-west-1.amazonaws.com"
     SMTP_STARTTLS = True
-    SMTP_SSL = True
+    SMTP_SSL = False
     SMTP_USER = "smtp_username"
     SMTP_PORT = 25
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
@@ -1008,6 +1008,15 @@ To render dashboards you need to install a local browser on your superset instan
 
   * `geckodriver <https://github.com/mozilla/geckodriver>`_ and Firefox is preferred
   * `chromedriver <http://chromedriver.chromium.org/>`_ is a good option too
+
+You need to adjust the ``EMAIL_REPORTS_WEBDRIVER`` accordingly in your configuration.
+
+You also need to specify on behalf of which username to render the dashboards. In general
+dashboards and charts are not accessible to unauthorized requests, that is why the
+worker needs to take over credentials of an existing user to take a snapshot. ::
+
+    EMAIL_REPORTS_USER = 'username_with_permission_to_access_dashboards'
+
 
 **Important notes**
 
@@ -1023,7 +1032,8 @@ To render dashboards you need to install a local browser on your superset instan
   ``email_reports`` tasks. Can be done by using ``queue`` field in ``CELERY_ANNOTATIONS``
 
 * Adjust ``WEBDRIVER_BASEURL`` in your config if celery workers can't access superset via its
-  default value ``http://0.0.0.0:8080/``
+  default value ``http://0.0.0.0:8080/`` (notice the port number 8080, many other setups use
+  port 8088).
 
 SQL Lab
 -------
