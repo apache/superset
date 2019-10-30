@@ -25,6 +25,7 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING, 
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas as pd
+from numpy.core.defchararray import lower
 from sqlalchemy import column, DateTime, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
@@ -444,7 +445,7 @@ class BaseEngineSpec:
         db.session.commit()
 
     @classmethod
-    def json_create_table_from_csv(cls, formdata, table):
+    def json_create_table_from_csv(cls, formdata, table, csv_filename, database):
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
             extension = os.path.splitext(filename)[1]
@@ -452,13 +453,14 @@ class BaseEngineSpec:
                 extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
             )
 
-        filename = secure_filename(formdata["csvFilename"])
+        filename = secure_filename(csv_filename)
         if not _allowed_file(filename):
             raise Exception("Invalid file type selected")
         csv_to_df_kwargs = {
             "filepath_or_buffer": filename,
-            "sep": formdata["sep"],
-            "header": formdata["header"] if "header" in formdata else 0,
+            "sep": formdata["delimiter"],
+            # may raise Exception due to it not being an int
+            "header": int(formdata["headerRow"]) if "headerRow" in formdata else 0,
             "index_col": formdata["index_col"] if "index_col" in formdata else None,
             "mangle_dupe_cols": formdata["mangle"] if "mangle" in formdata else True,
             "skipinitialspace": formdata["skipintial"]
@@ -482,9 +484,10 @@ class BaseEngineSpec:
         df_to_sql_kwargs = {
             "df": df,
             "name": formdata["tableName"],  # form.name.data,
-            "con": create_engine(formdata["sqlalchemyUriDecrypted"], echo=False),
+            "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
+            # "con": create_engine(formdata["sqlalchemyUriDecrypted"], echo=False),
             "schema": formdata["schema"] if "schema" in formdata else None,
-            "if_exists": formdata["ifExists"],
+            "if_exists": lower(formdata["ifTableExists"]),
             "index": formdata["index"] if "index" in formdata else False,
             "index_label": formdata["index_label"]
             if "index_label" in formdata

@@ -3099,20 +3099,21 @@ class Superset(BaseSupersetView):
             csv_file.save(__path)
         except Exception:
             os.remove(__path)
+        return __path
 
-    def createtable(self, formdata, database, database_id):
+    def createtable(self, formdata, database, database_id, csv_filename):
         try:
             table = SqlaTable(table_name=formdata["tableName"])
             table.database = database
             table.database_id = table.database.id
-            table.database.db_engine_spec.json_create_table_from_csv(formdata, table)
+            table.database.db_engine_spec.json_create_table_from_csv(
+                formdata, table, csv_filename, database
+            )
             return table
         except Exception as e:
             try:
                 if database_id == -1:
-                    os.remove(self.__dbpath)
                     db.session.delete(database)
-                os.remove(self.__path)
             except OSError:
                 pass
             message = (
@@ -3124,7 +3125,8 @@ class Superset(BaseSupersetView):
             )
             flash(message, "danger")
             stats_logger.incr("failed_csv_upload")
-            return redirect("/quickcsvtodatabaseview/form")
+            raise Exception
+            # return redirect("/quickcsvtodatabaseview/form")
 
     def getdatabasebyid(self, database_id):
 
@@ -3198,40 +3200,52 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/csvtodatabase/add", methods=["POST"])
-    def add(self, csv_file, json_data):
+    def add(self):
+        redirect_url = "superset/csvtodatabase"
         # TODO get file from request
-        formdata = request.json
-        # formdata = json.load(json_data)
-        database_id = formdata["database_id"]
+        formdata = request.form
+        csv_file = request.files
+        csv_file = csv_file["file"]
+        database_id = formdata["connectionId"]
         # check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
         # this beforehand
-        if not database_id.isdigit():
+        try:
+            database_id = int(database_id)
+        except Exception:
             message = _(
                 "possible tampering detected, non-numeral character in database-id"
             )
             flash(message, "danger")
-            return redirect("/quickcsvtodatabaseview/form")
+            return redirect(redirect_url)
         schema_name = formdata["schema"] if "schema" in formdata else ""
         csv_filename = secure_filename(csv_file.filename)
         if len(csv_filename) == 0:
             message = _("Filename is not allowed")
             flash(message, "danger")
-            return redirect("/quickcsvtodatabaseview/form")
+            return redirect(redirect_url)
         if database_id != -1:
             database = self.getdatabasebyid(database_id)
             if not self.is_schema_allowed(database, schema_name):
                 self.flash_schema_message_and_redirect(
-                    "/quickcsvtodatabaseview/form", database, schema_name
+                    redirect_url, database, schema_name
                 )
         else:
             try:
-                db_name = secure_filename(formdata["db_name"])
+                ins_db_name = (
+                    formdata["db_name"] if "db_name" in formdata else csv_filename[:-4]
+                )
+                db_name = secure_filename(ins_db_name)
                 database = self.createdatabase(db_name)
             except Exception:
-                return redirect("/quickcsvtodatabaseview/form")
-        self.check_and_save_csv(csv_file, csv_filename)
-        table = self.createtable(formdata, database, database_id)
-        os.remove(self.__path)
+                return redirect(redirect_url)
+        try:
+            path = self.check_and_save_csv(csv_file, csv_filename)
+            table = self.createtable(formdata, database, database_id, csv_filename)
+            os.remove(path)
+        except Exception:
+            os.remove(os.getcwd() + "/" + db_name + ".db")
+            if database_id == -1:
+                db.session.delete(database)
         # Go back to welcome page / splash screen
         db_name = table.database.database_name
         message = _(
