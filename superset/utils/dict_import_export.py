@@ -88,4 +88,4 @@ def import_from_dict(session, data, sync=[]):
             DruidCluster.import_from_dict(session, datasource, sync=sync)
         session.commit()
     else:
-        logging.info("Supplied object is not a dictionary")
+        logging.error("Supplied object is not a dictionary.")
