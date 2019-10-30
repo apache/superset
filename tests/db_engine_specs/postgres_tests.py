@@ -70,3 +70,16 @@ class PostgresTests(DbEngineSpecTestCase):
         expr = PostgresEngineSpec.get_timestamp_expr(col, None, "P1Y")
         result = str(expr.compile(None, dialect=postgresql.dialect()))
         self.assertEqual(result, "DATE_TRUNC('year', \"MixedCase\")")
+
+    def test_convert_dttm(self):
+        dttm = self.get_dttm()
+
+        self.assertEqual(
+            PostgresEngineSpec.convert_dttm("DATE", dttm),
+            "TO_DATE('2019-01-02', 'YYYY-MM-DD')",
+        )
+
+        self.assertEqual(
+            PostgresEngineSpec.convert_dttm("TIMESTAMP", dttm),
+            "TO_TIMESTAMP('2019-01-02 03:04:05.678900', 'YYYY-MM-DD HH24:MI:SS.US')",
+        )

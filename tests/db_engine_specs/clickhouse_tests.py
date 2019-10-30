@@ -14,30 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import unittest
-
-from superset.db_engine_specs.mysql import MySQLEngineSpec
+from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
 from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
 
-class MySQLEngineSpecsTestCase(DbEngineSpecTestCase):
-    @unittest.skipUnless(
-        DbEngineSpecTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
-    )
-    def test_get_datatype_mysql(self):
-        """Tests related to datatype mapping for MySQL"""
-        self.assertEqual("TINY", MySQLEngineSpec.get_datatype(1))
-        self.assertEqual("VARCHAR", MySQLEngineSpec.get_datatype(15))
-
+class ClickHouseTestCase(DbEngineSpecTestCase):
     def test_convert_dttm(self):
         dttm = self.get_dttm()
 
         self.assertEqual(
-            MySQLEngineSpec.convert_dttm("DATE", dttm),
-            "STR_TO_DATE('2019-01-02', '%Y-%m-%d')",
+            ClickHouseEngineSpec.convert_dttm("DATE", dttm), "toDate('2019-01-02')"
         )
 
         self.assertEqual(
-            MySQLEngineSpec.convert_dttm("DATETIME", dttm),
-            "STR_TO_DATE('2019-01-02 03:04:05.678900', '%Y-%m-%d %H:%i:%s.%f')",
+            ClickHouseEngineSpec.convert_dttm("DATETIME", dttm),
+            "toDateTime('2019-01-02 03:04:05')",
         )

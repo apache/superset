@@ -55,10 +55,6 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls) -> str:
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
-    @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
-
 
 class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = "postgresql"
@@ -73,3 +69,12 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
         return sorted(tables)
+
+    @classmethod
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == "DATE":
+            return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
+        if tt == "TIMESTAMP":
+            return f"""TO_TIMESTAMP('{dttm.isoformat(sep=" ", timespec="microseconds")}', 'YYYY-MM-DD HH24:MI:SS.US')"""  # pylint: disable=line-too-long
+        return None

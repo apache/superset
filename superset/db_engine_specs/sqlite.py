@@ -75,11 +75,10 @@ class SqliteEngineSpec(BaseEngineSpec):
             raise Exception(f"Unsupported datasource_type: {datasource_type}")
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        iso = dttm.isoformat().replace("T", " ")
-        if "." not in iso:
-            iso += ".000000"
-        return "'{}'".format(iso)
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        if target_type.upper() == "TEXT":
+            return f"""'{dttm.isoformat(sep=" ", timespec="microseconds")}'"""
+        return None
 
     @classmethod
     def get_table_names(

@@ -69,3 +69,21 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
         expr = MssqlEngineSpec.get_timestamp_expr(col, None, "P1Y")
         result = str(expr.compile(None, dialect=mssql.dialect()))
         self.assertEqual(result, "DATEADD(year, DATEDIFF(year, 0, [MixedCase]), 0)")
+
+    def test_convert_dttm(self):
+        dttm = self.get_dttm()
+
+        self.assertEqual(
+            MssqlEngineSpec.convert_dttm("DATE", dttm),
+            "CONVERT(DATE, '2019-01-02', 23)",
+        )
+
+        self.assertEqual(
+            MssqlEngineSpec.convert_dttm("DATETIME", dttm),
+            "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)",
+        )
+
+        self.assertEqual(
+            MssqlEngineSpec.convert_dttm("SMALLDATETIME", dttm),
+            "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)",
+        )
