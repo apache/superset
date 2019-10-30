@@ -575,6 +575,7 @@ export const controls = {
       'India',
       'Italy',
       'Japan',
+      'Korea',
       'Morocco',
       'Myanmar',
       'Netherlands',

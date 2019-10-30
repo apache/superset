@@ -55,7 +55,7 @@
     "@superset-ui/dimension": "^0.12.3",
     "@superset-ui/legacy-plugin-chart-calendar": "^0.11.0",
     "@superset-ui/legacy-plugin-chart-chord": "^0.11.0",
-    "@superset-ui/legacy-plugin-chart-country-map": "^0.11.0",
+    "@superset-ui/legacy-plugin-chart-country-map": "^0.11.4",
     "@superset-ui/legacy-plugin-chart-event-flow": "^0.11.0",
     "@superset-ui/legacy-plugin-chart-force-directed": "^0.11.0",
     "@superset-ui/legacy-plugin-chart-heatmap": "^0.11.0",
