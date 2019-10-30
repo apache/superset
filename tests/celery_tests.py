@@ -32,12 +32,12 @@ from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
 
-BASE_DIR = app.config.get("BASE_DIR")
+BASE_DIR = app.config["BASE_DIR"]
 CELERY_SLEEP_TIME = 5
 
 
 class CeleryConfig(object):
-    BROKER_URL = app.config.get("CELERY_RESULT_BACKEND")
+    BROKER_URL = app.config["CELERY_CONFIG"].BROKER_URL
     CELERY_IMPORTS = ("superset.sql_lab",)
     CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
     CONCURRENCY = 1

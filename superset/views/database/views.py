@@ -37,7 +37,7 @@ from . import DatabaseMixin, sqlalchemy_uri_validator
 from .forms import CsvToDatabaseForm
 
 config = app.config
-stats_logger = config.get("STATS_LOGGER")
+stats_logger = config["STATS_LOGGER"]
 
 
 def sqlalchemy_uri_form_validator(form: DynamicForm, field: StringField) -> None:

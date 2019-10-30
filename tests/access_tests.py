@@ -212,7 +212,7 @@ class RequestAccessTests(SupersetTestCase):
         # Check if access request for gamma at energy_usage was deleted
 
         # gamma2 and gamma request table_role on energy usage
-        if app.config.get("ENABLE_ACCESS_REQUEST"):
+        if app.config["ENABLE_ACCESS_REQUEST"]:
             access_request1 = create_access_request(
                 session, "table", "random_time_series", TEST_ROLE_1, "gamma2"
             )
@@ -354,7 +354,7 @@ class RequestAccessTests(SupersetTestCase):
 
     @mock.patch("superset.utils.core.send_MIME_email")
     def test_approve(self, mock_send_mime):
-        if app.config.get("ENABLE_ACCESS_REQUEST"):
+        if app.config["ENABLE_ACCESS_REQUEST"]:
             session = db.session
             TEST_ROLE_NAME = "table_role"
             security_manager.add_role(TEST_ROLE_NAME)
@@ -481,7 +481,7 @@ class RequestAccessTests(SupersetTestCase):
             session.commit()
 
     def test_request_access(self):
-        if app.config.get("ENABLE_ACCESS_REQUEST"):
+        if app.config["ENABLE_ACCESS_REQUEST"]:
             session = db.session
             self.logout()
             self.login(username="gamma")

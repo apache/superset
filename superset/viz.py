@@ -57,9 +57,9 @@ from superset.utils.core import (
 )
 
 config = app.config
-stats_logger = config.get("STATS_LOGGER")
-relative_start = config.get("DEFAULT_RELATIVE_START_TIME", "today")
-relative_end = config.get("DEFAULT_RELATIVE_END_TIME", "today")
+stats_logger = config["STATS_LOGGER"]
+relative_start = config["DEFAULT_RELATIVE_START_TIME"]
+relative_end = config["DEFAULT_RELATIVE_END_TIME"]
 
 METRIC_KEYS = [
     "metric",
@@ -277,7 +277,7 @@ class BaseViz(object):
         granularity = form_data.get("granularity") or form_data.get("granularity_sqla")
         limit = int(form_data.get("limit") or 0)
         timeseries_limit_metric = form_data.get("timeseries_limit_metric")
-        row_limit = int(form_data.get("row_limit") or config.get("ROW_LIMIT"))
+        row_limit = int(form_data.get("row_limit") or config["ROW_LIMIT"])
 
         # default order direction
         order_desc = form_data.get("order_desc", True)
@@ -337,7 +337,7 @@ class BaseViz(object):
             and self.datasource.database.cache_timeout
         ) is not None:
             return self.datasource.database.cache_timeout
-        return config.get("CACHE_DEFAULT_TIMEOUT")
+        return config["CACHE_DEFAULT_TIMEOUT"]
 
     def get_json(self):
         return json.dumps(
@@ -492,7 +492,7 @@ class BaseViz(object):
     def get_csv(self):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
-        return df.to_csv(index=include_index, **config.get("CSV_EXPORT"))
+        return df.to_csv(index=include_index, **config["CSV_EXPORT"])
 
     def get_data(self, df):
         return df.to_dict(orient="records")
@@ -1474,9 +1474,7 @@ class HistogramViz(BaseViz):
     def query_obj(self):
         """Returns the query object for this visualization"""
         d = super().query_obj()
-        d["row_limit"] = self.form_data.get(
-            "row_limit", int(config.get("VIZ_ROW_LIMIT"))
-        )
+        d["row_limit"] = self.form_data.get("row_limit", int(config["VIZ_ROW_LIMIT"]))
         numeric_columns = self.form_data.get("all_columns_x")
         if numeric_columns is None:
             raise Exception(_("Must have at least one numeric column specified"))
@@ -2064,7 +2062,7 @@ class MapboxViz(BaseViz):
         return {
             "geoJSON": geo_json,
             "hasCustomMetric": has_custom_metric,
-            "mapboxApiKey": config.get("MAPBOX_API_KEY"),
+            "mapboxApiKey": config["MAPBOX_API_KEY"],
             "mapStyle": fd.get("mapbox_style"),
             "aggregatorName": fd.get("pandas_aggfunc"),
             "clusteringRadius": fd.get("clustering_radius"),
@@ -2099,7 +2097,7 @@ class DeckGLMultiLayer(BaseViz):
         slice_ids = fd.get("deck_slices")
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
         return {
-            "mapboxApiKey": config.get("MAPBOX_API_KEY"),
+            "mapboxApiKey": config["MAPBOX_API_KEY"],
             "slices": [slc.data for slc in slices],
         }
 
@@ -2250,7 +2248,7 @@ class BaseDeckGLViz(BaseViz):
 
         return {
             "features": features,
-            "mapboxApiKey": config.get("MAPBOX_API_KEY"),
+            "mapboxApiKey": config["MAPBOX_API_KEY"],
             "metricLabels": self.metric_labels,
         }
 
@@ -2496,7 +2494,7 @@ class DeckArc(BaseDeckGLViz):
     def get_data(self, df):
         d = super().get_data(df)
 
-        return {"features": d["features"], "mapboxApiKey": config.get("MAPBOX_API_KEY")}
+        return {"features": d["features"], "mapboxApiKey": config["MAPBOX_API_KEY"]}
 
 
 class EventFlowViz(BaseViz):

@@ -50,10 +50,10 @@ from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
 
 config = app.config
-stats_logger = config.get("STATS_LOGGER")
-SQLLAB_TIMEOUT = config.get("SQLLAB_ASYNC_TIME_LIMIT_SEC", 600)
+stats_logger = config["STATS_LOGGER"]
+SQLLAB_TIMEOUT = config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
-log_query = config.get("QUERY_LOGGER")
+log_query = config["QUERY_LOGGER"]
 
 
 class SqlLabException(Exception):
@@ -114,7 +114,7 @@ def session_scope(nullpool):
     """Provide a transactional scope around a series of operations."""
     if nullpool:
         engine = sqlalchemy.create_engine(
-            app.config.get("SQLALCHEMY_DATABASE_URI"), poolclass=NullPool
+            app.config["SQLALCHEMY_DATABASE_URI"], poolclass=NullPool
         )
         session_class = sessionmaker()
         session_class.configure(bind=engine)
@@ -179,7 +179,7 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
     db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()
-    SQL_MAX_ROWS = app.config.get("SQL_MAX_ROW")
+    SQL_MAX_ROWS = app.config["SQL_MAX_ROW"]
 
     if not parsed_query.is_readonly() and not database.allow_dml:
         raise SqlLabSecurityException(
@@ -207,7 +207,7 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
             sql = database.apply_limit_to_sql(sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
-    SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR")
+    SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
     if SQL_QUERY_MUTATOR:
         sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
 
@@ -408,7 +408,7 @@ def execute_sql_statements(
                 )
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
-                cache_timeout = config.get("CACHE_DEFAULT_TIMEOUT", 0)
+                cache_timeout = config["CACHE_DEFAULT_TIMEOUT"]
 
             compressed = zlib_compress(serialized_payload)
             logging.debug(

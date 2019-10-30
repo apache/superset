@@ -291,5 +291,5 @@ def _register_schedule_menus():
     )
 
 
-if app.config.get("ENABLE_SCHEDULED_EMAIL_REPORTS"):
+if app.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
     _register_schedule_menus()

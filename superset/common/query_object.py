@@ -66,8 +66,8 @@ class QueryObject:
         extras: Optional[Dict] = None,
         columns: Optional[List[str]] = None,
         orderby: Optional[List[List]] = None,
-        relative_start: str = app.config.get("DEFAULT_RELATIVE_START_TIME", "today"),
-        relative_end: str = app.config.get("DEFAULT_RELATIVE_END_TIME", "today"),
+        relative_start: str = app.config["DEFAULT_RELATIVE_START_TIME"],
+        relative_end: str = app.config["DEFAULT_RELATIVE_END_TIME"],
     ):
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(
