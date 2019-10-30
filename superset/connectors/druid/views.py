@@ -131,8 +131,6 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
         self.post_update(col)
 
 
-
-
 class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidMetric)
 
@@ -183,7 +181,6 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
     }
 
     edit_form_extra_fields = add_form_extra_fields
-
 
 
 class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
@@ -409,7 +406,7 @@ class Druid(BaseSupersetView):
         return self.refresh_datasources(refresh_all=False)
 
 
-if app.config['DRUID_IS_ACTIVE']:
+if app.config["DRUID_IS_ACTIVE"]:
     appbuilder.add_view(
         DruidDatasourceModelView,
         "Druid Datasources",
