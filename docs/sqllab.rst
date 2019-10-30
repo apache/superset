@@ -128,13 +128,20 @@ can optionally specify a custom formatter. Eg:
 
 .. code-block:: python
 
-	def presto_query_cost_formatter(result):
-        # convert cost to dollars
-		cpu_coefficient = 1e-12
+	def presto_query_cost_formatter(cost_estimate: List[Dict[str, float]]) -> List[Dict[str, str]]:
+        """
+        Format cost estimate returned by Presto.
+
+        :param cost_estimate: JSON estimate from Presto
+        :return: Human readable cost estimate
+        """
+        # Convert cost to dollars based on CPU and network cost. These coefficients are just
+        # examples, they need to be estimated based on your infrastructure.
+		cpu_coefficient = 2e-12
 		network_coefficient = 1e-12
 
 		cost = 0
-		for row in result:
+		for row in cost_estimate:
 			cost += row.get("cpuCost", 0) * cpu_coefficient
 			cost += row.get("networkCost", 0) * network_coefficient
 
