@@ -88,7 +88,6 @@ from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
-from superset.views.database.views import DatabaseView
 from .base import (
     api,
     BaseSupersetView,
@@ -3129,8 +3128,11 @@ class Superset(BaseSupersetView):
             # return redirect("/quickcsvtodatabaseview/form")
 
     def getdatabasebyid(self, database_id):
-
-        dbs = db.session.query(models.Database).filter_by(Id=database_id).all()
+        sess = db.session()
+        try:
+            dbs = sess.query(models.Database).filter_by(id=database_id).all()
+        except Exception as e:
+            print(e)
         if len(dbs) != 1:
             message = _(
                 "Database inconsistency, several possible databases found, please contact your administrator "
@@ -3141,8 +3143,8 @@ class Superset(BaseSupersetView):
         return dbs[0]
 
     def createdatabase(self, db_name):
-        __dbpath = os.getcwd() + "/" + db_name + ".db"
-        if os.path.isfile(__dbpath):
+        dbpath = os.getcwd() + "/" + db_name + ".db"
+        if os.path.isfile(dbpath):
             message = _(
                 "Database file for {0} already exists, please choose a different name".format(
                     db_name
@@ -3151,22 +3153,23 @@ class Superset(BaseSupersetView):
             flash(message, "danger")
             # propagate the exception
             raise Exception
-        dview = DatabaseView()
         try:
             # Create Database and set the necessary attributes
             # TODO SQL Injection possible with add?
-            item = dview.datamodel.obj()
+            item = SQLAInterface(models.Database).obj()
             item.database_name = db_name
-            item.sqlalchemy_uri = "sqlite:////" + __dbpath
+            item.sqlalchemy_uri = "sqlite:///" + dbpath
             item.allow_csv_upload = True
-            item.perm = db_name
-            db.session.add(item)
+            sess = db.session()
+            sess.add(item)
+            sess.commit()
             return item
         except Exception as e:
             try:
                 # TODO catch possible deletion error?
-                db.session.delete(item)
-                os.remove(__dbpath)
+                sess.delete(item)
+                sess.commit()
+                os.remove(dbpath)
             except OSError:
                 pass
             message = (
@@ -3232,7 +3235,9 @@ class Superset(BaseSupersetView):
         else:
             try:
                 ins_db_name = (
-                    formdata["db_name"] if "db_name" in formdata else csv_filename[:-4]
+                    formdata["databaseName"]
+                    if "databaseName" in formdata
+                    else csv_filename[:-4]
                 )
                 db_name = secure_filename(ins_db_name)
                 database = self.createdatabase(db_name)
@@ -3241,13 +3246,14 @@ class Superset(BaseSupersetView):
         try:
             path = self.check_and_save_csv(csv_file, csv_filename)
             table = self.createtable(formdata, database, database_id, csv_filename)
+            db_name = table.database.database_name
             os.remove(path)
         except Exception:
             os.remove(os.getcwd() + "/" + db_name + ".db")
             if database_id == -1:
                 db.session.delete(database)
         # Go back to welcome page / splash screen
-        db_name = table.database.database_name
+
         message = _(
             'CSV file "{0}" uploaded to table "{1}" in '
             'database "{2}"'.format(csv_filename, formdata["tableName"], db_name)
