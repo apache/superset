@@ -16,38 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from "react";
-import PropTypes from "prop-types";
-import Asterisk from "src/components/Asterisk";
-import FileDropper from "src/components/FileDropper/FileDropper";
-import DropArea from "src/components/FileDropper/DropArea";
-import Select from "react-virtualized-select";
-import Button from "src/components/Button";
+import React from 'react';
+import PropTypes from 'prop-types';
+import Asterisk from 'src/components/Asterisk';
+import FileDropper from 'src/components/FileDropper/FileDropper';
+import DropArea from 'src/components/FileDropper/DropArea';
+import Select from 'react-virtualized-select';
+import Button from 'src/components/Button';
 import AdvancedOptions from "../components/AdvancedOptions/AdvancedOptions";
 import Checkbox from "../components/Checkbox";
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
+import withToasts from '../messageToasts/enhancers/withToasts';
+import * as Actions from './actions/csvToDatabase';
 import './CsvToDatabase.css';
 
 const propTypes = {
-  databases: PropTypes.array.isRequired
+  databases: PropTypes.array.isRequired,
+  actions: PropTypes.object.isRequired,
 };
 
-export default class CsvToDatabase extends React.PureComponent {
+export class CsvToDatabase extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       tableName: "",
       databaseName: "",
       file: undefined,
-      selectedConnection: { label: "In a new database", value: 0 },
-      schema: "",
-      delimiter: ",",
-      selectedTableExists: { label: "Fail", value: 0 },
-      headerRow: "0",
-      decimalCharacter: ".",
+
+      selectedConnection: { label: 'In a new database', value: -1 },
+      schema: '',
+      delimiter: ',',
+      selectedTableExists: { label: 'Fail', value: 'Fail' },
+      headerRow: 0,
+      decimalCharacter: '.',
       tableExistsValues: [
-        { label: "Fail", value: 0 },
-        { label: "Replace", value: 1 },
-        { label: "Append", value: 2 }
+        { label: 'Fail', value: 'fail' },
+        { label: 'Replace', value: 'replace' },
+        { label: 'Append', value: 'append' },
       ], // TODO: Check if those values can be passed to this view
       indexColumn: "",
       mangleDuplicateColumns: true,
@@ -66,6 +72,7 @@ export default class CsvToDatabase extends React.PureComponent {
     this.setUserInput = this.setUserInput.bind(this);
     this.setSchema = this.setSchema.bind(this);
     this.getConnectionStrings = this.getConnectionStrings.bind(this);
+    this.handleSubmit = this.handleSubmit.bind(this);
   }
 
   setFile(file) {
@@ -101,10 +108,34 @@ export default class CsvToDatabase extends React.PureComponent {
 
   getConnectionStrings() {
     const connections = [];
-    this.props.databases.forEach((database, index) =>
-      connections.push({ label: database.name, value: index })
+    this.props.databases.forEach(database =>
+      connections.push({ label: database.name, value: database.id }),
     );
     return connections;
+  }
+
+  handleSubmit(event) {
+    event.preventDefault();
+    const {
+      tableName,
+      file,
+      selectedConnection,
+      schema,
+      delimiter,
+      selectedTableExists,
+      headerRow,
+      decimalCharacter,
+    } = this.state;
+    this.props.actions.uploadCsv({
+      tableName,
+      file,
+      connectionId: selectedConnection.value,
+      schema,
+      delimiter,
+      ifTableExists: selectedTableExists.value,
+      headerRow,
+      decimalCharacter,
+    });
   }
 
   render() {
@@ -115,7 +146,12 @@ export default class CsvToDatabase extends React.PureComponent {
             <h4 className="panel-title">CSV to Database configuration</h4>
           </div>
           <div id="Home" className="tab-pane active">
-            <form id="model_form" method="post" encType="multipart/form-data">
+            <form
+              id="model_form"
+              method="post"
+              encType="multipart/form-data"
+              onSubmit={this.handleSubmit}
+            >
               <div className="table-responsive">
                 <table className="table table-bordered">
                   <tbody>
@@ -461,7 +497,7 @@ export default class CsvToDatabase extends React.PureComponent {
                 </AdvancedOptions>
               </div>
               <div className="well well-sm">
-                <Button bsStyle="primary">
+                <Button bsStyle="primary" type="submit">
                   Save <i className="fa fa-save" />
                 </Button>
                 <Button href="/back">
@@ -477,3 +513,14 @@ export default class CsvToDatabase extends React.PureComponent {
 }
 
 CsvToDatabase.propTypes = propTypes;
+
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(Actions, dispatch),
+  };
+}
+
+export default connect(
+  null,
+  mapDispatchToProps,
+)(withToasts(CsvToDatabase));

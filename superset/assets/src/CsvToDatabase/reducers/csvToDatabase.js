@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
+import * as actions from '../actions/csvToDatabase';
 
-import csvToDatabaseReducer from './csvToDatabase';
-import messageToastReducer from '../../messageToasts/reducers';
-
-export default combineReducers({
-  csvToDatabaseReducer,
-  messageToasts: messageToastReducer,
-});
+export default function csvToDatabaseReducer(state = {}, action) {
+  if (action.type === actions.REDIRECT_TO_HOME) {
+    // TODO: Redirect
+  }
+  return state;
+}

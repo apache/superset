@@ -16,12 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
+import { SupersetClient } from '@superset-ui/connection';
+import { addSuccessToast, addDangerToast } from 'src/messageToasts/actions';
 
-import csvToDatabaseReducer from './csvToDatabase';
-import messageToastReducer from '../../messageToasts/reducers';
+export const UPLOAD_CSV = 'UPLOAD_CSV';
+export const REDIRECT_TO_HOME = 'REDIRECT_TO_HOME';
 
-export default combineReducers({
-  csvToDatabaseReducer,
-  messageToasts: messageToastReducer,
-});
+export function uploadCsv(data) {
+  return dispatch =>
+    SupersetClient.post({
+      endpoint: '/superset/csvtodatabase/add',
+      postPayload: { ...data },
+      stringify: false,
+    })
+      .then(() => { console.log('Success'); dispatch(addSuccessToast('CSV successfully saved')); })
+      .catch(() => { console.log('Error'); dispatch(addDangerToast('CSV could not be uploaded')); });
+}

@@ -386,6 +386,13 @@ class BaseEngineSpec:
         df.to_sql(**kwargs)
 
     @classmethod
+    def base_create_table_from_csv(cls, form, table):
+        """ Create table (including metadata in backend) from contents of a csv.
+                :param form: Parameters defining how to process data
+                :param table: Metadata of new table to be created
+                """
+
+    @classmethod
     def create_table_from_csv(cls, form, table):
         """ Create table (including metadata in backend) from contents of a csv.
         :param form: Parameters defining how to process data
@@ -432,6 +439,62 @@ class BaseEngineSpec:
 
         table.user_id = g.user.id
         table.schema = form.schema.data
+        table.fetch_metadata()
+        db.session.add(table)
+        db.session.commit()
+
+    @classmethod
+    def json_create_table_from_csv(cls, formdata, table):
+        def _allowed_file(filename: str) -> bool:
+            # Only allow specific file extensions as specified in the config
+            extension = os.path.splitext(filename)[1]
+            return (
+                extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
+            )
+
+        filename = secure_filename(formdata["csvFilename"])
+        if not _allowed_file(filename):
+            raise Exception("Invalid file type selected")
+        csv_to_df_kwargs = {
+            "filepath_or_buffer": filename,
+            "sep": formdata["sep"],
+            "header": formdata["header"] if "header" in formdata else 0,
+            "index_col": formdata["index_col"] if "index_col" in formdata else None,
+            "mangle_dupe_cols": formdata["mangle"] if "mangle" in formdata else True,
+            "skipinitialspace": formdata["skipintial"]
+            if "skipinitial" in formdata
+            else True,
+            "skiprows": formdata["skiprows"] if "skiprows" in formdata else None,
+            "nrows": formdata["nrows"] if "nrows" in formdata else None,
+            "skip_blank_lines": formdata["skip_blank"]
+            if "skip_blank" in formdata
+            else True,
+            "parse_dates": formdata["parse_dates"]
+            if "parse_dates" in formdata
+            else True,
+            "infer_datetime_format": formdata["infer_datetime_format"]
+            if "infer_datetime_format" in formdata
+            else True,
+            "chunksize": 10000,
+        }
+        df = cls.csv_to_df(**csv_to_df_kwargs)
+
+        df_to_sql_kwargs = {
+            "df": df,
+            "name": formdata["tableName"],  # form.name.data,
+            "con": create_engine(formdata["sqlalchemyUriDecrypted"], echo=False),
+            "schema": formdata["schema"] if "schema" in formdata else None,
+            "if_exists": formdata["ifExists"],
+            "index": formdata["index"] if "index" in formdata else False,
+            "index_label": formdata["index_label"]
+            if "index_label" in formdata
+            else None,
+            "chunksize": 10000,
+        }
+        cls.df_to_sql(**df_to_sql_kwargs)
+
+        table.user_id = g.user.id
+        table.schema = None
         table.fetch_metadata()
         db.session.add(table)
         db.session.commit()
