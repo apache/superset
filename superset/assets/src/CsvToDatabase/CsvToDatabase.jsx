@@ -41,9 +41,8 @@ export class CsvToDatabase extends React.PureComponent {
     super(props);
     this.state = {
       tableName: "",
-      databaseName: "",
+      databaseName: '',
       file: undefined,
-
       selectedConnection: { label: 'In a new database', value: -1 },
       schema: '',
       delimiter: ',',
@@ -76,15 +75,21 @@ export class CsvToDatabase extends React.PureComponent {
   }
 
   setFile(file) {
-    if (file) {
-      const theFile = file[0];
-      console.log(theFile);
-      this.setState({ file: file[0] });
+    if (file && file[0]) {
+      let fileName = '';
+      if (this.state.selectedConnection.value === -1) {
+        fileName = file[0].name.slice(0, -4);
+      }
+      this.setState({ file: file[0], databaseName: fileName });
     }
   }
 
   setSelectedConnection(connection) {
-    this.setState({ selectedConnection: connection });
+    let databaseName = '';
+    if (this.state.selectedConnection.value === -1 && this.state.file) {
+      databaseName = this.state.file.name.slice(0, -4);
+    }
+    this.setState({ selectedConnection: connection, databaseName });
   }
 
   setTableExists(value) {
@@ -118,6 +123,7 @@ export class CsvToDatabase extends React.PureComponent {
     event.preventDefault();
     const {
       tableName,
+      databaseName,
       file,
       selectedConnection,
       schema,
@@ -125,9 +131,20 @@ export class CsvToDatabase extends React.PureComponent {
       selectedTableExists,
       headerRow,
       decimalCharacter,
+      indexColumn,
+      mangleDuplicateColumns,
+      skipInitialSpace,
+      skipRows,
+      rowsToRead,
+      skipBlankLines,
+      parseDates,
+      inferDatetimeFormat,
+      dataframeIndex,
+      columnLabels,
     } = this.state;
     this.props.actions.uploadCsv({
       tableName,
+      databaseName,
       file,
       connectionId: selectedConnection.value,
       schema,
@@ -135,6 +152,16 @@ export class CsvToDatabase extends React.PureComponent {
       ifTableExists: selectedTableExists.value,
       headerRow,
       decimalCharacter,
+      indexColumn,
+      mangleDuplicateColumns,
+      skipInitialSpace,
+      skipRows,
+      rowsToRead,
+      skipBlankLines,
+      parseDates,
+      inferDatetimeFormat,
+      dataframeIndex,
+      columnLabels,
     });
   }
 
@@ -226,9 +253,9 @@ export class CsvToDatabase extends React.PureComponent {
                           id="databaseName"
                           name="databaseName"
                           placeholder="Database Name"
-                          required
+                          required={this.state.selectedConnection.value === -1}
                           type="text"
-                          value={this.state.tableName}
+                          value={this.state.databaseName}
                           onChange={this.setUserInput}
                         />
                         <span className="help-block">
