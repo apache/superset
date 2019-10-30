@@ -78,7 +78,7 @@ FILTER_SELECT_ROW_LIMIT = 10000
 SUPERSET_WORKERS = 2  # deprecated
 SUPERSET_CELERY_WORKERS = 32  # deprecated
 
-SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"
+SUPERSET_WEBSERVER_ADDRESS = "http://0.0.0.0"
 SUPERSET_WEBSERVER_PORT = 8088
 
 # This is an important setting, and should be lower than your
