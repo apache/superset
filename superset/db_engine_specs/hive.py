@@ -179,13 +179,13 @@ class HiveEngineSpec(PrestoEngineSpec):
         engine.execute(sql)
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
         if tt == "DATE":
-            return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
+            return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         elif tt == "TIMESTAMP":
-            return "CAST('{}' AS TIMESTAMP)".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+            return f"""CAST('{dttm.isoformat(sep=" ", timespec="microseconds")}' AS TIMESTAMP)"""  # pylint: disable=line-too-long
+        return None
 
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):

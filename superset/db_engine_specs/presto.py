@@ -520,13 +520,13 @@ class PrestoEngineSpec(BaseEngineSpec):
         return uri
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
         if tt == "DATE":
-            return "from_iso8601_date('{}')".format(dttm.isoformat()[:10])
+            return f"""from_iso8601_date('{dttm.date().isoformat()}')"""
         if tt == "TIMESTAMP":
-            return "from_iso8601_timestamp('{}')".format(dttm.isoformat())
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long
+        return None
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

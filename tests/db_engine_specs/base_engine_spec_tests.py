@@ -202,3 +202,7 @@ class DbEngineSpecsTests(DbEngineSpecTestCase):
         else:
             expected = ["VARCHAR(255)", "VARCHAR(255)", "FLOAT"]
         self.assertEqual(col_names, expected)
+
+    def test_convert_dttm(self):
+        dttm = self.get_dttm()
+        self.assertIsNone(BaseEngineSpec.convert_dttm("", dttm))
