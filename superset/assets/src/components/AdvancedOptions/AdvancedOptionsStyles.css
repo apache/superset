@@ -24,6 +24,7 @@
 }
 .title span {
     background: #fff;
+    font-weight: bold;
     padding: 0 10px 0 0;
     cursor: pointer;
 }
@@ -33,6 +34,12 @@
    padding-right: 6px;
    vertical-align: middle;
    color: #b3b3b3;
+   content: "\f078";
+}
+.closeTitle span:before {
+   content: "\f077";
+}
+.openTitle span:before {
    content: "\f078";
 }
 .hide {
