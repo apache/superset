@@ -669,7 +669,7 @@ def notify_user_about_perm_udate(granter, user, role, datasource, tpl_name, conf
         msg,
         config,
         bcc=granter.email,
-        dryrun=not config.get("EMAIL_NOTIFICATIONS"),
+        dryrun=not config["EMAIL_NOTIFICATIONS"],
     )
 
 
@@ -691,7 +691,7 @@ def send_email_smtp(
     send_email_smtp(
         'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
     """
-    smtp_mail_from = config.get("SMTP_MAIL_FROM")
+    smtp_mail_from = config["SMTP_MAIL_FROM"]
     to = get_email_address_list(to)
 
     msg = MIMEMultipart(mime_subtype)
@@ -747,12 +747,12 @@ def send_email_smtp(
 
 
 def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
-    SMTP_HOST = config.get("SMTP_HOST")
-    SMTP_PORT = config.get("SMTP_PORT")
-    SMTP_USER = config.get("SMTP_USER")
-    SMTP_PASSWORD = config.get("SMTP_PASSWORD")
-    SMTP_STARTTLS = config.get("SMTP_STARTTLS")
-    SMTP_SSL = config.get("SMTP_SSL")
+    SMTP_HOST = config["SMTP_HOST"]
+    SMTP_PORT = config["SMTP_PORT"]
+    SMTP_USER = config["SMTP_USER"]
+    SMTP_PASSWORD = config["SMTP_PASSWORD"]
+    SMTP_STARTTLS = config["SMTP_STARTTLS"]
+    SMTP_SSL = config["SMTP_SSL"]
 
     if not dryrun:
         s = (
@@ -795,7 +795,7 @@ def setup_cache(app: Flask, cache_config) -> Optional[Cache]:
     """Setup the flask-cache on a flask app"""
     if cache_config:
         if isinstance(cache_config, dict):
-            if cache_config.get("CACHE_TYPE") != "null":
+            if cache_config["CACHE_TYPE"] != "null":
                 return Cache(app, config=cache_config)
         else:
             # Accepts a custom cache initialization function,
@@ -840,7 +840,7 @@ def get_celery_app(config):
     if _celery_app:
         return _celery_app
     _celery_app = celery.Celery()
-    _celery_app.config_from_object(config.get("CELERY_CONFIG"))
+    _celery_app.config_from_object(config["CELERY_CONFIG"])
     _celery_app.set_default()
     return _celery_app
 
@@ -1211,7 +1211,7 @@ class DatasourceName(NamedTuple):
 
 
 def get_stacktrace():
-    if current_app.config.get("SHOW_STACKTRACE"):
+    if current_app.config["SHOW_STACKTRACE"]:
         return traceback.format_exc()
 
 

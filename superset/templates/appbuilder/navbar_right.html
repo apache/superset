@@ -17,8 +17,8 @@
   under the License.
 #}
 
-{% set bug_report_url = appbuilder.app.config.get('BUG_REPORT_URL') %}
-{% set documentation_url = appbuilder.app.config.get('DOCUMENTATION_URL') %}
+{% set bug_report_url = appbuilder.app.config['BUG_REPORT_URL'] %}
+{% set documentation_url = appbuilder.app.config['DOCUMENTATION_URL'] %}
 {% set locale = session['locale'] %}
 {% if not locale %}
     {% set locale = 'en' %}

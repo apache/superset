@@ -84,7 +84,7 @@ class AbstractEventLogger(ABC):
 
     @property
     def stats_logger(self):
-        return current_app.config.get("STATS_LOGGER")
+        return current_app.config["STATS_LOGGER"]
 
 
 def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:

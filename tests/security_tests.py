@@ -94,7 +94,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(("muldelete", "DruidDatasourceModelView"), perm_set)
 
     def assert_cannot_alpha(self, perm_set):
-        if app.config.get("ENABLE_ACCESS_REQUEST"):
+        if app.config["ENABLE_ACCESS_REQUEST"]:
             self.assert_cannot_write("AccessRequestsModelView", perm_set)
             self.assert_can_all("AccessRequestsModelView", perm_set)
         self.assert_cannot_write("Queries", perm_set)
@@ -133,7 +133,7 @@ class RolePermissionTests(SupersetTestCase):
                 security_manager.find_permission_view_menu("can_delete", "DatabaseView")
             )
         )
-        if app.config.get("ENABLE_ACCESS_REQUEST"):
+        if app.config["ENABLE_ACCESS_REQUEST"]:
             self.assertTrue(
                 security_manager._is_admin_only(
                     security_manager.find_permission_view_menu(
