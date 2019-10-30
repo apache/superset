@@ -17,7 +17,7 @@
 import hashlib
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from sqlalchemy import literal_column
@@ -72,11 +72,15 @@ class BigQueryEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
         if tt == "DATE":
-            return "'{}'".format(dttm.strftime("%Y-%m-%d"))
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+            return f"CAST('{dttm.date().isoformat()}' AS DATE)"
+        if tt == "DATETIME":
+            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
+        if tt == "TIMESTAMP":
+            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS TIMESTAMP)"""
+        return None
 
     @classmethod
     def fetch_data(cls, cursor, limit: int) -> List[Tuple]:

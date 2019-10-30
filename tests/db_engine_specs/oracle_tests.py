@@ -34,3 +34,17 @@ class OracleTestCase(DbEngineSpecTestCase):
         expr = OracleEngineSpec.get_timestamp_expr(col, None, "P1M")
         result = str(expr.compile(dialect=oracle.dialect()))
         self.assertEqual(result, "TRUNC(CAST(\"decimal\" as DATE), 'MONTH')")
+        dttm = self.get_dttm()
+
+    def test_convert_dttm(self):
+        dttm = self.get_dttm()
+
+        self.assertEqual(
+            OracleEngineSpec.convert_dttm("DATE", dttm),
+            "TO_DATE('2019-01-02', 'YYYY-MM-DD')",
+        )
+
+        self.assertEqual(
+            OracleEngineSpec.convert_dttm("TIMESTAMP", dttm),
+            """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",
+        )
