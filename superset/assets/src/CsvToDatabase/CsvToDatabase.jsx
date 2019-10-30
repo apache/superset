@@ -16,47 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import Asterisk from 'src/components/Asterisk';
-import FileDropper from 'src/components/FileDropper/FileDropper';
-import DropArea from 'src/components/FileDropper/DropArea';
-import Select from 'react-virtualized-select';
-import Button from 'src/components/Button';
+import React from "react";
+import PropTypes from "prop-types";
+import Asterisk from "src/components/Asterisk";
+import FileDropper from "src/components/FileDropper/FileDropper";
+import DropArea from "src/components/FileDropper/DropArea";
+import Select from "react-virtualized-select";
+import Button from "src/components/Button";
 import AdvancedOptions from "../components/AdvancedOptions/AdvancedOptions";
-import Checkbox from "../components/Checkbox"
+import Checkbox from "../components/Checkbox";
+import './CsvToDatabase.css';
 
 const propTypes = {
-  databases: PropTypes.array.isRequired,
+  databases: PropTypes.array.isRequired
 };
 
 export default class CsvToDatabase extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      tableName: '',
+      tableName: "",
+      databaseName: "",
       file: undefined,
-      selectedConnection: { label: 'In a new database', value: 0 },
-      schema: '',
-      delimiter: ',',
-      selectedTableExists: { label: 'Fail', value: 0 },
-      headerRow: '0',
-      decimalCharacter: '.',
+      selectedConnection: { label: "In a new database", value: 0 },
+      schema: "",
+      delimiter: ",",
+      selectedTableExists: { label: "Fail", value: 0 },
+      headerRow: "0",
+      decimalCharacter: ".",
       tableExistsValues: [
-        { label: 'Fail', value: 0 },
-        { label: 'Replace', value: 1 },
-        { label: 'Append', value: 2 },
+        { label: "Fail", value: 0 },
+        { label: "Replace", value: 1 },
+        { label: "Append", value: 2 }
       ], // TODO: Check if those values can be passed to this view
-      indexColumn: '',
+      indexColumn: "",
       mangleDuplicateColumns: true,
       skipInitialSpace: false,
-      skipRows: '',
-      rowsToRead: '',
+      skipRows: "",
+      rowsToRead: "",
       skipBlankLines: true,
-      parseDates: '',
+      parseDates: "",
       inferDatetimeFormat: true,
       dataframeIndex: false,
-      columnLabels: '',
+      columnLabels: ""
     };
     this.setFile = this.setFile.bind(this);
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
@@ -68,6 +70,8 @@ export default class CsvToDatabase extends React.PureComponent {
 
   setFile(file) {
     if (file) {
+      const theFile = file[0];
+      console.log(theFile);
       this.setState({ file: file[0] });
     }
   }
@@ -98,7 +102,7 @@ export default class CsvToDatabase extends React.PureComponent {
   getConnectionStrings() {
     const connections = [];
     this.props.databases.forEach((database, index) =>
-      connections.push({ label: database.name, value: index }),
+      connections.push({ label: database.name, value: index })
     );
     return connections;
   }
@@ -142,7 +146,7 @@ export default class CsvToDatabase extends React.PureComponent {
                       <td>
                         <FileDropper
                           onFileSelected={this.setFile}
-                          allowedMimeTypes={['text/csv']}
+                          allowedMimeTypes={["text/csv"]}
                         >
                           <DropArea
                             isVisible
@@ -168,6 +172,32 @@ export default class CsvToDatabase extends React.PureComponent {
                           options={this.getConnectionStrings()}
                           clearable={false}
                         />
+                      </td>
+                    </tr>
+                    <tr
+                      className={
+                        this.state.selectedConnection.value === -1
+                          ? null
+                          : "hide-component"
+                      }
+                    >
+                      <td className="col-lg-2">
+                        Database Name <Asterisk />
+                      </td>
+                      <td>
+                        <input
+                          className="form-control"
+                          id="databaseName"
+                          name="databaseName"
+                          placeholder="Database Name"
+                          required
+                          type="text"
+                          value={this.state.tableName}
+                          onChange={this.setUserInput}
+                        />
+                        <span className="help-block">
+                          Name of the database file to be created.
+                        </span>
                       </td>
                     </tr>
                     <tr>
@@ -267,9 +297,7 @@ export default class CsvToDatabase extends React.PureComponent {
                   <table className="table table-bordered">
                     <tbody>
                       <tr>
-                        <td className="col-lg-2">
-                          Index Column
-                        </td>
+                        <td className="col-lg-2">Index Column</td>
                         <td>
                           <input
                             className="form-control"
@@ -281,18 +309,19 @@ export default class CsvToDatabase extends React.PureComponent {
                             onChange={this.setUserInput}
                           />
                           <span className="help-block">
-                            Column to use as the row labels of the dataframe. Leave empty if no index column.
+                            Column to use as the row labels of the dataframe.
+                            Leave empty if no index column.
                           </span>
                         </td>
                       </tr>
                       <tr>
-                        <td className="col-lg-2">
-                          Mangle Duplicate Columns
-                        </td>
+                        <td className="col-lg-2">Mangle Duplicate Columns</td>
                         <td>
                           <Checkbox
                             checked={this.state.mangleDuplicateColumns}
-                            onChange={v => this.setCheckboxValue("mangleDuplicateColumns", v)}
+                            onChange={v =>
+                              this.setCheckboxValue("mangleDuplicateColumns", v)
+                            }
                           />
                           <span className="help-block">
                             Specify duplicate columns as "X.0, X.1".
@@ -300,13 +329,13 @@ export default class CsvToDatabase extends React.PureComponent {
                         </td>
                       </tr>
                       <tr>
-                        <td className="col-lg-2">
-                          Skip Initial Space
-                        </td>
+                        <td className="col-lg-2">Skip Initial Space</td>
                         <td>
                           <Checkbox
                             checked={this.state.skipInitialSpace}
-                            onChange={v => this.setCheckboxValue("skipInitialSpace", v)}
+                            onChange={v =>
+                              this.setCheckboxValue("skipInitialSpace", v)
+                            }
                           />
                           <span className="help-block">
                             Skip spaces after delimiter.
@@ -314,9 +343,7 @@ export default class CsvToDatabase extends React.PureComponent {
                         </td>
                       </tr>
                       <tr>
-                        <td className="col-lg-2">
-                          Skip Rows
-                        </td>
+                        <td className="col-lg-2">Skip Rows</td>
                         <td>
                           <input
                             className="form-control"
@@ -333,9 +360,7 @@ export default class CsvToDatabase extends React.PureComponent {
                         </td>
                       </tr>
                       <tr>
-                        <td className="col-lg-2">
-                          Rows to Read
-                        </td>
+                        <td className="col-lg-2">Rows to Read</td>
                         <td>
                           <input
                             className="form-control"
@@ -352,23 +377,22 @@ export default class CsvToDatabase extends React.PureComponent {
                         </td>
                       </tr>
                       <tr>
-                        <td className="col-lg-2">
-                          Skip Blank Lines
-                        </td>
+                        <td className="col-lg-2">Skip Blank Lines</td>
                         <td>
                           <Checkbox
                             checked={this.state.skipBlankLines}
-                            onChange={v => this.setCheckboxValue("skipBlankLines", v)}
+                            onChange={v =>
+                              this.setCheckboxValue("skipBlankLines", v)
+                            }
                           />
                           <span className="help-block">
-                            Skip blank lines rather than interpreting them as NaN values.
+                            Skip blank lines rather than interpreting them as
+                            NaN values.
                           </span>
                         </td>
                       </tr>
                       <tr>
-                        <td className="col-lg-2">
-                          Parse Dates
-                        </td>
+                        <td className="col-lg-2">Parse Dates</td>
                         <td>
                           <input
                             className="form-control"
@@ -380,32 +404,34 @@ export default class CsvToDatabase extends React.PureComponent {
                             onChange={this.setUserInput}
                           />
                           <span className="help-block">
-                            A comma separated list of columns that should be parsed as dates.
+                            A comma separated list of columns that should be
+                            parsed as dates.
                           </span>
                         </td>
                       </tr>
                       <tr>
-                        <td className="col-lg-2">
-                          Infer Datetime Format
-                        </td>
+                        <td className="col-lg-2">Infer Datetime Format</td>
                         <td>
                           <Checkbox
                             checked={this.state.inferDatetimeFormat}
-                            onChange={v => this.setCheckboxValue("inferDatetimeFormat", v)}
+                            onChange={v =>
+                              this.setCheckboxValue("inferDatetimeFormat", v)
+                            }
                           />
                           <span className="help-block">
-                            Use Pandas to interpret the datetime format automatically.
+                            Use Pandas to interpret the datetime format
+                            automatically.
                           </span>
                         </td>
                       </tr>
                       <tr>
-                        <td className="col-lg-2">
-                          Dataframe Index
-                        </td>
+                        <td className="col-lg-2">Dataframe Index</td>
                         <td>
                           <Checkbox
                             checked={this.state.dataframeIndex}
-                            onChange={v => this.setCheckboxValue("dataframeIndex", v)}
+                            onChange={v =>
+                              this.setCheckboxValue("dataframeIndex", v)
+                            }
                           />
                           <span className="help-block">
                             Write dataframe index as a column.
@@ -413,9 +439,7 @@ export default class CsvToDatabase extends React.PureComponent {
                         </td>
                       </tr>
                       <tr>
-                        <td className="col-lg-2">
-                          Column Label(s)
-                        </td>
+                        <td className="col-lg-2">Column Label(s)</td>
                         <td>
                           <input
                             className="form-control"
@@ -427,7 +451,8 @@ export default class CsvToDatabase extends React.PureComponent {
                             onChange={this.setUserInput}
                           />
                           <span className="help-block">
-                            Column label for index column(s). If None is given and Dataframe Index is True, Index Names are used.
+                            Column label for index column(s). If None is given
+                            and Dataframe Index is True, Index Names are used.
                           </span>
                         </td>
                       </tr>
