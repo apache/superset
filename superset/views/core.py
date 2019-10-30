@@ -3197,7 +3197,7 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose("csvtodatabase/add", methods=["POST"])
+    @expose("/csvtodatabase/add", methods=["POST"])
     def add(self, csv_file, json_data):
         # TODO get file from request
         formdata = request.json

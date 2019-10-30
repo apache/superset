@@ -24,11 +24,11 @@ export const REDIRECT_TO_HOME = 'REDIRECT_TO_HOME';
 
 export function uploadCsv(data) {
   return dispatch =>
-  SupersetClient.post({
-    endpoint: '/csvtodatabase/api/add',
-    body: data,
-    headers: { 'Content-Type': 'multipart/form-data' },
-    parseMethod: 'text',
-  }).then(() => dispatch(addSuccessToast('CSV successfully saved')))
-  .catch(() => dispatch(addDangerToast('CSV could not be uploaded')));
+    SupersetClient.post({
+      endpoint: '/superset/csvtodatabase/add',
+      postPayload: { ...data },
+      stringify: false,
+    })
+      .then(() => { console.log('Success'); dispatch(addSuccessToast('CSV successfully saved')); })
+      .catch(() => { console.log('Error'); dispatch(addDangerToast('CSV could not be uploaded')); });
 }

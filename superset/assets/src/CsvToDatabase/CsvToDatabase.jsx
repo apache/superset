@@ -25,6 +25,7 @@ import Select from 'react-virtualized-select';
 import Button from 'src/components/Button';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import withToasts from '../messageToasts/enhancers/withToasts';
 import * as Actions from './actions/csvToDatabase';
 
 const propTypes = {
@@ -104,16 +105,16 @@ export class CsvToDatabase extends React.PureComponent {
       headerRow,
       decimalCharacter,
     } = this.state;
-    const data = new FormData();
-    data.append('tableName', tableName);
-    data.append('file', file);
-    data.append('connectionId', selectedConnection.value);
-    data.append('schema', schema);
-    data.append('delimiter', delimiter);
-    data.append('ifTableExists', selectedTableExists.value);
-    data.append('headerRow', headerRow);
-    data.append('decimalCharacter', decimalCharacter);
-    this.props.actions.uploadCsv(data);
+    this.props.actions.uploadCsv({
+      tableName,
+      file,
+      connectionId: selectedConnection.value,
+      schema,
+      delimiter,
+      ifTableExists: selectedTableExists.value,
+      headerRow,
+      decimalCharacter,
+    });
   }
 
   render() {
@@ -307,4 +308,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   null,
   mapDispatchToProps,
-)(CsvToDatabase);
+)(withToasts(CsvToDatabase));

@@ -19,9 +19,9 @@
 import { combineReducers } from 'redux';
 
 import csvToDatabaseReducer from './csvToDatabase';
-import messageToasts from '../../messageToasts/reducers';
+import messageToastReducer from '../../messageToasts/reducers';
 
 export default combineReducers({
   csvToDatabaseReducer,
-  messageToasts,
+  messageToasts: messageToastReducer,
 });
