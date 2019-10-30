@@ -111,11 +111,9 @@ from .utils import (
 )
 
 config = app.config
-CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config.get(
-    "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT", 10
-)
-stats_logger = config.get("STATS_LOGGER")
+CACHE_DEFAULT_TIMEOUT = config["CACHE_DEFAULT_TIMEOUT"]
+SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
+stats_logger = config["STATS_LOGGER"]
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
 
@@ -128,7 +126,7 @@ ACCESS_REQUEST_MISSING_ERR = __("The access requests seem to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
 
 FORM_DATA_KEY_BLACKLIST: List[str] = []
-if not config.get("ENABLE_JAVASCRIPT_CONTROLS"):
+if not config["ENABLE_JAVASCRIPT_CONTROLS"]:
     FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
@@ -297,7 +295,7 @@ class DashboardFilter(SupersetFilter):
         return query
 
 
-if config.get("ENABLE_ACCESS_REQUEST"):
+if config["ENABLE_ACCESS_REQUEST"]:
 
     class AccessRequestsModelView(SupersetModelView, DeleteMixin):
         datamodel = SQLAInterface(DAR)
@@ -1190,7 +1188,7 @@ class Superset(BaseSupersetView):
             flash(DATASOURCE_MISSING_ERR, "danger")
             return redirect(error_redirect)
 
-        if config.get("ENABLE_ACCESS_REQUEST") and (
+        if config["ENABLE_ACCESS_REQUEST"] and (
             not security_manager.datasource_access(datasource)
         ):
             flash(
@@ -1304,9 +1302,7 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_MISSING_ERR)
         security_manager.assert_datasource_permission(datasource)
         payload = json.dumps(
-            datasource.values_for_column(
-                column, config.get("FILTER_SELECT_ROW_LIMIT", 10000)
-            ),
+            datasource.values_for_column(column, config["FILTER_SELECT_ROW_LIMIT"]),
             default=utils.json_int_dttm_ser,
         )
         return json_success(payload)
@@ -1522,7 +1518,7 @@ class Superset(BaseSupersetView):
             tables = [tn for tn in tables if tn.schema in valid_schemas]
             views = [vn for vn in views if vn.schema in valid_schemas]
 
-        max_items = config.get("MAX_TABLE_NAMES") or len(tables)
+        max_items = config["MAX_TABLE_NAMES"] or len(tables)
         total_items = len(tables) + len(views)
         max_tables = len(tables)
         max_views = len(views)
@@ -2132,7 +2128,7 @@ class Superset(BaseSupersetView):
             if datasource:
                 datasources.add(datasource)
 
-        if config.get("ENABLE_ACCESS_REQUEST"):
+        if config["ENABLE_ACCESS_REQUEST"]:
             for datasource in datasources:
                 if datasource and not security_manager.datasource_access(datasource):
                     flash(
@@ -2560,7 +2556,7 @@ class Superset(BaseSupersetView):
             )
 
         try:
-            timeout = config.get("SQLLAB_VALIDATION_TIMEOUT")
+            timeout = config["SQLLAB_VALIDATION_TIMEOUT"]
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 errors = validator.validate(sql, schema, mydb)
@@ -2636,7 +2632,7 @@ class Superset(BaseSupersetView):
         :return: String JSON response
         """
         try:
-            timeout = config.get("SQLLAB_TIMEOUT")
+            timeout = config["SQLLAB_TIMEOUT"]
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
@@ -2680,7 +2676,7 @@ class Superset(BaseSupersetView):
                 " specified. Defaulting to empty dict"
             )
             template_params = {}
-        limit = request.json.get("queryLimit") or app.config.get("SQL_MAX_ROW")
+        limit = request.json.get("queryLimit") or app.config["SQL_MAX_ROW"]
         async_flag: bool = request.json.get("runAsync")
         if limit < 0:
             logging.warning(
@@ -2801,13 +2797,13 @@ class Superset(BaseSupersetView):
             columns = [c["name"] for c in obj["columns"]]
             df = pd.DataFrame.from_records(obj["data"], columns=columns)
             logging.info("Using pandas to convert to CSV")
-            csv = df.to_csv(index=False, **config.get("CSV_EXPORT"))
+            csv = df.to_csv(index=False, **config["CSV_EXPORT"])
         else:
             logging.info("Running a query to turn into CSV")
             sql = query.select_sql or query.executed_sql
             df = query.database.get_df(sql, query.schema)
             # TODO(bkyryliuk): add compression=gzip for big files.
-            csv = df.to_csv(index=False, **config.get("CSV_EXPORT"))
+            csv = df.to_csv(index=False, **config["CSV_EXPORT"])
         response = Response(csv, mimetype="text/csv")
         response.headers[
             "Content-Disposition"
@@ -2917,7 +2913,7 @@ class Superset(BaseSupersetView):
         if to_time:
             query = query.filter(Query.start_time < int(to_time))
 
-        query_limit = config.get("QUERY_SEARCH_LIMIT", 1000)
+        query_limit = config["QUERY_SEARCH_LIMIT"]
         sql_queries = query.order_by(Query.start_time.asc()).limit(query_limit).all()
 
         dict_queries = [q.to_dict() for q in sql_queries]
@@ -2991,7 +2987,7 @@ class Superset(BaseSupersetView):
     def sqllab(self):
         """SQL Editor"""
         d = {
-            "defaultDbId": config.get("SQLLAB_DEFAULT_DBID"),
+            "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
             "common": self.common_bootstrap_payload(),
         }
         return self.render_template(
@@ -3123,7 +3119,7 @@ def apply_http_headers(response: Response):
 
     # HTTP_HEADERS is deprecated, this provides backwards compatibility
     response.headers.extend(
-        {**config["OVERRIDE_HTTP_HEADERS"], **config.get("HTTP_HEADERS", {})}
+        {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
     )
 
     for k, v in config["DEFAULT_HTTP_HEADERS"].items():

@@ -30,8 +30,8 @@ class LogModelView(LogMixin, SupersetModelView):
 
 
 if (
-    not app.config.get("FAB_ADD_SECURITY_VIEWS") is False
-    or app.config.get("SUPERSET_LOG_VIEW") is False
+    not app.config["FAB_ADD_SECURITY_VIEWS"] is False
+    or app.config["SUPERSET_LOG_VIEW"] is False
 ):
     appbuilder.add_view(
         LogModelView,

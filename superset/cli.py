@@ -62,7 +62,7 @@ def version(verbose):
         Fore.YELLOW
         + "Superset "
         + Fore.CYAN
-        + "{version}".format(version=config.get("VERSION_STRING"))
+        + "{version}".format(version=config["VERSION_STRING"])
     )
     print(Fore.BLUE + "-=" * 15)
     if verbose:
@@ -372,10 +372,8 @@ def worker(workers):
     )
     if workers:
         celery_app.conf.update(CELERYD_CONCURRENCY=workers)
-    elif config.get("SUPERSET_CELERY_WORKERS"):
-        celery_app.conf.update(
-            CELERYD_CONCURRENCY=config.get("SUPERSET_CELERY_WORKERS")
-        )
+    elif config["SUPERSET_CELERY_WORKERS"]:
+        celery_app.conf.update(CELERYD_CONCURRENCY=config["SUPERSET_CELERY_WORKERS"])
 
     worker = celery_app.Worker(optimization="fair")
     worker.start()
@@ -428,7 +426,7 @@ def load_test_users_run():
 
     Syncs permissions for those users/roles
     """
-    if config.get("TESTING"):
+    if config["TESTING"]:
 
         sm = security_manager
 

@@ -63,9 +63,9 @@ from superset.utils import cache as cache_util, core as utils
 from superset.viz import viz_types
 
 config = app.config
-custom_password_store = config.get("SQLALCHEMY_CUSTOM_PASSWORD_STORE")
-stats_logger = config.get("STATS_LOGGER")
-log_query = config.get("QUERY_LOGGER")
+custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
+stats_logger = config["STATS_LOGGER"]
+log_query = config["QUERY_LOGGER"]
 metadata = Model.metadata  # pylint: disable=no-member
 
 PASSWORD_MASK = "X" * 10
@@ -81,7 +81,7 @@ def set_related_perm(mapper, connection, target):
 
 
 def copy_dashboard(mapper, connection, target):
-    dashboard_id = config.get("DASHBOARD_TEMPLATE_ID")
+    dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
 
@@ -725,7 +725,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     # short unique name, used in permissions
     database_name = Column(String(250), unique=True, nullable=False)
     sqlalchemy_uri = Column(String(1024))
-    password = Column(EncryptedType(String(1024), config.get("SECRET_KEY")))
+    password = Column(EncryptedType(String(1024), config["SECRET_KEY"]))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
@@ -906,7 +906,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
         params.update(self.get_encrypted_extra())
 
-        DB_CONNECTION_MUTATOR = config.get("DB_CONNECTION_MUTATOR")
+        DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
         if DB_CONNECTION_MUTATOR:
             url, params = DB_CONNECTION_MUTATOR(
                 url, params, effective_username, security_manager, source
@@ -1262,7 +1262,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))
 
-    ROLES_BLACKLIST = set(config.get("ROBOT_PERMISSION_ROLES", []))
+    ROLES_BLACKLIST = set(config["ROBOT_PERMISSION_ROLES"])
 
     @property
     def cls_model(self):

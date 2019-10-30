@@ -58,7 +58,7 @@ def load_random_time_series_data(only_metadata=False, force=False):
 
     slice_data = {
         "granularity_sqla": "day",
-        "row_limit": config.get("ROW_LIMIT"),
+        "row_limit": config["ROW_LIMIT"],
         "since": "1 year ago",
         "until": "now",
         "metric": "count",

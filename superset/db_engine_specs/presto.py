@@ -455,7 +455,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
 
-        sql_query_mutator = config.get("SQL_QUERY_MUTATOR")
+        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
             sql = sql_query_mutator(sql, user_name, security_manager, database)
 
