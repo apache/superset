@@ -3095,6 +3095,7 @@ class Superset(BaseSupersetView):
             csv_file.save(path)
         except Exception:
             os.remove(path)
+            raise Exception("Could not save CSV-file, does the upload folder exist?")
         return path
 
     def createtable(self, formdata, database, database_id, csv_filename):
@@ -3106,35 +3107,27 @@ class Superset(BaseSupersetView):
                 formdata, table, csv_filename, database
             )
             return table
-        except Exception as e:
+        except Exception:
             try:
                 if database_id == -1:
                     sess = db.session()
                     sess.delete(database)
-            except OSError:
+            except Exception:
                 pass
-            message = (
-                "Table name {} already exists. Please pick another".format(
-                    formdata["tableName"]
-                )
-                if isinstance(e, IntegrityError)
-                else str(e)
-            )
-            flash(message, "danger")
+            message = "Failed to create Table and fill it"
             stats_logger.incr("failed_csv_upload")
-            raise Exception
+            raise Exception(message)
 
     def getdatabasebyid(self, database_id):
         sess = db.session()
         dbs = sess.query(models.Database).filter_by(id=database_id).all()
         if len(dbs) != 1:
             message = _("none or several matching databases found")
-            # TODO return 400 with message
-            flash(message, "danger")
-            return redirect("/quickcsvtodatabaseview/form")
+            raise Exception(message)
         return dbs[0]
 
     def createdatabase(self, db_name):
+
         dbpath = os.getcwd() + "/" + db_name + ".db"
         if os.path.isfile(dbpath):
             message = _(
@@ -3142,10 +3135,7 @@ class Superset(BaseSupersetView):
                     db_name
                 )
             )
-            flash(message, "danger")
-            # propagate the exception
-            # TODO return 400 with message or keep propagating
-            raise Exception
+            raise Exception(message)
         try:
             # Create Database and set the necessary attributes
             # TODO SQL Injection possible with add?
@@ -3170,10 +3160,8 @@ class Superset(BaseSupersetView):
                 if isinstance(e, IntegrityError)
                 else str(e)
             )
-            # TODO return 400 with message
-            flash(message, "danger")
             stats_logger.incr("failed_csv_upload")
-            raise Exception
+            raise Exception(message)
 
     def is_schema_allowed(self, database, schema):
         if not database.allow_csv_upload:
@@ -3209,26 +3197,29 @@ class Superset(BaseSupersetView):
         # this beforehand
         try:
             database_id = int(database_id)
-        except Exception:
+        except Exception as e:
             message = _(
                 "possible tampering detected, non-numeral character in database-id"
             )
-            # TODO return 400 with message
-            flash(message, "danger")
-            return redirect(redirect_url)
+            print(e)
+            return Response(
+                "possible tampering detected, non-numeral character in database-id", 400
+            )
+            # flash(message, "danger")
+            # return redirect(redirect_url)
         schema_name = None if not formdata["schema"] else formdata["schema"]
         csv_filename = secure_filename(csv_file.filename)
         if len(csv_filename) == 0:
-            message = _("Filename is not allowed")
-            flash(message, "danger")
-            # TODO return 400 with message
-            return redirect(redirect_url)
+            return Response("Filename is not allowed", 400)
         if database_id != -1:
-            database = self.getdatabasebyid(database_id)
-            if not self.is_schema_allowed(database, schema_name):
-                self.flash_schema_message_and_redirect(
-                    redirect_url, database, schema_name
-                )
+            try:
+                database = self.getdatabasebyid(database_id)
+                if not self.is_schema_allowed(database, schema_name):
+                    self.flash_schema_message_and_redirect(
+                        redirect_url, database, schema_name
+                    )
+            except Exception as e:
+                return Response(e.args[0], 400)
         else:
             try:
                 # TODO check if this field always exists
@@ -3239,20 +3230,20 @@ class Superset(BaseSupersetView):
                 )
                 db_name = secure_filename(ins_db_name)
                 database = self.createdatabase(db_name)
-            except Exception:
-                # TODO return 400 with message
-                return redirect(redirect_url)
-
+            except Exception as e:
+                return Response(e.args[0], 400)
         try:
             path = self.check_and_save_csv(csv_file, csv_filename)
             table = self.createtable(formdata, database, database_id, csv_filename)
             db_name = table.database.database_name
             os.remove(path)
-        except Exception:
+        except Exception as e:
             os.remove(os.getcwd() + "/" + db_name + ".db")
             if database_id == -1:
                 sess = db.session()
                 sess.delete(database)
+            return Response(e.args[0], 400)
+            return Response("Writing data into Table failed", 400)
         message = _(
             'CSV file "{0}" uploaded to table "{1}" in '
             'database "{2}"'.format(csv_filename, formdata["tableName"], db_name)
