@@ -318,47 +318,30 @@ export class CsvToDatabase extends React.PureComponent {
                         </span>
                       </td>
                     </tr>
-                    <tr>
-                      <td className="col-lg-2">Header Row</td>
-                      <td>
-                        <input
-                          className="form-control"
-                          id="headerRow"
-                          name="headerRow"
-                          placeholder="Header Row"
-                          type="number"
-                          value={this.state.headerRow}
-                          onChange={this.setUserInput}
-                        />
-                        <span className="help-block">
-                          Row containing the headers to use as column names (0
-                          is first line of data). Leave empty if there is no
-                          header row.
-                        </span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="col-lg-2">Decimal Character</td>
-                      <td>
-                        <input
-                          className="form-control"
-                          id="decimalCharacter"
-                          name="decimalCharacter"
-                          placeholder="Decimal Character"
-                          type="text"
-                          value={this.state.decimalCharacter}
-                          onChange={this.setUserInput}
-                        />
-                        <span className="help-block">
-                          Character to interpret as decimal point.
-                        </span>
-                      </td>
-                    </tr>
                   </tbody>
                 </table>
                 <AdvancedOptions>
                   <table className="table table-bordered">
                     <tbody>
+                      <tr>
+                        <td className="col-lg-2">Header Row</td>
+                        <td>
+                          <input
+                            className="form-control"
+                            id="headerRow"
+                            name="headerRow"
+                            placeholder="Header Row"
+                            type="number"
+                            value={this.state.headerRow}
+                            onChange={this.setUserInput}
+                          />
+                          <span className="help-block">
+                            Row containing the headers to use as column names (0
+                            is first line of data). Leave empty if there is no
+                            header row.
+                          </span>
+                        </td>
+                      </tr>
                       <tr>
                         <td className="col-lg-2">Index Column</td>
                         <td>
@@ -484,6 +467,23 @@ export class CsvToDatabase extends React.PureComponent {
                           <span className="help-block">
                             Use Pandas to interpret the datetime format
                             automatically.
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="col-lg-2">Decimal Character</td>
+                        <td>
+                          <input
+                            className="form-control"
+                            id="decimalCharacter"
+                            name="decimalCharacter"
+                            placeholder="Decimal Character"
+                            type="text"
+                            value={this.state.decimalCharacter}
+                            onChange={this.setUserInput}
+                          />
+                          <span className="help-block">
+                            Character to interpret as decimal point.
                           </span>
                         </td>
                       </tr>

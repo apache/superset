@@ -43,7 +43,7 @@ export default class AdvancedOptions extends PureComponent {
     render() {
         return (
             <div>
-                <div className="title" onClick={this.handleChildren}>
+                <div className={'title ' + (this.state.hide ? 'openTitle' : 'closeTitle')} onClick={this.handleChildren}>
                     <span>Advanced Options</span>
                 </div>
                 <div className={this.state.hide ? 'hide' : null}>
