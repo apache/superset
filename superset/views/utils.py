@@ -209,35 +209,33 @@ def get_time_range_endpoints(
     form_data: Dict[str, Any], slc: Optional[models.Slice]
 ) -> Optional[Tuple[TimeRangeEndpoint, TimeRangeEndpoint]]:
     """
-    Get the slice aware time range endpoints falling back to the SQL database specific
-    definition or default if not defined.
+    Get the slice aware time range endpoints from the form-data falling back to the SQL
+    database specific definition or default if not defined.
 
     For SIP-15 all new slices use the [start, end) interval which is consistent with the
-    Druid REST API.
+    native Druid connector.
 
     :param form_data: The form-data
     :param slc: The chart
     :returns: The time range endpoints tuple
     """
 
-    time_range_endpoints = form_data.get("time_range_endpoints")
+    endpoints = form_data.get("time_range_endpoints")
 
-    if time_range_endpoints:
-        return time_range_endpoints
+    if slc and not endpoints:
+        try:
+            _, datasource_type = get_datasource_info(None, None, form_data)
+        except SupersetException:
+            return None
 
-    try:
-        _, datasource_type = get_datasource_info(None, None, form_data)
-    except SupersetException:
-        return None
-
-    if datasource_type == "table":
-        if slc:
+        if datasource_type == "table":
             endpoints = slc.datasource.database.get_extra().get("time_range_endpoints")
 
             if not endpoints:
                 endpoints = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
 
-            start, end = endpoints
-            return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
+    if endpoints:
+        start, end = endpoints
+        return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
 
     return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
