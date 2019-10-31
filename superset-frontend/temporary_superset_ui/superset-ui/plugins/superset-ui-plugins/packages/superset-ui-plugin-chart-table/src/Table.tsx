@@ -5,6 +5,7 @@ import Input from '@airbnb/lunar/lib/components/Input';
 import withStyles, { WithStylesProps } from '@airbnb/lunar/lib/composers/withStyles';
 import { Renderers, ParentRow, ColumnMetadata } from '@airbnb/lunar/lib/components/DataTable/types';
 import dompurify from 'dompurify';
+import { createSelector } from 'reselect';
 import { getRenderer, ColumnType, Cell } from './renderer';
 
 type Props = {
@@ -71,7 +72,38 @@ function getText(value: unknown) {
   return String(value);
 }
 
+type columnWidthMetaDataType = {
+  [key: string]: {
+    maxWidth: number;
+    width: number;
+  };
+};
+
 class TableVis extends React.PureComponent<InternalTableProps, TableState> {
+  columnWidthSelector = createSelector(
+    (data: ParentRow[]) => data,
+    data => {
+      const keys = data && data.length > 0 ? Object.keys(data[0].data) : [];
+      let totalWidth = 0;
+      const columnWidthMetaData: columnWidthMetaDataType = {};
+
+      keys.forEach(key => {
+        const maxLength = Math.max(...data.map(d => getText(d.data[key]).length), key.length);
+        const stringWidth = maxLength * CHAR_WIDTH + CELL_PADDING;
+        columnWidthMetaData[key] = {
+          maxWidth: MAX_COLUMN_WIDTH,
+          width: stringWidth,
+        };
+        totalWidth += Math.min(stringWidth, MAX_COLUMN_WIDTH);
+      });
+
+      return {
+        columnWidthMetaData,
+        totalWidth,
+      };
+    },
+  );
+
   static defaultProps = defaultProps;
 
   constructor(props: InternalTableProps) {
@@ -176,9 +208,8 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
 
     const { filteredRows, searchKeyword } = this.state;
 
-    const renderers: Renderers = {};
-
     const dataToRender = searchKeyword === '' ? data : filteredRows;
+    const renderers: Renderers = {};
     const columnMetadata: ColumnMetadata = {};
 
     columns.forEach(column => {
@@ -198,16 +229,13 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     });
 
     const keys = dataToRender && dataToRender.length > 0 ? Object.keys(dataToRender[0].data) : [];
-    let calculatedWidth = 0;
+    const columnWidthInfo = this.columnWidthSelector(data);
+
     keys.forEach(key => {
-      const maxLength = Math.max(...data.map(d => getText(d.data[key]).length), key.length);
-      const stringWidth = maxLength * CHAR_WIDTH + CELL_PADDING;
       columnMetadata[key] = {
-        maxWidth: MAX_COLUMN_WIDTH,
-        width: stringWidth,
+        ...columnWidthInfo.columnWidthMetaData[key],
         ...columnMetadata[key],
       };
-      calculatedWidth += Math.min(stringWidth, MAX_COLUMN_WIDTH);
 
       if (!renderers[key]) {
         renderers[key] = getRenderer({
@@ -228,7 +256,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     const tableHeight = includeSearch ? height - SEARCH_BAR_HEIGHT : height;
 
     return (
-      <div className={cx(styles.container)}>
+      <>
         {includeSearch && (
           <div className={cx(styles.searchBar)}>
             <div className={cx(styles.searchBox)}>
@@ -242,21 +270,24 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
               />
             </div>
             <Text small>
-              Showing {dataToRender.length} out of {data.length} rows
+              Showing {dataToRender.length}/{data.length} rows
             </Text>
           </div>
         )}
-        <DataTable
-          data={dataToRender}
-          keys={keys}
-          columnMetadata={columnMetadata}
-          zebra
-          dynamicRowHeight
-          renderers={renderers}
-          height={tableHeight}
-          width={Math.max(calculatedWidth, width)}
-        />
-      </div>
+        <div className={cx(styles.container)}>
+          <DataTable
+            data={dataToRender}
+            keys={keys}
+            columnMetadata={columnMetadata}
+            zebra
+            dynamicRowHeight
+            rowHeight="micro"
+            renderers={renderers}
+            height={tableHeight}
+            width={Math.max(columnWidthInfo.totalWidth, width)}
+          />
+        </div>
+      </>
     );
   }
 }
@@ -264,6 +295,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
 export default withStyles(({ unit }) => ({
   container: {
     display: 'grid',
+    overflowX: 'scroll',
   },
   searchBar: {
     alignItems: 'baseline',

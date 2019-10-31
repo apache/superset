@@ -19,9 +19,13 @@
 
 import { ChartProps } from '@superset-ui/chart';
 import { QueryFormDataMetric, AdhocMetric } from '@superset-ui/query';
-import processColumns from './processColumns';
-import processMetrics from './processMetrics';
-import processData from './processData';
+import getProcessColumnsFunction from './processColumns';
+import getProcessMetricsFunction from './processMetrics';
+import getProcessDataFunction from './processData';
+
+const processColumns = getProcessColumnsFunction();
+const processMetrics = getProcessMetricsFunction();
+const processData = getProcessDataFunction();
 
 const DTTM_ALIAS = '__timestamp';
 
