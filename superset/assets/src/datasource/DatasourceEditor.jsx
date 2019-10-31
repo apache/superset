@@ -113,7 +113,9 @@ function ColumnCollectionTable({
                       you will need to define an expression and type for
                       transforming the string into a date or timestamp. Note
                       currently time zones are not supported. If time is stored
-                      in epoch format, put \`epoch_s\` or \`epoch_ms\`.`)}
+                      in epoch format, put \`epoch_s\` or \`epoch_ms\`. If no pattern
+                      is specified we fall back to using the optional defaults on a per
+                      database/column name level via the extra parameter.`)}
                 </div>
               }
               control={<TextControl />}
