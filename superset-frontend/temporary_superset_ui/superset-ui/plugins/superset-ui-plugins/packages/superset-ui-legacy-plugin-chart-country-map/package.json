@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-country-map",
-  "version": "0.11.0",
+  "version": "0.11.4",
   "description": "Superset Legacy Chart - Country Map",
   "sideEffects": [
     "*.css"
