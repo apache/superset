@@ -5,6 +5,8 @@
 import React, { CSSProperties } from 'react';
 import { HEIGHT_TO_PX } from '@airbnb/lunar/lib/components/DataTable/constants';
 import { RendererProps } from '@airbnb/lunar/lib/components/DataTable/types';
+import { NumberFormatter } from '@superset-ui/number-format';
+import { TimeFormatter } from '@superset-ui/time-format';
 import dompurify from 'dompurify';
 
 const NEGATIVE_COLOR = '#FFA8A8';
@@ -16,7 +18,7 @@ export const heightType = 'micro';
 export type ColumnType = {
   key: string;
   label: string;
-  format?: (value: any) => string;
+  format?: NumberFormatter | TimeFormatter | undefined;
   type: 'metric' | 'string';
   maxValue?: number;
   minValue?: number;
@@ -132,7 +134,7 @@ export const getRenderer = ({
     >
       <Parent>
         {column.format ? (
-          column.format(value)
+          column.format.format(value as any)
         ) : (
           // eslint-disable-next-line react/no-danger
           <div dangerouslySetInnerHTML={{ __html: value as string }} />

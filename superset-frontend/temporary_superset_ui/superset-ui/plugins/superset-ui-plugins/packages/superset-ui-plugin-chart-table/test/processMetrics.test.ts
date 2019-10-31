@@ -1,6 +1,7 @@
-import processMetrics from '../src/processMetrics';
+import getProcessMetricsFunction from '../src/processMetrics';
 
 describe('processData', () => {
+  const processMetrics = getProcessMetricsFunction();
   const records = [
     {
       a: 1,

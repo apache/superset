@@ -19,9 +19,13 @@
 /* eslint-disable sort-keys */
 
 import { ChartProps } from '@superset-ui/chart';
-import processColumns from '../processColumns';
-import processMetrics from '../processMetrics';
-import processData from '../processData';
+import getProcessColumnsFunction from '../processColumns';
+import getProcessMetricsFunction from '../processMetrics';
+import getProcessDataFunction from '../processData';
+
+const processColumns = getProcessColumnsFunction();
+const processMetrics = getProcessMetricsFunction();
+const processData = getProcessDataFunction();
 
 const NOOP = () => {};
 

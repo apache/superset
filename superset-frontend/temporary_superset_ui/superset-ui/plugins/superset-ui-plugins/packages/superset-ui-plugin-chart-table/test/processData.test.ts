@@ -1,6 +1,7 @@
-import processData from '../src/processData';
+import getProcessDataFunction from '../src/processData';
 
 describe('processData', () => {
+  const processData = getProcessDataFunction();
   const timeseriesLimitMetric = 'a';
   const orderDesc = true;
   const records = [

@@ -1,17 +1,20 @@
 import { QueryFormDataMetric, AdhocMetric } from '@superset-ui/query';
+import { createSelector } from 'reselect';
 import { PlainObject } from './types';
 
-export default function processData({
-  timeseriesLimitMetric,
-  orderDesc,
-  records,
-  metrics,
-}: {
+type inputType = {
   timeseriesLimitMetric: QueryFormDataMetric;
   orderDesc: boolean;
   records: PlainObject[];
   metrics: string[];
-}) {
+};
+
+function processData(
+  timeseriesLimitMetric: QueryFormDataMetric,
+  orderDesc: boolean,
+  records: PlainObject[],
+  metrics: string[],
+) {
   const sortByKey =
     timeseriesLimitMetric &&
     ((timeseriesLimitMetric as AdhocMetric).label || (timeseriesLimitMetric as string));
@@ -37,3 +40,15 @@ export default function processData({
       : row => ({ data: row }),
   );
 }
+
+const getCreateSelectorFunction = () =>
+  createSelector(
+    (data: inputType) => data.timeseriesLimitMetric,
+    data => data.orderDesc,
+    data => data.records,
+    data => data.metrics,
+    (timeseriesLimitMetric, orderDesc, records, metrics) =>
+      processData(timeseriesLimitMetric, orderDesc, records, metrics),
+  );
+
+export default getCreateSelectorFunction;
