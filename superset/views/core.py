@@ -3163,7 +3163,7 @@ class Superset(BaseSupersetView):
             stats_logger.incr("failed_csv_upload")
             raise Exception(message)
 
-    def is_schema_allowed(self, database, schema):
+    def nis_schema_allowed(self, database, schema):
         if not database.allow_csv_upload:
             return False
         schemas = database.get_schema_access_for_csv_upload()
@@ -3174,21 +3174,10 @@ class Superset(BaseSupersetView):
             or security_manager.all_datasource_access()
         )
 
-    # TODO method necessary?
-    def flash_schema_message_and_redirect(self, url, database, schema_name):
-        message = _(
-            'Database "{0}" Schema "{1}" is not allowed for csv uploads. '
-            "Please contact Superset Admin".format(database.database_name, schema_name)
-        )
-        flash(message, "danger")
-        return redirect(url)
-
     @api
     @has_access_api
     @expose("/csvtodatabase/add", methods=["POST"])
     def add(self):
-        redirect_url = "superset/csvtodatabase"
-        # TODO get file from request
         formdata = request.form
         csv_file = request.files
         csv_file = csv_file["file"]
@@ -3197,16 +3186,12 @@ class Superset(BaseSupersetView):
         # this beforehand
         try:
             database_id = int(database_id)
-        except Exception as e:
+        except ValueError:
             message = _(
                 "possible tampering detected, non-numeral character in database-id"
             )
-            print(e)
-            return Response(
-                "possible tampering detected, non-numeral character in database-id", 400
-            )
-            # flash(message, "danger")
-            # return redirect(redirect_url)
+            return Response(message, 400)
+        # This field always exists, check for empty string which matches None-type otherwise the data-inserstion fails
         schema_name = None if not formdata["schema"] else formdata["schema"]
         csv_filename = secure_filename(csv_file.filename)
         if len(csv_filename) == 0:
@@ -3215,9 +3200,13 @@ class Superset(BaseSupersetView):
             try:
                 database = self.getdatabasebyid(database_id)
                 if not self.is_schema_allowed(database, schema_name):
-                    self.flash_schema_message_and_redirect(
-                        redirect_url, database, schema_name
+                    message = _(
+                        'Database "{0}" Schema "{1}" is not allowed for csv uploads. '
+                        "Please contact Superset Admin".format(
+                            database.database_name, schema_name
+                        )
                     )
+                    return Response(message, 400)
             except Exception as e:
                 return Response(e.args[0], 400)
         else:
@@ -3238,19 +3227,21 @@ class Superset(BaseSupersetView):
             db_name = table.database.database_name
             os.remove(path)
         except Exception as e:
-            os.remove(os.getcwd() + "/" + db_name + ".db")
+            try:
+                os.remove(os.getcwd() + "/" + db_name + ".db")
+                os.remove(path)
+            except OSError:
+                pass
             if database_id == -1:
                 sess = db.session()
                 sess.delete(database)
             return Response(e.args[0], 400)
-            return Response("Writing data into Table failed", 400)
         message = _(
             'CSV file "{0}" uploaded to table "{1}" in '
             'database "{2}"'.format(csv_filename, formdata["tableName"], db_name)
         )
-        flash(message, "info")
         stats_logger.incr("successful_csv_upload")
-        return redirect("/tablemodelview/list/")
+        return Response(message, 200)
 
 
 appbuilder.add_view_no_menu(Superset)

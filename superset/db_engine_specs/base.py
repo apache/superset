@@ -24,8 +24,8 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING, 
 
 from flask import g
 from flask_babel import lazy_gettext as _
-import pandas as pd
 from numpy.core.defchararray import lower
+import pandas as pd
 from sqlalchemy import column, DateTime, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
