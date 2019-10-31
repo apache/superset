@@ -18,7 +18,7 @@ import unittest
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import numpy
 from flask import Flask
@@ -47,10 +47,12 @@ from superset.utils.core import (
     parse_past_timedelta,
     setup_cache,
     split,
+    TimeRangeEndpoint,
     validate_json,
     zlib_compress,
     zlib_decompress,
 )
+from superset.views.utils import get_time_range_endpoints
 
 
 def mock_parse_human_datetime(s):
@@ -881,3 +883,40 @@ class UtilsTestCase(unittest.TestCase):
     def test_get_or_create_db_invalid_uri(self):
         with self.assertRaises(ArgumentError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
+
+    def test_get_time_range_endpoints(self):
+        self.assertEqual(
+            get_time_range_endpoints(form_data={}, slc=None),
+            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
+        )
+
+        self.assertEqual(
+            get_time_range_endpoints(
+                form_data={"time_range_endpoints": ["inclusive", "inclusive"]}, slc=None
+            ),
+            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
+        )
+
+        self.assertEqual(
+            get_time_range_endpoints(form_data={"datasource": "1_druid"}, slc=None),
+            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
+        )
+
+        slc = Mock()
+        slc.datasource.database.get_extra.return_value = {}
+
+        self.assertEqual(
+            get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
+            (TimeRangeEndpoint.UNKNOWN, TimeRangeEndpoint.INCLUSIVE),
+        )
+
+        slc.datasource.database.get_extra.return_value = {
+            "time_range_endpoints": ["inclusive", "inclusive"]
+        }
+
+        self.assertEqual(
+            get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
+            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
+        )
+
+        self.assertIsNone(get_time_range_endpoints(form_data={}, slc=slc))
