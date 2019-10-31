@@ -954,8 +954,8 @@ cache store when upgrading an existing environment.
   entire setup. If not, background jobs can get scheduled multiple times
   resulting in weird behaviors like duplicate delivery of reports,
   higher than expected load / traffic etc.
-  
-* SQL Lab will only run your queries asynchronously if you enable 
+
+* SQL Lab will only run your queries asynchronously if you enable
   "Asynchronous Query Execution" in your database settings.
 
 
@@ -1346,7 +1346,17 @@ SIP-15
 
 `SIP-15 <https://github.com/apache/incubator-superset/issues/6360>`_ aims to ensure that time intervals are handled in a consistent and transparent manner for both the Druid and SQLAlchemy connectors.
 
-Prior to SIP-15 SQLAlchemy used inclusive endpoints however these may behave like exclusive depending on the time column (refer to the SIP for details) and thus the endpoint behavior could be unknown. To aid with transparency the current endpoint behavior is explicitly called out in the chart time range (post SIP-15 this will be [start, end) for all connectors and databases). One can override the defaults on a per database level via the ``extra``
+Prior to SIP-15 SQLAlchemy used inclusive endpoints however these may behave like exclusive for string columns (due to lexicographical ordering) if no formatting was defined and the column formatting did not conform to an ISO 8601 date-time (refer to the SIP for details).
+
+To remedy this rather than having to define the date/time format for every non-IS0 8601 date-time column, once can define a default column mapping on a per database level via the ``extra`` parameter ::
+
+    {
+        "python_date_format_by_column_name": {
+            "ds": "%Y-%m-%d"
+        }
+    }
+
+Additionally to aid with transparency the current endpoint behavior is explicitly called out in the chart time range (post SIP-15 this will be [start, end) for all connectors and databases). One can override the defaults on a per database level via the ``extra``
 parameter ::
 
     {
