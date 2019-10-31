@@ -694,7 +694,10 @@ SEND_FILE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 365  # Cache static resources
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
 SQLALCHEMY_EXAMPLES_URI = None
 
-# Note currently SIP-15 feature is WIP and should not be enabled.
+# SIP-15 should be enabled for all new Superset deployments which ensures that the time
+# range endpoints adhere to [start, end). For existing deployments admins should provide
+# a dedicated period of time to allow chart producers to update their charts before
+# mass migrating all charts to use the [start, end) interval.
 SIP_15_ENABLED = False
 SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
 SIP_15_TOAST_MESSAGE = 'Action Required: Preview then save your chart using the new time range endpoints <a href="{url}" class="alert-link">here</a>.'
