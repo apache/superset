@@ -327,7 +327,7 @@ def load_world_bank_health_n_pop(only_metadata=False, force=False):
         merge_slice(slc)
 
     print("Creating a World's Health Bank dashboard")
-    dash_name = "World's Bank Data"
+    dash_name = "World Bank's Data"
     slug = "world_health"
     dash = db.session.query(Dash).filter_by(slug=slug).first()
 
