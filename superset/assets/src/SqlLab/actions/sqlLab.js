@@ -548,9 +548,13 @@ export function switchQueryEditor(queryEditor) {
             dispatch(fetchQueryResults(json.latest_query));
           }
         })
-        .catch(() =>
-          dispatch(addDangerToast(t('An error occurred while fetching tab state'))),
-        );
+        .catch((response) => {
+          if (response.status !== 404) {
+            return dispatch(addDangerToast(t(
+              'An error occurred while fetching tab state')));
+          }
+          return dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor });
+        });
     } else {
       dispatch(setActiveQueryEditor(queryEditor));
     }
