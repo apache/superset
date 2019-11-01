@@ -35,32 +35,32 @@ down_revision = "cca2f5d568c8"
 
 
 def upgrade():
-    try:
-        # Postgres migration
-        op.alter_column(
-            "dbs",
-            "encrypted_extra",
-            existing_type=sa.Text(),
-            type_=EncryptedType(sa.Text()),
-            postgresql_using="encrypted_extra::bytea",
-            existing_nullable=True,
-        )
-    except TypeError:
-        # non-Postgres migration
-        op.alter_column(
-            "dbs",
-            "encrypted_extra",
-            existing_type=sa.Text(),
-            type_=EncryptedType(sa.Text()),
-            existing_nullable=True,
-        )
+    with op.batch_alter_table("dbs") as batch_op:
+        try:
+            # Postgres migration
+            batch_op.alter_column(
+                "encrypted_extra",
+                existing_type=sa.Text(),
+                type_=EncryptedType(sa.Text()),
+                postgresql_using="encrypted_extra::bytea",
+                existing_nullable=True,
+            )
+        except TypeError:
+            # non-Postgres migration
+            batch_op.alter_column(
+                "dbs",
+                "encrypted_extra",
+                existing_type=sa.Text(),
+                type_=EncryptedType(sa.Text()),
+                existing_nullable=True,
+            )
 
 
 def downgrade():
-    op.alter_column(
-        "dbs",
-        "encrypted_extra",
-        existing_type=EncryptedType(sa.Text()),
-        type_=sa.Text(),
-        existing_nullable=True,
-    )
+    with op.batch_alter_table("dbs") as batch_op:
+        batch_op.alter_column(
+            "encrypted_extra",
+            existing_type=EncryptedType(sa.Text()),
+            type_=sa.Text(),
+            existing_nullable=True,
+        )
