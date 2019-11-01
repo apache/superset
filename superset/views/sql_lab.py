@@ -211,6 +211,9 @@ class TabStateView(BaseSupersetView):
         db.session.query(TabState).filter(TabState.id == tab_state_id).delete(
             synchronize_session=False
         )
+        db.session.query(TableSchema).filter(TableSchema.tab_state_id == tab_state_id).delete(
+            synchronize_session=False
+        )
         db.session.commit()
         return json_success(json.dumps("OK"))
 
