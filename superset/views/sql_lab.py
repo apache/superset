@@ -286,6 +286,15 @@ class TableSchemaView(BaseSupersetView):
     @expose("/", methods=["POST"])
     def post(self):
         table = json.loads(request.form["table"])
+
+        # delete any existing table schema
+        db.session.query(TableSchema).filter(
+            TableSchema.tab_state_id == table["queryEditorId"],
+            TableSchema.database_id == table["dbId"],
+            TableSchema.schema == table["schema"],
+            TableSchema.table == table["name"],
+        ).delete(synchronize_session=False)
+
         table_schema = TableSchema(
             tab_state_id=table["queryEditorId"],
             database_id=table["dbId"],
