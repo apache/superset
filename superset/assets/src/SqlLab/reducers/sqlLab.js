@@ -70,6 +70,7 @@ export default function sqlLabReducer(state = {}, action) {
       let newState = removeFromArr(state, 'queryEditors', action.queryEditor);
       // List of remaining queryEditor ids
       const qeIds = newState.queryEditors.map(qe => qe.id);
+
       const queries = {};
       Object.keys(state.queries).forEach((k) => {
         const query = state.queries[k];
@@ -77,9 +78,14 @@ export default function sqlLabReducer(state = {}, action) {
           queries[k] = query;
         }
       });
+
       let tabHistory = state.tabHistory.slice();
       tabHistory = tabHistory.filter(id => qeIds.indexOf(id) > -1);
-      newState = Object.assign({}, newState, { tabHistory, queries });
+
+      // Remove associated table schemas
+      const tables = state.tables.filter(table => table.queryEditorId !== action.queryEditor.id);
+
+      newState = Object.assign({}, newState, { tabHistory, tables, queries });
       return newState;
     },
     [actions.REMOVE_QUERY]() {
