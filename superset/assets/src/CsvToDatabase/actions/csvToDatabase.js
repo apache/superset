@@ -16,19 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/connection';
-import { addSuccessToast, addDangerToast } from 'src/messageToasts/actions';
+import { SupersetClient } from "@superset-ui/connection";
+import getClientErrorObject from "src/utils/getClientErrorObject";
 
-export const UPLOAD_CSV_SUCCESS = 'UPLOAD_CSV_SUCCESS';
-export const UPLOAD_CSV_FAILURE = 'UPLOAD_CSV_FAILURE';
+export const UPLOAD_CSV_SUCCESS = "UPLOAD_CSV_SUCCESS";
+export const UPLOAD_CSV_FAILURE = "UPLOAD_CSV_FAILURE";
 
 export function uploadCsv(data) {
   return dispatch =>
     SupersetClient.post({
-      endpoint: '/superset/csvtodatabase/add',
+      endpoint: "/superset/csvtodatabase/add",
       postPayload: { ...data },
-      stringify: false,
+      stringify: false
     })
-      .then(() => { console.log('Success'); dispatch({type: UPLOAD_CSV_SUCCESS, message: ''});})
-      .catch(() => { console.log('Error'); dispatch({type: UPLOAD_CSV_FAILURE, message: 'Failure'}); });
+      .then(() => {
+        console.log("Success");
+        dispatch({ type: UPLOAD_CSV_SUCCESS, message: "" });
+      })
+      .catch(response => {
+        getClientErrorObject(response).then(error => {
+          dispatch({ type: UPLOAD_CSV_FAILURE, message: error.error });
+        });
+      });
 }
