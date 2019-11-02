@@ -19,6 +19,7 @@ import logging
 from logging.config import fileConfig
 
 from alembic import context
+from flask import current_app
 from flask_appbuilder import Base
 from sqlalchemy import engine_from_config, pool
 
@@ -31,14 +32,8 @@ config = context.config
 fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-from flask import current_app
 
-config.set_main_option(
-    "sqlalchemy.url", current_app.config.get("SQLALCHEMY_DATABASE_URI")
-)
+config.set_main_option("sqlalchemy.url", current_app.config["SQLALCHEMY_DATABASE_URI"])
 target_metadata = Base.metadata  # pylint: disable=no-member
 
 # other values from the config, defined by the needs of env.py,

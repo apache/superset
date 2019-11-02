@@ -20,8 +20,8 @@ import json
 import unittest
 from unittest.mock import Mock, patch
 
-from flask_appbuilder.security.sqla import models as ab_models
 import pandas as pd
+from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
@@ -30,7 +30,7 @@ from superset.models import core as models
 from superset.models.core import Database
 from superset.utils.core import get_example_database
 
-BASE_DIR = app.config.get("BASE_DIR")
+BASE_DIR = app.config["BASE_DIR"]
 
 
 class SupersetTestCase(unittest.TestCase):
@@ -255,8 +255,8 @@ class SupersetTestCase(unittest.TestCase):
         self.assertFalse(is_feature_enabled("FOO"))
 
     def test_feature_flags(self):
-        self.assertEquals(is_feature_enabled("foo"), "bar")
-        self.assertEquals(is_feature_enabled("super"), "set")
+        self.assertEqual(is_feature_enabled("foo"), "bar")
+        self.assertEqual(is_feature_enabled("super"), "set")
 
     def get_dash_by_slug(self, dash_slug):
         sesh = db.session()

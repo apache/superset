@@ -35,7 +35,7 @@ export const datasourceAndVizType = {
   controlSetRows: [
     ['datasource'],
     ['viz_type'],
-    ['slice_id', 'cache_timeout', 'url_params'],
+    ['slice_id', 'cache_timeout', 'url_params', 'time_range_endpoints'],
   ],
 };
 

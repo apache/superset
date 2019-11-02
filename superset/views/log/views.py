@@ -18,9 +18,10 @@
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __
 
-from superset import app, appbuilder
 import superset.models.core as models
+from superset import app, appbuilder
 from superset.views.base import SupersetModelView
+
 from . import LogMixin
 
 
@@ -29,8 +30,8 @@ class LogModelView(LogMixin, SupersetModelView):
 
 
 if (
-    not app.config.get("FAB_ADD_SECURITY_VIEWS") is False
-    or app.config.get("SUPERSET_LOG_VIEW") is False
+    not app.config["FAB_ADD_SECURITY_VIEWS"] is False
+    or app.config["SUPERSET_LOG_VIEW"] is False
 ):
     appbuilder.add_view(
         LogModelView,

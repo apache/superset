@@ -192,7 +192,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    superset run -p 8080 --with-threads --reload --debugger
+    superset run -p 8088 --with-threads --reload --debugger
 
 After installation, you should be able to point your browser to the right
 hostname:port `http://localhost:8088 <http://localhost:8088>`_, login using
@@ -377,6 +377,10 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
+| Elasticsearch    | ``pip install elasticsearch-dbapi``   | ``elasticsearch+http://``                               |
++------------------+---------------------------------------+-------------------------------------------------+
+| Exasol           | ``pip install sqlalchemy-exasol``     | ``exa+pyodbc://``                               |
++------------------+---------------------------------------+-------------------------------------------------+
 | Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://``                                  |
 +------------------+---------------------------------------+-------------------------------------------------+
 | IBM Db2          | ``pip install ibm_db_sa``             | ``db2+ibm_db://``                               |
@@ -430,7 +434,71 @@ The connection string for BigQuery looks like this ::
 
     bigquery://{project_id}
 
+Additionally, you will need to configure authentication via a
+Service Account. Create your Service Account via the Google
+Cloud Platform control panel, provide it access to the appropriate
+BigQuery datasets, and download the JSON configuration file
+for the service account. In Superset, Add a JSON blob to
+the "Secure Extra" field in the database configuration page
+with the following format ::
+
+    {
+        "credentials_info": <contents of credentials JSON file>
+    }
+
+The resulting file should have this structure ::
+
+    {
+        "credentials_info": {
+            "type": "service_account",
+            "project_id": "...",
+            "private_key_id": "...",
+            "private_key": "...",
+            "client_email": "...",
+            "client_id": "...",
+            "auth_uri": "...",
+            "token_uri": "...",
+            "auth_provider_x509_cert_url": "...",
+            "client_x509_cert_url": "...",
+        }
+    }
+
+You should then be able to connect to your BigQuery datasets.
+
 To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
+
+
+Elasticsearch
+-------------
+
+The connection string for Elasticsearch looks like this ::
+
+    elasticsearch+http://{user}:{password}@{host}:9200/
+
+Using HTTPS ::
+
+    elasticsearch+https://{user}:{password}@{host}:9200/
+
+
+Elasticsearch as a default limit of 10000 rows, so you can increase this limit on your cluster
+or set Superset's row limit on config ::
+
+    ROW_LIMIT = 10000
+
+You can query multiple indices on SQLLab for example ::
+
+    select timestamp, agent from "logstash-*"
+
+But, to use visualizations for multiple indices you need to create an alias index on your cluster ::
+
+    POST /_aliases
+    {
+        "actions" : [
+            { "add" : { "index" : "logstash-**", "alias" : "logstash_all" } }
+        ]
+    }
+
+Then register your table with the ``alias`` name ``logstasg_all``
 
 Snowflake
 ---------
@@ -577,6 +645,9 @@ object gets unpacked into the
 while the ``metadata_params`` get unpacked into the
 `sqlalchemy.MetaData <https://docs.sqlalchemy.org/en/rel_1_2/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
 
+.. note:: If your using CTAS on SQLLab and PostgreSQL
+    take a look at :ref:`ref_ctas_engine_config` for specific ``engine_params``.
+
 
 Schemas (Postgres & Redshift)
 -----------------------------
@@ -658,6 +729,25 @@ it in the ``extra`` parameter::
         "version": "0.123"
     }
 
+
+Exasol
+---------
+
+The connection string for Exasol looks like this ::
+
+    exa+pyodbc://{user}:{password}@{host}
+
+*Note*: It's required to have Exasol ODBC drivers installed for the sqlalchemy dialect to work properly. Exasol ODBC Drivers available are here: https://www.exasol.com/portal/display/DOWNLOAD/Exasol+Download+Section
+
+Example config (odbcinst.ini can be left empty) ::
+
+    $ cat $/.../path/to/odbc.ini
+    [EXAODBC]
+    DRIVER = /.../path/to/driver/EXASOL_driver.so
+    EXAHOST = host:8563
+    EXASCHEMA = main
+
+See `SQLAlchemy for Exasol <https://github.com/blue-yonder/sqlalchemy_exasol>`_.
 
 CORS
 ----
@@ -819,7 +909,7 @@ have the same configuration.
 
 * To start a Celery worker to leverage the configuration run: ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
+    celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c 4
 
 * To start a job which schedules periodic background jobs, run ::
 
@@ -865,29 +955,68 @@ cache store when upgrading an existing environment.
   resulting in weird behaviors like duplicate delivery of reports,
   higher than expected load / traffic etc.
 
+* SQL Lab will only run your queries asynchronously if you enable
+  "Asynchronous Query Execution" in your database settings.
+
 
 Email Reports
 -------------
 Email reports allow users to schedule email reports for
 
-* slice and dashboard visualization (Attachment or inline)
-* slice data (CSV attachment on inline table)
+* chart and dashboard visualization (Attachment or inline)
+* chart data (CSV attachment on inline table)
+
+**Setup**
+
+Make sure you enable email reports in your configuration file
+
+.. code-block:: python
+
+    ENABLE_SCHEDULED_EMAIL_REPORTS = True
+
+Now you will find two new items in the navigation bar that allow you to schedule email
+reports
+
+* Manage -> Dashboard Emails
+* Manage -> Chart Email Schedules
 
 Schedules are defined in crontab format and each schedule
 can have a list of recipients (all of them can receive a single mail,
 or separate mails). For audit purposes, all outgoing mails can have a
 mandatory bcc.
 
-**Requirements**
+In order get picked up you need to configure a celery worker and a celery beat
+(see section above "Celery Tasks"). Your celery configuration also
+needs an entry ``email_reports.schedule_hourly`` for ``CELERYBEAT_SCHEDULE``.
 
-* A selenium compatible driver & headless browser
+To send emails you need to configure SMTP settings in your configuration file. e.g.
+
+.. code-block:: python
+
+    EMAIL_NOTIFICATIONS = True
+
+    SMTP_HOST = "email-smtp.eu-west-1.amazonaws.com"
+    SMTP_STARTTLS = True
+    SMTP_SSL = False
+    SMTP_USER = "smtp_username"
+    SMTP_PORT = 25
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+    SMTP_MAIL_FROM = "insights@komoot.com"
+
+
+To render dashboards you need to install a local browser on your superset instance
 
   * `geckodriver <https://github.com/mozilla/geckodriver>`_ and Firefox is preferred
   * `chromedriver <http://chromedriver.chromium.org/>`_ is a good option too
-* Run `celery worker` and `celery beat` as follows ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
-    celery beat --app=superset.tasks.celery_app:app
+You need to adjust the ``EMAIL_REPORTS_WEBDRIVER`` accordingly in your configuration.
+
+You also need to specify on behalf of which username to render the dashboards. In general
+dashboards and charts are not accessible to unauthorized requests, that is why the
+worker needs to take over credentials of an existing user to take a snapshot. ::
+
+    EMAIL_REPORTS_USER = 'username_with_permission_to_access_dashboards'
+
 
 **Important notes**
 
@@ -901,6 +1030,10 @@ mandatory bcc.
 
 * It is recommended to run separate workers for ``sql_lab`` and
   ``email_reports`` tasks. Can be done by using ``queue`` field in ``CELERY_ANNOTATIONS``
+
+* Adjust ``WEBDRIVER_BASEURL`` in your config if celery workers can't access superset via its
+  default value ``http://0.0.0.0:8080/`` (notice the port number 8080, many other setups use
+  port 8088).
 
 SQL Lab
 -------
@@ -1181,7 +1314,7 @@ Then we can add this two lines to ``superset_config.py``:
   CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 
 Feature Flags
----------------------------
+-------------
 
 Because of a wide variety of users, Superset has some features that are not enabled by default. For example, some users have stronger security restrictions, while some others may not. So Superset allow users to enable or disable some features by config. For feature owners, you can add optional functionalities in Superset, but will be only affected by a subset of users.
 
@@ -1206,3 +1339,26 @@ Here is a list of flags and descriptions:
 * PRESTO_EXPAND_DATA
 
   * When this feature is enabled, nested types in Presto will be expanded into extra columns and/or arrays. This is experimental, and doesn't work with all nested types.
+
+
+SIP-15
+------
+
+`SIP-15 <https://github.com/apache/incubator-superset/issues/6360>`_ aims to ensure that time intervals are handled in a consistent and transparent manner for both the Druid and SQLAlchemy connectors.
+
+Prior to SIP-15 SQLAlchemy used inclusive endpoints however these may behave like exclusive for string columns (due to lexicographical ordering) if no formatting was defined and the column formatting did not conform to an ISO 8601 date-time (refer to the SIP for details).
+
+To remedy this rather than having to define the date/time format for every non-IS0 8601 date-time column, once can define a default column mapping on a per database level via the ``extra`` parameter ::
+
+    {
+        "python_date_format_by_column_name": {
+            "ds": "%Y-%m-%d"
+        }
+    }
+
+Additionally to aid with transparency the current endpoint behavior is explicitly called out in the chart time range (post SIP-15 this will be [start, end) for all connectors and databases). One can override the defaults on a per database level via the ``extra``
+parameter ::
+
+    {
+        "time_range_endpoints": ["inclusive", "inclusive"]
+    }

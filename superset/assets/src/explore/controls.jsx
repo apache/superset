@@ -951,6 +951,17 @@ export const controls = {
     freeForm: true,
     label: t('Time range'),
     default: t('Last week'),
+    description: t(
+      'The time range for the visualization. All relative times, e.g. "Last month", ' +
+      '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
+      'local time (sans timezone). All tooltips and placeholder times are expressed ' +
+      'in UTC (sans timezone). The timestamps are then evaluated by the database ' +
+      'using the engine\'s local timezone. Note one can explicitly set the timezone ' +
+      'per the ISO 8601 format if specifying either the start and/or end time.',
+    ),
+    mapStateToProps: state => ({
+      endpoints: state.form_data ? state.form_data.time_range_endpoints : null,
+    }),
   },
 
   max_bubble_size: {
@@ -2024,6 +2035,13 @@ export const controls = {
     label: t('URL Parameters'),
     hidden: true,
     description: t('Extra parameters for use in jinja templated queries'),
+  },
+
+  time_range_endpoints: {
+    type: 'HiddenControl',
+    label: t('Time range endpoints'),
+    hidden: true,
+    description: t('Time range endpoints (SIP-15)'),
   },
 
   order_by_entity: {

@@ -14,16 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from datetime import datetime, timedelta
 from functools import wraps
-import logging
 
 from contextlib2 import contextmanager
 from flask import request
 
 from superset import app, cache
 from superset.utils.dates import now_as_float
-
 
 # If a user sets `max_age` to 0, for long the browser should cache the
 # resource? Flask-Caching will cache forever, but for the HTTP header we need

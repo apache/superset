@@ -22,9 +22,10 @@ Create Date: 2019-09-19 13:40:25.293907
 
 """
 import re
+
 from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 from superset.utils.core import MediumText

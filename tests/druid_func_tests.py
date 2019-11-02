@@ -18,6 +18,12 @@ import json
 import unittest
 from unittest.mock import Mock
 
+import superset.connectors.druid.models as models
+from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
+from superset.exceptions import SupersetException
+
+from .base_tests import SupersetTestCase
+
 try:
     from pydruid.utils.dimensions import (
         MapLookupExtraction,
@@ -27,11 +33,6 @@ try:
     import pydruid.utils.postaggregator as postaggs
 except ImportError:
     pass
-
-import superset.connectors.druid.models as models
-from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
-from superset.exceptions import SupersetException
-from .base_tests import SupersetTestCase
 
 
 def mock_metric(metric_name, is_postagg=False):
