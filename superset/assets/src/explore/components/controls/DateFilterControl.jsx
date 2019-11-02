@@ -83,7 +83,6 @@ const FREEFORM_TOOLTIP = t(
 );
 
 const DATE_FILTER_POPOVER_STYLE = { width: '250px' };
-const ISO_8601_REGEX_MATCH = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
 
 const propTypes = {
   animation: PropTypes.bool,
@@ -514,7 +513,7 @@ export default class DateFilterControl extends React.Component {
     value = value
       .split(SEPARATOR)
       .map((v, idx) =>
-        ISO_8601_REGEX_MATCH.test(v)
+        moment(v).isValid()
           ? v.replace('T00:00:00', '') + (endpoints ? ` (${endpoints[idx]})` : '')
           : v || (idx === 0 ? '-∞' : '∞'),
       )
