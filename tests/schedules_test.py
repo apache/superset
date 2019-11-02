@@ -35,7 +35,9 @@ from superset.tasks.schedules import (
     deliver_slice,
     next_schedules,
 )
-from .utils import read_fixture
+from .utils import read_fixture, FIXTURES_DIR
+import urllib.request
+import os
 
 
 class SchedulesTestCase(unittest.TestCase):
@@ -367,11 +369,13 @@ class SchedulesTestCase(unittest.TestCase):
     def test_deliver_slice_csv_attachment(
         self, send_email_smtp, mock_open, mock_urlopen
     ):
-        response = Mock()
+        fixture_path = os.path.abspath(os.path.join(FIXTURES_DIR, "trends.csv"))
+        opener = urllib.request.build_opener()
+        response = opener.open("file://{}".format(fixture_path))
+
         mock_open.return_value = response
         mock_urlopen.return_value = response
         mock_urlopen.return_value.getcode.return_value = 200
-        response.content = self.CSV
 
         schedule = (
             db.session.query(SliceEmailSchedule)
@@ -393,11 +397,13 @@ class SchedulesTestCase(unittest.TestCase):
     @patch("superset.tasks.schedules.urllib.request.OpenerDirector.open")
     @patch("superset.tasks.schedules.send_email_smtp")
     def test_deliver_slice_csv_inline(self, send_email_smtp, mock_open, mock_urlopen):
-        response = Mock()
+        fixture_path = os.path.abspath(os.path.join(FIXTURES_DIR, "trends.csv"))
+        opener = urllib.request.build_opener()
+        response = opener.open("file://{}".format(fixture_path))
+
         mock_open.return_value = response
         mock_urlopen.return_value = response
         mock_urlopen.return_value.getcode.return_value = 200
-        response.content = self.CSV
 
         schedule = (
             db.session.query(SliceEmailSchedule)
