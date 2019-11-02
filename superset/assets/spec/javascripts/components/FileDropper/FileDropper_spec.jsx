@@ -22,7 +22,7 @@ import sinon from 'sinon';
 import FileDropper from 'src/components/FileDropper/FileDropper';
 
 describe('FileDropper', () => {
-  const mockedChildren = (<div className='child'>Child content</div>);
+  const mockedChildren = (<div className="child">Child content</div>);
   const handleFileChange = sinon.spy();
   let wrapper;
   beforeEach(() => {
@@ -34,4 +34,4 @@ describe('FileDropper', () => {
   it('renders a file input field', () => {
     expect(wrapper.find('#file')).toHaveLength(1);
   });
-})
+});

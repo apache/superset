@@ -24,44 +24,53 @@ const propTypes = {
 };
 
 export default class FormError extends React.PureComponent {
-constructor(props) {
-  super(props);
+  constructor(props) {
+    super(props);
 
-  this.state = {
-    isDisplayed: true,
-  };
+    this.state = {
+      isDisplayed: true,
+    };
 
-  this.handleButtonClick = this.handleButtonClick.bind(this);
-  this.renderErrorContainer = this.renderErrorContainer.bind(this);
-}
+    this.handleButtonClick = this.handleButtonClick.bind(this);
+    this.renderErrorContainer = this.renderErrorContainer.bind(this);
+  }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
-    if (nextProps.status && this.props.status && nextProps.status.timestamp !== this.props.status.timestamp) {
-      this.setState({isDisplayed: true});
+    if (
+      nextProps.status &&
+      this.props.status &&
+      nextProps.status.timestamp !== this.props.status.timestamp
+    ) {
+      this.setState({ isDisplayed: true });
     }
   }
 
-  handleButtonClick(){
-    this.setState({isDisplayed: false});
+  handleButtonClick() {
+    this.setState({ isDisplayed: false });
   }
 
   renderErrorContainer() {
-    const {status} = this.props;
-    return <div className='alert alert-danger'>
-      {status.message}
-      <button className='close' onClick={this.handleButtonClick} >×</button>
-    </div>
+    const { status } = this.props;
+    return (
+      <div className="alert alert-danger">
+        {status.message}
+        <button className="close" onClick={this.handleButtonClick}>
+          ×
+        </button>
+      </div>
+    );
   }
 
   render() {
-    const {isDisplayed} = this.state;
-    const {status} = this.props;
-    const errorContainer =  isDisplayed && status && status.message ? this.renderErrorContainer() : <></>;
-    return (
-      <div className='alert-container'>
-        {errorContainer}
-      </div>
-    );
+    const { isDisplayed } = this.state;
+    const { status } = this.props;
+    const errorContainer =
+      isDisplayed && status && status.message ? (
+        this.renderErrorContainer()
+      ) : (
+        <></>
+      );
+    return <div className="alert-container">{errorContainer}</div>;
   }
 }
 

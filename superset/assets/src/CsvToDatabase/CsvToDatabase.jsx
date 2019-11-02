@@ -18,16 +18,16 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
 import Asterisk from 'src/components/Asterisk';
 import FileDropper from 'src/components/FileDropper/FileDropper';
 import FormError from 'src/components/FormError';
 import DropArea from 'src/components/FileDropper/DropArea';
 import Select from 'react-virtualized-select';
 import Button from 'src/components/Button';
-import AdvancedOptions from "../components/AdvancedOptions/AdvancedOptions";
-import Checkbox from "../components/Checkbox";
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
+import AdvancedOptions from '../components/AdvancedOptions/AdvancedOptions';
+import Checkbox from '../components/Checkbox';
 import * as Actions from './actions/csvToDatabase';
 import './CsvToDatabase.css';
 
@@ -41,7 +41,7 @@ export class CsvToDatabase extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      tableName: "",
+      tableName: '',
       databaseName: '',
       file: undefined,
       selectedConnection: { label: 'In a new database', value: -1 },
@@ -55,16 +55,16 @@ export class CsvToDatabase extends React.PureComponent {
         { label: 'Replace', value: 'Replace' },
         { label: 'Append', value: 'Append' },
       ], // TODO: Check if those values can be passed to this view
-      indexColumn: "",
+      indexColumn: '',
       mangleDuplicateColumns: true,
       skipInitialSpace: false,
-      skipRows: "",
-      rowsToRead: "",
+      skipRows: '',
+      rowsToRead: '',
       skipBlankLines: true,
-      parseDates: "",
+      parseDates: '',
       inferDatetimeFormat: true,
       dataframeIndex: false,
-      columnLabels: ""
+      columnLabels: '',
     };
     this.setFile = this.setFile.bind(this);
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
@@ -163,7 +163,7 @@ export class CsvToDatabase extends React.PureComponent {
   render() {
     return (
       <div className="container">
-          <FormError status={this.props.uploadStatus} />
+        <FormError status={this.props.uploadStatus} />
         <div className="panel panel-primary">
           <div className="panel-heading">
             <h4 className="panel-title">CSV to Database configuration</h4>
@@ -205,8 +205,8 @@ export class CsvToDatabase extends React.PureComponent {
                       <td>
                         <FileDropper
                           onFileSelected={this.setFile}
-                          allowedMimeTypes={["text/csv"]}
-                          isRequired={true}
+                          allowedMimeTypes={['text/csv']}
+                          isRequired
                         >
                           <DropArea
                             isVisible
@@ -238,7 +238,7 @@ export class CsvToDatabase extends React.PureComponent {
                       className={
                         this.state.selectedConnection.value === -1
                           ? null
-                          : "hide-component"
+                          : 'hide-component'
                       }
                     >
                       <td className="col-lg-2">
@@ -363,7 +363,7 @@ export class CsvToDatabase extends React.PureComponent {
                           <Checkbox
                             checked={this.state.mangleDuplicateColumns}
                             onChange={v =>
-                              this.setCheckboxValue("mangleDuplicateColumns", v)
+                              this.setCheckboxValue('mangleDuplicateColumns', v)
                             }
                           />
                           <span className="help-block">
@@ -377,7 +377,7 @@ export class CsvToDatabase extends React.PureComponent {
                           <Checkbox
                             checked={this.state.skipInitialSpace}
                             onChange={v =>
-                              this.setCheckboxValue("skipInitialSpace", v)
+                              this.setCheckboxValue('skipInitialSpace', v)
                             }
                           />
                           <span className="help-block">
@@ -425,7 +425,7 @@ export class CsvToDatabase extends React.PureComponent {
                           <Checkbox
                             checked={this.state.skipBlankLines}
                             onChange={v =>
-                              this.setCheckboxValue("skipBlankLines", v)
+                              this.setCheckboxValue('skipBlankLines', v)
                             }
                           />
                           <span className="help-block">
@@ -458,7 +458,7 @@ export class CsvToDatabase extends React.PureComponent {
                           <Checkbox
                             checked={this.state.inferDatetimeFormat}
                             onChange={v =>
-                              this.setCheckboxValue("inferDatetimeFormat", v)
+                              this.setCheckboxValue('inferDatetimeFormat', v)
                             }
                           />
                           <span className="help-block">
@@ -490,7 +490,7 @@ export class CsvToDatabase extends React.PureComponent {
                           <Checkbox
                             checked={this.state.dataframeIndex}
                             onChange={v =>
-                              this.setCheckboxValue("dataframeIndex", v)
+                              this.setCheckboxValue('dataframeIndex', v)
                             }
                           />
                           <span className="help-block">
@@ -538,8 +538,8 @@ export class CsvToDatabase extends React.PureComponent {
 
 CsvToDatabase.propTypes = propTypes;
 
-function mapStateToProps({uploadStatus}) {
-  return {uploadStatus: uploadStatus.uploadStatus};
+function mapStateToProps({ uploadStatus }) {
+  return { uploadStatus: uploadStatus.uploadStatus };
 }
 
 function mapDispatchToProps(dispatch) {

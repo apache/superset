@@ -23,7 +23,7 @@ import FormError from 'src/components/FormError';
 describe('FormError', () => {
   let wrapper;
   beforeEach(() => {
-    wrapper = mount(<FormError status={{message: 'Error message', timestamp: Date.now()}} />);
+    wrapper = mount(<FormError status={{ message: 'Error message', timestamp: Date.now() }} />);
   });
   it('renders without crashing', () => {
     expect(wrapper.find('.alert-danger')).toHaveLength(1);
@@ -31,5 +31,5 @@ describe('FormError', () => {
   it('hides error message when clicking on close button', () => {
     wrapper.find('.close').simulate('click');
     expect(wrapper.state().isDisplayed).toBe(false);
-  })
-})
+  });
+});

@@ -28,4 +28,4 @@ describe('Asterisk', () => {
   it('renders without crashing', () => {
     expect(wrapper.find('*')).toHaveLength(1);
   });
-})
+});

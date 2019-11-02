@@ -23,9 +23,9 @@ import DropArea from 'src/components/FileDropper/DropArea';
 describe('DropArea', () => {
   let wrapper;
   beforeEach(() => {
-    wrapper = shallow(<DropArea isVisible={true} />);
+    wrapper = shallow(<DropArea isVisible />);
   });
   it('renders without crashing', () => {
     expect(wrapper.find('.filedropper-container')).toHaveLength(1);
   });
-})
+});

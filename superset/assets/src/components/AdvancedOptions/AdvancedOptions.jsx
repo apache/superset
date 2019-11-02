@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {PureComponent} from 'react';
+import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import './AdvancedOptionsStyles.css';
-import {t} from '@superset-ui/translation';
 
 const propTypes = {
     children: PropTypes.node,
@@ -36,20 +35,20 @@ export default class AdvancedOptions extends PureComponent {
 
     handleChildren() {
         const currentState = this.state.hide;
-        this.setState({hide: !currentState})
+        this.setState({ hide: !currentState });
     }
 
 
     render() {
         return (
-            <div>
-                <div className={'title ' + (this.state.hide ? 'openTitle' : 'closeTitle')} onClick={this.handleChildren}>
-                    <span>Advanced Options</span>
-                </div>
-                <div className={this.state.hide ? 'hide' : null}>
-                    {this.props.children}
-                </div>
+          <div>
+            <div className={'title ' + (this.state.hide ? 'openTitle' : 'closeTitle')} onClick={this.handleChildren}>
+              <span>Advanced Options</span>
             </div>
+            <div className={this.state.hide ? 'hide' : null}>
+              {this.props.children}
+            </div>
+          </div>
         );
     }
 }

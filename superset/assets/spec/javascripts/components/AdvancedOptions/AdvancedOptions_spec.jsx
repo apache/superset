@@ -21,7 +21,7 @@ import { mount } from 'enzyme';
 import AdvancedOptions from 'src/components/AdvancedOptions/AdvancedOptions';
 
 describe('AdvancedOptions', () => {
-  const mockedChildren = (<div className='child'>Child content</div>);
+  const mockedChildren = (<div className="child">Child content</div>);
   let wrapper;
   beforeEach(() => {
     wrapper = mount(<AdvancedOptions>{mockedChildren}</AdvancedOptions>);
@@ -35,5 +35,5 @@ describe('AdvancedOptions', () => {
   it('displays children when not minimized', () => {
     wrapper.find('.openTitle').simulate('click');
     expect(wrapper.state().hide).toBe(false);
-  })
-})
+  });
+});

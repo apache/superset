@@ -16,25 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from "@superset-ui/connection";
-import getClientErrorObject from "src/utils/getClientErrorObject";
+import { SupersetClient } from '@superset-ui/connection';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 
-export const UPLOAD_CSV_SUCCESS = "UPLOAD_CSV_SUCCESS";
-export const UPLOAD_CSV_FAILURE = "UPLOAD_CSV_FAILURE";
+export const UPLOAD_CSV_SUCCESS = 'UPLOAD_CSV_SUCCESS';
+export const UPLOAD_CSV_FAILURE = 'UPLOAD_CSV_FAILURE';
 
 export function uploadCsv(data) {
   return dispatch =>
     SupersetClient.post({
-      endpoint: "/superset/csvtodatabase/add",
+      endpoint: '/superset/csvtodatabase/add',
       postPayload: { ...data },
-      stringify: false
+      stringify: false,
     })
       .then(() => {
-        dispatch({ type: UPLOAD_CSV_SUCCESS, message: "" });
-        window.open('/tablemodelview/list/', "_self"); // TODO: Get Url from Backend?
+        dispatch({ type: UPLOAD_CSV_SUCCESS, message: '' });
+        window.open('/tablemodelview/list/', '_self'); // TODO: Get Url from Backend?
       })
-      .catch(response => {
-        getClientErrorObject(response).then(error => {
+      .catch((response) => {
+        getClientErrorObject(response).then((error) => {
           dispatch({ type: UPLOAD_CSV_FAILURE, message: error.error });
         });
       });
