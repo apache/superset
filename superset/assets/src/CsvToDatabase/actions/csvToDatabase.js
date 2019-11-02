@@ -19,8 +19,8 @@
 import { SupersetClient } from '@superset-ui/connection';
 import { addSuccessToast, addDangerToast } from 'src/messageToasts/actions';
 
-export const UPLOAD_CSV = 'UPLOAD_CSV';
-export const REDIRECT_TO_HOME = 'REDIRECT_TO_HOME';
+export const UPLOAD_CSV_SUCCESS = 'UPLOAD_CSV_SUCCESS';
+export const UPLOAD_CSV_FAILURE = 'UPLOAD_CSV_FAILURE';
 
 export function uploadCsv(data) {
   return dispatch =>
@@ -29,6 +29,6 @@ export function uploadCsv(data) {
       postPayload: { ...data },
       stringify: false,
     })
-      .then(() => { console.log('Success'); dispatch(addSuccessToast('CSV successfully saved')); })
-      .catch(() => { console.log('Error'); dispatch(addDangerToast('CSV could not be uploaded')); });
+      .then(() => { console.log('Success'); dispatch({type: UPLOAD_CSV_SUCCESS, message: ''});})
+      .catch(() => { console.log('Error'); dispatch({type: UPLOAD_CSV_FAILURE, message: 'Failure'}); });
 }

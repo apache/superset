@@ -3163,7 +3163,7 @@ class Superset(BaseSupersetView):
             stats_logger.incr("failed_csv_upload")
             raise Exception(message)
 
-    def nis_schema_allowed(self, database, schema):
+    def is_schema_allowed(self, database, schema):
         if not database.allow_csv_upload:
             return False
         schemas = database.get_schema_access_for_csv_upload()

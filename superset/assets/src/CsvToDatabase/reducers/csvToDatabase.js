@@ -19,8 +19,11 @@
 import * as actions from '../actions/csvToDatabase';
 
 export default function csvToDatabaseReducer(state = {}, action) {
-  if (action.type === actions.REDIRECT_TO_HOME) {
-    // TODO: Redirect
+  if (action.type === actions.UPLOAD_CSV_SUCCESS) {
+    return Object.assign({}, state, {uploadStatus: {message: action.message, timestamp: Date.now()}});
+  }
+  if (action.type === actions.UPLOAD_CSV_FAILURE) {
+    return Object.assign({}, state, {uploadStatus: {message: action.message, timestamp: Date.now()}});
   }
   return state;
 }

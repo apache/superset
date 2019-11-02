@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Asterisk from 'src/components/Asterisk';
 import FileDropper from 'src/components/FileDropper/FileDropper';
+import FormError from 'src/components/FormError';
 import DropArea from 'src/components/FileDropper/DropArea';
 import Select from 'react-virtualized-select';
 import Button from 'src/components/Button';
@@ -27,13 +28,13 @@ import AdvancedOptions from "../components/AdvancedOptions/AdvancedOptions";
 import Checkbox from "../components/Checkbox";
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import withToasts from '../messageToasts/enhancers/withToasts';
 import * as Actions from './actions/csvToDatabase';
 import './CsvToDatabase.css';
 
 const propTypes = {
   databases: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired,
+  uploadStatus: PropTypes.object,
 };
 
 export class CsvToDatabase extends React.PureComponent {
@@ -69,7 +70,6 @@ export class CsvToDatabase extends React.PureComponent {
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
     this.setTableExists = this.setTableExists.bind(this);
     this.setUserInput = this.setUserInput.bind(this);
-    this.setSchema = this.setSchema.bind(this);
     this.getConnectionStrings = this.getConnectionStrings.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }
@@ -104,11 +104,6 @@ export class CsvToDatabase extends React.PureComponent {
 
   setCheckboxValue(name, value) {
     this.setState({ [name]: value });
-  }
-
-  setSchema(event) {
-    // TODO: Schema check from forms
-    this.setUserInput(event);
   }
 
   getConnectionStrings() {
@@ -168,6 +163,7 @@ export class CsvToDatabase extends React.PureComponent {
   render() {
     return (
       <div className="container">
+          <FormError status={this.props.uploadStatus} />
         <div className="panel panel-primary">
           <div className="panel-heading">
             <h4 className="panel-title">CSV to Database configuration</h4>
@@ -273,7 +269,7 @@ export class CsvToDatabase extends React.PureComponent {
                           placeholder="Schema"
                           type="text"
                           value={this.state.schema}
-                          onChange={this.setSchema}
+                          onChange={this.setUserInput}
                         />
                         <span className="help-block">
                           Specify a schema (if database flavor supports this)
@@ -541,6 +537,10 @@ export class CsvToDatabase extends React.PureComponent {
 
 CsvToDatabase.propTypes = propTypes;
 
+function mapStateToProps({uploadStatus}) {
+  return {uploadStatus: uploadStatus.uploadStatus};
+}
+
 function mapDispatchToProps(dispatch) {
   return {
     actions: bindActionCreators(Actions, dispatch),
@@ -548,6 +548,6 @@ function mapDispatchToProps(dispatch) {
 }
 
 export default connect(
-  null,
+  mapStateToProps,
   mapDispatchToProps,
-)(withToasts(CsvToDatabase));
+)(CsvToDatabase);
