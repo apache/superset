@@ -22,6 +22,7 @@ import './FileDropper.css';
 
 const propTypes = {
   onFileSelected: PropTypes.func.isRequired,
+  isRequired: PropTypes.bool,
   allowedMimeTypes: PropTypes.array,
   className: PropTypes.string,
   maxSize: PropTypes.number,
@@ -127,6 +128,7 @@ export default class FileDropper extends React.Component {
 
   render() {
     const {
+      isRequired,
       allowedMimeTypes,
       disableClick,
       allowMultipleSelection,
@@ -145,6 +147,7 @@ export default class FileDropper extends React.Component {
       >
         {this.props.children}
         <input
+          required={isRequired}
           type="file"
           id="file"
           accept={allowedMimeTypes && allowedMimeTypes.join(',')}

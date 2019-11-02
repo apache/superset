@@ -18,5 +18,7 @@
  */
 
 .filedropper-input.filedropper-input {
-  display: none;
+  opacity: 0;
+  width: 1;
+  position: absolute;
 }
