@@ -30,8 +30,8 @@ export function uploadCsv(data) {
       stringify: false
     })
       .then(() => {
-        console.log("Success");
         dispatch({ type: UPLOAD_CSV_SUCCESS, message: "" });
+        window.open('/tablemodelview/list/', "_self"); // TODO: Get Url from Backend?
       })
       .catch(response => {
         getClientErrorObject(response).then(error => {

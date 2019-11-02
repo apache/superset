@@ -3241,7 +3241,7 @@ class Superset(BaseSupersetView):
             'database "{2}"'.format(csv_filename, formdata["tableName"], db_name)
         )
         stats_logger.incr("successful_csv_upload")
-        return Response(message, 200)
+        return json_success('"Success"')
 
 
 appbuilder.add_view_no_menu(Superset)
