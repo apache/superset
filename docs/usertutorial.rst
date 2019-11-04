@@ -348,7 +348,7 @@ data. The three types of transformation are:
 
 Moving Average
   Select a rolling window [#f1]_, and then apply a calculation on it (mean,
-  sum or standard deviation). The forth option, cumsum, calculates the
+  sum or standard deviation). The fourth option, cumsum, calculates the
   cumulative sum of the series [#f2]_.
 
 Time Comparison
