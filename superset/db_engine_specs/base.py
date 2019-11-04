@@ -505,7 +505,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(e)
 
     @classmethod
-    def adjust_database_uri(cls, uri, selected_schema: str):
+    def adjust_database_uri(cls, uri, selected_schema: Optional[str]):
         """Based on a URI and selected schema, return a new URI
 
         The URI here represents the URI as entered when saving the database,
@@ -718,19 +718,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return costs
 
     @classmethod
-    def modify_url_for_impersonation(cls, url, impersonate_user: bool, username: str):
+    def modify_url_for_impersonation(
+        cls, url, impersonate_user: bool, username: Optional[str]
+    ):
         """
         Modify the SQL Alchemy URL object with the user to impersonate if applicable.
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
-        if impersonate_user is not None and username is not None:
+        if impersonate_user and username is not None:
             url.username = username
 
     @classmethod
     def get_configuration_for_impersonation(  # pylint: disable=invalid-name
-        cls, uri: str, impersonate_user: bool, username: str
+        cls, uri: str, impersonate_user: bool, username: Optional[str]
     ) -> Dict[str, str]:
         """
         Return a configuration dictionary that can be merged with other configs
