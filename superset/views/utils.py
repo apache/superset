@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 from collections import defaultdict
+from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
@@ -212,13 +213,19 @@ def get_time_range_endpoints(
     Get the slice aware time range endpoints from the form-data falling back to the SQL
     database specific definition or default if not defined.
 
-    For SIP-15 all new slices use the [start, end) interval which is consistent with the
-    native Druid connector.
+    When SIP-15 is enabled all slices and will the [start, end) interval. If the grace
+    period is defined and has ended all slices will adhere to the [start, end) interval.
 
     :param form_data: The form-data
     :param slc: The chart
     :returns: The time range endpoints tuple
     """
+
+    if (
+        app.config["SIP_15_GRACE_PERIOD_END"]
+        and date.today() >= app.config["SIP_15_GRACE_PERIOD_END"]
+    ):
+        return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
 
     endpoints = form_data.get("time_range_endpoints")
 

@@ -1356,9 +1356,33 @@ To remedy this rather than having to define the date/time format for every non-I
         }
     }
 
-Additionally to aid with transparency the current endpoint behavior is explicitly called out in the chart time range (post SIP-15 this will be [start, end) for all connectors and databases). One can override the defaults on a per database level via the ``extra``
+**New deployments**
+
+All new Superset deployments should enable SIP-15 via,
+
+.. code-block:: python
+
+    SIP_15_ENABLED = True
+
+**Existing deployments**
+
+Given that it is not apparent whether the chart creator was aware of the time range inconsistencies (and adjusted the endpoints accordingly) changing the behavior of all charts is overly aggressive. Instead SIP-15 proivides a soft transistion allowing producers (chart owners) to see the impact of the proposed change and adjust their charts accordingly.
+
+Prior to enabling SIP-15 existing deployments should communicate to their users the impact of the change and define a grace period end date (exclusive of course) after which all charts will conform to the [start, end) interval, i.e.,
+
+.. code-block:: python
+
+    from dateime import date
+
+    SIP_15_ENABLED = True
+    SIP_15_GRACE_PERIOD_END = date(<YYYY>, <MM>, <DD>)
+
+To aid with transparency the current endpoint behavior is explicitly called out in the chart time range (post SIP-15 this will be [start, end) for all connectors and databases). One can override the defaults on a per database level via the ``extra``
 parameter ::
 
     {
         "time_range_endpoints": ["inclusive", "inclusive"]
     }
+
+
+Note in a future release the interim SIP-15 logic will be removed (including the ``time_grain_endpoints`` form-data field) via a code change and Alembic migration.
