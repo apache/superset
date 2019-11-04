@@ -3089,14 +3089,16 @@ class Superset(BaseSupersetView):
     @expose("/csvtodatabase/add", methods=["POST"])
     def add(self):
         form_data = request.form
-        # check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
-        # this beforehand
+
         csv_file = request.files["file"]
+        # remove illegal characters to prevent LFI (../)
         csv_filename = secure_filename(csv_file.filename)
         if len(csv_filename) == 0:
             return Response("Filename is not allowed", 400)
 
         database_id = form_data["connectionId"]
+        # check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
+        # this beforehand
         try:
             database_id = int(database_id)
         except ValueError:
@@ -3107,11 +3109,12 @@ class Superset(BaseSupersetView):
 
         try:
             if database_id != -1:
-                schema = form_data["schema"] if ("schema" in form_data) else None
+                schema = form_data["schema"] if form_data["schema"] else None
                 database = self._get_existing_database(database_id, schema)
                 db_name = database.database_name
             else:
                 db_name = (
+                    # TODO check if this field always exists
                     form_data["databaseName"]
                     if "databaseName" in form_data
                     else csv_filename[:-4]
@@ -3155,23 +3158,27 @@ class Superset(BaseSupersetView):
             item.sqlalchemy_uri = "sqlite:///" + db_path
             item.allow_csv_upload = True
             session = db.session()
+            # TODO check if SQL-injection is possible through add()
             session.add(item)
             session.commit()
             return item
         except Exception as e:
+            message = (
+                " Error when trying to create Database"
+                if isinstance(e, IntegrityError)
+                else str(e)
+            )
             try:
+                # TODO check if deletion can lead to exception which needs to be caught
                 session.delete(item)
                 session.commit()
                 os.remove(db_path)
             except OSError:
-                pass
-            message = (
-                "Database {0} could not be removed. Please remove it manually".format(
-                    db_name
+                message = _(
+                    "Error when trying to create Database and Database-File could not be removed. "
+                    "Please contact your administrator to remove it manually"
                 )
-                if isinstance(e, IntegrityError)
-                else str(e)
-            )
+                pass
             stats_logger.incr("failed_csv_upload")
             raise Exception(message)
 
@@ -3181,7 +3188,7 @@ class Superset(BaseSupersetView):
             if not self._is_schema_allowed(database, schema):
                 message = _(
                     'Database "{0}" Schema "{1}" is not allowed for csv uploads. '
-                    "Please contact Superset Admin".format(
+                    "Please contact your Superset administrator".format(
                         database.database_name, schema
                     )
                 )
