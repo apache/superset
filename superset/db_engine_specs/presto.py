@@ -443,14 +443,15 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def estimate_statement_cost(  # pylint: disable=too-many-locals
         cls, statement: str, database, cursor, user_name: str
-    ) -> Dict[str, str]:
+    ) -> Dict[str, float]:
         """
-        Generate a SQL query that estimates the cost of a given statement.
+        Run a SQL query that estimates the cost of a given statement.
 
         :param statement: A single SQL statement
         :param database: Database instance
         :param cursor: Cursor instance
         :param username: Effective username
+        :return: JSON estimate from Presto
         """
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
@@ -476,7 +477,18 @@ class PrestoEngineSpec(BaseEngineSpec):
         #     }
         #   }
         result = json.loads(cursor.fetchone()[0])
-        estimate = result["estimate"]
+        return result["estimate"]
+
+    @classmethod
+    def query_cost_formatter(
+        cls, raw_cost: List[Dict[str, float]]
+    ) -> List[Dict[str, str]]:
+        """
+        Format cost estimate.
+
+        :param raw_cost: JSON estimate from Presto
+        :return: Human readable cost estimate
+        """
 
         def humanize(value: Any, suffix: str) -> str:
             try:
@@ -493,7 +505,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
             return f"{value} {prefix}{suffix}"
 
-        cost = {}
+        cost = []
         columns = [
             ("outputRowCount", "Output count", " rows"),
             ("outputSizeInBytes", "Output size", "B"),
@@ -501,9 +513,12 @@ class PrestoEngineSpec(BaseEngineSpec):
             ("maxMemory", "Max memory", "B"),
             ("networkCost", "Network cost", ""),
         ]
-        for key, label, suffix in columns:
-            if key in estimate:
-                cost[label] = humanize(estimate[key], suffix)
+        for row in raw_cost:
+            statement_cost = {}
+            for key, label, suffix in columns:
+                if key in row:
+                    statement_cost[label] = humanize(row[key], suffix).strip()
+            cost.append(statement_cost)
 
         return cost
 
