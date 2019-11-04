@@ -67,6 +67,7 @@ class TabbedSqlEditors extends React.PureComponent {
     this.renameTab = this.renameTab.bind(this);
     this.toggleLeftBar = this.toggleLeftBar.bind(this);
     this.removeAllOtherQueryEditors = this.removeAllOtherQueryEditors.bind(this);
+    this.duplicateQueryEditor = this.duplicateQueryEditor.bind(this);
   }
   componentDidMount() {
     const query = URI(window.location).search(true);
@@ -182,6 +183,9 @@ class TabbedSqlEditors extends React.PureComponent {
     this.props.queryEditors
       .forEach(qe => qe !== cqe && this.removeQueryEditor(qe));
   }
+  duplicateQueryEditor(qe) {
+    this.props.actions.cloneQueryToNewTab(qe);
+  }
   toggleLeftBar() {
     this.setState({ hideLeftBar: !this.state.hideLeftBar });
   }
@@ -235,6 +239,12 @@ class TabbedSqlEditors extends React.PureComponent {
               <i className="fa fa-times-circle-o" />
             </div>
             {t('Close all other tabs')}
+          </MenuItem>
+          <MenuItem eventKey="5" onClick={() => this.duplicateQueryEditor(qe)}>
+            <div className="icon-container">
+              <i className="fa fa-files-o" />
+            </div>
+            {t('Duplicate tab')}
           </MenuItem>
         </SplitButton>
       );
