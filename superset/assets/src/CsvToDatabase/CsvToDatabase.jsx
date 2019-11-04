@@ -91,7 +91,6 @@ export class CsvToDatabase extends React.PureComponent {
     if (connection.value === -1 && this.state.file) {
       databaseName = this.state.file.name.slice(0, -4);
     }
-    console.log(connection, databaseName);
     this.setState({
       selectedConnection: connection,
       databaseName,
@@ -343,7 +342,9 @@ export class CsvToDatabase extends React.PureComponent {
                             onChange={v =>
                               this.setCheckboxValue('mangleDuplicateColumns', v)
                             }
-                            helpText={'Specify duplicate columns as "X.0, X.1".'}
+                            helpText={
+                              'Specify duplicate columns as "X.0, X.1".'
+                            }
                           />
                         </td>
                       </tr>
