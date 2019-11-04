@@ -611,19 +611,19 @@ class CoreTests(SupersetTestCase):
         db.session.commit()
         test_file = open(filename, "rb")
         form_data = {
-            "csv_file": test_file,
-            "sep": ",",
-            "name": table_name,
-            "con": db_id,
-            "if_exists": "append",
-            "index_label": "test_label",
-            "mangle_dupe_cols": False,
+            "file": test_file,
+            "delimiter": ",",
+            "tableName": table_name,
+            "connectionId": db_id,
+            "ifTableExists": "append",
+            "columnLabels": "test_label",
+            "mangleDuplicateColumns": False,
         }
         url = "/databaseview/list/"
         add_datasource_page = self.get_resp(url)
         assert "Upload a CSV" in add_datasource_page
 
-        url = "/csvtodatabaseview/form"
+        url = "/superset/csvtodatabase"
         form_get = self.get_resp(url)
         assert "CSV to Database configuration" in form_get
 
