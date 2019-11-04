@@ -920,3 +920,18 @@ class UtilsTestCase(unittest.TestCase):
         )
 
         self.assertIsNone(get_time_range_endpoints(form_data={}, slc=slc))
+
+        with app.app_context():
+            app.config["SIP_15_GRACE_PERIOD_END"] = date.today() + timedelta(days=1)
+
+            self.assertEqual(
+                get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
+                (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
+            )
+
+            app.config["SIP_15_GRACE_PERIOD_END"] = date.today()
+
+            self.assertEqual(
+                get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
+                (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
+            )
