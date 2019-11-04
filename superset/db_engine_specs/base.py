@@ -674,7 +674,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def estimate_statement_cost(
         cls, statement: str, database, cursor, user_name: str
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         """
         Generate a SQL query that estimates the cost of a given statement.
 
@@ -682,6 +682,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param database: Database instance
         :param cursor: Cursor instance
         :param username: Effective username
+        :return: Dictionary with different costs
+        """
+        raise Exception("Database does not support cost estimation")
+
+    @classmethod
+    def query_cost_formatter(
+        cls, raw_cost: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
+        """
+        Format cost estimate.
+
+        :param raw_cost: Raw estimate from `estimate_query_cost`
+        :return: Human readable cost estimate
         """
         raise Exception("Database does not support cost estimation")
 
