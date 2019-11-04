@@ -18,46 +18,20 @@
  */
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import FormHelpText from './FormHelpText';
 
 const propTypes = {
-  name: PropTypes.string.isRequired,
-  type: PropTypes.string.isRequired,
-  placeholder: PropTypes.string,
-  value: PropTypes.obj,
-  onChange: PropTypes.func,
-  required: PropTypes.bool,
-  helpText: PropTypes.string,
+  helpText: PropTypes.string.isRequired,
 };
 
-export default class FormInput extends PureComponent {
+export default class FormHelpText extends PureComponent {
   render() {
     const {
-      name,
-      type,
-      placeholder,
-      value,
-      onChange,
-      required,
       helpText,
     } = this.props;
-    const help = helpText && <FormHelpText helpText={helpText} />;
     return (
-      <>
-        <input
-          className="form-control"
-          type={type}
-          id={name}
-          name={name}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          required={required}
-        />
-        {help}
-      </>
+      <span className="help-block">{helpText}</span>
     );
   }
 }
 
-FormInput.propTypes = propTypes;
+FormHelpText.propTypes = propTypes;
