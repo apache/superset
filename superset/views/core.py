@@ -50,6 +50,7 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
+from werkzeug.test import File
 from werkzeug.utils import secure_filename
 
 from superset import (
@@ -3088,6 +3089,11 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/csvtodatabase/add", methods=["POST"])
     def add(self):
+        """ import a csv into a Table
+
+        Arguments:
+        request -- contains the csv-file as well as properties
+        """
         form_data = request.form
 
         csv_file = request.files["file"]
@@ -3109,15 +3115,14 @@ class Superset(BaseSupersetView):
 
         try:
             if database_id != -1:
-                schema = form_data["schema"] if form_data["schema"] else None
+                schema = None if not form_data["schema"] else form_data["schema"]
                 database = self._get_existing_database(database_id, schema)
                 db_name = database.database_name
             else:
                 db_name = (
-                    # TODO check if this field always exists
-                    form_data["databaseName"]
-                    if "databaseName" in form_data
-                    else csv_filename[:-4]
+                    csv_filename[:-4]
+                    if not form_data["databaseName"]
+                    else form_data["databaseName"]
                 )
                 db_name = secure_filename(db_name)
                 if len(db_name) == 0:
@@ -3145,7 +3150,12 @@ class Superset(BaseSupersetView):
         stats_logger.incr("successful_csv_upload")
         return json_success('"Success"')
 
-    def _create_database(self, db_name):
+    def _create_database(self, db_name: str) -> None:
+        """ Creates the Database itself as well as the Superset Connection to it
+
+        Keyword arguments:
+        db_name -- the name for the database to be created
+        """
         db_path = os.getcwd() + "/" + db_name + ".db"
         if os.path.isfile(db_path):
             message = '"Database file for {0} already exists, please choose a different name"'.format(
@@ -3182,7 +3192,13 @@ class Superset(BaseSupersetView):
             stats_logger.incr("failed_csv_upload")
             raise Exception(message)
 
-    def _get_existing_database(self, database_id, schema):
+    def _get_existing_database(self, database_id: int, schema: str) -> models.Database:
+        """Returns the database object for an existing database
+
+        Keyword arguments:
+        database_id -- the ID used to identify the database
+        schema -- the schema to be used
+        """
         try:
             database = self._get_database_by_id(database_id)
             if not self._is_schema_allowed(database, schema):
@@ -3197,14 +3213,26 @@ class Superset(BaseSupersetView):
         except Exception as e:
             raise Exception(e.args[0])
 
-    def _get_database_by_id(self, database_id):
+    def _get_database_by_id(self, database_id: int) -> models.Database:
+        """ Returns the Database for the given ID
+
+        Keyword arguments:
+        database_id -- The ID which is used to identify the Database by
+        """
+
         dbs = db.session().query(models.Database).filter_by(id=database_id).all()
         if len(dbs) != 1:
             message = _('"None or several matching databases found"')
             raise Exception(message)
         return dbs[0]
 
-    def _is_schema_allowed(self, database, schema):
+    def _is_schema_allowed(self, database: models.Database, schema: str) -> bool:
+        """ Checks whether the specified schema is allowed for csv-uploads
+
+        Keyword Arguments:
+        database -- The database object which will be used for the import
+        schema -- the schema to be used for the import
+        """
         if not database.allow_csv_upload:
             return False
         schemas = database.get_schema_access_for_csv_upload()
@@ -3215,7 +3243,13 @@ class Superset(BaseSupersetView):
             or security_manager.all_datasource_access()
         )
 
-    def _check_and_save_csv(self, csv_file, csv_filename):
+    def _check_and_save_csv(self, csv_file: File, csv_filename: str) -> str:
+        """ Sanitizes the filename and saves the csv-file to disk
+
+        Keyword arguments:
+        csv_file -- the file which will be saved to disk
+        csv_filename -- the filename to be sanitized which will be used
+        """
         path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
         try:
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
@@ -3225,7 +3259,15 @@ class Superset(BaseSupersetView):
             raise Exception('"Could not save CSV-file, does the upload folder exist?"')
         return path
 
-    def _create_table(self, form_data, database, csv_filename):
+    def _create_table(
+        self, form_data: dict, database: models.Database, csv_filename: str
+    ) -> None:
+        """ Create the Table itself and fill it with the data from the csv file
+
+        Keyword arguments:
+        form_data -- the dictionary containing the properties for the Table to be created
+        database -- the database object which will be used
+        csv_filename -- the name of the csv-file to be imported"""
         try:
             table = SqlaTable(table_name=form_data["tableName"])
             table.database = database

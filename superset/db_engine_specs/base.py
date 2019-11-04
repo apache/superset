@@ -38,7 +38,8 @@ from sqlalchemy.types import TypeEngine
 import sqlparse
 from werkzeug.utils import secure_filename
 
-from superset import app, db, sql_parse
+from superset import app, db, sql_parse, models
+from superset.connectors.sqla.models import SqlaTable
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -387,7 +388,22 @@ class BaseEngineSpec:
         df.to_sql(**kwargs)
 
     @classmethod
-    def json_create_table_from_csv(cls, formdata, table, csv_filename, database):
+    def json_create_table_from_csv(
+        cls,
+        form_data: dict,
+        table: SqlaTable,
+        csv_filename: str,
+        database: models.Database,
+    ) -> None:
+        """ import the data in the csv-file into the given table
+
+        Keyword arguments:
+        form_data -- dictionary containing the properties for the import
+        table -- the SqlaTable object into which the data should be imported
+        csv_filename -- the name of the csv file which will be read from disk or a buffer of the file content
+        database -- the database object which contains the connection string for the actual database
+        """
+
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
             extension = os.path.splitext(filename)[1]
@@ -400,39 +416,31 @@ class BaseEngineSpec:
             raise Exception("Invalid file type selected")
         csv_to_df_kwargs = {
             "filepath_or_buffer": filename,
-            "sep": formdata["delimiter"],
+            "sep": form_data["delimiter"],
             # frontend already does int-check, check again in case of tampering
-            "header": int(formdata["headerRow"]) if "headerRow" in formdata else 0,
-            "index_col": formdata["index_col"] if "index_col" in formdata else None,
-            "mangle_dupe_cols": formdata["mangle"] if "mangle" in formdata else True,
-            "skipinitialspace": formdata["skipintial"]
-            if "skipinitial" in formdata
-            else True,
-            "skiprows": formdata["skiprows"] if "skiprows" in formdata else None,
-            "nrows": formdata["nrows"] if "nrows" in formdata else None,
-            "skip_blank_lines": formdata["skip_blank"]
-            if "skip_blank" in formdata
-            else True,
-            "parse_dates": formdata["parse_dates"]
-            if "parse_dates" in formdata
-            else True,
-            "infer_datetime_format": formdata["infer_datetime_format"]
-            if "infer_datetime_format" in formdata
-            else True,
+            "header": 0 if not form_data["headerRow"] else int(form_data["headerRow"]),
+            "index_col": None if not form_data["index_col"] else form_data["index_col"],
+            "mangle_dupe_cols": form_data["mangle"],
+            "skipinitialspace": form_data["skipintial"],
+            "skiprows": None if not form_data["skiprows"] else form_data["skiprows"],
+            "nrows": None if not form_data["nrows"] else form_data["nrows"],
+            "skip_blank_lines": form_data["skip_blank"],
+            "parse_dates": form_data["parse_dates"],
+            "infer_datetime_format": form_data["infer_datetime_format"],
             "chunksize": 10000,
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
 
         df_to_sql_kwargs = {
             "df": df,
-            "name": formdata["tableName"],
+            "name": form_data["tableName"],
             "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
-            "schema": None if not formdata["schema"] else formdata["schema"],
-            "if_exists": lower(formdata["ifTableExists"]),
-            "index": formdata["index"] if "index" in formdata else False,
-            "index_label": formdata["index_label"]
-            if "index_label" in formdata
-            else None,
+            "schema": None if not form_data["schema"] else form_data["schema"],
+            "if_exists": lower(form_data["ifTableExists"]),
+            "index": form_data["index"],
+            "index_label": None
+            if not form_data["index_label"]
+            else form_data["index_label"],
             "chunksize": 10000,
         }
         cls.df_to_sql(**df_to_sql_kwargs)
