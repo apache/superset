@@ -18,6 +18,7 @@
  */
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
+import { t } from '@superset-ui/translation';
 import './AdvancedOptionsStyles.css';
 
 const propTypes = {
@@ -43,7 +44,7 @@ export default class AdvancedOptions extends PureComponent {
         return (
           <div>
             <div className={'title ' + (this.state.hide ? 'openTitle' : 'closeTitle')} onClick={this.handleChildren}>
-              <span>Advanced Options</span>
+              <span>{t('Advanced Options')}</span>
             </div>
             <div className={this.state.hide ? 'hide' : null}>
               {this.props.children}

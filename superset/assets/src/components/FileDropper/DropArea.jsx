@@ -18,8 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import './DropArea.css';
+import { t } from '@superset-ui/translation';
 import Button from '../Button';
+import './DropArea.css';
 
 const propTypes = {
   isVisible: PropTypes.bool.isRequired,
@@ -73,23 +74,23 @@ export default class DropArea extends React.PureComponent {
           onMouseOut={this.unsetHover}
         >
           <i className="fa fa-upload" />
-          <div className="filedropper-title">{text || 'Drag & Drop'}</div>
+          <div className="filedropper-title">{text || t('Drag & Drop')}</div>
           {(showButton === undefined || showButton) && (
             <>
               <div className="filedropper-separatortext">
-                {separatorText || 'or'}
+                {separatorText || t('or')}
               </div>
               <Button
-                tooltip={fileName || 'No file chosen'}
+                tooltip={fileName || t('No file chosen')}
                 bsStyle="primary"
               >
-                {buttonText || 'Click here'}
+                {buttonText || t('Click here')}
               </Button>
             </>
           )}
         </div>
         {showFileSelected ? (
-          <div>File: {fileName || 'No file chosen'}</div>
+          <div>{t('File')}: {fileName || t('No file chosen')}</div>
         ) : (
           <></>
         )}
