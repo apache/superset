@@ -3206,7 +3206,7 @@ class Superset(BaseSupersetView):
             stats_logger.incr("failed_csv_upload")
             raise Exception(message)
 
-    def _get_existing_database(self, database_id: int, schema: str):
+    def _get_existing_database(self, database_id: int, schema):
         """Returns the database object for an existing database
 
         Keyword arguments:
