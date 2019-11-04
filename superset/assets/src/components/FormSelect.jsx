@@ -18,40 +18,36 @@
  */
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
+import Select from 'react-virtualized-select';
 import FormHelpText from './FormHelpText';
 
 const propTypes = {
-  name: PropTypes.string.isRequired,
-  type: PropTypes.string.isRequired,
-  placeholder: PropTypes.string,
   value: PropTypes.obj,
+  options: PropTypes.array,
   onChange: PropTypes.func,
   required: PropTypes.bool,
+  clearable: PropTypes.bool,
   helpText: PropTypes.string,
 };
 
-export default class FormInput extends PureComponent {
+export default class FormSelect extends PureComponent {
   render() {
     const {
-      name,
-      type,
-      placeholder,
       value,
+      options,
       onChange,
       required,
+      clearable,
       helpText,
     } = this.props;
     const help = helpText && <FormHelpText helpText={helpText} />;
     return (
       <>
-        <input
-          className="form-control"
-          type={type}
-          id={name}
-          name={name}
-          placeholder={placeholder}
+        <Select
           value={value}
           onChange={onChange}
+          options={options}
+          clearable={clearable}
           required={required}
         />
         {help}
@@ -60,4 +56,4 @@ export default class FormInput extends PureComponent {
   }
 }
 
-FormInput.propTypes = propTypes;
+FormSelect.propTypes = propTypes;

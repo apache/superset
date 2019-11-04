@@ -24,11 +24,12 @@ import Asterisk from 'src/components/Asterisk';
 import FileDropper from 'src/components/FileDropper/FileDropper';
 import FormError from 'src/components/FormError';
 import DropArea from 'src/components/FileDropper/DropArea';
-import Select from 'react-virtualized-select';
 import Button from 'src/components/Button';
 import AdvancedOptions from 'src/components/AdvancedOptions/AdvancedOptions';
-import Checkbox from 'src/components/Checkbox';
 import FormInput from 'src/components/FormInput';
+import FormCheckbox from 'src/components/FormCheckbox';
+import FormHelpText from 'src/components/FormHelpText';
+import FormSelect from 'src/components/FormSelect';
 import * as Actions from './actions/csvToDatabase';
 import './CsvToDatabase.css';
 
@@ -49,7 +50,7 @@ export class CsvToDatabase extends React.PureComponent {
       schema: '',
       delimiter: ',',
       selectedTableExists: { label: 'Fail', value: 'Fail' },
-      headerRow:  '0',
+      headerRow: '0',
       decimalCharacter: '.',
       tableExistsValues: [
         { label: 'Fail', value: 'Fail' },
@@ -91,7 +92,10 @@ export class CsvToDatabase extends React.PureComponent {
       databaseName = this.state.file.name.slice(0, -4);
     }
     console.log(connection, databaseName);
-    this.setState({ selectedConnection: connection, databaseName: databaseName });
+    this.setState({
+      selectedConnection: connection,
+      databaseName,
+    });
   }
 
   setTableExists(value) {
@@ -186,13 +190,13 @@ export class CsvToDatabase extends React.PureComponent {
                       </td>
                       <td>
                         <FormInput
-                        type="text"
-                        name="tableName"
-                        placeHolder="Table name"
-                        required={true}
-                        value={this.state.tableName}
-                        onChange={this.setUserInput}
-                        helpText="Name of the table to be created from csv data."
+                          type="text"
+                          name="tableName"
+                          placeHolder="Table name"
+                          required
+                          value={this.state.tableName}
+                          onChange={this.setUserInput}
+                          helpText="Name of the table to be created from csv data."
                         />
                       </td>
                     </tr>
@@ -214,9 +218,7 @@ export class CsvToDatabase extends React.PureComponent {
                             }
                           />
                         </FileDropper>
-                        <span className="help-block">
-                          Select a CSV file to be uploaded to a database.
-                        </span>
+                        <FormHelpText helpText="Select a CSV file to be uploaded to a database." />
                       </td>
                     </tr>
                     <tr>
@@ -224,7 +226,7 @@ export class CsvToDatabase extends React.PureComponent {
                         Database <Asterisk />
                       </td>
                       <td>
-                        <Select
+                        <FormSelect
                           value={this.state.selectedConnection}
                           onChange={this.setSelectedConnection}
                           options={this.getConnectionStrings()}
@@ -244,7 +246,7 @@ export class CsvToDatabase extends React.PureComponent {
                       </td>
                       <td>
                         <FormInput
-                        type="text"
+                          type="text"
                           name="databaseName"
                           placeHolder="Database Name"
                           required={this.state.selectedConnection.value === -1}
@@ -258,7 +260,7 @@ export class CsvToDatabase extends React.PureComponent {
                       <td className="col-lg-2">Schema</td>
                       <td>
                         <FormInput
-                        type="text"
+                          type="text"
                           name="schema"
                           placeholder="Schema"
                           value={this.state.schema}
@@ -272,14 +274,14 @@ export class CsvToDatabase extends React.PureComponent {
                         Delimiter <Asterisk />
                       </td>
                       <td>
-                        <FormInput 
-                        type="text"
-                        name="delimiter"
-                        placeholder="Delimiter"
-                        required={true}
-                        value={this.state.delimiter}
-                        onChange={this.setUserInput}
-                        helpText="Delimiter used by CSV file (for whitespace use \s++)"
+                        <FormInput
+                          type="text"
+                          name="delimiter"
+                          placeholder="Delimiter"
+                          required
+                          value={this.state.delimiter}
+                          onChange={this.setUserInput}
+                          helpText="Delimiter used by CSV file (for whitespace use \s++)"
                         />
                       </td>
                     </tr>
@@ -288,17 +290,15 @@ export class CsvToDatabase extends React.PureComponent {
                         Table Exists <Asterisk />
                       </td>
                       <td>
-                        <Select
+                        <FormSelect
                           value={this.state.selectedTableExists}
                           onChange={this.setTableExists}
                           options={this.state.tableExistsValues}
                           clearable={false}
-                        />
-                        <span className="help-block">
-                          If table exists do one of the following: Fail (do
+                          helpText="If table exists do one of the following: Fail (do
                           nothing), Replace (drop and recreate table) or Append
-                          (insert data)
-                        </span>
+                          (insert data)"
+                        />
                       </td>
                     </tr>
                   </tbody>
@@ -310,12 +310,12 @@ export class CsvToDatabase extends React.PureComponent {
                         <td className="col-lg-2">Header Row</td>
                         <td>
                           <FormInput
-                          type="number"
-                          name="headerRow"
-                          placeholder="Header Row"
-                          value={this.state.headerRow}
-                          onChange={this.setUserInput}
-                          helpText="Row containing the headers to use as column names (0
+                            type="number"
+                            name="headerRow"
+                            placeholder="Header Row"
+                            value={this.state.headerRow}
+                            onChange={this.setUserInput}
+                            helpText="Row containing the headers to use as column names (0
                             is first line of data). Leave empty if there is no
                             header row."
                           />
@@ -324,8 +324,8 @@ export class CsvToDatabase extends React.PureComponent {
                       <tr>
                         <td className="col-lg-2">Index Column</td>
                         <td>
-                          <FormInput 
-                          type="text"
+                          <FormInput
+                            type="text"
                             name="indexColumn"
                             placeholder="Index Column"
                             value={this.state.indexColumn}
@@ -338,76 +338,70 @@ export class CsvToDatabase extends React.PureComponent {
                       <tr>
                         <td className="col-lg-2">Mangle Duplicate Columns</td>
                         <td>
-                          <Checkbox
+                          <FormCheckbox
                             checked={this.state.mangleDuplicateColumns}
                             onChange={v =>
                               this.setCheckboxValue('mangleDuplicateColumns', v)
                             }
+                            helpText={'Specify duplicate columns as "X.0, X.1".'}
                           />
-                          <span className="help-block">
-                            Specify duplicate columns as "X.0, X.1".
-                          </span>
                         </td>
                       </tr>
                       <tr>
                         <td className="col-lg-2">Skip Initial Space</td>
                         <td>
-                          <Checkbox
+                          <FormCheckbox
                             checked={this.state.skipInitialSpace}
                             onChange={v =>
                               this.setCheckboxValue('skipInitialSpace', v)
                             }
+                            helpText="Skip spaces after delimiter."
                           />
-                          <span className="help-block">
-                            Skip spaces after delimiter.
-                          </span>
                         </td>
                       </tr>
                       <tr>
                         <td className="col-lg-2">Skip Rows</td>
                         <td>
                           <FormInput
-                          type="text" 
-                                                      name="skipRows"
-                                                      placeholder="Skip Rows"
-                                                      value={this.state.skipRows}
-                                                      onChange={this.setUserInput}
-                                                      helpText="Number of rows to skip at start of file."
+                            type="text"
+                            name="skipRows"
+                            placeholder="Skip Rows"
+                            value={this.state.skipRows}
+                            onChange={this.setUserInput}
+                            helpText="Number of rows to skip at start of file."
                           />
                         </td>
                       </tr>
                       <tr>
                         <td className="col-lg-2">Rows to Read</td>
                         <td>
-                          <FormInput 
-                          type="number"
-                          name="rowsToRead"
-                          placeholder="Rows to Read"
-                          value={this.state.rowsToRead}
-                          onChange={this.setUserInput}
-                          helpText="Number of rows of file to read."
+                          <FormInput
+                            type="number"
+                            name="rowsToRead"
+                            placeholder="Rows to Read"
+                            value={this.state.rowsToRead}
+                            onChange={this.setUserInput}
+                            helpText="Number of rows of file to read."
                           />
                         </td>
                       </tr>
                       <tr>
                         <td className="col-lg-2">Skip Blank Lines</td>
                         <td>
-                          <Checkbox
+                          <FormCheckbox
                             checked={this.state.skipBlankLines}
                             onChange={v =>
                               this.setCheckboxValue('skipBlankLines', v)
                             }
+                            helpText="Skip blank lines rather than interpreting them as
+                            NaN values."
                           />
-                          <span className="help-block">
-                            Skip blank lines rather than interpreting them as
-                            NaN values.
-                          </span>
                         </td>
                       </tr>
                       <tr>
                         <td className="col-lg-2">Parse Dates</td>
                         <td>
-                          <FormInput 
+                          <FormInput
                             type="text"
                             name="parseDates"
                             placeholder="Parse Dates"
@@ -421,55 +415,51 @@ export class CsvToDatabase extends React.PureComponent {
                       <tr>
                         <td className="col-lg-2">Infer Datetime Format</td>
                         <td>
-                          <Checkbox
+                          <FormCheckbox
                             checked={this.state.inferDatetimeFormat}
                             onChange={v =>
                               this.setCheckboxValue('inferDatetimeFormat', v)
                             }
+                            helpText="Use Pandas to interpret the datetime format
+                          automatically."
                           />
-                          <span className="help-block">
-                            Use Pandas to interpret the datetime format
-                            automatically.
-                          </span>
                         </td>
                       </tr>
                       <tr>
                         <td className="col-lg-2">Decimal Character</td>
                         <td>
-                          <FormInput 
-                          type="text"
-                          name="decimalCharacter"
-                          placeholder="Decimal Character"
-                          value={this.state.decimalCharacter}
-                          onChange={this.setUserInput}
-                          helpText="Character to interpret as decimal point."
+                          <FormInput
+                            type="text"
+                            name="decimalCharacter"
+                            placeholder="Decimal Character"
+                            value={this.state.decimalCharacter}
+                            onChange={this.setUserInput}
+                            helpText="Character to interpret as decimal point."
                           />
                         </td>
                       </tr>
                       <tr>
                         <td className="col-lg-2">Dataframe Index</td>
                         <td>
-                          <Checkbox
+                          <FormCheckbox
                             checked={this.state.dataframeIndex}
                             onChange={v =>
                               this.setCheckboxValue('dataframeIndex', v)
                             }
+                            helpText="Write dataframe index as a column."
                           />
-                          <span className="help-block">
-                            Write dataframe index as a column.
-                          </span>
                         </td>
                       </tr>
                       <tr>
                         <td className="col-lg-2">Column Label(s)</td>
                         <td>
-                          <FormInput 
-                          type="text"
-                          name="columnLabels"
-                          placeholder="Column Label(s)"
-                          value={this.state.columnLabels}
-                          onChange={this.setUserInput}
-                          helpText="Column label for index column(s). If None is given
+                          <FormInput
+                            type="text"
+                            name="columnLabels"
+                            placeholder="Column Label(s)"
+                            value={this.state.columnLabels}
+                            onChange={this.setUserInput}
+                            helpText="Column label for index column(s). If None is given
                           and Dataframe Index is True, Index Names are used."
                           />
                         </td>

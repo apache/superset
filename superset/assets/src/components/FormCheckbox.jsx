@@ -19,45 +19,26 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import FormHelpText from './FormHelpText';
+import Checkbox from './Checkbox';
 
 const propTypes = {
-  name: PropTypes.string.isRequired,
-  type: PropTypes.string.isRequired,
-  placeholder: PropTypes.string,
-  value: PropTypes.obj,
+  checked: PropTypes.bool,
   onChange: PropTypes.func,
   required: PropTypes.bool,
   helpText: PropTypes.string,
 };
 
-export default class FormInput extends PureComponent {
+export default class FormCheckbox extends PureComponent {
   render() {
-    const {
-      name,
-      type,
-      placeholder,
-      value,
-      onChange,
-      required,
-      helpText,
-    } = this.props;
+    const { checked, onChange, required, helpText } = this.props;
     const help = helpText && <FormHelpText helpText={helpText} />;
     return (
       <>
-        <input
-          className="form-control"
-          type={type}
-          id={name}
-          name={name}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          required={required}
-        />
+        <Checkbox checked={checked} required={required} onChange={onChange} />
         {help}
       </>
     );
   }
 }
 
-FormInput.propTypes = propTypes;
+FormCheckbox.propTypes = propTypes;
