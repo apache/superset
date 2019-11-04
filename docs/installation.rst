@@ -121,7 +121,7 @@ For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
 
     sudo yum upgrade python-setuptools
-    sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
+    sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel cyrus-sasl-devel openldap-devel
 
 **Mac OS X** If possible, you should upgrade to the latest version of OS X as issues are more likely to be resolved for that version.
 You *will likely need* the latest version of XCode available for your installed version of OS X. You should also install
@@ -157,7 +157,7 @@ You can create and activate a virtualenv by: ::
     python3 -m venv venv
     . venv/bin/activate
 
-On windows the syntax for activating it is a bit different: ::
+On Windows the syntax for activating it is a bit different: ::
 
     venv\Scripts\activate
 
@@ -360,7 +360,7 @@ Here's a list of some of the recommended packages.
 |                  |                                       | For JDBC                                        |
 |                  |                                       | ``drill+jdbc://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
-| Apache Druid     | ``pip install pydruid``                | ``druid://``                                    |
+| Apache Druid     | ``pip install pydruid``                | ``druid://``                                   |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Apache Hive      | ``pip install pyhive``                | ``hive://``                                     |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -377,7 +377,7 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
-| Elasticsearch    | ``pip install elasticsearch-dbapi``   | ``elasticsearch+http://``                               |
+| Elasticsearch    | ``pip install elasticsearch-dbapi``   | ``elasticsearch+http://``                       |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Exasol           | ``pip install sqlalchemy-exasol``     | ``exa+pyodbc://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -764,7 +764,7 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 * ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <https://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
 
 
-DOMAIN SHARDING
+Domain Sharding
 ---------------
 
 Chrome allows up to 6 open connections per domain at a time. When there are more
@@ -776,7 +776,7 @@ doesn't allow cross-domain request).
 * ``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
 
 
-MIDDLEWARE
+Middleware
 ----------
 
 Superset allows you to add your own middleware. To add your own middleware, update the ``ADDITIONAL_MIDDLEWARE`` key in
