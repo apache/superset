@@ -3128,7 +3128,7 @@ class Superset(BaseSupersetView):
 
         path = self._check_and_save_csv(csv_file, csv_filename)
         try:
-            self._create_table(form_data, database, database_id, csv_filename)
+            self._create_table(form_data, database, csv_filename)
         except Exception as e:
             try:
                 os.remove(os.getcwd() + "/" + db_name + ".db")
@@ -3225,7 +3225,7 @@ class Superset(BaseSupersetView):
             raise Exception('"Could not save CSV-file, does the upload folder exist?"')
         return path
 
-    def _create_table(self, form_data, database, database_id, csv_filename):
+    def _create_table(self, form_data, database, csv_filename):
         try:
             table = SqlaTable(table_name=form_data["tableName"])
             table.database = database
