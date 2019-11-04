@@ -38,8 +38,7 @@ from sqlalchemy.types import TypeEngine
 import sqlparse
 from werkzeug.utils import secure_filename
 
-from superset import app, db, sql_parse, models
-from superset.connectors.sqla.models import SqlaTable
+from superset import app, db, sql_parse
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -389,11 +388,7 @@ class BaseEngineSpec:
 
     @classmethod
     def json_create_table_from_csv(
-        cls,
-        form_data: dict,
-        table: SqlaTable,
-        csv_filename: str,
-        database: models.Database,
+        cls, form_data: dict, table, csv_filename: str, database
     ) -> None:
         """ import the data in the csv-file into the given table
 

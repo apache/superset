@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 import logging
 import os
 import re
-from typing import Dict, List, Optional, Union  # noqa: F401
+from typing import List, Optional, Union  # noqa: F401
 from urllib import parse
 
 import backoff
@@ -50,7 +50,6 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
-from werkzeug.test import File
 from werkzeug.utils import secure_filename
 
 from superset import (
@@ -3088,11 +3087,13 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/csvtodatabase/add", methods=["POST"])
-    def add(self):
+    def add(self) -> Response:
         """ import a csv into a Table
 
-        Arguments:
-        request -- contains the csv-file as well as properties
+        Request body contains multipart/form-data
+        Form content:
+        form -- contains the properties for the table to be created
+        file -- csv file to be imported
         """
         form_data = request.form
 
@@ -3148,7 +3149,7 @@ class Superset(BaseSupersetView):
             os.remove(path)
 
         stats_logger.incr("successful_csv_upload")
-        return json_success('"Success"')
+        return Response('"Success"', 200)
 
     def _create_database(self, db_name: str) -> None:
         """ Creates the Database itself as well as the Superset Connection to it
@@ -3243,7 +3244,7 @@ class Superset(BaseSupersetView):
             or security_manager.all_datasource_access()
         )
 
-    def _check_and_save_csv(self, csv_file: File, csv_filename: str) -> str:
+    def _check_and_save_csv(self, csv_file, csv_filename: str) -> str:
         """ Sanitizes the filename and saves the csv-file to disk
 
         Keyword arguments:
