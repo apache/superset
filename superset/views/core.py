@@ -3127,11 +3127,14 @@ class Superset(BaseSupersetView):
                 )
                 db_name = secure_filename(db_name)
                 if len(db_name) == 0:
-                    return json_error_response("Database name is not allowed", status=400)
+                    return json_error_response(
+                        "Database name is not allowed", status=400
+                    )
                 database = self._create_database(db_name)
         except Exception as e:
             return json_error_response(e.args[0], status=400)
 
+        # TODO check if this has to be outside, if yes wrap in own try-catch as this method can throw an exception
         path = self._check_and_save_csv(csv_file, csv_filename)
         try:
             self._create_table(form_data, database, csv_filename)
@@ -3144,12 +3147,21 @@ class Superset(BaseSupersetView):
                 session = db.session()
                 session.delete(database)
                 session.commit()
+            message = (
+                "Table name {0} already exists. Please choose another".format(
+                    form_data["tableName"]
+                )
+                if isinstance(e, IntegrityError)
+                else str(e)
+            )
             return json_error_response(e.args[0], status=400)
         finally:
             os.remove(path)
 
         stats_logger.incr("successful_csv_upload")
-        return json_success('"{} imported into database {}"'.format(form_data["tableName"], db_name))
+        return json_success(
+            '"{} imported into database {}"'.format(form_data["tableName"], db_name)
+        )
 
     def _create_database(self, db_name: str) -> None:
         """ Creates the Database itself as well as the Superset Connection to it
@@ -3190,7 +3202,7 @@ class Superset(BaseSupersetView):
                     "Please contact your administrator to remove it manually"
                 )
                 pass
-            except:
+            except Exception:
                 pass
             stats_logger.incr("failed_csv_upload")
             raise Exception(message)
