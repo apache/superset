@@ -3094,7 +3094,7 @@ class Superset(BaseSupersetView):
         # remove illegal characters to prevent LFI (../)
         csv_filename = secure_filename(csv_file.filename)
         if len(csv_filename) == 0:
-            return Response("Filename is not allowed", 400)
+            return Response('"Filename is not allowed"', 400)
 
         database_id = form_data["connectionId"]
         # check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
@@ -3103,7 +3103,7 @@ class Superset(BaseSupersetView):
             database_id = int(database_id)
         except ValueError:
             message = _(
-                "Possible tampering detected, non-numeral character in database-id"
+                '"Possible tampering detected, non-numeral character in database-id"'
             )
             return Response(message, 400)
 
@@ -3121,7 +3121,7 @@ class Superset(BaseSupersetView):
                 )
                 db_name = secure_filename(db_name)
                 if len(db_name) == 0:
-                    return Response("Database name is not allowed", 400)
+                    return Response('"Database name is not allowed"', 400)
                 database = self._create_database(db_name)
         except Exception as e:
             return Response(e.args[0], 400)
@@ -3148,7 +3148,7 @@ class Superset(BaseSupersetView):
     def _create_database(self, db_name):
         db_path = os.getcwd() + "/" + db_name + ".db"
         if os.path.isfile(db_path):
-            message = "Database file for {0} already exists, please choose a different name".format(
+            message = '"Database file for {0} already exists, please choose a different name"'.format(
                 db_name
             )
             raise Exception(message)
@@ -3164,7 +3164,7 @@ class Superset(BaseSupersetView):
             return item
         except Exception as e:
             message = (
-                " Error when trying to create Database"
+                '"Error when trying to create Database"'
                 if isinstance(e, IntegrityError)
                 else str(e)
             )
@@ -3175,8 +3175,8 @@ class Superset(BaseSupersetView):
                 os.remove(db_path)
             except OSError:
                 message = _(
-                    "Error when trying to create Database and Database-File could not be removed. "
-                    "Please contact your administrator to remove it manually"
+                    '"Error when trying to create Database and Database-File could not be removed. "'
+                    '"Please contact your administrator to remove it manually"'
                 )
                 pass
             stats_logger.incr("failed_csv_upload")
@@ -3187,8 +3187,8 @@ class Superset(BaseSupersetView):
             database = self._get_database_by_id(database_id)
             if not self._is_schema_allowed(database, schema):
                 message = _(
-                    'Database "{0}" Schema "{1}" is not allowed for csv uploads. '
-                    "Please contact your Superset administrator".format(
+                    '"Database {0} Schema {1} is not allowed for csv uploads. "'
+                    '"Please contact your Superset administrator"'.format(
                         database.database_name, schema
                     )
                 )
@@ -3200,7 +3200,7 @@ class Superset(BaseSupersetView):
     def _get_database_by_id(self, database_id):
         dbs = db.session().query(models.Database).filter_by(id=database_id).all()
         if len(dbs) != 1:
-            message = _("None or several matching databases found")
+            message = _('"None or several matching databases found"')
             raise Exception(message)
         return dbs[0]
 
@@ -3222,7 +3222,7 @@ class Superset(BaseSupersetView):
             csv_file.save(path)
         except Exception:
             os.remove(path)
-            raise Exception("Could not save CSV-file, does the upload folder exist?")
+            raise Exception('"Could not save CSV-file, does the upload folder exist?"')
         return path
 
     def _create_table(self, form_data, database, database_id, csv_filename):
@@ -3235,7 +3235,7 @@ class Superset(BaseSupersetView):
             )
             return table
         except Exception:
-            message = "Failed to create Table and fill it"
+            message = '"Failed to create Table and fill it"'
             stats_logger.incr("failed_csv_upload")
             raise Exception(message)
 
