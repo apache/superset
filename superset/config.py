@@ -28,7 +28,8 @@ import logging
 import os
 import sys
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List
+from datetime import date
+from typing import Any, Callable, Dict, List, Optional
 
 from celery.schedules import crontab
 from dateutil import tz
@@ -698,7 +699,11 @@ SQLALCHEMY_EXAMPLES_URI = None
 # range endpoints adhere to [start, end). For existing deployments admins should provide
 # a dedicated period of time to allow chart producers to update their charts before
 # mass migrating all charts to use the [start, end) interval.
+#
+# Note if no end date for the grace period is specified then the grace period is
+# indefinite.
 SIP_15_ENABLED = False
+SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
 SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
 SIP_15_TOAST_MESSAGE = 'Action Required: Preview then save your chart using the new time range endpoints <a href="{url}" class="alert-link">here</a>.'
 
