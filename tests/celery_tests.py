@@ -29,15 +29,15 @@ from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
+
 from .base_tests import SupersetTestCase
 
-
-BASE_DIR = app.config.get("BASE_DIR")
+BASE_DIR = app.config["BASE_DIR"]
 CELERY_SLEEP_TIME = 5
 
 
 class CeleryConfig(object):
-    BROKER_URL = app.config.get("CELERY_RESULT_BACKEND")
+    BROKER_URL = app.config["CELERY_CONFIG"].BROKER_URL
     CELERY_IMPORTS = ("superset.sql_lab",)
     CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
     CONCURRENCY = 1
@@ -114,12 +114,12 @@ class CeleryTestCase(SupersetTestCase):
         )
 
     def run_sql(
-        self, db_id, sql, client_id=None, cta="false", tmp_table="tmp", async_="false"
+        self, db_id, sql, client_id=None, cta=False, tmp_table="tmp", async_=False
     ):
         self.login()
         resp = self.client.post(
             "/superset/sql_json/",
-            data=dict(
+            json=dict(
                 database_id=db_id,
                 sql=sql,
                 runAsync=async_,
@@ -135,7 +135,7 @@ class CeleryTestCase(SupersetTestCase):
         main_db = get_example_database()
         db_id = main_db.id
         sql_dont_exist = "SELECT name FROM table_dont_exist"
-        result1 = self.run_sql(db_id, sql_dont_exist, "1", cta="true")
+        result1 = self.run_sql(db_id, sql_dont_exist, "1", cta=True)
         self.assertTrue("error" in result1)
 
     def test_run_sync_query_cta(self):
@@ -146,9 +146,7 @@ class CeleryTestCase(SupersetTestCase):
         self.drop_table_if_exists(tmp_table_name, main_db)
         name = "James"
         sql_where = f"SELECT name FROM birth_names WHERE name='{name}' LIMIT 1"
-        result = self.run_sql(
-            db_id, sql_where, "2", tmp_table=tmp_table_name, cta="true"
-        )
+        result = self.run_sql(db_id, sql_where, "2", tmp_table=tmp_table_name, cta=True)
         self.assertEqual(QueryStatus.SUCCESS, result["query"]["state"])
         self.assertEqual([], result["data"])
         self.assertEqual([], result["columns"])
@@ -158,7 +156,7 @@ class CeleryTestCase(SupersetTestCase):
         if backend != "postgresql":
             # TODO This test won't work in Postgres
             results = self.run_sql(db_id, query2.select_sql, "sdf2134")
-            self.assertEquals(results["status"], "success")
+            self.assertEqual(results["status"], "success")
             self.assertGreater(len(results["data"]), 0)
 
     def test_run_sync_query_cta_no_data(self):
@@ -190,7 +188,7 @@ class CeleryTestCase(SupersetTestCase):
 
         sql_where = "SELECT name FROM birth_names WHERE name='James' LIMIT 10"
         result = self.run_sql(
-            db_id, sql_where, "4", async_="true", tmp_table="tmp_async_1", cta="true"
+            db_id, sql_where, "4", async_=True, tmp_table="tmp_async_1", cta=True
         )
         assert result["query"]["state"] in (
             QueryStatus.PENDING,
@@ -224,7 +222,7 @@ class CeleryTestCase(SupersetTestCase):
 
         sql_where = "SELECT name FROM birth_names LIMIT 1"
         result = self.run_sql(
-            db_id, sql_where, "5", async_="true", tmp_table=tmp_table, cta="true"
+            db_id, sql_where, "5", async_=True, tmp_table=tmp_table, cta=True
         )
         assert result["query"]["state"] in (
             QueryStatus.PENDING,
@@ -262,7 +260,7 @@ class CeleryTestCase(SupersetTestCase):
             db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
         ) as expand_data:
             data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-                cdf, db_engine_spec, False
+                cdf, db_engine_spec, False, True
             )
             expand_data.assert_called_once()
 

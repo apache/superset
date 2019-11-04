@@ -15,18 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from flask import g, request, Response
 from flask_appbuilder import expose
 
+import superset.models.core as models
 from superset import app, appbuilder, event_logger, security_manager
 from superset.exceptions import SupersetException
-import superset.models.core as models
 from superset.views.core import Superset
+
 from .base import json_error_response
 
 config = app.config

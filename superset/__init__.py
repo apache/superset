@@ -16,11 +16,13 @@
 # under the License.
 # pylint: disable=C,R,W
 """Package's main module!"""
-from copy import deepcopy
 import json
 import logging
 import os
+from copy import deepcopy
+from typing import Any, Dict
 
+import wtforms_json
 from flask import Flask, redirect
 from flask_appbuilder import AppBuilder, IndexView, SQLA
 from flask_appbuilder.baseviews import expose
@@ -28,13 +30,12 @@ from flask_compress import Compress
 from flask_migrate import Migrate
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
-import wtforms_json
 
 from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
 from superset.utils.core import pessimistic_connection_handling, setup_cache
-from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.utils.log import get_event_logger_from_cfg_value
 
 wtforms_json.init()
 
@@ -45,14 +46,14 @@ if not os.path.exists(config.DATA_DIR):
     os.makedirs(config.DATA_DIR)
 
 app = Flask(__name__)
-app.config.from_object(CONFIG_MODULE)
+app.config.from_object(CONFIG_MODULE)  # type: ignore
 conf = app.config
 
 #################################################################
 # Handling manifest file logic at app start
 #################################################################
 MANIFEST_FILE = APP_DIR + "/static/assets/dist/manifest.json"
-manifest = {}
+manifest: Dict[Any, Any] = {}
 
 
 def parse_manifest_json():
@@ -103,11 +104,7 @@ def get_manifest():
 
 #################################################################
 
-# Setup the cache prior to registering the blueprints.
-cache = setup_cache(app, conf.get("CACHE_CONFIG"))
-tables_cache = setup_cache(app, conf.get("TABLE_NAMES_CACHE_CONFIG"))
-
-for bp in conf.get("BLUEPRINTS"):
+for bp in conf["BLUEPRINTS"]:
     try:
         print("Registering blueprint: '{}'".format(bp.name))
         app.register_blueprint(bp)
@@ -128,21 +125,26 @@ if conf.get("WTF_CSRF_ENABLED"):
 
 pessimistic_connection_handling(db.engine)
 
+cache = setup_cache(app, conf.get("CACHE_CONFIG"))
+tables_cache = setup_cache(app, conf.get("TABLE_NAMES_CACHE_CONFIG"))
+
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
-app.config.get("LOGGING_CONFIGURATOR").configure_logging(app.config, app.debug)
+app.config["LOGGING_CONFIGURATOR"].configure_logging(app.config, app.debug)
 
-if app.config.get("ENABLE_CORS"):
+if app.config["ENABLE_CORS"]:
     from flask_cors import CORS
 
-    CORS(app, **app.config.get("CORS_OPTIONS"))
+    CORS(app, **app.config["CORS_OPTIONS"])
 
-if app.config.get("ENABLE_PROXY_FIX"):
+if app.config["ENABLE_PROXY_FIX"]:
     from werkzeug.middleware.proxy_fix import ProxyFix
 
-    app.wsgi_app = ProxyFix(app.wsgi_app, **app.config.get("PROXY_FIX_CONFIG"))
+    app.wsgi_app = ProxyFix(  # type: ignore
+        app.wsgi_app, **app.config["PROXY_FIX_CONFIG"]
+    )
 
-if app.config.get("ENABLE_CHUNK_ENCODING"):
+if app.config["ENABLE_CHUNK_ENCODING"]:
 
     class ChunkedEncodingFix(object):
         def __init__(self, app):
@@ -155,16 +157,16 @@ if app.config.get("ENABLE_CHUNK_ENCODING"):
                 environ["wsgi.input_terminated"] = True
             return self.app(environ, start_response)
 
-    app.wsgi_app = ChunkedEncodingFix(app.wsgi_app)
+    app.wsgi_app = ChunkedEncodingFix(app.wsgi_app)  # type: ignore
 
-if app.config.get("UPLOAD_FOLDER"):
+if app.config["UPLOAD_FOLDER"]:
     try:
-        os.makedirs(app.config.get("UPLOAD_FOLDER"))
+        os.makedirs(app.config["UPLOAD_FOLDER"])
     except OSError:
         pass
 
-for middleware in app.config.get("ADDITIONAL_MIDDLEWARE"):
-    app.wsgi_app = middleware(app.wsgi_app)
+for middleware in app.config["ADDITIONAL_MIDDLEWARE"]:
+    app.wsgi_app = middleware(app.wsgi_app)  # type: ignore
 
 
 class MyIndexView(IndexView):
@@ -173,7 +175,7 @@ class MyIndexView(IndexView):
         return redirect("/superset/welcome")
 
 
-custom_sm = app.config.get("CUSTOM_SECURITY_MANAGER") or SupersetSecurityManager
+custom_sm = app.config["CUSTOM_SECURITY_MANAGER"] or SupersetSecurityManager
 if not issubclass(custom_sm, SupersetSecurityManager):
     raise Exception(
         """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
@@ -193,21 +195,19 @@ with app.app_context():
 
 security_manager = appbuilder.sm
 
-results_backend = app.config.get("RESULTS_BACKEND")
-results_backend_use_msgpack = app.config.get("RESULTS_BACKEND_USE_MSGPACK")
+results_backend = app.config["RESULTS_BACKEND"]
+results_backend_use_msgpack = app.config["RESULTS_BACKEND_USE_MSGPACK"]
 
 # Merge user defined feature flags with default feature flags
-_feature_flags = app.config.get("DEFAULT_FEATURE_FLAGS") or {}
-_feature_flags.update(app.config.get("FEATURE_FLAGS") or {})
+_feature_flags = app.config["DEFAULT_FEATURE_FLAGS"]
+_feature_flags.update(app.config["FEATURE_FLAGS"])
 
 # Event Logger
-event_logger = get_event_logger_from_cfg_value(
-    app.config.get("EVENT_LOGGER", DBEventLogger())
-)
+event_logger = get_event_logger_from_cfg_value(app.config["EVENT_LOGGER"])
 
 
 def get_feature_flags():
-    GET_FEATURE_FLAGS_FUNC = app.config.get("GET_FEATURE_FLAGS_FUNC")
+    GET_FEATURE_FLAGS_FUNC = app.config["GET_FEATURE_FLAGS_FUNC"]
     if GET_FEATURE_FLAGS_FUNC:
         return GET_FEATURE_FLAGS_FUNC(deepcopy(_feature_flags))
     return _feature_flags
@@ -230,13 +230,13 @@ if app.config["TALISMAN_ENABLED"]:
 
 # Hook that provides administrators a handle on the Flask APP
 # after initialization
-flask_app_mutator = app.config.get("FLASK_APP_MUTATOR")
+flask_app_mutator = app.config["FLASK_APP_MUTATOR"]
 if flask_app_mutator:
     flask_app_mutator(app)
 
-from superset import views  # noqa
+from superset import views  # noqa isort:skip
 
 # Registering sources
-module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")
-module_datasource_map.update(app.config.get("ADDITIONAL_MODULE_DS_MAP"))
+module_datasource_map = app.config["DEFAULT_MODULE_DS_MAP"]
+module_datasource_map.update(app.config["ADDITIONAL_MODULE_DS_MAP"])
 ConnectorRegistry.register_sources(module_datasource_map)

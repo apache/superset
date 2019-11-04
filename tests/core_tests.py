@@ -32,7 +32,7 @@ import pandas as pd
 import psycopg2
 import sqlalchemy as sqla
 
-from superset import dataframe, db, jinja_context, security_manager, sql_lab
+from superset import app, dataframe, db, jinja_context, security_manager, sql_lab
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
@@ -41,6 +41,7 @@ from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.views import core as views
 from superset.views.database.views import DatabaseView
+
 from .base_tests import SupersetTestCase
 from .fixtures.pyodbcRow import Row
 
@@ -684,7 +685,9 @@ class CoreTests(SupersetTestCase):
     def test_comments_in_sqlatable_query(self):
         clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
         commented_query = "/* comment 1 */" + clean_query + "-- comment 2"
-        table = SqlaTable(sql=commented_query)
+        table = SqlaTable(
+            table_name="test_comments_in_sqlatable_query_table", sql=commented_query
+        )
         rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
 
@@ -752,6 +755,49 @@ class CoreTests(SupersetTestCase):
         examples_db = utils.get_example_database()
         resp = self.get_resp(f"/superset/select_star/{examples_db.id}/birth_names")
         self.assertIn("gender", resp)
+
+    @mock.patch("superset.views.core.results_backend_use_msgpack", False)
+    @mock.patch("superset.views.core.results_backend")
+    @mock.patch("superset.views.core.db")
+    def test_display_limit(self, mock_superset_db, mock_results_backend):
+        query_mock = mock.Mock()
+        query_mock.sql = "SELECT *"
+        query_mock.database = 1
+        query_mock.schema = "superset"
+        mock_superset_db.session.query().filter_by().one_or_none.return_value = (
+            query_mock
+        )
+
+        data = [{"col_0": i} for i in range(100)]
+        payload = {
+            "status": utils.QueryStatus.SUCCESS,
+            "query": {"rows": 100},
+            "data": data,
+        }
+        # do not apply msgpack serialization
+        use_msgpack = app.config["RESULTS_BACKEND_USE_MSGPACK"]
+        app.config["RESULTS_BACKEND_USE_MSGPACK"] = False
+        serialized_payload = sql_lab._serialize_payload(payload, False)
+        compressed = utils.zlib_compress(serialized_payload)
+        mock_results_backend.get.return_value = compressed
+
+        # get all results
+        result = json.loads(self.get_resp("/superset/results/key/"))
+        expected = {"status": "success", "query": {"rows": 100}, "data": data}
+        self.assertEqual(result, expected)
+
+        # limit results to 1
+        limited_data = data[:1]
+        result = json.loads(self.get_resp("/superset/results/key/?rows=1"))
+        expected = {
+            "status": "success",
+            "query": {"rows": 100},
+            "data": limited_data,
+            "displayLimitReached": True,
+        }
+        self.assertEqual(result, expected)
+
+        app.config["RESULTS_BACKEND_USE_MSGPACK"] = use_msgpack
 
     def test_results_default_deserialization(self):
         use_new_deserialization = False

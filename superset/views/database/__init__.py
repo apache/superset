@@ -16,10 +16,14 @@
 # under the License.
 # pylint: disable=C,R,W
 import inspect
+from typing import Type
 
 from flask import Markup
 from flask_babel import lazy_gettext as _
+from marshmallow import ValidationError
 from sqlalchemy import MetaData
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import ArgumentError
 
 from superset import security_manager
 from superset.exceptions import SupersetException
@@ -27,15 +31,33 @@ from superset.utils import core as utils
 from superset.views.base import SupersetFilter
 
 
+def sqlalchemy_uri_validator(
+    uri: str, exception: Type[ValidationError] = ValidationError
+) -> None:
+    """
+    Check if a user has submitted a valid SQLAlchemy URI
+    """
+    try:
+        make_url(uri.strip())
+    except (ArgumentError, AttributeError):
+        raise exception(
+            _(
+                "Invalid connnection string, a valid string follows: "
+                " 'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
+                " <p>Example:'postgresql://user:password@your-postgres-db/database'</p>"
+            )
+        )
+
+
 class DatabaseFilter(SupersetFilter):
-    def apply(self, query, func):  # noqa
+    def apply(self, query, func):
         if security_manager.all_database_access():
             return query
         perms = self.get_view_menus("database_access")
         return query.filter(self.model.perm.in_(perms))
 
 
-class DatabaseMixin:  # noqa
+class DatabaseMixin:
     list_title = _("Databases")
     show_title = _("Show Database")
     add_title = _("Add Database")
@@ -72,6 +94,7 @@ class DatabaseMixin:  # noqa
         "impersonate_user",
         "allow_multi_schema_metadata_fetch",
         "extra",
+        "encrypted_extra",
     ]
     search_exclude_columns = (
         "password",
@@ -148,6 +171,13 @@ class DatabaseMixin:  # noqa
             "This should be used with Presto DBs so that the syntax is correct",
             True,
         ),
+        "encrypted_extra": utils.markdown(
+            "JSON string containing additional connection configuration.<br/>"
+            "This is used to provide connection information for systems like "
+            "Hive, Presto, and BigQuery, which do not conform to the username:password "
+            "syntax normally used by SQLAlchemy.",
+            True,
+        ),
         "impersonate_user": _(
             "If Presto, all the queries in SQL Lab are going to be executed as the "
             "currently logged on user who must have permission to run them.<br/>"
@@ -181,6 +211,7 @@ class DatabaseMixin:  # noqa
         "sqlalchemy_uri": _("SQLAlchemy URI"),
         "cache_timeout": _("Chart Cache Timeout"),
         "extra": _("Extra"),
+        "encrypted_extra": _("Secure Extra"),
         "allow_run_async": _("Asynchronous Query Execution"),
         "impersonate_user": _("Impersonate the logged on user"),
         "allow_csv_upload": _("Allow Csv Upload"),
@@ -189,8 +220,9 @@ class DatabaseMixin:  # noqa
         "backend": _("Backend"),
     }
 
-    def pre_add(self, db):
+    def _pre_add_update(self, db):
         self.check_extra(db)
+        self.check_encrypted_extra(db)
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.add_permission_view_menu("database_access", db.perm)
         # adding a new database we always want to force refresh schema list
@@ -199,8 +231,11 @@ class DatabaseMixin:  # noqa
                 "schema_access", security_manager.get_schema_perm(db, schema)
             )
 
+    def pre_add(self, db):
+        self._pre_add_update(db)
+
     def pre_update(self, db):
-        self.pre_add(db)
+        self._pre_add_update(db)
 
     def pre_delete(self, obj):
         if obj.tables:
@@ -228,3 +263,10 @@ class DatabaseMixin:  # noqa
                     "is not configured correctly. The key "
                     "{} is invalid.".format(key)
                 )
+
+    def check_encrypted_extra(self, db):
+        # this will check whether json.loads(secure_extra) can succeed
+        try:
+            extra = db.get_encrypted_extra()
+        except Exception as e:
+            raise Exception(f"Secure Extra field cannot be decoded as JSON. {str(e)}")
