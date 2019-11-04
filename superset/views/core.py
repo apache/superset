@@ -3149,7 +3149,7 @@ class Superset(BaseSupersetView):
             os.remove(path)
 
         stats_logger.incr("successful_csv_upload")
-        return json_success("{} imported into database {}".format(form_data["tableName"], db_name))
+        return json_success('"{} imported into database {}"'.format(form_data["tableName"], db_name))
 
     def _create_database(self, db_name: str) -> None:
         """ Creates the Database itself as well as the Superset Connection to it
@@ -3189,6 +3189,8 @@ class Superset(BaseSupersetView):
                     "Error when trying to create Database and Database-File could not be removed. "
                     "Please contact your administrator to remove it manually"
                 )
+                pass
+            except:
                 pass
             stats_logger.incr("failed_csv_upload")
             raise Exception(message)

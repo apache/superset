@@ -413,15 +413,15 @@ class BaseEngineSpec:
             "filepath_or_buffer": filename,
             "sep": form_data["delimiter"],
             # frontend already does int-check, check again in case of tampering
-            "header": "" if not form_data["headerRow"] else int(form_data["headerRow"]),
+            "header": 0 if not form_data["headerRow"] else int(form_data["headerRow"]),
             "index_col": None if not form_data["indexColumn"] else int(form_data["indexColumn"]),
-            "mangle_dupe_cols": form_data["mangleDuplicateColumns"],
-            "skipinitialspace": form_data["skipInitialSpace"],
-            "skiprows": "" if not form_data["skipRows"] else int(form_data["skipRows"]),
-            "nrows": "" if not form_data["rowsToRead"] else int(form_data["rowsToRead"]),
-            "skip_blank_lines": form_data["skipBlankLines"],
+            "mangle_dupe_cols": bool(form_data["mangleDuplicateColumns"]),
+            "skipinitialspace": bool(form_data["skipInitialSpace"]),
+            "skiprows": None if not form_data["skipRows"] else int(form_data["skipRows"]),
+            "nrows": None if not form_data["rowsToRead"] else int(form_data["rowsToRead"]),
+            "skip_blank_lines": bool(form_data["skipBlankLines"]),
             "parse_dates": None if not form_data["parseDates"] else form_data["parseDates"],
-            "infer_datetime_format": form_data["inferDatetimeFormat"],
+            "infer_datetime_format": bool(form_data["inferDatetimeFormat"]),
             "chunksize": 10000,
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
@@ -432,10 +432,10 @@ class BaseEngineSpec:
             "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
             "schema": None if not form_data["schema"] else form_data["schema"],
             "if_exists": lower(form_data["ifTableExists"]),
-            "index": form_data["dataframeIndex"],
+            "index": bool(form_data["dataframeIndex"]),
             "index_label": None
-            if not form_data["columnLabel"]
-            else form_data["columnLabel"],
+            if not form_data["columnLabels"]
+            else form_data["columnLabels"],
             "chunksize": 10000,
         }
         cls.df_to_sql(**df_to_sql_kwargs)
