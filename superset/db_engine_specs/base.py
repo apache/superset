@@ -414,13 +414,21 @@ class BaseEngineSpec:
             "sep": form_data["delimiter"],
             # frontend already does int-check, check again in case of tampering
             "header": 0 if not form_data["headerRow"] else int(form_data["headerRow"]),
-            "index_col": None if not form_data["indexColumn"] else int(form_data["indexColumn"]),
+            "index_col": None
+            if not form_data["indexColumn"]
+            else int(form_data["indexColumn"]),
             "mangle_dupe_cols": bool(form_data["mangleDuplicateColumns"]),
             "skipinitialspace": bool(form_data["skipInitialSpace"]),
-            "skiprows": None if not form_data["skipRows"] else int(form_data["skipRows"]),
-            "nrows": None if not form_data["rowsToRead"] else int(form_data["rowsToRead"]),
+            "skiprows": None
+            if not form_data["skipRows"]
+            else int(form_data["skipRows"]),
+            "nrows": None
+            if not form_data["rowsToRead"]
+            else int(form_data["rowsToRead"]),
             "skip_blank_lines": bool(form_data["skipBlankLines"]),
-            "parse_dates": None if not form_data["parseDates"] else form_data["parseDates"],
+            "parse_dates": None
+            if not form_data["parseDates"]
+            else form_data["parseDates"],
             "infer_datetime_format": bool(form_data["inferDatetimeFormat"]),
             "chunksize": 10000,
         }

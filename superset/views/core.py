@@ -3096,13 +3096,10 @@ class Superset(BaseSupersetView):
         file -- csv file to be imported
         """
         form_data = request.form
-
         csv_file = request.files["file"]
-        # remove illegal characters to prevent LFI (../)
         csv_filename = secure_filename(csv_file.filename)
         if len(csv_filename) == 0:
             return json_error_response("Filename is not allowed", status=400)
-
         database_id = form_data["connectionId"]
         # check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
         # this beforehand
@@ -3143,10 +3140,13 @@ class Superset(BaseSupersetView):
                 os.remove(os.getcwd() + "/" + db_name + ".db")
             except OSError:
                 pass
-            if database_id == -1:
-                session = db.session()
-                session.delete(database)
-                session.commit()
+            try:
+                if database_id == -1:
+                    db.session.rollback()
+                    db.session.delete(database)
+                    db.session.commit()
+            except Exception:
+                pass
             message = (
                 "Table name {0} already exists. Please choose another".format(
                     form_data["tableName"]
@@ -3154,7 +3154,7 @@ class Superset(BaseSupersetView):
                 if isinstance(e, IntegrityError)
                 else str(e)
             )
-            return json_error_response(e.args[0], status=400)
+            return json_error_response(message, status=400)
         finally:
             os.remove(path)
 
@@ -3163,7 +3163,7 @@ class Superset(BaseSupersetView):
             '"{} imported into database {}"'.format(form_data["tableName"], db_name)
         )
 
-    def _create_database(self, db_name: str) -> None:
+    def _create_database(self, db_name: str):
         """ Creates the Database itself as well as the Superset Connection to it
 
         Keyword arguments:
@@ -3180,10 +3180,9 @@ class Superset(BaseSupersetView):
             item.database_name = db_name
             item.sqlalchemy_uri = "sqlite:///" + db_path
             item.allow_csv_upload = True
-            session = db.session()
             # TODO check if SQL-injection is possible through add()
-            session.add(item)
-            session.commit()
+            db.session.add(item)
+            db.session.commit()
             return item
         except Exception as e:
             message = (
@@ -3193,8 +3192,8 @@ class Superset(BaseSupersetView):
             )
             try:
                 # TODO check if deletion can lead to exception which needs to be caught
-                session.delete(item)
-                session.commit()
+                db.session.delete(item)
+                db.session.commit()
                 os.remove(db_path)
             except OSError:
                 message = _(
@@ -3235,7 +3234,7 @@ class Superset(BaseSupersetView):
         database_id -- The ID which is used to identify the Database by
         """
 
-        dbs = db.session().query(models.Database).filter_by(id=database_id).all()
+        dbs = db.session.query(models.Database).filter_by(id=database_id).all()
         if len(dbs) != 1:
             message = _("None or several matching databases found")
             raise Exception(message)
@@ -3291,10 +3290,11 @@ class Superset(BaseSupersetView):
                 form_data, table, csv_filename, database
             )
             return table
-        except Exception:
-            message = "Failed to create table and fill it"
+        # TODO remove this and move logger.incr to parent-method
+        except Exception as e:
             stats_logger.incr("failed_csv_upload")
-            raise Exception(message)
+            # raise Exception(message)
+            raise e
 
 
 appbuilder.add_view_no_menu(Superset)
