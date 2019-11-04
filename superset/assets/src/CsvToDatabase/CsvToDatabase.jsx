@@ -321,7 +321,7 @@ export class CsvToDatabase extends React.PureComponent {
                         <td className="col-lg-2">{t('Index Column')}</td>
                         <td>
                           <FormInput
-                            type="text"
+                            type="number"
                             name="indexColumn"
                             placeholder={t('Index Column')}
                             value={this.state.indexColumn}
@@ -360,7 +360,7 @@ export class CsvToDatabase extends React.PureComponent {
                         <td className="col-lg-2">{t('Skip Rows')}</td>
                         <td>
                           <FormInput
-                            type="text"
+                            type="number"
                             name="skipRows"
                             placeholder={t('Skip Rows')}
                             value={this.state.skipRows}

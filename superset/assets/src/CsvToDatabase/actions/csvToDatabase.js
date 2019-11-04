@@ -35,6 +35,7 @@ export function uploadCsv(data) {
       })
       .catch((response) => {
         getClientErrorObject(response).then((error) => {
+          console.log(response, error);
           dispatch({ type: UPLOAD_CSV_FAILURE, message: error.error });
         });
       });
