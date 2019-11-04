@@ -26,8 +26,9 @@ import FormError from 'src/components/FormError';
 import DropArea from 'src/components/FileDropper/DropArea';
 import Select from 'react-virtualized-select';
 import Button from 'src/components/Button';
-import AdvancedOptions from '../components/AdvancedOptions/AdvancedOptions';
-import Checkbox from '../components/Checkbox';
+import AdvancedOptions from 'src/components/AdvancedOptions/AdvancedOptions';
+import Checkbox from 'src/components/Checkbox';
+import FormInput from 'src/components/FormInput';
 import * as Actions from './actions/csvToDatabase';
 import './CsvToDatabase.css';
 
@@ -48,7 +49,7 @@ export class CsvToDatabase extends React.PureComponent {
       schema: '',
       delimiter: ',',
       selectedTableExists: { label: 'Fail', value: 'Fail' },
-      headerRow: 0,
+      headerRow:  '0',
       decimalCharacter: '.',
       tableExistsValues: [
         { label: 'Fail', value: 'Fail' },
@@ -86,10 +87,11 @@ export class CsvToDatabase extends React.PureComponent {
 
   setSelectedConnection(connection) {
     let databaseName = '';
-    if (this.state.selectedConnection.value === -1 && this.state.file) {
+    if (connection.value === -1 && this.state.file) {
       databaseName = this.state.file.name.slice(0, -4);
     }
-    this.setState({ selectedConnection: connection, databaseName });
+    console.log(connection, databaseName);
+    this.setState({ selectedConnection: connection, databaseName: databaseName });
   }
 
   setTableExists(value) {
@@ -183,19 +185,15 @@ export class CsvToDatabase extends React.PureComponent {
                         Table Name <Asterisk />
                       </td>
                       <td>
-                        <input
-                          className="form-control"
-                          id="tableName"
-                          name="tableName"
-                          placeholder="Table Name"
-                          required
-                          type="text"
-                          value={this.state.tableName}
-                          onChange={this.setUserInput}
+                        <FormInput
+                        type="text"
+                        name="tableName"
+                        placeHolder="Table name"
+                        required={true}
+                        value={this.state.tableName}
+                        onChange={this.setUserInput}
+                        helpText="Name of the table to be created from csv data."
                         />
-                        <span className="help-block">
-                          Name of the table to be created from csv data.
-                        </span>
                       </td>
                     </tr>
                     <tr>
@@ -245,36 +243,28 @@ export class CsvToDatabase extends React.PureComponent {
                         Database Name <Asterisk />
                       </td>
                       <td>
-                        <input
-                          className="form-control"
-                          id="databaseName"
+                        <FormInput
+                        type="text"
                           name="databaseName"
-                          placeholder="Database Name"
+                          placeHolder="Database Name"
                           required={this.state.selectedConnection.value === -1}
-                          type="text"
                           value={this.state.databaseName}
                           onChange={this.setUserInput}
+                          helpText="Name of the database file to be created."
                         />
-                        <span className="help-block">
-                          Name of the database file to be created.
-                        </span>
                       </td>
                     </tr>
                     <tr>
                       <td className="col-lg-2">Schema</td>
                       <td>
-                        <input
-                          className="form-control"
-                          id="schema"
+                        <FormInput
+                        type="text"
                           name="schema"
                           placeholder="Schema"
-                          type="text"
                           value={this.state.schema}
                           onChange={this.setUserInput}
+                          helpText="Specify a schema (if database flavor supports this)"
                         />
-                        <span className="help-block">
-                          Specify a schema (if database flavor supports this)
-                        </span>
                       </td>
                     </tr>
                     <tr>
@@ -282,19 +272,15 @@ export class CsvToDatabase extends React.PureComponent {
                         Delimiter <Asterisk />
                       </td>
                       <td>
-                        <input
-                          className="form-control"
-                          id="delimiter"
-                          name="delimiter"
-                          placeholder="Delimiter"
-                          required
-                          type="text"
-                          value={this.state.delimiter}
-                          onChange={this.setUserInput}
+                        <FormInput 
+                        type="text"
+                        name="delimiter"
+                        placeholder="Delimiter"
+                        required={true}
+                        value={this.state.delimiter}
+                        onChange={this.setUserInput}
+                        helpText="Delimiter used by CSV file (for whitespace use \s++)"
                         />
-                        <span className="help-block">
-                          Delimiter used by CSV file (for whitespace use \s++)
-                        </span>
                       </td>
                     </tr>
                     <tr>
@@ -323,38 +309,30 @@ export class CsvToDatabase extends React.PureComponent {
                       <tr>
                         <td className="col-lg-2">Header Row</td>
                         <td>
-                          <input
-                            className="form-control"
-                            id="headerRow"
-                            name="headerRow"
-                            placeholder="Header Row"
-                            type="number"
-                            value={this.state.headerRow}
-                            onChange={this.setUserInput}
-                          />
-                          <span className="help-block">
-                            Row containing the headers to use as column names (0
+                          <FormInput
+                          type="number"
+                          name="headerRow"
+                          placeholder="Header Row"
+                          value={this.state.headerRow}
+                          onChange={this.setUserInput}
+                          helpText="Row containing the headers to use as column names (0
                             is first line of data). Leave empty if there is no
-                            header row.
-                          </span>
+                            header row."
+                          />
                         </td>
                       </tr>
                       <tr>
                         <td className="col-lg-2">Index Column</td>
                         <td>
-                          <input
-                            className="form-control"
-                            id="indexColumn"
+                          <FormInput 
+                          type="text"
                             name="indexColumn"
                             placeholder="Index Column"
-                            type="text"
                             value={this.state.indexColumn}
                             onChange={this.setUserInput}
+                            helpText="Column to use as the row labels of the dataframe.
+                            Leave empty if no index column."
                           />
-                          <span className="help-block">
-                            Column to use as the row labels of the dataframe.
-                            Leave empty if no index column.
-                          </span>
                         </td>
                       </tr>
                       <tr>
@@ -388,35 +366,27 @@ export class CsvToDatabase extends React.PureComponent {
                       <tr>
                         <td className="col-lg-2">Skip Rows</td>
                         <td>
-                          <input
-                            className="form-control"
-                            id="skipRows"
-                            name="skipRows"
-                            placeholder="Skip Rows"
-                            type="number"
-                            value={this.state.skipRows}
-                            onChange={this.setUserInput}
+                          <FormInput
+                          type="text" 
+                                                      name="skipRows"
+                                                      placeholder="Skip Rows"
+                                                      value={this.state.skipRows}
+                                                      onChange={this.setUserInput}
+                                                      helpText="Number of rows to skip at start of file."
                           />
-                          <span className="help-block">
-                            Number of rows to skip at start of file.
-                          </span>
                         </td>
                       </tr>
                       <tr>
                         <td className="col-lg-2">Rows to Read</td>
                         <td>
-                          <input
-                            className="form-control"
-                            id="rowsToRead"
-                            name="rowsToRead"
-                            placeholder="Rows to Read"
-                            type="number"
-                            value={this.state.rowsToRead}
-                            onChange={this.setUserInput}
+                          <FormInput 
+                          type="number"
+                          name="rowsToRead"
+                          placeholder="Rows to Read"
+                          value={this.state.rowsToRead}
+                          onChange={this.setUserInput}
+                          helpText="Number of rows of file to read."
                           />
-                          <span className="help-block">
-                            Number of rows of file to read.
-                          </span>
                         </td>
                       </tr>
                       <tr>
@@ -437,19 +407,15 @@ export class CsvToDatabase extends React.PureComponent {
                       <tr>
                         <td className="col-lg-2">Parse Dates</td>
                         <td>
-                          <input
-                            className="form-control"
-                            id="parseDates"
+                          <FormInput 
+                            type="text"
                             name="parseDates"
                             placeholder="Parse Dates"
-                            type="text"
                             value={this.state.parseDates}
                             onChange={this.setUserInput}
+                            helpText="A comma separated list of columns that should be
+                            parsed as dates."
                           />
-                          <span className="help-block">
-                            A comma separated list of columns that should be
-                            parsed as dates.
-                          </span>
                         </td>
                       </tr>
                       <tr>
@@ -470,18 +436,14 @@ export class CsvToDatabase extends React.PureComponent {
                       <tr>
                         <td className="col-lg-2">Decimal Character</td>
                         <td>
-                          <input
-                            className="form-control"
-                            id="decimalCharacter"
-                            name="decimalCharacter"
-                            placeholder="Decimal Character"
-                            type="text"
-                            value={this.state.decimalCharacter}
-                            onChange={this.setUserInput}
+                          <FormInput 
+                          type="text"
+                          name="decimalCharacter"
+                          placeholder="Decimal Character"
+                          value={this.state.decimalCharacter}
+                          onChange={this.setUserInput}
+                          helpText="Character to interpret as decimal point."
                           />
-                          <span className="help-block">
-                            Character to interpret as decimal point.
-                          </span>
                         </td>
                       </tr>
                       <tr>
@@ -501,19 +463,15 @@ export class CsvToDatabase extends React.PureComponent {
                       <tr>
                         <td className="col-lg-2">Column Label(s)</td>
                         <td>
-                          <input
-                            className="form-control"
-                            id="columnLabels"
-                            name="columnLabels"
-                            placeholder="Column Label(s)"
-                            type="text"
-                            value={this.state.columnLabels}
-                            onChange={this.setUserInput}
+                          <FormInput 
+                          type="text"
+                          name="columnLabels"
+                          placeholder="Column Label(s)"
+                          value={this.state.columnLabels}
+                          onChange={this.setUserInput}
+                          helpText="Column label for index column(s). If None is given
+                          and Dataframe Index is True, Index Names are used."
                           />
-                          <span className="help-block">
-                            Column label for index column(s). If None is given
-                            and Dataframe Index is True, Index Names are used.
-                          </span>
                         </td>
                       </tr>
                     </tbody>
