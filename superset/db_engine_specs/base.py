@@ -427,7 +427,7 @@ class BaseEngineSpec:
             "df": df,
             "name": formdata["tableName"],
             "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
-            "schema": None if not formdata["schema"] else formdata["schema"],
+            "schema": formdata["schema"] if "schema" in formdata else None,
             "if_exists": lower(formdata["ifTableExists"]),
             "index": formdata["index"] if "index" in formdata else False,
             "index_label": formdata["index_label"]
