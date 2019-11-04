@@ -20,6 +20,7 @@ from sqlalchemy import DateTime
 
 from superset import db
 from superset.utils import core as utils
+
 from .helpers import config, get_example_data, get_slice_json, merge_slice, Slice, TBL
 
 
@@ -57,7 +58,7 @@ def load_random_time_series_data(only_metadata=False, force=False):
 
     slice_data = {
         "granularity_sqla": "day",
-        "row_limit": config.get("ROW_LIMIT"),
+        "row_limit": config["ROW_LIMIT"],
         "since": "1 year ago",
         "until": "now",
         "metric": "count",

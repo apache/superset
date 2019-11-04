@@ -36,7 +36,7 @@ import PivotTableChartPlugin from '@superset-ui/legacy-plugin-chart-pivot-table'
 import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import SunburstChartPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
-import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
+import TableChartPlugin from '@superset-ui/plugin-chart-table/esm/legacy';
 import TreemapChartPlugin from '@superset-ui/legacy-plugin-chart-treemap';
 import WordCloudChartPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
@@ -49,8 +49,8 @@ import { AreaChartPlugin, BarChartPlugin, BubbleChartPlugin, BulletChartPlugin,
   CompareChartPlugin, DistBarChartPlugin, DualLineChartPlugin, LineChartPlugin,
   LineMultiChartPlugin, PieChartPlugin, TimePivotChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3/lib';
 import { BoxPlotChartPlugin } from '@superset-ui/preset-chart-xy/esm/legacy';
-
-import DeckGLChartPreset from './DeckGLChartPreset';
+import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
+import { KeplerChartPreset } from '@superset-ui/legacy-preset-chart-kepler';
 
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
@@ -61,6 +61,7 @@ export default class MainPreset extends Preset {
       name: 'Legacy charts',
       presets: [
         new DeckGLChartPreset(),
+        new KeplerChartPreset(),
       ],
       plugins: [
         new AreaChartPlugin().configure({ key: 'area' }),

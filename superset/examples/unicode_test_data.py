@@ -23,6 +23,7 @@ from sqlalchemy import Date, Float, String
 
 from superset import db
 from superset.utils import core as utils
+
 from .helpers import (
     config,
     Dash,
@@ -86,7 +87,7 @@ def load_unicode_test_data(only_metadata=False, force=False):
             "expressionType": "SIMPLE",
             "label": "Value",
         },
-        "row_limit": config.get("ROW_LIMIT"),
+        "row_limit": config["ROW_LIMIT"],
         "since": "100 years ago",
         "until": "now",
         "where": "",

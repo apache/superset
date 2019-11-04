@@ -75,7 +75,10 @@ jobs:
       env: TOXENV=black
     - language: python
       python: 3.6
-      env: TOXENV=flake8
+      env: TOXENV=isort
+    - language: python
+      python: 3.6
+      env: TOXENV=mypy
     - language: python
       python: 3.6
       env: TOXENV=py36-sqlite

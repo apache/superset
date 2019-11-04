@@ -37,11 +37,13 @@ from sqlalchemy.orm.mapper import Mapper
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetSecurityException
+from superset.utils.core import DatasourceName
 
 if TYPE_CHECKING:
-    from superset.models.core import Database, BaseDatasource
-
-from superset.utils.core import DatasourceName  # noqa: E402
+    from superset.common.query_context import QueryContext
+    from superset.connectors.base.models import BaseDatasource
+    from superset.models.core import Database
+    from superset.viz import BaseViz
 
 
 class SupersetSecurityListWidget(ListWidget):
@@ -331,9 +333,9 @@ class SupersetSecurityManager(SecurityManager):
 
         table_name_pieces = table_in_query.split(".")
         if len(table_name_pieces) == 3:
-            return tuple(table_name_pieces[1:])  # noqa: T484
+            return tuple(table_name_pieces[1:])  # type: ignore
         elif len(table_name_pieces) == 2:
-            return tuple(table_name_pieces)  # noqa: T484
+            return tuple(table_name_pieces)  # type: ignore
         return (schema, table_name_pieces[0])
 
     def _datasource_access_by_fullname(
@@ -544,8 +546,8 @@ class SupersetSecurityManager(SecurityManager):
         sesh = self.get_session
         pvms = sesh.query(ab_models.PermissionView).filter(
             or_(
-                ab_models.PermissionView.permission == None,  # noqa
-                ab_models.PermissionView.view_menu == None,  # noqa
+                ab_models.PermissionView.permission == None,
+                ab_models.PermissionView.view_menu == None,
             )
         )
         deleted_count = pvms.delete()
@@ -783,7 +785,7 @@ class SupersetSecurityManager(SecurityManager):
         Assert the the user has permission to access the Superset datasource.
 
         :param datasource: The Superset datasource
-        :rasies SupersetSecurityException: If the user does not have permission
+        :raises SupersetSecurityException: If the user does not have permission
         """
 
         if not self.datasource_access(datasource):
@@ -791,3 +793,23 @@ class SupersetSecurityManager(SecurityManager):
                 self.get_datasource_access_error_msg(datasource),
                 self.get_datasource_access_link(datasource),
             )
+
+    def assert_query_context_permission(self, query_context: "QueryContext") -> None:
+        """
+        Assert the the user has permission to access the query context.
+
+        :param query_context: The query context
+        :raises SupersetSecurityException: If the user does not have permission
+        """
+
+        self.assert_datasource_permission(query_context.datasource)
+
+    def assert_viz_permission(self, viz: "BaseViz") -> None:
+        """
+        Assert the the user has permission to access the visualization.
+
+        :param viz: The visualization
+        :raises SupersetSecurityException: If the user does not have permission
+        """
+
+        self.assert_datasource_permission(viz.datasource)

@@ -16,12 +16,12 @@
 # under the License.
 # pylint: disable=C,R,W
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import gettext as __
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from wtforms.validators import StopValidation
 
 from superset import appbuilder
 from superset.models.annotations import Annotation, AnnotationLayer
+
 from .base import DeleteMixin, SupersetModelView
 
 
@@ -43,7 +43,7 @@ class StartEndDttmValidator(object):
             )
 
 
-class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
+class AnnotationModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(Annotation)
 
     list_title = _("List Annotation")
