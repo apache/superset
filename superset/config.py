@@ -656,6 +656,11 @@ BUG_REPORT_URL = None
 # Send user to a link where they can read more about Superset
 DOCUMENTATION_URL = None
 
+# Browser local storage usage warning. A notification will appear when
+# local storage usage exceeds this threshold 
+LOCALSTORAGE_MAX_USAGE_KB = 5 * 1024
+LOCALSTORAGE_WARNING_THRESHOLD = 0.9
+
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
 # 'now' means it is relative to the query issue time

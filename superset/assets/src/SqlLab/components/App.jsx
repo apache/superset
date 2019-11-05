@@ -56,10 +56,18 @@ class App extends React.PureComponent {
     window.addEventListener('resize', this.handleResize.bind(this));
   }
   componentDidUpdate() {
+    let localStorageMaxUsageKb = LOCALSTORAGE_MAX_USAGE_KB;
+    if (this.props.common.conf.LOCALSTORAGE_MAX_USAGE_KB) {
+      localStorageMaxUsageKb = this.props.common.conf.LOCALSTORAGE_MAX_USAGE_KB
+    }
+    let localStorageWarningThreshold = LOCALSTORAGE_WARNING_THRESHOLD;
+    if (this.props.common.conf.LOCALSTORAGE_WARNING_THRESHOLD) {
+      localStorageWarningThreshold = this.props.common.conf.LOCALSTORAGE_WARNING_THRESHOLD
+    }
     if (this.props.localStorageUsageInKilobytes >=
-      LOCALSTORAGE_WARNING_THRESHOLD * LOCALSTORAGE_MAX_USAGE_KB
+      localStorageWarningThreshold * localStorageMaxUsageKb
     ) {
-      this.showLocalStorageUsageWarning(this.props.localStorageUsageInKilobytes);
+      this.showLocalStorageUsageWarning(this.props.localStorageUsageInKilobytes, localStorageMaxUsageKb);
     }
   }
   componentWillUnmount() {
@@ -85,10 +93,10 @@ class App extends React.PureComponent {
     const alertHeight = alertEl.length > 0 ? alertEl.outerHeight() : 0;
     return `${window.innerHeight - headerHeight - tabsHeight - warningHeight - alertHeight}px`;
   }
-  showLocalStorageUsageWarning(currentUsage) {
+  showLocalStorageUsageWarning(currentUsage, localStorageMaxUsageKb) {
     this.props.actions.addDangerToast(
       t('SQL Lab uses your browser\'s local storage to store queries and results.' +
-        `\n Currently, you are using ${currentUsage.toFixed(2)} KB out of ${LOCALSTORAGE_MAX_USAGE_KB} KB. storage space.` +
+        `\n Currently, you are using ${currentUsage.toFixed(2)} KB out of ${localStorageMaxUsageKb} KB. storage space.` +
         '\n To keep SQL Lab from crashing, please delete some query tabs.' +
         '\n You can re-access these queries by using the Save feature before you delete the tab. ' +
         'Note that you will need to close other SQL Lab windows before you do this.'),
