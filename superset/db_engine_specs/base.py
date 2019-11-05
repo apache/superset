@@ -395,6 +395,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param form: Parameters defining how to process data
         """
+        from superset.models.core import Database
 
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
@@ -402,6 +403,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return (
                 extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
             )
+
+        database = db.session.query(Database).filter_by(id=form.con.data.id).one()
 
         filename = secure_filename(form.csv_file.data.filename)
         if not _allowed_file(filename):
@@ -422,10 +425,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
 
+        engine = get_engine(database)
+
         df_to_sql_kwargs = {
             "df": df,
             "name": form.name.data,
-            "con": create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
+            "con": engine,
             "schema": form.schema.data,
             "if_exists": form.if_exists.data,
             "index": form.index.data,
