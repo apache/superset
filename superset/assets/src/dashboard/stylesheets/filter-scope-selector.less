@@ -42,7 +42,7 @@
 }
 
 .filters-scope-selector {
-  margin: 10px -24px 20px -24px;
+  margin: 10px -24px 20px;
   display: flex;
   flex-direction: row;
   position: relative;
@@ -55,12 +55,15 @@
     text-decoration: none;
   }
 
-  .filter-field-pane .edit-mode-toggle,
   .react-checkbox-tree .rct-icon.rct-icon-expand-all,
   .react-checkbox-tree .rct-icon.rct-icon-collapse-all {
     font-size: 13px;
     font-family: @font-family-sans-serif;
     color: @brand-primary;
+
+    &::before {
+      content: '';
+    }
 
     &:hover {
       text-decoration: underline;
@@ -77,11 +80,6 @@
     padding: 16px 16px 16px 24px;
     border-right: 1px solid #ccc;
 
-    .edit-mode-toggle {
-      position: absolute;
-      right: 24px;
-    }
-
     .filter-container {
       label {
         font-weight: normal;
@@ -90,7 +88,7 @@
     }
 
     .filter-field-item {
-      height: 40px;
+      height: 35px;
       display: flex;
       align-items: center;
       padding: 0 24px;
@@ -105,17 +103,8 @@
     }
 
     .react-checkbox-tree {
-      ol ol {
-        padding: 0;
-      }
-
-      .rct-bare-label {
-        font-weight: bold;
-      }
-
       .rct-text {
-        margin: 8px 0;
-        height: 30px;
+        height: 40px;
       }
     }
   }
@@ -136,12 +125,9 @@
       display: block;
 
       .type-indicator {
-        border: 1px solid @gray-light;
-        border-radius: 4px;
-        padding: 2px 4px;
-        font-size: 10px;
+        position: relative;
+        top: 3px;
         margin-right: 8px;
-        font-weight: 400;
       }
 
       &.chart {
@@ -150,6 +136,21 @@
 
       &.selected-filter {
         padding-left: 28px;
+        position: relative;
+        color: #aaa;
+
+        &::before {
+          content: " ";
+          position: absolute;
+          left: 0;
+          top: 50%;
+          width: 18px;
+          height: 18px;
+          border-radius: 2px;
+          margin-top: -9px;
+          box-shadow: inset 0 0 0 2px #ccc;
+          background: #f2f2f2;
+        }
       }
 
       &.root {
@@ -177,23 +178,10 @@
       }
     }
 
-    .rct-option .rct-icon {
-      &.rct-icon-expand-all {
-        &::before {
-          content: 'Expand all';
-        }
-      }
-
-      &.rct-icon-collapse-all {
-        &::before {
-          content: 'Collapse all';
-        }
-      }
-    }
-
     .rct-options {
       text-align: left;
       margin-left: 0;
+      margin-bottom: 8px;
     }
 
     .rct-text {
@@ -220,10 +208,6 @@
       .rct-node.rct-node-leaf .filter-scope-type.filter_box {
         display: none;
       }
-    }
-
-    &.filter-text {
-      display: none;
     }
 
     .filter-field-item {

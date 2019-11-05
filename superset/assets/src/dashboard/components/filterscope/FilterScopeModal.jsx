@@ -31,10 +31,10 @@ export default class FilterScopeModal extends React.PureComponent {
     super(props);
 
     this.modal = React.createRef();
-    this.close = this.close.bind(this);
+    this.handleCloseModal = this.handleCloseModal.bind(this);
   }
 
-  close() {
+  handleCloseModal() {
     if (this.modal) {
       this.modal.current.close();
     }
@@ -48,7 +48,7 @@ export default class FilterScopeModal extends React.PureComponent {
         triggerNode={this.props.triggerNode}
         modalBody={
           <div className="dashboard-modal filter-scope">
-            <FilterScope onCloseModal={this.close} />
+            <FilterScope onCloseModal={this.handleCloseModal} />
           </div>
         }
       />

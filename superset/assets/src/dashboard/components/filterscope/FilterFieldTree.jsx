@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import CheckboxTree from 'react-checkbox-tree';
+import { t } from '@superset-ui/translation';
 
 import 'react-checkbox-tree/lib/react-checkbox-tree.css';
 import {
@@ -30,7 +31,7 @@ import renderFilterFieldTreeNodes from './renderFilterFieldTreeNodes';
 import { filterScopeSelectorTreeNodePropShape } from '../../util/propShapes';
 
 const propTypes = {
-  activeKey: PropTypes.string.isRequired,
+  activeKey: PropTypes.string,
   nodes: PropTypes.arrayOf(filterScopeSelectorTreeNodePropShape).isRequired,
   checked: PropTypes.arrayOf(
     PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -43,21 +44,29 @@ const propTypes = {
   onClick: PropTypes.func.isRequired,
 };
 
+const defaultProps = {
+  activeKey: '',
+};
+
 const FILTER_FIELD_CHECKBOX_TREE_ICONS = {
   check: <CheckboxChecked />,
   uncheck: <CheckboxUnchecked />,
   halfCheck: <CheckboxHalfChecked />,
   expandClose: <span className="rct-icon rct-icon-expand-close" />,
   expandOpen: <span className="rct-icon rct-icon-expand-open" />,
-  expandAll: <span className="rct-icon rct-icon-expand-all" />,
-  collapseAll: <span className="rct-icon rct-icon-collapse-all" />,
+  expandAll: (
+    <span className="rct-icon rct-icon-expand-all">{t('Expand all')}</span>
+  ),
+  collapseAll: (
+    <span className="rct-icon rct-icon-collapse-all">{t('Collapse all')}</span>
+  ),
   parentClose: <span className="rct-icon rct-icon-parent-close" />,
   parentOpen: <span className="rct-icon rct-icon-parent-open" />,
   leaf: <span className="rct-icon rct-icon-leaf" />,
 };
 
 export default function FilterFieldTree({
-  activeKey = '',
+  activeKey,
   nodes = [],
   checked = [],
   expanded = [],
@@ -82,3 +91,4 @@ export default function FilterFieldTree({
 }
 
 FilterFieldTree.propTypes = propTypes;
+FilterFieldTree.defaultProps = defaultProps;
