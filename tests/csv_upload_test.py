@@ -105,15 +105,20 @@ class CsvUploadTests(SupersetTestCase):
             form_data = self.get_full_data(filename, -1, database_name, table_name)
             response = self.get_resp(url, data=form_data)
             message = "{0} imported into database {1}".format(table_name, database_name)
+            print(response)
             assert message in response
         finally:
             os.remove(filename)
             os.remove(os.getcwd() + "/" + database_name + ".db")
-            todel = (
+            todel = db.session.query(models.Database).all()
+            todel2 = (
                 db.session.query(models.Database).filter_by(name=database_name).all()
             )
-            db.session.delete(todel)
-            db.session.commit()
+            print(todel2)
+            print(todel)
+            for d in todel:
+                if d.name == database_name:
+                    db.session.delete(d)
 
     def test_not_allowed_filename(self):
         try:
