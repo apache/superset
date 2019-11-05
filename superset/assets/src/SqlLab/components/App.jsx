@@ -68,7 +68,7 @@ class App extends React.PureComponent {
       localStorageWarningThreshold * localStorageMaxUsageKb
     ) {
       this.showLocalStorageUsageWarning(
-        this.props.localStorageUsageInKilobytes, 
+        this.props.localStorageUsageInKilobytes,
         localStorageMaxUsageKb);
     }
   }
