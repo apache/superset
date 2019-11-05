@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for CSV Upload"""
-from superset import db
-from .base_tests import SupersetTestCase
 import os
 
+from superset import db
 from superset.utils import core as utils
+
+from .base_tests import SupersetTestCase
 
 
 class CsvUploadTests(SupersetTestCase):
@@ -193,3 +194,20 @@ class CsvUploadTests(SupersetTestCase):
         finally:
             os.remove(filename)
             os.remove(db_path)
+
+    def test_duplicate_table_name(self):
+        url = "/superset/csvtodatabase/add"
+        filename = "duplicate_table_name.csv"
+        db_name = "newDB"
+        table_name = "birth_names"
+        try:
+            form_data = self.get_full_data(filename, -1, db_name, table_name)
+            response = self.get_resp(url, data=form_data, raise_on_error=False)
+            print(response)
+            message = "Table name {0} already exists. Please choose another".format(
+                table_name
+            )
+            print(message)
+            assert message in response
+        finally:
+            os.remove(filename)

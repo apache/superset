@@ -3160,8 +3160,9 @@ class Superset(BaseSupersetView):
             except Exception:
                 pass
 
-        # TODO send flash check if it is displayed in redirected to page
         stats_logger.incr("successful_csv_upload")
+        message = "{} imported into database {}".format(form_data["tableName"], db_name)
+        flash(message, "success")
         return json_success(
             '"{} imported into database {}"'.format(form_data["tableName"], db_name)
         )
