@@ -18,26 +18,32 @@
  */
 import React from 'react';
 import cx from 'classnames';
-import { t } from '@superset-ui/translation';
 
-import { DASHBOARD_ROOT_TYPE } from '../../util/componentTypes';
+import ChartIcon from '../../../components/ChartIcon';
+import { CHART_TYPE } from '../../util/componentTypes';
 
-function traverse({ currentNode, selectedFilterId }) {
+function traverse({ currentNode, selectedChartId }) {
   if (!currentNode) {
     return null;
   }
 
-  const { label, type, children } = currentNode;
+  const { label, value, type, children } = currentNode;
   if (children && children.length) {
     const updatedChildren = children.map(child =>
-      traverse({ currentNode: child, selectedFilterId }),
+      traverse({ currentNode: child, selectedChartId }),
     );
     return {
       ...currentNode,
       label: (
-        <a className={`filter-scope-type ${type.toLowerCase()}`}>
-          {type !== DASHBOARD_ROOT_TYPE && (
-            <span className="type-indicator">{t(type)}</span>
+        <a
+          className={cx(`filter-scope-type ${type.toLowerCase()}`, {
+            'selected-filter': selectedChartId === value,
+          })}
+        >
+          {type === CHART_TYPE && (
+            <span className="type-indicator">
+              <ChartIcon />
+            </span>
           )}
           {label}
         </a>
@@ -45,17 +51,14 @@ function traverse({ currentNode, selectedFilterId }) {
       children: updatedChildren,
     };
   }
-
-  const { value } = currentNode;
   return {
     ...currentNode,
     label: (
       <a
         className={cx(`filter-scope-type ${type.toLowerCase()}`, {
-          'selected-filter': selectedFilterId === value,
+          'selected-filter': selectedChartId === value,
         })}
       >
-        <span className="type-indicator">{t(type)}</span>
         {label}
       </a>
     ),
@@ -64,7 +67,7 @@ function traverse({ currentNode, selectedFilterId }) {
 
 export default function renderFilterScopeTreeNodes({
   nodes = [],
-  selectedFilterId = 0,
+  selectedChartId = 0,
 }) {
-  return nodes.map(node => traverse({ currentNode: node, selectedFilterId }));
+  return nodes.map(node => traverse({ currentNode: node, selectedChartId }));
 }

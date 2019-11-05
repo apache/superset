@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function getFilterScopeParentNodes(nodes, depthLimit = 0) {
+export default function getFilterScopeParentNodes(nodes = [], depthLimit = -1) {
   const parentNodes = [];
   const traverse = (currentNode, depth) => {
     if (!currentNode) {
       return;
     }
 
-    if (currentNode.children && (depthLimit === 0 || depth < depthLimit)) {
+    if (currentNode.children && (depthLimit === -1 || depth < depthLimit)) {
       parentNodes.push(currentNode.value);
       currentNode.children.forEach(child => traverse(child, depth + 1));
     }
   };
 
-  if (nodes && nodes.length > 0) {
+  if (nodes.length > 0) {
     nodes.forEach(node => {
       traverse(node, 0);
     });

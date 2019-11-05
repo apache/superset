@@ -16,24 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getDashboardFilterKey } from './getDashboardFilterKey';
+import { t } from '@superset-ui/translation';
 
-export default function getFilterFieldNodesTree({
-  dashboardFilters = {},
-  isSingleEditMode = true,
-}) {
-  return Object.values(dashboardFilters).map(dashboardFilter => {
+import { getDashboardFilterKey } from './getDashboardFilterKey';
+import { ALL_FILTERS } from './constants';
+
+export default function getFilterFieldNodesTree({ dashboardFilters = {} }) {
+  const allFilters = Object.values(dashboardFilters).map(dashboardFilter => {
     const { chartId, filterName, columns, labels } = dashboardFilter;
     const children = Object.keys(columns).map(column => ({
       value: getDashboardFilterKey({ chartId, column }),
       label: labels[column] || column,
-      showCheckbox: !isSingleEditMode,
     }));
     return {
       value: chartId,
       label: filterName,
       children,
-      showCheckbox: !isSingleEditMode,
+      showCheckbox: true,
     };
   });
+
+  return [
+    {
+      value: ALL_FILTERS,
+      label: t('Select/deselect all filters'),
+      children: allFilters,
+    },
+  ];
 }

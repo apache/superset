@@ -16,39 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { safeStringify } from '../../utils/safeStringify';
 
-import FilterFieldItem from './FilterFieldItem';
-import { getFilterColorMap } from '../../util/dashboardFiltersColorMap';
-
-export default function renderFilterFieldTreeNodes({
-  nodes = [],
-  activeKey = '',
+export default function getKeyForFilterScopeTree({
+  activeFilterField,
+  checkedFilterFields,
 }) {
-  const root = nodes[0];
-  const allFilterNodes = nodes[0].children;
-  const children = allFilterNodes.map(node => ({
-    ...node,
-    children: node.children.map(child => {
-      const { label, value } = child;
-      const colorCode = getFilterColorMap()[value];
-      return {
-        ...child,
-        label: (
-          <FilterFieldItem
-            isSelected={value === activeKey}
-            label={label}
-            colorCode={colorCode}
-          />
-        ),
-      };
-    }),
-  }));
-
-  return [
-    {
-      ...root,
-      children,
-    },
-  ];
+  return activeFilterField
+    ? safeStringify([activeFilterField])
+    : safeStringify(checkedFilterFields);
 }
