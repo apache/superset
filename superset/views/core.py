@@ -3131,9 +3131,8 @@ class Superset(BaseSupersetView):
         except Exception as e:
             return json_error_response(e.args[0], status=400)
 
-        # TODO check if this has to be outside, if yes wrap in own try-catch as this method can throw an exception
-        path = self._check_and_save_csv(csv_file, csv_filename)
         try:
+            path = self._check_and_save_csv(csv_file, csv_filename)
             self._create_table(form_data, database, csv_filename)
         except Exception as e:
             try:
@@ -3156,8 +3155,12 @@ class Superset(BaseSupersetView):
             )
             return json_error_response(message, status=400)
         finally:
-            os.remove(path)
+            try:
+                os.remove(path)
+            except Exception:
+                pass
 
+        # TODO send flash check if it is displayed in redirected to page
         stats_logger.incr("successful_csv_upload")
         return json_success(
             '"{} imported into database {}"'.format(form_data["tableName"], db_name)

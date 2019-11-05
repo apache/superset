@@ -15,10 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for CSV Upload"""
-from .base_tests import SupersetTestCase
 from superset import db
-from superset.utils import core as utils
+from .base_tests import SupersetTestCase
 import os
+
+from superset.utils import core as utils
 
 
 class CsvUploadTests(SupersetTestCase):
@@ -46,23 +47,15 @@ class CsvUploadTests(SupersetTestCase):
         db.session.commit()
         return example_db.id
 
-    def get_minimum_data(self, filename, db_id, database_name=None):
+    def get_full_data(
+        self, filename, db_id, database_name="", table_name="TableForTesting"
+    ):
         form_data = {
             "file": self.create_csv_file(filename),
             "connectionId": db_id,
             "databaseName": database_name,
-            "tableName": "minimum_import",
-            "delimiter": ",",
-            "ifTableExists": "Fail",
-        }
-        return form_data
-
-    def get_full_data(self, filename, db_id, database_name=None):
-        form_data = {
-            "file": self.create_csv_file(filename),
-            "connectionId": db_id,
-            "databaseName": database_name,
-            "tableName": "full_import",
+            "schema": "",
+            "tableName": table_name,
             "delimiter": ",",
             "ifTableExists": "Fail",
             "headerRow": 0,
@@ -90,17 +83,6 @@ class CsvUploadTests(SupersetTestCase):
         form_get = self.get_resp(url)
         assert "CSV to Database configuration" in form_get
 
-    def test_import_csv_minimum_data_in_existing(self):
-        url = "/superset/csvtodatabase/add"
-        filename = "minimum.csv"
-        try:
-            form_data = self.get_minimum_data(filename, self.get_existing_db_id())
-            response = self.get_resp(url, data=form_data)
-            print(response)
-            assert "Success" in response
-        finally:
-            os.remove(filename)
-
     def test_import_csv_full_data_in_existing(self):
         url = "/superset/csvtodatabase/add"
         filename = "maximum.csv"
@@ -111,26 +93,16 @@ class CsvUploadTests(SupersetTestCase):
         finally:
             os.remove(filename)
 
-    def test_import_csv_minimum_data_in_new(self):
-        url = "/superset/csvtodatabase/add"
-        filename = "minimum.csv"
-        database_name = "new_database"
-        try:
-            form_data = self.get_minimum_data(filename, -1, database_name)
-            response = self.get_resp(url, data=form_data)
-            assert "Success" in response
-        finally:
-            os.remove(filename)
-            os.remove(os.getcwd() + "/" + database_name + ".db")
-
     def test_import_csv_full_data_in_new(self):
         url = "/superset/csvtodatabase/add"
-        filename = "maximum.csv"
-        database_name = "new_database"
+        filename = "maximum_into_new.csv"
+        database_name = "new_database_max"
+        table_name = "import_maximum_into_new"
         try:
-            form_data = self.get_full_data(filename, -1, database_name)
+            form_data = self.get_full_data(filename, -1, database_name, table_name)
             response = self.get_resp(url, data=form_data)
-            assert "Success" in response
+            message = "{0} imported into database {1}".format(table_name, database_name)
+            assert message in response
         finally:
             os.remove(filename)
             os.remove(os.getcwd() + "/" + database_name + ".db")
@@ -143,6 +115,7 @@ class CsvUploadTests(SupersetTestCase):
             response = self.get_resp(url, data=form_data, raise_on_error=False)
             assert "Filename is not allowed" in response
         finally:
+            # Shouldnt be needed, as file does not get saved
             os.remove(filename)
 
     def test_invalid_database_id(self):
@@ -156,6 +129,7 @@ class CsvUploadTests(SupersetTestCase):
                 in response
             )
         finally:
+            # shouldnt be needed as file does not get saved
             os.remove(filename)
 
     def test_not_existing_database_id(self):
@@ -178,15 +152,14 @@ class CsvUploadTests(SupersetTestCase):
             example_db.allow_csv_upload = False
             db.session.commit()
 
-            form_data = self.get_minimum_data(filename, example_db.id)
+            form_data = self.get_full_data(filename, example_db.id)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
-            print(response)
-            assert (
-                'Database "{0}" Schema "{1}" is not allowed for csv uploads.'.format(
-                    example_db.database_name, "None"
-                )
-                in response
+            message = "Database {0} Schema {1} is not allowed for csv uploads.".format(
+                example_db.database_name, None
             )
+            print(message)
+            assert message in response
+
         finally:
             os.remove(filename)
 
