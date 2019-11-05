@@ -409,10 +409,6 @@ class SqlLabTests(SupersetTestCase):
             "page_size": -1,
         }
         url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
-        print(self.get_json_resp(url))
-        message = {r.get("database_name") for r in self.get_json_resp(url)["result"]}
-        print(message)
-        self.assertEquals(
-            {"examples", "fake_db_100"},
-            {r.get("database_name") for r in self.get_json_resp(url)["result"]},
-        )
+        assert {"examples", "fake_db_100"} in {
+            r.get("database_name") for r in self.get_json_resp(url)["result"]
+        }
