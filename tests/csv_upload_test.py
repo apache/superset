@@ -107,6 +107,7 @@ class CsvUploadTests(SupersetTestCase):
         finally:
             os.remove(filename)
             os.remove(os.getcwd() + "/" + database_name + ".db")
+            db.session.rollback()
 
     def test_not_allowed_filename(self):
         try:
