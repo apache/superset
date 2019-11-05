@@ -170,9 +170,14 @@ LOGO_TARGET_PATH = None
 # [TimeZone List]
 # See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 # other tz can be overridden by providing a local_config
-DRUID_IS_ACTIVE = True
 DRUID_TZ = tz.tzutc()
 DRUID_ANALYSIS_TYPES = ["cardinality"]
+
+# Legacy Druid connector
+# Druid supports a SQL interface in its newer versions.
+# Setting this flag to True enables the deprecated, API-based Druid
+# connector. This feature may be removed at a future date.
+DRUID_IS_ACTIVE = False
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
