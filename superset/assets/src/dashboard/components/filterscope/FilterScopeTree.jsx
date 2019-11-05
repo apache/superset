@@ -39,7 +39,7 @@ const propTypes = {
   ).isRequired,
   onCheck: PropTypes.func.isRequired,
   onExpand: PropTypes.func.isRequired,
-  selectedFilterId: PropTypes.number.isRequired,
+  selectedChartId: PropTypes.number.isRequired,
 };
 
 const NOOP = () => {};
@@ -63,14 +63,14 @@ export default function FilterScopeTree({
   expanded = [],
   onCheck,
   onExpand,
-  selectedFilterId = 0,
+  selectedChartId = 0,
 }) {
   return (
     <CheckboxTree
       showExpandAll
       expandOnClick
       showNodeIcon={false}
-      nodes={renderFilterScopeTreeNodes({ nodes, selectedFilterId })}
+      nodes={renderFilterScopeTreeNodes({ nodes, selectedChartId })}
       checked={checked}
       expanded={expanded}
       onCheck={onCheck}

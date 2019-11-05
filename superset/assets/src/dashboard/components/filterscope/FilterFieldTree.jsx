@@ -30,7 +30,7 @@ import renderFilterFieldTreeNodes from './renderFilterFieldTreeNodes';
 import { filterScopeSelectorTreeNodePropShape } from '../../util/propShapes';
 
 const propTypes = {
-  activeKey: PropTypes.string.isRequired,
+  activeKey: PropTypes.string,
   nodes: PropTypes.arrayOf(filterScopeSelectorTreeNodePropShape).isRequired,
   checked: PropTypes.arrayOf(
     PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -41,6 +41,10 @@ const propTypes = {
   onCheck: PropTypes.func.isRequired,
   onExpand: PropTypes.func.isRequired,
   onClick: PropTypes.func.isRequired,
+};
+
+const defaultProps = {
+  activeKey: '',
 };
 
 const FILTER_FIELD_CHECKBOX_TREE_ICONS = {
@@ -57,7 +61,7 @@ const FILTER_FIELD_CHECKBOX_TREE_ICONS = {
 };
 
 export default function FilterFieldTree({
-  activeKey = '',
+  activeKey,
   nodes = [],
   checked = [],
   expanded = [],
@@ -82,3 +86,4 @@ export default function FilterFieldTree({
 }
 
 FilterFieldTree.propTypes = propTypes;
+FilterFieldTree.defaultProps = defaultProps;

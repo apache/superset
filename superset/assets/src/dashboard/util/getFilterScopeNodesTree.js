@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isEmpty } from 'lodash';
+
 import { DASHBOARD_ROOT_ID } from './constants';
 import {
   CHART_TYPE,
@@ -25,83 +27,93 @@ import {
 
 const FILTER_SCOPE_CONTAINER_TYPES = [TAB_TYPE, DASHBOARD_ROOT_TYPE];
 
-export default function getFilterScopeNodesTree({
+function traverse({
+  currentNode = {},
   components = {},
-  isSingleEditMode = true,
-  checkedFilterFields = [],
-  selectedChartId,
+  filterFields = [],
+  selectedChartId = 0,
 }) {
-  function traverse(currentNode) {
-    if (!currentNode) {
-      return null;
-    }
-
-    const type = currentNode.type;
-    if (CHART_TYPE === type && currentNode.meta.chartId) {
-      const chartNode = {
-        value: currentNode.meta.chartId,
-        label:
-          currentNode.meta.sliceName || `${type} ${currentNode.meta.chartId}`,
-        type,
-        showCheckbox: selectedChartId !== currentNode.meta.chartId,
-      };
-
-      if (isSingleEditMode) {
-        return chartNode;
-      }
-
-      return {
-        ...chartNode,
-        children: checkedFilterFields.map(filterField => ({
-          value: `${currentNode.meta.chartId}:${filterField}`,
-          label: `${currentNode.meta.chartId}:${filterField}`,
-          type: 'filter_box',
-          showCheckbox: false,
-        })),
-      };
-    }
-
-    let children = [];
-    if (currentNode.children && currentNode.children.length) {
-      currentNode.children.forEach(child => {
-        const childNodeTree = traverse(components[child]);
-
-        const childType = components[child].type;
-        if (FILTER_SCOPE_CONTAINER_TYPES.includes(childType)) {
-          children.push(childNodeTree);
-        } else {
-          children = children.concat(childNodeTree);
-        }
-      });
-    }
-
-    if (FILTER_SCOPE_CONTAINER_TYPES.includes(type)) {
-      let label = '';
-      if (type === DASHBOARD_ROOT_TYPE) {
-        label = 'All dashboard';
-      } else {
-        label =
-          currentNode.meta && currentNode.meta.text
-            ? currentNode.meta.text
-            : `${type} ${currentNode.id}`;
-      }
-
-      return {
-        value: currentNode.id,
-        label,
-        type,
-        children,
-      };
-    }
-
-    return children;
+  if (!currentNode) {
+    return null;
   }
 
-  if (Object.keys(components).length === 0) {
+  const type = currentNode.type;
+  if (CHART_TYPE === type && currentNode.meta.chartId) {
+    const chartNode = {
+      value: currentNode.meta.chartId,
+      label:
+        currentNode.meta.sliceName || `${type} ${currentNode.meta.chartId}`,
+      type,
+      showCheckbox: selectedChartId !== currentNode.meta.chartId,
+    };
+
+    return {
+      ...chartNode,
+      children: filterFields.map(filterField => ({
+        value: `${currentNode.meta.chartId}:${filterField}`,
+        label: `${chartNode.label}`,
+        type: 'filter_box',
+        showCheckbox: false,
+      })),
+    };
+  }
+
+  let children = [];
+  if (currentNode.children && currentNode.children.length) {
+    currentNode.children.forEach(child => {
+      const childNodeTree = traverse({
+        currentNode: components[child],
+        components,
+        filterFields,
+        selectedChartId,
+      });
+
+      const childType = components[child].type;
+      if (FILTER_SCOPE_CONTAINER_TYPES.includes(childType)) {
+        children.push(childNodeTree);
+      } else {
+        children = children.concat(childNodeTree);
+      }
+    });
+  }
+
+  if (FILTER_SCOPE_CONTAINER_TYPES.includes(type)) {
+    let label = '';
+    if (type === DASHBOARD_ROOT_TYPE) {
+      label = 'Select/deselect all charts';
+    } else {
+      label =
+        currentNode.meta && currentNode.meta.text
+          ? currentNode.meta.text
+          : `${type} ${currentNode.id}`;
+    }
+
+    return {
+      value: currentNode.id,
+      label,
+      type,
+      children,
+    };
+  }
+
+  return children;
+}
+
+export default function getFilterScopeNodesTree({
+  components = {},
+  filterFields = [],
+  selectedChartId = 0,
+}) {
+  if (isEmpty(components)) {
     return [];
   }
 
-  const root = traverse(components[DASHBOARD_ROOT_ID]);
+  const root = traverse({
+    currentNode: components[DASHBOARD_ROOT_ID],
+    components,
+    filterFields,
+    selectedChartId,
+  });
   return [
     {
       ...root,
