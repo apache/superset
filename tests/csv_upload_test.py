@@ -136,7 +136,7 @@ class CsvUploadTests(SupersetTestCase):
         try:
             url = "/superset/csvtodatabase/add"
             filename = "not_existing_database_id.csv"
-            form_data = self.get_full_data(filename, 100)
+            form_data = self.get_full_data(filename, 1337)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
             print(response)
             assert "None or several matching databases found" in response
