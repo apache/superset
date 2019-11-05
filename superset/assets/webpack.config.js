@@ -185,6 +185,7 @@ const config = {
         // for debugging @superset-ui packages via npm link
         test: /\.jsx?$/,
         include: /node_modules\/[@]superset[-]ui.+\/src/,
+        exclude: /type[-]analyzer/, // Tell Babel not to parse files in this package bc it contains CommonJs files
         use: [
           {
             loader: 'babel-loader',
