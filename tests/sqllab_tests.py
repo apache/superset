@@ -410,6 +410,6 @@ class SqlLabTests(SupersetTestCase):
         }
         url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
         self.assertEquals(
-            {"examples", "fake_db_100"},
+            {"examples", "fake_db_101"},
             {r.get("database_name") for r in self.get_json_resp(url)["result"]},
         )
