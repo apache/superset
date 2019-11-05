@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import CheckboxTree from 'react-checkbox-tree';
 import 'react-checkbox-tree/lib/react-checkbox-tree.css';
+import { t } from '@superset-ui/translation';
 
 import {
   CheckboxChecked,
@@ -39,7 +40,7 @@ const propTypes = {
   ).isRequired,
   onCheck: PropTypes.func.isRequired,
   onExpand: PropTypes.func.isRequired,
-  selectedFilterId: PropTypes.number.isRequired,
+  selectedChartId: PropTypes.number.isRequired,
 };
 
 const NOOP = () => {};
@@ -50,8 +51,12 @@ const FILTER_SCOPE_CHECKBOX_TREE_ICONS = {
   halfCheck: <CheckboxHalfChecked />,
   expandClose: <span className="rct-icon rct-icon-expand-close" />,
   expandOpen: <span className="rct-icon rct-icon-expand-open" />,
-  expandAll: <span className="rct-icon rct-icon-expand-all" />,
-  collapseAll: <span className="rct-icon rct-icon-collapse-all" />,
+  expandAll: (
+    <span className="rct-icon rct-icon-expand-all">{t('Expand all')}</span>
+  ),
+  collapseAll: (
+    <span className="rct-icon rct-icon-collapse-all">{t('Collapse all')}</span>
+  ),
   parentClose: <span className="rct-icon rct-icon-parent-close" />,
   parentOpen: <span className="rct-icon rct-icon-parent-open" />,
   leaf: <span className="rct-icon rct-icon-leaf" />,
@@ -63,14 +68,14 @@ export default function FilterScopeTree({
   expanded = [],
   onCheck,
   onExpand,
-  selectedFilterId = 0,
+  selectedChartId = 0,
 }) {
   return (
     <CheckboxTree
       showExpandAll
       expandOnClick
       showNodeIcon={false}
-      nodes={renderFilterScopeTreeNodes({ nodes, selectedFilterId })}
+      nodes={renderFilterScopeTreeNodes({ nodes, selectedChartId })}
       checked={checked}
       expanded={expanded}
       onCheck={onCheck}
