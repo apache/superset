@@ -413,6 +413,3 @@ class SqlLabTests(SupersetTestCase):
         mylist = {"examples", "fake_db_100"}
         print(dblist)
         assert set(mylist).issubset(dblist)
-        # assert {"examples", "fake_db_100"} in {
-        # r.get("database_name") for r in self.get_json_resp(url)["result"]
-        # }
