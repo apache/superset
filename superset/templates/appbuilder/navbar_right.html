@@ -17,8 +17,11 @@
   under the License.
 #}
 
-{% set bug_report_url = appbuilder.app.config['BUG_REPORT_URL'] %}
-{% set documentation_url = appbuilder.app.config['DOCUMENTATION_URL'] %}
+{% set bug_report_url = appbuilder.app.config.get('BUG_REPORT_URL') %}
+{% set documentation_url = appbuilder.app.config.get('DOCUMENTATION_URL') %}
+{% set documentation_icon = appbuilder.app.config.get('DOCUMENTATION_ICON') %}
+{% set documentation_text = appbuilder.app.config.get('DOCUMENTATION_TEXT', 'Documentation') %}
+{% set documentation_icon_width = appbuilder.app.config.get('DOCUMENTATION_ICON_WIDTH', 126) %}
 {% set locale = session['locale'] %}
 {% if not locale %}
     {% set locale = 'en' %}
@@ -41,9 +44,18 @@
   <a
     tabindex="-1"
     href="{{ documentation_url }}"
-    title="Documentation"
+    title="{{ documentation_text }}"
+    target="_blank"
   >
+  {% if documentation_icon %}
+    <img
+      width="{{ documentation_icon_width }}"
+      src="{{ documentation_icon }}"
+      alt="{{ documentation_text }}"
+    />
+  {% else %}
     <i class="fa fa-question"></i>&nbsp;
+  {% endif %}
   </a>
 </li>
 {% endif %}

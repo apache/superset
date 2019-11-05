@@ -655,6 +655,9 @@ WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
 BUG_REPORT_URL = None
 # Send user to a link where they can read more about Superset
 DOCUMENTATION_URL = None
+DOCUMENTATION_ICON = None
+DOCUMENTATION_TEXT = None
+DOCUMENTATION_ICON_WIDTH = None
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
