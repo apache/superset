@@ -66,9 +66,9 @@ Then (if needed) apply all cherries that will make the PATCH
 
 Finally bump the version number on `superset/static/assets/package.json` ::
 
-    "version": "0.35.0rc1"
+    "version": "0.35.0"
 
-Commit the change with the version number, then git tag the version and push
+Commit the change with the version number, then git tag the version with the release candidate and push
 
 ## Setting up the release environment (do every time)
 
@@ -169,14 +169,6 @@ https://lists.apache.org/thread.html/50a6b134d66b86b237d5d7bc89df1b567246d125a71
 Following the result thread, yet another [VOTE] thread should be
 started at general@incubator.apache.org.
 
-### Publishing a Convenience Release to PyPI
-From the root of the repo running ./pypi_push.sh will build the
-Javascript bundle and echo the twine command allowing you to publish
-to PyPI. You may need to ask a fellow committer to grant
-you access to it if you don't have access already. Make sure to create
-an account first if you don't have one, and reference your username
-while requesting access to push packages.
-
 ### Announcing
 
 Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
@@ -210,6 +202,14 @@ Then tag the final release:
 
 Now you can announce the release on the mailing list, make sure to use the
 proper template
+
+### Publishing a Convenience Release to PyPI
+From the root of the repo running ./pypi_push.sh will build the
+Javascript bundle and echo the twine command allowing you to publish
+to PyPI. You may need to ask a fellow committer to grant
+you access to it if you don't have access already. Make sure to create
+an account first if you don't have one, and reference your username
+while requesting access to push packages.
 
 ## Post release
 
