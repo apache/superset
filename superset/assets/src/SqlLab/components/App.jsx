@@ -58,16 +58,18 @@ class App extends React.PureComponent {
   componentDidUpdate() {
     let localStorageMaxUsageKb = LOCALSTORAGE_MAX_USAGE_KB;
     if (this.props.common.conf.LOCALSTORAGE_MAX_USAGE_KB) {
-      localStorageMaxUsageKb = this.props.common.conf.LOCALSTORAGE_MAX_USAGE_KB
+      localStorageMaxUsageKb = this.props.common.conf.LOCALSTORAGE_MAX_USAGE_KB;
     }
     let localStorageWarningThreshold = LOCALSTORAGE_WARNING_THRESHOLD;
     if (this.props.common.conf.LOCALSTORAGE_WARNING_THRESHOLD) {
-      localStorageWarningThreshold = this.props.common.conf.LOCALSTORAGE_WARNING_THRESHOLD
+      localStorageWarningThreshold = this.props.common.conf.LOCALSTORAGE_WARNING_THRESHOLD;
     }
     if (this.props.localStorageUsageInKilobytes >=
       localStorageWarningThreshold * localStorageMaxUsageKb
     ) {
-      this.showLocalStorageUsageWarning(this.props.localStorageUsageInKilobytes, localStorageMaxUsageKb);
+      this.showLocalStorageUsageWarning(
+        this.props.localStorageUsageInKilobytes, 
+        localStorageMaxUsageKb);
     }
   }
   componentWillUnmount() {
