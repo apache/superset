@@ -22,6 +22,8 @@ from superset.utils import core as utils
 
 from .base_tests import SupersetTestCase
 
+import superset.models.core as models
+
 
 class CsvUploadTests(SupersetTestCase):
     def __init__(self, *args, **kwargs):
@@ -107,7 +109,11 @@ class CsvUploadTests(SupersetTestCase):
         finally:
             os.remove(filename)
             os.remove(os.getcwd() + "/" + database_name + ".db")
-            db.session.rollback()
+            todel = (
+                db.session.query(models.Database).filter_by(name=database_name).all()
+            )
+            db.session.delete(todel)
+            db.session.commit()
 
     def test_not_allowed_filename(self):
         try:
