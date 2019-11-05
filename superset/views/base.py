@@ -19,7 +19,7 @@ import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import simplejson as json
 import yaml
@@ -208,7 +208,7 @@ def validate_json(form, field):
 
 
 class YamlExportMixin(object):
-    yaml_dict_key = None
+    yaml_dict_key: Optional[str] = None
     """
     Override this if you a dict response instead, with a certain key. 
     Used on DatabaseView for cli compatibility
