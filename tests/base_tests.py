@@ -210,13 +210,12 @@ class SupersetTestCase(unittest.TestCase):
 
     def create_fake_db(self):
         self.login(username="admin")
-        database_name = "fake_db_100"
-        db_id = 100
+        database_name = "fake_db_101"
+        db_id = 101
         extra = """{
             "schemas_allowed_for_csv_upload":
             ["this_schema_is_allowed", "this_schema_is_allowed_too"]
         }"""
-
         return self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},

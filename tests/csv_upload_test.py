@@ -130,7 +130,6 @@ class CsvUploadTests(SupersetTestCase):
                 in response
             )
         finally:
-            # shouldnt be needed as file does not get saved
             os.remove(filename)
 
     def test_not_existing_database_id(self):
@@ -139,7 +138,6 @@ class CsvUploadTests(SupersetTestCase):
             filename = "not_existing_database_id.csv"
             form_data = self.get_full_data(filename, 1337)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
-            print(response)
             assert "None or several matching databases found" in response
         finally:
             os.remove(filename)
@@ -158,7 +156,6 @@ class CsvUploadTests(SupersetTestCase):
             message = "Database {0} Schema {1} is not allowed for csv uploads.".format(
                 example_db.database_name, None
             )
-            print(message)
             assert message in response
 
         finally:
@@ -203,11 +200,9 @@ class CsvUploadTests(SupersetTestCase):
         try:
             form_data = self.get_full_data(filename, -1, db_name, table_name)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
-            print(response)
             message = "Table name {0} already exists. Please choose another".format(
                 table_name
             )
-            print(message)
             assert message in response
         finally:
             os.remove(filename)
@@ -220,9 +215,7 @@ class CsvUploadTests(SupersetTestCase):
         try:
             form_data = self.get_full_data(filename, -1, db_name, table_name)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
-            print(response)
             message = "Error when trying to create Database"
-            print(message)
             assert message in response
         finally:
             os.remove(filename)
