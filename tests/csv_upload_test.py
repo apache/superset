@@ -198,10 +198,12 @@ class CsvUploadTests(SupersetTestCase):
         db_name = "newDB"
         table_name = "duplicate_Name"
         try:
+            # create a Table
             init_data = self.get_full_data(filename, -1, db_name, table_name)
             self.get_resp(url, data=init_data, raise_on_error=False)
+            # Create table with the same name: should fail but doesnt
             form_data = self.get_full_data(
-                filename, self.get_existing_db_id(), "", table_name
+                filename, self.get_existing_db_id(), table_name=table_name
             )
             response = self.get_resp(url, data=form_data, raise_on_error=False)
             message = "Table name {0} already exists. Please choose another".format(
