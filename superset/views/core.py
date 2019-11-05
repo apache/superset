@@ -3195,10 +3195,10 @@ class Superset(BaseSupersetView):
                 else str(e)
             )
             try:
-                # TODO check if deletion can lead to exception which needs to be caught
+                if os.path.isfile(db_path):
+                    os.remove(db_path)
                 db.session.delete(item)
                 db.session.commit()
-                os.remove(db_path)
             except OSError:
                 message = _(
                     "Error when trying to create Database and Database-File could not be removed. "

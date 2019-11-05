@@ -211,3 +211,18 @@ class CsvUploadTests(SupersetTestCase):
             assert message in response
         finally:
             os.remove(filename)
+
+    def test_database_exists_no_file(self):
+        url = "/superset/csvtodatabase/add"
+        filename = "duplicate_database_name.csv"
+        db_name = "examples"
+        table_name = "uniqueTableName"
+        try:
+            form_data = self.get_full_data(filename, -1, db_name, table_name)
+            response = self.get_resp(url, data=form_data, raise_on_error=False)
+            print(response)
+            message = "Error when trying to create Database"
+            print(message)
+            assert message in response
+        finally:
+            os.remove(filename)
