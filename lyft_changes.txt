@@ -1,0 +1,38 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+This file tracks the changes we have pushed to lyft-master but not apache/incubator-superset master.
+lyft-master is a branch in a Lyft fork of apache/incubator-superset that has cherries applied to it.
+Since then, we have modified these "cherries" and/or added files. Please add changes done to this
+file to help us track how close or far we are from apache/incubator-superset master.
+
+1. Kepler changes
+- @superset-ui/legacy-preset-chart-kepler has been added to package.json
+- webpack.config.js has been updated to tell Babel not to parse files in the type-analyzer package
+  because it contains CommonJS files. If Babel parses such files, it will mix require and export
+  default in a module, which is not allowed.
+- KeplerChartPreset has been added in superset/assets/src/visualizations/presets/MainPreset.js
+- class KeplerViz in superset/viz.py is still there
+- Two controls ("Read Only Mode" and "Config" controls) in  
+  superset/assets/src/explore/controls.jsx are still there.
+- superset/assets/src/explore/controlPanels/Kepler.js is still there
+- Registering the kepler plugin in superset/assets/src/setup/setupPlugins.ts is still there.
+- kepler dependency in package.json and package-lock.json has been removed
+- superset/assets/src/visualizations/Kepler/Kepler.css has been removed
+- superset/assets/src/visualizations/Kepler/Kepler.jsx has been removed
+- superset/assets/src/visualizations/Kepler/KeplerChartPlugin.js has been removed
+- superset/assets/src/visualizations/presets/DeckGLChartPreset.js has been removed
