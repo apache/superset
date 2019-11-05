@@ -17,9 +17,9 @@
  * under the License.
  */
 export default function getRevertedFilterScope({
-  checked,
-  checkedFilterFields,
-  filterScopeMap,
+  checked = [],
+  filterFields = [],
+  filterScopeMap = {},
 }) {
   const checkedChartIdsByFilterField = checked.reduce((map, value) => {
     const [chartId, filterField] = value.split(':');
@@ -29,7 +29,7 @@ export default function getRevertedFilterScope({
     };
   }, {});
 
-  return checkedFilterFields.reduce(
+  return filterFields.reduce(
     (map, filterField) => ({
       ...map,
       [filterField]: {
