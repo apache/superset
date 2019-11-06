@@ -387,16 +387,18 @@ class BaseEngineSpec:
         df.to_sql(**kwargs)
 
     @classmethod
-    def json_create_table_from_csv(
+    def create_table_from_csv(
         cls, form_data: dict, table, csv_filename: str, database
     ) -> None:
         """ import the data in the csv-file into the given table
 
         Keyword arguments:
-        form_data -- dictionary containing the properties for the import
-        table -- the SqlaTable object into which the data should be imported
-        csv_filename -- the name of the csv file which will be read from disk or a buffer of the file content
-        database -- the database object which contains the connection string for the actual database
+            form_data -- dictionary containing the properties for the import
+            table -- the SqlaTable object into which the data should be imported
+            csv_filename -- the name of the csv file which will be read from disk or a buffer of the file content
+            database -- the database object which contains the connection string for the actual database
+        Raises:
+            IntegrityError: If there was a problem creating the table or inserting Data into it
         """
 
         def _allowed_file(filename: str) -> bool:

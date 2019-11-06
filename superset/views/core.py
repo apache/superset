@@ -3090,6 +3090,8 @@ class Superset(BaseSupersetView):
     def add(self) -> Response:
         """ import a csv into a Table
 
+        Handles the logic for importing the csv into a Table in a given or newly created Database
+        returns HTTP Status Codes (200 for ok, 400 for errors)
         Request body contains multipart/form-data
         Form content:
         form -- contains the properties for the table to be created
@@ -3157,7 +3159,7 @@ class Superset(BaseSupersetView):
         finally:
             try:
                 os.remove(path)
-            except Exception:
+            except OSError:
                 pass
 
         stats_logger.incr("successful_csv_upload")
@@ -3172,13 +3174,17 @@ class Superset(BaseSupersetView):
 
         Keyword arguments:
         db_name -- the name for the database to be created
+
+        Raises:
+            ValueError: If a file with the database name already exists in the folder
+            Exception: If the Database could not be created
         """
         db_path = os.getcwd() + "/" + db_name + ".db"
         if os.path.isfile(db_path):
             message = "Database file for {0} already exists, please choose a different name".format(
                 db_name
             )
-            raise Exception(message)
+            raise ValueError(message)
         try:
             item = SQLAInterface(models.Database).obj()
             item.database_name = db_name
@@ -3216,6 +3222,11 @@ class Superset(BaseSupersetView):
         Keyword arguments:
         database_id -- the ID used to identify the database
         schema -- the schema to be used
+
+        Raises:
+            ValueError: 1. If the schema is not allowed for csv upload
+                        2. If the database ID is not valid
+                        3. If there was a problem getting the schema
         """
         try:
             database = self._get_database_by_id(database_id)
@@ -3226,22 +3237,25 @@ class Superset(BaseSupersetView):
                         database.database_name, schema
                     )
                 )
-                raise Exception(message)
+                raise ValueError(message)
             return database
         except Exception as e:
-            raise Exception(e.args[0])
+            raise ValueError(e.args[0])
 
     def _get_database_by_id(self, database_id: int) -> models.Database:
         """ Returns the Database for the given ID
 
         Keyword arguments:
-        database_id -- The ID which is used to identify the Database by
+        database_id -- The ID which is used to identify the Database byo
+
+        Raises:
+            ValueError: If the database ID is not valid, i.e. matches no database
         """
 
         dbs = db.session.query(models.Database).filter_by(id=database_id).all()
         if len(dbs) != 1:
             message = _("None or several matching databases found")
-            raise Exception(message)
+            raise ValueError(message)
         return dbs[0]
 
     def _is_schema_allowed(self, database: models.Database, schema: str) -> bool:
@@ -3267,6 +3281,10 @@ class Superset(BaseSupersetView):
         Keyword arguments:
         csv_file -- the file which will be saved to disk
         csv_filename -- the filename to be sanitized which will be used
+
+        Raises:
+            OSError: 1. If the upload folder does not exist
+                     2. If the csv-file could not be saved
         """
         path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
         try:
@@ -3274,7 +3292,7 @@ class Superset(BaseSupersetView):
             csv_file.save(path)
         except Exception:
             os.remove(path)
-            raise Exception("Could not save CSV-file, does the upload folder exist?")
+            raise OSError("Could not save CSV-file, does the upload folder exist?")
         return path
 
     def _create_table(
@@ -3285,19 +3303,25 @@ class Superset(BaseSupersetView):
         Keyword arguments:
         form_data -- the dictionary containing the properties for the Table to be created
         database -- the database object which will be used
-        csv_filename -- the name of the csv-file to be imported"""
+        csv_filename -- the name of the csv-file to be imported
+
+        Raises:
+            Exception:  1. If the Table object could not be created
+                        2. If the Table could not be created in the database
+                        3. If the data could not be inserted into the table
+        """
+
         try:
             table = SqlaTable(table_name=form_data["tableName"])
             table.database = database
             table.database_id = table.database.id
-            table.database.db_engine_spec.json_create_table_from_csv(
+            table.database.db_engine_spec.create_table_from_csv(
                 form_data, table, csv_filename, database
             )
             return table
         # TODO remove this and move logger.incr to parent-method
         except Exception as e:
             stats_logger.incr("failed_csv_upload")
-            # raise Exception(message)
             raise e
 
 
