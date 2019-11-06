@@ -20,6 +20,7 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t } from '@superset-ui/translation';
 
 import { addWarningToast } from '../../messageToasts/actions';
+import { updateLayoutComponents } from './dashboardFilters';
 import { setUnsavedChanges } from './dashboardState';
 import { TABS_TYPE, ROW_TYPE } from '../util/componentTypes';
 import {
@@ -41,6 +42,9 @@ function setUnsavedChangesAfterAction(action) {
     } else {
       dispatch(result);
     }
+
+    const components = getState().dashboardLayout.present;
+    dispatch(updateLayoutComponents(components));
 
     if (!getState().dashboardState.hasUnsavedChanges) {
       dispatch(setUnsavedChanges(true));

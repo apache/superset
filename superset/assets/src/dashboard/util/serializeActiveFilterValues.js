@@ -16,28 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint camelcase: 0 */
-
 import { getChartIdAndColumnFromFilterKey } from './getDashboardFilterKey';
 
-// filters: { [id_column]: values }
-export default function getDashboardUrl(pathname, filters = {}, hash = '') {
-  // convert flattened { [id_column]: values } object
-  // to nested filter object
-  const obj = Object.entries(filters).reduce((map, entry) => {
+// input: { [id_column1]: values, [id_column2]: values }
+// output: { id: { column1: values, column2: values } }
+export default function serializeActiveFilterValues(activeFilters) {
+  return Object.entries(activeFilters).reduce((map, entry) => {
     const [filterKey, { values }] = entry;
     const { chartId, column } = getChartIdAndColumnFromFilterKey(filterKey);
-
+    const entryByChartId = {
+      ...map[chartId],
+      [column]: values,
+    };
     return {
       ...map,
-      [chartId]: {
-        ...map[chartId],
-        [column]: values,
-      },
+      [chartId]: entryByChartId,
     };
   }, {});
-
-  const preselect_filters = encodeURIComponent(JSON.stringify(obj));
-  const hashSection = hash ? `#${hash}` : '';
-  return `${pathname}?preselect_filters=${preselect_filters}${hashSection}`;
 }

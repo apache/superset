@@ -50,6 +50,8 @@ import {
   addWarningToast,
 } from '../../messageToasts/actions';
 
+import serializeFilterScopes from '../util/serializeFilterScopes';
+import serializeActiveFilterValues from '../util/serializeActiveFilterValues';
 import { logEvent } from '../../logger/actions';
 import { DASHBOARD_HEADER_ID } from '../util/constants';
 import { getActiveFilters } from '../util/activeDashboardFilters';
@@ -58,14 +60,20 @@ function mapStateToProps({
   dashboardLayout: undoableLayout,
   dashboardState,
   dashboardInfo,
+  dashboardFilters,
   charts,
 }) {
+  // persist selected values for each filter field, grouped by filter id
+  const filters = serializeActiveFilterValues(getActiveFilters());
+  // persist filter scope for each filter field, grouped by filter id
+  const filterScopes = serializeFilterScopes(dashboardFilters);
   return {
     dashboardInfo,
     undoLength: undoableLayout.past.length,
     redoLength: undoableLayout.future.length,
     layout: undoableLayout.present,
-    filters: getActiveFilters(),
+    filters,
+    filterScopes,
     dashboardTitle: (
       (undoableLayout.present[DASHBOARD_HEADER_ID] || {}).meta || {}
     ).text,

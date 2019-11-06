@@ -51,6 +51,7 @@ const propTypes = {
   isLoading: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
+  filterScopes: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   onSave: PropTypes.func.isRequired,
 };
@@ -121,6 +122,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       hasUnsavedChanges,
       layout,
       filters,
+      filterScopes,
       expandedSlices,
       onSave,
       userCanEdit,
@@ -149,6 +151,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             saveType={SAVE_TYPE_NEWDASHBOARD}
             layout={layout}
             filters={filters}
+            filterScopes={filterScopes}
             expandedSlices={expandedSlices}
             refreshFrequency={refreshFrequency}
             css={css}

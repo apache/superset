@@ -19,15 +19,13 @@
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 
-import { setDirectPathToChild } from '../actions/dashboardState';
+import { updateDashboardFiltersScope } from '../actions/dashboardFilters';
+import { setUnsavedChanges } from '../actions/dashboardState';
 import FilterScopeSelector from '../components/filterscope/FilterScopeSelector';
 
-function mapStateToProps({ dashboardLayout, dashboardFilters, dashboardInfo }) {
+function mapStateToProps({ dashboardLayout, dashboardFilters }) {
   return {
     dashboardFilters,
-    filterImmuneSlices: dashboardInfo.metadata.filterImmuneSlices || [],
-    filterImmuneSliceFields:
-      dashboardInfo.metadata.filterImmuneSliceFields || {},
     layout: dashboardLayout.present,
   };
 }
@@ -35,7 +33,8 @@ function mapStateToProps({ dashboardLayout, dashboardFilters, dashboardInfo }) {
 function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
-      setDirectPathToChild,
+      updateDashboardFiltersScope,
+      setUnsavedChanges,
     },
     dispatch,
   );

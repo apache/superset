@@ -54,6 +54,7 @@ const propTypes = {
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
+  filterScopes: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   css: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
@@ -218,6 +219,7 @@ class Header extends React.PureComponent {
       colorNamespace,
       colorScheme,
       filters,
+      filterScopes,
       dashboardInfo,
       refreshFrequency,
     } = this.props;
@@ -236,6 +238,7 @@ class Header extends React.PureComponent {
       label_colors: labelColors,
       dashboard_title: dashboardTitle,
       default_filters: safeStringify(filters),
+      filter_scopes: safeStringify(filterScopes),
       refresh_frequency: refreshFrequency,
     };
 
@@ -264,6 +267,7 @@ class Header extends React.PureComponent {
       dashboardTitle,
       layout,
       filters,
+      filterScopes,
       expandedSlices,
       css,
       colorNamespace,
@@ -416,6 +420,7 @@ class Header extends React.PureComponent {
             dashboardTitle={dashboardTitle}
             layout={layout}
             filters={filters}
+            filterScopes={filterScopes}
             expandedSlices={expandedSlices}
             css={css}
             colorNamespace={colorNamespace}
