@@ -192,27 +192,6 @@ class CsvUploadTests(SupersetTestCase):
             os.remove(filename)
             os.remove(db_path)
 
-    def test_duplicate_table_name(self):
-        url = "/superset/csvtodatabase/add"
-        filename = "duplicate_table_name.csv"
-        db_name = "newDB"
-        table_name = "duplicate_Name"
-        try:
-            # create a Table
-            init_data = self.get_full_data(filename, -1, db_name, table_name)
-            self.get_resp(url, data=init_data, raise_on_error=False)
-            # Create table with the same name: should fail but doesnt
-            form_data = self.get_full_data(
-                filename, self.get_existing_db_id(), table_name=table_name
-            )
-            response = self.get_resp(url, data=form_data, raise_on_error=False)
-            message = "Table name {0} already exists. Please choose another".format(
-                table_name
-            )
-            assert message in response
-        finally:
-            os.remove(filename)
-
     def test_database_exists_no_file(self):
         url = "/superset/csvtodatabase/add"
         filename = "duplicate_database_name.csv"
