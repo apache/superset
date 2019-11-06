@@ -1612,7 +1612,7 @@ class DruidDatasource(Model, BaseDatasource):
     ) -> List["DruidDatasource"]:
         return (
             session.query(cls)
-            .filter_by(cluster_name=database.id)
+            .filter_by(cluster_name=database.database_name)
             .filter_by(datasource_name=datasource_name)
             .all()
         )
