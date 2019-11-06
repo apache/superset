@@ -16,12 +16,10 @@
 # under the License.
 # pylint: disable=C,R,W
 import logging
+import os
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
-import logging
-import os
-import re
 from typing import Dict, List, Optional, Union
 from urllib import parse
 

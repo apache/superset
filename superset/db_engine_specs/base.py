@@ -27,7 +27,6 @@ import sqlparse
 from flask import g
 from flask_babel import lazy_gettext as _
 from numpy.core.defchararray import lower
-import pandas as pd
 from sqlalchemy import column, DateTime, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
