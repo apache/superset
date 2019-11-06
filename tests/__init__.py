@@ -19,5 +19,8 @@
 TODO: Clean this up! The current pattern of accessing app props on package init means
     that we need to ensure the creation of our Flask app BEFORE any tests load
 """
+from os import environ
+environ.setdefault("SUPERSET_CONFIG", "tests.superset_test_config")
+
 from superset.app import create_app
 create_app().app_context().push()
