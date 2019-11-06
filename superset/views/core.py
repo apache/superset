@@ -18,8 +18,9 @@
 from contextlib import closing
 from datetime import datetime, timedelta
 import logging
+import os
 import re
-from typing import Dict, List, Optional, Union  # noqa: F401
+from typing import List, Optional, Union  # noqa: F401
 from urllib import parse
 
 import backoff
@@ -46,9 +47,10 @@ import pandas as pd
 import pyarrow as pa
 import simplejson as json
 from sqlalchemy import and_, or_, select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
+from werkzeug.utils import secure_filename
 
 from superset import (
     app,
@@ -68,7 +70,7 @@ from superset import (
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import AnnotationDatasource
+from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,
@@ -110,7 +112,6 @@ from .utils import (
     get_viz,
 )
 
-
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config.get(
@@ -119,7 +120,6 @@ SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config.get(
 stats_logger = config.get("STATS_LOGGER")
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
-
 
 ALL_DATASOURCE_ACCESS_ERR = __(
     "This endpoint requires the `all_datasource_access` permission"
@@ -656,7 +656,6 @@ def ping():
 
 
 class KV(BaseSupersetView):
-
     """Used for storing and retrieving key value pairs"""
 
     @event_logger.log_this
@@ -688,7 +687,6 @@ appbuilder.add_view_no_menu(KV)
 
 
 class R(BaseSupersetView):
-
     """used for short urls"""
 
     @event_logger.log_this
@@ -2135,6 +2133,36 @@ class Superset(BaseSupersetView):
             return json_success(json.dumps({"published": dash.published}))
 
     @has_access
+    @expose("/csvtodatabase")
+    def csvtodatabase(self):
+        session = db.session()
+        Database = models.Database
+        databases = session.query(Database).filter_by(allow_csv_upload=True).all()
+        databases_json = [models.DatabaseDto(-1, "In a new database")]
+        for database in databases:
+            databases_json.append(models.DatabaseDto(database.id, database.name))
+
+        bootstrap_data = {
+            "some boolean": True,
+            "some string": "string content",
+            "databases": databases_json,
+            "common": self.common_bootstrap_payload(),
+        }
+
+        if request.args.get("json") == "true":
+            return json_success(
+                json.dumps(bootstrap_data, default=lambda x: x.__dict__)
+            )
+
+        return self.render_template(
+            "superset/csv_to_database.html",
+            entry="csvToDatabase",
+            standalone_mode=False,
+            title="CSV to Database configuration",
+            bootstrap_data=json.dumps(bootstrap_data, default=lambda x: x.__dict__),
+        )
+
+    @has_access
     @expose("/dashboard/<dashboard_id>/")
     def dashboard(self, dashboard_id):
         """Server side rendering for a dashboard"""
@@ -3056,6 +3084,251 @@ class Superset(BaseSupersetView):
                 stacktrace=utils.get_stacktrace(),
             )
 
+    @api
+    @has_access_api
+    @expose("/csvtodatabase/add", methods=["POST"])
+    def add(self) -> Response:
+        """ import a csv into a Table
+
+        Handles the logic for importing the csv into a Table in a given or newly created Database
+        returns HTTP Status Codes (200 for ok, 400 for errors)
+        Request body contains multipart/form-data
+        Form content:
+        form -- contains the properties for the table to be created
+        file -- csv file to be imported
+        """
+        form_data = request.form
+        csv_file = request.files["file"]
+        csv_filename = secure_filename(csv_file.filename)
+        if len(csv_filename) == 0:
+            return json_error_response("Filename is not allowed", status=400)
+        database_id = form_data["connectionId"]
+        # check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
+        # this beforehand
+        try:
+            database_id = int(database_id)
+        except ValueError:
+            message = _(
+                "Possible tampering detected, non-numeral character in database-id"
+            )
+            return json_error_response(message, status=400)
+
+        try:
+            if database_id != -1:
+                schema = None if not form_data["schema"] else form_data["schema"]
+                database = self._get_existing_database(database_id, schema)
+                db_name = database.database_name
+            else:
+                db_name = (
+                    csv_filename[:-4]
+                    if not form_data["databaseName"]
+                    else form_data["databaseName"]
+                )
+                db_name = secure_filename(db_name)
+                if len(db_name) == 0:
+                    return json_error_response(
+                        "Database name is not allowed", status=400
+                    )
+                database = self._create_database(db_name)
+        except Exception as e:
+            return json_error_response(e.args[0], status=400)
+
+        try:
+            path = self._check_and_save_csv(csv_file, csv_filename)
+            self._create_table(form_data, database, csv_filename)
+        except Exception as e:
+            try:
+                os.remove(os.getcwd() + "/" + db_name + ".db")
+            except OSError:
+                pass
+            try:
+                if database_id == -1:
+                    db.session.rollback()
+                    db.session.delete(database)
+                    db.session.commit()
+            except Exception:
+                pass
+            message = (
+                "Table {0} could not be created".format(form_data["tableName"])
+                if isinstance(e, IntegrityError)
+                else str(e)
+            )
+            return json_error_response(message, status=400)
+        finally:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+        stats_logger.incr("successful_csv_upload")
+        message = "{} imported into database {}".format(form_data["tableName"], db_name)
+        flash(message, "success")
+        return json_success(
+            '"{} imported into database {}"'.format(form_data["tableName"], db_name)
+        )
+
+    def _create_database(self, db_name: str):
+        """ Creates the Database itself as well as the Superset Connection to it
+
+        Keyword arguments:
+        db_name -- the name for the database to be created
+
+        Raises:
+            ValueError: If a file with the database name already exists in the folder
+            Exception: If the Database could not be created
+        """
+        db_path = os.getcwd() + "/" + db_name + ".db"
+        if os.path.isfile(db_path):
+            message = "Database file for {0} already exists, please choose a different name".format(
+                db_name
+            )
+            raise ValueError(message)
+        try:
+            item = SQLAInterface(models.Database).obj()
+            item.database_name = db_name
+            item.sqlalchemy_uri = "sqlite:///" + db_path
+            item.allow_csv_upload = True
+            # TODO check if SQL-injection is possible through add()
+            db.session.add(item)
+            db.session.commit()
+            return item
+        except Exception as e:
+            message = (
+                "Error when trying to create Database"
+                if isinstance(e, IntegrityError)
+                else str(e)
+            )
+            try:
+                if os.path.isfile(db_path):
+                    os.remove(db_path)
+                db.session.delete(item)
+                db.session.commit()
+            except OSError:
+                message = _(
+                    "Error when trying to create Database and Database-File could not be removed. "
+                    "Please contact your administrator to remove it manually"
+                )
+                pass
+            except Exception:
+                pass
+            stats_logger.incr("failed_csv_upload")
+            raise Exception(message)
+
+    def _get_existing_database(self, database_id: int, schema):
+        """Returns the database object for an existing database
+
+        Keyword arguments:
+        database_id -- the ID used to identify the database
+        schema -- the schema to be used
+
+        Raises:
+            ValueError: 1. If the schema is not allowed for csv upload
+                        2. If the database ID is not valid
+                        3. If there was a problem getting the schema
+        """
+        try:
+            database = self._get_database_by_id(database_id)
+            if not self._is_schema_allowed(database, schema):
+                message = _(
+                    "Database {0} Schema {1} is not allowed for csv uploads. "
+                    "Please contact your Superset administrator".format(
+                        database.database_name, schema
+                    )
+                )
+                raise ValueError(message)
+            return database
+        except Exception as e:
+            raise ValueError(e.args[0])
+
+    def _get_database_by_id(self, database_id: int) -> models.Database:
+        """ Returns the Database for the given ID
+
+        Keyword arguments:
+        database_id -- The ID which is used to identify the Database byo
+
+        Raises:
+            ValueError: If the database ID is not valid, i.e. matches no database
+        """
+
+        dbs = db.session.query(models.Database).filter_by(id=database_id).all()
+        if len(dbs) != 1:
+            message = _("None or several matching databases found")
+            raise ValueError(message)
+        return dbs[0]
+
+    def _is_schema_allowed(self, database: models.Database, schema: str) -> bool:
+        """ Checks whether the specified schema is allowed for csv-uploads
+
+        Keyword Arguments:
+        database -- The database object which will be used for the import
+        schema -- the schema to be used for the import
+        """
+        if not database.allow_csv_upload:
+            return False
+        schemas = database.get_schema_access_for_csv_upload()
+        if schemas:
+            return schema in schemas
+        return (
+            security_manager.database_access(database)
+            or security_manager.all_datasource_access()
+        )
+
+    def _check_and_save_csv(self, csv_file, csv_filename: str) -> str:
+        """ Sanitizes the filename and saves the csv-file to disk
+
+        Keyword arguments:
+        csv_file -- the file which will be saved to disk
+        csv_filename -- the filename to be sanitized which will be used
+
+        Raises:
+            OSError: 1. If the upload folder does not exist
+                     2. If the csv-file could not be saved
+        """
+        path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
+        try:
+            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
+            csv_file.save(path)
+        except Exception:
+            os.remove(path)
+            raise OSError("Could not save CSV-file, does the upload folder exist?")
+        return path
+
+    def _create_table(
+        self, form_data: dict, database: models.Database, csv_filename: str
+    ) -> None:
+        """ Create the Table itself and fill it with the data from the csv file
+
+        Keyword arguments:
+        form_data -- the dictionary containing the properties for the Table to be created
+        database -- the database object which will be used
+        csv_filename -- the name of the csv-file to be imported
+
+        Raises:
+            Exception:  1. If the Table object could not be created
+                        2. If the Table could not be created in the database
+                        3. If the data could not be inserted into the table
+        """
+
+        try:
+            for table in db.session.query(SqlaTable).all():
+                if table.name == form_data["tableName"]:
+                    message = _(
+                        "Table name {0} already exists. Please choose another".format(
+                            form_data["tableName"]
+                        )
+                    )
+                    raise Exception(message)
+
+            table = SqlaTable(table_name=form_data["tableName"])
+            table.database = database
+            table.database_id = table.database.id
+            table.database.db_engine_spec.create_table_from_csv(
+                form_data, table, csv_filename, database
+            )
+            return table
+        except Exception as e:
+            raise e
+
 
 appbuilder.add_view_no_menu(Superset)
 
@@ -3088,7 +3361,6 @@ appbuilder.add_view(
     category_label=__("Manage"),
     category_icon="",
 )
-
 
 appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
 

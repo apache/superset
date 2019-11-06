@@ -24,6 +24,7 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING, 
 
 from flask import g
 from flask_babel import lazy_gettext as _
+from numpy.core.defchararray import lower
 import pandas as pd
 from sqlalchemy import column, DateTime, select
 from sqlalchemy.engine import create_engine
@@ -386,10 +387,18 @@ class BaseEngineSpec:
         df.to_sql(**kwargs)
 
     @classmethod
-    def create_table_from_csv(cls, form, table):
-        """ Create table (including metadata in backend) from contents of a csv.
-        :param form: Parameters defining how to process data
-        :param table: Metadata of new table to be created
+    def create_table_from_csv(
+        cls, form_data: dict, table, csv_filename: str, database
+    ) -> None:
+        """ import the data in the csv-file into the given table
+
+        Keyword arguments:
+            form_data -- dictionary containing the properties for the import
+            table -- the SqlaTable object into which the data should be imported
+            csv_filename -- the name of the csv file which will be read from disk or a buffer of the file content
+            database -- the database object which contains the connection string for the actual database
+        Raises:
+            IntegrityError: If there was a problem creating the table or inserting Data into it
         """
 
         def _allowed_file(filename: str) -> bool:
@@ -399,39 +408,50 @@ class BaseEngineSpec:
                 extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
             )
 
-        filename = secure_filename(form.csv_file.data.filename)
+        filename = secure_filename(csv_filename)
         if not _allowed_file(filename):
             raise Exception("Invalid file type selected")
         csv_to_df_kwargs = {
             "filepath_or_buffer": filename,
-            "sep": form.sep.data,
-            "header": form.header.data if form.header.data else 0,
-            "index_col": form.index_col.data,
-            "mangle_dupe_cols": form.mangle_dupe_cols.data,
-            "skipinitialspace": form.skipinitialspace.data,
-            "skiprows": form.skiprows.data,
-            "nrows": form.nrows.data,
-            "skip_blank_lines": form.skip_blank_lines.data,
-            "parse_dates": form.parse_dates.data,
-            "infer_datetime_format": form.infer_datetime_format.data,
+            "sep": form_data["delimiter"],
+            # frontend already does int-check, check again in case of tampering
+            "header": 0 if not form_data["headerRow"] else int(form_data["headerRow"]),
+            "index_col": None
+            if not form_data["indexColumn"]
+            else int(form_data["indexColumn"]),
+            "mangle_dupe_cols": bool(form_data["mangleDuplicateColumns"]),
+            "skipinitialspace": bool(form_data["skipInitialSpace"]),
+            "skiprows": None
+            if not form_data["skipRows"]
+            else int(form_data["skipRows"]),
+            "nrows": None
+            if not form_data["rowsToRead"]
+            else int(form_data["rowsToRead"]),
+            "skip_blank_lines": bool(form_data["skipBlankLines"]),
+            "parse_dates": None
+            if not form_data["parseDates"]
+            else form_data["parseDates"],
+            "infer_datetime_format": bool(form_data["inferDatetimeFormat"]),
             "chunksize": 10000,
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
 
         df_to_sql_kwargs = {
             "df": df,
-            "name": form.name.data,
-            "con": create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
-            "schema": form.schema.data,
-            "if_exists": form.if_exists.data,
-            "index": form.index.data,
-            "index_label": form.index_label.data,
+            "name": form_data["tableName"],
+            "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
+            "schema": None if not form_data["schema"] else form_data["schema"],
+            "if_exists": lower(form_data["ifTableExists"]),
+            "index": bool(form_data["dataframeIndex"]),
+            "index_label": None
+            if not form_data["columnLabels"]
+            else form_data["columnLabels"],
             "chunksize": 10000,
         }
         cls.df_to_sql(**df_to_sql_kwargs)
 
         table.user_id = g.user.id
-        table.schema = form.schema.data
+        table.schema = None
         table.fetch_metadata()
         db.session.add(table)
         db.session.commit()
