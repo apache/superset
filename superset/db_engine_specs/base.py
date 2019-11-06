@@ -397,10 +397,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Keyword arguments:
             form_data -- dictionary containing the properties for the import
             table -- the SqlaTable object into which the data should be imported
-            csv_filename -- the name of the csv file which will be read from disk or a buffer of the file content
-            database -- the database object which contains the connection string for the actual database
+            csv_filename -- the name of the csv file
+            database -- the database object which contains the connection string
         Raises:
-            IntegrityError: If there was a problem creating the table or inserting Data into it
+            IntegrityError: If there was a problem creating the table
         """
 
         def _allowed_file(filename: str) -> bool:
