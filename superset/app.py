@@ -94,7 +94,7 @@ class SupersetAppInitializer:
         pass
 
     def configure_celery(self) -> None:
-        celery_app.config_from_object(self.config.get("CELERY_CONFIG"))
+        celery_app.config_from_object(self.config["CELERY_CONFIG"])
         celery_app.set_default()
 
     def init_views(self) -> None:
@@ -112,7 +112,7 @@ class SupersetAppInitializer:
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
-        flask_app_mutator = self.config.get("FLASK_APP_MUTATOR")
+        flask_app_mutator = self.config["FLASK_APP_MUTATOR"]
         if flask_app_mutator:
             flask_app_mutator(self.flask_app)
 
@@ -155,8 +155,8 @@ class SupersetAppInitializer:
 
     def configure_data_sources(self):
         # Registering sources
-        module_datasource_map = self.config.get("DEFAULT_MODULE_DS_MAP")
-        module_datasource_map.update(self.config.get("ADDITIONAL_MODULE_DS_MAP"))
+        module_datasource_map = self.config["DEFAULT_MODULE_DS_MAP"]
+        module_datasource_map.update(self.config["ADDITIONAL_MODULE_DS_MAP"])
         ConnectorRegistry.register_sources(module_datasource_map)
 
     def configure_cache(self):
@@ -167,10 +167,10 @@ class SupersetAppInitializer:
         feature_flag_manager.init_app(self.flask_app)
 
     def configure_fab(self):
-        if self.config.get("SILENCE_FAB"):
+        if self.config["SILENCE_FAB"]:
             logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
 
-        custom_sm = self.config.get("CUSTOM_SECURITY_MANAGER") or SupersetSecurityManager
+        custom_sm = self.config["CUSTOM_SECURITY_MANAGER"] or SupersetSecurityManager
         if not issubclass(custom_sm, SupersetSecurityManager):
             raise Exception(
                 """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
@@ -185,17 +185,17 @@ class SupersetAppInitializer:
         appbuilder.init_app(self.flask_app, db.session)
 
     def configure_middlewares(self):
-        if self.config.get("ENABLE_CORS"):
+        if self.config["ENABLE_CORS"]:
             from flask_cors import CORS
 
-            CORS(self.flask_app, **self.config.get("CORS_OPTIONS"))
+            CORS(self.flask_app, **self.config["CORS_OPTIONS"])
 
-        if self.config.get("ENABLE_PROXY_FIX"):
+        if self.config["ENABLE_PROXY_FIX"]:
             from werkzeug.middleware.proxy_fix import ProxyFix
 
-            self.flask_app.wsgi_app = ProxyFix(self.flask_app.wsgi_app, **self.config.get("PROXY_FIX_CONFIG"))
+            self.flask_app.wsgi_app = ProxyFix(self.flask_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"])
 
-        if self.config.get("ENABLE_CHUNK_ENCODING"):
+        if self.config["ENABLE_CHUNK_ENCODING"]:
 
             class ChunkedEncodingFix(object):
                 def __init__(self, app):
@@ -210,17 +210,17 @@ class SupersetAppInitializer:
 
             self.flask_app.wsgi_app = ChunkedEncodingFix(self.flask_app.wsgi_app)
 
-        if self.config.get("UPLOAD_FOLDER"):
+        if self.config["UPLOAD_FOLDER"]:
             try:
-                os.makedirs(self.config.get("UPLOAD_FOLDER"))
+                os.makedirs(self.config["UPLOAD_FOLDER"])
             except OSError:
                 pass
 
-        for middleware in self.config.get("ADDITIONAL_MIDDLEWARE"):
+        for middleware in self.config["ADDITIONAL_MIDDLEWARE"]:
             self.flask_app.wsgi_app = middleware(self.flask_app.wsgi_app)
 
         # Flask-Compress
-        if self.config.get("ENABLE_FLASK_COMPRESS"):
+        if self.config["ENABLE_FLASK_COMPRESS"]:
             Compress(self.flask_app)
 
         if self.config["TALISMAN_ENABLED"]:
@@ -240,14 +240,14 @@ class SupersetAppInitializer:
         migrate.init_app(self.flask_app, db=db, directory=APP_DIR + "/migrations")
 
     def configure_wtf(self):
-        if self.config.get("WTF_CSRF_ENABLED"):
+        if self.config["WTF_CSRF_ENABLED"]:
             csrf = CSRFProtect(self.flask_app)
             csrf_exempt_list = self.config.get("WTF_CSRF_EXEMPT_LIST", [])
             for ex in csrf_exempt_list:
                 csrf.exempt(ex)
 
     def register_blueprints(self):
-        for bp in self.config.get("BLUEPRINTS"):
+        for bp in self.config["BLUEPRINTS"]:
             try:
                 logger.info("Registering blueprint: '{}'".format(bp.name))
                 self.flask_app.register_blueprint(bp)
