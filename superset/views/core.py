@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-import sqlite3
 from contextlib import closing
 from datetime import datetime, timedelta
 import logging
@@ -3150,14 +3149,14 @@ class Superset(BaseSupersetView):
                     db.session.commit()
             except Exception:
                 pass
-            if isinstance(e, IntegrityError):
+            if isinstance(e.orig, IntegrityError):
                 message = "Table {0} could not be created".format(
                     form_data["tableName"]
                 )
-            elif isinstance(e, OperationalError):
-                message = "Database or schema not found"
-            elif isinstance(e, sqlite3.OperationalError):
-                message = "Database or schema not found"
+            elif isinstance(e.orig, OperationalError):
+                message = "Schema {0} is not allowed in a SQLite database".format(
+                    form_data["schema"]
+                )
             else:
                 message = str(e)
             return json_error_response(message, status=400)
