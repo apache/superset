@@ -886,19 +886,19 @@ class UtilsTestCase(unittest.TestCase):
 
     def test_get_time_range_endpoints(self):
         self.assertEqual(
-            get_time_range_endpoints(form_data={}, slc=None),
+            get_time_range_endpoints(form_data={}),
             (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
         )
 
         self.assertEqual(
             get_time_range_endpoints(
-                form_data={"time_range_endpoints": ["inclusive", "inclusive"]}, slc=None
+                form_data={"time_range_endpoints": ["inclusive", "inclusive"]}
             ),
             (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
         )
 
         self.assertEqual(
-            get_time_range_endpoints(form_data={"datasource": "1_druid"}, slc=None),
+            get_time_range_endpoints(form_data={"datasource": "1_druid"}),
             (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
         )
 
