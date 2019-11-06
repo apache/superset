@@ -22,7 +22,7 @@ import Select from 'react-virtualized-select';
 import FormHelpText from './FormHelpText';
 
 const propTypes = {
-  value: PropTypes.obj,
+  value: PropTypes.object,
   options: PropTypes.array,
   onChange: PropTypes.func,
   required: PropTypes.bool,
