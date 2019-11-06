@@ -128,7 +128,7 @@ class CsvToDatabaseView(SimpleFormView):
                     schema=form.schema.data,
                     database_id=database.id,
                 )
-                .first()
+                .one_or_none()
             )
             if table:
                 table.fetch_metadata()
