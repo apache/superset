@@ -111,5 +111,5 @@ export function prepareCopyToClipboardTabularData(data) {
 
 export function supportsDragAndDrop() {
   const div = document.createElement('div');
-  return ('draggable' in div) || ('ondragstart' in div && 'ondrop' in div);
+  return ('ondragstart' in div && 'ondrop' in div);
 }
