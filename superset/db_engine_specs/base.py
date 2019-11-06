@@ -389,7 +389,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         df.to_sql(**kwargs)
 
     @classmethod
-    def create_table_from_csv(
+    def create_and_fill_table_from_csv(
         cls, form_data: dict, table, csv_filename: str, database
     ) -> None:
         """ import the data in the csv-file into the given table

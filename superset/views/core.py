@@ -3321,7 +3321,7 @@ class Superset(BaseSupersetView):
             table = SqlaTable(table_name=form_data["tableName"])
             table.database = database
             table.database_id = table.database.id
-            table.database.db_engine_spec.create_table_from_csv(
+            table.database.db_engine_spec.create_and_fill_table_from_csv(
                 form_data, table, csv_filename, database
             )
             return table
