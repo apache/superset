@@ -23,20 +23,20 @@ the exploration of a real dataset which contains the flights made by employees
 of a UK-based organization in 2011. The following information about each
 flight is given:
 
-- The traveller's department. For the purposes of this tutorial the names of
+- The traveller's department. For the purposes of this tutorial
   the departments have been renamed Orange, Yellow and Purple.
 - The cost of the ticket.
 - The travel class (Economy, Premium Economy, Business and First Class).
 - Whether the ticket was a single or return.
 - The date of travel.
 - Information about the origin and destination.
-- The distance between the origin and destination, in km.
+- The distance between the origin and destination, in kilometers (km).
 
 Obtaining and loading the data
 ------------------------------
 
 Download the data for this tutorial to your computer from `Github
-<https://github.com/francishemingway/unofficial-superset-tutorial/blob/master/tutorial_flights.csv>`_.
+<https://raw.githubusercontent.com/apache-superset/examples-data/master/tutorial_flights.csv>`_.
 
 In the top menu, select **Sources > Upload a CSV**.
 
@@ -180,7 +180,7 @@ Line Chart
 ----------
 
 In this section, we are going to create a line chart to understand the
-average price of a ticket by month across all the dataset. As before,
+average price of a ticket by month across the entire dataset. As before,
 select **New > Chart**, and then tutorial_flights as the datasource and
 Line Chart as the visualization type.
 
@@ -271,7 +271,7 @@ Next, remove the date filter by unchecking the **Date Filter** checkbox.
 
 .. image:: images/usertutorial/filter_on_origin_country.png
 
-Finally, select **Save**, naming the chart as Tutorial Filter, add the
+Finally, select **Save**, name the chart as Tutorial Filter, add the
 chart to our existing Tutorial Dashboard and then **Save & go to
 dashboard**. Once on the Dashboard, try using the filter to show only
 those flights that departed from the United Kingdom – you will see the
