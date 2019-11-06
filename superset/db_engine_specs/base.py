@@ -451,7 +451,7 @@ class BaseEngineSpec:
         cls.df_to_sql(**df_to_sql_kwargs)
 
         table.user_id = g.user.id
-        table.schema = None
+        table.schema = None if not form_data["schema"] else form_data["schema"]
         table.fetch_metadata()
         db.session.add(table)
         db.session.commit()
