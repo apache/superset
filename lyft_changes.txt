@@ -36,3 +36,10 @@ file to help us track how close or far we are from apache/incubator-superset mas
 - superset/assets/src/visualizations/Kepler/Kepler.jsx has been removed
 - superset/assets/src/visualizations/Kepler/KeplerChartPlugin.js has been removed
 - superset/assets/src/visualizations/presets/DeckGLChartPreset.js has been removed
+
+2.superset/views/lyft.py and core.py
+We are "intercepting" sql_json and other calls to authenticate then passing down into actual superset functions.  To do this we have added endpoints in lyft.py, but also have broken the apache endpoints (like sql_json) into the request handler itself (ie sql_json) and a shared library function (sql_json_call) that is used by both the apache and lyft version of the endoint.
+
+3. superset/views/core.py again
+in sql_json_call, we have changed the arg to take a json object named request_json (instead of original request) and string replaced all of the usages of request.json to use request_json. This lets us create a dictionary of request param to pass into the sql_json_call method. We need this because our callers such as amundsen are not json encoding data in calls, and superset had a breaking API change that expects them to be encoded.
+
