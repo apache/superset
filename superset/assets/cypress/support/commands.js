@@ -106,3 +106,17 @@ Cypress.Commands.add('verifySliceSuccess', ({ waitAlias, querySubstring, chartSe
     cy.verifySliceContainer(chartSelector);
   });
 });
+
+Cypress.Commands.add('upload_file', (fileName, fileType = ' ', fileContent, selector) => {
+    cy.get(selector).then(subject => {
+      cy.writeFile(fileName, fileContent, 'base64')
+        .then(Cypress.Blob.base64StringToBlob)
+        .then(blob => {
+          const el = subject[0]
+          const testFile = new File([blob], fileName, { type: fileType })
+          const dataTransfer = new DataTransfer()
+          dataTransfer.items.add(testFile)
+          el.files = dataTransfer.files
+        })
+    })
+  })
