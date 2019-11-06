@@ -115,14 +115,16 @@ setup(
         "mysql": ["mysqlclient==1.4.2.post1"],
         "postgres": ["psycopg2-binary==2.7.5"],
         "presto": ["pyhive[presto]>=0.4.0"],
-        "druid": ["pydruid==0.5.2", "requests==2.22.0"],
+        "elasticsearch": ["elasticsearch-dbapi>=0.1.0, <0.2.0"],
+        "druid": ["pydruid==0.5.7", "requests==2.22.0"],
     },
     python_requires="~=3.6",
     author="Apache Software Foundation",
     author_email="dev@superset.incubator.apache.org",
     url="https://superset.apache.org/",
-    download_url=(
-        "https://dist.apache.org/repos/dist/release/superset/" + version_string
-    ),
-    classifiers=["Programming Language :: Python :: 3.6"],
+    download_url="https://www.apache.org/dist/incubator/superset/" + version_string,
+    classifiers=[
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+    ],
 )

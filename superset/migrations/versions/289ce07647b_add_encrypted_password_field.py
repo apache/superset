@@ -22,8 +22,8 @@ Create Date: 2015-11-21 11:18:00.650587
 
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy_utils import EncryptedType
 
 # revision identifiers, used by Alembic.

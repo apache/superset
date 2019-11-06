@@ -14,17 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import uuid
 from datetime import datetime
 from unittest.mock import Mock, patch
-import uuid
 
 import numpy as np
 import pandas as pd
 
+import superset.viz as viz
 from superset import app
 from superset.exceptions import SpatialException
 from superset.utils.core import DTTM_ALIAS
-import superset.viz as viz
+
 from .base_tests import SupersetTestCase
 from .utils import load_fixture
 
@@ -929,14 +930,14 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
         viz_instance = viz.BaseDeckGLViz(datasource, form_data)
 
         coord = viz_instance.parse_coordinates("1.23, 3.21")
-        self.assertEquals(coord, (1.23, 3.21))
+        self.assertEqual(coord, (1.23, 3.21))
 
         coord = viz_instance.parse_coordinates("1.23 3.21")
-        self.assertEquals(coord, (1.23, 3.21))
+        self.assertEqual(coord, (1.23, 3.21))
 
-        self.assertEquals(viz_instance.parse_coordinates(None), None)
+        self.assertEqual(viz_instance.parse_coordinates(None), None)
 
-        self.assertEquals(viz_instance.parse_coordinates(""), None)
+        self.assertEqual(viz_instance.parse_coordinates(""), None)
 
     def test_parse_coordinates_raises(self):
         form_data = load_fixture("deck_path_form_data.json")

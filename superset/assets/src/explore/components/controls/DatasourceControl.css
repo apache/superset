@@ -16,12 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { rgb } from 'd3-color';
+#datasource_menu {
+    border-radius: 2px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
 
-export function hexToRGB(hex, alpha = 255) {
-  if (!hex) {
-    return [0, 0, 0, alpha];
-  }
-  const { r, g, b } = rgb(hex);
-  return [r, g, b, alpha];
+#datasource_menu .caret {
+    position: relative;
+    padding-right: 8px;
+    margin-left: 4px;
+    color: #fff;
+    top: -8px;
+}
+
+#datasource_menu + ul {
+    margin-top: 26px;
 }

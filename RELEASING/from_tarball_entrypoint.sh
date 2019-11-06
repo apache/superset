@@ -21,8 +21,7 @@ echo "[WARNING] this entrypoint creates an admin/admin user"
 echo "[WARNING] it should only be used for lightweight testing/validation"
 
 # Create an admin user (you will be prompted to set username, first and last name before setting a password)
-fabmanager create-admin \
-    --app superset \
+flask fab create-admin \
     --username admin \
     --firstname admin \
     --lastname admin \

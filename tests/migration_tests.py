@@ -20,6 +20,7 @@ from superset.migrations.versions.fb13d49b72f9_better_filters import (
     Slice,
     upgrade_slice,
 )
+
 from .base_tests import SupersetTestCase
 
 
@@ -36,4 +37,4 @@ class MigrationTestCase(SupersetTestCase):
         self.assertIn("filter_configs", params)
 
         cfg = params["filter_configs"][0]
-        self.assertEquals(cfg.get("metric"), "foo")
+        self.assertEqual(cfg.get("metric"), "foo")

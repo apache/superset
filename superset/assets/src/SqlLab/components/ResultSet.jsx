@@ -40,6 +40,7 @@ const propTypes = {
   cache: PropTypes.bool,
   height: PropTypes.number.isRequired,
   database: PropTypes.object,
+  displayLimit: PropTypes.number.isRequired,
 };
 const defaultProps = {
   search: true,
@@ -105,7 +106,7 @@ export default class ResultSet extends React.PureComponent {
     this.setState({ searchText: event.target.value });
   }
   fetchResults(query) {
-    this.props.actions.fetchQueryResults(query);
+    this.props.actions.fetchQueryResults(query, this.props.displayLimit);
   }
   reFetchQueryResults(query) {
     this.props.actions.reFetchQueryResults(query);
