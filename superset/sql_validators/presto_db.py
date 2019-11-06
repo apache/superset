@@ -52,7 +52,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
         # pylint: disable=invalid-name
-        SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR")
+        SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
         if SQL_QUERY_MUTATOR:
             sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
 

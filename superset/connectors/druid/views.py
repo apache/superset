@@ -27,7 +27,7 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 
-from superset import appbuilder, db, security_manager
+from superset import app, appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.utils import core as utils
@@ -131,9 +131,6 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
         self.post_update(col)
 
 
-appbuilder.add_view_no_menu(DruidColumnInlineView)
-
-
 class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidMetric)
 
@@ -184,9 +181,6 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
     }
 
     edit_form_extra_fields = add_form_extra_fields
-
-
-appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
 class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
@@ -255,17 +249,6 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
 
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
-
-
-appbuilder.add_view(
-    DruidClusterModelView,
-    name="Druid Clusters",
-    label=__("Druid Clusters"),
-    icon="fa-cubes",
-    category="Sources",
-    category_label=__("Sources"),
-    category_icon="fa-database",
-)
 
 
 class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
@@ -378,16 +361,6 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         DeleteMixin._delete(self, pk)
 
 
-appbuilder.add_view(
-    DruidDatasourceModelView,
-    "Druid Datasources",
-    label=__("Druid Datasources"),
-    category="Sources",
-    category_label=__("Sources"),
-    icon="fa-cube",
-)
-
-
 class Druid(BaseSupersetView):
     """The base views for Superset!"""
 
@@ -433,26 +406,49 @@ class Druid(BaseSupersetView):
         return self.refresh_datasources(refresh_all=False)
 
 
-appbuilder.add_view_no_menu(Druid)
+if app.config["DRUID_IS_ACTIVE"]:
+    appbuilder.add_view(
+        DruidDatasourceModelView,
+        "Druid Datasources",
+        label=__("Druid Datasources"),
+        category="Sources",
+        category_label=__("Sources"),
+        icon="fa-cube",
+    )
 
-appbuilder.add_link(
-    "Scan New Datasources",
-    label=__("Scan New Datasources"),
-    href="/druid/scan_new_datasources/",
-    category="Sources",
-    category_label=__("Sources"),
-    category_icon="fa-database",
-    icon="fa-refresh",
-)
-appbuilder.add_link(
-    "Refresh Druid Metadata",
-    label=__("Refresh Druid Metadata"),
-    href="/druid/refresh_datasources/",
-    category="Sources",
-    category_label=__("Sources"),
-    category_icon="fa-database",
-    icon="fa-cog",
-)
+    appbuilder.add_view(
+        DruidClusterModelView,
+        name="Druid Clusters",
+        label=__("Druid Clusters"),
+        icon="fa-cubes",
+        category="Sources",
+        category_label=__("Sources"),
+        category_icon="fa-database",
+    )
 
+    appbuilder.add_view_no_menu(DruidMetricInlineView)
 
-appbuilder.add_separator("Sources")
+    appbuilder.add_view_no_menu(DruidColumnInlineView)
+
+    appbuilder.add_view_no_menu(Druid)
+
+    appbuilder.add_link(
+        "Scan New Datasources",
+        label=__("Scan New Datasources"),
+        href="/druid/scan_new_datasources/",
+        category="Sources",
+        category_label=__("Sources"),
+        category_icon="fa-database",
+        icon="fa-refresh",
+    )
+    appbuilder.add_link(
+        "Refresh Druid Metadata",
+        label=__("Refresh Druid Metadata"),
+        href="/druid/refresh_datasources/",
+        category="Sources",
+        category_label=__("Sources"),
+        category_icon="fa-database",
+        icon="fa-cog",
+    )
+
+    appbuilder.add_separator("Sources")

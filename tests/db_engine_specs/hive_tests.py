@@ -150,3 +150,15 @@ class HiveTests(DbEngineSpecTestCase):
         self.assertEqual(
             [], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY)
         )
+
+    def test_convert_dttm(self):
+        dttm = self.get_dttm()
+
+        self.assertEqual(
+            HiveEngineSpec.convert_dttm("DATE", dttm), "CAST('2019-01-02' AS DATE)"
+        )
+
+        self.assertEqual(
+            HiveEngineSpec.convert_dttm("TIMESTAMP", dttm),
+            "CAST('2019-01-02 03:04:05.678900' AS TIMESTAMP)",
+        )

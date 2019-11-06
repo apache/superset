@@ -19,11 +19,12 @@ under the License.
 
 # Apache Releases
 
-You'll probably want to run these commands manually and understand what
+Until things settle and we create scripts that streamline this,
+you'll probably want to run these commands manually and understand what
 they do prior to doing so.
 
-For coordinating on releases, on more operational topics that require more
-synchronous communications, we tend to use the `#apache-releases` channel
+For coordinating on releases, on operational topics that require more
+synchronous communications, we recommend using the `#apache-releases` channel
 on the Superset Slack. People crafting releases and those interested in
 partaking in the process should join the channel.
 
@@ -45,13 +46,29 @@ need to be done at every release.
 
 
     # Add your GPG pub key to KEYS file. Replace "Maxime Beauchemin" with your name
-    export FULLNAME="Maxime Beauchemin"
-    (gpg --list-sigs $FULLNAME && gpg --armor --export $FULLNAME ) >> KEYS
+    export SUPERSET_PGP_FULLNAME="Maxime Beauchemin"
+    (gpg --list-sigs "${SUPERSET_PGP_FULLNAME}" && gpg --armor --export "${SUPERSET_PGP_FULLNAME}" ) >> KEYS
 
 
     # Commit the changes
     svn commit -m "Add PGP keys of new Superset committer"
 ```
+
+## Crafting a source release
+
+When crafting a new minor or major release we create 
+a branch named with the release MAJOR.MINOR version.
+This new branch will hold all PATCH and release candidates 
+that belong to the MAJOR.MINOR version.
+
+The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
+Then (if needed) apply all cherries that will make the PATCH
+
+Finally bump the version number on `superset/static/assets/package.json` ::
+
+    "version": "0.35.0"
+
+Commit the change with the version number, then git tag the version with the release candidate and push
 
 ## Setting up the release environment (do every time)
 
@@ -74,6 +91,8 @@ Then you can generate other derived environment variables that are used
 throughout the release process:
 
 ```bash
+    # Replace SUPERSET_PGP_FULLNAME with your PGP key name for Apache
+    export SUPERSET_PGP_FULLNAME="YOURFULLNAMEHERE"
     export SUPERSET_VERSION_RC=${SUPERSET_VERSION}rc${SUPERSET_RC}
     export SUPERSET_RELEASE=apache-superset-incubating-${SUPERSET_VERSION}
     export SUPERSET_RELEASE_RC=apache-superset-incubating-${SUPERSET_VERSION_RC}
@@ -121,7 +140,11 @@ Now let's craft a source release
         -o ~/svn/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
 
     cd ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
-    ${SUPERSET_REPO_DIR}/scripts/sign.sh ${SUPERSET_RELEASE_RC}-source.tar.gz
+    ${SUPERSET_REPO_DIR}/scripts/sign.sh "${SUPERSET_RELEASE_RC_TARBALL}" "${SUPERSET_PGP_FULLNAME}"
+
+    # To verify to signature
+    gpg --verify "${SUPERSET_RELEASE_RC_TARBALL}".asc "${SUPERSET_RELEASE_RC_TARBALL}"
+
 ```
 
 ### Shipping to SVN
@@ -134,7 +157,21 @@ Now let's ship this RC into svn's dev folder
     svn commit -m "Release ${SUPERSET_VERSION_RC}"
 ```
 
-Now you're ready to start the VOTE thread.
+### Voting
+Now you're ready to start the [VOTE] thread. Here's an example of a
+previous release vote thread:
+https://lists.apache.org/thread.html/e60f080ebdda26896214f7d3d5be1ccadfab95d48fbe813252762879@<dev.superset.apache.org>
+
+Once 3+ binding votes (by PMC members) have been cast and at
+least 72 hours have past, you can post a [RESULT] thread:
+https://lists.apache.org/thread.html/50a6b134d66b86b237d5d7bc89df1b567246d125a71394d78b45f9a8@%3Cdev.superset.apache.org%3E
+
+Following the result thread, yet another [VOTE] thread should be
+started at general@incubator.apache.org.
+
+### Announcing
+
+Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
 
 ### Validating a release
 
@@ -165,6 +202,14 @@ Then tag the final release:
 
 Now you can announce the release on the mailing list, make sure to use the
 proper template
+
+### Publishing a Convenience Release to PyPI
+From the root of the repo running ./pypi_push.sh will build the
+Javascript bundle and echo the twine command allowing you to publish
+to PyPI. You may need to ask a fellow committer to grant
+you access to it if you don't have access already. Make sure to create
+an account first if you don't have one, and reference your username
+while requesting access to push packages.
 
 ## Post release
 

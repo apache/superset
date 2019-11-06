@@ -28,3 +28,16 @@ class MySQLEngineSpecsTestCase(DbEngineSpecTestCase):
         """Tests related to datatype mapping for MySQL"""
         self.assertEqual("TINY", MySQLEngineSpec.get_datatype(1))
         self.assertEqual("VARCHAR", MySQLEngineSpec.get_datatype(15))
+
+    def test_convert_dttm(self):
+        dttm = self.get_dttm()
+
+        self.assertEqual(
+            MySQLEngineSpec.convert_dttm("DATE", dttm),
+            "STR_TO_DATE('2019-01-02', '%Y-%m-%d')",
+        )
+
+        self.assertEqual(
+            MySQLEngineSpec.convert_dttm("DATETIME", dttm),
+            "STR_TO_DATE('2019-01-02 03:04:05.678900', '%Y-%m-%d %H:%i:%s.%f')",
+        )

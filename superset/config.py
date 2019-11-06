@@ -28,17 +28,22 @@ import logging
 import os
 import sys
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List
+from datetime import date
+from typing import Any, Callable, Dict, List, Optional
 
 from celery.schedules import crontab
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
 from superset.stats_logger import DummyStatsLogger
+from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
+EVENT_LOGGER = DBEventLogger()
+
+SUPERSET_LOG_VIEW = True
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 if "SUPERSET_HOME" in os.environ:
@@ -109,6 +114,7 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
 # def lookup_password(url):
 #     return 'secret'
 # SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
+SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
@@ -231,6 +237,9 @@ DEFAULT_FEATURE_FLAGS = {
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "PRESTO_EXPAND_DATA": False,
 }
+
+# This is merely a default.
+FEATURE_FLAGS: Dict[str, bool] = {}
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
@@ -371,6 +380,7 @@ BACKUP_COUNT = 30
 #     security_manager=None,
 # ):
 #     pass
+QUERY_LOGGER = None
 
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
@@ -444,6 +454,7 @@ CELERY_CONFIG = CeleryConfig
 # override anything set within the app
 DEFAULT_HTTP_HEADERS: Dict[str, Any] = {}
 OVERRIDE_HTTP_HEADERS: Dict[str, Any] = {}
+HTTP_HEADERS: Dict[str, Any] = {}
 
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
@@ -522,12 +533,17 @@ SMTP_PASSWORD = "superset"
 SMTP_MAIL_FROM = "superset@superset.com"
 
 if not CACHE_DEFAULT_TIMEOUT:
-    CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get("CACHE_DEFAULT_TIMEOUT")  # type: ignore
+    CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG["CACHE_DEFAULT_TIMEOUT"]
+
+
+ENABLE_CHUNK_ENCODING = False
 
 # Whether to bump the logging level to ERROR on the flask_appbuilder package
 # Set to False if/when debugging FAB related issues like
 # permission management
 SILENCE_FAB = True
+
+FAB_ADD_SECURITY_VIEWS = True
 
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
@@ -678,6 +694,18 @@ SEND_FILE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 365  # Cache static resources
 # URI to database storing the example data, points to
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
 SQLALCHEMY_EXAMPLES_URI = None
+
+# SIP-15 should be enabled for all new Superset deployments which ensures that the time
+# range endpoints adhere to [start, end). For existing deployments admins should provide
+# a dedicated period of time to allow chart producers to update their charts before
+# mass migrating all charts to use the [start, end) interval.
+#
+# Note if no end date for the grace period is specified then the grace period is
+# indefinite.
+SIP_15_ENABLED = False
+SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
+SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
+SIP_15_TOAST_MESSAGE = 'Action Required: Preview then save your chart using the new time range endpoints <a target="_blank" href="{url}" class="alert-link">here</a>.'
 
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful

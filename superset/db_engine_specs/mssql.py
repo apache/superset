@@ -50,8 +50,15 @@ class MssqlEngineSpec(BaseEngineSpec):
         return "dateadd(S, {col}, '1970-01-01')"
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        return "CONVERT(DATETIME, '{}', 126)".format(dttm.isoformat())
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == "DATE":
+            return f"CONVERT(DATE, '{dttm.date().isoformat()}', 23)"
+        if tt == "DATETIME":
+            return f"""CONVERT(DATETIME, '{dttm.isoformat(timespec="milliseconds")}', 126)"""  # pylint: disable=line-too-long
+        if tt == "SMALLDATETIME":
+            return f"""CONVERT(SMALLDATETIME, '{dttm.isoformat(sep=" ", timespec="seconds")}', 20)"""  # pylint: disable=line-too-long
+        return None
 
     @classmethod
     def fetch_data(cls, cursor, limit: int) -> List[Tuple]:

@@ -30,7 +30,7 @@ from superset.models import core as models
 from superset.models.core import Database
 from superset.utils.core import get_example_database
 
-BASE_DIR = app.config.get("BASE_DIR")
+BASE_DIR = app.config["BASE_DIR"]
 
 
 class SupersetTestCase(unittest.TestCase):

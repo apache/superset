@@ -39,7 +39,7 @@ def sqlalchemy_uri_validator(
     """
     try:
         make_url(uri.strip())
-    except ArgumentError:
+    except (ArgumentError, AttributeError):
         raise exception(
             _(
                 "Invalid connnection string, a valid string follows: "
@@ -94,6 +94,7 @@ class DatabaseMixin:
         "impersonate_user",
         "allow_multi_schema_metadata_fetch",
         "extra",
+        "encrypted_extra",
     ]
     search_exclude_columns = (
         "password",
@@ -170,6 +171,13 @@ class DatabaseMixin:
             "This should be used with Presto DBs so that the syntax is correct",
             True,
         ),
+        "encrypted_extra": utils.markdown(
+            "JSON string containing additional connection configuration.<br/>"
+            "This is used to provide connection information for systems like "
+            "Hive, Presto, and BigQuery, which do not conform to the username:password "
+            "syntax normally used by SQLAlchemy.",
+            True,
+        ),
         "impersonate_user": _(
             "If Presto, all the queries in SQL Lab are going to be executed as the "
             "currently logged on user who must have permission to run them.<br/>"
@@ -203,6 +211,7 @@ class DatabaseMixin:
         "sqlalchemy_uri": _("SQLAlchemy URI"),
         "cache_timeout": _("Chart Cache Timeout"),
         "extra": _("Extra"),
+        "encrypted_extra": _("Secure Extra"),
         "allow_run_async": _("Asynchronous Query Execution"),
         "impersonate_user": _("Impersonate the logged on user"),
         "allow_csv_upload": _("Allow Csv Upload"),
@@ -213,6 +222,7 @@ class DatabaseMixin:
 
     def _pre_add_update(self, db):
         self.check_extra(db)
+        self.check_encrypted_extra(db)
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.add_permission_view_menu("database_access", db.perm)
         # adding a new database we always want to force refresh schema list
@@ -253,3 +263,10 @@ class DatabaseMixin:
                     "is not configured correctly. The key "
                     "{} is invalid.".format(key)
                 )
+
+    def check_encrypted_extra(self, db):
+        # this will check whether json.loads(secure_extra) can succeed
+        try:
+            extra = db.get_encrypted_extra()
+        except Exception as e:
+            raise Exception(f"Secure Extra field cannot be decoded as JSON. {str(e)}")

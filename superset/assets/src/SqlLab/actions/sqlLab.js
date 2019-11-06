@@ -224,12 +224,12 @@ export function requestQueryResults(query) {
   return { type: REQUEST_QUERY_RESULTS, query };
 }
 
-export function fetchQueryResults(query) {
+export function fetchQueryResults(query, displayLimit) {
   return function (dispatch) {
     dispatch(requestQueryResults(query));
 
     return SupersetClient.get({
-      endpoint: `/superset/results/${query.resultsKey}/`,
+      endpoint: `/superset/results/${query.resultsKey}/?rows=${displayLimit}`,
       parseMethod: 'text',
     })
       .then(({ text = '{}' }) => {
@@ -262,6 +262,7 @@ export function runQuery(query) {
       select_as_cta: query.ctas,
       templateParams: query.templateParams,
       queryLimit: query.queryLimit,
+      expand_data: true,
     };
 
     return SupersetClient.post({

@@ -109,8 +109,8 @@ For large features or major changes to codebase, please create **Superset Improv
 
 ### Fix Bugs
 
-Look through the GitHub issues. Issues tagged with `#bug` is
-open to whoever wants to implement it.
+Look through the GitHub issues. Issues tagged with `#bug` are
+open to whoever wants to implement them.
 
 ### Implement Features
 
@@ -767,6 +767,20 @@ https://github.com/apache/incubator-superset/pull/3013
     Since there is a new column, we need to add it to the AppBuilder Model view.
 
     [Example commit](https://github.com/apache/incubator-superset/pull/5745/commits/6220966e2a0a0cf3e6d87925491f8920fe8a3458)
+
+1. Test the migration's `down` method
+
+    ```bash
+    superset db downgrade
+    ```
+
+    The output should look like this:
+
+    ```
+    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+    INFO  [alembic.runtime.migration] Will assume transactional DDL.
+    INFO  [alembic.runtime.migration] Running downgrade 40a0a483dd12 -> 1a1d627ebd8e, add_metadata_column_to_annotation_model.py
+    ```
 
 ### Merging DB migrations
 
