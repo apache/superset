@@ -84,7 +84,7 @@ class CsvUploadTests(SupersetTestCase):
         form_get = self.get_resp(url)
         assert "CSV to Database configuration" in form_get
 
-    def test_import_csv_full_data_in_existing(self):
+    def test_import_csv_in_existing(self):
         url = "/superset/csvtodatabase/add"
         filename = "maximum.csv"
         try:
@@ -94,7 +94,7 @@ class CsvUploadTests(SupersetTestCase):
         finally:
             os.remove(filename)
 
-    def test_import_csv_full_data_in_new(self):
+    def test_import_csv_in_new(self):
         url = "/superset/csvtodatabase/add"
         filename = "maximum_into_new.csv"
         database_name = "new_database_max"
@@ -103,7 +103,6 @@ class CsvUploadTests(SupersetTestCase):
             form_data = self.get_full_data(filename, -1, database_name, table_name)
             response = self.get_resp(url, data=form_data)
             message = "{0} imported into database {1}".format(table_name, database_name)
-            print(response)
             assert message in response
         finally:
             os.remove(filename)
@@ -201,6 +200,27 @@ class CsvUploadTests(SupersetTestCase):
             form_data = self.get_full_data(filename, -1, db_name, table_name)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
             message = "Error when trying to create Database"
+            assert message in response
+        finally:
+            os.remove(filename)
+
+    def test_duplicate_table_name(self):
+        url = "/superset/csvtodatabase/add"
+        filename = "duplicate_table_name.csv"
+        table_name = "duplicate_name"
+        try:
+            init_data = self.get_full_data(
+                filename, self.get_existing_db_id(), table_name=table_name
+            )
+            self.get_resp(url, data=init_data, raise_on_error=False)
+
+            form_data = self.get_full_data(
+                filename, self.get_existing_db_id(), table_name=table_name
+            )
+            response = self.get_resp(url, data=form_data, raise_on_error=False)
+            message = "Table name {0} already exists. Please choose another".format(
+                table_name
+            )
             assert message in response
         finally:
             os.remove(filename)

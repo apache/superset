@@ -411,5 +411,4 @@ class SqlLabTests(SupersetTestCase):
         url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
         dblist = {r.get("database_name") for r in self.get_json_resp(url)["result"]}
         mylist = {"examples", "fake_db_100"}
-        print(dblist)
         assert set(mylist).issubset(dblist)

@@ -3149,9 +3149,7 @@ class Superset(BaseSupersetView):
             except Exception:
                 pass
             message = (
-                "Table name {0} already exists. Please choose another".format(
-                    form_data["tableName"]
-                )
+                "Table {0} could not be created".format(form_data["tableName"])
                 if isinstance(e, IntegrityError)
                 else str(e)
             )
@@ -3216,7 +3214,7 @@ class Superset(BaseSupersetView):
             stats_logger.incr("failed_csv_upload")
             raise Exception(message)
 
-    def _get_existing_database(self, database_id: int, schema: str):
+    def _get_existing_database(self, database_id: int, schema):
         """Returns the database object for an existing database
 
         Keyword arguments:
@@ -3312,6 +3310,15 @@ class Superset(BaseSupersetView):
         """
 
         try:
+            for table in db.session.query(SqlaTable).all():
+                if table.name == form_data["tableName"]:
+                    message = _(
+                        "Table name {0} already exists. Please choose another".format(
+                            form_data["tableName"]
+                        )
+                    )
+                    raise Exception(message)
+
             table = SqlaTable(table_name=form_data["tableName"])
             table.database = database
             table.database_id = table.database.id
@@ -3319,9 +3326,7 @@ class Superset(BaseSupersetView):
                 form_data, table, csv_filename, database
             )
             return table
-        # TODO remove this and move logger.incr to parent-method
         except Exception as e:
-            stats_logger.incr("failed_csv_upload")
             raise e
 
 
