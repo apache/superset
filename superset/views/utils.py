@@ -137,7 +137,9 @@ def get_form_data(slice_id=None, use_slice_data=False):
     update_time_range(form_data)
 
     if app.config["SIP_15_ENABLED"]:
-        form_data["time_range_endpoints"] = get_time_range_endpoints(form_data, slc)
+        form_data["time_range_endpoints"] = get_time_range_endpoints(
+            form_data, slc, slice_id
+        )
 
     return form_data, slc
 
@@ -207,17 +209,23 @@ def apply_display_max_row_limit(
 
 
 def get_time_range_endpoints(
-    form_data: Dict[str, Any], slc: Optional[models.Slice]
+    form_data: Dict[str, Any],
+    slc: Optional[models.Slice] = None,
+    slice_id: Optional[int] = None,
 ) -> Optional[Tuple[TimeRangeEndpoint, TimeRangeEndpoint]]:
     """
     Get the slice aware time range endpoints from the form-data falling back to the SQL
     database specific definition or default if not defined.
 
+    Note under certain circumstances the slice object may not exist, however the slice
+    ID may be defined which serves as a fallback.
+
     When SIP-15 is enabled all slices and will the [start, end) interval. If the grace
     period is defined and has ended all slices will adhere to the [start, end) interval.
 
     :param form_data: The form-data
-    :param slc: The chart
+    :param slc: The slice
+    :param slice_id: The slice ID
     :returns: The time range endpoints tuple
     """
 
@@ -229,14 +237,22 @@ def get_time_range_endpoints(
 
     endpoints = form_data.get("time_range_endpoints")
 
-    if slc and not endpoints:
+    if (slc or slice_id) and not endpoints:
         try:
             _, datasource_type = get_datasource_info(None, None, form_data)
         except SupersetException:
             return None
 
         if datasource_type == "table":
-            endpoints = slc.datasource.database.get_extra().get("time_range_endpoints")
+            if not slc:
+                slc = (
+                    db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
+                )
+
+            if slc:
+                endpoints = slc.datasource.database.get_extra().get(
+                    "time_range_endpoints"
+                )
 
             if not endpoints:
                 endpoints = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
