@@ -656,7 +656,7 @@ BUG_REPORT_URL = None
 
 # Send user to a link where they can read more about Superset
 DOCUMENTATION_URL = None
-DOCUMENTATION_TEXT = 'Documentation'
+DOCUMENTATION_TEXT = "Documentation"
 DOCUMENTATION_ICON = None  # Recommended size: 16x16
 
 # What is the Last N days relative in the time selector to:
