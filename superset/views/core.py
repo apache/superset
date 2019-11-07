@@ -2681,36 +2681,37 @@ class Superset(BaseSupersetView):
     @expose("/sql_json/", methods=["POST"])
     @event_logger.log_this
     def sql_json(self):
-        return self.sql_json_call(request)
+        request_json = request.json
+        return self.sql_json_call(request_json)
 
-    def sql_json_call(self, request):
+    def sql_json_call(self, request_json):
         """Runs arbitrary sql and returns data as json"""
         # Collect Values
-        database_id: int = request.json.get("database_id")
-        schema: str = request.json.get("schema")
-        sql: str = request.json.get("sql")
+        database_id: int = request_json.get("database_id")
+        schema: str = request_json.get("schema")
+        sql: str = request_json.get("sql")
         try:
             template_params: dict = json.loads(
-                request.json.get("templateParams") or "{}"
+                request_json.get("templateParams") or "{}"
             )
         except json.decoder.JSONDecodeError:
             logging.warning(
-                f"Invalid template parameter {request.json.get('templateParams')}"
+                f"Invalid template parameter {request_json.get('templateParams')}"
                 " specified. Defaulting to empty dict"
             )
             template_params = {}
-        limit = request.json.get("queryLimit") or app.config["SQL_MAX_ROW"]
-        async_flag: bool = request.json.get("runAsync")
+        limit = request_json.get("queryLimit") or app.config["SQL_MAX_ROW"]
+        async_flag: bool = request_json.get("runAsync")
         if limit < 0:
             logging.warning(
                 f"Invalid limit of {limit} specified. Defaulting to max limit."
             )
             limit = 0
-        select_as_cta: bool = request.json.get("select_as_cta")
-        tmp_table_name: str = request.json.get("tmp_table_name")
-        client_id: str = request.json.get("client_id") or utils.shortid()[:10]
-        sql_editor_id: str = request.json.get("sql_editor_id")
-        tab_name: str = request.json.get("tab")
+        select_as_cta: bool = request_json.get("select_as_cta")
+        tmp_table_name: str = request_json.get("tmp_table_name")
+        client_id: str = request_json.get("client_id") or utils.shortid()[:10]
+        sql_editor_id: str = request_json.get("sql_editor_id")
+        tab_name: str = request_json.get("tab")
         status: bool = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
 
         session = db.session()
@@ -2781,7 +2782,7 @@ class Superset(BaseSupersetView):
         # (feature that will expand Presto row objects and arrays)
         expand_data: bool = is_feature_enabled(
             "PRESTO_EXPAND_DATA"
-        ) and request.json.get("expand_data")
+        ) and request_json.get("expand_data")
 
         # Async request.
         if async_flag:
