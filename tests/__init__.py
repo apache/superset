@@ -23,4 +23,6 @@ from os import environ
 environ.setdefault("SUPERSET_CONFIG", "tests.superset_test_config")
 
 from superset.app import create_app
-create_app().app_context().push()
+app = create_app()
+# ctx = app.test_request_context()
+# ctx.push()

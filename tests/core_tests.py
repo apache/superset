@@ -50,16 +50,13 @@ class CoreTests(SupersetTestCase):
     def __init__(self, *args, **kwargs):
         super(CoreTests, self).__init__(*args, **kwargs)
 
-    @classmethod
-    def setUpClass(cls):
-        cls.table_ids = {
-            tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
-        }
-
     def setUp(self):
         db.session.query(Query).delete()
         db.session.query(models.DatasourceAccessRequest).delete()
         db.session.query(models.Log).delete()
+        self.table_ids = {
+            tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
+        }
 
     def tearDown(self):
         db.session.query(Query).delete()

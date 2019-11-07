@@ -22,22 +22,29 @@ from unittest.mock import Mock
 
 import pandas as pd
 from flask_appbuilder.security.sqla import models as ab_models
+from flask_testing import TestCase
 
 from superset import app, db, security_manager
+from superset.app import create_app
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.core import Database
 from superset.utils.core import get_example_database
 
-BASE_DIR = app.config["BASE_DIR"]
 
-
-class SupersetTestCase(unittest.TestCase):
+class SupersetTestCase(TestCase):
     def __init__(self, *args, **kwargs):
         super(SupersetTestCase, self).__init__(*args, **kwargs)
-        self.client = app.test_client()
         self.maxDiff = None
+        self.BASE_DIR = ""
+
+    def create_app(self):
+        from tests import app
+        return app
+
+    def setUp(self) -> None:
+        self.BASE_DIR = app.config["BASE_DIR"]
 
     @classmethod
     def create_druid_test_objects(cls):
