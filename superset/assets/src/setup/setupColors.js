@@ -40,4 +40,5 @@ export default function setupColors() {
       sequentialSchemeRegistry.registerValue(scheme.id, scheme);
     });
   });
+  sequentialSchemeRegistry.setDefaultKey('blue_white_yellow');
 }
