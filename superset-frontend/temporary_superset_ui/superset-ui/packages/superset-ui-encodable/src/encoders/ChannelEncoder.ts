@@ -3,7 +3,10 @@ import { ChannelType, ChannelInput } from '../types/Channel';
 import { PlainObject, Dataset } from '../types/Data';
 import { ChannelDef } from '../types/ChannelDef';
 import createGetterFromChannelDef, { Getter } from '../parsers/createGetterFromChannelDef';
-import completeChannelDef, { CompleteChannelDef } from '../fillers/completeChannelDef';
+import completeChannelDef, {
+  CompleteChannelDef,
+  CompleteValueDef,
+} from '../fillers/completeChannelDef';
 import createFormatterFromChannelDef from '../parsers/format/createFormatterFromChannelDef';
 import createScaleFromScaleConfig from '../parsers/scale/createScaleFromScaleConfig';
 import identity from '../utils/identity';
@@ -44,7 +47,14 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
     this.formatValue = createFormatterFromChannelDef(this.definition);
 
     const scale = this.definition.scale && createScaleFromScaleConfig(this.definition.scale);
-    this.encodeValue = scale === false ? identity : (value: ChannelInput) => scale(value);
+    if (scale === false) {
+      this.encodeValue =
+        'value' in this.definition
+          ? () => (this.definition as CompleteValueDef<Output>).value
+          : identity;
+    } else {
+      this.encodeValue = (value: ChannelInput) => scale(value);
+    }
     this.scale = scale;
   }
 
@@ -80,7 +90,7 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
 
     const { type } = this.definition;
     if (type === 'nominal' || type === 'ordinal') {
-      return Array.from(new Set(data.map(d => this.getValueFromDatum(d)))) as string[];
+      return Array.from(new Set(data.map(d => this.getValueFromDatum(d)))) as ChannelInput[];
     } else if (type === 'quantitative') {
       const extent = d3Extent(data, d => this.getValueFromDatum<number>(d));
 
