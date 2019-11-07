@@ -64,20 +64,22 @@ class Lyft(Superset):
         except SupersetException as e:
             return json_error_response("{}".format(e))
 
-        request_json = request.get_json() 
+        request_json = request.get_json()
         if not request_json:
             request_json = {
                 "database_id": int(request.form.get("database_id")),
                 "schema": request.form.get("schema"),
                 "sql": request.form.get("sql"),
                 "templateParams": request.form.get("templateParams", "{}"),
-                "queryLimit": int(request.form.get("queryLimit", app.config.get("SQL_MAX_ROW"))),
+                "queryLimit": int(
+                    request.form.get("queryLimit", app.config.get("SQL_MAX_ROW"))
+                ),
                 "runAsync": request.form.get("runAsync") == "true",
                 "select_as_cta": request.form.get("select_as_cta") == "true",
                 "tmp_table_name": request.form.get("tmp_table_name"),
                 "client_id": request.form.get("client_id") or None,
                 "sql_editor_id": request.form.get("sql_editor_id"),
-                "tab": request.form.get("tab")
+                "tab": request.form.get("tab"),
             }
 
         return self.sql_json_call(request_json)
