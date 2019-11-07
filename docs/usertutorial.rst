@@ -47,7 +47,7 @@ from your computer.
 
 .. image:: images/usertutorial/csv_to_database_configuration.png
 
-Next enter the text Travel Date into the **Parse Dates** field.
+Next enter the text :guilabel:`Travel Date` into the **Parse Dates** field.
 
 .. image:: images/usertutorial/parse_dates_column.png
 
@@ -86,7 +86,7 @@ selection.
 
 Now, we want to specify the rows in our table by using the **Group by**
 option. Since in this example, we want to understand different Travel
-Classes, we select Travel Class in this menu.
+Classes, we select `Travel Class` in this menu.
 
 Next, we can specify the metrics we would like to see in our table with
 the **Metrics** option. Count(*), which represents the number of rows in
@@ -139,11 +139,11 @@ visualization, Pivot Table. By the end of this section, you will have
 created a table that shows the monthly spend on flights for the first
 six months, by department, by travel class.
 
-As before, create a new visualization by selecting **New > Chart** on
-the top menu. Choose tutorial_flights again as a datasource, then click
-on the visualization type to get to the visualization menu. Select the
-**Pivot Table** visualization (you can filter by entering text in the
-search box) and then **Create a new chart**.
+As before, create a new visualization by selecting 
+:menuselection:`New --> Chart` on the top menu. Choose tutorial_flights again
+as a datasource, then click on the visualization type to get to the
+visualization menu. Select the **Pivot Table** visualization (you can filter
+by entering text in the search box) and then **Create a new chart**.
 
 In the **Time** section, keep the Time Column as Travel Date (this is
 selected automatically as we only have one time column in our dataset).
