@@ -31,13 +31,12 @@ const propTypes = {
   annotationData: PropTypes.object,
   datasource: PropTypes.object,
   formData: PropTypes.object,
-  onAddFilter: PropTypes.func,
-  onError: PropTypes.func,
+  hooks: PropTypes.shape({
+    onAddFilter: PropTypes.func,
+    onError: PropTypes.func,
+  }),
 };
-const defaultProps = {
-  onAddFilter() {},
-  onError() {},
-};
+const defaultProps = {};
 
 function getJson(url) {
   return new Promise((resolve, reject) => {
@@ -137,27 +136,12 @@ class LineMulti extends React.Component {
   }
 
   render() {
-    const {
-      width,
-      height,
-      annotationData,
-      datasource,
-      formData,
-      onAddFilter,
-      onError,
-    } = this.props;
     const { queryData } = this.state;
 
     return (
       <ReactNVD3
         {...transformProps({
-          width,
-          height,
-          annotationData,
-          datasource,
-          formData,
-          onError,
-          onAddFilter,
+          ...this.props,
           queryData,
         })}
       />
