@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@data-ui/xy-chart": "^0.0.81",
+    "@data-ui/xy-chart": "^0.0.82",
     "d3": "^3.5.17",
     "d3-tip": "^0.9.1",
     "dompurify": "^2.0.6",
