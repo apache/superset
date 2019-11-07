@@ -1,7 +1,7 @@
 import { flatMap } from 'lodash';
 import { ChannelDef, TypedFieldDef } from '../types/ChannelDef';
 import { MayBeArray } from '../types/Base';
-import { isFieldDef } from '../typeGuards/ChannelDef';
+import { isTypedFieldDef, isValueDef } from '../typeGuards/ChannelDef';
 import { isNotArray } from '../typeGuards/Base';
 import ChannelEncoder from './ChannelEncoder';
 import {
@@ -9,7 +9,11 @@ import {
   DeriveEncoding,
   DeriveChannelTypes,
   DeriveChannelEncoders,
+  DeriveSingleChannelEncoder,
 } from '../types/Encoding';
+import { Dataset } from '../types/Data';
+import { Value } from '../types/VegaLite';
+import { ChannelInput } from '../types/Channel';
 
 export default class Encoder<Config extends EncodingConfig> {
   readonly encoding: DeriveEncoding<Config>;
@@ -17,7 +21,7 @@ export default class Encoder<Config extends EncodingConfig> {
   readonly channels: DeriveChannelEncoders<Config>;
 
   readonly legends: {
-    [key: string]: (keyof Config)[];
+    [key: string]: DeriveSingleChannelEncoder<Config>[];
   };
 
   constructor({
@@ -64,13 +68,12 @@ export default class Encoder<Config extends EncodingConfig> {
     channelNames
       .map(name => this.channels[name])
       .forEach(c => {
-        if (isNotArray(c) && c.hasLegend() && isFieldDef(c.definition)) {
-          const name = c.name as keyof Config;
+        if (isNotArray(c) && c.hasLegend() && isTypedFieldDef(c.definition)) {
           const { field } = c.definition;
           if (this.legends[field]) {
-            this.legends[field].push(name);
+            this.legends[field].push(c);
           } else {
-            this.legends[field] = [name];
+            this.legends[field] = [c];
           }
         }
       });
@@ -90,6 +93,57 @@ export default class Encoder<Config extends EncodingConfig> {
       .map(c => (c.definition as TypedFieldDef).field!);
 
     return Array.from(new Set(fields));
+  }
+
+  private createLegendItemsFactory(field: string) {
+    const channelEncoders = flatMap(
+      this.getChannelEncoders().filter(e => isNotArray(e) && isValueDef(e.definition)),
+    ).concat(this.legends[field]);
+
+    return (domain: ChannelInput[]) =>
+      domain.map((input: ChannelInput) => ({
+        input,
+        output: channelEncoders.reduce(
+          (prev: Partial<{ [k in keyof Config]: Config[k]['1'] }>, curr) => {
+            const map = prev;
+            map[curr.name as keyof Config] = curr.encodeValue(input) as Value;
+
+            return map;
+          },
+          {},
+        ),
+      }));
+  }
+
+  getLegendInformation(data: Dataset = []) {
+    return (
+      Object.keys(this.legends)
+        // for each field that was encoded
+        .map((field: string) => {
+          // get all the channels that use this field
+          const channelEncoders = this.legends[field];
+          const firstEncoder = channelEncoders[0];
+          const definition = firstEncoder.definition as TypedFieldDef;
+          const createLegendItems = this.createLegendItemsFactory(field);
+
+          if (definition.type === 'nominal') {
+            return {
+              channelEncoders,
+              createLegendItems,
+              field,
+              items: createLegendItems(firstEncoder.getDomain(data)),
+              type: definition.type,
+            };
+          }
+
+          return {
+            channelEncoders,
+            createLegendItems,
+            field,
+            type: definition.type,
+          };
+        })
+    );
   }
 
   hasLegend() {
