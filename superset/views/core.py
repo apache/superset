@@ -3049,7 +3049,7 @@ class Superset(BaseSupersetView):
         except Exception:
             return json_error_response(
                 "Failed to fetch schemas allowed for csv upload in this database! "
-                "Please contact Superset Admin!",
+                "Please contact your Superset Admin!",
                 stacktrace=utils.get_stacktrace(),
             )
 

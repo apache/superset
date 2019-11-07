@@ -288,7 +288,7 @@ SUPERSET_WEBSERVER_DOMAINS = None
 
 # Allowed format types for upload on Database view
 # TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
-ALLOWED_EXTENSIONS = set(["csv"])
+ALLOWED_EXTENSIONS = {"csv", "tsv"}
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.

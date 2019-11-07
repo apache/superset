@@ -598,42 +598,100 @@ class CoreTests(SupersetTestCase):
 
     def test_import_csv(self):
         self.login(username="admin")
-        filename = "testCSV.csv"
         table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
 
-        test_file = open(filename, "w+")
-        test_file.write("a,b\n")
-        test_file.write("john,1\n")
-        test_file.write("paul,2\n")
-        test_file.close()
+        filename_1 = "testCSV.csv"
+        test_file_1 = open(filename_1, "w+")
+        test_file_1.write("a,b\n")
+        test_file_1.write("john,1\n")
+        test_file_1.write("paul,2\n")
+        test_file_1.close()
+
+        filename_2 = "testCSV2.csv"
+        test_file_2 = open(filename_2, "w+")
+        test_file_2.write("b,c,d\n")
+        test_file_2.write("john,1,x\n")
+        test_file_2.write("paul,2,y\n")
+        test_file_2.close()
+
         example_db = utils.get_example_database()
         example_db.allow_csv_upload = True
         db_id = example_db.id
         db.session.commit()
-        test_file = open(filename, "rb")
         form_data = {
-            "csv_file": test_file,
+            "csv_file": open(filename_1, "rb"),
             "sep": ",",
             "name": table_name,
             "con": db_id,
-            "if_exists": "append",
+            "if_exists": "fail",
             "index_label": "test_label",
             "mangle_dupe_cols": False,
         }
         url = "/databaseview/list/"
         add_datasource_page = self.get_resp(url)
-        assert "Upload a CSV" in add_datasource_page
+        self.assertIn("Upload a CSV", add_datasource_page)
 
         url = "/csvtodatabaseview/form"
         form_get = self.get_resp(url)
-        assert "CSV to Database configuration" in form_get
+        self.assertIn("CSV to Database configuration", form_get)
 
         try:
-            # ensure uploaded successfully
+            # initial upload with fail mode
             resp = self.get_resp(url, data=form_data)
-            assert 'CSV file "testCSV.csv" uploaded to table' in resp
+            self.assertIn(
+                f'CSV file "{filename_1}" uploaded to table "{table_name}"', resp
+            )
+
+            # upload again with fail mode; should fail
+            form_data["csv_file"] = open(filename_1, "rb")
+            resp = self.get_resp(url, data=form_data)
+            self.assertIn(
+                f'Unable to upload CSV file "{filename_1}" to table "{table_name}"',
+                resp,
+            )
+
+            # upload again with append mode
+            form_data["csv_file"] = open(filename_1, "rb")
+            form_data["if_exists"] = "append"
+            resp = self.get_resp(url, data=form_data)
+            self.assertIn(
+                f'CSV file "{filename_1}" uploaded to table "{table_name}"', resp
+            )
+
+            # upload again with replace mode
+            form_data["csv_file"] = open(filename_1, "rb")
+            form_data["if_exists"] = "replace"
+            resp = self.get_resp(url, data=form_data)
+            self.assertIn(
+                f'CSV file "{filename_1}" uploaded to table "{table_name}"', resp
+            )
+
+            # try to append to table from file with different schema
+            form_data["csv_file"] = open(filename_2, "rb")
+            form_data["if_exists"] = "append"
+            resp = self.get_resp(url, data=form_data)
+            self.assertIn(
+                f'Unable to upload CSV file "{filename_2}" to table "{table_name}"',
+                resp,
+            )
+
+            # replace table from file with different schema
+            form_data["csv_file"] = open(filename_2, "rb")
+            form_data["if_exists"] = "replace"
+            resp = self.get_resp(url, data=form_data)
+            self.assertIn(
+                f'CSV file "{filename_2}" uploaded to table "{table_name}"', resp
+            )
+            table = (
+                db.session.query(SqlaTable)
+                .filter_by(table_name=table_name, database_id=db_id)
+                .first()
+            )
+            # make sure the new column name is reflected in the table metadata
+            self.assertIn("d", table.column_names)
         finally:
-            os.remove(filename)
+            os.remove(filename_1)
+            os.remove(filename_2)
 
     def test_dataframe_timezone(self):
         tz = psycopg2.tz.FixedOffsetTimezone(offset=60, name=None)
