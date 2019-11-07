@@ -98,7 +98,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             return []
 
     @classmethod
-    def create_table_from_csv(cls, form, table):  # pylint: disable=too-many-locals
+    def create_table_from_csv(cls, form) -> None:  # pylint: disable=too-many-locals
         """Uploads a csv file and creates a superset datasource in Hive."""
 
         def convert_to_hive_type(col_type):
