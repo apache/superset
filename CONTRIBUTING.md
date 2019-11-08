@@ -930,7 +930,7 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | `row_limit`               | *number*                                          | The **Row limit** widget                          |
 | `timeseries_limit_metric` | *object*                                          | The **Sort By** widget                            |
 
-Note the `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of the `AdhocMetric` JavaScript type.
+Note the `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of the JSON representation of the `AdhocMetric` JavaScript type.
 
 ### Options
 
@@ -939,7 +939,7 @@ Note the `metric` (or equivalent) and `timeseries_limit_metric` fields are all c
 | `compare_lag`          | *number*  | The **Comparison Period Lag** widget |
 | `compare_suffix`       | *string*  | The **Comparison suffix** widget     |
 | `show_trend_line`      | *boolean* | The **Show Trend Line** widget       |
-| `start_y_axis_at_zero` | *boolean* | The **Start y-axis at 0 **widget      |
+| `start_y_axis_at_zero` | *boolean* | The **Start y-axis at 0** widget     |
 
 ### Chart Options
 
