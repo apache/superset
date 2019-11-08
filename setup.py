@@ -110,7 +110,7 @@ setup(
     extras_require={
         "bigquery": ["pybigquery>=0.4.10", "pandas_gbq>=0.10.0"],
         "cors": ["flask-cors>=2.0.0"],
-        "flask-testing": ["Flask-Testing==0.7.1"],
+        "flask-testing": ["flask-testing==0.7.1"],
         "gsheets": ["gsheetsdb>=0.1.9"],
         "hive": ["pyhive[hive]>=0.6.1", "tableschema", "thrift>=0.11.0, <1.0.0"],
         "mysql": ["mysqlclient==1.4.2.post1"],
