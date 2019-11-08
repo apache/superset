@@ -840,3 +840,319 @@ Note that:
 * In some cases, you may want to create a context that is more aligned
   to your production environment, and use the similar broker as well as
   results backend configuration
+  
+## Chart Parameters
+
+Chart parameters are stored as a JSON encoded string the `slices.params` column and are often referenced throughout the code as form-data. Currently the form-data is neither versioned nor typed as thus is somewhat free-formed. Note in the future there may be merit in using something like [JSON Schema](https://json-schema.org/) to both annotate and validate the JSON object in addition to using a Mypy `TypedDict` (introduced in Python 3.8) for typing the form-data in the backend. This section serves as a potential primer for that work.
+
+The following tables provide a non-exhausive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
+
+Note not all fields are correctly catagorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsucessful and thus future work may be required to clean up the form-data.
+
+### Datasource & Chart Type
+
+| Field             | Type     | Notes                               |
+|-------------------|----------|-------------------------------------|
+| `database_name`   | *string* | *Deprecated?*                       |
+| `datasource`      | *string* | `<datasouce_id>__<datasource_type>` |
+| `datasource_id`   | *string* | *Deprecated?* See `datasource`      |
+| `datasource_name` | *string* | *Deprecated?*                       |
+| `datasource_type` | *string* | *Deprecated?* See `datasource`      |
+| `viz_type`        | *string* | The **Visualization Type** widget   |
+
+### Time
+
+| Field                  | Type            | Notes                                 |
+|------------------------|-----------------|---------------------------------------|
+| `date_filter`          | *N/A*           | *Deprecated?*                         |
+| `date_time_format`     | *N/A*           | *Deprecated?*                         |
+| `druid_time_origin`    | *string*        | The Druid **Origin** widget           |
+| `granularity`          | *string*        | The Druid **Time Granularity** widget |
+| `granularity_sqla`     | *string*        | The SQLA **Time Column** widget       |
+| `time_grain_sqla`      | *string*        | The SQLA **Time Grain** widget        |
+| `time_range`           | *string*        | The **Time range** widget             |
+| `time_range_endpoints` | *array(string)* | Used by SIP-15 [HIDDEN]               |
+
+### GROUP BY
+
+| Field                     | Type            | Notes                       |
+|---------------------------|-----------------|-----------------------------|
+| `include_time`            | *boolean*       | The **Include Time** widget |
+| `metrics`                 | *array(string)* | See Query section           |
+| `order_asc`               | -               | See Query section           |
+| `percent_metrics`         | -               | See Query section           |
+| `row_limit`               | -               | See Query section           |
+| `timeseries_limit_metric` | -               | See Query section           |
+
+
+### NOT GROUPED BY
+
+| Field           | Type            | Notes                   |
+|-----------------|-----------------|-------------------------|
+| `all_columns`   | *array(string)* | The **Columns** widget  |
+| `order_by_cols` | *array(string)* | The **Ordering** widget |
+| `row_limit`     | -               | See Query section       |
+
+### Y Axis 1
+
+| Field           | Type | Notes                                              |
+|-----------------|------|----------------------------------------------------|
+| `metric`        | -    | The **Left Axis Metric** widget. See Query section |
+| `y_axis_format` | -    | See Y Axis section                                 |
+
+### Y Axis 2
+
+| Field             | Type            | Notes                                               |
+|-------------------|-----------------|-----------------------------------------------------|
+| `metric_2`        | -               | The **Right Axis Metric** widget. See Query section |
+| `y_axis_2_format` | *string*        | The **Right Axis Format** widget                    |
+
+### Query
+
+| Field                     | Type                                              | Notes                                             |
+|---------------------------|---------------------------------------------------|---------------------------------------------------|
+| `adhoc_filters`           | *array(object)*                                   | The **Filters** widget                            |
+| `all_columns_x`           | *array(string)*                                   | The **Numeric Columns** widget                    |
+| `columns`                 | *array(string)*                                   | The **Breakdowns** widget                         |
+| `contribution`            | *boolean*                                         | The **Contribution** widget                       |
+| `groupby`                 | *array(string)*                                   | The **Group by** or **Series** widget             |
+| `limit`                   | *number*                                          | The **Series Limit** widget                       |
+| `max_bubble_size`         | *number*                                          | The **Max Bubble Size** widget                    |
+| `metric`<br>`metric_2`<br>`metrics`<br>`percent_mertics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y`                       | *string*,*object*,*array(string)*,*array(object)* | The metric(s) depending on the visualization type |
+| `order_asc`               | *boolean*                                         | The **Sort Descending** widget                    |
+| `row_limit`               | *number*                                          | The **Row limit** widget                          |
+| `timeseries_limit_metric` | *object*                                          | The **Sort By** widget                            |
+
+Note the `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of the JSON representation of the `AdhocMetric` JavaScript type.
+
+### Options
+
+| Field                  | Type      | Notes                                |
+|------------------------|-----------|--------------------------------------|
+| `compare_lag`          | *number*  | The **Comparison Period Lag** widget |
+| `compare_suffix`       | *string*  | The **Comparison suffix** widget     |
+| `show_trend_line`      | *boolean* | The **Show Trend Line** widget       |
+| `start_y_axis_at_zero` | *boolean* | The **Start y-axis at 0** widget     |
+
+### Chart Options
+
+| Field                 | Type      | Notes                                            |
+|-----------------------|-----------|--------------------------------------------------|
+| `color_picker`        | *object*  | The **Fixed Color** widget                       |
+| `donut`               | *boolean* | The **Donut** widget                             |
+| `global_opacity`      | *number*  | The **Opacity** widget                           |
+| `header_font_size`    | *number*  | The **Big Number Font Size** widget (or similar) |
+| `label_colors`        | *object*  | The **Color Scheme** widget                      |
+| `labels_outside`      | *boolean* | The **Put labels outside** widget                |
+| `line_interpolation`  | *string*  | The **Line Style** widget                        |
+| `link_length`         | *number*  | The **No of Bins** widget                        |
+| `normalized`          | *boolean* | The **Normalized** widget                        |
+| `number_format`       | *string*  | The **Number format** widget                     |
+| `pie_label_type`      | *string*  | [HIDDEN]                                         |
+| `rich_tooltip`        | *boolean* | The **Rich Tooltip** widget                      |
+| `send_time_range`     | *boolean* | The **Show Markers** widget                      |
+| `show_brush`          | *string*  | The **Show Range Filter** widget                 |
+| `show_legend`         | *boolean* | The **Legend** widget                            |
+| `show_markers`        | *string*  | The **Show Markers** widget                      |
+| `subheader_font_size` | *number*  | The **Subheader Font Size** widget               |
+
+### X Axis
+
+| Field                | Type      | Notes                        |
+|----------------------|-----------|------------------------------|
+| `bottom_margin`      | *string*  | The **Bottom Margin** widget |
+| `x_axis_format`      | *string*  | The **X Axis Format** widget |
+| `x_axis_label`       | *string*  | The **X Axis Label** widget  |
+| `x_axis_showminmax`  | *boolean* | The **X bounds** widget      |
+| `x_axis_time_format` | *N/A*     | *Deprecated?*                |
+| `x_log_scale`        | *N/A*     | *Deprecated?*                |
+| `x_ticks_layout`     | *string*  | The **X Tick Layout** widget |
+
+### Y Axis
+
+| Field               | Type            | Notes                        |
+|---------------------|-----------------|------------------------------|
+| `left_margin`       | *number*        | The **Left Margin** widget   |
+| `y_axis_2_label`    | *N/A*           | *Deprecated?*                |
+| `y_axis_bounds`     | *array(string)* | The **Y Axis Bounds** widget |
+| `y_axis_format`     | *string*        | The **Y Axis Format** widget |
+| `y_axis_label`      | *string*        | The **Y Axis Label** widget  |
+| `y_axis_showminmax` | *boolean*       | The **Y bounds** widget      |
+| `y_axis_zero`       | *N/A*           | *Deprecated?*                |
+| `y_log_scale`       | *boolean*       | The **Y Log Scale** widget   |
+| `yscale_interval`   | *N/A*           | *Deprecated?*                |
+
+
+Note the `y_axis_format` is defined under various section for some charts.
+
+### Other
+
+| Field          | Type     | Notes        |
+|----------------|----------|--------------|
+| `color_scheme` | *string* |              |
+| `slice_id`     | *number* | The slice ID |
+| `url_params`   | *object* |              |
+
+### Unclassified
+
+| Field                           | Type  | Notes |
+|---------------------------------|-------|-------|
+| `add_to_dash`                   | *N/A* |       |
+| `align_pn`                      | *N/A* |       |
+| `all_columns_y`                 | *N/A* |       |
+| `annotation_layers`             | *N/A* |       |
+| `autozoom`                      | *N/A* |       |
+| `bar_stacked`                   | *N/A* |       |
+| `cache_timeout`                 | *N/A* |       |
+| `canvas_image_rendering`        | *N/A* |       |
+| `cell_padding`                  | *N/A* |       |
+| `cell_radius`                   | *N/A* |       |
+| `cell_size`                     | *N/A* |       |
+| `charge`                        | *N/A* |       |
+| `clustering_radius`             | *N/A* |       |
+| `code`                          | *N/A* |       |
+| `collapsed_fieldsets`           | *N/A* |       |
+| `color_pn`                      | *N/A* |       |
+| `column_collection`             | *N/A* |       |
+| `combine_metric`                | *N/A* |       |
+| `comparison type`               | *N/A* |       |
+| `contribution`                  | *N/A* |       |
+| `country_fieldtype`             | *N/A* |       |
+| `date_filter`                   | *N/A* |       |
+| `deck_slices`                   | *N/A* |       |
+| `default_filters`               | *N/A* |       |
+| `dimension`                     | *N/A* |       |
+| `domain_granularity`            | *N/A* |       |
+| `end_spatial`                   | *N/A* |       |
+| `entity`                        | *N/A* |       |
+| `equal_date_size`               | *N/A* |       |
+| `expanded_slices`               | *N/A* |       |
+| `extra_filters`                 | *N/A* |       |
+| `extruded`                      | *N/A* |       |
+| `fill_color_picker`             | *N/A* |       |
+| `filled`                        | *N/A* |       |
+| `filter_configs`                | *N/A* |       |
+| `filter_immune_slice_fields`    | *N/A* |       |
+| `filter_immune_slices`          | *N/A* |       |
+| `filter_nulls`                  | *N/A* |       |
+| `flt_col_0`                     | *N/A* |       |
+| `flt_col_1`                     | *N/A* |       |
+| `flt_eq_0`                      | *N/A* |       |
+| `flt_eq_1`                      | *N/A* |       |
+| `flt_op_0`                      | *N/A* |       |
+| `flt_op_1`                      | *N/A* |       |
+| `goto_dash`                     | *N/A* |       |
+| `grid_size`                     | *N/A* |       |
+| `horizon_color_scale`           | *N/A* |       |
+| `import_time`                   | *N/A* |       |
+| `include_search`                | *N/A* |       |
+| `include_series`                | *N/A* |       |
+| `instant_filtering`             | *N/A* |       |
+| `js_agg_function`               | *N/A* |       |
+| `js_columns`                    | *N/A* |       |
+| `label`                         | *N/A* |       |
+| `labels_outside`                | *N/A* |       |
+| `legend_position`               | *N/A* |       |
+| `line_charts`                   | *N/A* |       |
+| `line_charts_2`                 | *N/A* |       |
+| `line_column`                   | *N/A* |       |
+| `line_type`                     | *N/A* |       |
+| `line_width`                    | *N/A* |       |
+| `linear_color_scheme`           | *N/A* |       |
+| `log_scale`                     | *N/A* |       |
+| `mapbox_color`                  | *N/A* |       |
+| `mapbox_label`                  | *N/A* |       |
+| `mapbox_style`                  | *N/A* |       |
+| `marker_labels`                 | *N/A* |       |
+| `marker_line_labels`            | *N/A* |       |
+| `marker_lines`                  | *N/A* |       |
+| `markers`                       | *N/A* |       |
+| `markup_type`                   | *N/A* |       |
+| `max_radius`                    | *N/A* |       |
+| `min_leaf_node_event_count`     | *N/A* |       |
+| `min_periods`                   | *N/A* |       |
+| `min_radius`                    | *N/A* |       |
+| `multiplier`                    | *N/A* |       |
+| `new_dashboard_name`            | *N/A* |       |
+| `new_slice_name`                | *N/A* |       |
+| `normalize_across`              | *N/A* |       |
+| `num_buckets`                   | *N/A* |       |
+| `num_period_compare`            | *N/A* |       |
+| `order_bars`                    | *N/A* |       |
+| `order_by_entity`               | *N/A* |       |
+| `order_desc`                    | *N/A* |       |
+| `page_length`                   | *N/A* |       |
+| `pandas_aggfunc`                | *N/A* |       |
+| `partition_limit`               | *N/A* |       |
+| `partition_threshold`           | *N/A* |       |
+| `period_ratio_type`             | *N/A* |       |
+| `perm`                          | *N/A* |       |
+| `pivot_margins`                 | *N/A* |       |
+| `point_radius`                  | *N/A* |       |
+| `point_radius_fixed`            | *N/A* |       |
+| `point_radius_unit`             | *N/A* |       |
+| `point_unit`                    | *N/A* |       |
+| `prefix_metric_with_slice_name` | *N/A* |       |
+| `range_labels`                  | *N/A* |       |
+| `ranges`                        | *N/A* |       |
+| `rdo_save`                      | *N/A* |       |
+| `reduce_x_ticks`                | *N/A* |       |
+| `refresh_frequency`             | *N/A* |       |
+| `remote_id`                     | *N/A* |       |
+| `render_while_dragging`         | *N/A* |       |
+| `resample_fillmethod`           | *N/A* |       |
+| `resample_how`                  | *N/A* |       |
+| `resample_method`               | *N/A* |       |
+| `resample_rule`                 | *N/A* |       |
+| `reverse_long_lat`              | *N/A* |       |
+| `rolling_periods`               | *N/A* |       |
+| `rolling_type`                  | *N/A* |       |
+| `rose_area_proportion`          | *N/A* |       |
+| `rotation`                      | *N/A* |       |
+| `save_to_dashboard_id`          | *N/A* |       |
+| `schema`                        | *N/A* |       |
+| `select_country`                | *N/A* |       |
+| `series`                        | *N/A* |       |
+| `series_height`                 | *N/A* |       |
+| `show_bar_value`                | *N/A* |       |
+| `show_brush`                    | *N/A* |       |
+| `show_bubbles`                  | *N/A* |       |
+| `show_controls`                 | *N/A* |       |
+| `show_datatable`                | *N/A* |       |
+| `show_druid_time_granularity`   | *N/A* |       |
+| `show_druid_time_origin`        | *N/A* |       |
+| `show_labels`                   | *N/A* |       |
+| `show_metric_name`              | *N/A* |       |
+| `show_perc`                     | *N/A* |       |
+| `show_sqla_time_column`         | *N/A* |       |
+| `show_sqla_time_granularity`    | *N/A* |       |
+| `show_values`                   | *N/A* |       |
+| `size_from`                     | *N/A* |       |
+| `size_to`                       | *N/A* |       |
+| `slice_name`                    | *N/A* |       |
+| `sort_x_axis`                   | *N/A* |       |
+| `sort_y_axis`                   | *N/A* |       |
+| `spatial`                       | *N/A* |       |
+| `stacked_style`                 | *N/A* |       |
+| `start_spatial`                 | *N/A* |       |
+| `steps`                         | *N/A* |       |
+| `stroke_color_picker`           | *N/A* |       |
+| `stroke_width`                  | *N/A* |       |
+| `stroked`                       | *N/A* |       |
+| `subdomain_granularity`         | *N/A* |       |
+| `subheader`                     | *N/A* |       |
+| `table_filter`                  | *N/A* |       |
+| `table_timestamp_format`        | *N/A* |       |
+| `time_compare`                  | *N/A* |       |
+| `time_series_option`            | *N/A* |       |
+| `timed_refresh_immune_slices`   | *N/A* |       |
+| `toggle_polygons`               | *N/A* |       |
+| `transpose_pivot`               | *N/A* |       |
+| `treemap_ratio`                 | *N/A* |       |
+| `url`                           | *N/A* |       |
+| `userid`                        | *N/A* |       |
+| `viewport`                      | *N/A* |       |
+| `viewport_latitude`             | *N/A* |       |
+| `viewport_longitude`            | *N/A* |       |
+| `viewport_zoom`                 | *N/A* |       |
+| `whisker_options`               | *N/A* |       |
