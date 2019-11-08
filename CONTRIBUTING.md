@@ -900,7 +900,7 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | `metric`        | -    | The **Left Axis Metric** widget. See Query section |
 | `y_axis_format` | -    | See Y Axis section                                 |
 
-## Y Axis 2
+### Y Axis 2
 
 | Field             | Type            | Notes                                               |
 |-------------------|-----------------|-----------------------------------------------------|
