@@ -192,12 +192,11 @@ class CoreTests(SupersetTestCase):
 
     def test_save_slice(self):
         self.login(username="admin")
-        slice_name = "Energy Sankey"
+        slice_name = f"Energy Sankey"
         slice_id = self.get_slice(slice_name, db.session).id
-        db.session.commit()
-        copy_name = "Test Sankey Save"
+        copy_name = f"Test Sankey Save_{random.random()}"
         tbl_id = self.table_ids.get("energy_usage")
-        new_slice_name = "Test Sankey Overwirte"
+        new_slice_name = f"Test Sankey Overwrite_{random.random()}"
 
         url = (
             "/superset/explore/table/{}/?slice_name={}&"
@@ -217,8 +216,13 @@ class CoreTests(SupersetTestCase):
             {"form_data": json.dumps(form_data)},
         )
         slices = db.session.query(models.Slice).filter_by(slice_name=copy_name).all()
-        assert len(slices) == 1
-        new_slice_id = slices[0].id
+        self.assertEqual(1, len(slices))
+        slc = slices[0]
+        new_slice_id = slc.id
+
+        self.assertEqual(slc.slice_name, copy_name)
+        form_data.pop("slice_id") # We don't save the slice id
+        self.assertEqual(slc.viz.form_data, form_data)
 
         form_data = {
             "viz_type": "sankey",
@@ -234,8 +238,9 @@ class CoreTests(SupersetTestCase):
             {"form_data": json.dumps(form_data)},
         )
         slc = db.session.query(models.Slice).filter_by(id=new_slice_id).first()
-        assert slc.slice_name == new_slice_name
-        assert slc.viz.form_data == form_data
+        self.assertEqual(slc.slice_name, new_slice_name)
+        form_data.pop("slice_id") # We don't save the slice id
+        self.assertEqual(slc.viz.form_data, form_data)
         db.session.delete(slc)
 
     def test_filter_endpoint(self):
