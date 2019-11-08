@@ -61,6 +61,7 @@ def init():
 
 
 @superset.command()
+@with_appcontext
 @click.option("--verbose", "-v", is_flag=True, help="Show extra information")
 def version(verbose):
     """Prints the current version number"""
@@ -69,7 +70,7 @@ def version(verbose):
         Fore.YELLOW
         + "Superset "
         + Fore.CYAN
-        + "{version}".format(version=config["VERSION_STRING"])
+        + "{version}".format(version=app.config["VERSION_STRING"])
     )
     print(Fore.BLUE + "-=" * 15)
     if verbose:
@@ -83,6 +84,8 @@ def load_examples_run(load_test_data, only_metadata=False, force=False):
     else:
         examples_db = utils.get_example_database()
         print(f"Loading examples metadata and related data into {examples_db}")
+
+    from superset import examples
 
     examples.load_css_templates()
 
@@ -136,6 +139,7 @@ def load_examples_run(load_test_data, only_metadata=False, force=False):
     examples.load_tabbed_dashboard(only_metadata)
 
 
+@with_appcontext
 @superset.command()
 @click.option("--load-test-data", "-t", is_flag=True, help="Load additional test data")
 @click.option(
@@ -149,6 +153,7 @@ def load_examples(load_test_data, only_metadata=False, force=False):
     load_examples_run(load_test_data, only_metadata, force)
 
 
+@with_appcontext
 @superset.command()
 @click.option("--database_name", "-d", help="Database name to change")
 @click.option("--uri", "-u", help="Database URI to change")
@@ -158,6 +163,7 @@ def set_database_uri(database_name, uri):
 
 
 @superset.command()
+@with_appcontext
 @click.option(
     "--datasource",
     "-d",
@@ -188,6 +194,7 @@ def refresh_druid(datasource, merge):
 
 
 @superset.command()
+@with_appcontext
 @click.option(
     "--path",
     "-p",
@@ -209,6 +216,7 @@ def refresh_druid(datasource, merge):
 )
 def import_dashboards(path, recursive, username):
     """Import dashboards from JSON"""
+    from superset.utils import dashboard_import_export
     p = Path(path)
     files = []
     if p.is_file():
@@ -230,6 +238,7 @@ def import_dashboards(path, recursive, username):
 
 
 @superset.command()
+@with_appcontext
 @click.option(
     "--dashboard-file", "-f", default=None, help="Specify the the file to export to"
 )
@@ -238,6 +247,7 @@ def import_dashboards(path, recursive, username):
 )
 def export_dashboards(print_stdout, dashboard_file):
     """Export dashboards to JSON"""
+    from superset.utils import dashboard_import_export
     data = dashboard_import_export.export_dashboards(db.session)
     if print_stdout or not dashboard_file:
         print(data)
@@ -248,6 +258,7 @@ def export_dashboards(print_stdout, dashboard_file):
 
 
 @superset.command()
+@with_appcontext
 @click.option(
     "--path",
     "-p",
@@ -272,6 +283,8 @@ def export_dashboards(print_stdout, dashboard_file):
 )
 def import_datasources(path, sync, recursive):
     """Import datasources from YAML"""
+    from superset.utils import dict_import_export
+
     sync_array = sync.split(",")
     p = Path(path)
     files = []
@@ -296,6 +309,7 @@ def import_datasources(path, sync, recursive):
 
 
 @superset.command()
+@with_appcontext
 @click.option(
     "--datasource-file", "-f", default=None, help="Specify the the file to export to"
 )
@@ -320,6 +334,7 @@ def export_datasources(
     print_stdout, datasource_file, back_references, include_defaults
 ):
     """Export datasources to YAML"""
+    from superset.utils import dict_import_export
     data = dict_import_export.export_to_dict(
         session=db.session,
         recursive=True,
@@ -335,6 +350,7 @@ def export_datasources(
 
 
 @superset.command()
+@with_appcontext
 @click.option(
     "--back-references",
     "-b",
@@ -344,11 +360,13 @@ def export_datasources(
 )
 def export_datasource_schema(back_references):
     """Export datasource YAML schema to stdout"""
+    from superset.utils import dict_import_export
     data = dict_import_export.export_schema_to_dict(back_references=back_references)
     yaml.safe_dump(data, stdout, default_flow_style=False)
 
 
 @superset.command()
+@with_appcontext
 def update_datasources_cache():
     """Refresh sqllab datasources cache"""
     from superset.models.core import Database
@@ -368,6 +386,7 @@ def update_datasources_cache():
 
 
 @superset.command()
+@with_appcontext
 @click.option(
     "--workers", "-w", type=int, help="Number of celery server workers to fire up"
 )
@@ -379,14 +398,15 @@ def worker(workers):
     )
     if workers:
         celery_app.conf.update(CELERYD_CONCURRENCY=workers)
-    elif config["SUPERSET_CELERY_WORKERS"]:
-        celery_app.conf.update(CELERYD_CONCURRENCY=config["SUPERSET_CELERY_WORKERS"])
+    elif app.config["SUPERSET_CELERY_WORKERS"]:
+        celery_app.conf.update(CELERYD_CONCURRENCY=app.config["SUPERSET_CELERY_WORKERS"])
 
     worker = celery_app.Worker(optimization="fair")
     worker.start()
 
 
 @superset.command()
+@with_appcontext
 @click.option(
     "-p", "--port", default="5555", help="Port on which to start the Flower process"
 )
@@ -417,6 +437,7 @@ def flower(port, address):
 
 
 @superset.command()
+@with_appcontext
 def load_test_users():
     """
     Loads admin, alpha, and gamma user for testing purposes
@@ -469,12 +490,14 @@ def load_test_users_run():
                 )
         sm.get_session.commit()
 
-
 @superset.command()
+@with_appcontext
 def sync_tags():
     """Rebuilds special tags (owner, type, favorited by)."""
     # pylint: disable=no-member
     metadata = Model.metadata
+
+    from superset.common.tags import add_favorites, add_owners, add_types
     add_types(db.engine, metadata)
     add_owners(db.engine, metadata)
     add_favorites(db.engine, metadata)

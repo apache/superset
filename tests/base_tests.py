@@ -17,7 +17,6 @@
 """Unit tests for Superset"""
 import imp
 import json
-import unittest
 from unittest.mock import Mock
 
 import pandas as pd
@@ -25,7 +24,6 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 
 from superset import app, db, security_manager
-from superset.app import create_app
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
