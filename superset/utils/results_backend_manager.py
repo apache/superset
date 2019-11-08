@@ -28,7 +28,7 @@ class ResultsBackendManager:
 
     @property
     def results_backend(self):
-        return self.results_backend
+        return self._results_backend
 
     @property
     def should_use_msgpack(self):
