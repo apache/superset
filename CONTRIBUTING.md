@@ -918,14 +918,7 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | `groupby`                 | *array(string)*                                   | The **Group by** or **Series** widget             |
 | `limit`                   | *number*                                          | The **Series Limit** widget                       |
 | `max_bubble_size`         | *number*                                          | The **Max Bubble Size** widget                    |
-| `metric`<br>
-  `metric_2`<br>
-  `metrics`<br>
-  `percent_mertics`<br>
-  `secondary_metric`<br>
-  `size`<br>
-  `x`<br>
-  `y`                       | *string*,*object*,*array(string)*,*array(object)* | The metric(s) depending on the visualization type |
+| `metric`<br>`metric_2`<br>`metrics`<br>`percent_mertics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y`                       | *string*,*object*,*array(string)*,*array(object)* | The metric(s) depending on the visualization type |
 | `order_asc`               | *boolean*                                         | The **Sort Descending** widget                    |
 | `row_limit`               | *number*                                          | The **Row limit** widget                          |
 | `timeseries_limit_metric` | *object*                                          | The **Sort By** widget                            |
