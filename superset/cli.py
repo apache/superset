@@ -16,17 +16,17 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from datetime import datetime
 import logging
+from datetime import datetime
 from subprocess import Popen
 from sys import stdout
 
 import click
+import yaml
 from colorama import Fore, Style
 from flask import g
 from flask_appbuilder import Model
 from pathlib2 import Path
-import yaml
 
 from superset import app, appbuilder, db, examples, security_manager
 from superset.common.tags import add_favorites, add_owners, add_types
@@ -62,7 +62,7 @@ def version(verbose):
         Fore.YELLOW
         + "Superset "
         + Fore.CYAN
-        + "{version}".format(version=config.get("VERSION_STRING"))
+        + "{version}".format(version=config["VERSION_STRING"])
     )
     print(Fore.BLUE + "-=" * 15)
     if verbose:
@@ -184,7 +184,7 @@ def refresh_druid(datasource, merge):
 @click.option(
     "--path",
     "-p",
-    help="Path to a single JSON file or path containing multiple JSON files"
+    help="Path to a single JSON file or path containing multiple JSON "
     "files to import (*.json)",
 )
 @click.option(
@@ -372,10 +372,8 @@ def worker(workers):
     )
     if workers:
         celery_app.conf.update(CELERYD_CONCURRENCY=workers)
-    elif config.get("SUPERSET_CELERY_WORKERS"):
-        celery_app.conf.update(
-            CELERYD_CONCURRENCY=config.get("SUPERSET_CELERY_WORKERS")
-        )
+    elif config["SUPERSET_CELERY_WORKERS"]:
+        celery_app.conf.update(CELERYD_CONCURRENCY=config["SUPERSET_CELERY_WORKERS"])
 
     worker = celery_app.Worker(optimization="fair")
     worker.start()
@@ -428,7 +426,7 @@ def load_test_users_run():
 
     Syncs permissions for those users/roles
     """
-    if config.get("TESTING"):
+    if config["TESTING"]:
 
         sm = security_manager
 
