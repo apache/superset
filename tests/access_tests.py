@@ -19,11 +19,12 @@ import json
 import unittest
 from unittest import mock
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid.models import DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
+from tests import app
 
 from .base_tests import SupersetTestCase
 
@@ -94,22 +95,24 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
 class RequestAccessTests(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
-        security_manager.add_role("override_me")
-        security_manager.add_role(TEST_ROLE_1)
-        security_manager.add_role(TEST_ROLE_2)
-        security_manager.add_role(DB_ACCESS_ROLE)
-        security_manager.add_role(SCHEMA_ACCESS_ROLE)
-        db.session.commit()
+        with app.app_context():
+            security_manager.add_role("override_me")
+            security_manager.add_role(TEST_ROLE_1)
+            security_manager.add_role(TEST_ROLE_2)
+            security_manager.add_role(DB_ACCESS_ROLE)
+            security_manager.add_role(SCHEMA_ACCESS_ROLE)
+            db.session.commit()
 
     @classmethod
     def tearDownClass(cls):
-        override_me = security_manager.find_role("override_me")
-        db.session.delete(override_me)
-        db.session.delete(security_manager.find_role(TEST_ROLE_1))
-        db.session.delete(security_manager.find_role(TEST_ROLE_2))
-        db.session.delete(security_manager.find_role(DB_ACCESS_ROLE))
-        db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        db.session.commit()
+        with app.app_context():
+            override_me = security_manager.find_role("override_me")
+            db.session.delete(override_me)
+            db.session.delete(security_manager.find_role(TEST_ROLE_1))
+            db.session.delete(security_manager.find_role(TEST_ROLE_2))
+            db.session.delete(security_manager.find_role(DB_ACCESS_ROLE))
+            db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+            db.session.commit()
 
     def setUp(self):
         self.login("admin")

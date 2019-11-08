@@ -672,7 +672,9 @@ class KV(BaseSupersetView):
     def get_value(self, key_id):
         kv = None
         try:
-            kv = db.session.query(models.KeyValue).filter_by(id=key_id).one()
+            kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()
+            if not kv:
+                return Response(status=404, content_type="text/plain")
         except Exception as e:
             return json_error_response(e)
         return Response(kv.value, status=200, content_type="text/plain")

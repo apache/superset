@@ -402,6 +402,10 @@ class CoreTests(SupersetTestCase):
         database = utils.get_example_database()
         self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
+        # Need to clean up after ourselves
+        database.impersonate_user = False
+        db.session.commit()
+
     def test_warm_up_cache(self):
         slc = self.get_slice("Girls", db.session)
         data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
@@ -426,13 +430,10 @@ class CoreTests(SupersetTestCase):
         assert re.search(r"\/r\/[0-9]+", resp.data.decode("utf-8"))
 
     def test_kv(self):
-        self.logout()
         self.login(username="admin")
 
-        try:
-            resp = self.client.post("/kv/store/", data=dict())
-        except Exception:
-            self.assertRaises(TypeError)
+        resp = self.client.get("/kv/10001/")
+        self.assertEqual(404, resp.status_code)
 
         value = json.dumps({"data": "this is a test"})
         resp = self.client.post("/kv/store/", data=dict(data=value))
@@ -444,11 +445,6 @@ class CoreTests(SupersetTestCase):
         resp = self.client.get("/kv/{}/".format(kv.id))
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(json.loads(value), json.loads(resp.data.decode("utf-8")))
-
-        try:
-            resp = self.client.get("/kv/10001/")
-        except Exception:
-            self.assertRaises(TypeError)
 
     def test_gamma(self):
         self.login(username="gamma")

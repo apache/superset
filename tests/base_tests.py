@@ -29,6 +29,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.core import Database
 from superset.utils.core import get_example_database
+from tests import app
 
 
 class SupersetTestCase(TestCase):
@@ -38,7 +39,6 @@ class SupersetTestCase(TestCase):
         self.BASE_DIR = ""
 
     def create_app(self):
-        from tests import app
         return app
 
     def setUp(self) -> None:
