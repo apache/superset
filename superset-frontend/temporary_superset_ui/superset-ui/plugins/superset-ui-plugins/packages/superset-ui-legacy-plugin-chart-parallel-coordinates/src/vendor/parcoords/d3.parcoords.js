@@ -1759,9 +1759,10 @@ module.exports = function(config) {
       var svg = pc.selection.select('svg').select('g#arcs'),
         id = arc.dims.i,
         points = [arc.p2, arc.p3],
-        line = svg
-          .selectAll('line#arc-' + id)
-          .data([{ p1: arc.p1, p2: arc.p2 }, { p1: arc.p1, p2: arc.p3 }]),
+        line = svg.selectAll('line#arc-' + id).data([
+          { p1: arc.p1, p2: arc.p2 },
+          { p1: arc.p1, p2: arc.p3 },
+        ]),
         circles = svg.selectAll('circle#arc-' + id).data(points),
         drag = d3.behavior.drag(),
         path = svg.selectAll('path#arc-' + id).data([arc]);
