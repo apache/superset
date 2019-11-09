@@ -86,7 +86,10 @@ function SankeyLoop(element, props) {
 
   const layout = sankey()
     .nodeId(d => d.id)
-    .extent([[margin.left, margin.top], [innerWidth, innerHeight]]);
+    .extent([
+      [margin.left, margin.top],
+      [innerWidth, innerHeight],
+    ]);
 
   const diagram = sankeyDiagram()
     .nodeTitle(d => d.name)
