@@ -38,7 +38,7 @@ export default () => {
 
       //cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
 
-      cy.contains('react-select-2--')
+      cy.get('input').should('have.attr', 'aria-activedescendant', 'react-select-2--')
           .invoke('attr', 'aria-activedescendant', 'react-select-2--option-1');
 
       cy.get('#delimiter')
@@ -48,7 +48,7 @@ export default () => {
         { force: true },
       );
 
-      cy.contains('react-select-3--')
+      cy.get('input').should('have.attr', 'aria-activedescendant', 'react-select-3--')
           .invoke('attr', 'aria-activedescendant', 'react-select-3--option-0');
 
       // cy.get('button').contains('Save').click();
