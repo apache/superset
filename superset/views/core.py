@@ -29,8 +29,17 @@ import msgpack
 import pandas as pd
 import pyarrow as pa
 import simplejson as json
-from flask import (Markup, Response, abort, flash, g, redirect,
-                   render_template, request, url_for)
+from flask import (
+    Markup,
+    Response,
+    abort,
+    flash,
+    g,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -45,15 +54,31 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 import superset.models.core as models
-from superset import (app, appbuilder, cache, conf, dataframe, db,
-                      event_logger, get_feature_flags, is_feature_enabled,
-                      results_backend, results_backend_use_msgpack,
-                      security_manager, sql_lab, talisman, viz)
+from superset import (
+    app,
+    appbuilder,
+    cache,
+    conf,
+    dataframe,
+    db,
+    event_logger,
+    get_feature_flags,
+    is_feature_enabled,
+    results_backend,
+    results_backend_use_msgpack,
+    security_manager,
+    sql_lab,
+    talisman,
+    viz,
+)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
-from superset.exceptions import (DatabaseNotFound, SupersetException,
-                                 SupersetSecurityException,
-                                 SupersetTimeoutException)
+from superset.exceptions import (
+    DatabaseNotFound,
+    SupersetException,
+    SupersetSecurityException,
+    SupersetTimeoutException,
+)
 from superset.jinja_context import get_template_processor
 from superset.legacy import update_time_range
 from superset.models.sql_lab import Query
@@ -65,15 +90,31 @@ from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
 
-from .base import (BaseSupersetView, CsvResponse, DeleteMixin, SupersetFilter,
-                   SupersetModelView, api, check_ownership,
-                   data_payload_response, generate_download_headers,
-                   get_error_msg, get_user_roles, handle_api_exception,
-                   json_error_response, json_success)
+from .base import (
+    BaseSupersetView,
+    CsvResponse,
+    DeleteMixin,
+    SupersetFilter,
+    SupersetModelView,
+    api,
+    check_ownership,
+    data_payload_response,
+    generate_download_headers,
+    get_error_msg,
+    get_user_roles,
+    handle_api_exception,
+    json_error_response,
+    json_success,
+)
 from .database import api as database_api  # noqa
 from .database import views as in_views  # noqa
-from .utils import (apply_display_max_row_limit, bootstrap_user_data,
-                    get_datasource_info, get_form_data, get_viz)
+from .utils import (
+    apply_display_max_row_limit,
+    bootstrap_user_data,
+    get_datasource_info,
+    get_form_data,
+    get_viz,
+)
 
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
@@ -3110,12 +3151,12 @@ class Superset(BaseSupersetView):
                 pass
             if hasattr(e, "orig"):
                 # pylint: disable=no-member
-                if isinstance(e.orig, IntegrityError):  # noqa: T848
+                if isinstance(e.orig, IntegrityError):  # type: ignore
                     message = "Table {0} could not be created".format(
                         form_data["tableName"]
                     )
                 # pylint: disable:no-member
-                elif isinstance(e.orig, OperationalError):  # noqa: T848
+                elif isinstance(e.orig, OperationalError):  # type: ignore
                     message = "Schema {0} is not allowed in a SQLite database".format(
                         form_data["schema"]
                     )
