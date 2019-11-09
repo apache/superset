@@ -48,12 +48,9 @@ describe('CheckboxControl', () => {
   });
 
   it('Checks the box when the label is clicked', () => {
-    const defaultProps = {
-      label: "Click Me!!!",
-    };
     const fullComponent = mount(<CheckboxControl {...defaultProps} />);
 
-    const spy = sinon.spy(fullComponent.instance(),'onChange');
+    const spy = sinon.spy(fullComponent.instance(), 'onChange');
 
     fullComponent.instance().forceUpdate();
 
