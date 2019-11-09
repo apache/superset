@@ -2192,6 +2192,11 @@ class Superset(BaseSupersetView):
                 "slice_can_edit": slice_can_edit,
             }
         )
+        url_params = {
+            key: value
+            for key, value in request.args.items()
+            if key not in ("edit", "standalone")
+        }
 
         bootstrap_data = {
             "user_id": g.user.get_id(),
@@ -2199,6 +2204,7 @@ class Superset(BaseSupersetView):
             "datasources": {ds.uid: ds.data for ds in datasources},
             "common": self.common_bootstrap_payload(),
             "editMode": edit_mode,
+            "urlParams": url_params,
         }
 
         if request.args.get("json") == "true":
