@@ -5513,7 +5513,10 @@ export default {
   clusteringRadius: '60',
   pointRadiusUnit: 'Pixels',
   globalOpacity: 1,
-  bounds: [[-122.4753019, 37.7101158], [-122.3675625, 37.829124799999995]],
+  bounds: [
+    [-122.4753019, 37.7101158],
+    [-122.3675625, 37.829124799999995],
+  ],
   renderWhileDragging: true,
   tooltip: null,
   color: 'rgb(0, 122, 135)',
