@@ -26,7 +26,6 @@ import logger from '../middleware/loggerMiddleware';
 import setupApp from '../setup/setupApp';
 import rootReducer from './reducers/index';
 import CsvToDatabase from './CsvToDatabase';
-import './main.less';
 
 setupApp();
 

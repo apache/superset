@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
+import { supportsDragAndDrop } from 'src/utils/common';
 import Button from '../Button';
 import './DropArea.css';
 
@@ -45,6 +46,7 @@ export default class DropArea extends React.PureComponent {
   setHover() {
     this.setState({ hover: true });
   }
+
   unsetHover() {
     this.setState({ hover: false });
   }
@@ -63,11 +65,11 @@ export default class DropArea extends React.PureComponent {
     return (
       <div>
         <div
-          className={`filedropper-container ${
+          className={supportsDragAndDrop() ? `filedropper-container ${
             isVisible ? 'is-visible' : 'is-not-visible'
           } ${
             hover ? 'filedropper-background-hover' : 'filedropper-background'
-          }`}
+          }` : 'is-not-visible'}
           onDragOver={this.setHover}
           onMouseOver={this.setHover}
           onDragExit={this.unsetHover}
@@ -89,7 +91,7 @@ export default class DropArea extends React.PureComponent {
             </>
           )}
         </div>
-        {showFileSelected ? (
+        {supportsDragAndDrop() && showFileSelected ? (
           <div>{t('File')}: {fileName || t('No file chosen')}</div>
         ) : (
           <></>

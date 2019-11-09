@@ -29,15 +29,15 @@ from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
+
 from .base_tests import SupersetTestCase
 
-
-BASE_DIR = app.config.get("BASE_DIR")
+BASE_DIR = app.config["BASE_DIR"]
 CELERY_SLEEP_TIME = 5
 
 
 class CeleryConfig(object):
-    BROKER_URL = app.config.get("CELERY_RESULT_BACKEND")
+    BROKER_URL = app.config["CELERY_CONFIG"].BROKER_URL
     CELERY_IMPORTS = ("superset.sql_lab",)
     CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
     CONCURRENCY = 1
@@ -156,7 +156,7 @@ class CeleryTestCase(SupersetTestCase):
         if backend != "postgresql":
             # TODO This test won't work in Postgres
             results = self.run_sql(db_id, query2.select_sql, "sdf2134")
-            self.assertEquals(results["status"], "success")
+            self.assertEqual(results["status"], "success")
             self.assertGreater(len(results["data"]), 0)
 
     def test_run_sync_query_cta_no_data(self):
@@ -260,7 +260,7 @@ class CeleryTestCase(SupersetTestCase):
             db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
         ) as expand_data:
             data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-                cdf, db_engine_spec, False
+                cdf, db_engine_spec, False, True
             )
             expand_data.assert_called_once()
 

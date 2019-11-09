@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime, timedelta
 import unittest
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, PropertyMock
 
 from flask_babel import gettext as __
@@ -35,6 +35,7 @@ from superset.tasks.schedules import (
     deliver_slice,
     next_schedules,
 )
+
 from .utils import read_fixture
 
 
@@ -218,7 +219,7 @@ class SchedulesTestCase(unittest.TestCase):
         driver.screenshot.assert_not_called()
         send_email_smtp.assert_called_once()
         self.assertIsNone(send_email_smtp.call_args[1]["images"])
-        self.assertEquals(
+        self.assertEqual(
             send_email_smtp.call_args[1]["data"]["screenshot.png"],
             element.screenshot_as_png,
         )
@@ -253,8 +254,8 @@ class SchedulesTestCase(unittest.TestCase):
         driver.screenshot.assert_called_once()
         send_email_smtp.assert_called_once()
 
-        self.assertEquals(send_email_smtp.call_args[0][0], self.RECIPIENTS)
-        self.assertEquals(
+        self.assertEqual(send_email_smtp.call_args[0][0], self.RECIPIENTS)
+        self.assertEqual(
             list(send_email_smtp.call_args[1]["images"].values())[0],
             driver.screenshot.return_value,
         )
@@ -290,8 +291,8 @@ class SchedulesTestCase(unittest.TestCase):
         mtime.sleep.assert_called_once()
         driver.screenshot.assert_not_called()
 
-        self.assertEquals(send_email_smtp.call_count, 2)
-        self.assertEquals(send_email_smtp.call_args[1]["bcc"], self.BCC)
+        self.assertEqual(send_email_smtp.call_count, 2)
+        self.assertEqual(send_email_smtp.call_args[1]["bcc"], self.BCC)
 
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
@@ -322,7 +323,7 @@ class SchedulesTestCase(unittest.TestCase):
         driver.screenshot.assert_not_called()
         send_email_smtp.assert_called_once()
 
-        self.assertEquals(
+        self.assertEqual(
             list(send_email_smtp.call_args[1]["images"].values())[0],
             element.screenshot_as_png,
         )
@@ -356,7 +357,7 @@ class SchedulesTestCase(unittest.TestCase):
         driver.screenshot.assert_not_called()
         send_email_smtp.assert_called_once()
 
-        self.assertEquals(
+        self.assertEqual(
             send_email_smtp.call_args[1]["data"]["screenshot.png"],
             element.screenshot_as_png,
         )
@@ -387,7 +388,7 @@ class SchedulesTestCase(unittest.TestCase):
 
         file_name = __("%(name)s.csv", name=schedule.slice.slice_name)
 
-        self.assertEquals(send_email_smtp.call_args[1]["data"][file_name], self.CSV)
+        self.assertEqual(send_email_smtp.call_args[1]["data"][file_name], self.CSV)
 
     @patch("superset.tasks.schedules.urllib.request.urlopen")
     @patch("superset.tasks.schedules.urllib.request.OpenerDirector.open")

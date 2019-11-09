@@ -26,10 +26,11 @@ Create Date: 2017-01-24 12:31:06.541746
 revision = "db0c65b146bd"
 down_revision = "f18570e03440"
 
-from alembic import op
 import json
-from sqlalchemy.ext.declarative import declarative_base
+
+from alembic import op
 from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 

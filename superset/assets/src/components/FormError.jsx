@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 const propTypes = {
-  status: PropTypes.object.isRequired,
+  status: PropTypes.object,
 };
 
 export default class FormError extends React.PureComponent {

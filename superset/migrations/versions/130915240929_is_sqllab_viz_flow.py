@@ -21,8 +21,8 @@ Revises: f231d82b9b26
 Create Date: 2018-04-03 08:19:34.098789
 
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db

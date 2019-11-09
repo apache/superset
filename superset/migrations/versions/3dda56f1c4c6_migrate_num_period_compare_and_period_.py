@@ -27,10 +27,10 @@ Create Date: 2018-07-05 15:19:14.609299
 import datetime
 import json
 
-from alembic import op
 import isodate
-from sqlalchemy.ext.declarative import declarative_base
+from alembic import op
 from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 from superset.utils.core import parse_human_timedelta
