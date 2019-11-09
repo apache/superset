@@ -36,7 +36,7 @@ export default () => {
         { force: true },
       );
 
-      // cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
+      cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
       //
       // cy.contains('react-select-2--')
       //     .invoke('attr', 'aria-activedescendant', 'react-select-2--option-1');
