@@ -211,17 +211,16 @@ class CoreTests(SupersetTestCase):
             "slice_id": slice_id,
         }
         # Changing name and save as a new slice
-        self.get_resp(
+        resp = self.client.post(
             url.format(tbl_id, copy_name, "saveas"),
-            {"form_data": json.dumps(form_data)},
+            data={"form_data": json.dumps(form_data)},
         )
-        slices = db.session.query(models.Slice).filter_by(slice_name=copy_name).all()
-        self.assertEqual(1, len(slices))
-        slc = slices[0]
-        new_slice_id = slc.id
+        db.session.expunge_all()
+        new_slice_id = resp.json["form_data"]["slice_id"]
+        slc = db.session.query(models.Slice).filter_by(id=new_slice_id).one()
 
         self.assertEqual(slc.slice_name, copy_name)
-        form_data.pop("slice_id") # We don't save the slice id
+        form_data.pop("slice_id")  # We don't save the slice id when saving as
         self.assertEqual(slc.viz.form_data, form_data)
 
         form_data = {
@@ -233,15 +232,18 @@ class CoreTests(SupersetTestCase):
             "time_range": "now",
         }
         # Setting the name back to its original name by overwriting new slice
-        self.get_resp(
+        self.client.post(
             url.format(tbl_id, new_slice_name, "overwrite"),
-            {"form_data": json.dumps(form_data)},
+            data={"form_data": json.dumps(form_data)},
         )
-        slc = db.session.query(models.Slice).filter_by(id=new_slice_id).first()
+        db.session.expunge_all()
+        slc = db.session.query(models.Slice).filter_by(id=new_slice_id).one()
         self.assertEqual(slc.slice_name, new_slice_name)
-        form_data.pop("slice_id") # We don't save the slice id
         self.assertEqual(slc.viz.form_data, form_data)
+
+        # Cleanup
         db.session.delete(slc)
+        db.session.commit()
 
     def test_filter_endpoint(self):
         self.login(username="admin")
@@ -414,7 +416,7 @@ class CoreTests(SupersetTestCase):
     def test_warm_up_cache(self):
         slc = self.get_slice("Girls", db.session)
         data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
-        assert data == [{"slice_id": slc.id, "slice_name": slc.slice_name}]
+        self.assertEqual(data, [{"slice_id": slc.id, "slice_name": slc.slice_name}])
 
         data = self.get_json_resp(
             "/superset/warm_up_cache?table_name=energy_usage&db_name=main"
