@@ -21,6 +21,8 @@ import re
 from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
+from sqlite3 import OperationalError
+from typing import List, Optional, Union  # noqa: F401
 from urllib import parse
 
 import backoff
@@ -3147,11 +3149,19 @@ class Superset(BaseSupersetView):
                     db.session.commit()
             except Exception:
                 pass
-            message = (
-                "Table {0} could not be created".format(form_data["tableName"])
-                if isinstance(e, IntegrityError)
-                else str(e)
-            )
+            if hasattr(e, "orig"):
+                # pylint: disable=no-member
+                if isinstance(e.orig, IntegrityError):  # noqa: T848
+                    message = "Table {0} could not be created".format(
+                        form_data["tableName"]
+                    )
+                # pylint: disable:no-member
+                elif isinstance(e.orig, OperationalError):  # noqa: T848
+                    message = "Schema {0} is not allowed in a SQLite database".format(
+                        form_data["schema"]
+                    )
+                else:
+                    message = str(e)
             return json_error_response(message, status=400)
         finally:
             try:
