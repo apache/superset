@@ -15,25 +15,29 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from contextlib import closing
-from datetime import datetime, timedelta
 import logging
 import os
 import re
+from contextlib import closing
+from datetime import datetime, timedelta
 from sqlite3 import OperationalError
 from typing import List, Optional, Union  # noqa: F401
 from urllib import parse
 
 import backoff
+import msgpack
+import pandas as pd
+import pyarrow as pa
+import simplejson as json
 from flask import (
+    Markup,
+    Response,
     abort,
     flash,
     g,
-    Markup,
     redirect,
     render_template,
     request,
-    Response,
     url_for,
 )
 from flask_appbuilder import expose
@@ -43,16 +47,13 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-import msgpack
-import pandas as pd
-import pyarrow as pa
-import simplejson as json
 from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
+import superset.models.core as models
 from superset import (
     app,
     appbuilder,
@@ -80,7 +81,6 @@ from superset.exceptions import (
 )
 from superset.jinja_context import get_template_processor
 from superset.legacy import update_time_range
-import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
@@ -89,22 +89,25 @@ from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
+
 from .base import (
-    api,
     BaseSupersetView,
-    check_ownership,
     CsvResponse,
-    data_payload_response,
     DeleteMixin,
+    SupersetFilter,
+    SupersetModelView,
+    api,
+    check_ownership,
+    data_payload_response,
     generate_download_headers,
     get_error_msg,
     get_user_roles,
     handle_api_exception,
     json_error_response,
     json_success,
-    SupersetFilter,
-    SupersetModelView,
 )
+from .database import api as database_api  # noqa
+from .database import views as in_views  # noqa
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
@@ -298,9 +301,6 @@ class DashboardFilter(SupersetFilter):
 
         return query
 
-
-from .database import api as database_api  # noqa
-from .database import views as in_views  # noqa
 
 if config.get("ENABLE_ACCESS_REQUEST"):
 
