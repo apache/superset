@@ -108,9 +108,9 @@ Cypress.Commands.add('verifySliceSuccess', ({ waitAlias, querySubstring, chartSe
 });
 
 Cypress.Commands.add('upload_file', (fileName, fileType = ' ', fileContent, selector) => {
-    cy.writeFile('cypress/fixtures/'+ fileName, fileContent)
-        .then(cy.fixture(fileName).as('file'))
-        .then(Cypress.Blob.base64StringToBlob('@file', fileType))
+    cy.writeFile(fileName, fileContent);
+    cy.fixture(fileName).as('file')
+    Cypress.Blob.base64StringToBlob('@file', fileType)
         .then(blob => {
             return cy.get(selector).then(subject => subject.fileupload('add', { files: blob }))
         });

@@ -227,7 +227,7 @@ export class CsvToDatabase extends React.PureComponent {
                       </td>
                       <td>
                         <FormSelect
-                          id={"database"}
+                          id={'database'}
                           value={this.state.selectedConnection}
                           onChange={this.setSelectedConnection}
                           options={this.getConnectionStrings()}
@@ -292,7 +292,7 @@ export class CsvToDatabase extends React.PureComponent {
                       </td>
                       <td>
                         <FormSelect
-                          id={"tableExists"}
+                          id={'tableExists'}
                           value={this.state.selectedTableExists}
                           onChange={this.setTableExists}
                           options={this.state.tableExistsValues}

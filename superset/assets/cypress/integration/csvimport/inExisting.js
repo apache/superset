@@ -32,11 +32,11 @@ export default () => {
       cy.get('#tableName')
         .clear({ force: true })
         .type(
-        "MyCsvTable",
+        'MyCsvTable',
         { force: true },
       );
 
-      cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
+      cy.upload_file('cypress/fixtures/myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
 
       cy.get('#database').then(elem => {
         elem.val('1');
@@ -45,7 +45,7 @@ export default () => {
       cy.get('#delimiter')
         .clear({ force: true })
         .type(
-        ";",
+        ';',
         { force: true },
       );
 
