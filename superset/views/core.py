@@ -15,29 +15,29 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from contextlib import closing
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Union
-
 import logging
 import os
 import re
-
+from contextlib import closing
+from datetime import datetime, timedelta
 from sqlite3 import OperationalError
 from typing import List, Optional, Union  # noqa: F401
 from urllib import parse
 
 import backoff
-
+import msgpack
+import pandas as pd
+import pyarrow as pa
+import simplejson as json
 from flask import (
+    Markup,
+    Response,
     abort,
     flash,
     g,
-    Markup,
     redirect,
     render_template,
     request,
-    Response,
     url_for,
 )
 from flask_appbuilder import expose
@@ -46,12 +46,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
-
-import msgpack
-import pandas as pd
-import pyarrow as pa
-import simplejson as json
-
 from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
@@ -86,6 +80,7 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
+from superset.legacy import update_time_range
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
@@ -95,20 +90,20 @@ from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
 
 from .base import (
-    api,
     BaseSupersetView,
-    check_ownership,
     CsvResponse,
-    data_payload_response,
     DeleteMixin,
+    SupersetFilter,
+    SupersetModelView,
+    api,
+    check_ownership,
+    data_payload_response,
     generate_download_headers,
     get_error_msg,
     get_user_roles,
     handle_api_exception,
     json_error_response,
     json_success,
-    SupersetFilter,
-    SupersetModelView,
 )
 
 from .database import api as database_api, views as in_views
