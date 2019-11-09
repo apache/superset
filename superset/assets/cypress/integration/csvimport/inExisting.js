@@ -36,7 +36,7 @@ export default () => {
         { force: true },
       );
 
-      cy.upload_file('cypress/fixtures/myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
+      cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
 
       cy.get('#database').then(elem => {
         elem.val('1');
