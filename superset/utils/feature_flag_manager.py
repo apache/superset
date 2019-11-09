@@ -22,7 +22,7 @@ class FeatureFlagManager:
     def __init__(self) -> None:
         super().__init__()
         self._get_feature_flags_func = None
-        self._feature_flags = {}
+        self._feature_flags = None
 
     def init_app(self, app):
         self._get_feature_flags_func = app.config.get("GET_FEATURE_FLAGS_FUNC")
