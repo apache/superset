@@ -36,26 +36,26 @@ export default () => {
         { force: true },
       );
 
-      cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
-
-      cy.contains('react-select-2--')
-          .invoke('attr', 'aria-activedescendant', 'react-select-2--option-1');
-
-      cy.get('#delimiter')
-        .clear({ force: true })
-        .type(
-        ";",
-        { force: true },
-      );
-
-      cy.contains('react-select-3--')
-          .invoke('attr', 'aria-activedescendant', 'react-select-3--option-0');
-
-      cy.get('button').contains('Save').click();
-
-      cy.wait('@import');
-
-      cy.get('alert-container').should('contain', 'MyCsvTable imported into database examples');
+      // cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
+      //
+      // cy.contains('react-select-2--')
+      //     .invoke('attr', 'aria-activedescendant', 'react-select-2--option-1');
+      //
+      // cy.get('#delimiter')
+      //   .clear({ force: true })
+      //   .type(
+      //   ";",
+      //   { force: true },
+      // );
+      //
+      // cy.contains('react-select-3--')
+      //     .invoke('attr', 'aria-activedescendant', 'react-select-3--option-0');
+      //
+      // cy.get('button').contains('Save').click();
+      //
+      // cy.wait('@import');
+      //
+      // cy.get('alert-container').should('contain', 'MyCsvTable imported into database examples');
     });
 
   });
