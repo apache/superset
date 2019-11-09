@@ -72,7 +72,7 @@ describe('Header', () => {
 
   describe('read-only-user', () => {
     const overrideProps = {
-      dashboardInfo: { id: 1, dash_edit_perm: false, dash_save_perm: false },
+      dashboardInfo: { id: 1, dash_edit_perm: false, dash_save_perm: false, userId: 1 },
     };
 
     it('should render the EditableTitle', () => {
@@ -109,7 +109,7 @@ describe('Header', () => {
   describe('write-user', () => {
     const overrideProps = {
       editMode: false,
-      dashboardInfo: { id: 1, dash_edit_perm: true, dash_save_perm: true },
+      dashboardInfo: { id: 1, dash_edit_perm: true, dash_save_perm: true, userId: 1 },
     };
 
     it('should render the EditableTitle', () => {
@@ -146,7 +146,7 @@ describe('Header', () => {
   describe('write-user-with-edit-mode', () => {
     const overrideProps = {
       editMode: true,
-      dashboardInfo: { id: 1, dash_edit_perm: true, dash_save_perm: true },
+      dashboardInfo: { id: 1, dash_edit_perm: true, dash_save_perm: true, userId: 1 },
     };
 
     it('should render the EditableTitle', () => {
