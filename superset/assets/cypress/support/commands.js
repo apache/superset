@@ -108,12 +108,10 @@ Cypress.Commands.add('verifySliceSuccess', ({ waitAlias, querySubstring, chartSe
 });
 
 Cypress.Commands.add('upload_file', (fileName, fileType = ' ', fileContent, selector) => {
-    cy.get(selector).then(subject => {
-        cy.writeFile(fileName, fileContent, 'base64');
-        cy.fixture(fileName).as('file');
-      return Cypress.Blob.base64StringToBlob(this.file, fileType)
-        .then((blob) => {
-          subject.fileupload('add', { files: blob })
-    })
-})
-  });
+    cy.writeFile(fileName, fileContent)
+        .then(cy.fixture(fileName).as('file'))
+        .then(Cypress.Blob.base64StringToBlob(this.file, fileType))
+        .then(blob => {
+            return cy.get(selector).then(subject => subject.fileupload('add', { files: blob }))
+        });
+});
