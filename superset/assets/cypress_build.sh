@@ -34,6 +34,6 @@ time npm run build
 echo "[completed js build steps]"
 
 CYPRESS_PATH='cypress/integration/'${1}'/*'
-time npm run cypress run -- --spec "$CYPRESS_PATH" --record --config video=true
+time npm run cypress run -- --spec "$CYPRESS_PATH" --record false --config video=false
 
 kill %1
