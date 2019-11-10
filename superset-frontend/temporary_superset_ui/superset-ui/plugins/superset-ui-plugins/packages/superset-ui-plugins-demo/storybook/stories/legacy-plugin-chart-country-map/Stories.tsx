@@ -3,7 +3,7 @@ import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
 import { select } from '@storybook/addon-knobs';
 import data from './data';
-import countries from '../../../../superset-ui-legacy-plugin-chart-country-map/lib/countries';
+import countries from '../../../../superset-ui-legacy-plugin-chart-country-map/esm/countries';
 
 export default [
   {
