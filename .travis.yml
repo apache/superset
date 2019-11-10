@@ -36,11 +36,6 @@ jobs:
         - pip install --upgrade pip
         - pip install tox
     - language: python
-      addons:
-        artifacts: true
-          s3_region: “eu-west-1"
-          paths:
-            - /home/travis/build/Sascha-Gschwind/incubator-superset/superset/assets/cypress/
       python: 3.6
       env: TOXENV=cypress-csvimport
       services:
@@ -118,6 +113,10 @@ cache:
     - ~/.travis_cache/
     - superset/assets/.terser-plugin-cache/
 addons:
+  artifacts: true
+    s3_region: “eu-west-1"
+    paths:
+      - /home/travis/build/Sascha-Gschwind/incubator-superset/superset/assets/cypress/
   apt:
     packages:
       - libgconf-2-4
