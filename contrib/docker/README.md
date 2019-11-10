@@ -43,8 +43,21 @@ After several minutes for superset initialization to finish, you can open a brow
 to start your journey.
 
 ## Map Visualization
-To correctly display map visualizations (deck.gl or Mapbox), it is necessary to provide a valid Mapbox access token. To do this,
-modify the `docker-compose.yml` file to include the `MAPBOX_API_KEY` environment variable in the `superset` service.
+To correctly display map visualizations, it is necessary to provide a valid Mapbox access token.
+If you already have a Mapbox account, you can find all your tokens on your Mapbox tokens page.
+By default, all accounts have a public access token that can be used to access Mapbox's API.
+If you want to learn more about Mapbox access tokens, please refer to Mapbox documentation.
+
+Once you have your Mapbox access token, you should set the `MAPBOX_API_KEY` environment variable as follows:
+```bash
+$> export MAPBOX_API_KEY=<your_access_token>
+```
+The Compose tool will use the environment variable defined in your shell to populate the value inside the Compose file:
+```bash
+superset:
+  environment:
+    MAPBOX_API_KEY: ${MAPBOX_API_KEY}
+```
 
 ## Developing
 

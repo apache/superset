@@ -42,8 +42,7 @@ services:
       dockerfile: contrib/docker/Dockerfile
     restart: unless-stopped
     environment:
-      # Add Mapxbox access token to correctly display deck.gl visualizations
-      #MAPBOX_API_KEY:
+      MAPBOX_API_KEY: ${MAPBOX_API_KEY}
       POSTGRES_DB: superset
       POSTGRES_USER: superset
       POSTGRES_PASSWORD: superset
