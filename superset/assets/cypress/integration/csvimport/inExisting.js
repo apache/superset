@@ -54,7 +54,7 @@ export default () => {
       });
 
       cy.get('button').contains('Save').click();
-      cy.get('alert-container').should('contain', 'MyCsvTable imported into database examples');
+      cy.get('#alert-container').should('contain', 'MyCsvTable imported into database examples');
     });
 
   });
