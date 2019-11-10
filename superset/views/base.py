@@ -210,7 +210,7 @@ def validate_json(form, field):
 class YamlExportMixin(object):
     yaml_dict_key: Optional[str] = None
     """
-    Override this if you a dict response instead, with a certain key. 
+    Override this if you want a dict response instead, with a certain key. 
     Used on DatabaseView for cli compatibility
     """
 
