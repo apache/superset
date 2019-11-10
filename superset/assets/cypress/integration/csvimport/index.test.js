@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import inExisting from './inExisting';
+import inExistingDatabaseTest from './inExistingDatabase';
+import inNewDatabaseTest from "./inNewDatabase";
+import advancedOptionsTest from "./advancedOptions";
 
 describe('All CSV import tests', () => {
-  inExisting();
+  inExistingDatabaseTest();
+  inNewDatabaseTest();
+  advancedOptionsTest()
 });
