@@ -923,7 +923,7 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | `row_limit`               | *number*                                          | The **Row limit** widget                          |
 | `timeseries_limit_metric` | *object*                                          | The **Sort By** widget                            |
 
-Note the `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of the JSON representation of the `AdhocMetric` JavaScript type.
+The `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of either metric names or the JSON representation of the `AdhocMetric` JavaScript type. The `adhoc_filters` is composed of the JSON represent of the `AdhocFilter` JavaScript type (which can comprise of columns or metrics depending on whether it is a WHERE or HAVING clause). The `all_columns`, `all_columns_x`, `columns`, `groupby`, and `order_by_cols` fields all represent column names. 
 
 ### Options
 
