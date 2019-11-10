@@ -24,7 +24,7 @@ export default () => {
       cy.server();
       cy.visit('/superset/csvtodatabase');
 
-      cy.route('POST', '/superset/csvtodatabase/add/').as('import');
+      cy.route('/tablemodelview/list').as('finish_import');
     });
 
     it('test import in existing database', () => {
@@ -54,6 +54,7 @@ export default () => {
       });
 
       cy.get('button').contains('Save').click();
+      cy.wait('@finish_import')
       cy.get('#alert-container').should('contain', 'MyCsvTable imported into database examples');
     });
 
