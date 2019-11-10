@@ -54,6 +54,8 @@ class DatabaseView(DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixi
     edit_template = "superset/models/database/edit.html"
     validators_columns = {"sqlalchemy_uri": [sqlalchemy_uri_form_validator]}
 
+    yaml_dict_key = "databases"
+
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
 
