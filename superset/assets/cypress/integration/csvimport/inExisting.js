@@ -54,12 +54,7 @@ export default () => {
       });
 
       cy.get('button').contains('Save').click();
-
-      console.log(cy.url())
-
-      cy.url().should('include', '/tablemodelview/list');
-
-      cy.get('#alert-container', { timeout: 60000 }).should('contain', 'MyCsvTable imported into database examples');
+      cy.url({ timeout: 30000 }).should('include', '/tablemodelview/list');
     });
 
   });
