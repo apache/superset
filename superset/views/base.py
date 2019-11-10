@@ -19,7 +19,7 @@ import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import simplejson as json
 import yaml
@@ -208,12 +208,20 @@ def validate_json(form, field):
 
 
 class YamlExportMixin(object):
+    yaml_dict_key: Optional[str] = None
+    """
+    Override this if you want a dict response instead, with a certain key. 
+    Used on DatabaseView for cli compatibility
+    """
+
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(self, items):
         if not isinstance(items, list):
             items = [items]
 
         data = [t.export_to_dict() for t in items]
+        if self.yaml_dict_key:
+            data = {self.yaml_dict_key: data}
         return Response(
             yaml.safe_dump(data),
             headers=generate_download_headers("yaml"),
