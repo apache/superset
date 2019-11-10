@@ -27,19 +27,23 @@ export default () => {
       cy.route('/tablemodelview/list').as('finish_import');
     });
 
-    it('test import in existing database', () => {
+    it('test import in new database', () => {
 
       cy.get('#tableName')
         .clear({ force: true })
         .type(
-        'MyCsvTable',
+        'MyCsvTableForNew',
         { force: true },
       );
 
       cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
 
       cy.get('#database').then(elem => {
-        elem.val('1');
+        elem.val('0');
+      });
+
+      cy.get('#databaseName').then(elem => {
+        elem.val('new_database');
       });
 
       cy.get('#delimiter')
