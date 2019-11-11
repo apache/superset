@@ -17,11 +17,11 @@
  * under the License.
  */
 import inExistingDatabaseTest from './inExistingDatabase';
-import inNewDatabaseTest from "./inNewDatabase";
-import advancedOptionsTest from "./advancedOptions";
+import inNewDatabaseTest from './inNewDatabase';
+import advancedOptionsTest from './advancedOptions';
 
 describe('All CSV import tests', () => {
   inExistingDatabaseTest();
   inNewDatabaseTest();
-  advancedOptionsTest()
+  advancedOptionsTest();
 });

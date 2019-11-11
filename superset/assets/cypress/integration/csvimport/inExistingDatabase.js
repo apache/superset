@@ -38,7 +38,7 @@ export default () => {
 
       cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
 
-      cy.get('#database').then(elem => {
+      cy.get('#database').then((elem) => {
         elem.val('1');
       });
 
@@ -49,7 +49,7 @@ export default () => {
         { force: true },
       );
 
-      cy.get('#tableExists').then(elem => {
+      cy.get('#tableExists').then((elem) => {
         elem.val('Fail');
       });
 

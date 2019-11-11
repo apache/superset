@@ -111,10 +111,12 @@ Cypress.Commands.add('upload_file', (fileName, fileType = ' ', fileContent, sele
   const blob = new Blob([fileContent]);
   const file = new File([blob], fileName, { type: fileType });
 
-  cy.get(selector).then(subject => {
-    var dataTransfer = new DataTransfer();
+  cy.get(selector).then((subject) => {
+    const dataTransfer = new DataTransfer();
     dataTransfer.items.add(file);
+    /*eslint-disable */
     subject[0].files = dataTransfer.files;
+    /*eslint-disable */
     cy.wrap(subject).trigger('change', { force: true });
-  })
+  });
 });
