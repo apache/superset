@@ -39,11 +39,8 @@ export default () => {
       cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
 
       cy.get('#database').then(elem => {
-        elem.val('-1');
+        elem.val('In a new database');
       });
-      cy.get('#connectionId').then(elem => {
-        elem.val('-1');
-      })
 
       cy.get('#databaseName').then(elem => {
         elem.val('new_database');
