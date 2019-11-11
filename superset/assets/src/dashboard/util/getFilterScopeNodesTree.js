@@ -17,6 +17,7 @@
  * under the License.
  */
 import { isEmpty } from 'lodash';
+import { t } from '@superset-ui/translation';
 
 import { DASHBOARD_ROOT_ID } from './constants';
 import {
@@ -31,14 +32,19 @@ function traverse({
   currentNode = {},
   components = {},
   filterFields = [],
-  selectedChartId = 0,
+  selectedChartId,
 }) {
   if (!currentNode) {
     return null;
   }
 
   const type = currentNode.type;
-  if (CHART_TYPE === type && currentNode.meta.chartId) {
+  if (
+    CHART_TYPE === type &&
+    currentNode &&
+    currentNode.meta &&
+    currentNode.meta.chartId
+  ) {
     const chartNode = {
       value: currentNode.meta.chartId,
       label:
@@ -78,9 +84,9 @@ function traverse({
   }
 
   if (FILTER_SCOPE_CONTAINER_TYPES.includes(type)) {
-    let label = '';
+    let label = null;
     if (type === DASHBOARD_ROOT_TYPE) {
-      label = 'Select/deselect all charts';
+      label = t('Select/deselect all charts');
     } else {
       label =
         currentNode.meta && currentNode.meta.text
@@ -102,7 +108,7 @@ function traverse({
 export default function getFilterScopeNodesTree({
   components = {},
   filterFields = [],
-  selectedChartId = 0,
+  selectedChartId,
 }) {
   if (isEmpty(components)) {
     return [];

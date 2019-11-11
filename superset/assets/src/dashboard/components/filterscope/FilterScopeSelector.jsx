@@ -36,7 +36,7 @@ import {
   getChartIdAndColumnFromFilterKey,
   getDashboardFilterKey,
 } from '../../util/getDashboardFilterKey';
-import { ALL_FILTERS } from '../../util/constants';
+import { ALL_FILTERS_ROOT } from '../../util/constants';
 
 const propTypes = {
   dashboardFilters: PropTypes.object.isRequired,
@@ -126,7 +126,7 @@ export default class FilterScopeSelector extends React.PureComponent {
       const checkedFilterFields = [];
       const activeFilterField = this.defaultFilterKey;
       // expand defaultFilterKey in filter field tree
-      const expandedFilterIds = [ALL_FILTERS].concat(chartId);
+      const expandedFilterIds = [ALL_FILTERS_ROOT].concat(chartId);
 
       const filterScopeTreeEntry = buildFilterScopeTreeEntry({
         checkedFilterFields,
@@ -224,13 +224,13 @@ export default class FilterScopeSelector extends React.PureComponent {
     const { filterScopeMap } = this.state;
     const filterScopeTreeEntry = buildFilterScopeTreeEntry({
       checkedFilterFields,
-      activeFilterField: '',
+      activeFilterField: null,
       filterScopeMap,
       layout,
     });
 
     this.setState(() => ({
-      activeFilterField: '',
+      activeFilterField: null,
       checkedFilterFields,
       filterScopeMap: {
         ...filterScopeMap,
@@ -263,13 +263,13 @@ export default class FilterScopeSelector extends React.PureComponent {
     if (nextActiveFilterField === currentActiveFilterField) {
       const filterScopeTreeEntry = buildFilterScopeTreeEntry({
         checkedFilterFields,
-        activeFilterField: '',
+        activeFilterField: null,
         filterScopeMap,
         layout,
       });
 
       this.setState({
-        activeFilterField: '',
+        activeFilterField: null,
         filterScopeMap: {
           ...filterScopeMap,
           ...filterScopeTreeEntry,
@@ -315,7 +315,7 @@ export default class FilterScopeSelector extends React.PureComponent {
       ),
     );
 
-    // save do not close modal
+    // save does not close modal
   }
 
   filterTree() {
@@ -467,10 +467,10 @@ export default class FilterScopeSelector extends React.PureComponent {
 
     return (
       <div className="selected-fields multi-edit-mode">
-        {currentFilterLabels.length === 0 && t('No filters are selected.')}
-        {currentFilterLabels.length === 1 && t('Editing 1 filter: ')}
+        {currentFilterLabels.length === 0 && t('No filter is selected.')}
+        {currentFilterLabels.length === 1 && t('Editing 1 filter:')}
         {currentFilterLabels.length > 1 &&
-          t('Batch editing %d filters: ', currentFilterLabels.length)}
+          t('Batch editing %d filters:', currentFilterLabels.length)}
         <span className="selected-scopes">
           {currentFilterLabels.join(', ')}
         </span>
@@ -490,7 +490,7 @@ export default class FilterScopeSelector extends React.PureComponent {
           </div>
 
           {!showSelector ? (
-            <div>{t('There are no filters in this dashboard')}</div>
+            <div>{t('There are no filters in this dashboard.')}</div>
           ) : (
             <div className="filters-scope-selector">
               <div className={cx('filter-field-pane multi-edit-mode')}>

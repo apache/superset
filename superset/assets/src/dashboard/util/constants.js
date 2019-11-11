@@ -78,4 +78,4 @@ export const FILTER_INDICATORS_DISPLAY_LENGTH = 3;
 export const IN_COMPONENT_ELEMENT_TYPES = ['LABEL'];
 
 // filter scope selector filter fields pane root id
-export const ALL_FILTERS = 'ALL_FILTERS';
+export const ALL_FILTERS_ROOT = 'ALL_FILTERS_ROOT';
