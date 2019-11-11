@@ -98,6 +98,7 @@ describe('dashboardFilters reducer', () => {
         },
         scopes: {
           [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
+          gender: DASHBOARD_FILTER_SCOPE_GLOBAL,
         },
       },
     });
@@ -129,7 +130,8 @@ describe('dashboardFilters reducer', () => {
           [column]: column,
         },
         scopes: {
-          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
+          region: DASHBOARD_FILTER_SCOPE_GLOBAL,
+          gender: DASHBOARD_FILTER_SCOPE_GLOBAL,
         },
       },
     });
