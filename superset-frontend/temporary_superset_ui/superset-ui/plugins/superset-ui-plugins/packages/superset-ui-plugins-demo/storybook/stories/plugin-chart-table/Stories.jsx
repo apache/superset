@@ -3,7 +3,10 @@ import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
 import dataLegacy from './dataLegacy';
 import data from './data';
-import bigData from './bigData';
+import generateData from './generateData';
+
+const dataset30Rows = { data: generateData(30) };
+const dataset1000Rows = { data: generateData(1000) };
 
 export default [
   {
@@ -117,10 +120,37 @@ export default [
           tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
           timeseriesLimitMetric: null,
         }}
-        queryData={{ data: bigData }}
+        queryData={dataset30Rows}
       />
     ),
-    storyName: 'BigTable',
+    storyName: '30 rows 20 columns',
+    storyPath: 'plugin-chart-table|TableChartPlugin',
+  },
+  {
+    renderStory: () => (
+      <SuperChart
+        chartType="table2"
+        key="bigTable"
+        datasource={{
+          columnFormats: {},
+          verboseMap: {},
+        }}
+        formData={{
+          alignPn: true,
+          colorPn: true,
+          includeSearch: true,
+          metrics: [],
+          orderDesc: true,
+          pageLength: 0,
+          percentMetrics: [],
+          tableFilter: false,
+          tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
+          timeseriesLimitMetric: null,
+        }}
+        queryData={dataset1000Rows}
+      />
+    ),
+    storyName: '1000 rows 20 columns',
     storyPath: 'plugin-chart-table|TableChartPlugin',
   },
 ];
