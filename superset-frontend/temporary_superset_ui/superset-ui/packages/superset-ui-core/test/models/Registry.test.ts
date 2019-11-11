@@ -252,15 +252,13 @@ describe('Registry', () => {
       registry.registerLoader('b', () => 'test2');
       registry.registerLoader('c', () => Promise.resolve('test3'));
 
-      return registry
-        .entriesAsPromise()
-        .then(entries =>
-          expect(entries).toEqual([
-            { key: 'a', value: 'test1' },
-            { key: 'b', value: 'test2' },
-            { key: 'c', value: 'test3' },
-          ]),
-        );
+      return registry.entriesAsPromise().then(entries =>
+        expect(entries).toEqual([
+          { key: 'a', value: 'test1' },
+          { key: 'b', value: 'test2' },
+          { key: 'c', value: 'test3' },
+        ]),
+      );
     });
   });
 

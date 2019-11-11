@@ -17,7 +17,8 @@ export type QueryObjectFilterClause = {
     }
   | {
       op: UnaryOperator;
-    });
+    }
+);
 
 export type QueryObjectMetric = {
   label: string;
