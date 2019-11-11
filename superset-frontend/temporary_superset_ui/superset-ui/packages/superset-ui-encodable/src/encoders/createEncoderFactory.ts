@@ -18,7 +18,8 @@ type CreateEncoderFactoryParams<Config extends EncodingConfig> = {
        * if there are missing fields
        */
       completeEncoding: (e: Partial<DeriveEncoding<Config>>) => DeriveEncoding<Config>;
-    });
+    }
+);
 
 export default function createEncoderFactory<Config extends EncodingConfig>(
   params: CreateEncoderFactoryParams<Config>,
