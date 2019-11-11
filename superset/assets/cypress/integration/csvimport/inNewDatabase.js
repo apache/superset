@@ -29,7 +29,7 @@ export default () => {
 
       cy.route('/tablemodelview/list').as('finish_import');
 
-      cy.exec('python /superset/assets/cypress/integration/csvimport/scripts/remove_db_file.py ' + database_name, { timeout: 30000 })
+      cy.exec('python superset/assets/cypress/integration/csvimport/scripts/remove_db_file.py ' + database_name, { timeout: 30000 })
     });
 
     it('test import in new database', () => {
