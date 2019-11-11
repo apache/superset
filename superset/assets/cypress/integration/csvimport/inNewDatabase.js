@@ -43,7 +43,7 @@ export default () => {
       });
 
       cy.get('#databaseName').then(elem => {
-        elem.val('new_database');
+        elem.val('-1');
       });
 
       cy.get('#delimiter')
