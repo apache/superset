@@ -46,3 +46,4 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
         if tt == "DATETIME":
             return f"""TO_TIMESTAMP ('{dttm.isoformat(sep=" ", timespec="seconds")}', 'YYYY-MM-DD HH24:MI:SS')"""  # pylint: disable=line-too-long
         return None
+    
