@@ -28,12 +28,21 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
 
     _time_grain_functions = {
         None: "{col}",
+        "PT1S": "to_timestamp(substring(to_timestamp({col}),0,20))",
+        "PT1M": "to_timestamp(substring(to_timestamp({col}),0,17) || '00')",
+        "PT1H": "to_timestamp(substring(to_timestamp({col}),0,14) || '00:00')",
         "P1D": "TO_DATE({col})",
         "P1M": "TO_DATE(SUBSTRING(to_date({col}),0,7)||'-01')",
-        "P0.25Y": "TO_DATE(SUBSTRING(to_date({col}), 0, 5)|| lpad(cast((cast(SUBSTRING(QUARTER(TO_DATE({col}), 1), 7, 1) as int)-1)*3 +1 as text),2,'0') ||'-01')",
+        "P0.25Y": "TO_DATE(SUBSTRING(to_date({col}), 0, 5)|| lpad(cast((cast(SUBSTRING(QUARTER( \
+                   TO_DATE({col}), 1), 7, 1) as int)-1)*3 +1 as text),2,'0') ||'-01')",
         "P1Y": "TO_DATE(YEAR({col})||'-01-01')",
     }
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        return (f"to_char(to_date('{dttm.isoformat()}'),'YYYYMMDD')")
+        tt = target_type.upper()
+        if tt == "DATE":
+            return f"TO_DATE('{dttm.isoformat()}'), 'YYYY-MM-DD')"
+        if tt == "DATETIME":
+            return f"""TO_TIMESTAMP ('{dttm.isoformat(sep=" ", timespec="seconds")}', 'YYYY-MM-DD HH24:MI:SS')"""  # pylint: disable=line-too-long
+        return None
