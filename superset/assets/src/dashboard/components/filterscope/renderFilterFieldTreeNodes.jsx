@@ -21,12 +21,13 @@ import React from 'react';
 import FilterFieldItem from './FilterFieldItem';
 import { getFilterColorMap } from '../../util/dashboardFiltersColorMap';
 
-export default function renderFilterFieldTreeNodes({
-  nodes = [],
-  activeKey = '',
-}) {
+export default function renderFilterFieldTreeNodes({ nodes, activeKey }) {
+  if (!nodes) {
+    return [];
+  }
+
   const root = nodes[0];
-  const allFilterNodes = nodes[0].children;
+  const allFilterNodes = root.children;
   const children = allFilterNodes.map(node => ({
     ...node,
     children: node.children.map(child => {

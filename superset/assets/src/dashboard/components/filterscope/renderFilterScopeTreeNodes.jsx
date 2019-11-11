@@ -22,7 +22,7 @@ import cx from 'classnames';
 import ChartIcon from '../../../components/ChartIcon';
 import { CHART_TYPE } from '../../util/componentTypes';
 
-function traverse({ currentNode, selectedChartId }) {
+function traverse({ currentNode = {}, selectedChartId }) {
   if (!currentNode) {
     return null;
   }
@@ -65,9 +65,10 @@ function traverse({ currentNode, selectedChartId }) {
   };
 }
 
-export default function renderFilterScopeTreeNodes({
-  nodes = [],
-  selectedChartId = 0,
-}) {
+export default function renderFilterScopeTreeNodes({ nodes, selectedChartId }) {
+  if (!nodes) {
+    return [];
+  }
+
   return nodes.map(node => traverse({ currentNode: node, selectedChartId }));
 }

@@ -23,7 +23,7 @@ import getSelectedChartIdForFilterScopeTree from './getSelectedChartIdForFilterS
 
 export default function buildFilterScopeTreeEntry({
   checkedFilterFields = [],
-  activeFilterField = '',
+  activeFilterField,
   filterScopeMap = {},
   layout = {},
 }) {
