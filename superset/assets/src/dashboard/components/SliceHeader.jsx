@@ -94,7 +94,6 @@ class SliceHeader extends React.PureComponent {
       annotationQuery,
       annotationError,
       componentId,
-      filters,
       addDangerToast,
     } = this.props;
 
@@ -146,7 +145,6 @@ class SliceHeader extends React.PureComponent {
               supersetCanCSV={supersetCanCSV}
               sliceCanEdit={sliceCanEdit}
               componentId={componentId}
-              filters={filters}
               addDangerToast={addDangerToast}
             />
           )}

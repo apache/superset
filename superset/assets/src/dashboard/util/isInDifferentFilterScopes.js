@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function getEffectiveExtraFilters(filters) {
-  const effectiveFilters = [];
-  Object.entries(filters).forEach(entry => {
-    const [column, values] = entry;
-    effectiveFilters.push({
-      col: column,
-      op: 'in',
-      val: values,
-    });
-  });
+export default function isInDifferentFilterScopes({
+  dashboardFilters = {},
+  source = [],
+  destination = [],
+}) {
+  const sourceSet = new Set(source);
+  const destinationSet = new Set(destination);
 
-  return effectiveFilters;
+  const allScopes = [].concat(
+    ...Object.values(dashboardFilters).map(({ scopes }) =>
+      [].concat(...Object.values(scopes).map(({ scope }) => scope)),
+    ),
+  );
+  return allScopes.some(tab => destinationSet.has(tab) !== sourceSet.has(tab));
 }

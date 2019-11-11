@@ -20,6 +20,7 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t } from '@superset-ui/translation';
 
 import { addWarningToast } from '../../messageToasts/actions';
+import { updateLayoutComponents } from './dashboardFilters';
 import { setUnsavedChanges } from './dashboardState';
 import { TABS_TYPE, ROW_TYPE } from '../util/componentTypes';
 import {
@@ -29,6 +30,10 @@ import {
 } from '../util/constants';
 import dropOverflowsParent from '../util/dropOverflowsParent';
 import findParentId from '../util/findParentId';
+import isInDifferentFilterScopes from '../util/isInDifferentFilterScopes';
+
+// Component CRUD -------------------------------------------------------------
+export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
 
 // this is a helper that takes an action as input and dispatches
 // an additional setUnsavedChanges(true) action after the dispatch in the case
@@ -42,14 +47,21 @@ function setUnsavedChangesAfterAction(action) {
       dispatch(result);
     }
 
+    const isComponentLevelEvent =
+      result.type === UPDATE_COMPONENTS &&
+      result.payload &&
+      result.payload.nextComponents;
+    // trigger dashboardFilters state update if dashboard layout is changed.
+    if (!isComponentLevelEvent) {
+      const components = getState().dashboardLayout.present;
+      dispatch(updateLayoutComponents(components));
+    }
+
     if (!getState().dashboardState.hasUnsavedChanges) {
       dispatch(setUnsavedChanges(true));
     }
   };
 }
-
-// Component CRUD -------------------------------------------------------------
-export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
 
 export const updateComponents = setUnsavedChangesAfterAction(
   nextComponents => ({
@@ -199,12 +211,13 @@ export function handleComponentDrop(dropResult) {
 
     // call getState() again down here in case redux state is stale after
     // previous dispatch(es)
-    const { dashboardLayout: undoableLayout } = getState();
+    const { dashboardFilters, dashboardLayout: undoableLayout } = getState();
 
     // if we moved a child from a Tab or Row parent and it was the only child, delete the parent.
     if (!isNewComponent) {
       const { present: layout } = undoableLayout;
-      const sourceComponent = layout[source.id];
+      const sourceComponent = layout[source.id] || {};
+      const destinationComponent = layout[destination.id] || {};
       if (
         (sourceComponent.type === TABS_TYPE ||
           sourceComponent.type === ROW_TYPE) &&
@@ -216,6 +229,23 @@ export function handleComponentDrop(dropResult) {
           layout,
         });
         dispatch(deleteComponent(source.id, parentId));
+      }
+
+      // show warning if item has been moved between different scope
+      if (
+        isInDifferentFilterScopes({
+          dashboardFilters,
+          source: (sourceComponent.parents || []).concat(source.id),
+          destination: (destinationComponent.parents || []).concat(
+            destination.id,
+          ),
+        })
+      ) {
+        dispatch(
+          addWarningToast(
+            t('This chart has been moved to a different filter scope.'),
+          ),
+        );
       }
     }
 

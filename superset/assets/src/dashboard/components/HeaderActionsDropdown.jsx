@@ -29,6 +29,7 @@ import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import getDashboardUrl from '../util/getDashboardUrl';
+import { getActiveFilters } from '../util/activeDashboardFilters';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -50,7 +51,8 @@ const propTypes = {
   userCanSave: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
-  filters: PropTypes.object.isRequired,
+  serializedFilters: PropTypes.object.isRequired,
+  serializedFilterScopes: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   onSave: PropTypes.func.isRequired,
 };
@@ -120,7 +122,8 @@ class HeaderActionsDropdown extends React.PureComponent {
       colorScheme,
       hasUnsavedChanges,
       layout,
-      filters,
+      serializedFilters,
+      serializedFilterScopes,
       expandedSlices,
       onSave,
       userCanEdit,
@@ -148,7 +151,8 @@ class HeaderActionsDropdown extends React.PureComponent {
             dashboardTitle={dashboardTitle}
             saveType={SAVE_TYPE_NEWDASHBOARD}
             layout={layout}
-            filters={filters}
+            serializedFilters={serializedFilters}
+            serializedFilterScopes={serializedFilterScopes}
             expandedSlices={expandedSlices}
             refreshFrequency={refreshFrequency}
             css={css}
@@ -200,7 +204,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         <URLShortLinkModal
           url={getDashboardUrl(
             window.location.pathname,
-            this.props.filters,
+            getActiveFilters(),
             window.location.hash,
           )}
           emailSubject={emailSubject}

@@ -17,12 +17,15 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { isString } from 'lodash';
+import { isString, isEmpty } from 'lodash';
 import shortid from 'shortid';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 
 import { chart } from '../../chart/chartReducer';
-import { dashboardFilter } from './dashboardFilters';
+import {
+  DASHBOARD_FILTER_SCOPE_GLOBAL,
+  dashboardFilter,
+} from './dashboardFilters';
 import { initSliceEntities } from './sliceEntities';
 import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/store';
@@ -97,6 +100,11 @@ export default function(bootstrapData) {
   const parent = layout[parentId];
   let newSlicesContainer;
   let newSlicesContainerWidth = 0;
+
+  const filterImmuneSliceFields =
+    dashboard.metadata.filter_immune_slice_fields || {};
+  const filterImmuneSlices = dashboard.metadata.filter_immune_slices || [];
+  const filterScopes = dashboard.metadata.filter_scopes || {};
 
   const chartQueries = {};
   const dashboardFilters = {};
@@ -173,6 +181,34 @@ export default function(bootstrapData) {
           });
         }
 
+        // backward compatible:
+        // merge scoped filter settings with old global immune settings
+        const scopesByChartId = Object.keys(columns).reduce((map, column) => {
+          const scopeSettings = {
+            ...filterScopes[key],
+          };
+          const { scope, immune } = {
+            ...DASHBOARD_FILTER_SCOPE_GLOBAL,
+            ...scopeSettings[column],
+          };
+          const immuneChartIds = new Set(filterImmuneSlices.slice());
+          if (!isEmpty(filterImmuneSliceFields)) {
+            Object.keys(filterImmuneSliceFields).forEach(strChartId => {
+              if (filterImmuneSliceFields[strChartId].includes(column)) {
+                immuneChartIds.add(parseInt(strChartId, 10));
+              }
+            });
+          }
+
+          return {
+            ...map,
+            [column]: {
+              scope,
+              immune: [...immuneChartIds].concat(immune),
+            },
+          };
+        }, {});
+
         const componentId = chartIdToLayoutId[key];
         const directPathToFilter = (layout[componentId].parents || []).slice();
         directPathToFilter.push(componentId);
@@ -184,6 +220,7 @@ export default function(bootstrapData) {
           directPathToFilter,
           columns,
           labels,
+          scopes: scopesByChartId,
           isInstantFilter: !!slice.form_data.instant_filtering,
           isDateFilter: Object.keys(columns).includes(TIME_RANGE),
         };
@@ -198,8 +235,11 @@ export default function(bootstrapData) {
       layout[layoutId].meta.sliceName = slice.slice_name;
     }
   });
-  buildActiveFilters(dashboardFilters);
-  buildFilterColorMap(dashboardFilters);
+  buildActiveFilters({
+    dashboardFilters,
+    components: layout,
+  });
+  buildFilterColorMap(dashboardFilters, layout);
 
   // store the header as a layout component so we can undo/redo changes
   layout[DASHBOARD_HEADER_ID] = {
@@ -233,9 +273,6 @@ export default function(bootstrapData) {
       id: dashboard.id,
       slug: dashboard.slug,
       metadata: {
-        filterImmuneSliceFields:
-          dashboard.metadata.filter_immune_slice_fields || {},
-        filterImmuneSlices: dashboard.metadata.filter_immune_slices || [],
         timed_refresh_immune_slices:
           dashboard.metadata.timed_refresh_immune_slices,
       },

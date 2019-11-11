@@ -37,7 +37,8 @@ const propTypes = {
   layout: PropTypes.object.isRequired,
   saveType: PropTypes.oneOf([SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD]),
   triggerNode: PropTypes.node.isRequired,
-  filters: PropTypes.object.isRequired,
+  serializedFilters: PropTypes.object.isRequired,
+  serializedFilterScopes: PropTypes.object.isRequired,
   css: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
@@ -101,7 +102,8 @@ class SaveModal extends React.PureComponent {
       colorNamespace,
       colorScheme,
       expandedSlices,
-      filters,
+      serializedFilters,
+      serializedFilterScopes,
       dashboardId,
       refreshFrequency,
     } = this.props;
@@ -120,7 +122,8 @@ class SaveModal extends React.PureComponent {
       expanded_slices: expandedSlices,
       dashboard_title:
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
-      default_filters: safeStringify(filters),
+      default_filters: safeStringify(serializedFilters),
+      filter_scopes: safeStringify(serializedFilterScopes),
       duplicate_slices: this.state.duplicateSlices,
       refresh_frequency: refreshFrequency,
     };
