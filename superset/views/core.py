@@ -30,14 +30,14 @@ import pandas as pd
 import pyarrow as pa
 import simplejson as json
 from flask import (
-    Markup,
-    Response,
     abort,
     flash,
     g,
+    Markup,
     redirect,
     render_template,
     request,
+    Response,
     url_for,
 )
 from flask_appbuilder import expose
@@ -90,22 +90,21 @@ from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
 
 from .base import (
-    BaseSupersetView,
-    CsvResponse,
-    DeleteMixin,
-    SupersetFilter,
-    SupersetModelView,
     api,
+    BaseSupersetView,
     check_ownership,
+    CsvResponse,
     data_payload_response,
+    DeleteMixin,
     generate_download_headers,
     get_error_msg,
     get_user_roles,
     handle_api_exception,
     json_error_response,
     json_success,
+    SupersetFilter,
+    SupersetModelView,
 )
-
 from .database import api as database_api, views as in_views
 from .utils import (
     apply_display_max_row_limit,
@@ -3152,12 +3151,12 @@ class Superset(BaseSupersetView):
                 pass
             if hasattr(e, "orig"):
                 # pylint: disable=no-member
-                if isinstance(e.orig, IntegrityError):  # noqa: T848
+                if isinstance(e.orig, IntegrityError):  # type: ignore
                     message = "Table {0} could not be created".format(
                         form_data["tableName"]
                     )
                 # pylint: disable:no-member
-                elif isinstance(e.orig, OperationalError):  # noqa: T848
+                elif isinstance(e.orig, OperationalError):  # type: ignore
                     message = "Schema {0} is not allowed in a SQLite database".format(
                         form_data["schema"]
                     )
