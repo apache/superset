@@ -17,7 +17,7 @@ function isChannelDefWithAxisSupport(
 
 export type CompleteAxisConfig =
   | false
-  | RequiredSome<
+  | (RequiredSome<
       Omit<AxisConfig, 'labelOverlap'>,
       | 'labelAngle'
       | 'labelFlush'
@@ -29,7 +29,7 @@ export type CompleteAxisConfig =
       | 'titlePadding'
     > & {
       labelOverlap: LabelOverlapStrategy;
-    };
+    });
 
 export default function completeAxisConfig(
   channelType: ChannelType,
