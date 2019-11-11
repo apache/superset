@@ -18,9 +18,6 @@
 import os
 import sys
 db_name = sys.argv[1]
-db_path = os.path.abspath(os.path.join(os.getcwd(),"../../../../../../" + db_name))
+db_path = os.path.abspath(os.path.join(os.getcwd(),"../../../../../../" + db_name + ".db"))
 if os.path.isfile(db_path):
     os.remove(db_path)
-    print("file is removed")
-else:
-    print("no file to remove")
