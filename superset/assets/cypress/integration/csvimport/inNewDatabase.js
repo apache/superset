@@ -41,6 +41,9 @@ export default () => {
       cy.get('#database').then(elem => {
         elem.val('-1');
       });
+      cy.get('#connectionId').then(elem => {
+        elem.val('-1');
+      })
 
       cy.get('#databaseName').then(elem => {
         elem.val('new_database');
