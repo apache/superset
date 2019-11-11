@@ -31,7 +31,7 @@ export function uploadCsv(data) {
     })
       .then(() => {
         dispatch({ type: UPLOAD_CSV_SUCCESS, message: '' });
-        window.open('/tablemodelview/list/', '_self'); // TODO: Get Url from Backend?
+        window.open('/tablemodelview/list/', '_self');
       })
       .catch((response) => {
         getClientErrorObject(response).then((error) => {
