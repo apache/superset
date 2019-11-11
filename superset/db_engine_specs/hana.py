@@ -29,12 +29,13 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
 
     _time_grain_functions = {
         None: "{col}",
-        "PT1S": "to_timestamp(substring(to_timestamp({col}),0,20))",
-        "PT1M": "to_timestamp(substring(to_timestamp({col}),0,17) || '00')",
-        "PT1H": "to_timestamp(substring(to_timestamp({col}),0,14) || '00:00')",
+        "PT1S": "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,20))",
+        "PT1M": "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,17) || '00')",
+        "PT1H": "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,14) || '00:00')",
         "P1D": "TO_DATE({col})",
-        "P1M": "TO_DATE(SUBSTRING(to_date({col}),0,7)||'-01')",
-        "P0.25Y": "TO_DATE(SUBSTRING(to_date({col}), 0, 5)|| lpad(cast((cast(SUBSTRING(QUARTER( \
+        "P1M": "TO_DATE(SUBSTRING(TO_DATE({col}),0,7)||'-01')",
+        "P0.25Y": "TO_DATE(SUBSTRING( \
+                   TO_DATE({col}), 0, 5)|| LPAD(CAST((CAST(SUBSTRING(QUARTER( \
                    TO_DATE({col}), 1), 7, 1) as int)-1)*3 +1 as text),2,'0') ||'-01')",
         "P1Y": "TO_DATE(YEAR({col})||'-01-01')",
     }
