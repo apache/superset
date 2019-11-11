@@ -19,12 +19,17 @@
 
 export default () => {
   describe('CSV importer for a new database', () => {
+
+    const database_name = 'new_database';
+
     beforeEach(() => {
       cy.login();
       cy.server();
       cy.visit('/superset/csvtodatabase');
 
       cy.route('/tablemodelview/list').as('finish_import');
+
+      cy.exec('python scripts/remove_db_file.py ' + database_name, { timeout: 30000 })
     });
 
     it('test import in new database', () => {
@@ -39,11 +44,11 @@ export default () => {
       cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
 
       cy.get('#database').then(elem => {
-        elem.val('In a new database');
+        elem.val('-1');
       });
 
       cy.get('#databaseName').then(elem => {
-        elem.val('-1');
+        elem.val(database_name);
       });
 
       cy.get('#delimiter')
