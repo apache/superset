@@ -39,7 +39,7 @@ export default () => {
       cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
 
       cy.get('#database').then(elem => {
-        elem.val('0');
+        elem.val('-1');
       });
 
       cy.get('#databaseName').then(elem => {
