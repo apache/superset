@@ -49,13 +49,13 @@ class CsvUploadTests(SupersetTestCase):
         return example_db.id
 
     def get_full_data(
-        self, filename, db_id, database_name="", table_name="TableForTesting"
+        self, filename, db_id, database_name="", table_name="TableForTesting", schema=""
     ):
         form_data = {
             "file": self.create_csv_file(filename),
             "connectionId": db_id,
             "databaseName": database_name,
-            "schema": "",
+            "schema": schema,
             "tableName": table_name,
             "delimiter": ",",
             "ifTableExists": "Fail",
@@ -221,6 +221,20 @@ class CsvUploadTests(SupersetTestCase):
             message = "Table name {0} already exists. Please choose another".format(
                 table_name
             )
+            assert message in response
+        finally:
+            os.remove(filename)
+
+    def test_schema_is_not_allowed(self):
+        url = "/superset/csvtodatabase/add"
+        filename = "not_allowed_schema.csv"
+        schema = "mySchema"
+        try:
+            form_data = self.get_full_data(
+                filename, -1, table_name="schema_not_allowed", schema=schema
+            )
+            response = self.get_resp(url, data=form_data, raise_on_error=False)
+            message = "Schema {0} is not allowed in a SQLite database".format(schema)
             assert message in response
         finally:
             os.remove(filename)

@@ -100,7 +100,13 @@ class App extends React.PureComponent {
   render() {
     let content;
     if (this.state.hash) {
-      content = <QuerySearch height={this.state.contentHeight} actions={this.props.actions} />;
+      content = (
+        <QuerySearch
+          height={this.state.contentHeight}
+          actions={this.props.actions}
+          displayLimit={this.props.common.conf.DISPLAY_MAX_ROW}
+        />
+      );
     } else {
       content = (
         <React.Fragment>
@@ -121,12 +127,14 @@ class App extends React.PureComponent {
 App.propTypes = {
   actions: PropTypes.object,
   localStorageUsageInKilobytes: PropTypes.number.isRequired,
+  common: PropTypes.object,
 };
 
 function mapStateToProps(state) {
-  const { localStorageUsageInKilobytes } = state;
+  const { localStorageUsageInKilobytes, common } = state;
   return {
     localStorageUsageInKilobytes,
+    common,
   };
 }
 

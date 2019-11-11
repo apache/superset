@@ -22,8 +22,8 @@ TODO(bkyryliuk): add support for the conventions like: *_dim or dim_*
 TODO(bkyryliuk): recognize integer encoded enums.
 
 """
-from datetime import date, datetime
 import logging
+from datetime import date, datetime
 
 import numpy as np
 import pandas as pd

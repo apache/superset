@@ -25,12 +25,11 @@ import Button from '../../components/Button';
 import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
+  query: PropTypes.object,
   defaultLabel: PropTypes.string,
-  sql: PropTypes.string,
-  schema: PropTypes.string,
-  dbId: PropTypes.number,
   animation: PropTypes.bool,
   onSave: PropTypes.func,
+  onUpdate: PropTypes.func,
   saveQueryWarning: PropTypes.string,
 };
 const defaultProps = {
@@ -50,23 +49,21 @@ class SaveQuery extends React.PureComponent {
     };
     this.toggleSave = this.toggleSave.bind(this);
     this.onSave = this.onSave.bind(this);
+    this.onUpdate = this.onUpdate.bind(this);
     this.onCancel = this.onCancel.bind(this);
     this.onLabelChange = this.onLabelChange.bind(this);
     this.onDescriptionChange = this.onDescriptionChange.bind(this);
   }
   onSave() {
-    const query = {
-      label: this.state.label,
-      description: this.state.description,
-      db_id: this.props.dbId,
-      schema: this.props.schema,
-      sql: this.props.sql,
-    };
-    this.props.onSave(query);
-    this.saveModal.close();
+    this.props.onSave(this.queryPayload());
+    this.close();
+  }
+  onUpdate() {
+    this.props.onUpdate(this.queryPayload());
+    this.close();
   }
   onCancel() {
-    this.saveModal.close();
+    this.close();
   }
   onLabelChange(e) {
     this.setState({ label: e.target.value });
@@ -74,10 +71,21 @@ class SaveQuery extends React.PureComponent {
   onDescriptionChange(e) {
     this.setState({ description: e.target.value });
   }
+  queryPayload() {
+    return {
+      ...this.props.query,
+      title: this.state.label,
+      description: this.state.description,
+    };
+  }
+  close() {
+    if (this.saveModal) this.saveModal.close();
+  }
   toggleSave(e) {
     this.setState({ target: e.target, showSave: !this.state.showSave });
   }
   renderModalBody() {
+    const isSaved = !!this.props.query.remoteId;
     return (
       <FormGroup bsSize="small">
         <Row>
@@ -124,12 +132,21 @@ class SaveQuery extends React.PureComponent {
         )}
         <Row>
           <Col md={12}>
+            {isSaved && (
+              <Button
+                bsStyle="primary"
+                onClick={this.onUpdate}
+                className="m-r-3"
+              >
+                {t('Update')}
+              </Button>
+            )}
             <Button
-              bsStyle="primary"
+              bsStyle={isSaved ? undefined : 'primary'}
               onClick={this.onSave}
               className="m-r-3"
             >
-              {t('Save')}
+              {isSaved ? t('Save New') : t('Save')}
             </Button>
             <Button onClick={this.onCancel} className="cancelQuery">
               {t('Cancel')}

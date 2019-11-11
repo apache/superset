@@ -23,7 +23,7 @@ import FormHelpText from './FormHelpText';
 
 const propTypes = {
   id: PropTypes.string,
-  value: PropTypes.obj,
+  value: PropTypes.object,
   options: PropTypes.array,
   onChange: PropTypes.func,
   required: PropTypes.bool,

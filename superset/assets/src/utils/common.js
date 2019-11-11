@@ -108,3 +108,8 @@ export function prepareCopyToClipboardTabularData(data) {
   }
   return result;
 }
+
+export function supportsDragAndDrop() {
+  const div = document.createElement('div');
+  return ('ondragstart' in div && 'ondrop' in div);
+}

@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { supportsDragAndDrop } from 'src/utils/common';
 import './FileDropper.css';
 
 const propTypes = {
@@ -153,9 +154,9 @@ export default class FileDropper extends React.Component {
           accept={allowedMimeTypes && allowedMimeTypes.join(',')}
           multiple={allowMultipleSelection || false}
           ref={element => this.setFileRef(element)}
-          className={`filedropper-input ${
+          className={supportsDragAndDrop() ? `filedropper-input ${
             fileInputClassName || ''
-          }`}
+          }` : fileInputClassName}
         />
       </div>
     );
