@@ -2121,8 +2121,6 @@ class Superset(BaseSupersetView):
             databases_json.append(models.DatabaseDto(database.id, database.name))
 
         bootstrap_data = {
-            "some boolean": True,
-            "some string": "string content",
             "databases": databases_json,
             "common": self.common_bootstrap_payload(),
         }
