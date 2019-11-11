@@ -39,7 +39,7 @@ BASE_CONTEXT = {
     "timedelta": timedelta,
     "uuid": uuid,
 }
-BASE_CONTEXT.update(config.get("JINJA_CONTEXT_ADDONS", {}))
+BASE_CONTEXT.update(config["JINJA_CONTEXT_ADDONS"])
 
 
 def url_param(param: str, default: Optional[str] = None) -> Optional[Any]:

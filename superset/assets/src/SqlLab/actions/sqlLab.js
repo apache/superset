@@ -262,6 +262,7 @@ export function runQuery(query) {
       select_as_cta: query.ctas,
       templateParams: query.templateParams,
       queryLimit: query.queryLimit,
+      expand_data: true,
     };
 
     return SupersetClient.post({

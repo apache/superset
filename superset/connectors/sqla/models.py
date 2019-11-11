@@ -19,7 +19,7 @@ import logging
 import re
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, List, NamedTuple, Optional, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 import sqlalchemy as sa
@@ -159,14 +159,29 @@ class TableColumn(Model, BaseColumn):
         return self.table
 
     def get_time_filter(
-        self, start_dttm: DateTime, end_dttm: DateTime
+        self,
+        start_dttm: DateTime,
+        end_dttm: DateTime,
+        time_range_endpoints: Optional[
+            Tuple[utils.TimeRangeEndpoint, utils.TimeRangeEndpoint]
+        ],
     ) -> ColumnElement:
         col = self.get_sqla_col(label="__time")
         l = []
         if start_dttm:
-            l.append(col >= text(self.dttm_sql_literal(start_dttm)))
+            l.append(
+                col >= text(self.dttm_sql_literal(start_dttm, time_range_endpoints))
+            )
         if end_dttm:
-            l.append(col <= text(self.dttm_sql_literal(end_dttm)))
+            if (
+                time_range_endpoints
+                and time_range_endpoints[1] == utils.TimeRangeEndpoint.EXCLUSIVE
+            ):
+                l.append(
+                    col < text(self.dttm_sql_literal(end_dttm, time_range_endpoints))
+                )
+            else:
+                l.append(col <= text(self.dttm_sql_literal(end_dttm, None)))
         return and_(*l)
 
     def get_timestamp_expression(
@@ -207,21 +222,47 @@ class TableColumn(Model, BaseColumn):
 
         return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
-    def dttm_sql_literal(self, dttm: DateTime) -> str:
+    def dttm_sql_literal(
+        self,
+        dttm: DateTime,
+        time_range_endpoints: Optional[
+            Tuple[utils.TimeRangeEndpoint, utils.TimeRangeEndpoint]
+        ],
+    ) -> str:
         """Convert datetime object to a SQL expression string"""
-        tf = self.python_date_format
-        if tf:
-            seconds_since_epoch = int(dttm.timestamp())
-            if tf == "epoch_s":
-                return str(seconds_since_epoch)
-            elif tf == "epoch_ms":
-                return str(seconds_since_epoch * 1000)
-            return "'{}'".format(dttm.strftime(tf))
-        else:
-            s = self.table.database.db_engine_spec.convert_dttm(self.type or "", dttm)
+        sql = (
+            self.table.database.db_engine_spec.convert_dttm(self.type, dttm)
+            if self.type
+            else None
+        )
 
-            # TODO(john-bodley): SIP-15 will explicitly require a type conversion.
-            return s or "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S.%f"))
+        if sql:
+            return sql
+
+        tf = self.python_date_format
+
+        # Fallback to the default format (if defined) only if the SIP-15 time range
+        # endpoints, i.e., [start, end) are enabled.
+        if not tf and time_range_endpoints == (
+            utils.TimeRangeEndpoint.INCLUSIVE,
+            utils.TimeRangeEndpoint.EXCLUSIVE,
+        ):
+            tf = (
+                self.table.database.get_extra()
+                .get("python_date_format_by_column_name", {})
+                .get(self.column_name)
+            )
+
+        if tf:
+            if tf in ["epoch_ms", "epoch_s"]:
+                seconds_since_epoch = int(dttm.timestamp())
+                if tf == "epoch_s":
+                    return str(seconds_since_epoch)
+                return str(seconds_since_epoch * 1000)
+            return f"'{dttm.strftime(tf)}'"
+
+        # TODO(john-bodley): SIP-15 will explicitly require a type conversion.
+        return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
 
 class SqlMetric(Model, BaseMetric):
@@ -544,7 +585,7 @@ class SqlaTable(Model, BaseDatasource):
         """Apply config's SQL_QUERY_MUTATOR
 
         Typically adds comments to the query with context"""
-        SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR")
+        SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
         if SQL_QUERY_MUTATOR:
             username = utils.get_username()
             sql = SQL_QUERY_MUTATOR(sql, username, security_manager, self.database)
@@ -705,6 +746,7 @@ class SqlaTable(Model, BaseDatasource):
                 )
             metrics_exprs = []
 
+        time_range_endpoints = extras.get("time_range_endpoints")
         groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
         if granularity:
             dttm_col = cols[granularity]
@@ -716,16 +758,20 @@ class SqlaTable(Model, BaseDatasource):
                 select_exprs += [timestamp]
                 groupby_exprs_with_timestamp[timestamp.name] = timestamp
 
-            # Use main dttm column to support index with secondary dttm columns
+            # Use main dttm column to support index with secondary dttm columns.
             if (
                 db_engine_spec.time_secondary_columns
                 and self.main_dttm_col in self.dttm_cols
                 and self.main_dttm_col != dttm_col.column_name
             ):
                 time_filters.append(
-                    cols[self.main_dttm_col].get_time_filter(from_dttm, to_dttm)
+                    cols[self.main_dttm_col].get_time_filter(
+                        from_dttm, to_dttm, time_range_endpoints
+                    )
                 )
-            time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
+            time_filters.append(
+                dttm_col.get_time_filter(from_dttm, to_dttm, time_range_endpoints)
+            )
 
         select_exprs += metrics_exprs
 
@@ -831,7 +877,9 @@ class SqlaTable(Model, BaseDatasource):
                 inner_select_exprs += [inner_main_metric_expr]
                 subq = select(inner_select_exprs).select_from(tbl)
                 inner_time_filter = dttm_col.get_time_filter(
-                    inner_from_dttm or from_dttm, inner_to_dttm or to_dttm
+                    inner_from_dttm or from_dttm,
+                    inner_to_dttm or to_dttm,
+                    time_range_endpoints,
                 )
                 subq = subq.where(and_(*(where_clause_and + [inner_time_filter])))
                 subq = subq.group_by(*inner_groupby_exprs)

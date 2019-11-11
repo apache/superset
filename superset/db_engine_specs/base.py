@@ -37,7 +37,7 @@ from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextA
 from sqlalchemy.types import TypeEngine
 from werkzeug.utils import secure_filename
 
-from superset import app, db, sql_parse
+from superset import app, sql_parse
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -183,7 +183,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ret_list = []
         time_grain_functions = cls.get_time_grain_functions()
         time_grains = builtin_time_grains.copy()
-        time_grains.update(config.get("TIME_GRAIN_ADDONS", {}))
+        time_grains.update(config["TIME_GRAIN_ADDONS"])
         for duration, func in time_grain_functions.items():
             if duration in time_grains:
                 name = time_grains[duration]
@@ -200,9 +200,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
         time_grain_functions = cls._time_grain_functions.copy()
-        grain_addon_functions = config.get("TIME_GRAIN_ADDON_FUNCTIONS", {})
+        grain_addon_functions = config["TIME_GRAIN_ADDON_FUNCTIONS"]
         time_grain_functions.update(grain_addon_functions.get(cls.engine, {}))
-        blacklist: List[str] = config.get("TIME_GRAIN_BLACKLIST", [])
+        blacklist: List[str] = config["TIME_GRAIN_BLACKLIST"]
         for key in blacklist:
             time_grain_functions.pop(key)
         return time_grain_functions
@@ -388,15 +388,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         df.to_sql(**kwargs)
 
     @classmethod
-    def create_table_from_csv(cls, form, table):
-        """ Create table (including metadata in backend) from contents of a csv.
+    def create_table_from_csv(cls, form) -> None:
+        """
+        Create table from contents of a csv. Note: this method does not create
+        metadata for the table.
+
         :param form: Parameters defining how to process data
-        :param table: Metadata of new table to be created
         """
 
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
-            extension = os.path.splitext(filename)[1]
+            extension = os.path.splitext(filename)[1].lower()
             return (
                 extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
             )
@@ -432,22 +434,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         }
         cls.df_to_sql(**df_to_sql_kwargs)
 
-        table.user_id = g.user.id
-        table.schema = form.schema.data
-        table.fetch_metadata()
-        db.session.add(table)
-        db.session.commit()
-
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         """
-        Convert DateTime object to sql expression
+        Convert Python datetime object to a SQL expression
 
-        :param target_type: Target type of expression
-        :param dttm: DateTime object
-        :return: SQL expression
+        :param target_type: The target type of expression
+        :param dttm: The datetime object
+        :return: The SQL expression
         """
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+        return None
 
     @classmethod
     def get_all_datasource_names(
@@ -505,7 +501,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(e)
 
     @classmethod
-    def adjust_database_uri(cls, uri, selected_schema: str):
+    def adjust_database_uri(cls, uri, selected_schema: Optional[str]):
         """Based on a URI and selected schema, return a new URI
 
         The URI here represents the URI as entered when saving the database,
@@ -674,7 +670,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def estimate_statement_cost(
         cls, statement: str, database, cursor, user_name: str
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         """
         Generate a SQL query that estimates the cost of a given statement.
 
@@ -682,6 +678,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param database: Database instance
         :param cursor: Cursor instance
         :param username: Effective username
+        :return: Dictionary with different costs
+        """
+        raise Exception("Database does not support cost estimation")
+
+    @classmethod
+    def query_cost_formatter(
+        cls, raw_cost: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
+        """
+        Format cost estimate.
+
+        :param raw_cost: Raw estimate from `estimate_query_cost`
+        :return: Human readable cost estimate
         """
         raise Exception("Database does not support cost estimation")
 
@@ -718,19 +727,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return costs
 
     @classmethod
-    def modify_url_for_impersonation(cls, url, impersonate_user: bool, username: str):
+    def modify_url_for_impersonation(
+        cls, url, impersonate_user: bool, username: Optional[str]
+    ):
         """
         Modify the SQL Alchemy URL object with the user to impersonate if applicable.
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
-        if impersonate_user is not None and username is not None:
+        if impersonate_user and username is not None:
             url.username = username
 
     @classmethod
     def get_configuration_for_impersonation(  # pylint: disable=invalid-name
-        cls, uri: str, impersonate_user: bool, username: str
+        cls, uri: str, impersonate_user: bool, username: Optional[str]
     ) -> Dict[str, str]:
         """
         Return a configuration dictionary that can be merged with other configs

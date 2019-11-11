@@ -47,11 +47,11 @@ class EmailSmtpTest(unittest.TestCase):
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]
         logging.debug(call_args)
-        assert call_args[0] == app.config.get("SMTP_MAIL_FROM")
+        assert call_args[0] == app.config["SMTP_MAIL_FROM"]
         assert call_args[1] == ["to"]
         msg = call_args[2]
         assert msg["Subject"] == "subject"
-        assert msg["From"] == app.config.get("SMTP_MAIL_FROM")
+        assert msg["From"] == app.config["SMTP_MAIL_FROM"]
         assert len(msg.get_payload()) == 2
         mimeapp = MIMEApplication("attachment")
         assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
@@ -64,11 +64,11 @@ class EmailSmtpTest(unittest.TestCase):
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]
         logging.debug(call_args)
-        assert call_args[0] == app.config.get("SMTP_MAIL_FROM")
+        assert call_args[0] == app.config["SMTP_MAIL_FROM"]
         assert call_args[1] == ["to"]
         msg = call_args[2]
         assert msg["Subject"] == "subject"
-        assert msg["From"] == app.config.get("SMTP_MAIL_FROM")
+        assert msg["From"] == app.config["SMTP_MAIL_FROM"]
         assert len(msg.get_payload()) == 2
         mimeapp = MIMEApplication("data")
         assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
@@ -82,11 +82,11 @@ class EmailSmtpTest(unittest.TestCase):
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]
         logging.debug(call_args)
-        assert call_args[0] == app.config.get("SMTP_MAIL_FROM")
+        assert call_args[0] == app.config["SMTP_MAIL_FROM"]
         assert call_args[1] == ["to"]
         msg = call_args[2]
         assert msg["Subject"] == "subject"
-        assert msg["From"] == app.config.get("SMTP_MAIL_FROM")
+        assert msg["From"] == app.config["SMTP_MAIL_FROM"]
         assert len(msg.get_payload()) == 2
         mimeapp = MIMEImage(image)
         assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
@@ -107,11 +107,11 @@ class EmailSmtpTest(unittest.TestCase):
         )
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]
-        assert call_args[0] == app.config.get("SMTP_MAIL_FROM")
+        assert call_args[0] == app.config["SMTP_MAIL_FROM"]
         assert call_args[1] == ["to", "cc", "bcc"]
         msg = call_args[2]
         assert msg["Subject"] == "subject"
-        assert msg["From"] == app.config.get("SMTP_MAIL_FROM")
+        assert msg["From"] == app.config["SMTP_MAIL_FROM"]
         assert len(msg.get_payload()) == 2
         mimeapp = MIMEApplication("attachment")
         assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
@@ -123,12 +123,10 @@ class EmailSmtpTest(unittest.TestCase):
         mock_smtp_ssl.return_value = mock.Mock()
         msg = MIMEMultipart()
         utils.send_MIME_email("from", "to", msg, app.config, dryrun=False)
-        mock_smtp.assert_called_with(
-            app.config.get("SMTP_HOST"), app.config.get("SMTP_PORT")
-        )
+        mock_smtp.assert_called_with(app.config["SMTP_HOST"], app.config["SMTP_PORT"])
         assert mock_smtp.return_value.starttls.called
         mock_smtp.return_value.login.assert_called_with(
-            app.config.get("SMTP_USER"), app.config.get("SMTP_PASSWORD")
+            app.config["SMTP_USER"], app.config["SMTP_PASSWORD"]
         )
         mock_smtp.return_value.sendmail.assert_called_with(
             "from", "to", msg.as_string()
@@ -144,7 +142,7 @@ class EmailSmtpTest(unittest.TestCase):
         utils.send_MIME_email("from", "to", MIMEMultipart(), app.config, dryrun=False)
         assert not mock_smtp.called
         mock_smtp_ssl.assert_called_with(
-            app.config.get("SMTP_HOST"), app.config.get("SMTP_PORT")
+            app.config["SMTP_HOST"], app.config["SMTP_PORT"]
         )
 
     @mock.patch("smtplib.SMTP_SSL")
@@ -156,9 +154,7 @@ class EmailSmtpTest(unittest.TestCase):
         mock_smtp_ssl.return_value = mock.Mock()
         utils.send_MIME_email("from", "to", MIMEMultipart(), app.config, dryrun=False)
         assert not mock_smtp_ssl.called
-        mock_smtp.assert_called_with(
-            app.config.get("SMTP_HOST"), app.config.get("SMTP_PORT")
-        )
+        mock_smtp.assert_called_with(app.config["SMTP_HOST"], app.config["SMTP_PORT"])
         assert not mock_smtp.login.called
 
     @mock.patch("smtplib.SMTP_SSL")

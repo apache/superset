@@ -162,6 +162,14 @@ describe('TabbedSqlEditors', () => {
     expect(wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title)
         .toContain('Untitled Query');
   });
+  it('should duplicate query editor', () => {
+    wrapper = getWrapper();
+    sinon.stub(wrapper.instance().props.actions, 'cloneQueryToNewTab');
+
+    wrapper.instance().duplicateQueryEditor(queryEditors[0]);
+    expect(wrapper.instance().props.actions.cloneQueryToNewTab.getCall(0).args[0])
+        .toBe(queryEditors[0]);
+  });
   it('should handle select', () => {
     wrapper = getWrapper();
     sinon.spy(wrapper.instance(), 'newQueryEditor');

@@ -113,7 +113,9 @@ function ColumnCollectionTable({
                       you will need to define an expression and type for
                       transforming the string into a date or timestamp. Note
                       currently time zones are not supported. If time is stored
-                      in epoch format, put \`epoch_s\` or \`epoch_ms\`.`)}
+                      in epoch format, put \`epoch_s\` or \`epoch_ms\`. If no pattern
+                      is specified we fall back to using the optional defaults on a per
+                      database/column name level via the extra parameter.`)}
                 </div>
               }
               control={<TextControl />}
@@ -565,30 +567,20 @@ export class DatasourceEditor extends React.PureComponent {
   }
 
   render() {
-    const datasource = this.state.datasource;
+    const { datasource, activeTabKey } = this.state;
     return (
       <div className="Datasource">
         {this.renderErrors()}
         <Tabs
           id="table-tabs"
           onSelect={this.handleTabSelect}
-          defaultActiveKey={1}
+          defaultActiveKey={activeTabKey}
         >
-          <Tab eventKey={1} title={t('Settings')}>
-            {this.state.activeTabKey === 1 &&
-              <div>
-                <Col md={6}>
-                  <FormContainer>
-                    {this.renderSettingsFieldset()}
-                  </FormContainer>
-                </Col>
-                <Col md={6}>
-                  <FormContainer>
-                    {this.renderAdvancedFieldset()}
-                  </FormContainer>
-                </Col>
-              </div>
-            }
+          <Tab
+            title={<CollectionTabTitle collection={datasource.metrics} title={t('Metrics')} />}
+            eventKey={1}
+          >
+            {activeTabKey === 1 && this.renderMetricCollection()}
           </Tab>
           <Tab
             title={
@@ -596,7 +588,7 @@ export class DatasourceEditor extends React.PureComponent {
             }
             eventKey={2}
           >
-            {this.state.activeTabKey === 2 &&
+            {activeTabKey === 2 &&
               <div>
                 <ColumnCollectionTable
                   columns={this.state.databaseColumns}
@@ -623,7 +615,7 @@ export class DatasourceEditor extends React.PureComponent {
               />}
             eventKey={3}
           >
-            {this.state.activeTabKey === 3 &&
+            {activeTabKey === 3 &&
               <ColumnCollectionTable
                 columns={this.state.calculatedColumns}
                 onChange={calculatedColumns => this.setColumns({ calculatedColumns })}
@@ -641,11 +633,25 @@ export class DatasourceEditor extends React.PureComponent {
               />
             }
           </Tab>
-          <Tab
-            title={<CollectionTabTitle collection={datasource.metrics} title={t('Metrics')} />}
-            eventKey={4}
-          >
-            {this.state.activeTabKey === 4 && this.renderMetricCollection()}
+          <Tab eventKey={4} title={t('Settings')}>
+            {activeTabKey === 4 &&
+            <div>
+              <div className="change-warning well">
+                <span className="bold">{t('Be careful.')} </span>
+                {t('Changing these settings will affect all charts using this datasource, including charts owned by other people.')}
+              </div>
+              <Col md={6}>
+                <FormContainer>
+                  {this.renderSettingsFieldset()}
+                </FormContainer>
+              </Col>
+              <Col md={6}>
+                <FormContainer>
+                  {this.renderAdvancedFieldset()}
+                </FormContainer>
+              </Col>
+            </div>
+            }
           </Tab>
         </Tabs>
       </div>
