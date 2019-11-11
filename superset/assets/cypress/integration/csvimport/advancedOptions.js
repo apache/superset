@@ -18,7 +18,7 @@
  */
 
 export default () => {
-  describe('CSV importer', () => {
+  describe('CSV importer advanced options', () => {
     beforeEach(() => {
       cy.login();
       cy.server();
