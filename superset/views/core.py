@@ -3101,7 +3101,7 @@ class Superset(BaseSupersetView):
         csv_file = request.files["file"]
         csv_filename = secure_filename(csv_file.filename)
         if len(csv_filename) == 0:
-            return json_error_response("Filename is not allowed", status=401)
+            return json_error_response("Filename is not allowed", status=400)
         database_id = form_data["connectionId"]
         # check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
         # this beforehand
@@ -3111,7 +3111,7 @@ class Superset(BaseSupersetView):
             message = _(
                 "Possible tampering detected, non-numeral character in database-id"
             )
-            return json_error_response(message, status=402)
+            return json_error_response(message, status=400)
 
         try:
             if database_id != -1:
@@ -3127,11 +3127,11 @@ class Superset(BaseSupersetView):
                 db_name = secure_filename(db_name)
                 if len(db_name) == 0:
                     return json_error_response(
-                        "Database name is not allowed", status=403
+                        "Database name is not allowed", status=400
                     )
                 database = self._create_database(db_name)
         except Exception as e:
-            return json_error_response(e.args[0], status=e)
+            return json_error_response(e.args[0], status=400)
 
         try:
             path = self._check_and_save_csv(csv_file, csv_filename)
@@ -3153,7 +3153,7 @@ class Superset(BaseSupersetView):
                 if isinstance(e, IntegrityError)
                 else str(e)
             )
-            return json_error_response(message, status=405)
+            return json_error_response(message, status=400)
         finally:
             try:
                 os.remove(path)
