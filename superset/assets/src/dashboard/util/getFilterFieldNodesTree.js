@@ -19,7 +19,7 @@
 import { t } from '@superset-ui/translation';
 
 import { getDashboardFilterKey } from './getDashboardFilterKey';
-import { ALL_FILTERS } from './constants';
+import { ALL_FILTERS_ROOT } from './constants';
 
 export default function getFilterFieldNodesTree({ dashboardFilters = {} }) {
   const allFilters = Object.values(dashboardFilters).map(dashboardFilter => {
@@ -38,7 +38,7 @@ export default function getFilterFieldNodesTree({ dashboardFilters = {} }) {
 
   return [
     {
-      value: ALL_FILTERS,
+      value: ALL_FILTERS_ROOT,
       label: t('Select/deselect all filters'),
       children: allFilters,
     },

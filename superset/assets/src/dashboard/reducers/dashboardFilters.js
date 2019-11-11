@@ -36,8 +36,8 @@ export const DASHBOARD_FILTER_SCOPE_GLOBAL = {
 
 export const dashboardFilter = {
   chartId: 0,
-  componentId: '',
-  filterName: '',
+  componentId: null,
+  filterName: null,
   directPathToFilter: [],
   isDateFilter: false,
   isInstantFilter: true,

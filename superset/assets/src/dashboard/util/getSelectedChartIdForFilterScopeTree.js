@@ -44,10 +44,10 @@ export default function getSelectedChartIdForFilterScopeTree({
           getChartIdAndColumnFromFilterKey(filterKey).chartId !== chartId,
       )
     ) {
-      return 0;
+      return null;
     }
     return chartId;
   }
 
-  return 0;
+  return null;
 }
