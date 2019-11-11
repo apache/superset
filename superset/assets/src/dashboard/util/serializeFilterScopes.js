@@ -16,16 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function getEffectiveExtraFilters(filters) {
-  const effectiveFilters = [];
-  Object.entries(filters).forEach(entry => {
-    const [column, values] = entry;
-    effectiveFilters.push({
-      col: column,
-      op: 'in',
-      val: values,
-    });
-  });
+export default function serializeFilterScopes(dashboardFilters) {
+  return Object.values(dashboardFilters).reduce((map, { chartId, scopes }) => {
+    const scopesById = Object.keys(scopes).reduce(
+      (scopesByColumn, column) => ({
+        ...scopesByColumn,
+        [column]: scopes[column],
+      }),
+      {},
+    );
 
-  return effectiveFilters;
+    return {
+      ...map,
+      [chartId]: scopesById,
+    };
+  }, {});
 }

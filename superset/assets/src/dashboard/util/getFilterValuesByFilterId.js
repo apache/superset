@@ -16,16 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function getEffectiveExtraFilters(filters) {
-  const effectiveFilters = [];
-  Object.entries(filters).forEach(entry => {
-    const [column, values] = entry;
-    effectiveFilters.push({
-      col: column,
-      op: 'in',
-      val: values,
-    });
-  });
+import { getChartIdAndColumnFromFilterKey } from './getDashboardFilterKey';
 
-  return effectiveFilters;
+// input: { [id_column1]: values, [id_column2]: values }
+// output: { column1: values, column2: values }
+export default function getFilterValuesByFilterId({
+  activeFilters = {},
+  filterId,
+}) {
+  return Object.entries(activeFilters).reduce((map, entry) => {
+    const [filterKey, { values }] = entry;
+    const { chartId, column } = getChartIdAndColumnFromFilterKey(filterKey);
+    if (chartId === filterId) {
+      return {
+        ...map,
+        [column]: values,
+      };
+    }
+    return map;
+  }, {});
 }
