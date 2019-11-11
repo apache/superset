@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
+import cgi
 import imp
 import json
 import unittest
@@ -28,7 +29,7 @@ from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.core import Database
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, pessimistic_json_iso_dttm_ser
 
 BASE_DIR = app.config["BASE_DIR"]
 
