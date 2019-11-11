@@ -41,7 +41,7 @@ import { ALL_FILTERS_ROOT } from '../../util/constants';
 import { dashboardFilterPropShape } from '../../util/propShapes';
 
 const propTypes = {
-  dashboardFilters: dashboardFilterPropShape.isRequired,
+  dashboardFilters: PropTypes.objectOf(dashboardFilterPropShape).isRequired,
   layout: PropTypes.object.isRequired,
 
   updateDashboardFiltersScope: PropTypes.func.isRequired,
@@ -490,7 +490,7 @@ export default class FilterScopeSelector extends React.PureComponent {
         <div className="filter-scope-container">
           <div className="filter-scope-header">
             <h4>{t('Configure filter scopes')}</h4>
-            {this.renderEditingFiltersName()}
+            {showSelector && this.renderEditingFiltersName()}
           </div>
 
           {!showSelector ? (
