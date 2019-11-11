@@ -162,8 +162,9 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
   }
 
   render() {
-    const { heightInfo, widthInfo, BoundingBox } = this.parseDimension(this
-      .props as PropsWithDefault);
+    const { heightInfo, widthInfo, BoundingBox } = this.parseDimension(
+      this.props as PropsWithDefault,
+    );
 
     // If any of the dimension is dynamic, get parent's dimension
     if (widthInfo.isDynamic || heightInfo.isDynamic) {
