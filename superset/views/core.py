@@ -3113,8 +3113,7 @@ class Superset(BaseSupersetView):
             )
             return json_error_response(message, status=402)
 
-        # try:
-        if True:
+        try:
             if database_id != -1:
                 schema = None if not form_data["schema"] else form_data["schema"]
                 database = self._get_existing_database(database_id, schema)
@@ -3131,8 +3130,8 @@ class Superset(BaseSupersetView):
                         "Database name is not allowed", status=403
                     )
                 database = self._create_database(db_name)
-        # except Exception as e:
-        # return json_error_response(e.args[0], status=404)
+        except Exception as e:
+            return json_error_response(e.args[0], status=e)
 
         try:
             path = self._check_and_save_csv(csv_file, csv_filename)
