@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
+import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
 import DashboardBuilder from '../containers/DashboardBuilder';
 import {
   chartPropShape,
@@ -32,6 +33,7 @@ import {
 import { areObjectsEqual } from '../../reduxUtils';
 import { LOG_ACTIONS_MOUNT_DASHBOARD } from '../../logger/LogUtils';
 import OmniContainer from '../../components/OmniContainer';
+import { safeStringify } from '../../utils/safeStringify';
 
 import '../stylesheets/index.less';
 
@@ -46,6 +48,7 @@ const propTypes = {
   dashboardState: dashboardStatePropShape.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
+  filters: PropTypes.object.isRequired,
   datasources: PropTypes.object.isRequired,
   loadStats: loadStatsPropShape.isRequired,
   layout: PropTypes.object.isRequired,
@@ -77,11 +80,16 @@ class Dashboard extends React.PureComponent {
     return message; // Gecko + Webkit, Safari, Chrome etc.
   }
 
+  constructor(props) {
+    super(props);
+    this.appliedFilters = {};
+  }
+
   componentDidMount() {
     this.props.actions.logEvent(LOG_ACTIONS_MOUNT_DASHBOARD);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const currentChartIds = getChartIdsFromLayout(this.props.layout);
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
 
@@ -90,7 +98,10 @@ class Dashboard extends React.PureComponent {
         key => currentChartIds.indexOf(key) === -1,
       );
       newChartIds.forEach(newChartId =>
-        this.props.actions.addSliceToDashboard(newChartId),
+        this.props.actions.addSliceToDashboard(
+          newChartId,
+          getLayoutComponentFromChartId(nextProps.layout, newChartId),
+        ),
       );
     } else if (currentChartIds.length > nextChartIds.length) {
       // remove chart
@@ -103,20 +114,23 @@ class Dashboard extends React.PureComponent {
     }
   }
 
-  componentDidUpdate(prevProps) {
-    const { refresh, filters, hasUnsavedChanges } = this.props.dashboardState;
-    if (refresh) {
+  componentDidUpdate() {
+    const { hasUnsavedChanges, editMode } = this.props.dashboardState;
+
+    const appliedFilters = this.appliedFilters;
+    const { filters } = this.props;
+    // do not apply filter when dashboard in edit mode
+    if (!editMode && safeStringify(appliedFilters) !== safeStringify(filters)) {
       // refresh charts if a filter was removed, added, or changed
       let changedFilterKey = null;
       const currFilterKeys = Object.keys(filters);
-      const prevFilterKeys = Object.keys(prevProps.dashboardState.filters);
+      const appliedFilterKeys = Object.keys(appliedFilters);
 
       currFilterKeys.forEach(key => {
-        const prevFilter = prevProps.dashboardState.filters[key];
         if (
           // filter was added or changed
-          typeof prevFilter === 'undefined' ||
-          !areObjectsEqual(prevFilter, filters[key])
+          typeof appliedFilters[key] === 'undefined' ||
+          !areObjectsEqual(appliedFilters[key], filters[key])
         ) {
           changedFilterKey = key;
         }
@@ -124,9 +138,10 @@ class Dashboard extends React.PureComponent {
 
       if (
         !!changedFilterKey ||
-        currFilterKeys.length !== prevFilterKeys.length
+        currFilterKeys.length !== appliedFilterKeys.length // remove 1 or more filters
       ) {
         this.refreshExcept(changedFilterKey);
+        this.appliedFilters = filters;
       }
     }
 
@@ -143,11 +158,32 @@ class Dashboard extends React.PureComponent {
   }
 
   refreshExcept(filterKey) {
-    const immune = this.props.dashboardInfo.metadata.filter_immune_slices || [];
+    const { filters } = this.props;
+    const currentFilteredNames =
+      filterKey && filters[filterKey] ? Object.keys(filters[filterKey]) : [];
+    const filterImmuneSlices = this.props.dashboardInfo.metadata
+      .filterImmuneSlices;
+    const filterImmuneSliceFields = this.props.dashboardInfo.metadata
+      .filterImmuneSliceFields;
 
     this.getAllCharts().forEach(chart => {
-      // filterKey is a string, immune array contains numbers
-      if (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1) {
+      // filterKey is a string, filter_immune_slices array contains numbers
+      if (
+        String(chart.id) === filterKey ||
+        filterImmuneSlices.includes(chart.id)
+      ) {
+        return;
+      }
+
+      const filterImmuneSliceFieldsNames =
+        filterImmuneSliceFields[chart.id] || [];
+      // has filter-able field names
+      if (
+        currentFilteredNames.length === 0 ||
+        currentFilteredNames.some(
+          name => !filterImmuneSliceFieldsNames.includes(name),
+        )
+      ) {
         this.props.actions.triggerQuery(true, chart.id);
       }
     });

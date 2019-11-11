@@ -17,16 +17,16 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Getting Start with Superset using Docker
+# Getting Started with Superset using Docker
 
-Docker is an easy way to get stated with Superset.
+Docker is an easy way to get started with Superset.
 
 ## Initializing Database
 
 To initialize the database with a user and example charts, dashboards and datasets run:
 
 ```bash
-SUPERSET_LOAD_EXAMPLES=yes docker-compose run --rm superset ./docker-init.sh
+docker-compose run -e SUPERSET_LOAD_EXAMPLES=yes --rm superset ./docker-init.sh
 ```
 
 This may take a minute.

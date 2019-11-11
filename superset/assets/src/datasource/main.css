@@ -20,3 +20,12 @@
     height: 600px;
     overflow: auto;
 }
+
+.Datasource .change-warning {
+    margin: 16px 10px 0;
+    color: #FE4A49;
+}
+
+.Datasource .change-warning .bold {
+    font-weight: bold;
+}

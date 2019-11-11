@@ -22,7 +22,6 @@ import { Alert } from 'react-bootstrap';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
-import { safeStringify } from '../utils/safeStringify';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import StackTraceMessage from '../components/StackTraceMessage';
@@ -35,7 +34,12 @@ const propTypes = {
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
   datasource: PropTypes.object.isRequired,
-  filters: PropTypes.object,
+  // original selected values for FilterBox viz
+  // so that FilterBox can pre-populate selected values
+  // only affect UI control
+  initialValues: PropTypes.object,
+  // formData contains chart's own filter parameter
+  // and merged with extra filter that current dashboard applying
   formData: PropTypes.object.isRequired,
   height: PropTypes.number,
   width: PropTypes.number,
@@ -54,13 +58,17 @@ const propTypes = {
   // dashboard callbacks
   addFilter: PropTypes.func,
   onQuery: PropTypes.func,
+  onFilterMenuOpen: PropTypes.func,
+  onFilterMenuClose: PropTypes.func,
 };
 
 const BLANK = {};
 
 const defaultProps = {
   addFilter: () => BLANK,
-  filters: BLANK,
+  onFilterMenuOpen: () => BLANK,
+  onFilterMenuClose: () => BLANK,
+  initialValues: BLANK,
   setControlValue() {},
   triggerRender: false,
 };
@@ -77,10 +85,8 @@ class Chart extends React.PureComponent {
     }
   }
 
-  componentDidUpdate(prevProps) {
-    if (this.props.triggerQuery &&
-      safeStringify(prevProps.formData) !== safeStringify(this.props.formData)
-    ) {
+  componentDidUpdate() {
+    if (this.props.triggerQuery) {
       this.runQuery();
     }
   }
@@ -170,9 +176,7 @@ class Chart extends React.PureComponent {
             />
           )}
           <div className={`slice_container ${isFaded ? ' faded' : ''}`}>
-            <ChartRenderer
-              {...this.props}
-            />
+            <ChartRenderer {...this.props} />
           </div>
         </div>
       </ErrorBoundary>

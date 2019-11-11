@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* global window, AbortController */
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import { t } from '@superset-ui/translation';
@@ -112,6 +111,12 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
       }),
       {},
     );
+
+    if (fd !== null) {
+      const hasExtraFilters = fd.extra_filters && fd.extra_filters.length > 0;
+      sliceFormData.extra_filters = hasExtraFilters ? fd.extra_filters : undefined;
+    }
+
     const isNative = annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE;
     const url = getAnnotationJsonUrl(annotation.value, sliceFormData, isNative);
     const controller = new AbortController();
@@ -134,7 +139,7 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
           dispatch(annotationQueryFailed(annotation, err, sliceKey));
         }
       }),
-    );
+      );
   };
 }
 

@@ -179,6 +179,13 @@ export const defaultQueryEditor = {
   selectedText: null,
   sql: 'SELECT *\nFROM\nWHERE',
   title: 'Untitled Query',
+  schemaOptions: [
+    {
+      value: 'main',
+      label: 'main',
+      title: 'main',
+    },
+  ],
 };
 export const queries = [
   {
@@ -343,16 +350,22 @@ export const databases = {
 export const tables = {
   options: [
     {
-      value: { schema: 'main', table: 'birth_names' },
+      value: 'birth_names',
+      schema: 'main',
       label: 'birth_names',
+      title: 'birth_names',
     },
     {
-      value: { schema: 'main', table: 'energy_usage' },
+      value: 'energy_usage',
+      schema: 'main',
       label: 'energy_usage',
+      title: 'energy_usage',
     },
     {
-      value: { schema: 'main', table: 'wb_health_population' },
+      value: 'wb_health_population',
+      schema: 'main',
       label: 'wb_health_population',
+      title: 'wb_health_population',
     },
   ],
 };

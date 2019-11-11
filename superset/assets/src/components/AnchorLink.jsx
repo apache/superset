@@ -22,52 +22,52 @@ import { t } from '@superset-ui/translation';
 
 import URLShortLinkButton from './URLShortLinkButton';
 import getDashboardUrl from '../dashboard/util/getDashboardUrl';
+import getLocationHash from '../dashboard/util/getLocationHash';
 
 const propTypes = {
   anchorLinkId: PropTypes.string.isRequired,
   filters: PropTypes.object,
   showShortLinkButton: PropTypes.bool,
+  inFocus: PropTypes.bool,
   placement: PropTypes.oneOf(['right', 'left', 'top', 'bottom']),
 };
 
 const defaultProps = {
+  inFocus: false,
   showShortLinkButton: false,
   placement: 'right',
   filters: {},
 };
 
-
 class AnchorLink extends React.PureComponent {
-  constructor(props) {
-    super(props);
-
-    this.handleClickAnchorLink = this.handleClickAnchorLink.bind(this);
-  }
 
   componentDidMount() {
-    const hash = this.getLocationHash();
+    const hash = getLocationHash();
     const { anchorLinkId } = this.props;
 
     if (hash && anchorLinkId === hash) {
-      const directLinkComponent = document.getElementById(anchorLinkId);
-      if (directLinkComponent) {
-        setTimeout(() => {
-          directLinkComponent.scrollIntoView({
-            block: 'center',
-            behavior: 'smooth',
-          });
-        }, 1000);
-      }
+      this.scrollToView();
     }
   }
 
-  getLocationHash() {
-    return (window.location.hash || '').substring(1);
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    const { inFocus = false } = nextProps;
+    if (inFocus) {
+      this.scrollToView();
+    }
   }
 
-  handleClickAnchorLink(ev) {
-    ev.preventDefault();
-    history.pushState(null, null, `#${this.props.anchorLinkId}`);
+  scrollToView(delay = 0) {
+    const { anchorLinkId } = this.props;
+    const directLinkComponent = document.getElementById(anchorLinkId);
+    if (directLinkComponent) {
+      setTimeout(() => {
+        directLinkComponent.scrollIntoView({
+          block: 'center',
+          behavior: 'smooth',
+        });
+      }, delay);
+    }
   }
 
   render() {

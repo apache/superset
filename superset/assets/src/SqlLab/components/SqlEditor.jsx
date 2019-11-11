@@ -39,6 +39,7 @@ import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
 import ScheduleQueryButton from './ScheduleQueryButton';
+import EstimateQueryCostButton from './EstimateQueryCostButton';
 import ShareSqlLabQuery from './ShareSqlLabQuery';
 import Timer from '../../components/Timer';
 import Hotkeys from '../../components/Hotkeys';
@@ -70,6 +71,7 @@ const propTypes = {
   hideLeftBar: PropTypes.bool,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
+  displayLimit: PropTypes.number.isRequired,
   saveQueryWarning: PropTypes.string,
   scheduleQueryWarning: PropTypes.string,
 };
@@ -87,8 +89,8 @@ class SqlEditor extends React.PureComponent {
     this.state = {
       autorun: props.queryEditor.autorun,
       ctas: '',
-      northPercent: INITIAL_NORTH_PERCENT,
-      southPercent: INITIAL_SOUTH_PERCENT,
+      northPercent: props.queryEditor.northPercent || INITIAL_NORTH_PERCENT,
+      southPercent: props.queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
       sql: props.queryEditor.sql,
     };
     this.sqlEditorRef = React.createRef();
@@ -109,12 +111,13 @@ class SqlEditor extends React.PureComponent {
       this.requestValidation.bind(this),
       VALIDATION_DEBOUNCE_MS,
     );
+    this.getQueryCostEstimate = this.getQueryCostEstimate.bind(this);
     this.handleWindowResize = throttle(
       this.handleWindowResize.bind(this),
       WINDOW_RESIZE_THROTTLE_MS,
     );
   }
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     if (this.state.autorun) {
       this.setState({ autorun: false });
       this.props.actions.queryEditorSetAutorun(this.props.queryEditor, false);
@@ -143,7 +146,7 @@ class SqlEditor extends React.PureComponent {
 
     if (this.northPaneRef.current && this.northPaneRef.current.clientHeight) {
       this.props.actions.persistEditorHeight(this.props.queryEditor,
-        this.northPaneRef.current.clientHeight);
+        northPercent, southPercent);
     }
   }
   onSqlChanged(sql) {
@@ -210,6 +213,19 @@ class SqlEditor extends React.PureComponent {
   setQueryLimit(queryLimit) {
     this.props.actions.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
   }
+  getQueryCostEstimate() {
+    if (this.props.database) {
+      const qe = this.props.queryEditor;
+      const query = {
+        dbId: qe.dbId,
+        sql: qe.selectedText ? qe.selectedText : this.state.sql,
+        sqlEditorId: qe.id,
+        schema: qe.schema,
+        templateParams: qe.templateParams,
+      };
+      this.props.actions.estimateQueryCost(query);
+    }
+  }
   handleWindowResize() {
     this.setState({ height: this.getSqlEditorHeight() });
   }
@@ -242,10 +258,10 @@ class SqlEditor extends React.PureComponent {
   }
   runQuery() {
     if (this.props.database) {
-      this.startQuery(this.props.database.allow_run_async);
+      this.startQuery();
     }
   }
-  startQuery(runAsync = false, ctas = false) {
+  startQuery(ctas = false) {
     const qe = this.props.queryEditor;
     const query = {
       dbId: qe.dbId,
@@ -256,7 +272,7 @@ class SqlEditor extends React.PureComponent {
       tempTableName: ctas ? this.state.ctas : '',
       templateParams: qe.templateParams,
       queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
-      runAsync,
+      runAsync: this.props.database ? this.props.database.allow_run_async : false,
       ctas,
     };
     this.props.actions.runQuery(query);
@@ -268,7 +284,7 @@ class SqlEditor extends React.PureComponent {
     }
   }
   createTableAs() {
-    this.startQuery(true, true);
+    this.startQuery(true);
   }
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
@@ -308,10 +324,11 @@ class SqlEditor extends React.PureComponent {
         </div>
         <SouthPane
           editorQueries={this.props.editorQueries}
-          latestQueryId={this.props.latestQuery ? this.props.latestQuery.id : 0}
+          latestQueryId={this.props.latestQuery && this.props.latestQuery.id}
           dataPreviewQueries={this.props.dataPreviewQueries}
           actions={this.props.actions}
           height={southPaneHeight}
+          displayLimit={this.props.displayLimit}
         />
       </Split>
     );
@@ -346,7 +363,11 @@ class SqlEditor extends React.PureComponent {
     }
     const qe = this.props.queryEditor;
     let limitWarning = null;
-    if (this.props.latestQuery && this.props.latestQuery.limit_reached) {
+    if (
+      this.props.latestQuery
+      && this.props.latestQuery.results
+      && this.props.latestQuery.results.displayLimitReached
+    ) {
       const tooltip = (
         <Tooltip id="tooltip">
           {t(`It appears that the number of rows in the query results displayed
@@ -379,6 +400,23 @@ class SqlEditor extends React.PureComponent {
                 sql={this.state.sql}
               />
             </span>
+            {
+              isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
+              this.props.database &&
+              this.props.database.allows_cost_estimate &&
+              <span className="m-r-5">
+                <EstimateQueryCostButton
+                  dbId={qe.dbId}
+                  schema={qe.schema}
+                  sql={qe.sql}
+                  getEstimate={this.getQueryCostEstimate}
+                  queryCostEstimate={qe.queryCostEstimate}
+                  selectedText={qe.selectedText}
+                  tooltip={t('Estimate the cost before running a query')}
+                  className="m-r-5"
+                />
+              </span>
+            }
             {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) &&
             <span className="m-r-5">
               <ScheduleQueryButton
@@ -396,12 +434,11 @@ class SqlEditor extends React.PureComponent {
             }
             <span className="m-r-5">
               <SaveQuery
-                defaultLabel={qe.title}
-                sql={qe.sql}
+                query={qe}
+                defaultLabel={qe.description == null ? qe.title : qe.description}
                 className="m-r-5"
                 onSave={this.props.actions.saveQuery}
-                schema={qe.schema}
-                dbId={qe.dbId}
+                onUpdate={this.props.actions.updateSavedQuery}
                 saveQueryWarning={this.props.saveQueryWarning}
               />
             </span>

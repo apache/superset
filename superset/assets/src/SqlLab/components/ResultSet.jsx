@@ -40,6 +40,7 @@ const propTypes = {
   cache: PropTypes.bool,
   height: PropTypes.number.isRequired,
   database: PropTypes.object,
+  displayLimit: PropTypes.number.isRequired,
 };
 const defaultProps = {
   search: true,
@@ -69,10 +70,11 @@ export default class ResultSet extends React.PureComponent {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
   }
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // when new results comes in, save them locally and clear in store
     if (this.props.cache && (!nextProps.query.cached)
       && nextProps.query.results
+      && nextProps.query.results.data
       && nextProps.query.results.data.length > 0) {
       this.setState(
         { data: nextProps.query.results.data },
@@ -104,7 +106,7 @@ export default class ResultSet extends React.PureComponent {
     this.setState({ searchText: event.target.value });
   }
   fetchResults(query) {
-    this.props.actions.fetchQueryResults(query);
+    this.props.actions.fetchQueryResults(query, this.props.displayLimit);
   }
   reFetchQueryResults(query) {
     this.props.actions.reFetchQueryResults(query);
@@ -231,6 +233,7 @@ export default class ResultSet extends React.PureComponent {
       return (
         <Button
           bsSize="sm"
+          className="fetch"
           bsStyle="primary"
           onClick={this.reFetchQueryResults.bind(this, query)}
         >

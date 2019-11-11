@@ -27,6 +27,7 @@ import {
   showBuilderPane,
   fetchFaveStar,
   saveFaveStar,
+  savePublished,
   fetchCharts,
   startPeriodicRender,
   updateCss,
@@ -50,8 +51,8 @@ import {
 } from '../../messageToasts/actions';
 
 import { logEvent } from '../../logger/actions';
-
 import { DASHBOARD_HEADER_ID } from '../util/constants';
+import { getActiveFilters } from '../util/activeDashboardFilters';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
@@ -64,7 +65,7 @@ function mapStateToProps({
     undoLength: undoableLayout.past.length,
     redoLength: undoableLayout.future.length,
     layout: undoableLayout.present,
-    filters: dashboardState.filters,
+    filters: getActiveFilters(),
     dashboardTitle: (
       (undoableLayout.present[DASHBOARD_HEADER_ID] || {}).meta || {}
     ).text,
@@ -76,6 +77,7 @@ function mapStateToProps({
     charts,
     userId: dashboardInfo.userId,
     isStarred: !!dashboardState.isStarred,
+    isPublished: !!dashboardState.isPublished,
     isLoading: isDashboardLoading(charts),
     hasUnsavedChanges: !!dashboardState.hasUnsavedChanges,
     maxUndoHistoryExceeded: !!dashboardState.maxUndoHistoryExceeded,
@@ -96,6 +98,7 @@ function mapDispatchToProps(dispatch) {
       showBuilderPane,
       fetchFaveStar,
       saveFaveStar,
+      savePublished,
       fetchCharts,
       startPeriodicRender,
       updateDashboardTitle,

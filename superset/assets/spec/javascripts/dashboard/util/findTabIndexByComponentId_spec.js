@@ -49,22 +49,22 @@ describe('findTabIndexByComponentId', () => {
   ];
   const badPath = ['ROOT_ID', 'TABS-MNQQSW-kyd', 'TAB-ABC', 'TABS-Oduxop1L7I'];
 
-  it('should return 0 if no directPathToChild', () => {
+  it('should return -1 if no directPathToChild', () => {
     expect(
       findTabIndexByComponentId({
         currentComponent: topLevelTabsComponent,
         directPathToChild: [],
       }),
-    ).toBe(0);
+    ).toBe(-1);
   });
 
-  it('should return 0 if not found tab id', () => {
+  it('should return -1 if not found tab id', () => {
     expect(
       findTabIndexByComponentId({
         currentComponent: topLevelTabsComponent,
         directPathToChild: badPath,
       }),
-    ).toBe(0);
+    ).toBe(-1);
   });
 
   it('should return children index if matched an id in the path', () => {

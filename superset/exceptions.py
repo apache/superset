@@ -36,10 +36,6 @@ class SupersetSecurityException(SupersetException):
         self.link = link
 
 
-class MetricPermException(SupersetException):
-    pass
-
-
 class NoDataException(SupersetException):
     status = 400
 
@@ -54,3 +50,7 @@ class SupersetTemplateException(SupersetException):
 
 class SpatialException(SupersetException):
     pass
+
+
+class DatabaseNotFound(SupersetException):
+    status = 400

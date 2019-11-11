@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import controlPanelConfigs, { sectionsToRender } from './controlPanels';
+import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import controls from './controls';
+import * as sections from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
   const formData = {};
@@ -44,29 +46,37 @@ export function validateControl(control) {
   return control;
 }
 
-export function getControlKeys(vizType, datasourceType) {
-  const controlKeys = [];
-  sectionsToRender(vizType, datasourceType).forEach(
-    section => section.controlSetRows.forEach(
-      fieldsetRow => fieldsetRow.forEach(
-        (field) => {
-          if (typeof field === 'string') {
-            controlKeys.push(field);
-          }
-        })));
-  return controlKeys;
+function isGlobalControl(controlKey) {
+  return controlKey in controls;
 }
 
 export function getControlConfig(controlKey, vizType) {
   // Gets the control definition, applies overrides, and executes
   // the mapStatetoProps
-  const vizConf = controlPanelConfigs[vizType] || {};
-  const controlOverrides = vizConf.controlOverrides || {};
-  const control = {
+  const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
+  const { controlOverrides = {}, controlPanelSections = [] } = controlPanelConfig;
+
+  if (!isGlobalControl(controlKey)) {
+    for (const section of controlPanelSections) {
+      for (const controlArr of section.controlSetRows) {
+        for (const control of controlArr) {
+          if (control != null && typeof control === 'object') {
+            if (control.config && control.name === controlKey) {
+              return {
+                ...control.config,
+                ...controlOverrides[controlKey],
+              };
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return {
     ...controls[controlKey],
     ...controlOverrides[controlKey],
   };
-  return control;
 }
 
 export function applyMapStateToPropsToControl(control, state) {
@@ -81,7 +91,7 @@ export function applyMapStateToPropsToControl(control, state) {
   return control;
 }
 
-function handleMissingChoice(controlKey, control) {
+function handleMissingChoice(control) {
   // If the value is not valid anymore based on choices, clear it
   const value = control.value;
   if (
@@ -103,11 +113,8 @@ function handleMissingChoice(controlKey, control) {
   return control;
 }
 
-export function getControlState(controlKey, vizType, state, value) {
-  let controlValue = value;
-  const controlConfig = getControlConfig(controlKey, vizType);
-  let controlState = { ...controlConfig };
-  controlState = applyMapStateToPropsToControl(controlState, state);
+export function getControlStateFromControlConfig(controlConfig, state, value) {
+  const controlState = applyMapStateToPropsToControl({ ...controlConfig }, state);
 
   // If default is a function, evaluate it
   if (typeof controlState.default === 'function') {
@@ -115,10 +122,59 @@ export function getControlState(controlKey, vizType, state, value) {
   }
 
   // If a choice control went from multi=false to true, wrap value in array
-  if (controlConfig.multi && value && !Array.isArray(value)) {
-    controlValue = [value];
-  }
-  controlState.value = controlValue === undefined ? controlState.default : controlValue;
-  controlState = handleMissingChoice(controlKey, controlState);
-  return validateControl(controlState);
+  const controlValue = controlConfig.multi && value && !Array.isArray(value) ? [value] : value;
+  controlState.value = typeof controlValue === 'undefined' ? controlState.default : controlValue;
+
+  return validateControl(handleMissingChoice(controlState));
+}
+
+export function getControlState(controlKey, vizType, state, value) {
+  return getControlStateFromControlConfig(getControlConfig(controlKey, vizType), state, value);
+}
+
+export function sectionsToRender(vizType, datasourceType) {
+  const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
+  const { sectionOverrides = {}, controlPanelSections = [] } = controlPanelConfig;
+
+  const sectionsCopy = { ...sections };
+
+  Object.entries(sectionOverrides).forEach(([section, overrides]) => {
+    if (typeof overrides === 'object' && overrides.constructor === Object) {
+      sectionsCopy[section] = {
+        ...sectionsCopy[section],
+        ...overrides,
+      };
+    } else {
+      sectionsCopy[section] = overrides;
+    }
+  });
+
+  const { datasourceAndVizType, sqlaTimeSeries, druidTimeSeries, filters } = sectionsCopy;
+
+  return [].concat(
+    datasourceAndVizType,
+    datasourceType === 'table' ? sqlaTimeSeries : druidTimeSeries,
+    isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? filters : undefined,
+    controlPanelSections,
+  ).filter(section => section);
+}
+
+export function getAllControlsState(vizType, datasourceType, state, formData) {
+  const controlsState = {};
+  sectionsToRender(vizType, datasourceType).forEach(
+    section => section.controlSetRows.forEach(
+      fieldsetRow => fieldsetRow.forEach((field) => {
+        if (typeof field === 'string') {
+          controlsState[field] = getControlState(field, vizType, state, formData[field]);
+        } else if (field != null && typeof field === 'object') {
+          if (field.config && field.name) {
+            const { config, name } = field;
+            controlsState[name] = getControlStateFromControlConfig(config, state, formData[name]);
+          }
+        }
+      }),
+    ),
+  );
+
+  return controlsState;
 }

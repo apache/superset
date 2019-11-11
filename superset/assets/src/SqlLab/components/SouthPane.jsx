@@ -27,7 +27,7 @@ import { t } from '@superset-ui/translation';
 import * as Actions from '../actions/sqlLab';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
-import { STATUS_OPTIONS, STATE_BSSTYLE_MAP } from '../constants';
+import { STATUS_OPTIONS, STATE_BSSTYLE_MAP, LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../constants';
 
 const TAB_HEIGHT = 44;
 
@@ -37,13 +37,14 @@ const TAB_HEIGHT = 44;
 */
 const propTypes = {
   editorQueries: PropTypes.array.isRequired,
-  latestQueryId: PropTypes.string.isRequired,
+  latestQueryId: PropTypes.string,
   dataPreviewQueries: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired,
   activeSouthPaneTab: PropTypes.string,
   height: PropTypes.number,
   databases: PropTypes.object.isRequired,
   offline: PropTypes.bool,
+  displayLimit: PropTypes.number.isRequired,
 };
 
 const defaultProps = {
@@ -61,7 +62,7 @@ export class SouthPane extends React.PureComponent {
     this.getSouthPaneHeight = this.getSouthPaneHeight.bind(this);
     this.switchTab = this.switchTab.bind(this);
   }
-  componentWillReceiveProps() {
+  UNSAFE_componentWillReceiveProps() {
     // south pane expands the entire height of the tab content on mount
     this.setState({ height: this.getSouthPaneHeight() });
   }
@@ -87,7 +88,8 @@ export class SouthPane extends React.PureComponent {
       latestQuery = props.editorQueries.find(q => q.id === this.props.latestQueryId);
     }
     let results;
-    if (latestQuery) {
+    if (latestQuery &&
+      (Date.now() - latestQuery.startDttm) <= LOCALSTORAGE_MAX_QUERY_AGE_MS) {
       results = (
         <ResultSet
           showControls
@@ -96,6 +98,7 @@ export class SouthPane extends React.PureComponent {
           actions={props.actions}
           height={innerTabContentHeight}
           database={this.props.databases[latestQuery.dbId]}
+          displayLimit={this.props.displayLimit}
         />
       );
     } else {
@@ -114,6 +117,7 @@ export class SouthPane extends React.PureComponent {
           actions={props.actions}
           cache
           height={innerTabContentHeight}
+          displayLimit={this.props.displayLimit}
         />
       </Tab>
     ));
@@ -138,7 +142,11 @@ export class SouthPane extends React.PureComponent {
             title={t('Query History')}
             eventKey="History"
           >
-            <QueryHistory queries={props.editorQueries} actions={props.actions} />
+            <QueryHistory
+              queries={props.editorQueries}
+              actions={props.actions}
+              displayLimit={props.displayLimit}
+            />
           </Tab>
           {dataPreviewTabs}
         </Tabs>

@@ -24,6 +24,7 @@ little bit helps, and credit will always be given.
 
 ## Table of Contents
 
+- [Orientation](#orientation)
 - [Types of Contributions](#types-of-contributions)
   - [Report Bugs](#report-bugs)
   - [Submit Ideas or Feature Requests](#submit-ideas-or-feature-requests)
@@ -54,6 +55,34 @@ little bit helps, and credit will always be given.
   - [Merging DB migrations](#merging-db-migrations)
   - [SQL Lab Async](#sql-lab-async)
 
+
+## Orientation
+
+Here's a list of repositories that contain Superset-related packages:
+
+- [apache/incubator-superset](https://github.com/apache/incubator-superset)
+  is the main repository containing the `apache-superset` Python package
+  distributed on
+  [pypi](https://pypi.org/project/apache-superset/). This repository
+  also includes Superset's main Javascript bundles and react apps under
+  the [superset/assets](https://github.com/apache/incubator-superset/tree/master/superset/assets)
+  folder.
+- [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui)
+  contains core Superset's
+  [npm packages](https://github.com/apache-superset/superset-ui/tree/master/packages).
+  These packages are shared across the React apps in the main repository,
+  and in visualization plugins.
+- [apache-superset/superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins)
+  contains the code for the default visualizations that ship with Superset
+  and are maintained by the core community.
+- [apache-superset/superset-ui-plugins-deckgl](https://github.com/apache-superset/superset-ui-plugins-deckgl)
+  contains the code for the geospatial visualizations that ship with Superset
+  and are maintained by the core community.
+- [github.com/apache-superset](https://github.com/apache-superset) is the
+  Github organization under which we manage Superset-related
+  small tools, forks and Superset-related experimental ideas.
+
+
 ## Types of Contributions
 
 ### Report Bug
@@ -80,8 +109,8 @@ For large features or major changes to codebase, please create **Superset Improv
 
 ### Fix Bugs
 
-Look through the GitHub issues. Issues tagged with `#bug` is
-open to whoever wants to implement it.
+Look through the GitHub issues. Issues tagged with `#bug` are
+open to whoever wants to implement them.
 
 ### Implement Features
 
@@ -97,7 +126,12 @@ articles. See [Documentation](#documentation) for more details.
 
 ### Add Translations
 
-If you are proficient in a non-English language, you can help translate text strings from Superset's UI. You can jump in to the existing language dictionaries at `superset/translations/<language_code>/LC_MESSAGES/messages.po`, or even create a dictionary for a new language altogether. See [Translating](#translating) for more details.
+If you are proficient in a non-English language, you can help translate
+text strings from Superset's UI. You can jump in to the existing
+language dictionaries at
+`superset/translations/<language_code>/LC_MESSAGES/messages.po`, or
+even create a dictionary for a new language altogether.
+See [Translating](#translating) for more details.
 
 ### Ask Questions
 
@@ -296,9 +330,9 @@ python setup.py build_sphinx
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps. 
+Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
 
-Developers should use a virtualenv. 
+Developers should use a virtualenv.
 
 ```
 pip install virtualenv
@@ -319,7 +353,7 @@ pip install -r requirements-dev.txt
 pip install -e .
 
 # Create an admin user in your metadata database
-fabmanager create-admin --app superset
+flask fab create-admin
 
 # Initialize the database
 superset db upgrade
@@ -335,6 +369,9 @@ superset load_examples
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 ```
+
+If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
+`FLASK_ENV=development superset run -p 8088 --reload --debugger`
 
 #### Logging to the browser console
 
@@ -444,6 +481,15 @@ export enum FeatureFlag {
 those specified under FEATURE_FLAGS in `superset_config.py`. For example, `DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False }` in `superset/config.py` and `FEATURE_FLAGS = { 'BAR': True, 'BAZ': True }` in `superset_config.py` will result
 in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
 
+## Git Hooks
+
+Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/). To install run the following:
+
+```bash
+pip3 install -r requirements-dev.txt
+pre-commit install
+```
+
 ## Linting
 
 Lint the project with:
@@ -457,6 +503,28 @@ cd superset/assets
 npm ci
 npm run lint
 ```
+
+The Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html).
+
+
+## Conventions
+
+### Python
+
+Parameters in the `config.py` (which are accessible via the Flask app.config dictionary) are assummed to always be defined and thus should be accessed directly via,
+
+```python
+blueprints = app.config["BLUEPRINTS"]
+```
+
+rather than,
+
+```python
+blueprints = app.config.get("BLUEPRINTS")
+```
+
+or similar as the later will cause typing issues. The former is of type `List[Callable]` whereas the later is of type `Optional[List[Callable]]`.
 
 ## Testing
 
@@ -562,16 +630,23 @@ See [`superset/assets/cypress_build.sh`](https://github.com/apache/incubator-sup
 
 ## Translating
 
-We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset. In Python files, we import the magic `_` function using:
+We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset.
+In Python files, we import the magic `_` function using:
 
 ```python
 from flask_babel import lazy_gettext as _
 ```
 
-then wrap our translatable strings with it, e.g. `_('Translate me')`. During extraction, string literals passed to `_` will be added to the generated `.po` file for each language for later translation.
-At runtime, the `_` function will return the translation of the given string for the current language, or the given string itself if no translation is available.
+then wrap our translatable strings with it, e.g. `_('Translate me')`.
+During extraction, string literals passed to `_` will be added to the
+generated `.po` file for each language for later translation.
 
-In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number).
+At runtime, the `_` function will return the translation of the given
+string for the current language, or the given string itself
+if no translation is available.
+
+In JavaScript, the technique is similar:
+we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
 import { t, tn } from '@superset-ui/translation';
@@ -594,7 +669,7 @@ LANGUAGES = {
 ### Extracting new strings for translation
 
 ```bash
-fabmanager babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
+flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
 ```
 
 You can then translate the strings gathered in files located under
@@ -607,7 +682,7 @@ For the translations to take effect:
 ```bash
 # In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
 npm install -g po2json
-fabmanager babel-compile --target superset/translations
+flask fab babel-compile --target superset/translations
 # Convert the en PO file into a JSON file
 po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
 ```
@@ -693,6 +768,20 @@ https://github.com/apache/incubator-superset/pull/3013
 
     [Example commit](https://github.com/apache/incubator-superset/pull/5745/commits/6220966e2a0a0cf3e6d87925491f8920fe8a3458)
 
+1. Test the migration's `down` method
+
+    ```bash
+    superset db downgrade
+    ```
+
+    The output should look like this:
+
+    ```
+    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+    INFO  [alembic.runtime.migration] Will assume transactional DDL.
+    INFO  [alembic.runtime.migration] Running downgrade 40a0a483dd12 -> 1a1d627ebd8e, add_metadata_column_to_annotation_model.py
+    ```
+
 ### Merging DB migrations
 
 When two DB migrations collide, you'll get an error message like this one:
@@ -733,7 +822,7 @@ to work on `async` related features.
 
 To do this, you'll need to:
 * Add an additional database entry. We recommend you copy the connection
-  string from the database labeled `main`, and then enable `SQL Lab` and the 
+  string from the database labeled `main`, and then enable `SQL Lab` and the
   features you want to use. Don't forget to check the `Async` box
 * Configure a results backend, here's a local `FileSystemCache` example,
   not recommended for production,
@@ -751,3 +840,319 @@ Note that:
 * In some cases, you may want to create a context that is more aligned
   to your production environment, and use the similar broker as well as
   results backend configuration
+  
+## Chart Parameters
+
+Chart parameters are stored as a JSON encoded string the `slices.params` column and are often referenced throughout the code as form-data. Currently the form-data is neither versioned nor typed as thus is somewhat free-formed. Note in the future there may be merit in using something like [JSON Schema](https://json-schema.org/) to both annotate and validate the JSON object in addition to using a Mypy `TypedDict` (introduced in Python 3.8) for typing the form-data in the backend. This section serves as a potential primer for that work.
+
+The following tables provide a non-exhausive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
+
+Note not all fields are correctly catagorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsucessful and thus future work may be required to clean up the form-data.
+
+### Datasource & Chart Type
+
+| Field             | Type     | Notes                               |
+|-------------------|----------|-------------------------------------|
+| `database_name`   | *string* | *Deprecated?*                       |
+| `datasource`      | *string* | `<datasouce_id>__<datasource_type>` |
+| `datasource_id`   | *string* | *Deprecated?* See `datasource`      |
+| `datasource_name` | *string* | *Deprecated?*                       |
+| `datasource_type` | *string* | *Deprecated?* See `datasource`      |
+| `viz_type`        | *string* | The **Visualization Type** widget   |
+
+### Time
+
+| Field                  | Type            | Notes                                 |
+|------------------------|-----------------|---------------------------------------|
+| `date_filter`          | *N/A*           | *Deprecated?*                         |
+| `date_time_format`     | *N/A*           | *Deprecated?*                         |
+| `druid_time_origin`    | *string*        | The Druid **Origin** widget           |
+| `granularity`          | *string*        | The Druid **Time Granularity** widget |
+| `granularity_sqla`     | *string*        | The SQLA **Time Column** widget       |
+| `time_grain_sqla`      | *string*        | The SQLA **Time Grain** widget        |
+| `time_range`           | *string*        | The **Time range** widget             |
+| `time_range_endpoints` | *array(string)* | Used by SIP-15 [HIDDEN]               |
+
+### GROUP BY
+
+| Field                     | Type            | Notes                       |
+|---------------------------|-----------------|-----------------------------|
+| `include_time`            | *boolean*       | The **Include Time** widget |
+| `metrics`                 | *array(string)* | See Query section           |
+| `order_asc`               | -               | See Query section           |
+| `percent_metrics`         | -               | See Query section           |
+| `row_limit`               | -               | See Query section           |
+| `timeseries_limit_metric` | -               | See Query section           |
+
+
+### NOT GROUPED BY
+
+| Field           | Type            | Notes                   |
+|-----------------|-----------------|-------------------------|
+| `all_columns`   | *array(string)* | The **Columns** widget  |
+| `order_by_cols` | *array(string)* | The **Ordering** widget |
+| `row_limit`     | -               | See Query section       |
+
+### Y Axis 1
+
+| Field           | Type | Notes                                              |
+|-----------------|------|----------------------------------------------------|
+| `metric`        | -    | The **Left Axis Metric** widget. See Query section |
+| `y_axis_format` | -    | See Y Axis section                                 |
+
+### Y Axis 2
+
+| Field             | Type            | Notes                                               |
+|-------------------|-----------------|-----------------------------------------------------|
+| `metric_2`        | -               | The **Right Axis Metric** widget. See Query section |
+| `y_axis_2_format` | *string*        | The **Right Axis Format** widget                    |
+
+### Query
+
+| Field                     | Type                                              | Notes                                             |
+|---------------------------|---------------------------------------------------|---------------------------------------------------|
+| `adhoc_filters`           | *array(object)*                                   | The **Filters** widget                            |
+| `all_columns_x`           | *array(string)*                                   | The **Numeric Columns** widget                    |
+| `columns`                 | *array(string)*                                   | The **Breakdowns** widget                         |
+| `contribution`            | *boolean*                                         | The **Contribution** widget                       |
+| `groupby`                 | *array(string)*                                   | The **Group by** or **Series** widget             |
+| `limit`                   | *number*                                          | The **Series Limit** widget                       |
+| `max_bubble_size`         | *number*                                          | The **Max Bubble Size** widget                    |
+| `metric`<br>`metric_2`<br>`metrics`<br>`percent_mertics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y`                       | *string*,*object*,*array(string)*,*array(object)* | The metric(s) depending on the visualization type |
+| `order_asc`               | *boolean*                                         | The **Sort Descending** widget                    |
+| `row_limit`               | *number*                                          | The **Row limit** widget                          |
+| `timeseries_limit_metric` | *object*                                          | The **Sort By** widget                            |
+
+The `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of either metric names or the JSON representation of the `AdhocMetric` JavaScript type. The `adhoc_filters` is composed of the JSON represent of the `AdhocFilter` JavaScript type (which can comprise of columns or metrics depending on whether it is a WHERE or HAVING clause). The `all_columns`, `all_columns_x`, `columns`, `groupby`, and `order_by_cols` fields all represent column names. 
+
+### Options
+
+| Field                  | Type      | Notes                                |
+|------------------------|-----------|--------------------------------------|
+| `compare_lag`          | *number*  | The **Comparison Period Lag** widget |
+| `compare_suffix`       | *string*  | The **Comparison suffix** widget     |
+| `show_trend_line`      | *boolean* | The **Show Trend Line** widget       |
+| `start_y_axis_at_zero` | *boolean* | The **Start y-axis at 0** widget     |
+
+### Chart Options
+
+| Field                 | Type      | Notes                                            |
+|-----------------------|-----------|--------------------------------------------------|
+| `color_picker`        | *object*  | The **Fixed Color** widget                       |
+| `donut`               | *boolean* | The **Donut** widget                             |
+| `global_opacity`      | *number*  | The **Opacity** widget                           |
+| `header_font_size`    | *number*  | The **Big Number Font Size** widget (or similar) |
+| `label_colors`        | *object*  | The **Color Scheme** widget                      |
+| `labels_outside`      | *boolean* | The **Put labels outside** widget                |
+| `line_interpolation`  | *string*  | The **Line Style** widget                        |
+| `link_length`         | *number*  | The **No of Bins** widget                        |
+| `normalized`          | *boolean* | The **Normalized** widget                        |
+| `number_format`       | *string*  | The **Number format** widget                     |
+| `pie_label_type`      | *string*  | [HIDDEN]                                         |
+| `rich_tooltip`        | *boolean* | The **Rich Tooltip** widget                      |
+| `send_time_range`     | *boolean* | The **Show Markers** widget                      |
+| `show_brush`          | *string*  | The **Show Range Filter** widget                 |
+| `show_legend`         | *boolean* | The **Legend** widget                            |
+| `show_markers`        | *string*  | The **Show Markers** widget                      |
+| `subheader_font_size` | *number*  | The **Subheader Font Size** widget               |
+
+### X Axis
+
+| Field                | Type      | Notes                        |
+|----------------------|-----------|------------------------------|
+| `bottom_margin`      | *string*  | The **Bottom Margin** widget |
+| `x_axis_format`      | *string*  | The **X Axis Format** widget |
+| `x_axis_label`       | *string*  | The **X Axis Label** widget  |
+| `x_axis_showminmax`  | *boolean* | The **X bounds** widget      |
+| `x_axis_time_format` | *N/A*     | *Deprecated?*                |
+| `x_log_scale`        | *N/A*     | *Deprecated?*                |
+| `x_ticks_layout`     | *string*  | The **X Tick Layout** widget |
+
+### Y Axis
+
+| Field               | Type            | Notes                        |
+|---------------------|-----------------|------------------------------|
+| `left_margin`       | *number*        | The **Left Margin** widget   |
+| `y_axis_2_label`    | *N/A*           | *Deprecated?*                |
+| `y_axis_bounds`     | *array(string)* | The **Y Axis Bounds** widget |
+| `y_axis_format`     | *string*        | The **Y Axis Format** widget |
+| `y_axis_label`      | *string*        | The **Y Axis Label** widget  |
+| `y_axis_showminmax` | *boolean*       | The **Y bounds** widget      |
+| `y_axis_zero`       | *N/A*           | *Deprecated?*                |
+| `y_log_scale`       | *boolean*       | The **Y Log Scale** widget   |
+| `yscale_interval`   | *N/A*           | *Deprecated?*                |
+
+
+Note the `y_axis_format` is defined under various section for some charts.
+
+### Other
+
+| Field          | Type     | Notes        |
+|----------------|----------|--------------|
+| `color_scheme` | *string* |              |
+| `slice_id`     | *number* | The slice ID |
+| `url_params`   | *object* |              |
+
+### Unclassified
+
+| Field                           | Type  | Notes |
+|---------------------------------|-------|-------|
+| `add_to_dash`                   | *N/A* |       |
+| `align_pn`                      | *N/A* |       |
+| `all_columns_y`                 | *N/A* |       |
+| `annotation_layers`             | *N/A* |       |
+| `autozoom`                      | *N/A* |       |
+| `bar_stacked`                   | *N/A* |       |
+| `cache_timeout`                 | *N/A* |       |
+| `canvas_image_rendering`        | *N/A* |       |
+| `cell_padding`                  | *N/A* |       |
+| `cell_radius`                   | *N/A* |       |
+| `cell_size`                     | *N/A* |       |
+| `charge`                        | *N/A* |       |
+| `clustering_radius`             | *N/A* |       |
+| `code`                          | *N/A* |       |
+| `collapsed_fieldsets`           | *N/A* |       |
+| `color_pn`                      | *N/A* |       |
+| `column_collection`             | *N/A* |       |
+| `combine_metric`                | *N/A* |       |
+| `comparison type`               | *N/A* |       |
+| `contribution`                  | *N/A* |       |
+| `country_fieldtype`             | *N/A* |       |
+| `date_filter`                   | *N/A* |       |
+| `deck_slices`                   | *N/A* |       |
+| `default_filters`               | *N/A* |       |
+| `dimension`                     | *N/A* |       |
+| `domain_granularity`            | *N/A* |       |
+| `end_spatial`                   | *N/A* |       |
+| `entity`                        | *N/A* |       |
+| `equal_date_size`               | *N/A* |       |
+| `expanded_slices`               | *N/A* |       |
+| `extra_filters`                 | *N/A* |       |
+| `extruded`                      | *N/A* |       |
+| `fill_color_picker`             | *N/A* |       |
+| `filled`                        | *N/A* |       |
+| `filter_configs`                | *N/A* |       |
+| `filter_immune_slice_fields`    | *N/A* |       |
+| `filter_immune_slices`          | *N/A* |       |
+| `filter_nulls`                  | *N/A* |       |
+| `flt_col_0`                     | *N/A* |       |
+| `flt_col_1`                     | *N/A* |       |
+| `flt_eq_0`                      | *N/A* |       |
+| `flt_eq_1`                      | *N/A* |       |
+| `flt_op_0`                      | *N/A* |       |
+| `flt_op_1`                      | *N/A* |       |
+| `goto_dash`                     | *N/A* |       |
+| `grid_size`                     | *N/A* |       |
+| `horizon_color_scale`           | *N/A* |       |
+| `import_time`                   | *N/A* |       |
+| `include_search`                | *N/A* |       |
+| `include_series`                | *N/A* |       |
+| `instant_filtering`             | *N/A* |       |
+| `js_agg_function`               | *N/A* |       |
+| `js_columns`                    | *N/A* |       |
+| `label`                         | *N/A* |       |
+| `labels_outside`                | *N/A* |       |
+| `legend_position`               | *N/A* |       |
+| `line_charts`                   | *N/A* |       |
+| `line_charts_2`                 | *N/A* |       |
+| `line_column`                   | *N/A* |       |
+| `line_type`                     | *N/A* |       |
+| `line_width`                    | *N/A* |       |
+| `linear_color_scheme`           | *N/A* |       |
+| `log_scale`                     | *N/A* |       |
+| `mapbox_color`                  | *N/A* |       |
+| `mapbox_label`                  | *N/A* |       |
+| `mapbox_style`                  | *N/A* |       |
+| `marker_labels`                 | *N/A* |       |
+| `marker_line_labels`            | *N/A* |       |
+| `marker_lines`                  | *N/A* |       |
+| `markers`                       | *N/A* |       |
+| `markup_type`                   | *N/A* |       |
+| `max_radius`                    | *N/A* |       |
+| `min_leaf_node_event_count`     | *N/A* |       |
+| `min_periods`                   | *N/A* |       |
+| `min_radius`                    | *N/A* |       |
+| `multiplier`                    | *N/A* |       |
+| `new_dashboard_name`            | *N/A* |       |
+| `new_slice_name`                | *N/A* |       |
+| `normalize_across`              | *N/A* |       |
+| `num_buckets`                   | *N/A* |       |
+| `num_period_compare`            | *N/A* |       |
+| `order_bars`                    | *N/A* |       |
+| `order_by_entity`               | *N/A* |       |
+| `order_desc`                    | *N/A* |       |
+| `page_length`                   | *N/A* |       |
+| `pandas_aggfunc`                | *N/A* |       |
+| `partition_limit`               | *N/A* |       |
+| `partition_threshold`           | *N/A* |       |
+| `period_ratio_type`             | *N/A* |       |
+| `perm`                          | *N/A* |       |
+| `pivot_margins`                 | *N/A* |       |
+| `point_radius`                  | *N/A* |       |
+| `point_radius_fixed`            | *N/A* |       |
+| `point_radius_unit`             | *N/A* |       |
+| `point_unit`                    | *N/A* |       |
+| `prefix_metric_with_slice_name` | *N/A* |       |
+| `range_labels`                  | *N/A* |       |
+| `ranges`                        | *N/A* |       |
+| `rdo_save`                      | *N/A* |       |
+| `reduce_x_ticks`                | *N/A* |       |
+| `refresh_frequency`             | *N/A* |       |
+| `remote_id`                     | *N/A* |       |
+| `render_while_dragging`         | *N/A* |       |
+| `resample_fillmethod`           | *N/A* |       |
+| `resample_how`                  | *N/A* |       |
+| `resample_method`               | *N/A* |       |
+| `resample_rule`                 | *N/A* |       |
+| `reverse_long_lat`              | *N/A* |       |
+| `rolling_periods`               | *N/A* |       |
+| `rolling_type`                  | *N/A* |       |
+| `rose_area_proportion`          | *N/A* |       |
+| `rotation`                      | *N/A* |       |
+| `save_to_dashboard_id`          | *N/A* |       |
+| `schema`                        | *N/A* |       |
+| `select_country`                | *N/A* |       |
+| `series`                        | *N/A* |       |
+| `series_height`                 | *N/A* |       |
+| `show_bar_value`                | *N/A* |       |
+| `show_brush`                    | *N/A* |       |
+| `show_bubbles`                  | *N/A* |       |
+| `show_controls`                 | *N/A* |       |
+| `show_datatable`                | *N/A* |       |
+| `show_druid_time_granularity`   | *N/A* |       |
+| `show_druid_time_origin`        | *N/A* |       |
+| `show_labels`                   | *N/A* |       |
+| `show_metric_name`              | *N/A* |       |
+| `show_perc`                     | *N/A* |       |
+| `show_sqla_time_column`         | *N/A* |       |
+| `show_sqla_time_granularity`    | *N/A* |       |
+| `show_values`                   | *N/A* |       |
+| `size_from`                     | *N/A* |       |
+| `size_to`                       | *N/A* |       |
+| `slice_name`                    | *N/A* |       |
+| `sort_x_axis`                   | *N/A* |       |
+| `sort_y_axis`                   | *N/A* |       |
+| `spatial`                       | *N/A* |       |
+| `stacked_style`                 | *N/A* |       |
+| `start_spatial`                 | *N/A* |       |
+| `steps`                         | *N/A* |       |
+| `stroke_color_picker`           | *N/A* |       |
+| `stroke_width`                  | *N/A* |       |
+| `stroked`                       | *N/A* |       |
+| `subdomain_granularity`         | *N/A* |       |
+| `subheader`                     | *N/A* |       |
+| `table_filter`                  | *N/A* |       |
+| `table_timestamp_format`        | *N/A* |       |
+| `time_compare`                  | *N/A* |       |
+| `time_series_option`            | *N/A* |       |
+| `timed_refresh_immune_slices`   | *N/A* |       |
+| `toggle_polygons`               | *N/A* |       |
+| `transpose_pivot`               | *N/A* |       |
+| `treemap_ratio`                 | *N/A* |       |
+| `url`                           | *N/A* |       |
+| `userid`                        | *N/A* |       |
+| `viewport`                      | *N/A* |       |
+| `viewport_latitude`             | *N/A* |       |
+| `viewport_longitude`            | *N/A* |       |
+| `viewport_zoom`                 | *N/A* |       |
+| `whisker_options`               | *N/A* |       |

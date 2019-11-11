@@ -36,3 +36,42 @@
 @success: #00BFA5;
 @warning: #FFAB00;
 @danger: @pink;
+
+/* filter indicators */
+/* make sure be consistent with FILTER_COLORS_COUNT in
+   dashboardFiltersColorMap.js
+*/
+@badge-colors:
+  #228be6,
+  #40c057,
+  #fab005,
+  #f76707,
+  #e64980,
+  #15aabf,
+  #7950f2,
+  #fa5252,
+  #74b816,
+  #12b886,
+  #1864ab,
+  #2b8a3e,
+  #e67700,
+  #d9480f,
+  #a61e4d,
+  #0b7285,
+  #5f3dc4,
+  #c92a2a,
+  #5c940d,
+  #087f5b;
+
+@iterations: length(@badge-colors);
+.badge-loop (@i) when (@i > 0) {
+  .filter-badge.badge-@{i},
+  .active .color-bar.badge-@{i},
+  .dashboard-filter-indicators-container:hover .color-bar.badge-@{i},
+  .dashboard-component-chart-holder:hover .color-bar.badge-@{i} {
+    @value:  extract(@badge-colors, @i);
+    background-color: @value;
+  }
+  .badge-loop(@i - 1);
+}
+.badge-loop (@iterations);

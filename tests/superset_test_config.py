@@ -14,44 +14,45 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# flake8: noqa
 from copy import copy
-from superset.config import *
 
-AUTH_USER_REGISTRATION_ROLE = 'alpha'
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'unittests.db')
+from superset.config import *  # type: ignore
+
+AUTH_USER_REGISTRATION_ROLE = "alpha"
+SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "unittests.db")
 DEBUG = True
 SUPERSET_WEBSERVER_PORT = 8081
 
 # Allowing SQLALCHEMY_DATABASE_URI to be defined as an env var for
 # continuous integration
-if 'SUPERSET__SQLALCHEMY_DATABASE_URI' in os.environ:
-    SQLALCHEMY_DATABASE_URI = os.environ.get('SUPERSET__SQLALCHEMY_DATABASE_URI')
+if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:
+    SQLALCHEMY_DATABASE_URI = os.environ["SUPERSET__SQLALCHEMY_DATABASE_URI"]
 
 SQL_SELECT_AS_CTA = True
 SQL_MAX_ROW = 666
-FEATURE_FLAGS = {
-    'foo': 'bar',
-}
+FEATURE_FLAGS = {"foo": "bar"}
+
+
 def GET_FEATURE_FLAGS_FUNC(ff):
     ff_copy = copy(ff)
-    ff_copy['super'] = 'set'
+    ff_copy["super"] = "set"
     return ff_copy
 
 
 TESTING = True
-SECRET_KEY = 'thisismyscretkey'
+SECRET_KEY = "thisismyscretkey"
 WTF_CSRF_ENABLED = False
 PUBLIC_ROLE_LIKE_GAMMA = True
-AUTH_ROLE_PUBLIC = 'Public'
+AUTH_ROLE_PUBLIC = "Public"
 EMAIL_NOTIFICATIONS = False
 
-CACHE_CONFIG = {'CACHE_TYPE': 'simple'}
+CACHE_CONFIG = {"CACHE_TYPE": "simple"}
+
 
 class CeleryConfig(object):
-    BROKER_URL = 'redis://localhost'
-    CELERY_IMPORTS = ('superset.sql_lab', )
-    CELERY_ANNOTATIONS = {'sql_lab.add': {'rate_limit': '10/s'}}
+    BROKER_URL = "redis://localhost"
+    CELERY_IMPORTS = ("superset.sql_lab",)
+    CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
     CONCURRENCY = 1
 
 

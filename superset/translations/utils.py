@@ -17,9 +17,10 @@
 # pylint: disable=C,R,W
 import json
 import os
+from typing import Any, Dict
 
 # Global caching for JSON language packs
-ALL_LANGUAGE_PACKS = {'en': {}}
+ALL_LANGUAGE_PACKS: Dict[str, Dict[Any, Any]] = {"en": {}}
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -34,7 +35,7 @@ def get_language_pack(locale):
     """
     pack = ALL_LANGUAGE_PACKS.get(locale)
     if not pack:
-        filename = DIR + '/{}/LC_MESSAGES/messages.json'.format(locale)
+        filename = DIR + "/{}/LC_MESSAGES/messages.json".format(locale)
         try:
             with open(filename) as f:
                 pack = json.load(f)

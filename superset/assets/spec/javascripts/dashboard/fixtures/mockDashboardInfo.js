@@ -19,7 +19,10 @@
 export default {
   id: 1234,
   slug: 'dashboardSlug',
-  metadata: {},
+  metadata: {
+    filterImmuneSlices: [],
+    filterImmuneSliceFields: {},
+  },
   userId: 'mock_user_id',
   dash_edit_perm: true,
   dash_save_perm: true,

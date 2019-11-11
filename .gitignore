@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+*.ipynb
 *.bak
 *.db
 *.pyc
@@ -23,7 +24,9 @@
 .coverage
 .DS_Store
 .eggs
+.envrc
 .idea
+.mypy_cache
 .python-version
 .tox
 .vscode
@@ -38,6 +41,7 @@ changelog.sh
 dist
 dump.rdb
 env
+venv*
 env_py3
 envpy3
 env36
@@ -80,3 +84,6 @@ ghostdriver.log
 testCSV.csv
 .terser-plugin-cache/
 apache-superset-*.tar.gz*
+
+# Translation binaries
+messages.mo

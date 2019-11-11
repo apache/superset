@@ -18,7 +18,7 @@
  */
 import { Alert } from 'react-bootstrap';
 import React from 'react';
-import { shallow } from 'enzyme';
+import { mount } from 'enzyme';
 
 import mockMessageToasts from '../mockMessageToasts';
 import Toast from '../../../../src/messageToasts/components/Toast';
@@ -30,7 +30,7 @@ describe('Toast', () => {
   };
 
   function setup(overrideProps) {
-    const wrapper = shallow(<Toast {...props} {...overrideProps} />);
+    const wrapper = mount(<Toast {...props} {...overrideProps} />);
     return wrapper;
   }
 
@@ -41,9 +41,14 @@ describe('Toast', () => {
 
   it('should render toastText within the alert', () => {
     const wrapper = setup();
-    const alert = wrapper.find(Alert).dive();
+    const alert = wrapper.find(Alert);
 
-    expect(alert.childAt(1).text()).toBe(props.toast.text);
+    expect(
+      alert
+        .childAt(0)
+        .childAt(1)
+        .text(),
+    ).toBe(props.toast.text);
   });
 
   it('should call onCloseToast upon alert dismissal', done => {
