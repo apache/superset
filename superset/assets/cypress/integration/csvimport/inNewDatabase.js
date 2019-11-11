@@ -47,9 +47,12 @@ export default () => {
         elem.val('-1');
       });
 
-      cy.get('#databaseName').then(elem => {
-        elem.val(database_name);
-      });
+      cy.get('#databaseName')
+        .clear({ force: true })
+        .type(
+        database_name,
+        { force: true },
+      );
 
       cy.get('#delimiter')
         .clear({ force: true })
