@@ -39,7 +39,7 @@ export default function getFilterFieldNodesTree({ dashboardFilters = {} }) {
   return [
     {
       value: ALL_FILTERS_ROOT,
-      label: t('Select/deselect all filters'),
+      label: t('All filters'),
       children: allFilters,
     },
   ];

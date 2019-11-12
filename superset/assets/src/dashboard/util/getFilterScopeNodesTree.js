@@ -86,7 +86,7 @@ function traverse({
   if (FILTER_SCOPE_CONTAINER_TYPES.includes(type)) {
     let label = null;
     if (type === DASHBOARD_ROOT_TYPE) {
-      label = t('Select/deselect all charts');
+      label = t('All charts');
     } else {
       label =
         currentNode.meta && currentNode.meta.text

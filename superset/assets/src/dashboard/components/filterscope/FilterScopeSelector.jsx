@@ -316,10 +316,11 @@ export default class FilterScopeSelector extends React.PureComponent {
       {},
     );
 
-    // save does not close modal
     this.props.updateDashboardFiltersScope(allFilterFieldScopes);
     this.props.setUnsavedChanges(true);
-    // save does not close modal
+
+    // click Save button will do save and close modal
+    this.props.onCloseModal();
   }
 
   filterTree() {
