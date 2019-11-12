@@ -131,8 +131,9 @@ App.propTypes = {
 };
 
 function mapStateToProps(state) {
-  const { localStorageUsageInKilobytes } = state;
+  const { common, localStorageUsageInKilobytes } = state;
   return {
+    common,
     localStorageUsageInKilobytes,
   };
 }
