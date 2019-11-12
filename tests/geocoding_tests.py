@@ -43,10 +43,10 @@ class GeocodingTests(SupersetTestCase):
         dashboard_page = self.get_resp(url)
         assert "Geocode Addresses" in dashboard_page
 
-    #def test_geocode_adresses_view_load(self):
-        #url = "/superset/geocoding"
-        #form_get = self.get_resp(url)
-        #assert "Geocode Addresses" in form_get
+    # def test_geocode_adresses_view_load(self):
+    # url = "/superset/geocoding"
+    # form_get = self.get_resp(url)
+    # assert "Geocode Addresses" in form_get
 
     def test_get_columns(self):
         url = "/superset/geocoding/columns"
