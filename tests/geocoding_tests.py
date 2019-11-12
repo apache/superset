@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for geocoding"""
+import asyncio
+
 from geopy import Location
 
 from superset.views import core as views
@@ -43,3 +45,10 @@ class GeocodingTests(SupersetTestCase):
             "HSR Hochschule für Technik, Oberseestrasse 10, CH-8640 Rapperswil"
         )
         # assert isinstance(resp, Location)
+
+    # Solely for testing the functionality while developing
+    # TODO remove this
+    def test_async(self):
+        superset = views.Superset()
+        task = superset.geocode()
+        # await task

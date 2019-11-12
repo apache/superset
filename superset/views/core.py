@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+import asyncio
 import logging
 import re
 from contextlib import closing
@@ -3070,6 +3071,10 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/geocoding/geocode", methods=["GET"])
     def geocode(self) -> Response:
+        asdf = ""
+        task = asyncio.create_task(self._geocode("data"))
+        # asyncio.run(task)
+        return task
         return json_success("")
 
     def _get_mapbox_key(self):
@@ -3078,14 +3083,15 @@ class Superset(BaseSupersetView):
     def _check_table_config(self, tableName: str):
         pass
 
-    def _geocode(self, data):
+    # TODO make async
+    async def _geocode(self, data):
         # what type does data have? List of String arrays?
 
         coder = geopy.geocoders.MapBox(self._get_mapbox_key())
         resp = coder.geocode(
             "HSR Hochschule für Technik, Oberseestrasse 10, CH-8640 Rapperswil"
         )
-        pass
+        return resp
 
     def _add_lat_long_columns(self, data):
         pass
