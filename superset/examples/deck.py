@@ -173,10 +173,8 @@ def load_deck_dash():
         "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
         "color_picker": COLOR_RED,
         "datasource": "5__table",
-        "filters": [],
         "granularity_sqla": None,
         "groupby": [],
-        "having": "",
         "mapbox_style": "mapbox://styles/mapbox/light-v9",
         "multiplier": 10,
         "point_radius_fixed": {"type": "metric", "value": "count"},
@@ -195,7 +193,6 @@ def load_deck_dash():
             "zoom": 12.729132798697304,
         },
         "viz_type": "deck_scatter",
-        "where": "",
     }
 
     print("Creating Scatterplot slice")
@@ -211,7 +208,6 @@ def load_deck_dash():
 
     slice_data = {
         "point_unit": "square_m",
-        "filters": [],
         "row_limit": 5000,
         "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
         "mapbox_style": "mapbox://styles/mapbox/dark-v9",
@@ -222,8 +218,6 @@ def load_deck_dash():
         "point_radius": "Auto",
         "color_picker": {"a": 1, "r": 14, "b": 0, "g": 255},
         "grid_size": 20,
-        "where": "",
-        "having": "",
         "viewport": {
             "zoom": 14.161641703941438,
             "longitude": -122.41827069521386,
@@ -249,7 +243,6 @@ def load_deck_dash():
 
     slice_data = {
         "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
-        "filters": [],
         "row_limit": 5000,
         "mapbox_style": "mapbox://styles/mapbox/streets-v9",
         "granularity_sqla": None,
@@ -261,7 +254,6 @@ def load_deck_dash():
         "color_picker": {"a": 1, "r": 14, "b": 0, "g": 255},
         "grid_size": 40,
         "extruded": True,
-        "having": "",
         "viewport": {
             "latitude": 37.789795085160335,
             "pitch": 54.08961642447763,
@@ -269,7 +261,6 @@ def load_deck_dash():
             "longitude": -122.40632230075536,
             "bearing": -2.3984797349335167,
         },
-        "where": "",
         "point_radius_fixed": {"type": "fix", "value": 2000},
         "datasource": "5__table",
         "time_grain_sqla": None,
@@ -288,7 +279,6 @@ def load_deck_dash():
 
     slice_data = {
         "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
-        "filters": [],
         "row_limit": 5000,
         "mapbox_style": "mapbox://styles/mapbox/satellite-streets-v9",
         "granularity_sqla": None,
@@ -300,7 +290,6 @@ def load_deck_dash():
         "color_picker": {"a": 1, "r": 14, "b": 0, "g": 255},
         "grid_size": 120,
         "extruded": True,
-        "having": "",
         "viewport": {
             "longitude": -122.42066918995666,
             "bearing": 155.80099696026355,
@@ -308,7 +297,6 @@ def load_deck_dash():
             "latitude": 37.7942314882596,
             "pitch": 53.470800300695146,
         },
-        "where": "",
         "point_radius_fixed": {"type": "fix", "value": 2000},
         "datasource": "5__table",
         "time_grain_sqla": None,
@@ -403,9 +391,6 @@ def load_deck_dash():
         "js_onclick_href": "",
         "legend_format": ".1s",
         "legend_position": "tr",
-        "where": "",
-        "having": "",
-        "filters": [],
     }
 
     print("Creating Polygon slice")
@@ -456,9 +441,6 @@ def load_deck_dash():
         },
         "color_picker": {"r": 0, "g": 122, "b": 135, "a": 1},
         "stroke_width": 1,
-        "where": "",
-        "having": "",
-        "filters": [],
     }
 
     print("Creating Arc slice")
@@ -508,9 +490,6 @@ def load_deck_dash():
         "}));",
         "js_tooltip": "",
         "js_onclick_href": "",
-        "where": "",
-        "having": "",
-        "filters": [],
     }
 
     print("Creating Path slice")

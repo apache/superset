@@ -90,7 +90,6 @@ def load_unicode_test_data(only_metadata=False, force=False):
         "row_limit": config["ROW_LIMIT"],
         "since": "100 years ago",
         "until": "now",
-        "where": "",
         "viz_type": "word_cloud",
         "size_from": "10",
         "series": "short_phrase",

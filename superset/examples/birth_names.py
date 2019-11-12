@@ -126,7 +126,6 @@ def load_birth_names(only_metadata=False, force=False):
         "since": "100 years ago",
         "until": "now",
         "viz_type": "table",
-        "where": "",
         "markup_type": "markdown",
     }
 
