@@ -102,7 +102,7 @@ under the License.
 - [#8164](https://github.com/apache/incubator-superset/pull/8164) more detailed async error messages (#8164) (@serenajiang)
 - [#8182](https://github.com/apache/incubator-superset/pull/8182) [Config] Disable celery acks late (#8182) (@etr2460)
 - [#8038](https://github.com/apache/incubator-superset/pull/8038) Prevent 'main' database connection creation (#8038) (@mistercrunch)
-- [#8187](https://github.com/apache/incubator-superset/pull/8187) ignore formatting for <Select> (#8187) (@gbates101)
+- [#8187](https://github.com/apache/incubator-superset/pull/8187) ignore formatting for `<Select>` (#8187) (@gbates101)
 - [#8184](https://github.com/apache/incubator-superset/pull/8184) [fix] retry stop_query on all exceptions (#8184) (@serenajiang)
 - [#8179](https://github.com/apache/incubator-superset/pull/8179) Update messages.json (#8179) (@klxiang)
 - [#8158](https://github.com/apache/incubator-superset/pull/8158) Bump cypress from 3.1.5 to 3.4.1 (#8158) (@mistercrunch)
