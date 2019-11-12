@@ -22,6 +22,7 @@ import Select from 'react-virtualized-select';
 import FormHelpText from './FormHelpText';
 
 const propTypes = {
+  id: PropTypes.string,
   value: PropTypes.object,
   options: PropTypes.array,
   onChange: PropTypes.func,
@@ -33,6 +34,7 @@ const propTypes = {
 export default class FormSelect extends PureComponent {
   render() {
     const {
+      id,
       value,
       options,
       onChange,
@@ -44,6 +46,7 @@ export default class FormSelect extends PureComponent {
     return (
       <>
         <Select
+          id={id}
           value={value}
           onChange={onChange}
           options={options}
