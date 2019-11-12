@@ -69,7 +69,7 @@ from superset import (
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import AnnotationDatasource
+from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,
@@ -3074,8 +3074,9 @@ class Superset(BaseSupersetView):
         def _get_mapbox_key(self):
             pass
 
-        def _check_table_config(self, tableName: str):
-            pass
+    def _is_database_allow_dml(self, table: SqlaTable):
+        database = db.session.query(models.Database).filter_by(id=table.database_id).first()
+        return database and database.allow_dml
 
         def _geocode(self, data):
             pass
