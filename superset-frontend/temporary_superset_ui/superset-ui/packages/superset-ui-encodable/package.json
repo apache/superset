@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/encodable",
-  "version": "0.12.3",
+  "version": "0.12.4",
   "description": "Superset UI encodable",
   "sideEffects": false,
   "main": "lib/index.js",
