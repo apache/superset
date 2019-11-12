@@ -3079,7 +3079,8 @@ class Superset(BaseSupersetView):
         pass
 
     def _geocode(self, data):
-        # geocode the data using an API
+        # what type does data have? List of String arrays?
+
         coder = geopy.geocoders.MapBox(self._get_mapbox_key())
         resp = coder.geocode(
             "HSR Hochschule für Technik, Oberseestrasse 10, CH-8640 Rapperswil"

@@ -38,4 +38,4 @@ class GeocodingTests(SupersetTestCase):
 
     def test_geocode_single_address(self):
         superset = views.Superset()
-        superset.geocode(superset, "abc")
+        superset._geocode("abc")
