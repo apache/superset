@@ -38,6 +38,10 @@ import {
   addDangerToast,
 } from '../../messageToasts/actions';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from '../actions/dashboardLayout';
+import serializeActiveFilterValues from '../util/serializeActiveFilterValues';
+import serializeFilterScopes from '../util/serializeFilterScopes';
+import { getActiveFilters } from '../util/activeDashboardFilters';
+import { safeStringify } from '../../utils/safeStringify';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -178,10 +182,19 @@ export function saveDashboardRequest(data, id, saveType) {
       directPathToFilter.push(componentId);
       dispatch(updateDirectPathToFilter(chartId, directPathToFilter));
     });
-
+    // serialize selected values for each filter field, grouped by filter id
+    const serializedFilters = serializeActiveFilterValues(getActiveFilters());
+    // serialize filter scope for each filter field, grouped by filter id
+    const serializedFilterScopes = serializeFilterScopes(dashboardFilters);
     return SupersetClient.post({
       endpoint: `/superset/${path}/${id}/`,
-      postPayload: { data },
+      postPayload: {
+        data: {
+          ...data,
+          default_filters: safeStringify(serializedFilters),
+          filter_scopes: safeStringify(serializedFilterScopes),
+        },
+      },
     })
       .then(response => {
         dispatch(saveDashboardRequestSuccess());
