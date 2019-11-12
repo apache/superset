@@ -28,6 +28,7 @@ import FormCheckbox from 'src/components/FormCheckbox';
 import FormSelect from 'src/components/FormSelect';
 import FormError from 'src/components/FormError';
 import * as Actions from './actions/geocoding';
+import './GeocodingForm.css';
 
 const propTypes = {
   tables: PropTypes.array.isRequired,
@@ -98,9 +99,8 @@ export class GeocodingForm extends React.Component {
                         />
                       </td>
                     </tr>
-                    {/* TODO: Hide if no datasource selected */}
                     {/* TODO: Load column data when datasource is selected */}
-                    <tr>
+                    <tr className={this.state.datasource ? null : 'hide-component'}>
                       <td className="col-lg-2">{t('Street Column')}</td>
                       <td>
                         <FormSelect
@@ -111,7 +111,7 @@ export class GeocodingForm extends React.Component {
                         />
                       </td>
                     </tr>
-                    <tr>
+                    <tr className={this.state.datasource ? null : 'hide-component'}>
                       <td className="col-lg-2">{t('ZIP code Column')}</td>
                       <td>
                         <FormSelect
@@ -122,7 +122,7 @@ export class GeocodingForm extends React.Component {
                         />
                       </td>
                     </tr>
-                    <tr>
+                    <tr className={this.state.datasource ? null : 'hide-component'}>
                       <td className="col-lg-2">{t('City Column')}</td>
                       <td>
                         <FormSelect
@@ -133,7 +133,7 @@ export class GeocodingForm extends React.Component {
                         />
                       </td>
                     </tr>
-                    <tr>
+                    <tr className={this.state.datasource ? null : 'hide-component'}>
                       <td className="col-lg-2">{t('Country Column')}</td>
                       <td>
                         <FormSelect
