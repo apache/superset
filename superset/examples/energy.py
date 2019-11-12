@@ -77,12 +77,10 @@ def load_energy(only_metadata=False, force=False):
                 "source",
                 "target"
             ],
-            "having": "",
             "metric": "sum__value",
             "row_limit": "5000",
             "slice_name": "Energy Sankey",
-            "viz_type": "sankey",
-            "where": ""
+            "viz_type": "sankey"
         }
         """
         ),
@@ -104,13 +102,11 @@ def load_energy(only_metadata=False, force=False):
                 "source",
                 "target"
             ],
-            "having": "",
             "link_length": "200",
             "metric": "sum__value",
             "row_limit": "5000",
             "slice_name": "Force",
-            "viz_type": "directed_force",
-            "where": ""
+            "viz_type": "directed_force"
         }
         """
         ),
@@ -130,13 +126,11 @@ def load_energy(only_metadata=False, force=False):
             "all_columns_y": "target",
             "canvas_image_rendering": "pixelated",
             "collapsed_fieldsets": "",
-            "having": "",
             "linear_color_scheme": "blue_white_yellow",
             "metric": "sum__value",
             "normalize_across": "heatmap",
             "slice_name": "Heatmap",
             "viz_type": "heatmap",
-            "where": "",
             "xscale_interval": "1",
             "yscale_interval": "1"
         }
