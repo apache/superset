@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
+import cgi
 import csv
 import datetime
 import doctest
@@ -948,6 +949,25 @@ class CoreTests(SupersetTestCase):
 
             self.assertDictEqual(deserialized_payload, payload)
             expand_data.assert_called_once()
+
+    @mock.patch.dict("superset._feature_flags", {"FOO": lambda x: 1}, clear=True)
+    def test_feature_flag_serialization(self):
+        """
+        Functions in feature flags don't break bootstrap data serialization.
+        """
+        self.login()
+
+        encoded = json.dumps(
+            {"FOO": lambda x: 1, "super": "set"},
+            default=utils.pessimistic_json_iso_dttm_ser,
+        )
+        html = cgi.escape(encoded).replace("'", "&#39;").replace('"', "&#34;")
+
+        data = self.get_resp("/superset/sqllab")
+        self.assertTrue(html in data)
+
+        data = self.get_resp("/superset/welcome")
+        self.assertTrue(html in data)
 
 
 if __name__ == "__main__":
