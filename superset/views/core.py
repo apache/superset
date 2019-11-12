@@ -3054,52 +3054,52 @@ class Superset(BaseSupersetView):
                 stacktrace=utils.get_stacktrace(),
             )
 
-        @has_access
-        @expose("/geocoding")
-        def geocoding(self):
-            pass
+    @has_access
+    @expose("/geocoding")
+    def geocoding(self):
+        pass
 
-        @api
-        @has_access_api
-        @expose("/geocoding/columns", methods=["GET"])
-        def columns(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/columns", methods=["GET"])
+    def columns(self) -> Response:
+        return json_success("")
 
-        @api
-        @has_access_api
-        @expose("/geocoding/geocode", methods=["GET"])
-        def geocode(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/geocode", methods=["GET"])
+    def geocode(self) -> Response:
+        return json_success("")
 
-        def _get_mapbox_key(self):
-            pass
+    def _get_mapbox_key(self):
+        return conf["MAPBOX_API_KEY"]
 
-        def _check_table_config(self, tableName: str):
-            pass
+    def _check_table_config(self, tableName: str):
+        pass
 
-        def _geocode(self, data):
-            pass
+    def _geocode(self, data):
+        pass
 
-        def _add_lat_long_columns(self, data):
-            pass
+    def _add_lat_long_columns(self, data):
+        pass
 
-        @api
-        @has_access_api
-        @expose("/geocoding/is_in_progress", methods=["GET"])
-        def is_in_progress(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/is_in_progress", methods=["GET"])
+    def is_in_progress(self) -> Response:
+        return json_success("")
 
-        @api
-        @has_access_api
-        @expose("/geocoding/progress", methods=["GET"])
-        def progress(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/progress", methods=["GET"])
+    def progress(self) -> Response:
+        return json_success("")
 
-        @api
-        @has_access_api
-        @expose("/geocoding/interrupt", methods=["POST"])
-        def interrupt(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/interrupt", methods=["POST"])
+    def interrupt(self) -> Response:
+        return json_success("")
 
 
 appbuilder.add_view_no_menu(Superset)
