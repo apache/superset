@@ -6,7 +6,7 @@ import withStyles, { WithStylesProps } from '@airbnb/lunar/lib/composers/withSty
 import { Renderers, ParentRow, ColumnMetadata } from '@airbnb/lunar/lib/components/DataTable/types';
 import dompurify from 'dompurify';
 import { createSelector } from 'reselect';
-import { getRenderer, ColumnType, Cell } from './renderer';
+import getRenderer, { ColumnType, Cell } from './getRenderer';
 
 type Props = {
   data: ParentRow[];
