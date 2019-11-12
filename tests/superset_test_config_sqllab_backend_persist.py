@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # flake8: noqa
-from copy import copy
 import os
+from copy import copy
 
 from superset.config import *  # type: ignore
 
