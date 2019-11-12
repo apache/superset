@@ -16,8 +16,9 @@
 # under the License.
 # flake8: noqa
 from copy import copy
+import os
 
-from superset.config import *
+from superset.config import *  # type: ignore
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "unittests.db")
@@ -27,7 +28,7 @@ SUPERSET_WEBSERVER_PORT = 8081
 # Allowing SQLALCHEMY_DATABASE_URI to be defined as an env var for
 # continuous integration
 if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:
-    SQLALCHEMY_DATABASE_URI = os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI")
+    SQLALCHEMY_DATABASE_URI = os.environ["SUPERSET__SQLALCHEMY_DATABASE_URI"]
 
 SQL_SELECT_AS_CTA = True
 SQL_MAX_ROW = 666
