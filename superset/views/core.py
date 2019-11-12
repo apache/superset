@@ -3074,14 +3074,17 @@ class Superset(BaseSupersetView):
         def _get_mapbox_key(self):
             pass
 
-    def _is_database_allow_dml(self, table: SqlaTable):
-        """ Check if database configuration allow create columns (allow dml)
-
-            Keyword arguments:
-            table -- the SqlaTable to check if its database allow dml
-        """
-        database = db.session.query(models.Database).filter_by(id=table.database_id).first()
-        return database and database.allow_dml
+    def _get_editable_tables(self):
+        """ Get tables which are allowed to create columns (allow dml on their database) """
+        tables = []
+        for database in (
+            db.session.query(models.Database).filter_by(allow_dml=True).all()
+        ):
+            for table in (
+                db.session.query(SqlaTable).filter_by(database_id=database.id).all()
+            ):
+                tables.append(models.TableDto(table.id, table.name, table.database_id))
+        return tables
 
         def _geocode(self, data):
             pass
