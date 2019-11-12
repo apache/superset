@@ -17,43 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import * as Actions from './actions/geocoding';
-import { GeocodingForm } from './GeocodingForm';
+import { mount } from 'enzyme';
+import FormError from 'src/components/FormError';
 
-const propTypes = {
-  tables: PropTypes.array.isRequired,
-};
-
-export class Geocoding extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-
-    };
-  }
-  render() {
-    return (
-      <GeocodingForm tables={this.props.tables} />
-    );
-  }
-}
-
-Geocoding.propTypes = propTypes;
-
-function mapStateToProps({ geocoding }) {
-  return { geocoding: geocoding.geocoding };
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(Geocoding);
+describe('FormError', () => {
+  let wrapper;
+  beforeEach(() => {
+    wrapper = mount(<FormError status={{ message: 'Error message', timestamp: Date.now() }} />);
+  });
+  it('renders without crashing', () => {
+    expect(wrapper.find('.alert-danger')).toHaveLength(1);
+  });
+  it('hides error message when clicking on close button', () => {
+    wrapper.find('.close').simulate('click');
+    expect(wrapper.state().isDisplayed).toBe(false);
+  });
+});

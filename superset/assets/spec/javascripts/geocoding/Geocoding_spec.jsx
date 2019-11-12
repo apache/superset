@@ -17,43 +17,23 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import * as Actions from './actions/geocoding';
-import { GeocodingForm } from './GeocodingForm';
+import { mount } from 'enzyme';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
+import { CsvToDatabase as Geocoding } from 'src/geocoding/Geocoding';
 
-const propTypes = {
-  tables: PropTypes.array.isRequired,
-};
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
-export class Geocoding extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
+const tables = [];
 
-    };
-  }
-  render() {
-    return (
-      <GeocodingForm tables={this.props.tables} />
-    );
-  }
+function setup() {
+  return mount(<Geocoding tables={tables} />, { context: { store } });
 }
 
-Geocoding.propTypes = propTypes;
-
-function mapStateToProps({ geocoding }) {
-  return { geocoding: geocoding.geocoding };
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(Geocoding);
+describe('Geocoding', () => {
+  it('renders without crashing', () => {
+    const wrapper = setup();
+    expect(wrapper.find('.container')).toHaveLength(1);
+  });
+});

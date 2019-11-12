@@ -16,44 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import * as Actions from './actions/geocoding';
-import { GeocodingForm } from './GeocodingForm';
+import Select from 'react-virtualized-select';
+import FormHelpText from './FormHelpText';
 
 const propTypes = {
-  tables: PropTypes.array.isRequired,
+  id: PropTypes.string,
+  value: PropTypes.object,
+  options: PropTypes.array,
+  onChange: PropTypes.func,
+  required: PropTypes.bool,
+  clearable: PropTypes.bool,
+  helpText: PropTypes.string,
 };
 
-export class Geocoding extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-
-    };
-  }
+export default class FormSelect extends PureComponent {
   render() {
+    const {
+      id,
+      value,
+      options,
+      onChange,
+      required,
+      clearable,
+      helpText,
+    } = this.props;
+    const help = helpText && <FormHelpText helpText={helpText} />;
     return (
-      <GeocodingForm tables={this.props.tables} />
+      <>
+        <Select
+          id={id}
+          value={value}
+          onChange={onChange}
+          options={options}
+          clearable={clearable}
+          required={required}
+        />
+        {help}
+      </>
     );
   }
 }
 
-Geocoding.propTypes = propTypes;
-
-function mapStateToProps({ geocoding }) {
-  return { geocoding: geocoding.geocoding };
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(Geocoding);
+FormSelect.propTypes = propTypes;

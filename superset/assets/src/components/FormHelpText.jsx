@@ -16,44 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import * as Actions from './actions/geocoding';
-import { GeocodingForm } from './GeocodingForm';
 
 const propTypes = {
-  tables: PropTypes.array.isRequired,
+  helpText: PropTypes.string.isRequired,
 };
 
-export class Geocoding extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-
-    };
-  }
+export default class FormHelpText extends PureComponent {
   render() {
+    const {
+      helpText,
+    } = this.props;
     return (
-      <GeocodingForm tables={this.props.tables} />
+      <span className="help-block">{helpText}</span>
     );
   }
 }
 
-Geocoding.propTypes = propTypes;
-
-function mapStateToProps({ geocoding }) {
-  return { geocoding: geocoding.geocoding };
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(Geocoding);
+FormHelpText.propTypes = propTypes;

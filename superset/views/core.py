@@ -69,7 +69,7 @@ from superset import (
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import AnnotationDatasource
+from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,
@@ -3057,9 +3057,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/geocoding")
     def geocoding(self):
-        # TODO Get all tables
-
-        bootstrap_data = {"tables": [], "common": self.common_bootstrap_payload()}
+        bootstrap_data = {"tables": self._get_editable_tables(), "common": self.common_bootstrap_payload()}
 
         if request.args.get("json") == "true":
             return json_success(
