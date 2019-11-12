@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for geocoding"""
+from geopy import Location
 
 from superset.views import core as views
 
@@ -38,4 +39,7 @@ class GeocodingTests(SupersetTestCase):
 
     def test_geocode_single_address(self):
         superset = views.Superset()
-        superset._geocode("abc")
+        resp = superset._geocode(
+            "HSR Hochschule für Technik, Oberseestrasse 10, CH-8640 Rapperswil"
+        )
+        assert isinstance(resp, Location)
