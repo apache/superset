@@ -404,11 +404,23 @@ Here's a list of some of the recommended packages.
 | Vertica          | ``pip install                         |  ``vertica+vertica_python://``                  |
 |                  | sqlalchemy-vertica-python``           |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
+| Hana             | ``pip install hdbcli sqlalchemy-hana``|  ``hana://``                                    |
+|                  | or ``pip install superset[hana]``     |                                                 |
++------------------+---------------------------------------+-------------------------------------------------+
+
 
 Note that many other databases are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
 the keyword ``sqlalchemy`` in addition of a keyword that describes the
 database you want to connect to should get you to the right place.
+
+Hana
+------------
+
+The connection string for Hana looks like this ::
+
+    hana://{username}:{password}@{host}:{port}
+
 
 (AWS) Athena
 ------------

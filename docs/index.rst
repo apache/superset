@@ -123,6 +123,7 @@ The following RDBMS are currently supported:
 - `SQL Server <https://www.microsoft.com/en-us/sql-server/>`_
 - `Teradata <https://www.teradata.com/>`_
 - `Vertica <https://www.vertica.com/>`_
+- `Hana <https://www.sap.com/products/hana.html>`_
 
 Other database engines with a proper DB-API driver and SQLAlchemy dialect should
 be supported as well.
