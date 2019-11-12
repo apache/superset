@@ -16,6 +16,7 @@
 # under the License.
 # flake8: noqa
 from copy import copy
+
 from superset.config import *
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"

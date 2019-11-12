@@ -26,8 +26,8 @@ Create Date: 2019-08-12 14:50:49.204635
 revision = "02f260780a2b"
 down_revision = "def97f26fdfb"
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import mysql
 
 
@@ -59,9 +59,7 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
         sqlite_autoincrement=True,
     )
-    op.create_index(
-        op.f("ix_tab_state_id"), "tab_state", ["id"], unique=True
-    )
+    op.create_index(op.f("ix_tab_state_id"), "tab_state", ["id"], unique=True)
     op.create_table(
         "table_schema",
         sa.Column("created_on", sa.DateTime(), nullable=True),
@@ -83,9 +81,7 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
         sqlite_autoincrement=True,
     )
-    op.create_index(
-        op.f("ix_table_schema_id"), "table_schema", ["id"], unique=True
-    )
+    op.create_index(op.f("ix_table_schema_id"), "table_schema", ["id"], unique=True)
     # ### end Alembic commands ###
 
 
