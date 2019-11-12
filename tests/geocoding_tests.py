@@ -35,3 +35,7 @@ class GeocodingTests(SupersetTestCase):
         superset = views.Superset()
         api_key = superset._get_mapbox_key()
         assert isinstance(api_key, str)
+
+    def test_geocode_single_address(self):
+        superset = views.Superset()
+        superset.geocode(superset, "abc")

@@ -23,6 +23,7 @@ from typing import Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
+import geopy
 import msgpack
 import pandas as pd
 import pyarrow as pa
@@ -3078,6 +3079,11 @@ class Superset(BaseSupersetView):
         pass
 
     def _geocode(self, data):
+        # geocode the data using an API
+        coder = geopy.geocoders.MapBox(self._get_mapbox_key())
+        resp = coder.geocode(
+            "HSR Hochschule für Technik, Oberseestrasse 10, CH-8640 Rapperswil"
+        )
         pass
 
     def _add_lat_long_columns(self, data):
