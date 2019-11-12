@@ -69,7 +69,7 @@ from superset import (
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
+from superset.connectors.sqla.models import AnnotationDatasource
 from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,
@@ -3054,10 +3054,25 @@ class Superset(BaseSupersetView):
                 stacktrace=utils.get_stacktrace(),
             )
 
-        @has_access
-        @expose("/geocoding")
-        def geocoding(self):
-            pass
+    @has_access
+    @expose("/geocoding")
+    def geocoding(self):
+        # TODO Get all tables
+
+        bootstrap_data = {"tables": [], "common": self.common_bootstrap_payload()}
+
+        if request.args.get("json") == "true":
+            return json_success(
+                json.dumps(bootstrap_data, default=lambda x: x.__dict__)
+            )
+
+        return self.render_template(
+            "superset/geocoding.html",
+            entry="geocoding",
+            standalone_mode=False,
+            title="Geocode Addresses",
+            bootstrap_data=json.dumps(bootstrap_data, default=lambda x: x.__dict__),
+        )
 
         @api
         @has_access_api
@@ -3065,14 +3080,17 @@ class Superset(BaseSupersetView):
         def columns(self) -> Response:
             return json_success("")
 
-        @api
-        @has_access_api
-        @expose("/geocoding/geocode", methods=["GET"])
-        def geocode(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/columns", methods=["GET"])
+    def columns(self) -> Response:
+        return json_success("")
 
-        def _get_mapbox_key(self):
-            pass
+    @api
+    @has_access_api
+    @expose("/geocoding/geocode", methods=["GET"])
+    def geocode(self) -> Response:
+        return json_success("")
 
     def _get_editable_tables(self):
         """ Get tables which are allowed to create columns (allow dml on their database) """
@@ -3085,30 +3103,33 @@ class Superset(BaseSupersetView):
             ):
                 tables.append(models.TableDto(table.id, table.name, table.database_id))
         return tables
+      
+    def _get_mapbox_key(self):
+        return conf["MAPBOX_API_KEY"]
 
-        def _geocode(self, data):
-            pass
+    def _geocode(self, data):
+        pass
 
-        def _add_lat_long_columns(self, data):
-            pass
+    def _add_lat_long_columns(self, data):
+        pass
 
-        @api
-        @has_access_api
-        @expose("/geocoding/is_in_progress", methods=["GET"])
-        def is_in_progress(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/is_in_progress", methods=["GET"])
+    def is_in_progress(self) -> Response:
+        return json_success("")
 
-        @api
-        @has_access_api
-        @expose("/geocoding/progress", methods=["GET"])
-        def progress(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/progress", methods=["GET"])
+    def progress(self) -> Response:
+        return json_success("")
 
-        @api
-        @has_access_api
-        @expose("/geocoding/interrupt", methods=["POST"])
-        def interrupt(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/interrupt", methods=["POST"])
+    def interrupt(self) -> Response:
+        return json_success("")
 
 
 appbuilder.add_view_no_menu(Superset)
@@ -3171,6 +3192,17 @@ appbuilder.add_link(
     label=__("Upload a CSV"),
     href="/csvtodatabaseview/form",
     icon="fa-upload",
+    category="Sources",
+    category_label=__("Sources"),
+    category_icon="fa-wrench",
+)
+appbuilder.add_separator("Sources")
+
+appbuilder.add_link(
+    "Geocode Addresses",
+    label=__("Geocode Addresses"),
+    href="/superset/geocoding",
+    icon="fa-globe",
     category="Sources",
     category_label=__("Sources"),
     category_icon="fa-wrench",
