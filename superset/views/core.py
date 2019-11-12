@@ -3092,11 +3092,20 @@ class Superset(BaseSupersetView):
     def geocode(self) -> Response:
         return json_success("")
 
+    def _get_editable_tables(self):
+        """ Get tables which are allowed to create columns (allow dml on their database) """
+        tables = []
+        for database in (
+            db.session.query(models.Database).filter_by(allow_dml=True).all()
+        ):
+            for table in (
+                db.session.query(SqlaTable).filter_by(database_id=database.id).all()
+            ):
+                tables.append(models.TableDto(table.id, table.name, table.database_id))
+        return tables
+      
     def _get_mapbox_key(self):
         return conf["MAPBOX_API_KEY"]
-
-    def _check_table_config(self, tableName: str):
-        pass
 
     def _geocode(self, data):
         pass
