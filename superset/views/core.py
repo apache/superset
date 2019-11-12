@@ -3168,6 +3168,17 @@ appbuilder.add_link(
 )
 appbuilder.add_separator("Sources")
 
+appbuilder.add_link(
+    "Geocode Addresses",
+    label=__("Geocode Addresses"),
+    href="/superset/geocoding",
+    icon="fa-globe",
+    category="Sources",
+    category_label=__("Sources"),
+    category_icon="fa-wrench",
+)
+appbuilder.add_separator("Sources")
+
 
 @app.after_request
 def apply_http_headers(response: Response):
