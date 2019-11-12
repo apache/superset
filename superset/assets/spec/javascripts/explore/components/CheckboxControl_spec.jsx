@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { shallow } from 'enzyme';
+import { shallow, mount } from 'enzyme';
 
 import CheckboxControl from '../../../../src/explore/components/controls/CheckboxControl';
 import ControlHeader from '../../../../src/explore/components/ControlHeader';
@@ -45,5 +45,17 @@ describe('CheckboxControl', () => {
 
     const headerWrapper = controlHeader.shallow();
     expect(headerWrapper.find(Checkbox)).toHaveLength(1);
+  });
+
+  it('Checks the box when the label is clicked', () => {
+    const fullComponent = mount(<CheckboxControl {...defaultProps} />);
+
+    const spy = sinon.spy(fullComponent.instance(), 'onChange');
+
+    fullComponent.instance().forceUpdate();
+
+    fullComponent.find('label span').last().simulate('click');
+
+    expect(spy.calledOnce).toBe(true);
   });
 });
