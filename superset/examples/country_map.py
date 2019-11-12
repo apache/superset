@@ -90,7 +90,6 @@ def load_country_map_data(only_metadata=False, force=False):
         "granularity_sqla": "",
         "since": "",
         "until": "",
-        "where": "",
         "viz_type": "country_map",
         "entity": "DEPT_ID",
         "metric": {
