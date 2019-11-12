@@ -3075,6 +3075,11 @@ class Superset(BaseSupersetView):
             pass
 
     def _is_database_allow_dml(self, table: SqlaTable):
+        """ Check if database configuration allow create columns (allow dml)
+
+            Keyword arguments:
+            table -- the SqlaTable to check if its database allow dml
+        """
         database = db.session.query(models.Database).filter_by(id=table.database_id).first()
         return database and database.allow_dml
 
