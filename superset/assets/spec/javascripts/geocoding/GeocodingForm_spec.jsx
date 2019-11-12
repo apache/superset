@@ -20,7 +20,7 @@ import React from 'react';
 import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import { Geocoding } from 'src/geocoding/Geocoding';
+import { GeocodingForm } from 'src/geocoding/Geocoding';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -28,10 +28,10 @@ const store = mockStore({});
 const tables = [];
 
 function setup() {
-  return mount(<Geocoding tables={tables} />, { context: { store } });
+  return mount(<GeocodingForm tables={tables} />, { context: { store } });
 }
 
-describe('Geocoding', () => {
+describe('GeocodingForm', () => {
   it('renders without crashing', () => {
     const wrapper = setup();
     expect(wrapper.find('.container')).toHaveLength(1);
