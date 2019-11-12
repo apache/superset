@@ -16,6 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function geocodingReducer(state = {}) {
+import * as actions from '../actions/geocoding';
+
+export default function geocodingReducer(state = {}, action) {
+  if (action.type === actions.GET_COLUMNS_FOR_TABLE_SUCCESS) {
+    // TODO: Save columns to store
+  }
+  if (action.type === actions.GET_COLUMNS_FOR_TABLE_FAILURE) {
+    // TODO: Save error message to store
+  }
+  if (action.type === actions.GEOCODE_PROGRESS_SUCCESS) {
+    // TODO: Save progress in store
+  }
+  if (action.type === actions.GEOCODE_PROGRESS_FAILURE) {
+    // TODO: Save error message to store
+  }
+  if (action.type === actions.GEOCODE_SUCCESS) {
+    // TODO: What to do now?
+  }
+  if (action.type === actions.GEOCODE_FAILURE) {
+    // TODO: Save error message in store
+  }
+  if (action.type === actions.GEOCODE_INTERRUPT_SUCCESS) {
+    // TODO: What to do now?
+  }
+  if (action.type === actions.GEOCODE_INTERRUPT_FAILURE) {
+    // TODO: Save error message in store
+  }
+
   return state;
 }
