@@ -3054,10 +3054,28 @@ class Superset(BaseSupersetView):
                 stacktrace=utils.get_stacktrace(),
             )
 
-        @has_access
-        @expose("/geocoding")
-        def geocoding(self):
-            pass
+    @has_access
+    @expose("/geocoding")
+    def geocoding(self):
+        #TODO Get all tables
+
+        bootstrap_data = {
+            "tables": [],
+            "common": self.common_bootstrap_payload(),
+        }
+
+        if request.args.get("json") == "true":
+            return json_success(
+                json.dumps(bootstrap_data, default=lambda x: x.__dict__)
+            )
+
+        return self.render_template(
+            "superset/geocoding.html",
+            entry="geocoding",
+            standalone_mode=False,
+            title="Geocode Addresses",
+            bootstrap_data=json.dumps(bootstrap_data, default=lambda x: x.__dict__),
+        )
 
         @api
         @has_access_api
