@@ -3080,41 +3080,47 @@ class Superset(BaseSupersetView):
         def columns(self) -> Response:
             return json_success("")
 
-        @api
-        @has_access_api
-        @expose("/geocoding/geocode", methods=["GET"])
-        def geocode(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/columns", methods=["GET"])
+    def columns(self) -> Response:
+        return json_success("")
 
-        def _get_mapbox_key(self):
-            pass
+    @api
+    @has_access_api
+    @expose("/geocoding/geocode", methods=["GET"])
+    def geocode(self) -> Response:
+        return json_success("")
 
-        def _check_table_config(self, tableName: str):
-            pass
+    def _get_mapbox_key(self):
+        return conf["MAPBOX_API_KEY"]
 
-        def _geocode(self, data):
-            pass
+    def _check_table_config(self, tableName: str):
+        pass
 
-        def _add_lat_long_columns(self, data):
-            pass
+    def _geocode(self, data):
+        pass
 
-        @api
-        @has_access_api
-        @expose("/geocoding/is_in_progress", methods=["GET"])
-        def is_in_progress(self) -> Response:
-            return json_success("")
+    def _add_lat_long_columns(self, data):
+        pass
 
-        @api
-        @has_access_api
-        @expose("/geocoding/progress", methods=["GET"])
-        def progress(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/is_in_progress", methods=["GET"])
+    def is_in_progress(self) -> Response:
+        return json_success("")
 
-        @api
-        @has_access_api
-        @expose("/geocoding/interrupt", methods=["POST"])
-        def interrupt(self) -> Response:
-            return json_success("")
+    @api
+    @has_access_api
+    @expose("/geocoding/progress", methods=["GET"])
+    def progress(self) -> Response:
+        return json_success("")
+
+    @api
+    @has_access_api
+    @expose("/geocoding/interrupt", methods=["POST"])
+    def interrupt(self) -> Response:
+        return json_success("")
 
 
 appbuilder.add_view_no_menu(Superset)
@@ -3177,6 +3183,17 @@ appbuilder.add_link(
     label=__("Upload a CSV"),
     href="/csvtodatabaseview/form",
     icon="fa-upload",
+    category="Sources",
+    category_label=__("Sources"),
+    category_icon="fa-wrench",
+)
+appbuilder.add_separator("Sources")
+
+appbuilder.add_link(
+    "Geocode Addresses",
+    label=__("Geocode Addresses"),
+    href="/superset/geocoding",
+    icon="fa-globe",
     category="Sources",
     category_label=__("Sources"),
     category_icon="fa-wrench",
