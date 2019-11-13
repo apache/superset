@@ -20,7 +20,9 @@ import * as actions from '../actions/geocoding';
 
 export default function geocodingReducer(state = {}, action) {
   if (action.type === actions.GET_COLUMNS_FOR_TABLE_SUCCESS) {
-    // TODO: Save columns to store
+    return Object.assign({}, state, {
+      columnList: action.columnList,
+    });
   }
   if (action.type === actions.GET_COLUMNS_FOR_TABLE_FAILURE) {
     // TODO: Save error message to store

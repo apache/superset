@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import * as Actions from './actions/geocoding';
-import { GeocodingForm } from './GeocodingForm';
+import GeocodingForm from './GeocodingForm';
 
 const propTypes = {
   tables: PropTypes.array.isRequired,

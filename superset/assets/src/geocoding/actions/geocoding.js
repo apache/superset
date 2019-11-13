@@ -35,16 +35,21 @@ export function getColumnsForTable(tableName) {
     return dispatch =>
     SupersetClient.post({
       endpoint: '/superset/geocoding/columns',
-      postPayload: { tableName },
+      body: JSON.stringify({ tableName }),
+      headers: { 'Content-Type': 'application/json' },
     })
-      .then(() => {
-        dispatch({ type: GET_COLUMNS_FOR_TABLE_SUCCESS }); // TODO: Send data from request
+      .then((response) => {
+        dispatch({ type: GET_COLUMNS_FOR_TABLE_SUCCESS, columnList: response.json });
       })
       .catch((response) => {
         getClientErrorObject(response).then((error) => {
           dispatch({ type: GET_COLUMNS_FOR_TABLE_FAILURE, message: error.error });
         });
       });
+}
+
+export function resetColumnsForTable() {
+  return dispatch => dispatch({ type: GET_COLUMNS_FOR_TABLE_SUCCESS, columnList: [] });
 }
 
 export function geocode(data) {
