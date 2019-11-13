@@ -81,7 +81,7 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
       : (value as T);
   };
 
-  getDomain = (data: Dataset) => {
+  getDomainFromDataset = (data: Dataset) => {
     if (isValueDef(this.definition)) {
       const { value } = this.definition;
 

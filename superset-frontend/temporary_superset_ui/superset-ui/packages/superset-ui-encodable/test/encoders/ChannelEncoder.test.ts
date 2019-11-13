@@ -127,7 +127,7 @@ describe('ChannelEncoder', () => {
             value: 1,
           },
         });
-        expect(encoder.getDomain([])).toEqual([1]);
+        expect(encoder.getDomainFromDataset([])).toEqual([1]);
       });
     });
 
@@ -141,10 +141,9 @@ describe('ChannelEncoder', () => {
             field: 'brand',
           },
         });
-        expect(encoder.getDomain([{ brand: 'Forever 31' }, { brand: 'Super Wet' }])).toEqual([
-          'Forever 31',
-          'Super Wet',
-        ]);
+        expect(
+          encoder.getDomainFromDataset([{ brand: 'Forever 31' }, { brand: 'Super Wet' }]),
+        ).toEqual(['Forever 31', 'Super Wet']);
       });
     });
 
@@ -158,7 +157,10 @@ describe('ChannelEncoder', () => {
             field: 'size',
           },
         });
-        expect(encoder.getDomain([{ size: 'L' }, { size: 'XXL' }])).toEqual(['L', 'XXL']);
+        expect(encoder.getDomainFromDataset([{ size: 'L' }, { size: 'XXL' }])).toEqual([
+          'L',
+          'XXL',
+        ]);
       });
     });
 
@@ -172,7 +174,7 @@ describe('ChannelEncoder', () => {
             field: 'price',
           },
         });
-        expect(encoder.getDomain([{ price: 1 }, { price: 5 }])).toEqual([1, 5]);
+        expect(encoder.getDomainFromDataset([{ price: 1 }, { price: 5 }])).toEqual([1, 5]);
       });
       it('returns [0, 1] when cannot determine', () => {
         const encoder = new ChannelEncoder({
@@ -183,7 +185,7 @@ describe('ChannelEncoder', () => {
             field: 'price',
           },
         });
-        expect(encoder.getDomain([{}, {}])).toEqual([0, 1]);
+        expect(encoder.getDomainFromDataset([{}, {}])).toEqual([0, 1]);
       });
     });
 
@@ -198,7 +200,7 @@ describe('ChannelEncoder', () => {
           },
         });
         expect(
-          encoder.getDomain([
+          encoder.getDomainFromDataset([
             { time: new Date(Date.UTC(2019, 1, 1)) },
             { time: new Date(Date.UTC(2019, 2, 1)) },
           ]),
@@ -213,7 +215,7 @@ describe('ChannelEncoder', () => {
             field: 'time',
           },
         });
-        expect(encoder.getDomain([{}, {}])).toEqual([0, 1]);
+        expect(encoder.getDomainFromDataset([{}, {}])).toEqual([0, 1]);
       });
     });
 
@@ -226,7 +228,7 @@ describe('ChannelEncoder', () => {
           field: 'time',
         },
       });
-      expect(encoder.getDomain([{}, {}])).toEqual([]);
+      expect(encoder.getDomainFromDataset([{}, {}])).toEqual([]);
     });
   });
 
