@@ -27,7 +27,7 @@ export default function geocodingReducer(state = {}, action) {
   if (action.type === actions.GET_COLUMNS_FOR_TABLE_FAILURE) {
     return Object.assign({}, state, {
       errorStatus: {
-        status: action.message, timestamp: Date.now(),
+        message: action.message, timestamp: Date.now(),
       },
     });
   }
@@ -37,35 +37,35 @@ export default function geocodingReducer(state = {}, action) {
   if (action.type === actions.GEOCODE_PROGRESS_FAILURE) {
     return Object.assign({}, state, {
       errorStatus: {
-        status: action.message, timestamp: Date.now(),
+        message: action.message, timestamp: Date.now(),
       },
     });
   }
   if (action.type === actions.GEOCODE_SUCCESS) {
     return Object.assign({}, state, {
       infoStatus: {
-        status: 'Geocoding successfully started. This can take a while!', timestamp: Date.now(),
+        message: 'Geocoding successfully started. This can take a while!', timestamp: Date.now(),
       },
     });
   }
   if (action.type === actions.GEOCODE_FAILURE) {
     return Object.assign({}, state, {
       errorStatus: {
-        status: action.message, timestamp: Date.now(),
+        message: action.message, timestamp: Date.now(),
       },
     });
   }
   if (action.type === actions.GEOCODE_INTERRUPT_SUCCESS) {
     return Object.assign({}, state, {
       infoStatus: {
-        status: 'Geocoding successfully interrupted.', timestamp: Date.now(),
+        message: 'Geocoding successfully interrupted.', timestamp: Date.now(),
       },
     });
   }
   if (action.type === actions.GEOCODE_INTERRUPT_FAILURE) {
     return Object.assign({}, state, {
       errorStatus: {
-        status: action.message, timestamp: Date.now(),
+        message: action.message, timestamp: Date.now(),
       },
     });
   }

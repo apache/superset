@@ -49,6 +49,7 @@ export class GeocodingForm extends React.Component {
       latitudeColumnName: 'latitude',
       overwriteIfExists: false,
       saveOnErrorOrInterrupt: true,
+      validation: undefined,
     };
     this.getDatasources = this.getDatasources.bind(this);
     this.getColumnList = this.getColumnList.bind(this);
@@ -123,23 +124,29 @@ export class GeocodingForm extends React.Component {
       overwriteIfExists,
       saveOnErrorOrInterrupt,
     } = this.state;
-    // TODO: Validate form
-    this.props.actions.geocode({
-      datasource: datasource.value,
-      streetColumn: streetColumn.value,
-      cityColumn: cityColumn.value,
-      countryColumn: countryColumn.value,
-      longitudeColumnName,
-      latitudeColumnName,
-      overwriteIfExists,
-      saveOnErrorOrInterrupt,
-    });
+    if (!datasource) {
+      this.setState({ validation: { message: 'You need to select a datasource', timestamp: Date.now() } });
+    } else if (!streetColumn && !cityColumn && !countryColumn) {
+      this.setState({ validation: { message: 'At least one column needs to be selected', timestamp: Date.now() } });
+    } else {
+      this.props.actions.geocode({
+        datasource: datasource.value,
+        streetColumn: streetColumn ? streetColumn.value : undefined,
+        cityColumn: cityColumn ? cityColumn.value : undefined,
+        countryColumn: countryColumn ? countryColumn.value : undefined,
+        longitudeColumnName,
+        latitudeColumnName,
+        overwriteIfExists,
+        saveOnErrorOrInterrupt,
+      });
+    }
   }
 
   render() {
     return (
       <div className="container">
         <FormInfo status={this.getInfoStatus()} />
+        <FormError status={this.state.validation} />
         <FormError status={this.getErrorStatus()} />
         <div className="panel panel-primary">
           <div className="panel-heading">
@@ -150,7 +157,6 @@ export class GeocodingForm extends React.Component {
               id="model_form"
               method="post"
               encType="multipart/form-data"
-              onSubmit={this.handleSubmit}
             >
               <div className="table-responsive">
                 <table className="table table-bordered">
@@ -162,6 +168,7 @@ export class GeocodingForm extends React.Component {
                       <td>
                         <FormSelect
                           id={'datasource'}
+                          required
                           options={this.getDatasources()}
                           onChange={this.setDatasource}
                           value={this.state.datasource}
@@ -294,7 +301,7 @@ export class GeocodingForm extends React.Component {
                 </table>
               </div>
               <div className="well well-sm">
-                <Button bsStyle="primary" type="submit">
+                <Button bsStyle="primary" onClick={this.handleSubmit}>
                   {t('Geocode')} <i className="fa fa-globe" />
                 </Button>
                 <Button href="/back">
