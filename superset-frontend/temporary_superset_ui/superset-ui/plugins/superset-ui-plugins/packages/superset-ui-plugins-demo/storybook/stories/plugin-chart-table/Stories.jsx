@@ -105,14 +105,16 @@ export default [
         chartType="table2"
         key="bigTable"
         datasource={{
-          columnFormats: {},
+          columnFormats: {
+            clm0: '.2s',
+          },
           verboseMap: {},
         }}
         formData={{
           alignPn: true,
           colorPn: true,
           includeSearch: true,
-          metrics: [],
+          metrics: ['clm0'],
           orderDesc: true,
           pageLength: 0,
           percentMetrics: [],
