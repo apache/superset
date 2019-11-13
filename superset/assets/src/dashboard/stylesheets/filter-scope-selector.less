@@ -19,14 +19,36 @@
 @import "../../../stylesheets/less/cosmo/variables.less";
 
 .filter-scope-container {
+  display: flex;
+  flex-direction: column;
+  height: 80%;
+  margin-right: -24px;
   font-size: 14px;
 
   .nav.nav-tabs {
     border: none;
   }
+
+  .filter-scope-body {
+    flex: 1;
+    max-height: calc(100% - 128px);
+    overflow-y: scroll;
+  }
+
+  .dashboard-modal-actions-container {
+    height: 64px;
+    border-top: 1px solid #ccc;
+    padding: 24px;
+    margin: 0 0  0 -24px;
+  }
 }
 
 .filter-scope-header {
+  height: 64px;
+  border-bottom: 1px solid #ccc;
+  padding-left: 24px;
+  margin-left: -24px;
+
   h4 {
     margin-top: 0;
   }
@@ -46,13 +68,10 @@
 }
 
 .filters-scope-selector {
-  margin: 10px -24px 20px;
   display: flex;
   flex-direction: row;
   position: relative;
-  border: 1px solid #ccc;
-  border-left: none;
-  border-right: none;
+  min-height: 100%;
 
   a, a:active, a:hover {
     color: @almost-black;
@@ -81,7 +100,7 @@
   .filter-field-pane {
     position: relative;
     width: 40%;
-    padding: 16px 16px 16px 24px;
+    padding: 16px 16px 16px 0;
     border-right: 1px solid #ccc;
 
     .filter-container {
@@ -108,6 +127,10 @@
     }
 
     .react-checkbox-tree {
+      .rct-title .root {
+        font-weight: bold;
+      }
+
       .rct-text {
         height: 40px;
       }
@@ -161,10 +184,6 @@
       &.root {
         font-weight: 700;
       }
-
-      &.tab {
-        font-weight: 700;
-      }
     }
 
     .rct-checkbox {
@@ -196,7 +215,6 @@
 
     .rct-title {
       display: block;
-      font-weight: bold;
     }
 
     // disable style from react-checkbox-trees.css
