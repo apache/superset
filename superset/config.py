@@ -73,7 +73,6 @@ def _try_json_readsha(filepath):
     except Exception:
         return None
 
-
 # Depending on the context in which this config is loaded, the version_info.json file
 # may or may not be available, as it is generated on install via setup.py. In the event
 # that we're actually running Superset, we will have already installed, therefore it WILL
@@ -84,7 +83,6 @@ VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversi
 )
 
 VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE)
-
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
