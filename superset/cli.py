@@ -42,7 +42,6 @@ from superset.utils import core as utils
 # config = app.config
 
 
-
 @click.group(cls=FlaskGroup, create_app=create_app)
 @with_appcontext
 def superset():

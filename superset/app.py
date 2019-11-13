@@ -76,7 +76,7 @@ class SupersetAppInitializer:
 
         self.flask_app = app
         self.config = app.config
-        self.manifest = {}
+        self.manifest: dict = {}
 
     def pre_init(self) -> None:
         """
@@ -97,9 +97,10 @@ class SupersetAppInitializer:
         celery_app.config_from_object(self.config["CELERY_CONFIG"])
         celery_app.set_default()
 
-    def init_views(self) -> None:
+    @staticmethod
+    def init_views() -> None:
         # TODO - This should iterate over all views and register them with FAB...
-        from superset import views  # noqa
+        from superset import views  # noqa pylint: disable=unused-variable
 
     def init_app_in_ctx(self) -> None:
         """
@@ -200,14 +201,14 @@ class SupersetAppInitializer:
 
         if self.config["ENABLE_CHUNK_ENCODING"]:
 
-            class ChunkedEncodingFix(object):
+            class ChunkedEncodingFix(object):  # pylint: disable=too-few-public-methods
                 def __init__(self, app):
                     self.app = app
 
                 def __call__(self, environ, start_response):
                     # Setting wsgi.input_terminated tells werkzeug.wsgi to ignore
                     # content-length and read the stream till the end.
-                    if environ.get("HTTP_TRANSFER_ENCODING", "").lower() == u"chunked":
+                    if environ.get("HTTP_TRANSFER_ENCODING", "").lower() == "chunked":
                         environ["wsgi.input_terminated"] = True
                     return self.app(environ, start_response)
 
@@ -252,9 +253,9 @@ class SupersetAppInitializer:
     def register_blueprints(self):
         for bp in self.config["BLUEPRINTS"]:
             try:
-                logger.info("Registering blueprint: '{}'".format(bp.name))
+                logger.info(f"Registering blueprint: '{bp.name}'")
                 self.flask_app.register_blueprint(bp)
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 logger.exception("blueprint registration failed")
 
     def setup_bundle_manifest(self):

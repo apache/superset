@@ -22,7 +22,7 @@ class UIManifestProcessor:
     def __init__(self, app_dir: str) -> None:
         super().__init__()
         self.app = None
-        self.manifest = {}
+        self.manifest: dict = {}
         self.manifest_file = f"{app_dir}/static/assets/dist/manifest.json"
 
     def init_app(self, app):
@@ -31,7 +31,7 @@ class UIManifestProcessor:
         self.parse_manifest_json()
 
         @app.context_processor
-        def get_manifest():
+        def get_manifest():  # pylint: disable=unused-variable
             return dict(
                 loaded_chunks=set(),
                 get_unloaded_chunks=self.get_unloaded_chunks,
@@ -46,7 +46,7 @@ class UIManifestProcessor:
                 # we only need entries in templates
                 full_manifest = json.load(f)
                 self.manifest = full_manifest.get("entrypoints", {})
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             pass
 
     def get_js_manifest_files(self, filename):

@@ -18,7 +18,6 @@
 import os
 
 import celery
-from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
 from flask_migrate import Migrate
 from flask_talisman import Talisman
@@ -35,7 +34,7 @@ appbuilder = AppBuilder(update_perms=False)
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 db = SQLA()
-_event_logger = {}
+_event_logger: dict = {}
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
 feature_flag_manager = FeatureFlagManager()
 manifest_processor = UIManifestProcessor(APP_DIR)
