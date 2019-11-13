@@ -400,16 +400,19 @@ class DashboardTests(SupersetTestCase):
 
         self.grant_public_access_to_table(table)
 
+        hidden_dash_slug = f"hidden_dash_{random()}"
+        published_dash_slug = f"published_dash_{random()}"
+
         # Create a published and hidden dashboard and add them to the database
         published_dash = models.Dashboard()
         published_dash.dashboard_title = "Published Dashboard"
-        published_dash.slug = f"published_dash_{random()}"
+        published_dash.slug = published_dash_slug
         published_dash.slices = [slice]
         published_dash.published = True
 
         hidden_dash = models.Dashboard()
         hidden_dash.dashboard_title = "Hidden Dashboard"
-        hidden_dash.slug = f"hidden_dash_{random()}"
+        hidden_dash.slug = hidden_dash_slug
         hidden_dash.slices = [slice]
         hidden_dash.published = False
 
@@ -418,8 +421,8 @@ class DashboardTests(SupersetTestCase):
         db.session.commit()
 
         resp = self.get_resp("/dashboard/list/")
-        self.assertNotIn("/superset/dashboard/hidden_dash/", resp)
-        self.assertIn("/superset/dashboard/published_dash/", resp)
+        self.assertNotIn(f"/superset/dashboard/{hidden_dash_slug}/", resp)
+        self.assertIn(f"/superset/dashboard/{published_dash_slug}/", resp)
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")
