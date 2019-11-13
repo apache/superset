@@ -2962,7 +2962,9 @@ class Superset(BaseSupersetView):
         return self.render_template(
             "superset/basic.html",
             entry="welcome",
-            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
+            bootstrap_data=json.dumps(
+                payload, default=utils.pessimistic_json_iso_dttm_ser
+            ),
         )
 
     @has_access
@@ -3001,7 +3003,7 @@ class Superset(BaseSupersetView):
         return self.render_template(
             "superset/basic.html",
             entry="sqllab",
-            bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser),
+            bootstrap_data=json.dumps(d, default=utils.pessimistic_json_iso_dttm_ser),
         )
 
     @api
