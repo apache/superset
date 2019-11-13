@@ -516,7 +516,7 @@ export function setTables(tableSchemas) {
   return { type: SET_TABLES, tables };
 }
 
-export function switchQueryEditor(queryEditor) {
+export function switchQueryEditor(queryEditor, displayLimit) {
   return function (dispatch) {
     if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && !queryEditor.loaded) {
       SupersetClient.get({
@@ -545,7 +545,7 @@ export function switchQueryEditor(queryEditor) {
           dispatch(setTables(json.table_schemas || []));
           dispatch(setActiveQueryEditor(loadedQueryEditor));
           if (json.latest_query && json.latest_query.resultsKey) {
-            dispatch(fetchQueryResults(json.latest_query));
+            dispatch(fetchQueryResults(json.latest_query, displayLimit));
           }
         })
         .catch((response) => {

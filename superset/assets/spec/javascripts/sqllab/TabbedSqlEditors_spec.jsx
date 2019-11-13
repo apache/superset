@@ -184,7 +184,7 @@ describe('TabbedSqlEditors', () => {
     wrapper.instance().handleSelect('add_tab', mockEvent);
     expect(wrapper.instance().newQueryEditor.callCount).toBe(1);
 
-    // cannot switch to current tab, switchQueryEditor gets called with undefined
+    // cannot switch to current tab, switchQueryEditor never gets called 
     wrapper.instance().handleSelect('dfsadfs', mockEvent);
     expect(wrapper.instance().props.actions.switchQueryEditor.callCount).toEqual(0);
     wrapper.instance().newQueryEditor.restore();

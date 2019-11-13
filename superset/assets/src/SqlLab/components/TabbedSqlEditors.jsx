@@ -130,7 +130,7 @@ class TabbedSqlEditors extends React.PureComponent {
       ) {
         // when results are not stored in localStorage they need to be
         // fetched from the results backend (if configured)
-        this.props.actions.fetchQueryResults(latestQuery);
+        this.props.actions.fetchQueryResults(latestQuery, this.props.displayLimit);
       }
     }
   }
@@ -206,7 +206,7 @@ class TabbedSqlEditors extends React.PureComponent {
       const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
       if (key !== qeid) {
         const queryEditor = this.props.queryEditors.find(qe => qe.id === key);
-        this.props.actions.switchQueryEditor(queryEditor);
+        this.props.actions.switchQueryEditor(queryEditor, this.props.displayLimit);
       }
     }
   }
