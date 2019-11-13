@@ -23,7 +23,7 @@ import configureStore from 'redux-mock-store';
 import GeocodingForm from 'src/geocoding/Geocoding';
 
 const mockStore = configureStore([thunk]);
-const store = mockStore({});
+const store = mockStore({ geocoding: undefined });
 
 const tables = [];
 

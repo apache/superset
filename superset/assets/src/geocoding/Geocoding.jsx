@@ -44,7 +44,7 @@ export class Geocoding extends React.Component {
 Geocoding.propTypes = propTypes;
 
 function mapStateToProps({ geocoding }) {
-  return { geocoding: geocoding.geocoding };
+  return { geocoding };
 }
 
 function mapDispatchToProps(dispatch) {
