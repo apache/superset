@@ -25,25 +25,49 @@ export default function geocodingReducer(state = {}, action) {
     });
   }
   if (action.type === actions.GET_COLUMNS_FOR_TABLE_FAILURE) {
-    // TODO: Save error message to store
+    return Object.assign({}, state, {
+      errorStatus: {
+        status: action.message, timestamp: Date.now(),
+      },
+    });
   }
   if (action.type === actions.GEOCODE_PROGRESS_SUCCESS) {
-    // TODO: Save progress in store
+    // TODO: Save progress data in store
   }
   if (action.type === actions.GEOCODE_PROGRESS_FAILURE) {
-    // TODO: Save error message to store
+    return Object.assign({}, state, {
+      errorStatus: {
+        status: action.message, timestamp: Date.now(),
+      },
+    });
   }
   if (action.type === actions.GEOCODE_SUCCESS) {
-    // TODO: What to do now?
+    return Object.assign({}, state, {
+      infoStatus: {
+        status: 'Geocoding successfully started. This can take a while!', timestamp: Date.now(),
+      },
+    });
   }
   if (action.type === actions.GEOCODE_FAILURE) {
-    // TODO: Save error message in store
+    return Object.assign({}, state, {
+      errorStatus: {
+        status: action.message, timestamp: Date.now(),
+      },
+    });
   }
   if (action.type === actions.GEOCODE_INTERRUPT_SUCCESS) {
-    // TODO: What to do now?
+    return Object.assign({}, state, {
+      infoStatus: {
+        status: 'Geocoding successfully interrupted.', timestamp: Date.now(),
+      },
+    });
   }
   if (action.type === actions.GEOCODE_INTERRUPT_FAILURE) {
-    // TODO: Save error message in store
+    return Object.assign({}, state, {
+      errorStatus: {
+        status: action.message, timestamp: Date.now(),
+      },
+    });
   }
 
   return state;

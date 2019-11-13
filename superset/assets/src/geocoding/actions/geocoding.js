@@ -56,7 +56,8 @@ export function geocode(data) {
     return dispatch =>
     SupersetClient.post({
       endpoint: '/superset/geocoding/geocode',
-      postPayload: { ...data },
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' },
     })
       .then(() => {
         dispatch({ type: GEOCODE_SUCCESS });

@@ -26,6 +26,7 @@ import Button from 'src/components/Button';
 import FormInput from 'src/components/FormInput';
 import FormCheckbox from 'src/components/FormCheckbox';
 import FormSelect from 'src/components/FormSelect';
+import FormInfo from 'src/components/FormInfo';
 import FormError from 'src/components/FormError';
 import * as Actions from './actions/geocoding';
 import './GeocodingForm.css';
@@ -42,7 +43,6 @@ export class GeocodingForm extends React.Component {
     this.state = {
       datasource: undefined,
       streetColumn: undefined,
-      zipColumn: undefined,
       cityColumn: undefined,
       countryColumn: undefined,
       longitudeColumnName: 'longitude',
@@ -52,6 +52,7 @@ export class GeocodingForm extends React.Component {
     };
     this.getDatasources = this.getDatasources.bind(this);
     this.getColumnList = this.getColumnList.bind(this);
+    this.getErrorStatus = this.getErrorStatus.bind(this);
     this.setDatasource = this.setDatasource.bind(this);
     this.setPropertyValue = this.setPropertyValue.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -76,6 +77,22 @@ export class GeocodingForm extends React.Component {
     return undefined;
   }
 
+  getInfoStatus() {
+    const { geocoding } = this.props;
+    if (geocoding && geocoding.infoStatus) {
+      return geocoding.infoStatus;
+    }
+    return undefined;
+  }
+
+  getErrorStatus() {
+    const { geocoding } = this.props;
+    if (geocoding && geocoding.errorStatus) {
+      return geocoding.errorStatus;
+    }
+    return undefined;
+  }
+
   setDatasource(datasource) {
     if (datasource) {
       this.props.actions.getColumnsForTable(datasource.value);
@@ -96,13 +113,34 @@ export class GeocodingForm extends React.Component {
   }
 
   handleSubmit() {
-
+    const {
+      datasource,
+      streetColumn,
+      cityColumn,
+      countryColumn,
+      longitudeColumnName,
+      latitudeColumnName,
+      overwriteIfExists,
+      saveOnErrorOrInterrupt,
+    } = this.state;
+    // TODO: Validate form
+    this.props.actions.geocode({
+      datasource: datasource.value,
+      streetColumn: streetColumn.value,
+      cityColumn: cityColumn.value,
+      countryColumn: countryColumn.value,
+      longitudeColumnName,
+      latitudeColumnName,
+      overwriteIfExists,
+      saveOnErrorOrInterrupt,
+    });
   }
 
   render() {
     return (
       <div className="container">
-        <FormError />
+        <FormInfo status={this.getInfoStatus()} />
+        <FormError status={this.getErrorStatus()} />
         <div className="panel panel-primary">
           <div className="panel-heading">
             <h4 className="panel-title">{t('Geocode Addresses')}</h4>
@@ -141,20 +179,6 @@ export class GeocodingForm extends React.Component {
                           value={this.state.streetColumn}
                           helpText={t(
                             'Name of the column where the street is stored.',
-                          )}
-                        />
-                      </td>
-                    </tr>
-                    <tr className={this.state.datasource ? null : 'hide-component'}>
-                      <td className="col-lg-2">{t('ZIP code Column')}</td>
-                      <td>
-                        <FormSelect
-                          id={'zipColumn'}
-                          options={this.getColumnList()}
-                          onChange={value => this.setPropertyValue('zipColumn', value)}
-                          value={this.state.zipColumn}
-                          helpText={t(
-                            'Name of the column where the ZIP code is stored.',
                           )}
                         />
                       </td>
