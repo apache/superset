@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEmpty } from 'lodash';
+import { flow, keyBy, mapValues } from 'lodash/fp';
+import { flatMap, isEmpty } from 'lodash';
+
 import { CHART_TYPE, TAB_TYPE } from './componentTypes';
 import { getChartIdAndColumnFromFilterKey } from './getDashboardFilterKey';
 
@@ -30,28 +32,21 @@ function getTabChildrenScope({
   if (
     forceAggregate ||
     Object.entries(tabScopes).every(
-      ([key, { scope }]) => scope.length && key === scope[0],
+      ([key, { scope }]) => scope && scope.length && key === scope[0],
     )
   ) {
     return {
       scope: [parentNodeValue],
-      immune: [].concat(
-        ...Object.values(tabScopes).map(({ immune }) => immune),
-      ),
+      immune: flatMap(Object.values(tabScopes), ({ immune }) => immune),
     };
   }
 
   const componentsInScope = Object.values(tabScopes).filter(
     ({ scope }) => scope && scope.length,
   );
-  const scopeValue = [].concat(...componentsInScope.map(({ scope }) => scope));
-  const immuneValue = [].concat(
-    ...componentsInScope.map(({ immune }) => immune),
-  );
-
   return {
-    scope: scopeValue,
-    immune: immuneValue,
+    scope: flatMap(componentsInScope, ({ scope }) => scope),
+    immune: flatMap(componentsInScope, ({ immune }) => immune),
   };
 }
 
@@ -69,17 +64,16 @@ function traverse({ currentNode = {}, filterId, checkedChartIds = [] }) {
       ({ value }) => filterId !== value && !checkedChartIds.includes(value),
     )
     .map(({ value }) => value);
-  const tabScopes = tabChildren.reduce((map, child) => {
-    const { value: tabValue } = child;
-    return {
-      ...map,
-      [tabValue]: traverse({
+  const tabScopes = flow(
+    keyBy(child => child.value),
+    mapValues(child =>
+      traverse({
         currentNode: child,
         filterId,
         checkedChartIds,
       }),
-    };
-  }, {});
+    ),
+  )(tabChildren);
 
   // if any chart type child is in scope,
   // no matter has tab children or not, current node should be scope
@@ -103,7 +97,7 @@ function traverse({ currentNode = {}, filterId, checkedChartIds = [] }) {
   }
 
   // has tab children but only some sub-tab in scope
-  if (!isEmpty(tabChildren)) {
+  if (tabChildren.length) {
     return getTabChildrenScope({ tabScopes, parentNodeValue: currentValue });
   }
 
@@ -119,8 +113,8 @@ export default function getFilterScopeFromNodesTree({
   nodes = [],
   checkedChartIds = [],
 }) {
-  const { chartId } = getChartIdAndColumnFromFilterKey(filterKey);
   if (nodes.length) {
+    const { chartId } = getChartIdAndColumnFromFilterKey(filterKey);
     return traverse({
       currentNode: nodes[0],
       filterId: chartId,
