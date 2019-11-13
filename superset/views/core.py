@@ -1109,7 +1109,8 @@ class Superset(BaseSupersetView):
                     ),
                     "danger",
                 )
-            except Exception:
+            except Exception as e:
+                logging.exception(e)
                 flash(
                     _(
                         "An unknown error occurred. "
