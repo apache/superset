@@ -20,7 +20,7 @@ import React from 'react';
 import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import { GeocodingForm } from 'src/geocoding/Geocoding';
+import GeocodingForm from 'src/geocoding/Geocoding';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
