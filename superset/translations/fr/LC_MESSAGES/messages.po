@@ -4880,8 +4880,8 @@ msgid "CSV to Database configuration"
 msgstr "CSV vers la configuration de la base de données"
 
 #: superset/views/core.py:375
-msgid "CSV file \"{0}\" uploaded to table \"{1}\" in database \"{2}\""
-msgstr "Fichier CSV \"{0}\" chargé dans la table \"{1}\" de la base de données \"{2}\""
+msgid "CSV file \"%(csv_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\""
+msgstr "Fichier CSV \"%(csv_filename)s\" chargé dans la table \"%(table_name)s\" de la base de données \"%(db_name)s\""
 
 #: superset/views/core.py:401 superset/views/core.py:667
 #: superset/views/sql_lab.py:23 superset/views/sql_lab.py:60

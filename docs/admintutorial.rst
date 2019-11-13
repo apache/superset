@@ -15,8 +15,8 @@
     specific language governing permissions and limitations
     under the License.
 
-Tutorial - Creating your first dashboard
-========================================
+Creating your first dashboard
+=============================
 
 This tutorial targets someone who wants to create charts and dashboards
 in Superset. We'll show you how to connect Superset

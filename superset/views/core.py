@@ -1117,7 +1117,8 @@ class Superset(BaseSupersetView):
                     ),
                     "danger",
                 )
-            except Exception:
+            except Exception as e:
+                logging.exception(e)
                 flash(
                     _(
                         "An unknown error occurred. "
@@ -2980,8 +2981,9 @@ class Superset(BaseSupersetView):
         return self.render_template(
             "superset/basic.html",
             entry="welcome",
-            title="Superset",
-            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
+            bootstrap_data=json.dumps(
+                payload, default=utils.pessimistic_json_iso_dttm_ser
+            ),
         )
 
     @has_access
@@ -3020,7 +3022,7 @@ class Superset(BaseSupersetView):
         return self.render_template(
             "superset/basic.html",
             entry="sqllab",
-            bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser),
+            bootstrap_data=json.dumps(d, default=utils.pessimistic_json_iso_dttm_ser),
         )
 
     @api
@@ -3068,7 +3070,7 @@ class Superset(BaseSupersetView):
         except Exception:
             return json_error_response(
                 "Failed to fetch schemas allowed for csv upload in this database! "
-                "Please contact Superset Admin!",
+                "Please contact your Superset Admin!",
                 stacktrace=utils.get_stacktrace(),
             )
 
