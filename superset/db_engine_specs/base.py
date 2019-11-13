@@ -388,6 +388,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         df.to_sql(**kwargs)
 
     @classmethod
+    def dialect_paramstyle(cls, sqla_uri: str) -> Optional[str]:
+        """
+        Specify a paramstyle for certain dialects. Using the default param
+        style for certain drivers causes issues when special characters, eg (,(,%
+        are used in values.
+        """
+        dialect = ""
+        matches = re.search(r"^([^:+]+)[:+]", sqla_uri, re.IGNORECASE)
+        if matches:
+            dialect = matches.group(1)
+        return {"postgresql": "format"}.get(dialect, None)
+
+    @classmethod
     def create_table_from_csv(cls, form) -> None:
         """
         Create table from contents of a csv. Note: this method does not create
@@ -422,10 +435,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
 
+        sqla_uri = form.con.data.sqlalchemy_uri_decrypted
         df_to_sql_kwargs = {
             "df": df,
             "name": form.name.data,
-            "con": create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
+            "con": create_engine(
+                sqla_uri, echo=False, paramstyle=cls.dialect_paramstyle(sqla_uri)
+            ),
             "schema": form.schema.data,
             "if_exists": form.if_exists.data,
             "index": form.index.data,
