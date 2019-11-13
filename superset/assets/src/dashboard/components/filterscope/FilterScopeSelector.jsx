@@ -487,13 +487,13 @@ export default class FilterScopeSelector extends React.PureComponent {
     const { showSelector } = this.state;
 
     return (
-      <React.Fragment>
-        <div className="filter-scope-container">
-          <div className="filter-scope-header">
-            <h4>{t('Configure filter scopes')}</h4>
-            {showSelector && this.renderEditingFiltersName()}
-          </div>
+      <div className="filter-scope-container">
+        <div className="filter-scope-header">
+          <h4>{t('Configure filter scopes')}</h4>
+          {showSelector && this.renderEditingFiltersName()}
+        </div>
 
+        <div className="filter-scope-body">
           {!showSelector ? (
             <div>{t('There are no filters in this dashboard.')}</div>
           ) : (
@@ -507,6 +507,7 @@ export default class FilterScopeSelector extends React.PureComponent {
             </div>
           )}
         </div>
+
         <div className="dashboard-modal-actions-container">
           <Button onClick={this.onClose}>{t('Close')}</Button>
           {showSelector && (
@@ -515,7 +516,7 @@ export default class FilterScopeSelector extends React.PureComponent {
             </Button>
           )}
         </div>
-      </React.Fragment>
+      </div>
     );
   }
 }

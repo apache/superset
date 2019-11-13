@@ -49,6 +49,7 @@ export default function renderFilterFieldTreeNodes({ nodes, activeKey }) {
   return [
     {
       ...root,
+      label: <span className="root">{root.label}</span>,
       children,
     },
   ];

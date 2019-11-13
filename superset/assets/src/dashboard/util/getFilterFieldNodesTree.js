@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 
 import { getDashboardFilterKey } from './getDashboardFilterKey';
 import { ALL_FILTERS_ROOT } from './constants';
+import { DASHBOARD_ROOT_TYPE } from './componentTypes';
 
 export default function getFilterFieldNodesTree({ dashboardFilters = {} }) {
   const allFilters = Object.values(dashboardFilters).map(dashboardFilter => {
@@ -39,6 +40,7 @@ export default function getFilterFieldNodesTree({ dashboardFilters = {} }) {
   return [
     {
       value: ALL_FILTERS_ROOT,
+      type: DASHBOARD_ROOT_TYPE,
       label: t('All filters'),
       children: allFilters,
     },
