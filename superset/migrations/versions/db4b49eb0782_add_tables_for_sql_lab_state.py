@@ -16,14 +16,14 @@
 # under the License.
 """Add tables for SQL Lab state
 
-Revision ID: 02f260780a2b
+Revision ID: db4b49eb0782
 Revises: c2acd2cf3df2
-Create Date: 2019-11-12 20:20:18.229982
+Create Date: 2019-11-13 11:05:30.122167
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "02f260780a2b"
+revision = "db4b49eb0782"
 down_revision = "c2acd2cf3df2"
 
 import sqlalchemy as sa
