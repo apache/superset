@@ -42,10 +42,16 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        """
+        Tested: hana time returns DATETIME and STRING
+        HANA: 
+            DATE TYPE:f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
+            TIMESTAMP TYPE:f"TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"
+            NVARCHAR TYPE:f"TO_CHAR('{dttm.date().isoformat()}', 'YYYYMMDD')"
+        """
         tt = target_type.upper()
         if tt == "DATETIME":
             return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""  # pylint: disable=line-too-long
-            #return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
         if tt == "STRING":
             return f"TO_CHAR('{dttm.date().isoformat()}', 'YYYYMMDD')"
         return None
