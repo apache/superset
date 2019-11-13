@@ -16,34 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { filterId } from './mockSliceEntities';
-import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../../../../src/dashboard/reducers/dashboardFilters';
+export default function getRevertedFilterScope({
+  checked = [],
+  filterFields = [],
+  filterScopeMap = {},
+}) {
+  const checkedChartIdsByFilterField = checked.reduce((map, value) => {
+    const [chartId, filterField] = value.split(':');
+    return {
+      ...map,
+      [filterField]: (map[filterField] || []).concat(parseInt(chartId, 10)),
+    };
+  }, {});
 
-export const emptyFilters = {};
-
-export const dashboardFilters = {
-  [filterId]: {
-    chartId: filterId,
-    componentId: 'CHART-rwDfbGqeEn',
-    directPathToFilter: [
-      'ROOT_ID',
-      'TABS-VPEX_c476g',
-      'TAB-PMJyKM1yB',
-      'TABS-YdylzDMTMQ',
-      'TAB-O9AaU9FT0',
-      'ROW-l6PrlhwSjh',
-      'CHART-rwDfbGqeEn',
-    ],
-    scopes: {
-      region: DASHBOARD_FILTER_SCOPE_GLOBAL,
-    },
-    isDateFilter: false,
-    isInstantFilter: true,
-    columns: {
-      region: ['a', 'b'],
-    },
-    labels: {
-      region: 'region',
-    },
-  },
-};
+  return filterFields.reduce(
+    (map, filterField) => ({
+      ...map,
+      [filterField]: {
+        ...filterScopeMap[filterField],
+        checked: checkedChartIdsByFilterField[filterField],
+      },
+    }),
+    {},
+  );
+}

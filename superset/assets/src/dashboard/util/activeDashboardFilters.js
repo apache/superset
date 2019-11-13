@@ -17,14 +17,31 @@
  * under the License.
  */
 let activeFilters = {};
+let allFilterBoxChartIds = [];
 
 export function getActiveFilters() {
   return activeFilters;
 }
 
+// currently filterbox is a chart,
+// when define filter scopes, they have to be out pulled out in a few places.
+// after we make filterbox a dashboard build-in component,
+// will not need this check anymore
+export function isFilterBox(chartId) {
+  return allFilterBoxChartIds.includes(chartId);
+}
+
+export function getAllFilterBoxChartIds() {
+  return allFilterBoxChartIds;
+}
+
 // non-empty filters from dashboardFilters,
 // this function does not take into account: filter immune or filter scope settings
 export function buildActiveFilters(allDashboardFilters = {}) {
+  allFilterBoxChartIds = Object.values(allDashboardFilters).map(
+    filter => filter.chartId,
+  );
+
   activeFilters = Object.values(allDashboardFilters).reduce(
     (result, filter) => {
       const { chartId, columns } = filter;

@@ -16,34 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { filterId } from './mockSliceEntities';
-import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../../../../src/dashboard/reducers/dashboardFilters';
+export default function getFilterScopeParentNodes(nodes = [], depthLimit = -1) {
+  const parentNodes = [];
+  const traverse = (currentNode, depth) => {
+    if (!currentNode) {
+      return;
+    }
 
-export const emptyFilters = {};
+    if (currentNode.children && (depthLimit === -1 || depth < depthLimit)) {
+      parentNodes.push(currentNode.value);
+      currentNode.children.forEach(child => traverse(child, depth + 1));
+    }
+  };
 
-export const dashboardFilters = {
-  [filterId]: {
-    chartId: filterId,
-    componentId: 'CHART-rwDfbGqeEn',
-    directPathToFilter: [
-      'ROOT_ID',
-      'TABS-VPEX_c476g',
-      'TAB-PMJyKM1yB',
-      'TABS-YdylzDMTMQ',
-      'TAB-O9AaU9FT0',
-      'ROW-l6PrlhwSjh',
-      'CHART-rwDfbGqeEn',
-    ],
-    scopes: {
-      region: DASHBOARD_FILTER_SCOPE_GLOBAL,
-    },
-    isDateFilter: false,
-    isInstantFilter: true,
-    columns: {
-      region: ['a', 'b'],
-    },
-    labels: {
-      region: 'region',
-    },
-  },
-};
+  if (nodes.length > 0) {
+    nodes.forEach(node => {
+      traverse(node, 0);
+    });
+  }
+
+  return parentNodes;
+}

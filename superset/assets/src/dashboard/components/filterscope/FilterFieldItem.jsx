@@ -16,34 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { filterId } from './mockSliceEntities';
-import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../../../../src/dashboard/reducers/dashboardFilters';
+import React from 'react';
+import PropTypes from 'prop-types';
+import cx from 'classnames';
 
-export const emptyFilters = {};
+import FilterBadgeIcon from '../../../components/FilterBadgeIcon';
 
-export const dashboardFilters = {
-  [filterId]: {
-    chartId: filterId,
-    componentId: 'CHART-rwDfbGqeEn',
-    directPathToFilter: [
-      'ROOT_ID',
-      'TABS-VPEX_c476g',
-      'TAB-PMJyKM1yB',
-      'TABS-YdylzDMTMQ',
-      'TAB-O9AaU9FT0',
-      'ROW-l6PrlhwSjh',
-      'CHART-rwDfbGqeEn',
-    ],
-    scopes: {
-      region: DASHBOARD_FILTER_SCOPE_GLOBAL,
-    },
-    isDateFilter: false,
-    isInstantFilter: true,
-    columns: {
-      region: ['a', 'b'],
-    },
-    labels: {
-      region: 'region',
-    },
-  },
+const propTypes = {
+  label: PropTypes.string.isRequired,
+  colorCode: PropTypes.string.isRequired,
+  isSelected: PropTypes.bool.isRequired,
 };
+
+export default function FilterFieldItem({ label, colorCode, isSelected }) {
+  return (
+    <a
+      className={cx('filter-field-item filter-container', {
+        'is-selected': isSelected,
+      })}
+    >
+      <FilterBadgeIcon colorCode={colorCode} />
+      <label htmlFor={label}>{label}</label>
+    </a>
+  );
+}
+
+FilterFieldItem.propTypes = propTypes;

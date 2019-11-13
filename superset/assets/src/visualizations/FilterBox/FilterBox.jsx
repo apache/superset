@@ -29,7 +29,8 @@ import Control from '../../explore/components/Control';
 import controls from '../../explore/controls';
 import OnPasteSelect from '../../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
-import { getFilterColorKey, getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
+import { getDashboardFilterKey } from '../../dashboard/util/getDashboardFilterKey';
+import { getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
 import FilterBadgeIcon from '../../components/FilterBadgeIcon';
 
 import './FilterBox.css';
@@ -303,7 +304,7 @@ class FilterBox extends React.Component {
   }
 
   renderFilterBadge(chartId, column) {
-    const colorKey = getFilterColorKey(chartId, column);
+    const colorKey = getDashboardFilterKey({ chartId, column });
     const filterColorMap = getFilterColorMap();
     const colorCode = filterColorMap[colorKey];
 

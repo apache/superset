@@ -16,34 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { filterId } from './mockSliceEntities';
-import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../../../../src/dashboard/reducers/dashboardFilters';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
-export const emptyFilters = {};
+import { setDirectPathToChild } from '../actions/dashboardState';
+import FilterScopeSelector from '../components/filterscope/FilterScopeSelector';
 
-export const dashboardFilters = {
-  [filterId]: {
-    chartId: filterId,
-    componentId: 'CHART-rwDfbGqeEn',
-    directPathToFilter: [
-      'ROOT_ID',
-      'TABS-VPEX_c476g',
-      'TAB-PMJyKM1yB',
-      'TABS-YdylzDMTMQ',
-      'TAB-O9AaU9FT0',
-      'ROW-l6PrlhwSjh',
-      'CHART-rwDfbGqeEn',
-    ],
-    scopes: {
-      region: DASHBOARD_FILTER_SCOPE_GLOBAL,
+function mapStateToProps({ dashboardLayout, dashboardFilters, dashboardInfo }) {
+  return {
+    dashboardFilters,
+    filterImmuneSlices: dashboardInfo.metadata.filterImmuneSlices || [],
+    filterImmuneSliceFields:
+      dashboardInfo.metadata.filterImmuneSliceFields || {},
+    layout: dashboardLayout.present,
+  };
+}
+
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators(
+    {
+      setDirectPathToChild,
     },
-    isDateFilter: false,
-    isInstantFilter: true,
-    columns: {
-      region: ['a', 'b'],
-    },
-    labels: {
-      region: 'region',
-    },
-  },
-};
+    dispatch,
+  );
+}
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(FilterScopeSelector);

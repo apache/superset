@@ -35,6 +35,9 @@ export const componentShape = PropTypes.shape({
 
     // Row
     background: PropTypes.oneOf(backgroundStyleOptions.map(opt => opt.value)),
+
+    // Chart
+    chartId: PropTypes.number,
   }),
 });
 
@@ -76,7 +79,7 @@ export const filterIndicatorPropShape = PropTypes.shape({
   isInstantFilter: PropTypes.bool.isRequired,
   label: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
-  scope: PropTypes.string.isRequired,
+  scope: PropTypes.arrayOf(PropTypes.string),
   values: PropTypes.array.isRequired,
 });
 
@@ -101,6 +104,30 @@ export const dashboardInfoPropShape = PropTypes.shape({
   common: PropTypes.object,
   userId: PropTypes.string.isRequired,
 });
+
+/* eslint-disable-next-line  no-undef */
+const lazyFunction = f => () => f().apply(this, arguments);
+
+const leafType = PropTypes.shape({
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  label: PropTypes.string.isRequired,
+});
+
+const parentShape = {
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  label: PropTypes.string.isRequired,
+  children: PropTypes.arrayOf(
+    PropTypes.oneOfType([
+      PropTypes.shape(lazyFunction(() => parentShape)),
+      leafType,
+    ]),
+  ),
+};
+
+export const filterScopeSelectorTreeNodePropShape = PropTypes.oneOfType([
+  PropTypes.shape(parentShape),
+  leafType,
+]);
 
 export const loadStatsPropShape = PropTypes.objectOf(
   PropTypes.shape({

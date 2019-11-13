@@ -117,6 +117,7 @@
     "react-bootstrap": "^0.31.5",
     "react-bootstrap-dialog": "^0.10.0",
     "react-bootstrap-slider": "2.1.5",
+    "react-checkbox-tree": "^1.5.1",
     "react-color": "^2.13.8",
     "react-datetime": "^2.14.0",
     "react-dnd": "^2.5.4",

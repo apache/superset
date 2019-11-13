@@ -16,34 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { filterId } from './mockSliceEntities';
-import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../../../../src/dashboard/reducers/dashboardFilters';
+import React from 'react';
 
-export const emptyFilters = {};
+const ChartIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0.5" y="0.5" width="17" height="17" rx="2.5" fill="#EFF9F9" stroke="#B3DADC" />
+    <rect x="8" y="4" width="2" height="10" rx="1" fill="#B3DADC" />
+    <rect x="12" y="10" width="2" height="4" rx="1" fill="#B3DADC" />
+    <rect x="4" y="6" width="2" height="8" rx="1" fill="#B3DADC" />
+  </svg>
+);
 
-export const dashboardFilters = {
-  [filterId]: {
-    chartId: filterId,
-    componentId: 'CHART-rwDfbGqeEn',
-    directPathToFilter: [
-      'ROOT_ID',
-      'TABS-VPEX_c476g',
-      'TAB-PMJyKM1yB',
-      'TABS-YdylzDMTMQ',
-      'TAB-O9AaU9FT0',
-      'ROW-l6PrlhwSjh',
-      'CHART-rwDfbGqeEn',
-    ],
-    scopes: {
-      region: DASHBOARD_FILTER_SCOPE_GLOBAL,
-    },
-    isDateFilter: false,
-    isInstantFilter: true,
-    columns: {
-      region: ['a', 'b'],
-    },
-    labels: {
-      region: 'region',
-    },
-  },
-};
+export default ChartIcon;

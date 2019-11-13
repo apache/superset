@@ -204,6 +204,6 @@ export const filterComponent = {
     chartId: filterId,
     width: 3,
     height: 10,
-    chartName: 'Filter',
+    sliceName: 'Filter',
   },
 };

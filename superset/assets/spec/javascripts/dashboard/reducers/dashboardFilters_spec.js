@@ -22,7 +22,9 @@ import {
   REMOVE_FILTER,
   CHANGE_FILTER,
 } from '../../../../src/dashboard/actions/dashboardFilters';
-import dashboardFiltersReducer from '../../../../src/dashboard/reducers/dashboardFilters';
+import dashboardFiltersReducer, {
+  DASHBOARD_FILTER_SCOPE_GLOBAL,
+} from '../../../../src/dashboard/reducers/dashboardFilters';
 import {
   emptyFilters,
   dashboardFilters,
@@ -33,7 +35,6 @@ import {
   column,
 } from '../fixtures/mockSliceEntities';
 import { filterComponent } from '../fixtures/mockDashboardLayout';
-import { DASHBOARD_ROOT_ID } from '../../../../src/dashboard/util/constants';
 
 describe('dashboardFilters reducer', () => {
   const form_data = sliceEntitiesForDashboard.slices[filterId].form_data;
@@ -54,7 +55,7 @@ describe('dashboardFilters reducer', () => {
         chartId: filterId,
         componentId: component.id,
         directPathToFilter,
-        scope: DASHBOARD_ROOT_ID,
+        filterName: component.meta.sliceName,
         isDateFilter: false,
         isInstantFilter: !!form_data.instant_filtering,
         columns: {
@@ -62,6 +63,9 @@ describe('dashboardFilters reducer', () => {
         },
         labels: {
           [column]: column,
+        },
+        scopes: {
+          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
         },
       },
     });
@@ -83,7 +87,6 @@ describe('dashboardFilters reducer', () => {
         chartId: filterId,
         componentId: component.id,
         directPathToFilter,
-        scope: DASHBOARD_ROOT_ID,
         isDateFilter: false,
         isInstantFilter: !!form_data.instant_filtering,
         columns: {
@@ -92,6 +95,9 @@ describe('dashboardFilters reducer', () => {
         },
         labels: {
           [column]: column,
+        },
+        scopes: {
+          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
         },
       },
     });
@@ -113,7 +119,6 @@ describe('dashboardFilters reducer', () => {
         chartId: filterId,
         componentId: component.id,
         directPathToFilter,
-        scope: DASHBOARD_ROOT_ID,
         isDateFilter: false,
         isInstantFilter: !!form_data.instant_filtering,
         columns: {
@@ -122,6 +127,9 @@ describe('dashboardFilters reducer', () => {
         },
         labels: {
           [column]: column,
+        },
+        scopes: {
+          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
         },
       },
     });

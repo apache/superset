@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { DASHBOARD_ROOT_ID } from '../util/constants';
 import {
   ADD_FILTER,
   REMOVE_FILTER,
@@ -28,15 +27,23 @@ import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
 import { buildFilterColorMap } from '../util/dashboardFiltersColorMap';
 import { buildActiveFilters } from '../util/activeDashboardFilters';
+import { DASHBOARD_ROOT_ID } from '../util/constants';
+
+export const DASHBOARD_FILTER_SCOPE_GLOBAL = {
+  scope: [DASHBOARD_ROOT_ID],
+  immune: [],
+};
 
 export const dashboardFilter = {
   chartId: 0,
-  componentId: '',
+  componentId: null,
+  filterName: null,
   directPathToFilter: [],
-  scope: DASHBOARD_ROOT_ID,
   isDateFilter: false,
   isInstantFilter: true,
   columns: {},
+  labels: {},
+  scopes: {},
 };
 
 export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
@@ -44,6 +51,13 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
     [ADD_FILTER]() {
       const { chartId, component, form_data } = action;
       const { columns, labels } = getFilterConfigsFromFormdata(form_data);
+      const scopes = Object.keys(columns).reduce(
+        (map, column) => ({
+          ...map,
+          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
+        }),
+        {},
+      );
       const directPathToFilter = component
         ? (component.parents || []).slice().concat(component.id)
         : [];
@@ -52,9 +66,11 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
         ...dashboardFilter,
         chartId,
         componentId: component.id,
+        filterName: component.meta.sliceName,
         directPathToFilter,
         columns,
         labels,
+        scopes,
         isInstantFilter: !!form_data.instant_filtering,
         isDateFilter: Object.keys(columns).includes(TIME_RANGE),
       };

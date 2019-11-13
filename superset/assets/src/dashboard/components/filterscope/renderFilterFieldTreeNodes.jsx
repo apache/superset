@@ -16,34 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { filterId } from './mockSliceEntities';
-import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../../../../src/dashboard/reducers/dashboardFilters';
+import React from 'react';
 
-export const emptyFilters = {};
+import FilterFieldItem from './FilterFieldItem';
+import { getFilterColorMap } from '../../util/dashboardFiltersColorMap';
 
-export const dashboardFilters = {
-  [filterId]: {
-    chartId: filterId,
-    componentId: 'CHART-rwDfbGqeEn',
-    directPathToFilter: [
-      'ROOT_ID',
-      'TABS-VPEX_c476g',
-      'TAB-PMJyKM1yB',
-      'TABS-YdylzDMTMQ',
-      'TAB-O9AaU9FT0',
-      'ROW-l6PrlhwSjh',
-      'CHART-rwDfbGqeEn',
-    ],
-    scopes: {
-      region: DASHBOARD_FILTER_SCOPE_GLOBAL,
+export default function renderFilterFieldTreeNodes({ nodes, activeKey }) {
+  if (!nodes) {
+    return [];
+  }
+
+  const root = nodes[0];
+  const allFilterNodes = root.children;
+  const children = allFilterNodes.map(node => ({
+    ...node,
+    children: node.children.map(child => {
+      const { label, value } = child;
+      const colorCode = getFilterColorMap()[value];
+      return {
+        ...child,
+        label: (
+          <FilterFieldItem
+            isSelected={value === activeKey}
+            label={label}
+            colorCode={colorCode}
+          />
+        ),
+      };
+    }),
+  }));
+
+  return [
+    {
+      ...root,
+      children,
     },
-    isDateFilter: false,
-    isInstantFilter: true,
-    columns: {
-      region: ['a', 'b'],
-    },
-    labels: {
-      region: 'region',
-    },
-  },
-};
+  ];
+}

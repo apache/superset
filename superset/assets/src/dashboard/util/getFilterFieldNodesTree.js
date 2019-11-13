@@ -16,34 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { filterId } from './mockSliceEntities';
-import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../../../../src/dashboard/reducers/dashboardFilters';
+import { t } from '@superset-ui/translation';
 
-export const emptyFilters = {};
+import { getDashboardFilterKey } from './getDashboardFilterKey';
+import { ALL_FILTERS_ROOT } from './constants';
 
-export const dashboardFilters = {
-  [filterId]: {
-    chartId: filterId,
-    componentId: 'CHART-rwDfbGqeEn',
-    directPathToFilter: [
-      'ROOT_ID',
-      'TABS-VPEX_c476g',
-      'TAB-PMJyKM1yB',
-      'TABS-YdylzDMTMQ',
-      'TAB-O9AaU9FT0',
-      'ROW-l6PrlhwSjh',
-      'CHART-rwDfbGqeEn',
-    ],
-    scopes: {
-      region: DASHBOARD_FILTER_SCOPE_GLOBAL,
+export default function getFilterFieldNodesTree({ dashboardFilters = {} }) {
+  const allFilters = Object.values(dashboardFilters).map(dashboardFilter => {
+    const { chartId, filterName, columns, labels } = dashboardFilter;
+    const children = Object.keys(columns).map(column => ({
+      value: getDashboardFilterKey({ chartId, column }),
+      label: labels[column] || column,
+    }));
+    return {
+      value: chartId,
+      label: filterName,
+      children,
+      showCheckbox: true,
+    };
+  });
+
+  return [
+    {
+      value: ALL_FILTERS_ROOT,
+      label: t('Select/deselect all filters'),
+      children: allFilters,
     },
-    isDateFilter: false,
-    isInstantFilter: true,
-    columns: {
-      region: ['a', 'b'],
-    },
-    labels: {
-      region: 'region',
-    },
-  },
-};
+  ];
+}
