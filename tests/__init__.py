@@ -15,17 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from os import environ
-
-from superset.app import create_app
-
-"""
-Setting this envvar forces unit tests to use the "test" config for all tests
-"""
-environ.setdefault("SUPERSET_CONFIG", "tests.superset_test_config")
-
 """
 Here is where we create the app which ends up being shared across all tests. A future
-optimization will be to create a separate app instance for each test class.  
+optimization will be to create a separate app instance for each test class.
 """
+from superset.app import create_app
 app = create_app()
