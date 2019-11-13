@@ -29,6 +29,11 @@ from flask.cli import FlaskGroup, with_appcontext
 from flask_appbuilder import Model
 from pathlib2 import Path
 
+from superset import app, appbuilder, security_manager
+from superset.app import create_app
+from superset.extensions import celery_app, db
+from superset.utils import core as utils
+
 # from superset import app, appbuilder, db, examples, security_manager, create_app
 # from superset.common.tags import add_favorites, add_owners, add_types
 # from superset.extensions import celery_app
@@ -36,10 +41,6 @@ from pathlib2 import Path
 
 # config = app.config
 
-from superset import app, appbuilder, security_manager
-from superset.app import create_app
-from superset.extensions import celery_app, db
-from superset.utils import core as utils
 
 
 @click.group(cls=FlaskGroup, create_app=create_app)

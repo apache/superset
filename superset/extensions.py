@@ -24,9 +24,8 @@ from flask_migrate import Migrate
 from flask_talisman import Talisman
 from werkzeug.local import LocalProxy
 
-from superset.utils.feature_flag_manager import FeatureFlagManager
-
 from superset.utils.cache_manager import CacheManager
+from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.manifest_processor import UIManifestProcessor
 from superset.utils.results_backend_manager import ResultsBackendManager
 

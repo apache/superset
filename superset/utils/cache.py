@@ -17,8 +17,9 @@
 # pylint: disable=C,R,W
 from typing import Optional
 
-from flask import request, Flask
+from flask import Flask, request
 from flask_caching import Cache
+
 from superset.extensions import cache_manager
 
 

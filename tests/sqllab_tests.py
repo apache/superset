@@ -21,7 +21,7 @@ from random import random
 
 import prison
 
-from superset import db, security_manager, ConnectorRegistry
+from superset import ConnectorRegistry, db, security_manager
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query

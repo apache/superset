@@ -18,30 +18,29 @@
 import logging
 import os
 
-from flask_appbuilder import IndexView, expose
-from flask_compress import Compress
+import wtforms_json
 from flask import Flask, redirect
+from flask_appbuilder import expose, IndexView
+from flask_compress import Compress
+from flask_wtf import CSRFProtect
+
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import (
     _event_logger,
     APP_DIR,
     appbuilder,
     cache_manager,
+    celery_app,
     db,
     feature_flag_manager,
     manifest_processor,
     migrate,
     results_backend_manager,
     talisman,
-    celery_app,
 )
-from flask_wtf import CSRFProtect
-
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
 from superset.utils.core import pessimistic_connection_handling
-from superset.utils.log import get_event_logger_from_cfg_value, DBEventLogger
-import wtforms_json
-
+from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
 logger = logging.getLogger(__name__)
 
