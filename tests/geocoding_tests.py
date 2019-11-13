@@ -56,8 +56,8 @@ class GeocodingTests(SupersetTestCase):
             "ETH Zürich",
         ]
         # task = superset.geocode()
-        r = self.get_resp(u)
-        print(r)
+        # r = self.get_resp(u)
+        """print(r)
         try:
             resp = self.get_resp(url)
             assert "True" in resp
@@ -67,3 +67,4 @@ class GeocodingTests(SupersetTestCase):
             resp3 = self.get_resp(url3)
         except Exception as e:
             print(e)
+        """
