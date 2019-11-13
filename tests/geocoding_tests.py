@@ -47,13 +47,17 @@ class GeocodingTests(SupersetTestCase):
         # assert isinstance(resp, Location)
 
     # Solely for testing the functionality while developing
-    # TODO remove this
     def test_async(self):
         url = "/superset/geocoding/is_in_progress"
         u = "/superset/geocoding/geocode"
         superset = views.Superset()
+        dats = [
+            "HSR Hochschule für Technik, Oberseestrasse 10, CH-8640 Rapperswil",
+            "ETH Zürich",
+        ]
         # task = superset.geocode()
         r = self.get_resp(u)
+        print(r)
         try:
             resp = self.get_resp(url)
             assert "True" in resp

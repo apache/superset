@@ -28,6 +28,7 @@ import geopy
 import msgpack
 import pandas as pd
 import pyarrow as pa
+import requests
 import simplejson as json
 from flask import (
     abort,
@@ -3058,7 +3059,7 @@ class Superset(BaseSupersetView):
     # Variables for geocoding
     progress = ""
     in_progress = False
-    interrupt = False
+    interruptflag = False
 
     @has_access
     @expose("/geocoding")
@@ -3073,10 +3074,10 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose("/geocoding/geocode", methods=["GET"])
+    @expose("/geocoding/geocode", methods=["POST"])
     def geocode(self) -> Response:
-        self._geocode.delay("as")
-        return json_success("")
+        dat = self._geocode(request.data, dev=True)
+        return json_success(dat)
 
     def _get_mapbox_key(self):
         return conf["MAPBOX_API_KEY"]
@@ -3084,26 +3085,47 @@ class Superset(BaseSupersetView):
     def _check_table_config(self, tableName: str):
         pass
 
-    def _geocode(self, data):
+    def _geocode(self, data, dev=False):
         self.in_progress = True
-        coder = geopy.geocoders.MapBox(self._get_mapbox_key())
+        counter = 0
+        if dev:
+            datalen = 1000
+            for i in range(datalen):
+                if self.interruptflag:
+                    self.interruptflag = False
+                    return ""
+                time.sleep(5)
+                counter = counter + 1
+                self.progress = counter / datalen
+            return ""
+        baseurl = "https://api.maptiler.com/geocoding/"
         geocoded_data = {}
+        data = {"a": "HSR Oberseestrasse 10 CH-8640 Rapperswil", "b": "ETH Zürich"}
         datalen = len(data)
         counter = 0
         for datum_id in data:
-            # TODO switch to maptiler
             try:
-                if self.interrupt:
-                    self.interrupt = False
+                if self.interruptflag:
+                    self.interruptflag = False
                     return geocoded_data
                 address = data[datum_id]
-                resp = coder.geocode(address)
-                geocoded_data[id] = resp
+                resp = requests.get(
+                    baseurl + address + ".json?key=" + conf["MAPTILER_API_KEY"]
+                )
+                dat = resp.content.decode()
+                jsondat = json.loads(dat)
+                # TODO give better anmes and clean
+                features = jsondat["features"]
+                if len(features) != 0:
+                    feature = features[0]
+                    center = feature["center"]
+                    geocoded_data[id] = center
                 counter += 1
-                progress = datalen / counter
+                progress = counter / datalen
             # TODO be more precise with the possible exceptions
-            except:
+            except Exception as e:
                 # TODO decide whether to interrupt here or keep going
+                print(e)
                 pass
         progress = 100
         in_progress = False
