@@ -233,6 +233,8 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
         ),
     }
 
+    yaml_dict_key = "databases"
+
     edit_form_extra_fields = {
         "cluster_name": QuerySelectField(
             "Cluster",

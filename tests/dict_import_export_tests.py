@@ -24,6 +24,7 @@ from superset import db
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.utils.core import get_example_database
+from superset.utils.dict_import_export import export_to_dict
 
 from .base_tests import SupersetTestCase
 
@@ -264,6 +265,26 @@ class DictImportExportTests(SupersetTestCase):
         self.assert_table_equals(copy_table, self.get_table(imported_table.id))
         self.yaml_compare(
             imported_copy_table.export_to_dict(), imported_table.export_to_dict()
+        )
+
+    def test_export_datasource_ui_cli(self):
+        cli_export = export_to_dict(
+            session=db.session,
+            recursive=True,
+            back_references=False,
+            include_defaults=False,
+        )
+        self.get_resp("/login/", data=dict(username="admin", password="general"))
+        resp = self.get_resp(
+            "/databaseview/action_post", {"action": "yaml_export", "rowid": 1}
+        )
+        ui_export = yaml.safe_load(resp)
+        self.assertEqual(
+            ui_export["databases"][0]["database_name"],
+            cli_export["databases"][0]["database_name"],
+        )
+        self.assertEqual(
+            ui_export["databases"][0]["tables"], cli_export["databases"][0]["tables"]
         )
 
     def test_import_druid_no_metadata(self):

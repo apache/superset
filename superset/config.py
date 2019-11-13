@@ -288,7 +288,7 @@ SUPERSET_WEBSERVER_DOMAINS = None
 
 # Allowed format types for upload on Database view
 # TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
-ALLOWED_EXTENSIONS = set(["csv"])
+ALLOWED_EXTENSIONS = {"csv", "tsv"}
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.
@@ -653,8 +653,11 @@ WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
+
 # Send user to a link where they can read more about Superset
 DOCUMENTATION_URL = None
+DOCUMENTATION_TEXT = "Documentation"
+DOCUMENTATION_ICON = None  # Recommended size: 16x16
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
@@ -705,7 +708,7 @@ SQLALCHEMY_EXAMPLES_URI = None
 SIP_15_ENABLED = False
 SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
 SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
-SIP_15_TOAST_MESSAGE = 'Action Required: Preview then save your chart using the new time range endpoints <a href="{url}" class="alert-link">here</a>.'
+SIP_15_TOAST_MESSAGE = 'Action Required: Preview then save your chart using the new time range endpoints <a target="_blank" href="{url}" class="alert-link">here</a>.'
 
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful

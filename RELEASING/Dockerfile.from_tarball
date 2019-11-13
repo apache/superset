@@ -60,7 +60,7 @@ RUN pip install --upgrade setuptools pip \
     && pip install -e . \
     && rm -rf /root/.cache/pip
 
-RUN fabmanager babel-compile --target superset/translations
+RUN flask fab babel-compile --target superset/translations
 
 RUN pip install -e . \
     && rm -rf /root/.cache/pip
