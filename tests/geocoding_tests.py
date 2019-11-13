@@ -49,6 +49,17 @@ class GeocodingTests(SupersetTestCase):
     # Solely for testing the functionality while developing
     # TODO remove this
     def test_async(self):
+        url = "/superset/geocoding/is_in_progress"
+        u = "/superset/geocoding/geocode"
         superset = views.Superset()
-        task = superset.geocode()
-        # await task
+        # task = superset.geocode()
+        r = self.get_resp(u)
+        try:
+            resp = self.get_resp(url)
+            assert "True" in resp
+            url2 = "/superset/geocoding/progress"
+            resp2 = self.get_resp(url2)
+            url3 = "/superset/geocoding/interrupt"
+            resp3 = self.get_resp(url3)
+        except Exception as e:
+            print(e)

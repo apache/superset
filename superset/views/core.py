@@ -15,9 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-import asyncio
 import logging
 import re
+import time
 from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
@@ -103,7 +103,6 @@ from .base import (
     SupersetFilter,
     SupersetModelView,
 )
-from .database import api as database_api, views as in_views
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
@@ -3056,6 +3055,11 @@ class Superset(BaseSupersetView):
                 stacktrace=utils.get_stacktrace(),
             )
 
+    # Variables for geocoding
+    progress = ""
+    in_progress = False
+    interrupt = False
+
     @has_access
     @expose("/geocoding")
     def geocoding(self):
@@ -3071,10 +3075,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/geocoding/geocode", methods=["GET"])
     def geocode(self) -> Response:
-        asdf = ""
-        task = asyncio.create_task(self._geocode("data"))
-        # asyncio.run(task)
-        return task
+        self._geocode.delay("as")
         return json_success("")
 
     def _get_mapbox_key(self):
@@ -3083,35 +3084,52 @@ class Superset(BaseSupersetView):
     def _check_table_config(self, tableName: str):
         pass
 
-    # TODO make async
-    async def _geocode(self, data):
-        # what type does data have? List of String arrays?
-
+    def _geocode(self, data):
+        self.in_progress = True
         coder = geopy.geocoders.MapBox(self._get_mapbox_key())
-        resp = coder.geocode(
-            "HSR Hochschule für Technik, Oberseestrasse 10, CH-8640 Rapperswil"
-        )
-        return resp
+        geocoded_data = {}
+        datalen = len(data)
+        counter = 0
+        for datum_id in data:
+            # TODO switch to maptiler
+            try:
+                if self.interrupt:
+                    self.interrupt = False
+                    return geocoded_data
+                address = data[datum_id]
+                resp = coder.geocode(address)
+                geocoded_data[id] = resp
+                counter += 1
+                progress = datalen / counter
+            # TODO be more precise with the possible exceptions
+            except:
+                # TODO decide whether to interrupt here or keep going
+                pass
+        progress = 100
+        in_progress = False
+        return geocoded_data
 
     def _add_lat_long_columns(self, data):
         pass
 
     @api
-    @has_access_api
+    # @has_access_api
     @expose("/geocoding/is_in_progress", methods=["GET"])
     def is_in_progress(self) -> Response:
-        return json_success("")
+        return self.in_progress
+        # return json_success(self.in_progress)
 
     @api
     @has_access_api
     @expose("/geocoding/progress", methods=["GET"])
     def progress(self) -> Response:
-        return json_success("")
+        return json_success(self.progress)
 
     @api
     @has_access_api
     @expose("/geocoding/interrupt", methods=["POST"])
     def interrupt(self) -> Response:
+        interrupt = True
         return json_success("")
 
 
