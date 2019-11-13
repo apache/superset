@@ -384,6 +384,7 @@ QUERY_LOGGER = None
 
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = "pk.eyJ1Ijoic2xveXBvZyIsImEiOiJjazJ2dGh4dzQwODJoM2VwZzl2bDY2cmp0In0.M4mwyiyDjW29VWTfhuC0yg"
+MAPTILER_API_KEY = "aKHAVgbTkofeov55g9YX"
 
 # Maximum number of rows returned from a database
 # in async mode, no more than SQL_MAX_ROW will be returned and stored
