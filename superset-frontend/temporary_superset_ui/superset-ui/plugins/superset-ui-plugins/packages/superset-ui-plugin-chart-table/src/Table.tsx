@@ -3,9 +3,15 @@ import DataTable from '@airbnb/lunar/lib/components/DataTable';
 import Text from '@airbnb/lunar/lib/components/Text';
 import Input from '@airbnb/lunar/lib/components/Input';
 import withStyles, { WithStylesProps } from '@airbnb/lunar/lib/composers/withStyles';
-import { Renderers, ParentRow, ColumnMetadata } from '@airbnb/lunar/lib/components/DataTable/types';
-import dompurify from 'dompurify';
+import {
+  Renderers,
+  ParentRow,
+  ColumnMetadata,
+  GenericRow,
+} from '@airbnb/lunar/lib/components/DataTable/types';
 import { createSelector } from 'reselect';
+import { TimeFormatter } from '@superset-ui/time-format';
+import { NumberFormatter } from '@superset-ui/number-format';
 import getRenderer, { ColumnType, Cell } from './getRenderer';
 
 type Props = {
@@ -43,6 +49,8 @@ const CELL_PADDING = 32;
 
 const MAX_COLUMN_WIDTH = 300;
 
+const htmlTagRegex = /(<([^>]+)>)/gi;
+
 export type TableProps = Props & Readonly<typeof defaultProps>;
 
 type InternalTableProps = TableProps & WithStylesProps;
@@ -60,13 +68,12 @@ function getCellHash(cell: Cell) {
   return `${cell.key}#${cell.value}`;
 }
 
-function getText(value: unknown) {
+function getText(value: unknown, format: TimeFormatter | NumberFormatter | undefined) {
+  if (format) {
+    return format.format(value as any);
+  }
   if (typeof value === 'string') {
-    const span = document.createElement('span');
-    const sanitizedString = dompurify.sanitize(value);
-    span.innerHTML = sanitizedString;
-
-    return String(span.textContent || span.innerText);
+    return value.replace(htmlTagRegex, '');
   }
 
   return String(value);
@@ -81,14 +88,27 @@ type columnWidthMetaDataType = {
 
 class TableVis extends React.PureComponent<InternalTableProps, TableState> {
   columnWidthSelector = createSelector(
-    (data: ParentRow[]) => data,
+    (data: { rows: ParentRow[]; columns: ColumnType[] }) => data,
     data => {
-      const keys = data && data.length > 0 ? Object.keys(data[0].data) : [];
+      const { rows, columns } = data;
+      const keys = rows && rows.length > 0 ? Object.keys(rows[0].data) : [];
       let totalWidth = 0;
       const columnWidthMetaData: columnWidthMetaDataType = {};
+      const columnsMap: {
+        [key: string]: ColumnType;
+      } = {};
+
+      columns.forEach(column => {
+        columnsMap[column.key] = column;
+      });
 
       keys.forEach(key => {
-        const maxLength = Math.max(...data.map(d => getText(d.data[key]).length), key.length);
+        const column = columnsMap[key];
+        const format = column && column.format;
+        const maxLength = Math.max(
+          ...rows.map(d => getText(d.data[key], format).length),
+          key.length,
+        );
         const stringWidth = maxLength * CHAR_WIDTH + CELL_PADDING;
         columnWidthMetaData[key] = {
           maxWidth: MAX_COLUMN_WIDTH,
@@ -211,6 +231,8 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     const dataToRender = searchKeyword === '' ? data : filteredRows;
     const renderers: Renderers = {};
     const columnMetadata: ColumnMetadata = {};
+    const convertToLowerCase = ({ data: d }: GenericRow, key: string) =>
+      typeof d[key] === 'string' ? (d[key] as string).toLowerCase() : d[key];
 
     columns.forEach(column => {
       renderers[column.key] = getRenderer({
@@ -229,7 +251,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     });
 
     const keys = dataToRender && dataToRender.length > 0 ? Object.keys(dataToRender[0].data) : [];
-    const columnWidthInfo = this.columnWidthSelector(data);
+    const columnWidthInfo = this.columnWidthSelector({ columns, rows: data });
 
     keys.forEach(key => {
       columnMetadata[key] = {
@@ -285,6 +307,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
             renderers={renderers}
             height={tableHeight}
             width={Math.max(columnWidthInfo.totalWidth, width)}
+            sortByValue={convertToLowerCase}
           />
         </div>
       </>

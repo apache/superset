@@ -17,7 +17,7 @@ export default [
     sum__num: 1506025,
   },
   {
-    name: 'John',
+    name: 'john',
     sum__num: 1426074,
   },
   {

@@ -68,6 +68,7 @@ export default function getRenderer({
   const baseBoxStyle: CSSProperties = {
     cursor: cursorStyle,
     margin: '4px -16px',
+    wordBreak: 'break-all',
   };
 
   const selectedBoxStyle: CSSProperties = {
