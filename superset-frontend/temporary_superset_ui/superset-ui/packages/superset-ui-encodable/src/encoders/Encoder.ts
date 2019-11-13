@@ -131,7 +131,7 @@ export default class Encoder<Config extends EncodingConfig> {
               channelEncoders,
               createLegendItems,
               field,
-              items: createLegendItems(firstEncoder.getDomain(data)),
+              items: createLegendItems(firstEncoder.getDomainFromDataset(data)),
               type: definition.type,
             };
           }
