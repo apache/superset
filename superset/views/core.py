@@ -3057,7 +3057,10 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/geocoding")
     def geocoding(self):
-        bootstrap_data = {"tables": self._get_editable_tables(), "common": self.common_bootstrap_payload()}
+        bootstrap_data = {
+            "tables": self._get_editable_tables(),
+            "common": self.common_bootstrap_payload(),
+        }
 
         if request.args.get("json") == "true":
             return json_success(
