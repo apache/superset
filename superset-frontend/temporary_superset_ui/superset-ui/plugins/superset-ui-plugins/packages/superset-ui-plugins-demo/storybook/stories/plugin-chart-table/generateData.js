@@ -3,17 +3,17 @@
 /* eslint-disable sort-keys */
 
 const getHTML = () => {
-  const randomText = Array(Math.floor(Math.random() * 20))
+  const randomText = Array(Math.floor(Math.random() * 50))
     .fill('very')
-    .join(' ');
+    .join('_');
 
-  return `<a href="www.google.com" target="_blank">Link Test with a ${randomText} long title</a>`;
+  return `<a href="https://www.google.com" target="_blank">Link Test with a ${randomText} long title</a>`;
 };
 
 export default function generateData(rowCount = 30, columnCount = 20) {
   const columns = Array(columnCount)
     .fill(0)
-    .map((_, i) => `clm ${i}`);
+    .map((_, i) => `clm${i}`);
 
   return Array(rowCount)
     .fill(0)
@@ -24,7 +24,7 @@ export default function generateData(rowCount = 30, columnCount = 20) {
         (prev, key, i) => {
           const obj = prev;
           // eslint-disable-next-line no-restricted-properties
-          obj[key] = Math.round(Math.random() * Math.pow(10, i));
+          obj[key] = Math.round(Math.random() * Math.pow(10, columnCount - i));
 
           return obj;
         },

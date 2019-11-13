@@ -27,7 +27,7 @@ export default {
       trend: 1,
     },
     {
-      name: 'John',
+      name: 'john',
       sum__num: 1426074,
       '%sum__num': 0.12,
       trend: -2,
