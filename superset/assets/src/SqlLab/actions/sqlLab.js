@@ -271,7 +271,7 @@ export function fetchQueryResults(query, displayLimit) {
     })
       .then(({ text = '{}' }) => {
         const bigIntJson = JSONbig.parse(text);
-        dispatch(querySuccess(query, bigIntJson));
+        return dispatch(querySuccess(query, bigIntJson));
       })
       .catch(response =>
         getClientErrorObject(response).then((error) => {

@@ -87,8 +87,8 @@ describe('async actions', () => {
 
   describe('fetchQueryResults', () => {
     const makeRequest = () => {
-      const actionThunk = actions.fetchQueryResults(query);
-      return actionThunk(dispatch);
+      const request = actions.fetchQueryResults(query);
+      return request(dispatch);
     };
 
     it('makes the fetch request', () => {
@@ -114,23 +114,35 @@ describe('async actions', () => {
         expect(dispatch.getCall(1).lastArg.results.data.toString()).toBe(mockBigNumber);
       }));
 
-    it('calls querySuccess on fetch success', () =>
-      makeRequest().then(() => {
-        expect(dispatch.callCount).toBe(2);
-        expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_SUCCESS);
-      }));
+    it('calls querySuccess on fetch success', () => {
+      expect.assertions(1);
+
+      const store = mockStore({});
+      const expectedActionTypes = [
+        actions.REQUEST_QUERY_RESULTS,
+        actions.QUERY_SUCCESS,
+      ];
+      return store.dispatch(actions.fetchQueryResults(query)).then(() => {
+        expect(store.getActions().map(a => a.type)).toEqual(expectedActionTypes);
+      });
+    });
 
     it('calls queryFailed on fetch error', () => {
-      expect.assertions(2);
+      expect.assertions(1);
+
       fetchMock.get(
         fetchQueryEndpoint,
         { throws: { error: 'error text' } },
         { overwriteRoutes: true },
       );
 
-      return makeRequest().then(() => {
-        expect(dispatch.callCount).toBe(2);
-        expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_FAILED);
+      const store = mockStore({});
+      const expectedActionTypes = [
+        actions.REQUEST_QUERY_RESULTS,
+        actions.QUERY_FAILED,
+      ];
+      return store.dispatch(actions.fetchQueryResults(query)).then(() => {
+        expect(store.getActions().map(a => a.type)).toEqual(expectedActionTypes);
       });
     });
   });
@@ -178,7 +190,7 @@ describe('async actions', () => {
     });
 
     it('calls queryFailed on fetch error', () => {
-      expect.assertions(2);
+      expect.assertions(1);
 
       fetchMock.post(
         runQueryEndpoint,
@@ -186,9 +198,13 @@ describe('async actions', () => {
         { overwriteRoutes: true },
       );
 
-      return makeRequest().then(() => {
-        expect(dispatch.callCount).toBe(2);
-        expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_FAILED);
+      const store = mockStore({});
+      const expectedActionTypes = [
+        actions.START_QUERY,
+        actions.QUERY_FAILED,
+      ];
+      return store.dispatch(actions.runQuery(query)).then(() => {
+        expect(store.getActions().map(a => a.type)).toEqual(expectedActionTypes);
       });
     });
   });
@@ -230,16 +246,26 @@ describe('async actions', () => {
   });
 
   describe('cloneQueryToNewTab', () => {
+    let stub;
+    beforeEach(() => {
+      stub = sinon.stub(shortid, 'generate').returns('abcd');
+    });
+    afterEach(() => {
+      stub.restore();
+    });
+
     it('creates new query editor', () => {
       expect.assertions(1);
 
       const id = 'id';
       const state = {
-        tabHistory: [id],
-        queryEditors: [{ id, title: 'Dummy query editor' }],
+        sqlLab: {
+          tabHistory: [id],
+          queryEditors: [{ id, title: 'Dummy query editor' }],
+        },
       };
       const store = mockStore(state);
-      const expected = {
+      const expectedActions = [{
         type: actions.ADD_QUERY_EDITOR,
         queryEditor: {
           title: 'Copy of Dummy query editor',
@@ -249,9 +275,12 @@ describe('async actions', () => {
           sql: 'SELECT * FROM something',
           queryLimit: undefined,
           maxRow: undefined,
+          id: 'abcd',
         },
-      };
-      expect(store.dispatch(actions.cloneQueryToNewTab(query))).toEqual(expected);
+      }];
+      return store.dispatch(actions.cloneQueryToNewTab(query)).then(() => {
+        expect(store.getActions()).toEqual(expectedActions);
+      });
     });
   });
 
@@ -347,6 +376,7 @@ describe('async actions', () => {
             type: actions.REQUEST_QUERY_RESULTS,
             query,
           },
+          // missing below
           {
             type: actions.QUERY_SUCCESS,
             query,

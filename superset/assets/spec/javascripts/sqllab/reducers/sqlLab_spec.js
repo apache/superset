@@ -188,35 +188,57 @@ describe('sqlLabReducer', () => {
   describe('Run Query', () => {
     let newState;
     let query;
-    let newQuery;
     beforeEach(() => {
       newState = { ...initialState };
-      newQuery = { ...query };
+      query = {
+        id: 'abcd',
+        progress: 0,
+        startDttm: now(),
+        state: 'running',
+        cached: false,
+        sqlEditorId: 'dfsadfs',
+      };
     });
     it('should start a query', () => {
       const action = {
         type: actions.START_QUERY,
         query: {
-          ...newQuery,
           id: 'abcd',
           progress: 0,
           startDttm: now(),
           state: 'running',
           cached: false,
+          sqlEditorId: 'dfsadfs',
         },
       };
       newState = sqlLabReducer(newState, action);
       expect(Object.keys(newState.queries)).toHaveLength(1);
     });
     it('should stop the query', () => {
-      newState = sqlLabReducer(newState, actions.startQuery(newQuery));
-      newState = sqlLabReducer(newState, actions.stopQuery(newQuery));
+      const startQueryAction = {
+        type: actions.START_QUERY,
+        query,
+      };
+      newState = sqlLabReducer(newState, startQueryAction);
+      const stopQueryAction = {
+        type: actions.STOP_QUERY,
+        query,
+      };
+      newState = sqlLabReducer(newState, stopQueryAction);
       const q = newState.queries[Object.keys(newState.queries)[0]];
       expect(q.state).toBe('stopped');
     });
     it('should remove a query', () => {
-      newState = sqlLabReducer(newState, actions.startQuery(newQuery));
-      newState = sqlLabReducer(newState, actions.removeQuery(newQuery));
+      const startQueryAction = {
+        type: actions.START_QUERY,
+        query,
+      };
+      newState = sqlLabReducer(newState, startQueryAction);
+      const removeQueryAction = {
+        type: actions.REMOVE_QUERY,
+        query,
+      };
+      newState = sqlLabReducer(newState, removeQueryAction);
       expect(Object.keys(newState.queries)).toHaveLength(0);
     });
     it('should refresh queries when polling returns empty', () => {

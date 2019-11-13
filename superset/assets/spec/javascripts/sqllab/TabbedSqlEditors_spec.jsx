@@ -184,9 +184,9 @@ describe('TabbedSqlEditors', () => {
     wrapper.instance().handleSelect('add_tab', mockEvent);
     expect(wrapper.instance().newQueryEditor.callCount).toBe(1);
 
+    // cannot switch to current tab, switchQueryEditor gets called with undefined
     wrapper.instance().handleSelect('dfsadfs', mockEvent);
-    expect(wrapper.instance().props.actions.switchQueryEditor.getCall(0).args[0].id)
-        .toContain('dfsadfs');
+    expect(wrapper.instance().props.actions.switchQueryEditor.callCount).toEqual(0);
     wrapper.instance().newQueryEditor.restore();
   });
   it('should render', () => {
