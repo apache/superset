@@ -834,7 +834,9 @@ class UtilsTestCase(SupersetTestCase):
         def init_cache(app):
             return CustomCache(app, {})
 
-        assert isinstance(CacheManager._setup_cache(app, init_cache), CustomCache) is True
+        assert (
+            isinstance(CacheManager._setup_cache(app, init_cache), CustomCache) is True
+        )
 
     def test_get_stacktrace(self):
         with app.app_context():

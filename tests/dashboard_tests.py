@@ -469,11 +469,7 @@ class DashboardTests(SupersetTestCase):
         db.session.merge(regular_dash)
         db.session.commit()
 
-        dash = (
-            db.session.query(models.Dashboard)
-            .filter_by(slug=fav_dash_slug)
-            .first()
-        )
+        dash = db.session.query(models.Dashboard).filter_by(slug=fav_dash_slug).first()
 
         favorites = models.FavStar()
         favorites.obj_id = dash.id

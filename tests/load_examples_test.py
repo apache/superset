@@ -25,6 +25,7 @@ class SupersetDataFrameTestCase(SupersetTestCase):
     def setUp(self) -> None:
         # Late importing here as we need an app context to be pushed...
         from superset import examples
+
         self.examples = examples
 
     def test_load_css_templates(self):
@@ -41,6 +42,7 @@ class SupersetDataFrameTestCase(SupersetTestCase):
 
     def test_load_test_users_run(self):
         from superset.cli import load_test_users_run
+
         load_test_users_run()
 
     def test_load_unicode_test_data(self):

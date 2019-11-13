@@ -32,7 +32,8 @@ from superset.extensions import (
     migrate,
     results_backend_manager,
     talisman,
-    celery_app)
+    celery_app,
+)
 from flask_wtf import CSRFProtect
 
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -194,7 +195,9 @@ class SupersetAppInitializer:
         if self.config["ENABLE_PROXY_FIX"]:
             from werkzeug.middleware.proxy_fix import ProxyFix
 
-            self.flask_app.wsgi_app = ProxyFix(self.flask_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"])
+            self.flask_app.wsgi_app = ProxyFix(
+                self.flask_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
+            )
 
         if self.config["ENABLE_CHUNK_ENCODING"]:
 
@@ -229,8 +232,8 @@ class SupersetAppInitializer:
 
     def configure_logging(self):
         self.flask_app.config.get("LOGGING_CONFIGURATOR").configure_logging(
-            self.config,
-            self.flask_app.debug)
+            self.config, self.flask_app.debug
+        )
 
     def setup_db(self):
         db.init_app(self.flask_app)

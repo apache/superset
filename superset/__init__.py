@@ -29,7 +29,7 @@ from superset.extensions import (
     manifest_processor as ext_manifest_processor,
     results_backend_manager as ext_results_backend_manager,
     security_manager as ext_security_manager,
-    talisman as ext_talisman
+    talisman as ext_talisman,
 )
 from superset.security import SupersetSecurityManager
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
@@ -44,7 +44,9 @@ get_feature_flags = ext_feature_flag_manager.get_feature_flags
 get_css_manifest_files = ext_manifest_processor.get_css_manifest_files
 is_feature_enabled = ext_feature_flag_manager.is_feature_enabled
 results_backend = LocalProxy(lambda: ext_results_backend_manager.results_backend)
-results_backend_use_msgpack = LocalProxy(lambda: ext_results_backend_manager.should_use_msgpack)
+results_backend_use_msgpack = LocalProxy(
+    lambda: ext_results_backend_manager.should_use_msgpack
+)
 security_manager = ext_security_manager
 tables_cache = LocalProxy(lambda: ext_cache_manager.tables_cache)
 talisman = ext_talisman

@@ -16,11 +16,16 @@
 # under the License.
 
 from os import environ
+
+from superset.app import create_app
+
+"""
+Setting this envvar forces unit tests to use the "test" config for all tests
+"""
 environ.setdefault("SUPERSET_CONFIG", "tests.superset_test_config")
 
 """
-TODO: Clean this up! The current pattern of accessing app props on package init means
-    that we need to ensure the creation of our Flask app BEFORE any tests load
+Here is where we create the app which ends up being shared across all tests. A future
+optimization will be to create a separate app instance for each test class.  
 """
-from superset.app import create_app
 app = create_app()

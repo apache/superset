@@ -81,7 +81,9 @@ class SchedulesTestCase(SupersetTestCase):
     @classmethod
     def tearDownClass(cls):
         with app.app_context():
-            db.session.query(SliceEmailSchedule).filter_by(id=cls.slice_schedule).delete()
+            db.session.query(SliceEmailSchedule).filter_by(
+                id=cls.slice_schedule
+            ).delete()
             db.session.query(DashboardEmailSchedule).filter_by(
                 id=cls.dashboard_schedule
             ).delete()

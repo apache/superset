@@ -84,6 +84,7 @@ class CeleryTestCase(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
         with app.app_context():
+
             class CeleryConfig(object):
                 BROKER_URL = app.config["CELERY_CONFIG"].BROKER_URL
                 CELERY_IMPORTS = ("superset.sql_lab",)

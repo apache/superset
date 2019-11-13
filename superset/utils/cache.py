@@ -61,7 +61,9 @@ def memoized_func(key=view_cache_key, attribute_in_key=None):
                 if not kwargs.get("force") and o is not None:
                     return o
                 o = f(self, *args, **kwargs)
-                cache_manager.tables_cache.set(cache_key, o, timeout=kwargs.get("cache_timeout"))
+                cache_manager.tables_cache.set(
+                    cache_key, o, timeout=kwargs.get("cache_timeout")
+                )
                 return o
 
         else:

@@ -34,7 +34,7 @@ from pathlib2 import Path
 # from superset.extensions import celery_app
 # from superset.utils import core as utils, dashboard_import_export, dict_import_export
 
-#config = app.config
+# config = app.config
 
 from superset import app, appbuilder, security_manager
 from superset.app import create_app
@@ -46,6 +46,7 @@ from superset.utils import core as utils
 @with_appcontext
 def superset():
     """This is a management script for the Superset application."""
+
     @app.shell_context_processor
     def make_shell_context():
         return dict(app=app, db=db)
@@ -217,6 +218,7 @@ def refresh_druid(datasource, merge):
 def import_dashboards(path, recursive, username):
     """Import dashboards from JSON"""
     from superset.utils import dashboard_import_export
+
     p = Path(path)
     files = []
     if p.is_file():
@@ -248,6 +250,7 @@ def import_dashboards(path, recursive, username):
 def export_dashboards(print_stdout, dashboard_file):
     """Export dashboards to JSON"""
     from superset.utils import dashboard_import_export
+
     data = dashboard_import_export.export_dashboards(db.session)
     if print_stdout or not dashboard_file:
         print(data)
@@ -335,6 +338,7 @@ def export_datasources(
 ):
     """Export datasources to YAML"""
     from superset.utils import dict_import_export
+
     data = dict_import_export.export_to_dict(
         session=db.session,
         recursive=True,
@@ -361,6 +365,7 @@ def export_datasources(
 def export_datasource_schema(back_references):
     """Export datasource YAML schema to stdout"""
     from superset.utils import dict_import_export
+
     data = dict_import_export.export_schema_to_dict(back_references=back_references)
     yaml.safe_dump(data, stdout, default_flow_style=False)
 
@@ -399,7 +404,9 @@ def worker(workers):
     if workers:
         celery_app.conf.update(CELERYD_CONCURRENCY=workers)
     elif app.config["SUPERSET_CELERY_WORKERS"]:
-        celery_app.conf.update(CELERYD_CONCURRENCY=app.config["SUPERSET_CELERY_WORKERS"])
+        celery_app.conf.update(
+            CELERYD_CONCURRENCY=app.config["SUPERSET_CELERY_WORKERS"]
+        )
 
     worker = celery_app.Worker(optimization="fair")
     worker.start()
@@ -490,6 +497,7 @@ def load_test_users_run():
                 )
         sm.get_session.commit()
 
+
 @superset.command()
 @with_appcontext
 def sync_tags():
@@ -498,6 +506,7 @@ def sync_tags():
     metadata = Model.metadata
 
     from superset.common.tags import add_favorites, add_owners, add_types
+
     add_types(db.engine, metadata)
     add_owners(db.engine, metadata)
     add_favorites(db.engine, metadata)
