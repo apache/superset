@@ -17,7 +17,7 @@
 """Add tables for SQL Lab state
 
 Revision ID: 02f260780a2b
-Revises: def97f26fdfb
+Revises: c2acd2cf3df2
 Create Date: 2019-08-12 14:50:49.204635
 
 """
