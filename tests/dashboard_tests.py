@@ -426,17 +426,19 @@ class DashboardTests(SupersetTestCase):
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")
+        my_dash_slug = f"my_dash_{random()}"
+        not_my_dash_slug = f"not_my_dash_{random()}"
 
         # Create one dashboard I own and another that I don't
         dash = models.Dashboard()
         dash.dashboard_title = "My Dashboard"
-        dash.slug = f"my_dash_{random()}"
+        dash.slug = my_dash_slug
         dash.owners = [user]
         dash.slices = []
 
         hidden_dash = models.Dashboard()
         hidden_dash.dashboard_title = "Not My Dashboard"
-        hidden_dash.slug = f"not_my_dash_{random()}"
+        hidden_dash.slug = not_my_dash_slug
         hidden_dash.slices = []
         hidden_dash.owners = []
 
@@ -447,12 +449,13 @@ class DashboardTests(SupersetTestCase):
         self.login(user.username)
 
         resp = self.get_resp("/dashboard/list/")
-        self.assertIn("/superset/dashboard/my_dash/", resp)
-        self.assertNotIn("/superset/dashboard/not_my_dash/", resp)
+        self.assertIn(f"/superset/dashboard/{my_dash_slug}/", resp)
+        self.assertNotIn(f"/superset/dashboard/{not_my_dash_slug}/", resp)
 
     def test_users_can_view_favorited_dashboards(self):
         user = security_manager.find_user("gamma")
         fav_dash_slug = f"my_favorite_dash_{random()}"
+        regular_dash_slug = f"regular_dash_{random()}"
 
         favorite_dash = models.Dashboard()
         favorite_dash.dashboard_title = "My Favorite Dashboard"
@@ -460,7 +463,7 @@ class DashboardTests(SupersetTestCase):
 
         regular_dash = models.Dashboard()
         regular_dash.dashboard_title = "A Plain Ol Dashboard"
-        regular_dash.slug = f"regular_dash_{random()}"
+        regular_dash.slug = regular_dash_slug
 
         db.session.merge(favorite_dash)
         db.session.merge(regular_dash)
@@ -483,7 +486,7 @@ class DashboardTests(SupersetTestCase):
         self.login(user.username)
 
         resp = self.get_resp("/dashboard/list/")
-        self.assertIn("/superset/dashboard/my_favorite_dash/", resp)
+        self.assertIn(f"/superset/dashboard/{fav_dash_slug}/", resp)
 
     def test_user_can_not_view_unpublished_dash(self):
         admin_user = security_manager.find_user("admin")
