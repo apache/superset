@@ -17,10 +17,11 @@
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime, timedelta
+from random import random
 
 import prison
 
-from superset import db, security_manager
+from superset import db, security_manager, ConnectorRegistry
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
@@ -292,19 +293,19 @@ class SqlLabTests(SupersetTestCase):
         examples_dbid = get_example_database().id
         payload = {
             "chartType": "dist_bar",
-            "datasourceName": "test_viz_flow_table",
+            "datasourceName": f"test_viz_flow_table_{random()}",
             "schema": "superset",
             "columns": [
                 {
                     "is_date": False,
                     "type": "STRING",
-                    "name": "viz_type",
+                    "name": f"viz_type_{random()}",
                     "is_dim": True,
                 },
                 {
                     "is_date": False,
                     "type": "OBJECT",
-                    "name": "ccount",
+                    "name": f"ccount_{random()}",
                     "is_dim": True,
                     "agg": "sum",
                 },

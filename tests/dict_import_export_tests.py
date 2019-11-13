@@ -24,6 +24,7 @@ from superset import db
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.utils.core import get_example_database
+from tests import app
 
 from .base_tests import SupersetTestCase
 
@@ -40,15 +41,16 @@ class DictImportExportTests(SupersetTestCase):
 
     @classmethod
     def delete_imports(cls):
-        # Imported data clean up
-        session = db.session
-        for table in session.query(SqlaTable):
-            if DBREF in table.params_dict:
-                session.delete(table)
-        for datasource in session.query(DruidDatasource):
-            if DBREF in datasource.params_dict:
-                session.delete(datasource)
-        session.commit()
+        with app.app_context():
+            # Imported data clean up
+            session = db.session
+            for table in session.query(SqlaTable):
+                if DBREF in table.params_dict:
+                    session.delete(table)
+            for datasource in session.query(DruidDatasource):
+                if DBREF in datasource.params_dict:
+                    session.delete(datasource)
+            session.commit()
 
     @classmethod
     def setUpClass(cls):

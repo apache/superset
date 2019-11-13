@@ -880,6 +880,8 @@ class UtilsTestCase(SupersetTestCase):
         get_or_create_db("test_db", "sqlite:///changed.db")
         database = db.session.query(Database).filter_by(database_name="test_db").one()
         self.assertEqual(database.sqlalchemy_uri, "sqlite:///changed.db")
+        db.session.delete(database)
+        db.session.commit()
 
     def test_get_or_create_db_invalid_uri(self):
         with self.assertRaises(ArgumentError):
