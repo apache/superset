@@ -37,7 +37,7 @@ from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextA
 from sqlalchemy.types import TypeEngine
 from werkzeug.utils import secure_filename
 
-from superset import app, sql_parse
+from superset import app, db, sql_parse
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -50,9 +50,6 @@ class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
     label: str
     function: str
     duration: Optional[str]
-
-
-config = app.config
 
 
 QueryStatus = utils.QueryStatus
@@ -425,7 +422,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
 
-        engine = get_engine(database)
+        engine = cls.get_engine(database)
 
         df_to_sql_kwargs = {
             "df": df,
