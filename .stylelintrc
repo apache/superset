@@ -1,0 +1,5 @@
+{
+  "rules": {
+    "block-opening-brace-space-before": "always",
+  }
+}
