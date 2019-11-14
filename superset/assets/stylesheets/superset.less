@@ -18,6 +18,8 @@
  */
 @import './less/index.less';
 @import "./less/cosmo/variables.less";
+@import './less/index.less';
+@import "../src/dashboard/stylesheets/variables.less";
 
 @datasource-sql-expression-width: 450px;
 
@@ -474,7 +476,7 @@ table.table-no-hover tr:hover {
   font-size: 10px;
   line-height: 2px;
   border-radius: 50%;
-  box-shadow: 2px 2px 4px -1px rgba(0, 0, 0, 1);
+  box-shadow: 2px 2px 4px -1px fade(@darkest, 10%);
 }
 
 iframe {
