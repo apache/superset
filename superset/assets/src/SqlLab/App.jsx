@@ -22,7 +22,7 @@ import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader';
 
-import { initFeatureFlags } from 'src/featureFlags';
+import { initFeatureFlags, isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 import { initEnhancer } from '../reduxUtils';
@@ -79,7 +79,10 @@ const store = createStore(
   initialState,
   compose(
     applyMiddleware(thunkMiddleware),
-    initEnhancer(true, sqlLabPersistStateConfig),
+    initEnhancer(
+      !isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE),
+      sqlLabPersistStateConfig,
+    ),
   ),
 );
 

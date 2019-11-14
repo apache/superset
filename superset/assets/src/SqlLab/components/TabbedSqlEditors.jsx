@@ -23,6 +23,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
 import { t } from '@superset-ui/translation';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
@@ -70,6 +71,20 @@ class TabbedSqlEditors extends React.PureComponent {
     this.duplicateQueryEditor = this.duplicateQueryEditor.bind(this);
   }
   componentDidMount() {
+    // migrate query editor and associated tables state to server
+    if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
+      const localStorageTables = this.props.tables.filter(table => table.inLocalStorage);
+      const localStorageQueries = Object.values(this.props.queries)
+        .filter(query => query.inLocalStorage);
+      this.props.queryEditors.filter(qe => qe.inLocalStorage).forEach((qe) => {
+        // get all queries associated with the query editor
+        const queries = localStorageQueries
+          .filter(query => query.sqlEditorId === qe.id);
+        const tables = localStorageTables.filter(table => table.queryEditorId === qe.id);
+        this.props.actions.migrateQueryEditorFromLocalStorage(qe, tables, queries);
+      });
+    }
+
     const query = URI(window.location).search(true);
     // Popping a new tab based on the querystring
     if (query.id || query.sql || query.savedQueryId || query.datasourceKey) {
@@ -104,6 +119,19 @@ class TabbedSqlEditors extends React.PureComponent {
         this.props.actions.addQueryEditor(newQueryEditor);
       }
       this.popNewTab();
+    } else if (this.props.queryEditors.length === 0) {
+      this.newQueryEditor();
+    } else {
+      const qe = this.activeQueryEditor();
+      const latestQuery = this.props.queries[qe.latestQueryId];
+      if (
+        isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
+        latestQuery && latestQuery.resultsKey
+      ) {
+        // when results are not stored in localStorage they need to be
+        // fetched from the results backend (if configured)
+        this.props.actions.fetchQueryResults(latestQuery, this.props.displayLimit);
+      }
     }
   }
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -122,7 +150,7 @@ class TabbedSqlEditors extends React.PureComponent {
     nextProps.tables.forEach((table) => {
       const queryId = table.dataPreviewQueryId;
       if (queryId && nextProps.queries[queryId] && table.queryEditorId === nextActiveQeId) {
-        dataPreviewQueries.push(nextProps.queries[queryId]);
+        dataPreviewQueries.push({ ...nextProps.queries[queryId], tableName: table.name });
       }
     });
     if (!areArraysShallowEqual(dataPreviewQueries, this.state.dataPreviewQueries)) {
@@ -142,29 +170,31 @@ class TabbedSqlEditors extends React.PureComponent {
     }
   }
   activeQueryEditor() {
-    const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
-    for (let i = 0; i < this.props.queryEditors.length; i++) {
-      const qe = this.props.queryEditors[i];
-      if (qe.id === qeid) {
-        return qe;
-      }
+    if (this.props.tabHistory.length === 0) {
+      return this.props.queryEditors[0];
     }
-    return null;
+    const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
+    return this.props.queryEditors.find(qe => qe.id === qeid) || null;
   }
   newQueryEditor() {
     queryCount++;
     const activeQueryEditor = this.activeQueryEditor();
+    const firstDbId = Math.min(
+      ...Object.values(this.props.databases).map(database => database.id));
+    const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? ''
+      : `${t(
+          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.',
+        )}\n\n`;
     const qe = {
       title: t('Untitled Query %s', queryCount),
       dbId:
         activeQueryEditor && activeQueryEditor.dbId
           ? activeQueryEditor.dbId
-          : this.props.defaultDbId,
+          : (this.props.defaultDbId || firstDbId),
       schema: activeQueryEditor ? activeQueryEditor.schema : null,
       autorun: false,
-      sql: `${t(
-        '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.',
-      )}\n\nSELECT ...`,
+      sql: `${warning}SELECT ...`,
       queryLimit: this.props.defaultQueryLimit,
     };
     this.props.actions.addQueryEditor(qe);
@@ -173,7 +203,11 @@ class TabbedSqlEditors extends React.PureComponent {
     if (key === 'add_tab') {
       this.newQueryEditor();
     } else {
-      this.props.actions.setActiveQueryEditor({ id: key });
+      const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
+      if (key !== qeid) {
+        const queryEditor = this.props.queryEditors.find(qe => qe.id === key);
+        this.props.actions.switchQueryEditor(queryEditor, this.props.displayLimit);
+      }
     }
   }
   removeQueryEditor(qe) {
@@ -191,7 +225,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
-      const isSelected = qe.id === this.activeQueryEditor().id;
+      const isSelected = this.activeQueryEditor() && this.activeQueryEditor().id === qe.id;
 
       let latestQuery;
       if (qe.latestQueryId) {

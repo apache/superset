@@ -19,6 +19,7 @@
 import re
 from datetime import datetime
 
+import simplejson as json
 import sqlalchemy as sqla
 from flask import Markup
 from flask_appbuilder import Model
@@ -186,6 +187,87 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
 
     def url(self):
         return "/superset/sqllab?savedQueryId={0}".format(self.id)
+
+
+class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
+
+    __tablename__ = "tab_state"
+
+    # basic info
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("ab_user.id"))
+    label = Column(String(256))
+    active = Column(Boolean, default=False)
+
+    # selected DB and schema
+    database_id = Column(Integer, ForeignKey("dbs.id"))
+    database = relationship("Database", foreign_keys=[database_id])
+    schema = Column(String(256))
+
+    # tables that are open in the schema browser and their data previews
+    table_schemas = relationship(
+        "TableSchema",
+        cascade="all, delete-orphan",
+        backref="tab_state",
+        passive_deletes=True,
+    )
+
+    # the query in the textarea, and results (if any)
+    sql = Column(Text)
+    query_limit = Column(Integer)
+
+    # latest query that was run
+    latest_query_id = Column(Integer, ForeignKey("query.client_id"))
+    latest_query = relationship("Query")
+
+    # other properties
+    autorun = Column(Boolean, default=False)
+    template_params = Column(Text)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "label": self.label,
+            "active": self.active,
+            "database_id": self.database_id,
+            "schema": self.schema,
+            "table_schemas": [ts.to_dict() for ts in self.table_schemas],
+            "sql": self.sql,
+            "query_limit": self.query_limit,
+            "latest_query": self.latest_query.to_dict() if self.latest_query else None,
+            "autorun": self.autorun,
+            "template_params": self.template_params,
+        }
+
+
+class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
+
+    __tablename__ = "table_schema"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tab_state_id = Column(Integer, ForeignKey("tab_state.id", ondelete="CASCADE"))
+
+    database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
+    database = relationship("Database", foreign_keys=[database_id])
+    schema = Column(String(256))
+    table = Column(String(256))
+
+    # JSON describing the schema, partitions, latest partition, etc.
+    description = Column(Text)
+
+    expanded = Column(Boolean, default=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "tab_state_id": self.tab_state_id,
+            "database_id": self.database_id,
+            "schema": self.schema,
+            "table": self.table,
+            "description": json.loads(self.description),
+            "expanded": self.expanded,
+        }
 
 
 # events for updating tags
