@@ -32,6 +32,9 @@ from superset.utils.core import get_example_database
 from tests import app
 
 
+FAKE_DB_NAME = "fake_db_100"
+
+
 class SupersetTestCase(TestCase):
     def __init__(self, *args, **kwargs):
         super(SupersetTestCase, self).__init__(*args, **kwargs)
@@ -212,7 +215,7 @@ class SupersetTestCase(TestCase):
 
     def create_fake_db(self):
         self.login(username="admin")
-        database_name = "fake_db_100"
+        database_name = FAKE_DB_NAME
         db_id = 100
         extra = """{
             "schemas_allowed_for_csv_upload":
@@ -226,6 +229,15 @@ class SupersetTestCase(TestCase):
             id=db_id,
             extra=extra,
         )
+
+    def delete_fake_db(self):
+        database = (
+            db.session.query(Database)
+            .filter(Database.database_name == FAKE_DB_NAME)
+            .scalar()
+        )
+        if database:
+            db.session.delete(database)
 
     def validate_sql(
         self,

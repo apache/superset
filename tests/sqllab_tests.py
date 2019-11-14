@@ -415,3 +415,4 @@ class SqlLabTests(SupersetTestCase):
             {"examples", "fake_db_100"},
             {r.get("database_name") for r in self.get_json_resp(url)["result"]},
         )
+        self.delete_fake_db()

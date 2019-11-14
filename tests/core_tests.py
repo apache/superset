@@ -412,6 +412,8 @@ class CoreTests(SupersetTestCase):
 
         # Need to clean up after ourselves
         database.impersonate_user = False
+        database.allow_dml = False
+        database.allow_run_async = False
         db.session.commit()
 
     def test_warm_up_cache(self):
@@ -808,6 +810,7 @@ class CoreTests(SupersetTestCase):
             )
         )
         assert data == ["this_schema_is_allowed_too"]
+        self.delete_fake_db()
 
     def test_select_star(self):
         self.login(username="admin")
