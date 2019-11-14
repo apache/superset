@@ -23,6 +23,7 @@ import { Alert, Label, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { t } from '@superset-ui/translation';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import * as Actions from '../actions/sqlLab';
 import QueryHistory from './QueryHistory';
@@ -88,19 +89,25 @@ export class SouthPane extends React.PureComponent {
       latestQuery = props.editorQueries.find(q => q.id === this.props.latestQueryId);
     }
     let results;
-    if (latestQuery &&
-      (Date.now() - latestQuery.startDttm) <= LOCALSTORAGE_MAX_QUERY_AGE_MS) {
-      results = (
-        <ResultSet
-          showControls
-          search
-          query={latestQuery}
-          actions={props.actions}
-          height={innerTabContentHeight}
-          database={this.props.databases[latestQuery.dbId]}
-          displayLimit={this.props.displayLimit}
-        />
-      );
+    if (latestQuery) {
+      if (
+        isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
+        (!latestQuery.resultsKey && !latestQuery.results)
+      ) {
+         results = <Alert bsStyle="warning">{t('No stored results found, you need to re-run your query')}</Alert>;
+      } else if ((Date.now() - latestQuery.startDttm) <= LOCALSTORAGE_MAX_QUERY_AGE_MS) {
+        results = (
+          <ResultSet
+            showControls
+            search
+            query={latestQuery}
+            actions={props.actions}
+            height={innerTabContentHeight}
+            database={this.props.databases[latestQuery.dbId]}
+            displayLimit={this.props.displayLimit}
+          />
+        );
+      }
     } else {
       results = <Alert bsStyle="info">{t('Run a query to display results here')}</Alert>;
     }

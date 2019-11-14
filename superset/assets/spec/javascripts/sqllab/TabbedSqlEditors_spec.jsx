@@ -39,7 +39,7 @@ describe('TabbedSqlEditors', () => {
     'newEditorId',
   ];
 
-  const tables = [Object.assign({}, table[0], {
+  const tables = [Object.assign({}, table, {
     dataPreviewQueryId: 'B1-VQU1zW',
     queryEditorId: 'newEditorId',
   })];
@@ -58,6 +58,7 @@ describe('TabbedSqlEditors', () => {
     'B1-VQU1zW': {
       id: 'B1-VQU1zW',
       sqlEditorId: 'newEditorId',
+      tableName: 'ab_user',
     },
   };
   const mockedProps = {
@@ -133,7 +134,7 @@ describe('TabbedSqlEditors', () => {
     });
     it('should update queriesArray and dataPreviewQueries', () => {
       expect(wrapper.state().queriesArray.slice(-1)[0]).toBe(queries['B1-VQU1zW']);
-      expect(wrapper.state().dataPreviewQueries.slice(-1)[0]).toBe(queries['B1-VQU1zW']);
+      expect(wrapper.state().dataPreviewQueries.slice(-1)[0]).toEqual(queries['B1-VQU1zW']);
     });
   });
   it('should rename Tab', () => {
@@ -171,16 +172,21 @@ describe('TabbedSqlEditors', () => {
         .toBe(queryEditors[0]);
   });
   it('should handle select', () => {
+    const mockEvent = {
+      target: {
+        getAttribute: () => null,
+      },
+    };
     wrapper = getWrapper();
     sinon.spy(wrapper.instance(), 'newQueryEditor');
-    sinon.stub(wrapper.instance().props.actions, 'setActiveQueryEditor');
+    sinon.stub(wrapper.instance().props.actions, 'switchQueryEditor');
 
-    wrapper.instance().handleSelect('add_tab');
+    wrapper.instance().handleSelect('add_tab', mockEvent);
     expect(wrapper.instance().newQueryEditor.callCount).toBe(1);
 
-    wrapper.instance().handleSelect('123');
-    expect(wrapper.instance().props.actions.setActiveQueryEditor.getCall(0).args[0].id)
-        .toContain(123);
+    // cannot switch to current tab, switchQueryEditor never gets called
+    wrapper.instance().handleSelect('dfsadfs', mockEvent);
+    expect(wrapper.instance().props.actions.switchQueryEditor.callCount).toEqual(0);
     wrapper.instance().newQueryEditor.restore();
   });
   it('should render', () => {
