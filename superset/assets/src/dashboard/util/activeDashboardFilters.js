@@ -17,6 +17,7 @@
  * under the License.
  */
 import { isEmpty } from 'lodash';
+import { mapValues, flow, keyBy } from 'lodash/fp';
 
 import {
   getChartIdAndColumnFromFilterKey,
@@ -45,21 +46,17 @@ export function isFilterBox(chartId) {
 // it goes through all active filters and their scopes.
 // return: { [column]: array of selected values }
 export function getAppliedFilterValues(chartId) {
+  // use cached data if possible
   if (!(chartId in appliedFilterValuesByChart)) {
-    appliedFilterValuesByChart[chartId] = Object.entries(activeFilters).reduce(
-      (map, entry) => {
-        const [filterKey, { scope: chartIds, values }] = entry;
-        if (chartIds.includes(chartId)) {
-          const { column } = getChartIdAndColumnFromFilterKey(filterKey);
-          return {
-            ...map,
-            [column]: values,
-          };
-        }
-        return map;
-      },
-      {},
+    const applicableFilters = Object.entries(activeFilters).filter(
+      ([, { scope: chartIds }]) => chartIds.includes(chartId),
     );
+    appliedFilterValuesByChart[chartId] = flow(
+      keyBy(
+        ([filterKey]) => getChartIdAndColumnFromFilterKey(filterKey).column,
+      ),
+      mapValues(([, { values }]) => values),
+    )(applicableFilters);
   }
   return appliedFilterValuesByChart[chartId];
 }

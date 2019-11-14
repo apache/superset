@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { isString, isEmpty } from 'lodash';
+import { isString } from 'lodash';
 import shortid from 'shortid';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 
@@ -192,13 +192,13 @@ export default function(bootstrapData) {
             ...scopeSettings[column],
           };
           const immuneChartIds = new Set(filterImmuneSlices.slice());
-          if (!isEmpty(filterImmuneSliceFields)) {
-            Object.keys(filterImmuneSliceFields).forEach(strChartId => {
-              if (filterImmuneSliceFields[strChartId].includes(column)) {
-                immuneChartIds.add(parseInt(strChartId, 10));
-              }
+          Object.keys(filterImmuneSliceFields)
+            .filter(strChartId =>
+              filterImmuneSliceFields[strChartId].includes(column),
+            )
+            .forEach(strChartId => {
+              immuneChartIds.add(parseInt(strChartId, 10));
             });
-          }
 
           return {
             ...map,

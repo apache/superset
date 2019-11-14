@@ -81,45 +81,42 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
         } = dashboardFilter;
 
         if (currentChartId !== chartId) {
-          Object.keys(columns).forEach(name => {
-            const chartIdsInFilterScope = getChartIdsInFilterScope({
-              filterScope: scopes[name],
-            });
+          Object.keys(columns)
+            .filter(name =>
+              getChartIdsInFilterScope({ filterScope: scopes[name] }).includes(
+                currentChartId,
+              ),
+            )
+            .forEach(name => {
+              const colorMapKey = getDashboardFilterKey({
+                chartId,
+                column: name,
+              });
+              const indicator = {
+                chartId,
+                colorCode: dashboardFiltersColorMap[colorMapKey],
+                componentId,
+                directPathToFilter: directPathToFilter.concat(`LABEL-${name}`),
+                isDateFilter,
+                isInstantFilter,
+                name,
+                label: labels[name] || name,
+                values:
+                  isEmpty(columns[name]) ||
+                  (isDateFilter && columns[name] === 'No filter')
+                    ? []
+                    : [].concat(columns[name]),
+                isFilterFieldActive:
+                  chartId === filterFieldOnFocus.chartId &&
+                  name === filterFieldOnFocus.column,
+              };
 
-            if (!chartIdsInFilterScope.includes(currentChartId)) {
-              return;
-            }
-            const colorMapKey = getDashboardFilterKey({
-              chartId,
-              column: name,
+              if (isEmpty(indicator.values)) {
+                indicators[1].push(indicator);
+              } else {
+                indicators[0].push(indicator);
+              }
             });
-            const directPathToLabel = directPathToFilter.slice();
-            directPathToLabel.push(`LABEL-${name}`);
-            const indicator = {
-              chartId,
-              colorCode: dashboardFiltersColorMap[colorMapKey],
-              componentId,
-              directPathToFilter: directPathToLabel,
-              isDateFilter,
-              isInstantFilter,
-              name,
-              label: labels[name] || name,
-              values:
-                isEmpty(columns[name]) ||
-                (isDateFilter && columns[name] === 'No filter')
-                  ? []
-                  : [].concat(columns[name]),
-              isFilterFieldActive:
-                chartId === filterFieldOnFocus.chartId &&
-                name === filterFieldOnFocus.column,
-            };
-
-            if (isEmpty(indicator.values)) {
-              indicators[1].push(indicator);
-            } else {
-              indicators[0].push(indicator);
-            }
-          });
         }
 
         return indicators;

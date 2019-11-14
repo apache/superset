@@ -21,6 +21,7 @@ import {
   ADD_FILTER,
   REMOVE_FILTER,
   CHANGE_FILTER,
+  UPDATE_DASHBOARD_FILTERS_SCOPE,
 } from '../../../../src/dashboard/actions/dashboardFilters';
 import dashboardFiltersReducer, {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
@@ -35,6 +36,7 @@ import {
   column,
 } from '../fixtures/mockSliceEntities';
 import { filterComponent } from '../fixtures/mockDashboardLayout';
+import * as activeDashboardFilters from '../../../../src/dashboard/util/activeDashboardFilters';
 
 describe('dashboardFilters reducer', () => {
   const form_data = sliceEntitiesForDashboard.slices[filterId].form_data;
@@ -144,5 +146,34 @@ describe('dashboardFilters reducer', () => {
         chartId: filterId,
       }),
     ).toEqual({});
+  });
+
+  it('should buildActiveFilters on UPDATE_DASHBOARD_FILTERS_SCOPE', () => {
+    const regionScope = {
+      scope: ['TAB-1'],
+      immune: [],
+    };
+    const genderScope = {
+      scope: ['ROOT_ID'],
+      immune: [1],
+    };
+    const scopes = {
+      [`${filterId}_region`]: regionScope,
+      [`${filterId}_gender`]: genderScope,
+    };
+    activeDashboardFilters.buildActiveFilters = jest.fn();
+    expect(
+      dashboardFiltersReducer(dashboardFilters, {
+        type: UPDATE_DASHBOARD_FILTERS_SCOPE,
+        scopes,
+      })[filterId].scopes,
+    ).toEqual({
+      region: regionScope,
+      gender: genderScope,
+    });
+
+    // when UPDATE_DASHBOARD_FILTERS_SCOPE is changed, applicable filters to a chart
+    // might be changed.
+    expect(activeDashboardFilters.buildActiveFilters).toBeCalled();
   });
 });

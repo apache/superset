@@ -149,6 +149,7 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
       dashboardFilters,
     );
 
+    buildActiveFilters({ dashboardFilters: updatedFilters });
     return updatedFilters;
   } else if (action.type === REMOVE_FILTER) {
     const { chartId } = action;
