@@ -950,7 +950,11 @@ class CoreTests(SupersetTestCase):
             self.assertDictEqual(deserialized_payload, payload)
             expand_data.assert_called_once()
 
-    @mock.patch.dict("superset._feature_flags", {"FOO": lambda x: 1}, clear=True)
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"FOO": lambda x: 1},
+        clear=True,
+    )
     def test_feature_flag_serialization(self):
         """
         Functions in feature flags don't break bootstrap data serialization.
