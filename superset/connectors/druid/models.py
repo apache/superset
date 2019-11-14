@@ -829,7 +829,7 @@ class DruidDatasource(Model, BaseDatasource):
         return granularity
 
     @staticmethod
-    def get_post_agg(mconf: Dict) -> Postaggregator:
+    def get_post_agg(mconf: Dict) -> "Postaggregator":
         """
         For a metric specified as `postagg` returns the
         kind of post aggregation for pydruid.
@@ -1441,7 +1441,7 @@ class DruidDatasource(Model, BaseDatasource):
         return (col, extraction_fn)
 
     @classmethod
-    def get_filters(cls, raw_filters, num_cols, columns_dict) -> Filter:
+    def get_filters(cls, raw_filters, num_cols, columns_dict) -> "Filter":
         """Given Superset filter data structure, returns pydruid Filter(s)"""
         filters = None
         for flt in raw_filters:
@@ -1570,7 +1570,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         return filters
 
-    def _get_having_obj(self, col: str, op: str, eq: str) -> Having:
+    def _get_having_obj(self, col: str, op: str, eq: str) -> "Having":
         cond = None
         if op == "==":
             if col in self.column_names:
@@ -1584,7 +1584,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         return cond
 
-    def get_having_filters(self, raw_filters: List[Dict]) -> Having:
+    def get_having_filters(self, raw_filters: List[Dict]) -> "Having":
         filters = None
         reversed_op_map = {"!=": "==", ">=": "<", "<=": ">"}
 
