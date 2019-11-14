@@ -98,7 +98,6 @@ def load_multiformat_time_series(only_metadata=False, force=False):
             "row_limit": config["ROW_LIMIT"],
             "since": "2015",
             "until": "2016",
-            "where": "",
             "viz_type": "cal_heatmap",
             "domain_granularity": "month",
             "subdomain_granularity": "day",

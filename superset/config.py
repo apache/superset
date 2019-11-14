@@ -288,7 +288,7 @@ SUPERSET_WEBSERVER_DOMAINS = None
 
 # Allowed format types for upload on Database view
 # TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
-ALLOWED_EXTENSIONS = set(["csv"])
+ALLOWED_EXTENSIONS = {"csv", "tsv"}
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.
@@ -486,7 +486,7 @@ RESULTS_BACKEND = None
 # rather than JSON. This feature requires additional testing from the
 # community before it is fully adopted, so this config option is provided
 # in order to disable should breaking issues be discovered.
-RESULTS_BACKEND_USE_MSGPACK = True
+RESULTS_BACKEND_USE_MSGPACK = False
 
 # The S3 bucket where you want to store your external hive tables created
 # from CSV files. For example, 'companyname-superset'
@@ -653,8 +653,11 @@ WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
+
 # Send user to a link where they can read more about Superset
 DOCUMENTATION_URL = None
+DOCUMENTATION_TEXT = "Documentation"
+DOCUMENTATION_ICON = None  # Recommended size: 16x16
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone

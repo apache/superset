@@ -19,36 +19,11 @@
 import sqlLabReducer from '../../../../src/SqlLab/reducers/sqlLab';
 import * as actions from '../../../../src/SqlLab/actions/sqlLab';
 import { table, initialState as mockState } from '../fixtures';
+import { now } from '../../../../src/modules/dates';
 
 const initialState = mockState.sqlLab;
 
 describe('sqlLabReducer', () => {
-  describe('CLONE_QUERY_TO_NEW_TAB', () => {
-    const testQuery = { sql: 'SELECT * FROM...', dbId: 1, id: 'flasj233' };
-    let newState = {
-      ...initialState,
-      queries: { [testQuery.id]: testQuery },
-    };
-    beforeEach(() => {
-      newState = sqlLabReducer(newState, actions.cloneQueryToNewTab(testQuery));
-    });
-
-    it('should have at most one more tab', () => {
-      expect(newState.queryEditors).toHaveLength(2);
-    });
-
-    it('should have the same SQL as the cloned query', () => {
-      expect(newState.queryEditors[1].sql).toBe(testQuery.sql);
-    });
-
-    it('should prefix the new tab title with "Copy of"', () => {
-      expect(newState.queryEditors[1].title).toContain('Copy of');
-    });
-
-    it('should push the cloned tab onto tab history stack', () => {
-      expect(newState.tabHistory[1]).toBe(newState.queryEditors[1].id);
-    });
-  });
   describe('Query editors actions', () => {
     let newState;
     let defaultQueryEditor;
@@ -56,59 +31,107 @@ describe('sqlLabReducer', () => {
     beforeEach(() => {
       newState = { ...initialState };
       defaultQueryEditor = newState.queryEditors[0];
-      qe = Object.assign({}, defaultQueryEditor);
-      newState = sqlLabReducer(newState, actions.addQueryEditor(qe));
-      qe = newState.queryEditors[newState.queryEditors.length - 1];
+      const action = {
+        type: actions.ADD_QUERY_EDITOR,
+        queryEditor: { ...initialState.queryEditors[0], id: 'abcd' },
+      };
+      newState = sqlLabReducer(newState, action);
+      qe = newState.queryEditors.find(e => e.id === 'abcd');
     });
     it('should add a query editor', () => {
       expect(newState.queryEditors).toHaveLength(2);
     });
     it('should remove a query editor', () => {
       expect(newState.queryEditors).toHaveLength(2);
-      newState = sqlLabReducer(newState, actions.removeQueryEditor(qe));
+      const action = {
+        type: actions.REMOVE_QUERY_EDITOR,
+        queryEditor: qe,
+      };
+      newState = sqlLabReducer(newState, action);
       expect(newState.queryEditors).toHaveLength(1);
     });
     it('should set q query editor active', () => {
-      newState = sqlLabReducer(newState, actions.addQueryEditor(qe));
-      newState = sqlLabReducer(newState, actions.setActiveQueryEditor(defaultQueryEditor));
+      const addQueryEditorAction = {
+        type: actions.ADD_QUERY_EDITOR,
+        queryEditor: { ...initialState.queryEditors[0], id: 'abcd' },
+      };
+      newState = sqlLabReducer(newState, addQueryEditorAction);
+      const setActiveQueryEditorAction = {
+        type: actions.SET_ACTIVE_QUERY_EDITOR,
+        queryEditor: defaultQueryEditor,
+      };
+      newState = sqlLabReducer(newState, setActiveQueryEditorAction);
       expect(newState.tabHistory[newState.tabHistory.length - 1]).toBe(defaultQueryEditor.id);
     });
     it('should not fail while setting DB', () => {
       const dbId = 9;
-      newState = sqlLabReducer(newState, actions.queryEditorSetDb(qe, dbId));
+      const action = {
+        type: actions.QUERY_EDITOR_SETDB,
+        queryEditor: qe,
+        dbId,
+      };
+      newState = sqlLabReducer(newState, action);
       expect(newState.queryEditors[1].dbId).toBe(dbId);
     });
     it('should not fail while setting schema', () => {
       const schema = 'foo';
-      newState = sqlLabReducer(newState, actions.queryEditorSetSchema(qe, schema));
+      const action = {
+        type: actions.QUERY_EDITOR_SET_SCHEMA,
+        queryEditor: qe,
+        schema,
+      };
+      newState = sqlLabReducer(newState, action);
       expect(newState.queryEditors[1].schema).toBe(schema);
     });
     it('should not fail while setting autorun ', () => {
-      newState = sqlLabReducer(newState, actions.queryEditorSetAutorun(qe, false));
+      const action = {
+        type: actions.QUERY_EDITOR_SET_AUTORUN,
+        queryEditor: qe,
+      };
+      newState = sqlLabReducer(newState, { ...action, autorun: false });
       expect(newState.queryEditors[1].autorun).toBe(false);
-      newState = sqlLabReducer(newState, actions.queryEditorSetAutorun(qe, true));
+      newState = sqlLabReducer(newState, { ...action, autorun: true });
       expect(newState.queryEditors[1].autorun).toBe(true);
     });
     it('should not fail while setting title', () => {
       const title = 'a new title';
-      newState = sqlLabReducer(newState, actions.queryEditorSetTitle(qe, title));
+      const action = {
+        type: actions.QUERY_EDITOR_SET_TITLE,
+        queryEditor: qe,
+        title,
+      };
+      newState = sqlLabReducer(newState, action);
       expect(newState.queryEditors[1].title).toBe(title);
     });
     it('should not fail while setting Sql', () => {
       const sql = 'SELECT nothing from dev_null';
-      newState = sqlLabReducer(newState, actions.queryEditorSetSql(qe, sql));
+      const action = {
+        type: actions.QUERY_EDITOR_SET_SQL,
+        queryEditor: qe,
+        sql,
+      };
+      newState = sqlLabReducer(newState, action);
       expect(newState.queryEditors[1].sql).toBe(sql);
     });
     it('should not fail while setting queryLimit', () => {
       const queryLimit = 101;
-      newState = sqlLabReducer(newState, actions.queryEditorSetQueryLimit(qe, queryLimit));
+      const action = {
+        type: actions.QUERY_EDITOR_SET_QUERY_LIMIT,
+        queryEditor: qe,
+        queryLimit,
+      };
+      newState = sqlLabReducer(newState, action);
       expect(newState.queryEditors[1].queryLimit).toEqual(queryLimit);
     });
     it('should set selectedText', () => {
       const selectedText = 'TEST';
+      const action = {
+        type: actions.QUERY_EDITOR_SET_SELECTED_TEXT,
+        queryEditor: newState.queryEditors[0],
+        sql: selectedText,
+      };
       expect(newState.queryEditors[0].selectedText).toBeNull();
-      newState = sqlLabReducer(
-        newState, actions.queryEditorSetSelectedText(newState.queryEditors[0], 'TEST'));
+      newState = sqlLabReducer(newState, action);
       expect(newState.queryEditors[0].selectedText).toBe(selectedText);
     });
   });
@@ -117,7 +140,11 @@ describe('sqlLabReducer', () => {
     let newTable;
     beforeEach(() => {
       newTable = Object.assign({}, table);
-      newState = sqlLabReducer(initialState, actions.mergeTable(newTable));
+      const action = {
+        type: actions.MERGE_TABLE,
+        table: newTable,
+      };
+      newState = sqlLabReducer(initialState, action);
       newTable = newState.tables[0];
     });
     it('should add a table', () => {
@@ -127,42 +154,91 @@ describe('sqlLabReducer', () => {
     it('should merge the table attributes', () => {
       // Merging the extra attribute
       newTable.extra = true;
-      newState = sqlLabReducer(newState, actions.mergeTable(newTable));
+      const action = {
+        type: actions.MERGE_TABLE,
+        table: newTable,
+      };
+      newState = sqlLabReducer(newState, action);
       expect(newState.tables).toHaveLength(1);
       expect(newState.tables[0].extra).toBe(true);
     });
     it('should expand and collapse a table', () => {
-      newState = sqlLabReducer(newState, actions.collapseTable(newTable));
+      const collapseTableAction = {
+        type: actions.COLLAPSE_TABLE,
+        table: newTable,
+      };
+      newState = sqlLabReducer(newState, collapseTableAction);
       expect(newState.tables[0].expanded).toBe(false);
-      newState = sqlLabReducer(newState, actions.expandTable(newTable));
+      const expandTableAction = {
+        type: actions.EXPAND_TABLE,
+        table: newTable,
+      };
+      newState = sqlLabReducer(newState, expandTableAction);
       expect(newState.tables[0].expanded).toBe(true);
     });
     it('should remove a table', () => {
-      newState = sqlLabReducer(newState, actions.removeTable(newTable));
+      const action = {
+        type: actions.REMOVE_TABLE,
+        table: newTable,
+      };
+      newState = sqlLabReducer(newState, action);
       expect(newState.tables).toHaveLength(0);
     });
   });
   describe('Run Query', () => {
     let newState;
     let query;
-    let newQuery;
     beforeEach(() => {
       newState = { ...initialState };
-      newQuery = { ...query };
+      query = {
+        id: 'abcd',
+        progress: 0,
+        startDttm: now(),
+        state: 'running',
+        cached: false,
+        sqlEditorId: 'dfsadfs',
+      };
     });
     it('should start a query', () => {
-      newState = sqlLabReducer(newState, actions.startQuery(newQuery));
+      const action = {
+        type: actions.START_QUERY,
+        query: {
+          id: 'abcd',
+          progress: 0,
+          startDttm: now(),
+          state: 'running',
+          cached: false,
+          sqlEditorId: 'dfsadfs',
+        },
+      };
+      newState = sqlLabReducer(newState, action);
       expect(Object.keys(newState.queries)).toHaveLength(1);
     });
     it('should stop the query', () => {
-      newState = sqlLabReducer(newState, actions.startQuery(newQuery));
-      newState = sqlLabReducer(newState, actions.stopQuery(newQuery));
+      const startQueryAction = {
+        type: actions.START_QUERY,
+        query,
+      };
+      newState = sqlLabReducer(newState, startQueryAction);
+      const stopQueryAction = {
+        type: actions.STOP_QUERY,
+        query,
+      };
+      newState = sqlLabReducer(newState, stopQueryAction);
       const q = newState.queries[Object.keys(newState.queries)[0]];
       expect(q.state).toBe('stopped');
     });
     it('should remove a query', () => {
-      newState = sqlLabReducer(newState, actions.startQuery(newQuery));
-      newState = sqlLabReducer(newState, actions.removeQuery(newQuery));
+      const startQueryAction = {
+        type: actions.START_QUERY,
+        query,
+      };
+      newState = sqlLabReducer(newState, startQueryAction);
+      const removeQueryAction = {
+        type: actions.REMOVE_QUERY,
+        query,
+      };
+      newState = sqlLabReducer(newState, removeQueryAction);
       expect(Object.keys(newState.queries)).toHaveLength(0);
     });
     it('should refresh queries when polling returns empty', () => {

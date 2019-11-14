@@ -318,7 +318,7 @@ def execute_sql_statements(
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()
 
-    if store_results and not results_backend:
+    if database.allow_run_async and not results_backend:
         raise SqlLabException("Results backend isn't configured.")
 
     # Breaking down into multiple statements
@@ -394,7 +394,7 @@ def execute_sql_statements(
     )
     payload["query"]["state"] = QueryStatus.SUCCESS
 
-    if store_results:
+    if store_results and results_backend:
         key = str(uuid.uuid4())
         logging.info(
             f"Query {query_id}: Storing results in results backend, key: {key}"

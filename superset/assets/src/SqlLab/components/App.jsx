@@ -126,15 +126,15 @@ class App extends React.PureComponent {
 
 App.propTypes = {
   actions: PropTypes.object,
-  localStorageUsageInKilobytes: PropTypes.number.isRequired,
   common: PropTypes.object,
+  localStorageUsageInKilobytes: PropTypes.number.isRequired,
 };
 
 function mapStateToProps(state) {
-  const { localStorageUsageInKilobytes, common } = state;
+  const { common, localStorageUsageInKilobytes } = state;
   return {
-    localStorageUsageInKilobytes,
     common,
+    localStorageUsageInKilobytes,
   };
 }
 

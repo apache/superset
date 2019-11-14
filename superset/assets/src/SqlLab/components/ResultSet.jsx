@@ -200,7 +200,7 @@ export default class ResultSet extends React.PureComponent {
             </Button>
           </Alert>
         </div>);
-    } else if (query.state === 'success') {
+    } else if (query.state === 'success' && query.results) {
       const results = query.results;
       let data;
       if (this.props.cache && query.cached) {
@@ -229,13 +229,13 @@ export default class ResultSet extends React.PureComponent {
         return <Alert bsStyle="warning">{t('The query returned no data')}</Alert>;
       }
     }
-    if (query.cached) {
+    if (query.cached || (query.state === 'success' && !query.results)) {
       return (
         <Button
           bsSize="sm"
           className="fetch"
           bsStyle="primary"
-          onClick={this.reFetchQueryResults.bind(this, query)}
+          onClick={this.reFetchQueryResults.bind(this, { ...query, isDataPreview: true })}
         >
           {t('Fetch data preview')}
         </Button>
