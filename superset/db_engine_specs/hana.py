@@ -47,11 +47,12 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
         HANA:
         :return dttm->DATETIME
         HANA->DATE:f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        
+
         :return dttm->DATETIME
         HANA->TIMESTAMP:
-        f"TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"
-        
+        f"TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}',
+        'YYYY-MM-DD"T"HH24:MI:SS.ff6')"
+
         :return dttm->STRING
         HANA->NVARCHAR TYPE:f"TO_CHAR('{dttm.date().isoformat()}', 'YYYYMMDD')"
         """
