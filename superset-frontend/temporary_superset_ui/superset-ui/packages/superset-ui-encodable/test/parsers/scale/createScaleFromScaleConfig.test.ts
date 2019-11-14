@@ -34,6 +34,60 @@ describe('createScaleFromScaleConfig(config)', () => {
       });
       expect(scale(10)).toEqual(0);
     });
+    describe('does not set domain if domain has undefined or null', () => {
+      describe('undefined', () => {
+        it('min', () => {
+          const scale = createScaleFromScaleConfig({
+            type: 'linear',
+            domain: [undefined, 30],
+            range: [0, 100],
+          });
+          expect(scale(10)).toEqual(1000);
+        });
+        it('max', () => {
+          const scale = createScaleFromScaleConfig({
+            type: 'linear',
+            domain: [0, undefined],
+            range: [0, 100],
+          });
+          expect(scale(10)).toEqual(1000);
+        });
+        it('both', () => {
+          const scale = createScaleFromScaleConfig({
+            type: 'linear',
+            domain: [undefined, undefined],
+            range: [0, 100],
+          });
+          expect(scale(10)).toEqual(1000);
+        });
+      });
+      describe('null', () => {
+        it('min', () => {
+          const scale = createScaleFromScaleConfig({
+            type: 'linear',
+            domain: [null, 30],
+            range: [0, 100],
+          });
+          expect(scale(10)).toEqual(1000);
+        });
+        it('max', () => {
+          const scale = createScaleFromScaleConfig({
+            type: 'linear',
+            domain: [0, null],
+            range: [0, 100],
+          });
+          expect(scale(10)).toEqual(1000);
+        });
+        it('both', () => {
+          const scale = createScaleFromScaleConfig({
+            type: 'linear',
+            domain: [null, null],
+            range: [0, 100],
+          });
+          expect(scale(10)).toEqual(1000);
+        });
+      });
+    });
     it('with color scheme as range', () => {
       getSequentialSchemeRegistry().registerValue(
         'test-scheme',

@@ -1,4 +1,4 @@
-import { isDefined, isArray, isNotArray } from '../../src/typeGuards/Base';
+import { isDefined, isArray, isNotArray, isEveryElementDefined } from '../../src/typeGuards/Base';
 
 describe('type guards: Base', () => {
   describe('isArray<T>(maybeArray)', () => {
@@ -35,6 +35,20 @@ describe('type guards: Base', () => {
     it('returns false if not defined', () => {
       expect(isDefined(null)).toBeFalsy();
       expect(isDefined(undefined)).toBeFalsy();
+    });
+  });
+  describe('isEveryElementDefined<T>(array)', () => {
+    it('returns true and remove undefined from possible return type', () => {
+      expect(isEveryElementDefined(['a', 'b'])).toBeTruthy();
+      expect(isEveryElementDefined([])).toBeTruthy();
+      const array: (string | undefined)[] = ['a', 'b'];
+      if (isEveryElementDefined(array)) {
+        expect(array.every(a => a.length === 1)).toBeTruthy();
+      }
+    });
+    it('returns false otherwise', () => {
+      expect(isEveryElementDefined([undefined])).toBeFalsy();
+      expect(isEveryElementDefined([undefined, 'a'])).toBeFalsy();
     });
   });
 });
