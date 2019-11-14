@@ -57,7 +57,7 @@ need to be done at every release.
 ## Crafting a source release
 
 When crafting a new minor or major release we create 
-a branch named with the release MAJOR.MINOR (for our examples 0.34) version.
+a branch named with the release MAJOR.MINOR version (on this example 0.34).
 This new branch will hold all PATCH and release candidates 
 that belong to the MAJOR.MINOR version.
 
