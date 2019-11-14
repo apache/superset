@@ -127,9 +127,8 @@ export default class TableSelector extends React.PureComponent {
     }));
   }
   fetchTables(force, substr) {
-    // This can be large so it shouldn't be put in the Redux store
     const forceRefresh = force || false;
-    const { dbId, schema } = this.props;
+    const { dbId, schema } = this.state;
     if (dbId && schema) {
       this.setState(() => ({ tableLoading: true, tableOptions: [] }));
       const endpoint = encodeURI(`/superset/tables/${dbId}/` +

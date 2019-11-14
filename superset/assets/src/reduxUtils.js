@@ -86,6 +86,23 @@ export function addToArr(state, arrKey, obj, prepend = false) {
   return Object.assign({}, state, newState);
 }
 
+export function extendArr(state, arrKey, obj, prepend = false) {
+  const newObj = [...obj];
+  newObj.forEach((el) => {
+    if (!el.id) {
+      /* eslint-disable no-param-reassign */
+      el.id = shortid.generate();
+    }
+  });
+  const newState = {};
+  if (prepend) {
+    newState[arrKey] = [...newObj, ...state[arrKey]];
+  } else {
+    newState[arrKey] = [...state[arrKey], ...newObj];
+  }
+  return Object.assign({}, state, newState);
+}
+
 export function initEnhancer(persist = true, persistConfig = {}) {
   const { paths, config } = persistConfig;
   const composeEnhancers = process.env.WEBPACK_MODE === 'development'
