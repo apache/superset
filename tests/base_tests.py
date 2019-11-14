@@ -31,7 +31,6 @@ from superset.models.core import Database
 from superset.utils.core import get_example_database
 from tests import app
 
-
 FAKE_DB_NAME = "fake_db_100"
 
 
