@@ -167,7 +167,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         base_url = self.get_base_url(self.broker_host, self.broker_port)
         return f"{base_url}/{self.broker_endpoint}"
 
-    def get_pydruid_client(self) -> PyDruid:
+    def get_pydruid_client(self) -> "PyDruid":
         cli = PyDruid(
             self.get_base_url(self.broker_host, self.broker_port), self.broker_endpoint
         )
