@@ -10,6 +10,7 @@ import {
   SymlogScaleConfig,
   TimeScaleConfig,
   UtcScaleConfig,
+  ContinuousD3Scale,
 } from '../types/Scale';
 import { Value, ScaleType } from '../types/VegaLite';
 import { timeScaleTypesSet, continuousScaleTypesSet } from '../parsers/scale/scaleCategories';
@@ -48,6 +49,13 @@ export function isD3Scale<Output extends Value = Value>(
   scale: D3Scale<Output> | CategoricalColorScale,
 ): scale is D3Scale<Output> {
   return !isCategoricalColorScale(scale);
+}
+
+export function isContinuousScale<Output extends Value = Value>(
+  scale: D3Scale<Output> | CategoricalColorScale,
+  scaleType: ScaleType,
+): scale is ContinuousD3Scale<Output> {
+  return scale && continuousScaleTypesSet.has(scaleType);
 }
 
 export function isTimeScale<Output extends Value = Value>(

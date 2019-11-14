@@ -40,7 +40,7 @@ export interface CombinedScaleConfig<Output extends Value = Value>
   /**
    * domain of the scale
    */
-  domain?: number[] | string[] | boolean[] | DateTime[];
+  domain?: (number | undefined | null)[] | string[] | boolean[] | (DateTime | undefined | null)[];
   /**
    * range of the scale
    */
