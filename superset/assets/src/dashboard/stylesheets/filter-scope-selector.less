@@ -32,7 +32,11 @@
   .filter-scope-body {
     flex: 1;
     max-height: calc(100% - 128px);
-    overflow-y: scroll;
+
+    .filter-field-pane,
+    .filter-scope-pane {
+      overflow-y: scroll;
+    }
   }
 
   .dashboard-modal-actions-container {
@@ -71,7 +75,7 @@
   display: flex;
   flex-direction: row;
   position: relative;
-  min-height: 100%;
+  height: 100%;
 
   a, a:active, a:hover {
     color: @almost-black;
