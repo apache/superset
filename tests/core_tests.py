@@ -963,11 +963,16 @@ class CoreTests(SupersetTestCase):
         )
         html = cgi.escape(encoded).replace("'", "&#39;").replace('"', "&#34;")
 
-        data = self.get_resp("/superset/sqllab")
-        self.assertTrue(html in data)
-
-        data = self.get_resp("/superset/welcome")
-        self.assertTrue(html in data)
+        urls = [
+            "/superset/sqllab",
+            "/superset/welcome",
+            "/superset/dashboard/1/",
+            "/superset/profile/admin/",
+            "/superset/explore/table/1",
+        ]
+        for url in urls:
+            data = self.get_resp(url)
+            self.assertTrue(html in data)
 
 
 if __name__ == "__main__":

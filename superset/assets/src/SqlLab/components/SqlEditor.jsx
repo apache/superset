@@ -57,6 +57,7 @@ import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 const SQL_EDITOR_PADDING = 10;
 const INITIAL_NORTH_PERCENT = 30;
 const INITIAL_SOUTH_PERCENT = 70;
+const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 2000;
 const VALIDATION_DEBOUNCE_MS = 600;
 const WINDOW_RESIZE_THROTTLE_MS = 100;
 
@@ -104,6 +105,10 @@ class SqlEditor extends React.PureComponent {
     this.stopQuery = this.stopQuery.bind(this);
     this.onSqlChanged = this.onSqlChanged.bind(this);
     this.setQueryEditorSql = this.setQueryEditorSql.bind(this);
+    this.setQueryEditorSqlWithDebounce = debounce(
+      this.setQueryEditorSql.bind(this),
+      SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
+    );
     this.queryPane = this.queryPane.bind(this);
     this.getAceEditorAndSouthPaneHeights = this.getAceEditorAndSouthPaneHeights.bind(this);
     this.getSqlEditorHeight = this.getSqlEditorHeight.bind(this);
@@ -151,6 +156,7 @@ class SqlEditor extends React.PureComponent {
   }
   onSqlChanged(sql) {
     this.setState({ sql });
+    this.setQueryEditorSqlWithDebounce(sql);
     // Request server-side validation of the query text
     if (this.canValidateQuery()) {
       // NB. requestValidation is debounced
@@ -274,6 +280,7 @@ class SqlEditor extends React.PureComponent {
       queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
       runAsync: this.props.database ? this.props.database.allow_run_async : false,
       ctas,
+      updateTabState: !qe.selectedText,
     };
     this.props.actions.runQuery(query);
     this.props.actions.setActiveSouthPaneTab('Results');
