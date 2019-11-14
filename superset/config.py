@@ -66,12 +66,14 @@ def _try_json_readversion(filepath):
     except Exception:
         return None
 
+
 def _try_json_readsha(filepath):
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("GIT_SHA")
     except Exception:
         return None
+
 
 # Depending on the context in which this config is loaded, the version_info.json file
 # may or may not be available, as it is generated on install via setup.py. In the event
