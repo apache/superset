@@ -1276,7 +1276,9 @@ class Superset(BaseSupersetView):
             title = _("Explore - %(table)s", table=table_name)
         return self.render_template(
             "superset/basic.html",
-            bootstrap_data=json.dumps(bootstrap_data),
+            bootstrap_data=json.dumps(
+                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+            ),
             entry="explore",
             title=title,
             standalone_mode=standalone,
@@ -2186,14 +2188,18 @@ class Superset(BaseSupersetView):
         }
 
         if request.args.get("json") == "true":
-            return json_success(json.dumps(bootstrap_data))
+            return json_success(
+                json.dumps(bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser)
+            )
 
         return self.render_template(
             "superset/dashboard.html",
             entry="dashboard",
             standalone_mode=standalone_mode,
             title=dash.dashboard_title,
-            bootstrap_data=json.dumps(bootstrap_data),
+            bootstrap_data=json.dumps(
+                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+            ),
         )
 
     @api
@@ -2990,7 +2996,9 @@ class Superset(BaseSupersetView):
             "superset/basic.html",
             title=_("%(user)s's profile", user=username),
             entry="profile",
-            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
+            bootstrap_data=json.dumps(
+                payload, default=utils.pessimistic_json_iso_dttm_ser
+            ),
         )
 
     @has_access
