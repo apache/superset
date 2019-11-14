@@ -6,6 +6,7 @@ import {
   isTimeScale,
   isContinuousScaleConfig,
   isScaleConfigWithZero,
+  isContinuousScale,
 } from '../../src/typeGuards/Scale';
 import { HasToString } from '../../src/types/Base';
 
@@ -41,6 +42,14 @@ describe('type guards', () => {
     });
     it('returns false otherwise', () => {
       expect(isCategoricalColorScale(scaleLinear())).toBeFalsy();
+    });
+  });
+  describe('isContinuousScale(scale, type)', () => {
+    it('returns true if type is one of the time scale types', () => {
+      expect(isContinuousScale(scaleLinear(), 'linear')).toBeTruthy();
+    });
+    it('returns false otherwise', () => {
+      expect(isContinuousScale(scaleOrdinal<HasToString, string>(), 'ordinal')).toBeFalsy();
     });
   });
   describe('isTimeScale(scale, type)', () => {
