@@ -495,7 +495,9 @@ export default class FilterScopeSelector extends React.PureComponent {
 
         <div className="filter-scope-body">
           {!showSelector ? (
-            <div>{t('There are no filters in this dashboard.')}</div>
+            <div className="warning-message">
+              {t('There are no filters in this dashboard.')}
+            </div>
           ) : (
             <div className="filters-scope-selector">
               <div className={cx('filter-field-pane multi-edit-mode')}>
