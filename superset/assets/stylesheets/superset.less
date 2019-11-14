@@ -19,7 +19,7 @@
 @import './less/index.less';
 @import "./less/cosmo/variables.less";
 @import './less/index.less';
-@import "../src/dashboard/stylesheets/variables.less";
+@import "./less/variables.less";
 
 @datasource-sql-expression-width: 450px;
 
@@ -28,7 +28,7 @@
 }
 
 .alert.alert-danger > .debugger {
-    color: red;
+    color: @error;
 }
 
 .modal-dialog {
@@ -43,11 +43,11 @@
 }
 
 input.form-control {
-    background-color: white;
+    background-color: @lightest;
 }
 
 .chart-header a.danger {
-    color: red;
+    color: @error;
 }
 
 .disabledButton {
@@ -111,7 +111,7 @@ input[type="checkbox"] {
 .notbtn {
     cursor: default;
     box-shadow: none;
-    border: 1px solid #ccc;
+    border: 1px solid @gray;
 }
 
 hr {
@@ -159,7 +159,7 @@ img.loading {
 }
 img.viz-thumb-option {
     width: 100px;
-    border: 1px solid gray;
+    border: 1px solid @gray;
     margin-right: 5px;
     border-radius: 5px;
 }
@@ -249,12 +249,12 @@ table.table-no-hover tr:hover {
   background: transparent;
   box-shadow: none;
   cursor: initial;
-  border: 1px solid #ccc;
+  border: 1px solid @gray;
   border-radius: 2px;
 }
 
 .editable-title input[type="text"] {
-  border: 1px solid #ccc;
+  border: 1px solid @gray;
   border-radius: 2px;
   padding: 2px;
 }
