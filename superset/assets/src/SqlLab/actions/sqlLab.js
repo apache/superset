@@ -445,7 +445,7 @@ export function addQueryEditor(queryEditor) {
   };
 }
 
-export function cloneQueryToNewTab(query) {
+export function cloneQueryToNewTab(query, autorun) {
   return function (dispatch, getState) {
     const state = getState();
     const { queryEditors, tabHistory } = state.sqlLab;
@@ -454,7 +454,7 @@ export function cloneQueryToNewTab(query) {
       title: t('Copy of %s', sourceQueryEditor.title),
       dbId: query.dbId ? query.dbId : null,
       schema: query.schema ? query.schema : null,
-      autorun: true,
+      autorun,
       sql: query.sql,
       queryLimit: sourceQueryEditor.queryLimit,
       maxRow: sourceQueryEditor.maxRow,
