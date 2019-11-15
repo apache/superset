@@ -175,24 +175,6 @@ describe('createScaleFromScaleConfig(config)', () => {
       });
       expect(scale(5)).toEqual(5);
     });
-    it('with zero (negative domain)', () => {
-      const scale = createScaleFromScaleConfig({
-        type: 'linear',
-        domain: [-10, -2],
-        range: [0, 10],
-        zero: true,
-      });
-      expect(scale(-5)).toEqual(5);
-    });
-    it('with zero (no effect)', () => {
-      const scale = createScaleFromScaleConfig({
-        type: 'linear',
-        domain: [-5, 5],
-        range: [0, 10],
-        zero: true,
-      });
-      expect(scale(0)).toEqual(5);
-    });
     it('with interpolate', () => {
       expect(() =>
         createScaleFromScaleConfig({
