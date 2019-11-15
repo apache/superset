@@ -184,7 +184,7 @@ class ExploreResultsButton extends React.PureComponent {
   render() {
     const allowsSubquery = this.props.database && this.props.database.allows_subquery;
     return (
-      <React.Fragment>
+      <>
         <Button
           bsSize="small"
           onClick={this.onClick}
@@ -198,7 +198,7 @@ class ExploreResultsButton extends React.PureComponent {
             this.dialog = el;
           }}
         />
-      </React.Fragment>
+      </>
     );
   }
 }

@@ -440,7 +440,7 @@ export default class FilterScopeSelector extends React.PureComponent {
       checkedFilterFields,
     });
     return (
-      <React.Fragment>
+      <>
         <input
           className="filter-text scope-search multi-edit-mode"
           placeholder={t('Search...')}
@@ -458,7 +458,7 @@ export default class FilterScopeSelector extends React.PureComponent {
           // to hide checkbox for selected filter field itself
           selectedChartId={selectedChartId}
         />
-      </React.Fragment>
+      </>
     );
   }
 

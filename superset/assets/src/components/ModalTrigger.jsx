@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { Modal, MenuItem } from 'react-bootstrap';
 import cx from 'classnames';
@@ -105,7 +105,7 @@ export default class ModalTrigger extends React.Component {
     });
     if (this.props.isButton) {
       return (
-        <Fragment>
+        <>
           <Button
             className="modal-trigger"
             tooltip={this.props.tooltip}
@@ -114,26 +114,26 @@ export default class ModalTrigger extends React.Component {
             {this.props.triggerNode}
           </Button>
           {this.renderModal()}
-        </Fragment>
+        </>
       );
     } else if (this.props.isMenuItem) {
       return (
-        <Fragment>
+        <>
           <MenuItem onClick={this.open}>
             {this.props.triggerNode}
           </MenuItem>
           {this.renderModal()}
-        </Fragment>
+        </>
       );
     }
     /* eslint-disable jsx-a11y/interactive-supports-focus */
     return (
-      <Fragment>
+      <>
         <span className={classNames} onClick={this.open} role="button">
           {this.props.triggerNode}
         </span>
         {this.renderModal()}
-      </Fragment>
+      </>
     );
   }
 }
