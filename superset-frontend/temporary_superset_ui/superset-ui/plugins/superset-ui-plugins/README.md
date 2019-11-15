@@ -37,8 +37,8 @@ Current master: https://superset-ui-plugins.netlify.com
 
 | Package | Version | Note |
 |--|--|--|
-| [@superset-ui/plugin-chart-word-cloud](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-plugin-chart-word-cloud) | [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square) | |
-| [@superset-ui/preset-chart-xy](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-preset-chart-xy) | [![Version](https://img.shields.io/npm/v/@superset-ui/preset-chart-xy.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/preset-chart-xy.svg?style=flat-square) | experimental |
+| [@superset-ui/plugin-chart-word-cloud](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-plugin-chart-word-cloud) | [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square) | |
+| [@superset-ui/preset-chart-xy](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-preset-chart-xy) | [![Version](https://img.shields.io/npm/v/@superset-ui/preset-chart-xy.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/preset-chart-xy.svg?style=flat-square) | experimental |
 
 | Package | Version |
 |--|--|
