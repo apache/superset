@@ -57,16 +57,18 @@ need to be done at every release.
 ## Crafting a source release
 
 When crafting a new minor or major release we create 
-a branch named with the release MAJOR.MINOR version.
+a branch named with the release MAJOR.MINOR version (on this example 0.34).
 This new branch will hold all PATCH and release candidates 
 that belong to the MAJOR.MINOR version.
 
 The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
 Then (if needed) apply all cherries that will make the PATCH
 
-Finally bump the version number on `superset/static/assets/package.json` ::
+Finally bump the version number on `superset/static/assets/package.json`:
 
-    "version": "0.35.0"
+```json
+    "version": "0.34.1"
+```
 
 Commit the change with the version number, then git tag the version with the release candidate and push
 
@@ -157,6 +159,16 @@ Now let's ship this RC into svn's dev folder
     svn commit -m "Release ${SUPERSET_VERSION_RC}"
 ```
 
+### Build and test from source tarball
+
+To make a working build given a tarball
+```bash
+# Build and run a release candidate tarball
+./test_run_tarball.sh
+# you should be able to access localhost:5001 on your browser
+# login using admin/admin
+```
+
 ### Voting
 Now you're ready to start the [VOTE] thread. Here's an example of a
 previous release vote thread:
@@ -217,19 +229,6 @@ In `UPDATING.md`, a file that contains a list of notifications around
 deprecations and upgrading-related topics,
 make sure to move the content now under the `Next Version` section under a new
 section for the new release.
-
-## Build from source tarball
-
-To make a working build given a tarball
-```bash
-# Building a docker from a tarball
-docker build -t apache-superset:${SUPERSET_VERSION_RC} -f Dockerfile.from_tarball . --build-arg VERSION=${SUPERSET_VERSION_RC}
-
-# testing the resulting docker
-docker run -p 5001:8088 apache-superset:${SUPERSET_VERSION_RC}
-# you should be able to access localhost:5001 on your browser
-# login using admin/admin
-```
 
 # Refresh documentation website
 
