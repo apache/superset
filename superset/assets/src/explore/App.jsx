@@ -33,7 +33,7 @@ import rootReducer from './reducers/index';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import './main.css';
-import '../../stylesheets/reactable-pagination.css';
+import '../../stylesheets/reactable-pagination.less';
 
 setupApp();
 setupPlugins();
