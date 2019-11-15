@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import json
 import unittest
 
-from flask import Flask, g
+from flask import g
 from sqlalchemy.orm.session import make_transient
 
 from tests.test_app import app
