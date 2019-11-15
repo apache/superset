@@ -64,13 +64,21 @@ that belong to the MAJOR.MINOR version.
 The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
 Then (if needed) apply all cherries that will make the PATCH
 
+Next update the `CHANGELOG.md` with all the changes that are included in the release. Make sure you have
+set your GITHUB_TOKEN environment variable.
+
+```bash
+# will overwrites the local CHANGELOG.md, somehow you need to merge it in
+github-changes -o apache -r incubator-superset --token $GITHUB_TOKEN --between-tags <PREVIOUS_RELEASE_TAG>...<CURRENT_RELEASE_TAG>
+```
+
 Finally bump the version number on `superset/static/assets/package.json`:
 
 ```json
     "version": "0.34.1"
 ```
 
-Commit the change with the version number, then git tag the version with the release candidate and push
+Commit the change with the version number, then git tag the version with the release candidate and push to the branch
 
 ## Setting up the release environment (do every time)
 
@@ -79,27 +87,28 @@ often stretching over several weeks calendar time if votes don't pass, chances a
 the same terminal session won't be used for crafting the release candidate and the
 final release. Therefore, it's a good idea to do the following every time you
 work on a new phase of the release process to make sure you aren't releasing
-the wrong files/using wrong names:
+the wrong files/using wrong names. There's a script to help you set correctly all the
+necessary environment variables:
 
-```bash
-    # Set SUPERSET_VERSION to the release being prepared, e.g. 0.34.1.
-    export SUPERSET_VERSION=XX.YY.ZZ
-    # Set RC to the release candindate number. Replacing QQ below with 1
-    # indicates rc1 i.e. first vote on version above (0.34.1rc1)
-    export SUPERSET_RC=QQ
+```$bash
+# usage: set_release_env.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
+. ./set_release_env.sh 0.34.1 1 "YOUR FULL NAME HERE"
 ```
 
-Then you can generate other derived environment variables that are used
-throughout the release process:
+The script will output the exported variables, for example:
 
-```bash
-    # Replace SUPERSET_PGP_FULLNAME with your PGP key name for Apache
-    export SUPERSET_PGP_FULLNAME="YOURFULLNAMEHERE"
-    export SUPERSET_VERSION_RC=${SUPERSET_VERSION}rc${SUPERSET_RC}
-    export SUPERSET_RELEASE=apache-superset-incubating-${SUPERSET_VERSION}
-    export SUPERSET_RELEASE_RC=apache-superset-incubating-${SUPERSET_VERSION_RC}
-    export SUPERSET_RELEASE_TARBALL=${SUPERSET_RELEASE}-source.tar.gz
-    export SUPERSET_RELEASE_RC_TARBALL=${SUPERSET_RELEASE_RC}-source.tar.gz
+```
+    -------------------------------
+    Set Release env variables
+    SUPERSET_VERSION=0.34.1
+    SUPERSET_RC=1
+    SUPERSET_PGP_FULLNAME=You PGP Key Name
+    SUPERSET_VERSION_RC=0.34.1rc1
+    SUPERSET_RELEASE=apache-superset-incubating-0.34.1
+    SUPERSET_RELEASE_RC=apache-superset-incubating-0.34.1rc1
+    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.34.1-source.tar.gz
+    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.34.1rc1-source.tar.gz
+    -------------------------------
 ```
 
 ## Preparing the release candidate
@@ -144,7 +153,7 @@ Now let's craft a source release
     cd ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
     ${SUPERSET_REPO_DIR}/scripts/sign.sh "${SUPERSET_RELEASE_RC_TARBALL}" "${SUPERSET_PGP_FULLNAME}"
 
-    # To verify to signature
+    # To verify the signature
     gpg --verify "${SUPERSET_RELEASE_RC_TARBALL}".asc "${SUPERSET_RELEASE_RC_TARBALL}"
 
 ```
@@ -163,10 +172,10 @@ Now let's ship this RC into svn's dev folder
 
 To make a working build given a tarball
 ```bash
-# Build and run a release candidate tarball
-./test_run_tarball.sh
-# you should be able to access localhost:5001 on your browser
-# login using admin/admin
+    # Build and run a release candidate tarball
+    ./test_run_tarball.sh
+    # you should be able to access localhost:5001 on your browser
+    # login using admin/admin
 ```
 
 ### Voting
