@@ -86,10 +86,12 @@ export default class FilterScopeSelector extends React.PureComponent {
                 selectedChartId: filterId,
               });
               const expanded = getFilterScopeParentNodes(nodes, 1);
-              // display filter_box chart as checked, but do not show checkbox
-              const chartIdsInFilterScope = getChartIdsInFilterScope({
-                filterScope: dashboardFilters[filterId].scopes[columnName],
-              });
+              // force display filter_box chart as unchecked, but show checkbox as disabled
+              const chartIdsInFilterScope = (
+                getChartIdsInFilterScope({
+                  filterScope: dashboardFilters[filterId].scopes[columnName],
+                }) || []
+              ).filter(id => id !== filterId);
 
               return {
                 ...mapByChartId,
