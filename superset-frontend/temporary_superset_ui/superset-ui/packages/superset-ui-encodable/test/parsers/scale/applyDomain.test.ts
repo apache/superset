@@ -19,6 +19,20 @@ describe('applyDomain()', () => {
         );
         expect(scale.domain()).toEqual(['a', 'c', 'b']);
       });
+      it('continuous domain (reverse)', () => {
+        const scale = scaleLinear();
+        applyDomain({ type: 'linear', domain: [null, 10], reverse: true }, scale, [1, 20]);
+        expect(scale.domain()).toEqual([10, 1]);
+      });
+      it('discrete domain (reverse)', () => {
+        const scale = scaleOrdinal<HasToString, string>();
+        applyDomain(
+          { type: 'ordinal', domain: ['a', 'c'], range: ['red', 'green', 'blue'], reverse: true },
+          scale,
+          ['a', 'b', 'c'],
+        );
+        expect(scale.domain()).toEqual(['b', 'c', 'a']);
+      });
     });
     describe('without domainFromDataset', () => {
       it('continuous domain', () => {

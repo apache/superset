@@ -13,8 +13,12 @@ import completeChannelDef, {
   CompleteValueDef,
 } from '../fillers/completeChannelDef';
 import createFormatterFromChannelDef from '../parsers/format/createFormatterFromChannelDef';
-import createScaleFromScaleConfig from '../parsers/scale/createScaleFromScaleConfig';
 import identity from '../utils/identity';
+import applyDomain from '../parsers/scale/applyDomain';
+import applyZero from '../parsers/scale/applyZero';
+import applyNice from '../parsers/scale/applyNice';
+import { AllScale } from '../types/Scale';
+import { createScaleFromScaleConfig } from '..';
 
 type EncodeFunction<Output> = (value: ChannelInput | Output) => Output | null | undefined;
 
@@ -23,7 +27,7 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
   readonly channelType: ChannelType;
   readonly originalDefinition: Def;
   readonly definition: CompleteChannelDef<Output>;
-  readonly scale?: ReturnType<typeof createScaleFromScaleConfig>;
+  readonly scale?: AllScale<Output>;
   readonly axis?: ChannelEncoderAxis<Def, Output>;
 
   private readonly getValue: Getter<Output>;
@@ -48,15 +52,15 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
     this.getValue = createGetterFromChannelDef(this.definition);
     this.formatValue = createFormatterFromChannelDef(this.definition);
 
-    const scale = this.definition.scale && createScaleFromScaleConfig(this.definition.scale);
-    if (scale === false) {
+    if (this.definition.scale) {
+      const scale = createScaleFromScaleConfig(this.definition.scale);
+      this.encodeValue = (value: ChannelInput) => scale(value);
+      this.scale = scale;
+    } else {
       this.encodeValue =
         'value' in this.definition
           ? () => (this.definition as CompleteValueDef<Output>).value
           : identity;
-    } else {
-      this.encodeValue = (value: ChannelInput) => scale(value);
-      this.scale = scale;
     }
 
     if (this.definition.axis) {
@@ -111,6 +115,21 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
 
     return [];
   };
+
+  setDomain(domain: ChannelInput[]) {
+    if (this.definition.scale !== false && this.scale && 'domain' in this.scale) {
+      const config = this.definition.scale;
+      applyDomain(config, this.scale, domain);
+      applyZero(config, this.scale);
+      applyNice(config, this.scale);
+    }
+
+    return this;
+  }
+
+  setDomainFromDataset(data: Dataset) {
+    return this.scale ? this.setDomain(this.getDomainFromDataset(data)) : this;
+  }
 
   getTitle() {
     return this.definition.title;

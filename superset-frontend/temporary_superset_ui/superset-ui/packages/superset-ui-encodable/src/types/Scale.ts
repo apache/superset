@@ -230,3 +230,5 @@ export type D3Scale<Output extends Value = Value> =
   | ScaleOrdinal<CategoricalScaleInput, Output>
   | ScalePoint<CategoricalScaleInput>
   | ScaleBand<CategoricalScaleInput>;
+
+export type AllScale<Output extends Value = Value> = D3Scale<Output> | ((val?: any) => string);
