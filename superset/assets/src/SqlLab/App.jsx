@@ -33,7 +33,7 @@ import setupApp from '../setup/setupApp';
 
 import './main.less';
 import '../../stylesheets/reactable-pagination.css';
-import '../components/FilterableTable/FilterableTableStyles.css';
+import '../components/FilterableTable/FilterableTableStyles.less';
 
 setupApp();
 
