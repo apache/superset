@@ -458,6 +458,7 @@ export function cloneQueryToNewTab(query) {
       sql: query.sql,
       queryLimit: sourceQueryEditor.queryLimit,
       maxRow: sourceQueryEditor.maxRow,
+      templateParams: sourceQueryEditor.templateParams,
     };
     return dispatch(addQueryEditor(queryEditor));
   };
