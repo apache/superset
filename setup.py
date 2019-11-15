@@ -97,7 +97,7 @@ setup(
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
-        "pyarrow>=0.14.1, <0.15.0",
+        "pyarrow>=0.15.1, <0.16.0",
         "pyyaml>=5.1",
         "retry>=0.9.2",
         "selenium>=3.141.0",
