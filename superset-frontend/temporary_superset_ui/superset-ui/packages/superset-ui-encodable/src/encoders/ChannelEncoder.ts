@@ -1,7 +1,12 @@
 import { extent as d3Extent } from 'd3-array';
+import { HasToString, IdentityFunction } from '../types/Base';
 import { ChannelType, ChannelInput } from '../types/Channel';
 import { PlainObject, Dataset } from '../types/Data';
 import { ChannelDef } from '../types/ChannelDef';
+import { Value } from '../types/VegaLite';
+import { isTypedFieldDef, isValueDef } from '../typeGuards/ChannelDef';
+import { isX, isY, isXOrY } from '../typeGuards/Channel';
+import ChannelEncoderAxis from './ChannelEncoderAxis';
 import createGetterFromChannelDef, { Getter } from '../parsers/createGetterFromChannelDef';
 import completeChannelDef, {
   CompleteChannelDef,
@@ -10,10 +15,6 @@ import completeChannelDef, {
 import createFormatterFromChannelDef from '../parsers/format/createFormatterFromChannelDef';
 import createScaleFromScaleConfig from '../parsers/scale/createScaleFromScaleConfig';
 import identity from '../utils/identity';
-import { HasToString, IdentityFunction } from '../types/Base';
-import { isTypedFieldDef, isValueDef } from '../typeGuards/ChannelDef';
-import { isX, isY, isXOrY } from '../typeGuards/Channel';
-import { Value } from '../types/VegaLite';
 
 type EncodeFunction<Output> = (value: ChannelInput | Output) => Output | null | undefined;
 
@@ -22,7 +23,8 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
   readonly channelType: ChannelType;
   readonly originalDefinition: Def;
   readonly definition: CompleteChannelDef<Output>;
-  readonly scale: false | ReturnType<typeof createScaleFromScaleConfig>;
+  readonly scale?: ReturnType<typeof createScaleFromScaleConfig>;
+  readonly axis?: ChannelEncoderAxis<Def, Output>;
 
   private readonly getValue: Getter<Output>;
   readonly encodeValue: IdentityFunction<ChannelInput | Output> | EncodeFunction<Output>;
@@ -54,8 +56,12 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
           : identity;
     } else {
       this.encodeValue = (value: ChannelInput) => scale(value);
+      this.scale = scale;
     }
-    this.scale = scale;
+
+    if (this.definition.axis) {
+      this.axis = new ChannelEncoderAxis(this);
+    }
   }
 
   encodeDatum: {
