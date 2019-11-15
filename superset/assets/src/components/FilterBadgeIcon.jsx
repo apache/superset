@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import './FilterBadgeIcon.css';
+import './FilterBadgeIcon.less';
 
 const propTypes = {
   colorCode: PropTypes.string,
