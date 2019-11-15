@@ -176,7 +176,7 @@ export default class FilterableTable extends PureComponent {
       widthsByColumnKey[key] = colWidths.slice(
         index * (this.list.size + 1),
         (index + 1) * (this.list.size + 1),
-      ).reduce(([a, b]) => Math.max(a, b)) + PADDING;
+      ).reduce((a, b) => Math.max(a, b)) + PADDING;
     });
 
     return widthsByColumnKey;
