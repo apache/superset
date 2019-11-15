@@ -186,7 +186,7 @@ export function estimateQueryCost(query) {
     dispatch({ type: COST_ESTIMATE_STARTED, query }),
     SupersetClient.post({
       endpoint,
-      postPayload: { sql, templateParams: JSON.parse(templateParams) },
+      postPayload: { sql, templateParams: JSON.parse(templateParams || '{}') },
     })
       .then(({ json }) => dispatch({ type: COST_ESTIMATE_RETURNED, query, json }))
       .catch(response =>
