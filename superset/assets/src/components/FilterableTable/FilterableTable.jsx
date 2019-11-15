@@ -170,10 +170,13 @@ export default class FilterableTable extends PureComponent {
     ).map(dimension => dimension.width);
 
     this.props.orderedColumnKeys.forEach((key, index) => {
-      widthsByColumnKey[key] = Math.max(...colWidths.slice(
+      // we can't use Math.max(...colWidths.slice(...)) here since the number
+      // of elements might be bigger than the number of allowed arguments in a
+      // Javascript function
+      widthsByColumnKey[key] = colWidths.slice(
         index * (this.list.size + 1),
         (index + 1) * (this.list.size + 1),
-      )) + PADDING;
+      ).reduce((a, b) => Math.max(a, b)) + PADDING;
     });
 
     return widthsByColumnKey;
