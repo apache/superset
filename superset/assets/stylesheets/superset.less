@@ -66,8 +66,8 @@ input.form-control {
 .slice_description{
     padding: 8px;
     margin: 5px 0;
-    border: 1px solid #DDD;
-    background-color: #F8F8F8;
+    border: 1px solid @gray-light;
+    background-color: @gray-bg;
     border-radius: 5px;
     font-size: 12px;
 }
@@ -120,7 +120,7 @@ hr {
 }
 
 span.title-block {
-    background-color: #EEE;
+    background-color: @gray-bg;
     border-radius: 4px;
     padding: 6px 12px;
     margin: 0px 10px;
@@ -174,7 +174,7 @@ li.widget:hover {
 
 div.widget .chart-header {
   padding-top: 8px;
-  color: #333;
+  color: @almost-black;
   margin: 0 10px;
 }
 
@@ -182,7 +182,7 @@ div.widget .chart-header {
   font-size: 20px;
   line-height: 22px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #888;
+  border-bottom: 1px solid @gray;
   margin-top: 10px;
   margin-left: 10px;
   margin-right: 10px;
@@ -385,7 +385,7 @@ table.table-no-hover tr:hover {
     width: 98%;
     padding: 2rem;
     margin: 0 1% 20px 1%;
-    background: #f8f8f8;
+    background: @gray-bg;
 }
 
 /** table on both sides of the gap **/
@@ -468,7 +468,7 @@ table.table-no-hover tr:hover {
     border-top: none;
 }
 .list-container .filters-container table tr:last-child td {
-    border-bottom: 1px solid #b3b3b3;
+    border-bottom: 1px solid @gray-light;
 }
 
 .list-add-action .btn.btn-sm {
@@ -558,7 +558,7 @@ tr.reactable-column-header th.reactable-header-sortable {
 
 .dismiss-overlay-btn {
   font-weight: bold;
-  background: white;
+  background: @lightest;
   color: @brand-primary;
   border-color: @brand-primary;
 }
@@ -569,7 +569,7 @@ tr.reactable-column-header th.reactable-header-sortable {
     &,
     &:hover,
     &:active {
-      color: #263238;
+      color: @almost-black;
     }
   }
 }
