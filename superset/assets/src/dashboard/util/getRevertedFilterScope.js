@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getChartIdAndColumnFromFilterKey } from './getDashboardFilterKey';
+
 export default function getRevertedFilterScope({
   checked = [],
   filterFields = [],
@@ -29,14 +31,19 @@ export default function getRevertedFilterScope({
     };
   }, {});
 
-  return filterFields.reduce(
-    (map, filterField) => ({
+  return filterFields.reduce((map, filterField) => {
+    const { chartId } = getChartIdAndColumnFromFilterKey(filterField);
+    // force display filter_box chart as unchecked, but show checkbox as disabled
+    const updatedCheckedIds = (
+      checkedChartIdsByFilterField[filterField] || []
+    ).filter(id => id !== chartId);
+
+    return {
       ...map,
       [filterField]: {
         ...filterScopeMap[filterField],
-        checked: checkedChartIdsByFilterField[filterField],
+        checked: updatedCheckedIds,
       },
-    }),
-    {},
-  );
+    };
+  }, {});
 }
