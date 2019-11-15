@@ -28,7 +28,7 @@ describe('WordCloud tranformProps', () => {
       width: 800,
       height: 600,
       rotation: 'square',
-      sizeRange: [10, 70],
+      sizeRange: [0, 70],
       data: [{ size: 1, text: 'Hulk' }],
     });
   });
