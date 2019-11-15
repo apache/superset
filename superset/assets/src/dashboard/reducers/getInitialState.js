@@ -191,7 +191,7 @@ export default function(bootstrapData) {
             ...DASHBOARD_FILTER_SCOPE_GLOBAL,
             ...scopeSettings[column],
           };
-          const immuneChartIds = new Set(filterImmuneSlices.slice());
+          const immuneChartIds = new Set(filterImmuneSlices);
           Object.keys(filterImmuneSliceFields)
             .filter(strChartId =>
               filterImmuneSliceFields[strChartId].includes(column),

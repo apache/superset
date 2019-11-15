@@ -17,15 +17,9 @@
  * under the License.
  */
 export default function getEffectiveExtraFilters(filters) {
-  const effectiveFilters = [];
-  Object.entries(filters).forEach(entry => {
-    const [column, values] = entry;
-    effectiveFilters.push({
-      col: column,
-      op: 'in',
-      val: values,
-    });
-  });
-
-  return effectiveFilters;
+  return Object.entries(filters).map(([column, values]) => ({
+    col: column,
+    op: 'in',
+    val: values,
+  }));
 }
