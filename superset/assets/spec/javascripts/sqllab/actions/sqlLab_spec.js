@@ -278,7 +278,7 @@ describe('async actions', () => {
           id: 'abcd',
         },
       }];
-      return store.dispatch(actions.cloneQueryToNewTab(query)).then(() => {
+      return store.dispatch(actions.cloneQueryToNewTab(query, true)).then(() => {
         expect(store.getActions()).toEqual(expectedActions);
       });
     });
