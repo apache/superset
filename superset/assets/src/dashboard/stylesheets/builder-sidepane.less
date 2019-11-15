@@ -50,7 +50,7 @@
     overflow: hidden;
     width: @builder-pane-width;
     height: 100%;
-    box-shadow: -4px 0 4px 0 fade(@darkest, 10%);
+    box-shadow: -4px 0 4px 0 fade(@darkest, @opacity-light);
   }
 
   .slider-container {
@@ -97,7 +97,7 @@
       margin: 0 16px 16px 16px;
       position: relative;
       cursor: move;
-      background: fade(@lightest, 40%);
+      background: fade(@lightest, @opacity-medium-light);
 
       &:hover {
         background: @gray-bg;

@@ -61,7 +61,7 @@ body {
 }
 
 .Workspace .btn-sm {
-    box-shadow: 1px 1px 2px fade(@darkest, 10%);
+    box-shadow: 1px 1px 2px fade(@darkest, @opacity-light);
     margin-top: 2px;
     padding: 4px;
 }
@@ -150,7 +150,7 @@ div.Workspace {
     font-weight: bold;
 }
 .running {
-    background-color: fade(@success, 80%);
+    background-color: fade(@success, @opacity-heavy);
     color: @darkest;
 }
 .success {
@@ -170,7 +170,7 @@ div.Workspace {
     opacity: 0.85;
     border: 1px solid @gray-heading;
     max-height: 600px;
-    box-shadow: fade(@darkest, 80%) 5px 5px 25px
+    box-shadow: fade(@darkest, @opacity-heavy) 5px 5px 25px
 }
 .SqlLab pre {
     padding: 0px !important;
