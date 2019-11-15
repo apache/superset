@@ -7,15 +7,17 @@ import parseDateTimeIfPossible from '../parseDateTimeIfPossible';
 import parseContinuousDomain from '../domain/parseContinuousDomain';
 import parseDiscreteDomain from '../domain/parseDiscreteDomain';
 import combineContinuousDomains from '../../utils/combineContinuousDomains';
+import { ChannelInput } from '../../types/Channel';
+import removeUndefinedAndNull from '../../utils/removeUndefinedAndNull';
 
 function createOrderFunction(reverse: boolean | undefined) {
-  return reverse ? <T>(array: T[]) => array.slice().reverse() : <T>(array: T[]) => array;
+  return reverse ? <T>(array: T[]) => array.concat().reverse() : <T>(array: T[]) => array;
 }
 
 export default function applyDomain<Output extends Value>(
   config: ScaleConfig<Output>,
   scale: D3Scale<Output>,
-  domainFromDataset?: string[] | number[] | boolean[] | Date[],
+  domainFromDataset?: ChannelInput[],
 ) {
   const { domain, reverse, type } = config;
 
@@ -32,7 +34,7 @@ export default function applyDomain<Output extends Value>(
     if (isContinuousScale(scale, type)) {
       const combined = combineContinuousDomains(
         parseContinuousDomain(fixedDomain, type),
-        inputDomain && parseContinuousDomain(inputDomain, type),
+        inputDomain && removeUndefinedAndNull(parseContinuousDomain(inputDomain, type)),
       );
       if (combined) {
         scale.domain(order(combined));
@@ -49,7 +51,7 @@ export default function applyDomain<Output extends Value>(
     }
   } else if (inputDomain) {
     if (isContinuousScale(scale, type)) {
-      scale.domain(order(parseContinuousDomain(inputDomain, type)));
+      scale.domain(order(removeUndefinedAndNull(parseContinuousDomain(inputDomain, type))));
     } else {
       scale.domain(order(parseDiscreteDomain(inputDomain)));
     }
