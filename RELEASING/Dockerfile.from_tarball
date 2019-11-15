@@ -56,9 +56,7 @@ RUN cd superset/assets \
 
 WORKDIR /home/superset/apache-superset-incubating-$VERSION
 RUN pip install --upgrade setuptools pip \
-    && pip install -r requirements.txt -r requirements-dev.txt \
-    && pip install -e . \
-    && rm -rf /root/.cache/pip
+    && pip install --no-cache-dir .
 
 RUN flask fab babel-compile --target superset/translations
 
