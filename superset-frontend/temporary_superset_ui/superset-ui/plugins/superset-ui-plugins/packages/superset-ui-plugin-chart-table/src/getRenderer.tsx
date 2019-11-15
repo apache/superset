@@ -133,7 +133,7 @@ export default function getRenderer({
               {format ? (
                 format.format(value as number & Date)
               ) : (
-                <HTMLRenderer value={value as string} />
+                <HTMLRenderer value={String(value)} />
               )}
             </Parent>
           </div>
