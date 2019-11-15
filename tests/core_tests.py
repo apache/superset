@@ -33,7 +33,8 @@ import pandas as pd
 import psycopg2
 import sqlalchemy as sqla
 
-from superset import app, dataframe, db, jinja_context, security_manager, sql_lab
+from tests.test_app import app
+from superset import dataframe, db, jinja_context, security_manager, sql_lab
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec

@@ -21,12 +21,12 @@ import unittest
 from flask import Flask, g
 from sqlalchemy.orm.session import make_transient
 
+from tests.test_app import app
 from superset import db, security_manager
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models import core as models
 from superset.utils import core as utils
-from tests import app
 
 from .base_tests import SupersetTestCase
 

@@ -22,6 +22,7 @@ import time
 import unittest
 import unittest.mock as mock
 
+from tests.test_app import app  # isort:skip
 from superset import db, sql_lab
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -29,7 +30,6 @@ from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
-from tests import app
 
 from .base_tests import SupersetTestCase
 

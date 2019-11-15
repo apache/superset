@@ -21,6 +21,7 @@ from unittest.mock import Mock, patch, PropertyMock
 from flask_babel import gettext as __
 from selenium.common.exceptions import WebDriverException
 
+from tests.test_app import app
 from superset import db
 from superset.models.core import Dashboard, Slice
 from superset.models.schedules import (
@@ -35,7 +36,6 @@ from superset.tasks.schedules import (
     deliver_slice,
     next_schedules,
 )
-from tests import app
 from tests.base_tests import SupersetTestCase
 
 from .utils import read_fixture

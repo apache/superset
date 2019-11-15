@@ -19,12 +19,12 @@ import json
 import unittest
 from unittest import mock
 
+from tests.test_app import app  # isort:skip
 from superset import db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid.models import DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
-from tests import app
 
 from .base_tests import SupersetTestCase
 

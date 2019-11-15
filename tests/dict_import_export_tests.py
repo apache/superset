@@ -20,12 +20,12 @@ import unittest
 
 import yaml
 
+from tests.test_app import app
 from superset import db
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.utils.core import get_example_database
 from superset.utils.dict_import_export import export_to_dict
-from tests import app
 
 from .base_tests import SupersetTestCase
 

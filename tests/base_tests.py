@@ -23,13 +23,13 @@ import pandas as pd
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 
+from tests.test_app import app  # isort:skip
 from superset import db, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.core import Database
 from superset.utils.core import get_example_database
-from tests import app
 
 FAKE_DB_NAME = "fake_db_100"
 
