@@ -187,6 +187,7 @@ class CeleryTestCase(SupersetTestCase):
         result = self.run_sql(
             db_id, sql_where, "4", async_=True, tmp_table="tmp_async_1", cta=True
         )
+        db.session.close()
         assert result["query"]["state"] in (
             QueryStatus.PENDING,
             QueryStatus.RUNNING,
@@ -221,6 +222,7 @@ class CeleryTestCase(SupersetTestCase):
         result = self.run_sql(
             db_id, sql_where, "5", async_=True, tmp_table=tmp_table, cta=True
         )
+        db.session.close()
         assert result["query"]["state"] in (
             QueryStatus.PENDING,
             QueryStatus.RUNNING,
