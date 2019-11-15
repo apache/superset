@@ -80,7 +80,7 @@ class QueryTable extends React.PureComponent {
   }
 
   openQueryInNewTab(query) {
-    this.props.actions.cloneQueryToNewTab(query);
+    this.props.actions.cloneQueryToNewTab(query, true);
   }
   openAsyncResults(query, displayLimit) {
     this.props.actions.fetchQueryResults(query, displayLimit);
