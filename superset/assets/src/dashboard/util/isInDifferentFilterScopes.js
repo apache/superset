@@ -16,31 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
+export default function isInDifferentFilterScopes({
+  dashboardFilters = {},
+  source = [],
+  destination = [],
+}) {
+  const sourceSet = new Set(source);
+  const destinationSet = new Set(destination);
 
-import { getDashboardFilterKey } from './getDashboardFilterKey';
-import { ALL_FILTERS_ROOT } from './constants';
-
-export default function getFilterFieldNodesTree({ dashboardFilters = {} }) {
-  const allFilters = Object.values(dashboardFilters).map(dashboardFilter => {
-    const { chartId, filterName, columns, labels } = dashboardFilter;
-    const children = Object.keys(columns).map(column => ({
-      value: getDashboardFilterKey({ chartId, column }),
-      label: labels[column] || column,
-    }));
-    return {
-      value: chartId,
-      label: filterName,
-      children,
-      showCheckbox: true,
-    };
-  });
-
-  return [
-    {
-      value: ALL_FILTERS_ROOT,
-      label: t('All filters'),
-      children: allFilters,
-    },
-  ];
+  const allScopes = [].concat(
+    ...Object.values(dashboardFilters).map(({ scopes }) =>
+      [].concat(...Object.values(scopes).map(({ scope }) => scope)),
+    ),
+  );
+  return allScopes.some(tab => destinationSet.has(tab) !== sourceSet.has(tab));
 }

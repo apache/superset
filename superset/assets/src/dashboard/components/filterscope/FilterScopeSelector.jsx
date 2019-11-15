@@ -26,24 +26,26 @@ import buildFilterScopeTreeEntry from '../../util/buildFilterScopeTreeEntry';
 import getFilterScopeNodesTree from '../../util/getFilterScopeNodesTree';
 import getFilterFieldNodesTree from '../../util/getFilterFieldNodesTree';
 import getFilterScopeParentNodes from '../../util/getFilterScopeParentNodes';
-import getCurrentScopeChartIds from '../../util/getCurrentScopeChartIds';
 import getKeyForFilterScopeTree from '../../util/getKeyForFilterScopeTree';
 import getSelectedChartIdForFilterScopeTree from '../../util/getSelectedChartIdForFilterScopeTree';
+import getFilterScopeFromNodesTree from '../../util/getFilterScopeFromNodesTree';
 import getRevertedFilterScope from '../../util/getRevertedFilterScope';
 import FilterScopeTree from './FilterScopeTree';
 import FilterFieldTree from './FilterFieldTree';
+import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import {
   getChartIdAndColumnFromFilterKey,
   getDashboardFilterKey,
 } from '../../util/getDashboardFilterKey';
 import { ALL_FILTERS_ROOT } from '../../util/constants';
+import { dashboardFilterPropShape } from '../../util/propShapes';
 
 const propTypes = {
-  dashboardFilters: PropTypes.object.isRequired,
+  dashboardFilters: PropTypes.objectOf(dashboardFilterPropShape).isRequired,
   layout: PropTypes.object.isRequired,
-  filterImmuneSlices: PropTypes.arrayOf(PropTypes.number).isRequired,
-  filterImmuneSliceFields: PropTypes.object.isRequired,
-  setDirectPathToChild: PropTypes.func.isRequired,
+
+  updateDashboardFiltersScope: PropTypes.func.isRequired,
+  setUnsavedChanges: PropTypes.func.isRequired,
   onCloseModal: PropTypes.func.isRequired,
 };
 
@@ -51,12 +53,7 @@ export default class FilterScopeSelector extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    const {
-      dashboardFilters,
-      filterImmuneSlices,
-      filterImmuneSliceFields,
-      layout,
-    } = props;
+    const { dashboardFilters, layout } = props;
 
     if (Object.keys(dashboardFilters).length > 0) {
       // display filter fields in tree structure
@@ -88,14 +85,12 @@ export default class FilterScopeSelector extends React.PureComponent {
                 filterFields: [filterKey],
                 selectedChartId: filterId,
               });
-              const checked = getCurrentScopeChartIds({
-                scopeComponentIds: ['ROOT_ID'], // dashboardFilters[chartId].scopes[columnName],
-                filterField: columnName,
-                filterImmuneSlices,
-                filterImmuneSliceFields,
-                components: layout,
-              });
               const expanded = getFilterScopeParentNodes(nodes, 1);
+              // display filter_box chart as checked, but do not show checkbox
+              const chartIdsInFilterScope = getChartIdsInFilterScope({
+                filterScope: dashboardFilters[filterId].scopes[columnName],
+              });
+
               return {
                 ...mapByChartId,
                 [filterKey]: {
@@ -103,7 +98,7 @@ export default class FilterScopeSelector extends React.PureComponent {
                   nodes,
                   // filtered nodes in display if searchText is not empty
                   nodesFiltered: [...nodes],
-                  checked,
+                  checked: chartIdsInFilterScope,
                   expanded,
                 },
               };
@@ -304,18 +299,28 @@ export default class FilterScopeSelector extends React.PureComponent {
   onSave() {
     const { filterScopeMap } = this.state;
 
-    console.log(
-      'i am current state',
-      this.allfilterFields.reduce(
-        (map, key) => ({
+    const allFilterFieldScopes = this.allfilterFields.reduce(
+      (map, filterKey) => {
+        const nodes = filterScopeMap[filterKey].nodes;
+        const checkedChartIds = filterScopeMap[filterKey].checked;
+
+        return {
           ...map,
-          [key]: filterScopeMap[key].checked,
-        }),
-        {},
-      ),
+          [filterKey]: getFilterScopeFromNodesTree({
+            filterKey,
+            nodes,
+            checkedChartIds,
+          }),
+        };
+      },
+      {},
     );
 
-    // save does not close modal
+    this.props.updateDashboardFiltersScope(allFilterFieldScopes);
+    this.props.setUnsavedChanges(true);
+
+    // click Save button will do save and close modal
+    this.props.onCloseModal();
   }
 
   filterTree() {
@@ -486,7 +491,7 @@ export default class FilterScopeSelector extends React.PureComponent {
         <div className="filter-scope-container">
           <div className="filter-scope-header">
             <h4>{t('Configure filter scopes')}</h4>
-            {this.renderEditingFiltersName()}
+            {showSelector && this.renderEditingFiltersName()}
           </div>
 
           {!showSelector ? (
@@ -503,7 +508,7 @@ export default class FilterScopeSelector extends React.PureComponent {
           )}
         </div>
         <div className="dashboard-modal-actions-container">
-          <Button onClick={this.onClose}>{t('Cancel')}</Button>
+          <Button onClick={this.onClose}>{t('Close')}</Button>
           {showSelector && (
             <Button bsStyle="primary" onClick={this.onSave}>
               {t('Save')}

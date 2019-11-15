@@ -22,7 +22,7 @@ export default function getKeyForFilterScopeTree({
   activeFilterField,
   checkedFilterFields,
 }) {
-  return activeFilterField
-    ? safeStringify([activeFilterField])
-    : safeStringify(checkedFilterFields);
+  return safeStringify(
+    activeFilterField ? [activeFilterField] : checkedFilterFields,
+  );
 }

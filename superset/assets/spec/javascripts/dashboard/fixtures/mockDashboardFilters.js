@@ -36,6 +36,7 @@ export const dashboardFilters = {
     ],
     scopes: {
       region: DASHBOARD_FILTER_SCOPE_GLOBAL,
+      gender: DASHBOARD_FILTER_SCOPE_GLOBAL,
     },
     isDateFilter: false,
     isInstantFilter: true,

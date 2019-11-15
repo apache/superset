@@ -23,11 +23,11 @@ import { Dropdown, MenuItem } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import getDashboardUrl from '../util/getDashboardUrl';
+import { getActiveFilters } from '../util/activeDashboardFilters';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
   componentId: PropTypes.string.isRequired,
-  filters: PropTypes.object.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   isCached: PropTypes.bool,
   isExpanded: PropTypes.bool,
@@ -107,7 +107,6 @@ class SliceHeaderControls extends React.PureComponent {
       isCached,
       cachedDttm,
       updatedDttm,
-      filters,
       componentId,
       addDangerToast,
     } = this.props;
@@ -162,7 +161,7 @@ class SliceHeaderControls extends React.PureComponent {
           <URLShortLinkModal
             url={getDashboardUrl(
               window.location.pathname,
-              filters,
+              getActiveFilters(),
               componentId,
             )}
             addDangerToast={addDangerToast}

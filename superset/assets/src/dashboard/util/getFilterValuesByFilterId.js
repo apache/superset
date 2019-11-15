@@ -16,31 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
+import { getChartIdAndColumnFromFilterKey } from './getDashboardFilterKey';
 
-import { getDashboardFilterKey } from './getDashboardFilterKey';
-import { ALL_FILTERS_ROOT } from './constants';
-
-export default function getFilterFieldNodesTree({ dashboardFilters = {} }) {
-  const allFilters = Object.values(dashboardFilters).map(dashboardFilter => {
-    const { chartId, filterName, columns, labels } = dashboardFilter;
-    const children = Object.keys(columns).map(column => ({
-      value: getDashboardFilterKey({ chartId, column }),
-      label: labels[column] || column,
-    }));
-    return {
-      value: chartId,
-      label: filterName,
-      children,
-      showCheckbox: true,
-    };
-  });
-
-  return [
-    {
-      value: ALL_FILTERS_ROOT,
-      label: t('All filters'),
-      children: allFilters,
-    },
-  ];
+// input: { [id_column1]: values, [id_column2]: values }
+// output: { column1: values, column2: values }
+export default function getFilterValuesByFilterId({
+  activeFilters = {},
+  filterId,
+}) {
+  return Object.entries(activeFilters).reduce((map, entry) => {
+    const [filterKey, { values }] = entry;
+    const { chartId, column } = getChartIdAndColumnFromFilterKey(filterKey);
+    if (chartId === filterId) {
+      return {
+        ...map,
+        [column]: values,
+      };
+    }
+    return map;
+  }, {});
 }
