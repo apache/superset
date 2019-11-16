@@ -221,5 +221,10 @@
   },
   "optionalDependencies": {
     "fsevents": "^2.0.7"
+  },
+  "stylelint": {
+    "rules": {
+      "block-opening-brace-space-before": "always"
+    }
   }
 }

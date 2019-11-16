@@ -31,14 +31,14 @@
     padding-right: 3px;
 }
 
-ul.select2-results li.select2-highlighted div.filter_box{
+ul.select2-results li.select2-highlighted div.filter_box {
     color: black;
     border-width: 1px;
     border-style: solid;
     border-color: #666;
 }
 
-ul.select2-results div.filter_box{
+ul.select2-results div.filter_box {
     color: black;
     border-style: solid;
     border-width: 1px;
