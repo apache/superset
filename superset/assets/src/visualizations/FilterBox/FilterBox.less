@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import '../../dashboard/stylesheets/variables.less';
+
 .select2-highlighted > .filter_box {
   background-color: transparent;
   border: 1px superset black;
@@ -75,5 +77,5 @@ ul.select2-results div.filter_box {
 
 .filter-container .filter-badge-container + div {
   width: 100%;
-  z-index: 11;
+  z-index: @z-index-dropdown;
 }
