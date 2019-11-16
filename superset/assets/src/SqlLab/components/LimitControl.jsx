@@ -42,7 +42,7 @@ export default class LimitControl extends React.PureComponent {
     super(props);
     const { value, defaultQueryLimit } = props;
     this.state = {
-      textValue: value.toString() || defaultQueryLimit.toString(),
+      textValue: (value || defaultQueryLimit).toString(),
       showOverlay: false,
     };
     this.handleHide = this.handleHide.bind(this);
