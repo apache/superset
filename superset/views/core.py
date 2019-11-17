@@ -3112,18 +3112,16 @@ class Superset(BaseSupersetView):
                 tables.append(models.TableDto(table.id, table.name, table.database_id))
         return tables
 
-    def _enginge(self, table_name: str):
-        table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
-        database = (
-            db.session.query(models.Database).filter_by(id=table.database_id).first()
-        )
-        return database.get_sqla_engine()
-
     def _load_data_from_columns(self, table_name, columns):
+        """
+        Get data from columns form table
+        :param table_name: The table name from table from which select
+        :param columns: The names of columns to select
+        :return: The data from columns from given table as list of tuples
+        """
         selected_columns = ", ".join(filter(None, columns))
         sql = "SELECT " + selected_columns + " FROM %s" % table_name
-        engine = self._enginge(table_name)
-        result = engine.connect().execute(sql)
+        result = db.engine.connect().execute(sql)
         return [row for row in result]
 
     def _get_mapbox_key(self):
