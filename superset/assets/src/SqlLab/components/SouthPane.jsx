@@ -92,6 +92,7 @@ export class SouthPane extends React.PureComponent {
     if (latestQuery) {
       if (
         isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
+        latestQuery.state === 'success' &&
         (!latestQuery.resultsKey && !latestQuery.results)
       ) {
          results = <Alert bsStyle="warning">{t('No stored results found, you need to re-run your query')}</Alert>;

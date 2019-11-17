@@ -186,7 +186,7 @@ export function estimateQueryCost(query) {
     dispatch({ type: COST_ESTIMATE_STARTED, query }),
     SupersetClient.post({
       endpoint,
-      postPayload: { sql, templateParams: JSON.parse(templateParams) },
+      postPayload: { sql, templateParams: JSON.parse(templateParams || '{}') },
     })
       .then(({ json }) => dispatch({ type: COST_ESTIMATE_RETURNED, query, json }))
       .catch(response =>
@@ -445,7 +445,7 @@ export function addQueryEditor(queryEditor) {
   };
 }
 
-export function cloneQueryToNewTab(query) {
+export function cloneQueryToNewTab(query, autorun) {
   return function (dispatch, getState) {
     const state = getState();
     const { queryEditors, tabHistory } = state.sqlLab;
@@ -454,10 +454,11 @@ export function cloneQueryToNewTab(query) {
       title: t('Copy of %s', sourceQueryEditor.title),
       dbId: query.dbId ? query.dbId : null,
       schema: query.schema ? query.schema : null,
-      autorun: true,
+      autorun,
       sql: query.sql,
       queryLimit: sourceQueryEditor.queryLimit,
       maxRow: sourceQueryEditor.maxRow,
+      templateParams: sourceQueryEditor.templateParams,
     };
     return dispatch(addQueryEditor(queryEditor));
   };
