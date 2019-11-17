@@ -3110,7 +3110,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/geocoding/interrupt", methods=["POST"])
     def interrupt(self) -> Response:
-        interrupt = True
+        self.coder.interruptflag = True
         # TODO define what to do when interrupt is called -> should data be saved or not?
         return json_success("")
 

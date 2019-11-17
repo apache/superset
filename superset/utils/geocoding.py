@@ -19,33 +19,55 @@ import time
 
 import requests
 
+from superset.tasks.celery_app import app as celery_app
+
 
 class GeocodingProgress:
     """
-    This class is to be used as an object passed to the frontend to inform it whether or not the geocoding
-    process is still running and what the overall progress of the task is
+    This class is to be used as an object passed to the frontend to inform it whether
+    or not the geocoding process is still running and what the overall progress
+    of the task is
     """
 
     is_in_progress = False
-    progress = 0
+    progress: float = 0
+
+    def in_progress(self) -> bool:
+        return self.is_in_progress
+
+    def get_progress(self) -> int:
+        return self.progress
 
 
 class GeoCoder:
-    conf = ""
+    interruptflag = False
+    conf = {}
+    geocoding_timeout = 0
     progress = GeocodingProgress()
 
     def __init__(self, config):
         conf = config
+        geocoding_timeout = conf["GEOCODING_ASYNC_TIMEOUT"]
 
     def geocode(self, geocoder, data):
-        if geocoder == "MapTiler":
-            return self.__geocode_maptiler(data)
-        else:
-            return self.__geocode_testing()
+        try:
+            if geocoder == "MapTiler":
+                retdata = self.__geocode_maptiler.delay(data)
+                return retdata
+            else:
+                return self.__geocode_testing.delay()
+        except Exception as e:
+            raise e
 
+    @celery_app.task(
+        name="__geocode_maptiler",
+        bind=True,
+        time_limit=geocoding_timeout,
+        soft_time_limit=geocoding_timeout,
+    )
     def __geocode_maptiler(self, data: dict) -> dict:
         baseurl = "https://api.maptiler.com/geocoding/"
-        geocoded_data = {}
+        geocoded_data = dict
         data = {"a": "HSR Oberseestrasse 10 Rapperswil", "b": "ETH Zürich"}
         datalen = len(data)
         counter = 0
@@ -63,7 +85,8 @@ class GeoCoder:
                 jsondat = json.loads(dat)
                 # TODO give better names and clean
                 features = jsondat["features"]
-                if len(features) != 0:
+                feature_count = len(features)
+                if feature_count != 0:
                     feature = features[0]
                     center = feature["center"]
                     geocoded_data[datum_id] = center
@@ -73,20 +96,22 @@ class GeoCoder:
             except Exception as e:
                 # TODO decide whether to interrupt here or keep going
                 print(e)
-                pass
         self.progress.progress = 100
         self.progress.is_in_progress = False
         return geocoded_data
 
+    @celery_app.task(
+        name="__geocode_testing", bind=True, time_limit=120, soft_time_limit=120
+    )
     def __geocode_testing(self) -> dict:
         counter = 0
         datalen = 10
         self.progress.progress = 0
-        for i in range(datalen):
+        for _ in range(datalen):
             if self.interruptflag:
                 self.interruptflag = False
-                return ""
+                return {0: ""}
             time.sleep(2)
             counter = counter + 1
             self.progress.progress = counter / datalen
-        return ""
+        return {0: ""}

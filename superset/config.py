@@ -460,6 +460,9 @@ HTTP_HEADERS: Dict[str, Any] = {}
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
 
+# Timeout for geocoding
+GEOCODING_ASYNC_TIMEOUT = 3600
+
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = 30
 
