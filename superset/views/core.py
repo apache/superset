@@ -24,7 +24,6 @@ from typing import Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
-import geopy
 import msgpack
 import pandas as pd
 import pyarrow as pa
@@ -87,6 +86,7 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
+from superset.utils.geocoding import GeocodingProgress
 
 from .base import (
     api,
@@ -3060,6 +3060,7 @@ class Superset(BaseSupersetView):
     progress = ""
     in_progress = False
     interruptflag = False
+    progress = GeocodingProgress()
 
     @has_access
     @expose("/geocoding")
@@ -3086,7 +3087,7 @@ class Superset(BaseSupersetView):
         pass
 
     def _geocode(self, data, dev=False):
-        self.in_progress = True
+        self.progress.is_in_progress = True
         counter = 0
         if dev:
             datalen = 1000
@@ -3096,11 +3097,11 @@ class Superset(BaseSupersetView):
                     return ""
                 time.sleep(5)
                 counter = counter + 1
-                self.progress = counter / datalen
+                self.progress.progress = counter / datalen
             return ""
         baseurl = "https://api.maptiler.com/geocoding/"
         geocoded_data = {}
-        data = {"a": "HSR Oberseestrasse 10 CH-8640 Rapperswil", "b": "ETH Zürich"}
+        data = {"a": "HSR Oberseestrasse 10 Rapperswil", "b": "ETH Zürich"}
         datalen = len(data)
         counter = 0
         for datum_id in data:
@@ -3121,14 +3122,14 @@ class Superset(BaseSupersetView):
                     center = feature["center"]
                     geocoded_data[id] = center
                 counter += 1
-                progress = counter / datalen
+                self.progress.progress = counter / datalen
             # TODO be more precise with the possible exceptions
             except Exception as e:
                 # TODO decide whether to interrupt here or keep going
                 print(e)
                 pass
-        progress = 100
-        in_progress = False
+        self.progress.progress = 100
+        self.progress.is_in_progress = False
         return geocoded_data
 
     def _add_lat_long_columns(self, data):
@@ -3138,20 +3139,20 @@ class Superset(BaseSupersetView):
     # @has_access_api
     @expose("/geocoding/is_in_progress", methods=["GET"])
     def is_in_progress(self) -> Response:
-        return self.in_progress
-        # return json_success(self.in_progress)
+        return json_success(json.dumps(self.progress))
 
     @api
     @has_access_api
     @expose("/geocoding/progress", methods=["GET"])
     def progress(self) -> Response:
-        return json_success(self.progress)
+        return json_success(json.dumps(self.progress))
 
     @api
     @has_access_api
     @expose("/geocoding/interrupt", methods=["POST"])
     def interrupt(self) -> Response:
         interrupt = True
+        # TODO define what to do when interrupt is called -> should data be saved or not?
         return json_success("")
 
 
