@@ -86,7 +86,7 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
-from superset.utils.geocoding import GeocodingProgress
+from superset.utils.geocoding import GeoCoder, GeocodingProgress
 
 from .base import (
     api,
@@ -3057,10 +3057,8 @@ class Superset(BaseSupersetView):
             )
 
     # Variables for geocoding
-    progress = ""
-    in_progress = False
     interruptflag = False
-    progress = GeocodingProgress()
+    coder = GeoCoder(conf)
 
     @has_access
     @expose("/geocoding")
@@ -3087,50 +3085,11 @@ class Superset(BaseSupersetView):
         pass
 
     def _geocode(self, data, dev=False):
-        self.progress.is_in_progress = True
-        counter = 0
+        # TODO do this in a cleaner way
         if dev:
-            datalen = 1000
-            for i in range(datalen):
-                if self.interruptflag:
-                    self.interruptflag = False
-                    return ""
-                time.sleep(5)
-                counter = counter + 1
-                self.progress.progress = counter / datalen
-            return ""
-        baseurl = "https://api.maptiler.com/geocoding/"
-        geocoded_data = {}
-        data = {"a": "HSR Oberseestrasse 10 Rapperswil", "b": "ETH Zürich"}
-        datalen = len(data)
-        counter = 0
-        for datum_id in data:
-            try:
-                if self.interruptflag:
-                    self.interruptflag = False
-                    return geocoded_data
-                address = data[datum_id]
-                resp = requests.get(
-                    baseurl + address + ".json?key=" + conf["MAPTILER_API_KEY"]
-                )
-                dat = resp.content.decode()
-                jsondat = json.loads(dat)
-                # TODO give better anmes and clean
-                features = jsondat["features"]
-                if len(features) != 0:
-                    feature = features[0]
-                    center = feature["center"]
-                    geocoded_data[id] = center
-                counter += 1
-                self.progress.progress = counter / datalen
-            # TODO be more precise with the possible exceptions
-            except Exception as e:
-                # TODO decide whether to interrupt here or keep going
-                print(e)
-                pass
-        self.progress.progress = 100
-        self.progress.is_in_progress = False
-        return geocoded_data
+            return self.coder.geocode("", data)
+        else:
+            return self.coder.geocode("MapTiler", data)
 
     def _add_lat_long_columns(self, data):
         pass
@@ -3139,13 +3098,13 @@ class Superset(BaseSupersetView):
     # @has_access_api
     @expose("/geocoding/is_in_progress", methods=["GET"])
     def is_in_progress(self) -> Response:
-        return json_success(json.dumps(self.progress))
+        return json_success(json.dumps(self.coder.progress))
 
     @api
     @has_access_api
     @expose("/geocoding/progress", methods=["GET"])
     def progress(self) -> Response:
-        return json_success(json.dumps(self.progress))
+        return json_success(json.dumps(self.coder.progress))
 
     @api
     @has_access_api
