@@ -41,7 +41,7 @@ class GeoCoder:
         if geocoder == "MapTiler":
             return self.__geocode_maptiler(data)
         else:
-            return self.geocode_testing()
+            return self.__geocode_testing()
 
     def __geocode_maptiler(self, data: dict) -> dict:
         baseurl = "https://api.maptiler.com/geocoding/"

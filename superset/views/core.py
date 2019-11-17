@@ -3075,7 +3075,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/geocoding/geocode", methods=["POST"])
     def geocode(self) -> Response:
-        dat = self._geocode(request.data, dev=True)
+        dat = self._geocode(request.data)
         return json_success(dat)
 
     def _get_mapbox_key(self):
