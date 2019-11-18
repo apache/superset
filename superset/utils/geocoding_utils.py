@@ -74,7 +74,6 @@ class GeoCoder:
         for datum_id in data:
             try:
                 if self.interruptflag:
-                    # TODO check if save_flag is set
                     self.interruptflag = False
                     self.progress.progress = 0
                     self.progress.is_in_progress = False
@@ -90,8 +89,8 @@ class GeoCoder:
                 feature_count = len(features)
                 if feature_count != 0:
                     feature = features[0]
-                    center = feature["center"]
-                    geocoded_data[datum_id] = center
+                    # TODO don't raise success_counter if there is no 'center' Attribute
+                    geocoded_data[datum_id] = feature["center"] or ""
                     success_counter += 1
                 counter += 1
                 self.progress.progress = counter / datalen
