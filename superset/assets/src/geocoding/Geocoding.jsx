@@ -77,7 +77,7 @@ export class Geocoding extends React.Component {
       if (this.props.geocoding.progress.is_in_progress) {
         progress = <GeocodingProgress />;
       } else {
-        form = <GeocodingForm tables={this.props.tables} />
+        form = <GeocodingForm tables={this.props.tables} />;
       }
     }
     return (
