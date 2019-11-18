@@ -17,8 +17,13 @@
 # pylint: disable=C,R,W
 """A set of constants and methods to manage permissions and security"""
 import logging
+import jwt
 from typing import Callable, List, Optional, Set, Tuple, TYPE_CHECKING, Union
 
+from flask import redirect, g, flash, request
+from flask_appbuilder.security.views import expose
+from flask_appbuilder.security.views import UserDBModelView,AuthDBView
+from flask_login import login_user, logout_user
 from flask import current_app, g
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla import models as ab_models
@@ -813,3 +818,33 @@ class SupersetSecurityManager(SecurityManager):
         """
 
         self.assert_datasource_permission(viz.datasource)
+
+class CustomAuthDBView(AuthDBView):
+    login_template = 'appbuilder/general/security/login_db.html'
+
+    @expose('/login/', methods=['GET', 'POST'])
+ 
+    def login(self):
+        redirect_url = self.appbuilder.get_url_for_index
+        token = request.args.get('token')
+
+        if not token:
+            token = request.cookies.get('access_token')
+
+        if token is not None:
+            payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+            username = payload.get('username') 
+            user = self.appbuilder.sm.find_user(username=username)
+            
+            login_user(user, remember=False)
+            
+            return redirect(redirect_url)
+        else:
+            flash('Unable to auto login', 'warning')
+            
+            return super(CustomAuthDBView,self).login()
+       
+class CustomSecurityManager(SupersetSecurityManager):
+    authdbview = CustomAuthDBView
+    def __init__(self, appbuilder):
+        super(CustomSecurityManager, self).__init__(appbuilder)
