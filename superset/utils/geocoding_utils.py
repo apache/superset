@@ -60,11 +60,11 @@ class GeoCoder:
         if async_flag:
             raise Exception("Async not supported at this time")
         else:
-            self.__geocode_maptiler_sync(data)
+            return self.__geocode_maptiler_sync(data)
 
     def __geocode_maptiler_sync(self, data: dict) -> dict:
         baseurl = "https://api.maptiler.com/geocoding/"
-        geocoded_data = dict
+        geocoded_data = {}
         data = {"a": "HSR Oberseestrasse 10 Rapperswil", "b": "ETH Zürich"}
         datalen = len(data)
         counter = 0
