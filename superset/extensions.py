@@ -25,7 +25,25 @@ from werkzeug.local import LocalProxy
 
 from superset.utils.cache_manager import CacheManager
 from superset.utils.feature_flag_manager import FeatureFlagManager
-from superset.utils.results_backend_manager import ResultsBackendManager
+
+
+class ResultsBackendManager:
+    def __init__(self) -> None:
+        super().__init__()
+        self._results_backend = None
+        self._use_msgpack = False
+
+    def init_app(self, app):
+        self._results_backend = app.config.get("RESULTS_BACKEND")
+        self._use_msgpack = app.config.get("RESULTS_BACKEND_USE_MSGPACK")
+
+    @property
+    def results_backend(self):
+        return self._results_backend
+
+    @property
+    def should_use_msgpack(self):
+        return self._use_msgpack
 
 
 class UIManifestProcessor:
