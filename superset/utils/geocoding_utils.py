@@ -41,10 +41,10 @@ class GeoCoder:
     progress = GeocodingProgress()
 
     def __init__(self, config):
-        conf = config
+        self.conf = config
         self.progress = GeocodingProgress()
 
-    def geocode(self, geocoder, data, async=False):
+    def geocode(self, geocoder: str, data: dict, async=False):
         try:
             if geocoder == "MapTiler":
                 return self.__geocode_maptiler(data, async)
@@ -76,6 +76,8 @@ class GeoCoder:
                 if self.interruptflag:
                     # TODO check if save_flag is set
                     self.interruptflag = False
+                    self.progress.progress = 0
+                    self.progress.is_in_progress = False
                     return geocoded_data
                 address = data[datum_id]
                 resp = requests.get(
@@ -116,6 +118,8 @@ class GeoCoder:
         for _ in range(datalen):
             if self.interruptflag:
                 self.interruptflag = False
+                self.progress.is_in_progress = False
+                self.progress.progress = 0
                 return {0: ""}
             time.sleep(2)
             counter = counter + 1

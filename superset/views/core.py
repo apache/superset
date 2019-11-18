@@ -3126,7 +3126,7 @@ class Superset(BaseSupersetView):
     def _check_table_config(self, tableName: str):
         pass
 
-    def _geocode(self, data, dev=False):
+    def _geocode(self, data: dict, dev=False):
         # TODO replace mock-method with mock-geocoder
         if dev:
             return self.coder.geocode("", data)
