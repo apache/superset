@@ -87,7 +87,7 @@ export function geocodingProgress() {
 export function interruptGeocoding() {
     return dispatch =>
     SupersetClient.post({
-      endpoint: '/superset/geocoding/interrupt', // TODO: What to send in body?
+      endpoint: '/superset/geocoding/interrupt',
     })
       .then(() => {
         dispatch({ type: GEOCODE_INTERRUPT_SUCCESS });

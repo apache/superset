@@ -22,6 +22,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import * as Actions from './actions/geocoding';
 import GeocodingForm from './GeocodingForm';
+import { GeocodingProgress } from './GeocodingProgress';
 
 const propTypes = {
   tables: PropTypes.array.isRequired,
@@ -36,7 +37,10 @@ export class Geocoding extends React.Component {
   }
   render() {
     return (
-      <GeocodingForm tables={this.props.tables} />
+      <>
+        <GeocodingForm tables={this.props.tables} />
+        <GeocodingProgress />
+      </>
     );
   }
 }

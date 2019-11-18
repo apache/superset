@@ -53,6 +53,7 @@ export class GeocodingForm extends React.Component {
     };
     this.getDatasources = this.getDatasources.bind(this);
     this.getColumnList = this.getColumnList.bind(this);
+    this.getInfoStatus = this.getInfoStatus.bind(this);
     this.getErrorStatus = this.getErrorStatus.bind(this);
     this.setDatasource = this.setDatasource.bind(this);
     this.setPropertyValue = this.setPropertyValue.bind(this);
