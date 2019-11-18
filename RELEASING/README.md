@@ -91,8 +91,8 @@ the wrong files/using wrong names. There's a script to help you set correctly al
 necessary environment variables:
 
 ```$bash
-# usage: set_release_env.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
-. ./set_release_env.sh 0.34.1 1 "YOUR FULL NAME HERE"
+    # usage: set_release_env.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
+    . ./set_release_env.sh 0.34.1 1 "YOUR FULL NAME HERE"
 ```
 
 The script will output the exported variables, for example:
@@ -114,49 +114,22 @@ The script will output the exported variables, for example:
 ## Preparing the release candidate
 
 The first step of preparing an Apache Release is packaging a release candidate
-to be voted on. Start by going to the root of the repo and making sure the
-prerequisites are in order:
+to be voted on. Make sure you have correctly prepared and tagged the ready to ship
+release on Superset's repo (MAJOR.MINOR branch), the following script will clone 
+the tag and create a source a signed tarball from it:
 
 ```bash
-    # Go to the root directory of the repo, e.g. `~/src/incubator-superset`
-    cd ~/src/incubator-superset/
-    export SUPERSET_REPO_DIR=$(pwd)
-    # make sure you're on the correct branch (e.g. 0.34)
-    git branch
+    # make_tarball you use the previouly set environment variables
+    # you can override by passing arguments: make_tarball.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
+    ./make_tarball.sh
 ```
 
-Make sure the version number under `superset/assets/package.json` corresponds
-to `SUPERSET_VERSION` above (`0.34.1` in example above), and has been committed to the
-branch.
+Note that `make_tarball.sh`:
 
-```bash
-    grep ${SUPERSET_VERSION} superset/assets/package.json
-```
-
-If nothing shows up, either the version isn't correctly set in `package.json`,
-or the environment variable is misconfigured.
-
-### Crafting tarball and signatures
-
-Now let's craft a source release
-```bash
-    # Let's create a git tag
-    git tag -f ${SUPERSET_VERSION_RC}
-
-    # Create the target folder
-    mkdir -p ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
-    git archive \
-        --format=tar.gz ${SUPERSET_VERSION_RC} \
-        --prefix="${SUPERSET_RELEASE_RC}/" \
-        -o ~/svn/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
-
-    cd ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
-    ${SUPERSET_REPO_DIR}/scripts/sign.sh "${SUPERSET_RELEASE_RC_TARBALL}" "${SUPERSET_PGP_FULLNAME}"
-
-    # To verify the signature
-    gpg --verify "${SUPERSET_RELEASE_RC_TARBALL}".asc "${SUPERSET_RELEASE_RC_TARBALL}"
-
-```
+- By default assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`. 
+This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory 
+- Will refuse to craft a new release candidate if a release already exists on your local svn dev directory
+- Will check `package.json` version number and fails if it's not correctly set
 
 ### Shipping to SVN
 
@@ -168,7 +141,7 @@ Now let's ship this RC into svn's dev folder
     svn commit -m "Release ${SUPERSET_VERSION_RC}"
 ```
 
-### Build and test from source tarball
+### Build and test from SVN source tarball
 
 To make a working build given a tarball
 ```bash

@@ -43,9 +43,10 @@ RUN chown superset /home/superset
 
 WORKDIR /home/superset
 ARG VERSION
+ARG SUPERSET_TARBALL_PATH
 
 # Can fetch source from svn or copy tarball from local mounted directory
-RUN svn co https://dist.apache.org/repos/dist/dev/incubator/superset/$VERSION ./
+COPY $SUPERSET_TARBALL_PATH ./
 RUN tar -xvf *.tar.gz
 WORKDIR apache-superset-incubating-$VERSION
 
@@ -53,7 +54,6 @@ RUN cd superset/assets \
     && npm ci \
     && npm run build \
     && rm -rf node_modules
-
 
 WORKDIR /home/superset/apache-superset-incubating-$VERSION
 RUN pip install --upgrade setuptools pip \
