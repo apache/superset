@@ -3106,6 +3106,7 @@ class Superset(BaseSupersetView):
         # TODO this has to be removed and replaced with a call to the get_data_from_table method
         try:
             dat = self._geocode(request.data)
+            # TODO enrichted data has to be written into database
             return json_success(dat)
         except Exception as e:
             return json_error_response(e.args)
@@ -3122,51 +3123,10 @@ class Superset(BaseSupersetView):
                 tables.append(models.TableDto(table.id, table.name, table.database_id))
         return tables
 
-    def _get_mapbox_key(self):
-        return conf["MAPBOX_API_KEY"]
-
     def _check_table_config(self, tableName: str):
         pass
 
     def _geocode(self, data, dev=False):
-        # TODO replace mock-method with mock-geocoder
-        if dev:
-            return self.coder.geocode("", data)
-        else:
-            return self.coder.geocode("MapTiler", data)
-
-    def _add_lat_long_columns(self, data):
-        pass
-
-    interruptflag = False
-    coder = GeoCoder(conf)
-
-    @has_access
-    @expose("/geocoding")
-    def geocoding(self):
-        pass
-
-    @api
-    @has_access_api
-    @expose("/geocoding/columns", methods=["GET"])
-    def columns(self) -> Response:
-        return json_success("")
-
-    @api
-    @has_access_api
-    @expose("/geocoding/geocode", methods=["POST"])
-    def geocode(self) -> Response:
-        # TODO this has to be removed and replaced with a call to the get_data_from_table method
-        try:
-            dat = self._geocode(request.data)
-            return json_success(dat)
-        except Exception as e:
-            return json_error_response(e.args)
-
-    def _check_table_config(self, tableName: str):
-        pass
-
-    def _geocode(self, data: dict, dev=False):
         # TODO replace mock-method with mock-geocoder
         if dev:
             return self.coder.geocode("", data)
@@ -3189,7 +3149,6 @@ class Superset(BaseSupersetView):
     @expose("/geocoding/interrupt", methods=["POST"])
     def interrupt(self) -> Response:
         self.coder.interruptflag = True
-        # TODO react to shouldSave flag
         return json_success("")
 
 

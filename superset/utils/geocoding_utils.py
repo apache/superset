@@ -44,20 +44,20 @@ class GeoCoder:
         self.conf = config
         self.progress = GeocodingProgress()
 
-    def geocode(self, geocoder: str, data: dict, async=False):
+    def geocode(self, geocoder: str, data: dict, async_flag=False):
         try:
             if geocoder == "MapTiler":
-                return self.__geocode_maptiler(data, async)
+                return self.__geocode_maptiler(data, async_flag)
             else:
-                return self.__geocode_testing(async)
+                return self.__geocode_testing(async_flag)
         except Exception as e:
             raise e
         finally:
             self.progress.progress = 0
             self.progress.is_in_progress = False
 
-    def __geocode_maptiler(self, data: dict, asyncFlag) -> dict:
-        if asyncFlag:
+    def __geocode_maptiler(self, data: dict, async_flag) -> dict:
+        if async_flag:
             raise Exception("Async not supported at this time")
         else:
             self.__geocode_maptiler_sync(data)
@@ -103,8 +103,8 @@ class GeoCoder:
         # TODO also return amount of succesfully geocoded values or store in class-variable
         return geocoded_data
 
-    def __geocode_testing(self, asyncFlag) -> dict:
-        if asyncFlag:
+    def __geocode_testing(self, async_flag) -> dict:
+        if async_flag:
             raise Exception("Async not supported at this time")
         else:
             self.__geocode_testing_sync()

@@ -39,11 +39,6 @@ class GeocodingTests(SupersetTestCase):
     def tearDown(self):
         self.logout()
 
-    def test_get_mapbox_api_key(self):
-        superset = views.Superset()
-        api_key = superset._get_mapbox_key()
-        assert isinstance(api_key, str)
-
     def test_menu_entry_geocode_exist(self):
         url = "/dashboard/list/"
         dashboard_page = self.get_resp(url)
