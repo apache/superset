@@ -90,7 +90,7 @@ work on a new phase of the release process to make sure you aren't releasing
 the wrong files/using wrong names. There's a script to help you set correctly all the
 necessary environment variables:
 
-```$bash
+```bash
     # usage: set_release_env.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
     . ./set_release_env.sh 0.34.1 1 "YOUR FULL NAME HERE"
 ```
