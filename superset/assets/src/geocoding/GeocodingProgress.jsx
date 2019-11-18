@@ -23,8 +23,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { ProgressBar } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import FormInfo from 'src/components/FormInfo';
-import FormError from 'src/components/FormError';
 import * as Actions from './actions/geocoding';
 import './GeocodingProgress.css';
 
