@@ -104,6 +104,7 @@ from .base import (
     SupersetFilter,
     SupersetModelView,
 )
+from .database import api as database_api, views as in_views
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
