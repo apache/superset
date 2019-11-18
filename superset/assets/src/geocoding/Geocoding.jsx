@@ -81,12 +81,12 @@ export class Geocoding extends React.Component {
       }
     }
     return (
-      <>
+      <div className="container">
         <FormInfo status={this.getInfoStatus()} />
         <FormError status={this.getErrorStatus()} />
         {form}
         {progress}
-      </>
+      </div>
     );
   }
 }
