@@ -23,7 +23,7 @@ import FilterIndicatorsContainer from '../components/FilterIndicatorsContainer';
 import { setDirectPathToChild } from '../actions/dashboardState';
 
 function mapStateToProps(
-  { dashboardState, dashboardFilters, dashboardInfo, charts },
+  { dashboardState, dashboardFilters, dashboardLayout, charts },
   ownProps,
 ) {
   const chartId = ownProps.chartId;
@@ -33,9 +33,7 @@ function mapStateToProps(
     dashboardFilters,
     chartId,
     chartStatus,
-    filterImmuneSlices: dashboardInfo.metadata.filterImmuneSlices || [],
-    filterImmuneSliceFields:
-      dashboardInfo.metadata.filterImmuneSliceFields || {},
+    layout: dashboardLayout.present,
     filterFieldOnFocus:
       dashboardState.focusedFilterField.length === 0
         ? {}

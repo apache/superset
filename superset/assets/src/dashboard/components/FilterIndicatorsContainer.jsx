@@ -23,10 +23,9 @@ import { isEmpty } from 'lodash';
 import FilterIndicator from './FilterIndicator';
 import FilterIndicatorGroup from './FilterIndicatorGroup';
 import { FILTER_INDICATORS_DISPLAY_LENGTH } from '../util/constants';
-import {
-  getFilterColorKey,
-  getFilterColorMap,
-} from '../util/dashboardFiltersColorMap';
+import { getChartIdsInFilterScope } from '../util/activeDashboardFilters';
+import { getDashboardFilterKey } from '../util/getDashboardFilterKey';
+import { getFilterColorMap } from '../util/dashboardFiltersColorMap';
 
 const propTypes = {
   // from props
@@ -35,8 +34,6 @@ const propTypes = {
   chartStatus: PropTypes.string,
 
   // from redux
-  filterImmuneSlices: PropTypes.arrayOf(PropTypes.number).isRequired,
-  filterImmuneSliceFields: PropTypes.object.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
   filterFieldOnFocus: PropTypes.object.isRequired,
 };
@@ -61,8 +58,6 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
     const {
       dashboardFilters,
       chartId: currentChartId,
-      filterImmuneSlices,
-      filterImmuneSliceFields,
       filterFieldOnFocus,
     } = this.props;
 
@@ -78,57 +73,50 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
           chartId,
           componentId,
           directPathToFilter,
-          scope,
           isDateFilter,
           isInstantFilter,
           columns,
           labels,
+          scopes,
         } = dashboardFilter;
 
-        // do not apply filter on filter_box itself
-        // do not apply filter on filterImmuneSlices list
-        if (
-          currentChartId !== chartId &&
-          !filterImmuneSlices.includes(currentChartId)
-        ) {
-          Object.keys(columns).forEach(name => {
-            const colorMapKey = getFilterColorKey(chartId, name);
-            const directPathToLabel = directPathToFilter.slice();
-            directPathToLabel.push(`LABEL-${name}`);
-            const indicator = {
-              chartId,
-              colorCode: dashboardFiltersColorMap[colorMapKey],
-              componentId,
-              directPathToFilter: directPathToLabel,
-              scope,
-              isDateFilter,
-              isInstantFilter,
-              name,
-              label: labels[name] || name,
-              values:
-                isEmpty(columns[name]) ||
-                (isDateFilter && columns[name] === 'No filter')
-                  ? []
-                  : [].concat(columns[name]),
-              isFilterFieldActive:
-                chartId === filterFieldOnFocus.chartId &&
-                name === filterFieldOnFocus.column,
-            };
+        if (currentChartId !== chartId) {
+          Object.keys(columns)
+            .filter(name =>
+              getChartIdsInFilterScope({ filterScope: scopes[name] }).includes(
+                currentChartId,
+              ),
+            )
+            .forEach(name => {
+              const colorMapKey = getDashboardFilterKey({
+                chartId,
+                column: name,
+              });
+              const indicator = {
+                chartId,
+                colorCode: dashboardFiltersColorMap[colorMapKey],
+                componentId,
+                directPathToFilter: directPathToFilter.concat(`LABEL-${name}`),
+                isDateFilter,
+                isInstantFilter,
+                name,
+                label: labels[name] || name,
+                values:
+                  isEmpty(columns[name]) ||
+                  (isDateFilter && columns[name] === 'No filter')
+                    ? []
+                    : [].concat(columns[name]),
+                isFilterFieldActive:
+                  chartId === filterFieldOnFocus.chartId &&
+                  name === filterFieldOnFocus.column,
+              };
 
-            // do not apply filter on fields in the filterImmuneSliceFields map
-            if (
-              filterImmuneSliceFields[currentChartId] &&
-              filterImmuneSliceFields[currentChartId].includes(name)
-            ) {
-              return;
-            }
-
-            if (isEmpty(indicator.values)) {
-              indicators[1].push(indicator);
-            } else {
-              indicators[0].push(indicator);
-            }
-          });
+              if (isEmpty(indicator.values)) {
+                indicators[1].push(indicator);
+              } else {
+                indicators[0].push(indicator);
+              }
+            });
         }
 
         return indicators;
