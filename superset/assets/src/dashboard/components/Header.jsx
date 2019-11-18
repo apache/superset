@@ -26,6 +26,7 @@ import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
+import FilterScopeModal from './filterscope/FilterScopeModal';
 import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
@@ -52,7 +53,6 @@ const propTypes = {
   dashboardTitle: PropTypes.string.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   layout: PropTypes.object.isRequired,
-  filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   css: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
@@ -216,7 +216,6 @@ class Header extends React.PureComponent {
       css,
       colorNamespace,
       colorScheme,
-      filters,
       dashboardInfo,
       refreshFrequency,
     } = this.props;
@@ -234,7 +233,6 @@ class Header extends React.PureComponent {
       color_scheme: colorScheme,
       label_colors: labelColors,
       dashboard_title: dashboardTitle,
-      default_filters: safeStringify(filters),
       refresh_frequency: refreshFrequency,
     };
 
@@ -262,7 +260,6 @@ class Header extends React.PureComponent {
     const {
       dashboardTitle,
       layout,
-      filters,
       expandedSlices,
       css,
       colorNamespace,
@@ -347,7 +344,7 @@ class Header extends React.PureComponent {
                   bsSize="small"
                   onClick={this.onInsertComponentsButtonClick}
                 >
-                  {t('Insert components')}
+                  {t('Components')}
                 </Button>
               )}
 
@@ -359,6 +356,12 @@ class Header extends React.PureComponent {
                 >
                   {t('Colors')}
                 </Button>
+              )}
+
+              {editMode && (
+                <FilterScopeModal
+                  triggerNode={<Button bsSize="small">{t('Filters')}</Button>}
+                />
               )}
 
               {editMode && hasUnsavedChanges && (
@@ -408,7 +411,6 @@ class Header extends React.PureComponent {
             dashboardId={dashboardInfo.id}
             dashboardTitle={dashboardTitle}
             layout={layout}
-            filters={filters}
             expandedSlices={expandedSlices}
             css={css}
             colorNamespace={colorNamespace}
