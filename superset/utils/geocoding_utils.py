@@ -18,9 +18,7 @@ import json
 import time
 
 import requests
-
-from superset.models.helpers import QueryStatus
-from superset.tasks.celery_app import app as celery_app
+from requests import RequestException
 
 
 class GeocodingProgress:
@@ -37,7 +35,7 @@ class GeocodingProgress:
 
 class GeoCoder:
     interruptflag = False
-    conf = {}
+    conf: dict = {}
     progress = GeocodingProgress()
 
     def __init__(self, config):
@@ -48,8 +46,7 @@ class GeoCoder:
         try:
             if geocoder == "MapTiler":
                 return self.__geocode_maptiler(data, async_flag)
-            else:
-                return self.__geocode_testing(async_flag)
+            return self.__geocode_testing(async_flag)
         except Exception as e:
             raise e
         finally:
@@ -63,14 +60,28 @@ class GeoCoder:
             return self.__geocode_maptiler_sync(data)
 
     def __geocode_maptiler_sync(self, data: dict) -> dict:
-        baseurl = "https://api.maptiler.com/geocoding/"
-        geocoded_data = {}
+        """
+        geocode the data using the Maptiler API
+        :param data:
+        :return:
+        """
         data = {"a": "HSR Oberseestrasse 10 Rapperswil", "b": "ETH Zürich"}
+        baseurl = "https://api.maptiler.com/geocoding/"
+        geocoded_data: dict = {}
         datalen = len(data)
         counter = 0
         success_counter = 0
         self.progress.is_in_progress = True
         self.progress.progress = 0
+        # TODO this expects a dict, prob switch to a list of lists
+
+        # for row in data:
+        # request_string = ""
+        # for elem in row:
+        # request_string = request_string + " " + elem
+        # resp = requests.get(
+        # baseurl + request_string + ".json?key=" + self.conf["MAPTILER_API_KEY"]
+        # )
         for datum_id in data:
             try:
                 if self.interruptflag:
@@ -90,26 +101,27 @@ class GeoCoder:
                 feature_count = len(features)
                 if feature_count != 0:
                     feature = features[0]
-                    # TODO check if it is possible, that there is no center attribute -> get API doc from mr. Keller
+                    # TODO check if it is possible, that there is no center attribute
+                    #  -> get API doc from mr. Keller
                     # TODO don't raise success_counter if there is no 'center' Attribute
                     geocoded_data[datum_id] = feature["center"] or ""
                     success_counter += 1
                 counter += 1
                 self.progress.progress = counter / datalen
             # TODO be more precise with the possible exceptions
-            except Exception as e:
+            except RequestException as e:
                 # TODO decide whether to interrupt here or keep going
                 print(e)
         self.progress.progress = 100
         self.progress.is_in_progress = False
-        # TODO also return amount of succesfully geocoded values or store in class-variable
+        # TODO also return amount of geocoded values or store in class-variable
         return geocoded_data
 
     def __geocode_testing(self, async_flag) -> dict:
         if async_flag:
             raise Exception("Async not supported at this time")
         else:
-            self.__geocode_testing_sync()
+            return self.__geocode_testing_sync()
 
     def __geocode_testing_sync(self) -> dict:
         counter = 0
