@@ -20,15 +20,13 @@ import React from 'react';
 import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import GeocodingForm from 'src/geocoding/GeocodingForm';
+import GeocodingProgress from 'src/geocoding/GeocodingProgress';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({ geocoding: undefined });
 
-const tables = [];
-
 function setup() {
-  return mount(<GeocodingForm tables={tables} />, { context: { store } });
+  return mount(<GeocodingProgress />, { context: { store } });
 }
 
 describe('GeocodingForm', () => {

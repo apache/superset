@@ -44,7 +44,11 @@ export default function geocodingReducer(state = {}, action) {
     });
   }
   if (action.type === actions.GEOCODE_SUCCESS) {
-    // do nothing
+    return Object.assign({}, state, {
+      infoStatus: {
+        message: 'Geocoding successfully ended.', timestamp: Date.now(),
+      },
+    });
   }
   if (action.type === actions.GEOCODE_FAILURE) {
     return Object.assign({}, state, {

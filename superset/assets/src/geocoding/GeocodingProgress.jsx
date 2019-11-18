@@ -23,8 +23,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { ProgressBar } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import FormInfo from 'src/components/FormInfo';
-import FormError from 'src/components/FormError';
 import * as Actions from './actions/geocoding';
 import './GeocodingProgress.css';
 
@@ -36,27 +34,9 @@ const propTypes = {
 export class GeocodingProgress extends React.Component {
   constructor(props) {
     super(props);
-    this.getInfoStatus = this.getInfoStatus.bind(this);
-    this.getErrorStatus = this.getErrorStatus.bind(this);
     this.getProgress = this.getProgress.bind(this);
     this.calculateProgress = this.calculateProgress.bind(this);
     this.interruptGeocoding = this.interruptGeocoding.bind(this);
-  }
-
-  getInfoStatus() {
-    const { geocoding } = this.props;
-    if (geocoding && geocoding.infoStatus) {
-      return geocoding.infoStatus;
-    }
-    return undefined;
-  }
-
-  getErrorStatus() {
-    const { geocoding } = this.props;
-    if (geocoding && geocoding.errorStatus) {
-      return geocoding.errorStatus;
-    }
-    return undefined;
   }
 
   getProgress() {
@@ -77,26 +57,22 @@ export class GeocodingProgress extends React.Component {
 
   render() {
     return (
-      <div className="container">
-        <FormInfo status={this.getInfoStatus()} />
-        <FormError status={this.getErrorStatus()} />
-        <div className="panel panel-primary">
-          <div className="panel-heading">
-            <h4 className="panel-title">{t('Geocoding Progress')}</h4>
-          </div>
-          <div id="Home" className="tab-pane active">
-            <div className="progressContainer">
-              <p>{t('The geocoding is currently in progress, this may take a while!')}</p>
-              <ProgressBar striped now={this.getProgress()} label={`${this.getProgress()} %`} />
-              <p>{t('You can cancel the process by clicking on the Cancel button')}</p>
-              <Button bsStyle="danger" onClick={this.interruptGeocoding}>
-                {t('Stop Geocoding')} <i className="fa fa-ban" />
-              </Button>
-              <Button href="/back">
-                {t('Back')} <i className="fa fa-arrow-left" />
-              </Button>
-              <div className="spacer" />
-            </div>
+      <div className="panel panel-primary">
+        <div className="panel-heading">
+          <h4 className="panel-title">{t('Geocoding Progress')}</h4>
+        </div>
+        <div id="Home" className="tab-pane active">
+          <div className="progressContainer">
+            <p>{t('The geocoding is currently in progress, this may take a while!')}</p>
+            <ProgressBar striped now={this.getProgress()} label={`${this.getProgress()} %`} />
+            <p>{t('You can cancel the process by clicking on the Cancel button')}</p>
+            <Button bsStyle="danger" onClick={this.interruptGeocoding}>
+              {t('Stop Geocoding')} <i className="fa fa-ban" />
+            </Button>
+            <Button href="/back">
+              {t('Back')} <i className="fa fa-arrow-left" />
+            </Button>
+            <div className="spacer" />
           </div>
         </div>
       </div>

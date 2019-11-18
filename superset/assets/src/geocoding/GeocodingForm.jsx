@@ -26,7 +26,6 @@ import Button from 'src/components/Button';
 import FormInput from 'src/components/FormInput';
 import FormCheckbox from 'src/components/FormCheckbox';
 import FormSelect from 'src/components/FormSelect';
-import FormInfo from 'src/components/FormInfo';
 import FormError from 'src/components/FormError';
 import * as Actions from './actions/geocoding';
 import './GeocodingForm.css';
@@ -40,6 +39,14 @@ const propTypes = {
 export class GeocodingForm extends React.Component {
   constructor(props) {
     super(props);
+    const validation =
+      this.props.tables.length === 0
+        ? {
+            message:
+              'No datasource that allows DML could be found. Please contact your system administrator.',
+            timestamp: Date.now(),
+          }
+        : undefined;
     this.state = {
       datasource: undefined,
       streetColumn: undefined,
@@ -49,12 +56,10 @@ export class GeocodingForm extends React.Component {
       latitudeColumnName: 'latitude',
       overwriteIfExists: false,
       saveOnErrorOrInterrupt: true,
-      validation: undefined,
+      validation,
     };
     this.getDatasources = this.getDatasources.bind(this);
     this.getColumnList = this.getColumnList.bind(this);
-    this.getInfoStatus = this.getInfoStatus.bind(this);
-    this.getErrorStatus = this.getErrorStatus.bind(this);
     this.setDatasource = this.setDatasource.bind(this);
     this.setPropertyValue = this.setPropertyValue.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -73,24 +78,10 @@ export class GeocodingForm extends React.Component {
     const { geocoding } = this.props;
     if (geocoding && geocoding.columnList) {
       const columnList = [];
-      geocoding.columnList.forEach(column => columnList.push({ label: column, value: column }));
+      geocoding.columnList.forEach(column =>
+        columnList.push({ label: column, value: column }),
+      );
       return columnList;
-    }
-    return undefined;
-  }
-
-  getInfoStatus() {
-    const { geocoding } = this.props;
-    if (geocoding && geocoding.infoStatus) {
-      return geocoding.infoStatus;
-    }
-    return undefined;
-  }
-
-  getErrorStatus() {
-    const { geocoding } = this.props;
-    if (geocoding && geocoding.errorStatus) {
-      return geocoding.errorStatus;
     }
     return undefined;
   }
@@ -101,11 +92,11 @@ export class GeocodingForm extends React.Component {
     } else {
       this.props.actions.resetColumnsForTable();
       this.setState({
-          streetColumn: undefined,
-          zipColumn: undefined,
-          cityColumn: undefined,
-          countryColumn: undefined,
-        });
+        streetColumn: undefined,
+        zipColumn: undefined,
+        cityColumn: undefined,
+        countryColumn: undefined,
+      });
     }
     this.setState({ datasource });
   }
@@ -126,9 +117,19 @@ export class GeocodingForm extends React.Component {
       saveOnErrorOrInterrupt,
     } = this.state;
     if (!datasource) {
-      this.setState({ validation: { message: 'You need to select a datasource', timestamp: Date.now() } });
+      this.setState({
+        validation: {
+          message: 'You need to select a datasource',
+          timestamp: Date.now(),
+        },
+      });
     } else if (!streetColumn && !cityColumn && !countryColumn) {
-      this.setState({ validation: { message: 'At least one column needs to be selected', timestamp: Date.now() } });
+      this.setState({
+        validation: {
+          message: 'At least one column needs to be selected',
+          timestamp: Date.now(),
+        },
+      });
     } else {
       this.props.actions.geocode({
         datasource: datasource.value,
@@ -146,20 +147,14 @@ export class GeocodingForm extends React.Component {
 
   render() {
     return (
-      <div className="container">
-        <FormInfo status={this.getInfoStatus()} />
+      <>
         <FormError status={this.state.validation} />
-        <FormError status={this.getErrorStatus()} />
         <div className="panel panel-primary">
           <div className="panel-heading">
             <h4 className="panel-title">{t('Geocode Addresses')}</h4>
           </div>
           <div id="Home" className="tab-pane active">
-            <form
-              id="model_form"
-              method="post"
-              encType="multipart/form-data"
-            >
+            <form id="model_form" method="post" encType="multipart/form-data">
               <div className="table-responsive">
                 <table className="table table-bordered">
                   <tbody>
@@ -178,13 +173,19 @@ export class GeocodingForm extends React.Component {
                       </td>
                     </tr>
                     {/* TODO: Load column data when datasource is selected */}
-                    <tr className={this.state.datasource ? null : 'hide-component'}>
+                    <tr
+                      className={
+                        this.state.datasource ? null : 'hide-component'
+                      }
+                    >
                       <td className="col-lg-2">{t('Street Column')}</td>
                       <td>
                         <FormSelect
                           id={'streetColumn'}
                           options={this.getColumnList()}
-                          onChange={value => this.setPropertyValue('streetColumn', value)}
+                          onChange={value =>
+                            this.setPropertyValue('streetColumn', value)
+                          }
                           value={this.state.streetColumn}
                           helpText={t(
                             'Name of the column where the street is stored.',
@@ -192,13 +193,19 @@ export class GeocodingForm extends React.Component {
                         />
                       </td>
                     </tr>
-                    <tr className={this.state.datasource ? null : 'hide-component'}>
+                    <tr
+                      className={
+                        this.state.datasource ? null : 'hide-component'
+                      }
+                    >
                       <td className="col-lg-2">{t('City Column')}</td>
                       <td>
                         <FormSelect
                           id={'cityColumn'}
                           options={this.getColumnList()}
-                          onChange={value => this.setPropertyValue('cityColumn', value)}
+                          onChange={value =>
+                            this.setPropertyValue('cityColumn', value)
+                          }
                           value={this.state.cityColumn}
                           helpText={t(
                             'Name of the column where the city is stored.',
@@ -206,13 +213,19 @@ export class GeocodingForm extends React.Component {
                         />
                       </td>
                     </tr>
-                    <tr className={this.state.datasource ? null : 'hide-component'}>
+                    <tr
+                      className={
+                        this.state.datasource ? null : 'hide-component'
+                      }
+                    >
                       <td className="col-lg-2">{t('Country Column')}</td>
                       <td>
                         <FormSelect
                           id={'countryColumn'}
                           options={this.getColumnList()}
-                          onChange={value => this.setPropertyValue('countryColumn', value)}
+                          onChange={value =>
+                            this.setPropertyValue('countryColumn', value)
+                          }
                           value={this.state.countryColumn}
                           helpText={t(
                             'Name of the column where the country is stored.',
@@ -313,7 +326,7 @@ export class GeocodingForm extends React.Component {
             </form>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 }
