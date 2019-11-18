@@ -3108,7 +3108,7 @@ class Superset(BaseSupersetView):
         try:
             dat = self._geocode(request.data)
             # TODO enrichted data has to be written into database
-            return json_success(dat)
+            return json_success(json.dumps(dat))
         except Exception as e:
             return json_error_response(e.args)
 
