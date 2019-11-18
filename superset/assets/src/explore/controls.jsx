@@ -583,6 +583,7 @@ export const controls = {
       'Russia',
       'Singapore',
       'Spain',
+      'Switzerland',
       'Thailand',
       'Timorleste',
       'Uk',

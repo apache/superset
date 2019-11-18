@@ -156,6 +156,7 @@ the world know they are using Superset. Join our growing community!
  1. [Apollo GraphQL](https://www.apollographql.com/)
  1. [Ascendica Development](http://ascendicadevelopment.com)
  1. [Astronomer](https://www.astronomer.io)
+ 1. [bilibili](https://www.bilibili.com)
  1. [Brilliant.org](https://brilliant.org/)
  1. [Capital Service S.A.](http://capitalservice.pl)
  1. [Clark.de](http://clark.de/)
