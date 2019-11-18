@@ -28,12 +28,17 @@ class GeocodingProgress:
     of the task is
     """
 
-    def __init__(self, is_in_progress=False, progress=0):
+    def __init__(self, is_in_progress=False, progress=0, success_counter=0):
         self.is_in_progress = is_in_progress
         self.progress = progress
+        self.success_counter = success_counter
 
 
 class GeoCoder:
+    """
+    The GeoCoder object holds the logic for geocoding given data
+    """
+
     interruptflag = False
     conf: dict = {}
     progress = GeocodingProgress()
@@ -62,15 +67,15 @@ class GeoCoder:
     def __geocode_maptiler_sync(self, data: dict) -> dict:
         """
         geocode the data using the Maptiler API
-        :param data:
-        :return:
+        :param data: the addresses to be geocoded
+        :return: a dictionary containing the addresses and their long,lat values
         """
         data = {"a": "HSR Oberseestrasse 10 Rapperswil", "b": "ETH Zürich"}
         baseurl = "https://api.maptiler.com/geocoding/"
         geocoded_data: dict = {}
         datalen = len(data)
         counter = 0
-        success_counter = 0
+        self.progress.success_counter = 0
         self.progress.is_in_progress = True
         self.progress.progress = 0
         # TODO this expects a dict, prob switch to a list of lists
@@ -105,7 +110,7 @@ class GeoCoder:
                     #  -> get API doc from mr. Keller
                     # TODO don't raise success_counter if there is no 'center' Attribute
                     geocoded_data[datum_id] = feature["center"] or ""
-                    success_counter += 1
+                    self.progress.success_counter += 1
                 counter += 1
                 self.progress.progress = counter / datalen
             # TODO be more precise with the possible exceptions

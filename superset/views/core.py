@@ -3128,6 +3128,12 @@ class Superset(BaseSupersetView):
         pass
 
     def _geocode(self, data, dev=False):
+        """
+        internal method which starts the geocoding
+        :param data: the data to be geocoded
+        :param dev: Whether to Mock the geocoding process for testing purposes
+        :return: a dictionary containing the data and the corresponding long,lat values
+        """
         # TODO replace mock-method with mock-geocoder
         if dev:
             return self.coder.geocode("", data)
@@ -3141,6 +3147,10 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/geocoding/progress", methods=["GET"])
     def progress(self) -> Response:
+        """
+        Method to check the progress of the geocoding task
+        :return: GeoCoding Object
+        """
         return json_success(
             json.dumps(self.coder.progress, default=lambda x: x.__dict__)
         )
@@ -3149,6 +3159,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/geocoding/interrupt", methods=["POST"])
     def interrupt(self) -> Response:
+        """ Used for interrupting the geocoding process """
         self.coder.interruptflag = True
         return json_success("")
 
