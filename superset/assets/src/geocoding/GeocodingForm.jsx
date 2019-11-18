@@ -140,6 +140,7 @@ export class GeocodingForm extends React.Component {
         overwriteIfExists,
         saveOnErrorOrInterrupt,
       });
+      setTimeout(this.props.actions.geocodingProgress, 100);
     }
   }
 

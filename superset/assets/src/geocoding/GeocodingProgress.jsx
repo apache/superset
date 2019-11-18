@@ -29,10 +29,9 @@ import * as Actions from './actions/geocoding';
 import './GeocodingProgress.css';
 
 const propTypes = {
+  actions: PropTypes.object.isRequired,
   geocoding: PropTypes.object.isRequired,
 };
-
-let interval;
 
 export class GeocodingProgress extends React.Component {
   constructor(props) {
@@ -40,15 +39,8 @@ export class GeocodingProgress extends React.Component {
     this.getInfoStatus = this.getInfoStatus.bind(this);
     this.getErrorStatus = this.getErrorStatus.bind(this);
     this.getProgress = this.getProgress.bind(this);
-  }
-
-  componentDidUpdate() {
-      const { geocodingProgress } = this.actions;
-      interval = setTimeout(geocodingProgress, 5000);
-  }
-
-  componentWillUnmount() {
-      clearTimeout(interval);
+    this.calculateProgress = this.calculateProgress.bind(this);
+    this.interruptGeocoding = this.interruptGeocoding.bind(this);
   }
 
   getInfoStatus() {
@@ -68,7 +60,19 @@ export class GeocodingProgress extends React.Component {
   }
 
   getProgress() {
-    return 60;
+    if (this.props.geocoding && this.props.geocoding.progress) {
+        return this.calculateProgress(this.props.geocoding.progress.progress);
+    }
+    return 0;
+  }
+
+  calculateProgress(progress) {
+      return Math.round(progress * 100);
+  }
+
+  interruptGeocoding() {
+      this.props.actions.interruptGeocoding();
+      setTimeout(this.props.actions.geocodingProgress, 100);
   }
 
   render() {
@@ -82,11 +86,11 @@ export class GeocodingProgress extends React.Component {
           </div>
           <div id="Home" className="tab-pane active">
             <div className="progressContainer">
-              <p>The geocoding is currently in progress</p>
+              <p>{t('The geocoding is currently in progress, this may take a while!')}</p>
               <ProgressBar striped now={this.getProgress()} label={`${this.getProgress()} %`} />
-              <p>You can cancel the process by clicking on the Cancel button</p>
-              <Button bsStyle="danger" onClick={this.handleSubmit}>
-                {t('Cancel')} <i className="fa fa-ban" />
+              <p>{t('You can cancel the process by clicking on the Cancel button')}</p>
+              <Button bsStyle="danger" onClick={this.interruptGeocoding}>
+                {t('Stop Geocoding')} <i className="fa fa-ban" />
               </Button>
               <Button href="/back">
                 {t('Back')} <i className="fa fa-arrow-left" />

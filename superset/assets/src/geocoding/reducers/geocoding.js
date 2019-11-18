@@ -32,7 +32,9 @@ export default function geocodingReducer(state = {}, action) {
     });
   }
   if (action.type === actions.GEOCODE_PROGRESS_SUCCESS) {
-    // TODO: Save progress data in store
+    return Object.assign({}, state, {
+      progress: action.progress,
+    });
   }
   if (action.type === actions.GEOCODE_PROGRESS_FAILURE) {
     return Object.assign({}, state, {
@@ -42,11 +44,7 @@ export default function geocodingReducer(state = {}, action) {
     });
   }
   if (action.type === actions.GEOCODE_SUCCESS) {
-    return Object.assign({}, state, {
-      infoStatus: {
-        message: 'Geocoding successfully started. This can take a while!', timestamp: Date.now(),
-      },
-    });
+    // do nothing
   }
   if (action.type === actions.GEOCODE_FAILURE) {
     return Object.assign({}, state, {

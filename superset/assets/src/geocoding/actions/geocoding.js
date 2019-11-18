@@ -52,6 +52,21 @@ export function resetColumnsForTable() {
   return dispatch => dispatch({ type: GET_COLUMNS_FOR_TABLE_SUCCESS, columnList: [] });
 }
 
+export function geocodingProgress() {
+  return dispatch =>
+  SupersetClient.get({
+    endpoint: '/superset/geocoding/progress',
+  })
+    .then((response) => {
+      dispatch({ type: GEOCODE_PROGRESS_SUCCESS, progress: response.json });
+    })
+    .catch((response) => {
+      getClientErrorObject(response).then((error) => {
+        dispatch({ type: GEOCODE_PROGRESS_FAILURE, message: error.error });
+      });
+    });
+}
+
 export function geocode(data) {
     return dispatch =>
     SupersetClient.post({
@@ -65,21 +80,6 @@ export function geocode(data) {
       .catch((response) => {
         getClientErrorObject(response).then((error) => {
           dispatch({ type: GEOCODE_FAILURE, message: error.error });
-        });
-      });
-}
-
-export function geocodingProgress() {
-    return dispatch =>
-    SupersetClient.get({
-      endpoint: '/superset/geocoding/progress',
-    })
-      .then(() => {
-        dispatch({ type: GEOCODE_PROGRESS_SUCCESS }); // TODO: Send data from request
-      })
-      .catch((response) => {
-        getClientErrorObject(response).then((error) => {
-          dispatch({ type: GEOCODE_PROGRESS_FAILURE, message: error.error });
         });
       });
 }

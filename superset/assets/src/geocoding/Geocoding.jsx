@@ -22,24 +22,50 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import * as Actions from './actions/geocoding';
 import GeocodingForm from './GeocodingForm';
-import { GeocodingProgress } from './GeocodingProgress';
+import GeocodingProgress from './GeocodingProgress';
 
 const propTypes = {
+  actions: PropTypes.object.isRequired,
   tables: PropTypes.array.isRequired,
+  geocoding: PropTypes.object.isRequired,
 };
+
+let interval;
+const TIME_BETWEEN_CALLS = 5000;
 
 export class Geocoding extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-
-    };
+    this.fetchProgress = this.fetchProgress.bind(this);
   }
+
+  componentDidMount() {
+    this.fetchProgress();
+  }
+
+  componentWillUnmount() {
+    clearTimeout(interval);
+  }
+
+  fetchProgress() {
+    this.props.actions.geocodingProgress();
+    interval = setTimeout(this.fetchProgress, TIME_BETWEEN_CALLS);
+  }
+
   render() {
+    let form = <></>;
+    let progress = <></>;
+    if (this.props.geocoding && this.props.geocoding.progress) {
+      if (this.props.geocoding.progress.is_in_progress) {
+        progress = <GeocodingProgress />;
+      } else {
+        form = <GeocodingForm tables={this.props.tables} />
+      }
+    }
     return (
       <>
-        <GeocodingForm tables={this.props.tables} />
-        <GeocodingProgress />
+        {form}
+        {progress}
       </>
     );
   }
