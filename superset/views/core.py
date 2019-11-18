@@ -17,6 +17,7 @@
 # pylint: disable=C,R,W
 import logging
 import re
+import time
 from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
@@ -26,6 +27,7 @@ import backoff
 import msgpack
 import pandas as pd
 import pyarrow as pa
+import requests
 import simplejson as json
 from flask import (
     abort,
@@ -84,6 +86,7 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
+from superset.utils.geocoding import GeoCoder, GeocodingProgress
 
 from .base import (
     api,
@@ -101,7 +104,6 @@ from .base import (
     SupersetFilter,
     SupersetModelView,
 )
-from .database import api as database_api, views as in_views
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
@@ -3054,6 +3056,10 @@ class Superset(BaseSupersetView):
                 stacktrace=utils.get_stacktrace(),
             )
 
+    # Variables for geocoding
+    interruptflag = False
+    coder = GeoCoder(conf)
+
     @has_access
     @expose("/geocoding")
     def geocoding(self):
@@ -3095,9 +3101,10 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose("/geocoding/geocode", methods=["GET"])
+    @expose("/geocoding/geocode", methods=["POST"])
     def geocode(self) -> Response:
-        return json_success("")
+        dat = self._geocode(request.data)
+        return json_success(dat)
 
     def _get_editable_tables(self):
         """ Get tables which are allowed to create columns (allow dml on their database) """
@@ -3114,28 +3121,40 @@ class Superset(BaseSupersetView):
     def _get_mapbox_key(self):
         return conf["MAPBOX_API_KEY"]
 
-    def _geocode(self, data):
+    def _check_table_config(self, tableName: str):
         pass
+
+    def _geocode(self, data, dev=False):
+        # TODO do this in a cleaner way
+        try:
+            if dev:
+                return self.coder.geocode("", data)
+            else:
+                return self.coder.geocode("MapTiler", data)
+        except Exception as e:
+            return json_error_response(e.args)
 
     def _add_lat_long_columns(self, data):
         pass
 
     @api
-    @has_access_api
+    # @has_access_api
     @expose("/geocoding/is_in_progress", methods=["GET"])
     def is_in_progress(self) -> Response:
-        return json_success("")
+        return json_success(json.dumps(self.coder.progress))
 
     @api
     @has_access_api
     @expose("/geocoding/progress", methods=["GET"])
     def progress(self) -> Response:
-        return json_success("")
+        return json_success(json.dumps(self.coder.progress))
 
     @api
     @has_access_api
     @expose("/geocoding/interrupt", methods=["POST"])
     def interrupt(self) -> Response:
+        self.coder.interruptflag = True
+        # TODO define what to do when interrupt is called -> should data be saved or not?
         return json_success("")
 
 

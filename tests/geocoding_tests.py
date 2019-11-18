@@ -15,15 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for geocoding"""
+import subprocess
+import time
 
-from superset import db
+from superset import app, db
+from superset.models.helpers import QueryStatus
+from superset.utils.geocoding import GeoCoder
 from superset.connectors.sqla.models import SqlaTable
 from superset.views import core as views
 
 from .base_tests import SupersetTestCase
 
+BASE_DIR = app.config["BASE_DIR"]
+
 
 class GeocodingTests(SupersetTestCase):
+    superset = views.Superset()
+
     def __init__(self, *args, **kwargs):
         super(GeocodingTests, self).__init__(*args, **kwargs)
 
@@ -32,6 +40,21 @@ class GeocodingTests(SupersetTestCase):
 
     def tearDown(self):
         self.logout()
+
+    @classmethod
+    def setUpClass(cls):
+        worker_command = BASE_DIR + "/bin/superset worker -w 2"
+        subprocess.Popen(worker_command, shell=True, stdout=subprocess.PIPE)
+
+    @classmethod
+    def tearDownClass(cls):
+        subprocess.call(
+            "ps auxww | grep 'celeryd' | awk '{print $2}' | xargs kill -9", shell=True
+        )
+        subprocess.call(
+            "ps auxww | grep 'superset worker' | awk '{print $2}' | xargs kill -9",
+            shell=True,
+        )
 
     def test_get_mapbox_api_key(self):
         superset = views.Superset()
