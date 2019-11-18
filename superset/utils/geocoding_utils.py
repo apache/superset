@@ -21,31 +21,17 @@ import requests
 from requests import RequestException
 
 
-class GeocodingProgress:
-    """
-    This class is to be used as an object passed to the frontend to inform it whether
-    or not the geocoding process is still running and what the overall progress
-    of the task is
-    """
-
-    def __init__(self, is_in_progress=False, progress=0, success_counter=0):
-        self.is_in_progress = is_in_progress
-        self.progress = progress
-        self.success_counter = success_counter
-
-
-class GeoCoder:
+class GeoCoder:  # pylint: disable=too-few-public-methods
     """
     The GeoCoder object holds the logic for geocoding given data
     """
 
     interruptflag = False
     conf: dict = {}
-    progress = GeocodingProgress()
+    progress: dict = {}
 
     def __init__(self, config):
         self.conf = config
-        self.progress = GeocodingProgress()
 
     def geocode(self, geocoder: str, data: dict, async_flag=False):
         try:
@@ -55,8 +41,8 @@ class GeoCoder:
         except Exception as e:
             raise e
         finally:
-            self.progress.progress = 0
-            self.progress.is_in_progress = False
+            self.progress["progress"] = 0
+            self.progress["is_in_progress"] = False
 
     def __geocode_maptiler(self, data: dict, async_flag) -> dict:
         if async_flag:
@@ -71,13 +57,12 @@ class GeoCoder:
         :return: a dictionary containing the addresses and their long,lat values
         """
         data = {"a": "HSR Oberseestrasse 10 Rapperswil", "b": "ETH Zürich"}
-        baseurl = "https://api.maptiler.com/geocoding/"
         geocoded_data: dict = {}
         datalen = len(data)
         counter = 0
-        self.progress.success_counter = 0
-        self.progress.is_in_progress = True
-        self.progress.progress = 0
+        self.progress["success_counter"] = 0
+        self.progress["is_in_progress"] = True
+        self.progress["progress"] = 0
         # TODO this expects a dict, prob switch to a list of lists
 
         # for row in data:
@@ -91,36 +76,44 @@ class GeoCoder:
             try:
                 if self.interruptflag:
                     self.interruptflag = False
-                    self.progress.progress = 0
-                    self.progress.is_in_progress = False
+                    self.progress["progress"] = 0
+                    self.progress["is_in_progress"] = False
                     return geocoded_data
                 address = data[datum_id]
-                resp = requests.get(
-                    baseurl + address + ".json?key=" + self.conf["MAPTILER_API_KEY"]
-                )
-                resp_content = resp.content.decode()
-                jsondat = json.loads(resp_content)
-                # TODO give better names and clean
-                # TODO make use of relevance if wanted
-                features = jsondat["features"]
-                feature_count = len(features)
-                if feature_count != 0:
-                    feature = features[0]
-                    # TODO check if it is possible, that there is no center attribute
-                    #  -> get API doc from mr. Keller
-                    # TODO don't raise success_counter if there is no 'center' Attribute
-                    geocoded_data[datum_id] = feature["center"] or ""
-                    self.progress.success_counter += 1
+                geocoded = self.__get_values_from_address(address)
+                if geocoded is not None:
+                    geocoded_data[datum_id] = geocoded
+
+                    self.progress["success_counter"] += 1
                 counter += 1
-                self.progress.progress = counter / datalen
+                self.progress["progress"] = counter / datalen
             # TODO be more precise with the possible exceptions
             except RequestException as e:
                 # TODO decide whether to interrupt here or keep going
                 print(e)
-        self.progress.progress = 100
-        self.progress.is_in_progress = False
+        self.progress["progress"] = 100
+        self.progress["is_in_progress"] = False
         # TODO also return amount of geocoded values or store in class-variable
         return geocoded_data
+
+    def __get_values_from_address(self, address: str):
+        baseurl = "https://api.maptiler.com/geocoding/"
+        resp = requests.get(
+            baseurl + address + ".json?key=" + self.conf["MAPTILER_API_KEY"]
+        )
+        resp_content = resp.content.decode()
+        jsondat = json.loads(resp_content)
+        # TODO give better names and clean
+        # TODO make use of relevance if wanted
+        features = jsondat["features"]
+        feature_count = len(features)
+        if feature_count != 0:
+            feature = features[0]
+            # TODO check if it is possible, that there is no center attribute
+            #  -> get API doc from mr. Keller
+            # TODO don't raise success_counter if there is no 'center' Attribute
+            return feature["center"] or None
+        return None
 
     def __geocode_testing(self, async_flag) -> dict:
         if async_flag:
@@ -131,15 +124,15 @@ class GeoCoder:
     def __geocode_testing_sync(self) -> dict:
         counter = 0
         datalen = 10
-        self.progress.is_in_progress = True
-        self.progress.progress = 0
+        self.progress["is_in_progress"] = True
+        self.progress["progress"] = 0
         for _ in range(datalen):
             if self.interruptflag:
                 self.interruptflag = False
-                self.progress.is_in_progress = False
-                self.progress.progress = 0
+                self.progress["is_in_progress"] = False
+                self.progress["progress"] = 0
                 return {0: ""}
             time.sleep(2)
             counter = counter + 1
-            self.progress.progress = counter / datalen
+            self.progress["progress"] = counter / datalen
         return {0: ""}
