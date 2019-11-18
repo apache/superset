@@ -37,7 +37,7 @@ fi
 SUPERSET_VERSION_RC="${SUPERSET_VERSION}rc${SUPERSET_RC}"
 
 if [ -z "${SUPERSET_SVN_DEV_PATH}" ]; then
-  SUPERSET_SVN_DEV_PATH="$HOME/svn2/superset_dev"
+  SUPERSET_SVN_DEV_PATH="$HOME/svn/superset_dev"
 fi
 
 if [[ ! -d "${SUPERSET_SVN_DEV_PATH}" ]]; then

@@ -25,7 +25,7 @@ fi
 if [ ${1} == "local" ]; then
   SUPERSET_RELEASE_RC=apache-superset-incubating-"${SUPERSET_VERSION_RC}"
   SUPERSET_RELEASE_RC_TARBALL="${SUPERSET_RELEASE_RC}"-source.tar.gz
-  SUPERSET_TARBALL_PATH=$HOME/svn2/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
+  SUPERSET_TARBALL_PATH=$HOME/svn/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
   docker build --no-cache \
         -t apache-superset:${SUPERSET_VERSION_RC} \
         -f Dockerfile.from_local_tarball . \
