@@ -17,12 +17,9 @@
 """Unit tests for geocoding"""
 
 from superset import app, db
-<<<<<<< HEAD
-=======
-from superset.models.helpers import QueryStatus
-from superset.utils.geocoding import GeoCoder
 from superset.connectors.sqla.models import SqlaTable
->>>>>>> _geocoding/form
+from superset.models.helpers import QueryStatus
+from superset.utils.geocoding_utils import GeoCoder
 from superset.views import core as views
 
 from .base_tests import SupersetTestCase
@@ -41,23 +38,6 @@ class GeocodingTests(SupersetTestCase):
 
     def tearDown(self):
         self.logout()
-<<<<<<< HEAD
-=======
-
-    @classmethod
-    def setUpClass(cls):
-        worker_command = BASE_DIR + "/bin/superset worker -w 2"
-        subprocess.Popen(worker_command, shell=True, stdout=subprocess.PIPE)
-
-    @classmethod
-    def tearDownClass(cls):
-        subprocess.call(
-            "ps auxww | grep 'celeryd' | awk '{print $2}' | xargs kill -9", shell=True
-        )
-        subprocess.call(
-            "ps auxww | grep 'superset worker' | awk '{print $2}' | xargs kill -9",
-            shell=True,
-        )
 
     def test_get_mapbox_api_key(self):
         superset = views.Superset()
@@ -93,4 +73,3 @@ class GeocodingTests(SupersetTestCase):
 
         message = "No table found with name {0}".format(table_name)
         assert message in response
->>>>>>> _geocoding/form
