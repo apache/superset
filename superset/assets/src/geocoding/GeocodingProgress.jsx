@@ -36,27 +36,9 @@ const propTypes = {
 export class GeocodingProgress extends React.Component {
   constructor(props) {
     super(props);
-    this.getInfoStatus = this.getInfoStatus.bind(this);
-    this.getErrorStatus = this.getErrorStatus.bind(this);
     this.getProgress = this.getProgress.bind(this);
     this.calculateProgress = this.calculateProgress.bind(this);
     this.interruptGeocoding = this.interruptGeocoding.bind(this);
-  }
-
-  getInfoStatus() {
-    const { geocoding } = this.props;
-    if (geocoding && geocoding.infoStatus) {
-      return geocoding.infoStatus;
-    }
-    return undefined;
-  }
-
-  getErrorStatus() {
-    const { geocoding } = this.props;
-    if (geocoding && geocoding.errorStatus) {
-      return geocoding.errorStatus;
-    }
-    return undefined;
   }
 
   getProgress() {
@@ -78,8 +60,6 @@ export class GeocodingProgress extends React.Component {
   render() {
     return (
       <div className="container">
-        <FormInfo status={this.getInfoStatus()} />
-        <FormError status={this.getErrorStatus()} />
         <div className="panel panel-primary">
           <div className="panel-heading">
             <h4 className="panel-title">{t('Geocoding Progress')}</h4>

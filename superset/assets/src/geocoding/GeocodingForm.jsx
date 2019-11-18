@@ -26,7 +26,6 @@ import Button from 'src/components/Button';
 import FormInput from 'src/components/FormInput';
 import FormCheckbox from 'src/components/FormCheckbox';
 import FormSelect from 'src/components/FormSelect';
-import FormInfo from 'src/components/FormInfo';
 import FormError from 'src/components/FormError';
 import * as Actions from './actions/geocoding';
 import './GeocodingForm.css';
@@ -53,8 +52,6 @@ export class GeocodingForm extends React.Component {
     };
     this.getDatasources = this.getDatasources.bind(this);
     this.getColumnList = this.getColumnList.bind(this);
-    this.getInfoStatus = this.getInfoStatus.bind(this);
-    this.getErrorStatus = this.getErrorStatus.bind(this);
     this.setDatasource = this.setDatasource.bind(this);
     this.setPropertyValue = this.setPropertyValue.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -75,22 +72,6 @@ export class GeocodingForm extends React.Component {
       const columnList = [];
       geocoding.columnList.forEach(column => columnList.push({ label: column, value: column }));
       return columnList;
-    }
-    return undefined;
-  }
-
-  getInfoStatus() {
-    const { geocoding } = this.props;
-    if (geocoding && geocoding.infoStatus) {
-      return geocoding.infoStatus;
-    }
-    return undefined;
-  }
-
-  getErrorStatus() {
-    const { geocoding } = this.props;
-    if (geocoding && geocoding.errorStatus) {
-      return geocoding.errorStatus;
     }
     return undefined;
   }
@@ -147,9 +128,7 @@ export class GeocodingForm extends React.Component {
   render() {
     return (
       <div className="container">
-        <FormInfo status={this.getInfoStatus()} />
         <FormError status={this.state.validation} />
-        <FormError status={this.getErrorStatus()} />
         <div className="panel panel-primary">
           <div className="panel-heading">
             <h4 className="panel-title">{t('Geocode Addresses')}</h4>

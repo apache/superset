@@ -20,9 +20,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import * as Actions from './actions/geocoding';
+import FormInfo from 'src/components/FormInfo';
+import FormError from 'src/components/FormError';
 import GeocodingForm from './GeocodingForm';
 import GeocodingProgress from './GeocodingProgress';
+import * as Actions from './actions/geocoding';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -47,6 +49,22 @@ export class Geocoding extends React.Component {
     clearTimeout(interval);
   }
 
+  getInfoStatus() {
+    const { geocoding } = this.props;
+    if (geocoding && geocoding.infoStatus) {
+      return geocoding.infoStatus;
+    }
+    return undefined;
+  }
+
+  getErrorStatus() {
+    const { geocoding } = this.props;
+    if (geocoding && geocoding.errorStatus) {
+      return geocoding.errorStatus;
+    }
+    return undefined;
+  }
+
   fetchProgress() {
     this.props.actions.geocodingProgress();
     interval = setTimeout(this.fetchProgress, TIME_BETWEEN_CALLS);
@@ -64,6 +82,8 @@ export class Geocoding extends React.Component {
     }
     return (
       <>
+        <FormInfo status={this.getInfoStatus()} />
+        <FormError status={this.getErrorStatus()} />
         {form}
         {progress}
       </>
