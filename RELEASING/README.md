@@ -92,10 +92,10 @@ necessary environment variables:
 
 ```bash
     # usage: set_release_env.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
-    . ./set_release_env.sh 0.34.1 1 "YOUR FULL NAME HERE"
+    . ./set_release_env.sh XX.YY.ZZ QQ "YOUR PGP KEY NAME"
 ```
 
-The script will output the exported variables, for example:
+The script will output the exported variables, for example for 0.34.1 RC1:
 
 ```
     -------------------------------
