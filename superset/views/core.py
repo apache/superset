@@ -3159,7 +3159,7 @@ class Superset(BaseSupersetView):
         :param column_type: The name of longitude column
         """
         column = Column(column_name, column_type)
-        name = column.compile(dialect=db.engine.dialect)
+        name = column.compile(column_name, dialect=db.engine.dialect)
         type = column.type.compile(db.engine.dialect)
         sql = text("ALTER TABLE %s ADD %s %s" % (table_name, name, type))
         connection.execute(sql)

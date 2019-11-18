@@ -70,10 +70,10 @@ class GeocodingTests(SupersetTestCase):
 
         selected_columns = ["name", "gender"]
         data = [
-            ("Aaron", "boy", 1.1, "2.2"),
-            ("Amy", "girl", 3.3, "4.4"),
-            ("Barbara", "girl", 5.5, "6.6"),
-            ("Bradley", "boy", 7.7, "8.8"),
+            ("Aaron", "boy", 1, "2.2"),
+            ("Amy", "girl", 3, "4.4"),
+            ("Barbara", "girl", 5, "6.6"),
+            ("Bradley", "boy", 7, "8.8"),
         ]
         first_column_name = "num"
         second_column_name = "state"
