@@ -71,7 +71,7 @@ from superset import (
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import AnnotationDatasource
+from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,
@@ -3063,13 +3063,41 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/geocoding")
     def geocoding(self):
-        pass
+        bootstrap_data = {
+            "tables": self._get_editable_tables(),
+            "common": self.common_bootstrap_payload(),
+        }
+
+        if request.args.get("json") == "true":
+            return json_success(
+                json.dumps(bootstrap_data, default=lambda x: x.__dict__)
+            )
+
+        return self.render_template(
+            "superset/geocoding.html",
+            entry="geocoding",
+            standalone_mode=False,
+            title="Geocode Addresses",
+            bootstrap_data=json.dumps(bootstrap_data, default=lambda x: x.__dict__),
+        )
 
     @api
     @has_access_api
-    @expose("/geocoding/columns", methods=["GET"])
-    def columns(self) -> Response:
-        return json_success("")
+    @expose("/geocoding/columns", methods=["POST"])
+    def columns(self) -> str:
+        """ Get all column names from given table name """
+        column_names = []
+        table_name = request.json.get("tableName")
+        table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
+        if table:
+            for column in table.columns:
+                column_names.append(column.column_name)
+        else:
+            return json_error_response(
+                "No table found with name {0}".format(table_name), status=400
+            )
+
+        return json.dumps(column_names)
 
     @api
     @has_access_api
@@ -3081,6 +3109,18 @@ class Superset(BaseSupersetView):
             return json_success(dat)
         except Exception as e:
             return json_error_response(e.args)
+
+    def _get_editable_tables(self):
+        """ Get tables which are allowed to create columns (allow dml on their database) """
+        tables = []
+        for database in (
+            db.session.query(models.Database).filter_by(allow_dml=True).all()
+        ):
+            for table in (
+                db.session.query(SqlaTable).filter_by(database_id=database.id).all()
+            ):
+                tables.append(models.TableDto(table.id, table.name, table.database_id))
+        return tables
 
     def _get_mapbox_key(self):
         return conf["MAPBOX_API_KEY"]
@@ -3213,6 +3253,17 @@ appbuilder.add_link(
     label=__("Upload a CSV"),
     href="/csvtodatabaseview/form",
     icon="fa-upload",
+    category="Sources",
+    category_label=__("Sources"),
+    category_icon="fa-wrench",
+)
+appbuilder.add_separator("Sources")
+
+appbuilder.add_link(
+    "Geocode Addresses",
+    label=__("Geocode Addresses"),
+    href="/superset/geocoding",
+    icon="fa-globe",
     category="Sources",
     category_label=__("Sources"),
     category_icon="fa-wrench",
