@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
+import json
 import os
 
 import celery
@@ -25,8 +25,59 @@ from werkzeug.local import LocalProxy
 
 from superset.utils.cache_manager import CacheManager
 from superset.utils.feature_flag_manager import FeatureFlagManager
-from superset.utils.manifest_processor import UIManifestProcessor
 from superset.utils.results_backend_manager import ResultsBackendManager
+
+
+class UIManifestProcessor:
+    def __init__(self, app_dir: str) -> None:
+        super().__init__()
+        self.app = None
+        self.manifest: dict = {}
+        self.manifest_file = f"{app_dir}/static/assets/dist/manifest.json"
+
+    def init_app(self, app):
+        self.app = app
+        # Preload the cache
+        self.parse_manifest_json()
+
+        @app.context_processor
+        def get_manifest():  # pylint: disable=unused-variable
+            return dict(
+                loaded_chunks=set(),
+                get_unloaded_chunks=self.get_unloaded_chunks,
+                js_manifest=self.get_js_manifest_files,
+                css_manifest=self.get_css_manifest_files,
+            )
+
+    def parse_manifest_json(self):
+        try:
+            with open(self.manifest_file, "r") as f:
+                # the manifest includes non-entry files
+                # we only need entries in templates
+                full_manifest = json.load(f)
+                self.manifest = full_manifest.get("entrypoints", {})
+        except Exception:  # pylint: disable=broad-except
+            pass
+
+    def get_js_manifest_files(self, filename):
+        if self.app.debug:
+            self.parse_manifest_json()
+        entry_files = self.manifest.get(filename, {})
+        return entry_files.get("js", [])
+
+    def get_css_manifest_files(self, filename):
+        if self.app.debug:
+            self.parse_manifest_json()
+        entry_files = self.manifest.get(filename, {})
+        return entry_files.get("css", [])
+
+    @staticmethod
+    def get_unloaded_chunks(files, loaded_chunks):
+        filtered_files = [f for f in files if f not in loaded_chunks]
+        for f in filtered_files:
+            loaded_chunks.add(f)
+        return filtered_files
+
 
 APP_DIR = os.path.dirname(__file__)
 
