@@ -193,13 +193,14 @@ class TabStateView(BaseSupersetView):
             sql=query_editor.get("sql", "SELECT ..."),
             query_limit=query_editor.get("queryLimit"),
         )
+        session = db.session()
         (
-            db.session.query(TabState)
+            session.query(TabState)
             .filter_by(user_id=g.user.get_id())
             .update({"active": False})
         )
-        db.session.add(tab_state)
-        db.session.commit()
+        session.add(tab_state)
+        session.commit()
         return json_success(json.dumps({"id": tab_state.id}))
 
     @has_access_api
@@ -288,7 +289,8 @@ class TableSchemaView(BaseSupersetView):
         table = json.loads(request.form["table"])
 
         # delete any existing table schema
-        db.session.query(TableSchema).filter(
+        session = db.session()
+        session.query(TableSchema).filter(
             TableSchema.tab_state_id == table["queryEditorId"],
             TableSchema.database_id == table["dbId"],
             TableSchema.schema == table["schema"],
@@ -303,8 +305,8 @@ class TableSchemaView(BaseSupersetView):
             description=json.dumps(table),
             expanded=True,
         )
-        db.session.add(table_schema)
-        db.session.commit()
+        session.add(table_schema)
+        session.commit()
         return json_success(json.dumps({"id": table_schema.id}))
 
     @has_access_api
