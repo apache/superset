@@ -3098,16 +3098,12 @@ class Superset(BaseSupersetView):
         pass
 
     @api
-    # @has_access_api
-    @expose("/geocoding/is_in_progress", methods=["GET"])
-    def is_in_progress(self) -> Response:
-        return json_success(json.dumps(self.coder.progress))
-
-    @api
     @has_access_api
     @expose("/geocoding/progress", methods=["GET"])
     def progress(self) -> Response:
-        return json_success(json.dumps(self.coder.progress))
+        return json_success(
+            json.dumps(self.coder.progress, default=lambda x: x.__dict__)
+        )
 
     @api
     @has_access_api

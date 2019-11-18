@@ -30,25 +30,18 @@ class GeocodingProgress:
     of the task is
     """
 
-    is_in_progress = False
-    progress: float = 0
-
-    def in_progress(self) -> bool:
-        return self.is_in_progress
-
-    def get_progress(self) -> int:
-        return self.progress
+    def __init__(self, is_in_progress=False, progress=0):
+        self.is_in_progress = is_in_progress
+        self.progress = progress
 
 
 class GeoCoder:
     interruptflag = False
     conf = {}
-    geocoding_timeout = 0
     progress = GeocodingProgress()
 
     def __init__(self, config):
         conf = config
-        self.geocoding_timeout = conf["GEOCODING_ASYNC_TIMEOUT"]
         self.progress = GeocodingProgress()
 
     def geocode(self, geocoder, data, async=False):
@@ -59,33 +52,37 @@ class GeoCoder:
                 return self.__geocode_testing(async)
         except Exception as e:
             raise e
-
-    # TODO set query-status failed in poss exception
+        finally:
+            self.progress.progress = 0
+            self.progress.is_in_progress = False
 
     def __geocode_maptiler(self, data: dict, async) -> dict:
         if async:
             raise Exception("Async not supported at this time")
         else:
-            self.__geocode_maptiler(data)
+            self.__geocode_maptiler_sync(data)
 
-    def __geocode_maptiler_async(self, data: dict) -> dict:
+    def __geocode_maptiler_sync(self, data: dict) -> dict:
         baseurl = "https://api.maptiler.com/geocoding/"
         geocoded_data = dict
         data = {"a": "HSR Oberseestrasse 10 Rapperswil", "b": "ETH Zürich"}
         datalen = len(data)
         counter = 0
+        success_counter = 0
+        self.progress.is_in_progress = True
         self.progress.progress = 0
         for datum_id in data:
             try:
                 if self.interruptflag:
+                    # TODO check if save_flag is set
                     self.interruptflag = False
                     return geocoded_data
                 address = data[datum_id]
                 resp = requests.get(
                     baseurl + address + ".json?key=" + self.conf["MAPTILER_API_KEY"]
                 )
-                dat = resp.content.decode()
-                jsondat = json.loads(dat)
+                resp_content = resp.content.decode()
+                jsondat = json.loads(resp_content)
                 # TODO give better names and clean
                 features = jsondat["features"]
                 feature_count = len(features)
@@ -93,6 +90,7 @@ class GeoCoder:
                     feature = features[0]
                     center = feature["center"]
                     geocoded_data[datum_id] = center
+                    success_counter += 1
                 counter += 1
                 self.progress.progress = counter / datalen
             # TODO be more precise with the possible exceptions
@@ -101,17 +99,19 @@ class GeoCoder:
                 print(e)
         self.progress.progress = 100
         self.progress.is_in_progress = False
+        # TODO also return amount of succesfully geocoded values or store in class-variable
         return geocoded_data
 
     def __geocode_testing(self, async) -> dict:
         if async:
             raise Exception("Async not supported at this time")
         else:
-            self.__geocode_testing_async()
+            self.__geocode_testing_sync()
 
-    def __geocode_testing_async(self) -> dict:
+    def __geocode_testing_sync(self) -> dict:
         counter = 0
         datalen = 10
+        self.progress.is_in_progress = True
         self.progress.progress = 0
         for _ in range(datalen):
             if self.interruptflag:
