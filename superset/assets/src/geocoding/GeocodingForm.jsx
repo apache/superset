@@ -63,6 +63,9 @@ export class GeocodingForm extends React.Component {
     tables.forEach(table =>
       tableArray.push({ label: table.name, value: table.name }),
     );
+    if (!tableArray) {
+      this.setState({ validation: { message: 'No datasource that allows DML could be found. Please contact your system administrator.', timestamp: Date.now() } });
+    }
     return tableArray;
   }
 
