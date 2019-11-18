@@ -3086,10 +3086,13 @@ class Superset(BaseSupersetView):
 
     def _geocode(self, data, dev=False):
         # TODO do this in a cleaner way
-        if dev:
-            return self.coder.geocode("", data)
-        else:
-            return self.coder.geocode("MapTiler", data)
+        try:
+            if dev:
+                return self.coder.geocode("", data)
+            else:
+                return self.coder.geocode("MapTiler", data)
+        except Exception as e:
+            return json_error_response(e.args)
 
     def _add_lat_long_columns(self, data):
         pass

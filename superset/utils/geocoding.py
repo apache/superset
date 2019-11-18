@@ -19,6 +19,7 @@ import time
 
 import requests
 
+from superset.models.helpers import QueryStatus
 from superset.tasks.celery_app import app as celery_app
 
 
@@ -47,25 +48,27 @@ class GeoCoder:
 
     def __init__(self, config):
         conf = config
-        geocoding_timeout = conf["GEOCODING_ASYNC_TIMEOUT"]
+        self.geocoding_timeout = conf["GEOCODING_ASYNC_TIMEOUT"]
+        self.progress = GeocodingProgress()
 
-    def geocode(self, geocoder, data):
+    def geocode(self, geocoder, data, async=False):
         try:
             if geocoder == "MapTiler":
-                retdata = self.__geocode_maptiler.delay(data)
-                return retdata
+                return self.__geocode_maptiler(data, async)
             else:
-                return self.__geocode_testing.delay()
+                return self.__geocode_testing(async)
         except Exception as e:
             raise e
 
-    @celery_app.task(
-        name="__geocode_maptiler",
-        bind=True,
-        time_limit=geocoding_timeout,
-        soft_time_limit=geocoding_timeout,
-    )
-    def __geocode_maptiler(self, data: dict) -> dict:
+    # TODO set query-status failed in poss exception
+
+    def __geocode_maptiler(self, data: dict, async) -> dict:
+        if async:
+            raise Exception("Async not supported at this time")
+        else:
+            self.__geocode_maptiler(data)
+
+    def __geocode_maptiler_async(self, data: dict) -> dict:
         baseurl = "https://api.maptiler.com/geocoding/"
         geocoded_data = dict
         data = {"a": "HSR Oberseestrasse 10 Rapperswil", "b": "ETH Zürich"}
@@ -100,10 +103,13 @@ class GeoCoder:
         self.progress.is_in_progress = False
         return geocoded_data
 
-    @celery_app.task(
-        name="__geocode_testing", bind=True, time_limit=120, soft_time_limit=120
-    )
-    def __geocode_testing(self) -> dict:
+    def __geocode_testing(self, async) -> dict:
+        if async:
+            raise Exception("Async not supported at this time")
+        else:
+            self.__geocode_testing_async()
+
+    def __geocode_testing_async(self) -> dict:
         counter = 0
         datalen = 10
         self.progress.progress = 0
