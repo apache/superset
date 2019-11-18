@@ -39,6 +39,9 @@ const propTypes = {
 export class GeocodingForm extends React.Component {
   constructor(props) {
     super(props);
+    const validation = this.props.tables.length === 0 ?
+    { message: 'No datasource that allows DML could be found. Please contact your system administrator.', timestamp: Date.now() }
+    : undefined;
     this.state = {
       datasource: undefined,
       streetColumn: undefined,
@@ -48,7 +51,7 @@ export class GeocodingForm extends React.Component {
       latitudeColumnName: 'latitude',
       overwriteIfExists: false,
       saveOnErrorOrInterrupt: true,
-      validation: undefined,
+      validation,
     };
     this.getDatasources = this.getDatasources.bind(this);
     this.getColumnList = this.getColumnList.bind(this);
@@ -63,9 +66,6 @@ export class GeocodingForm extends React.Component {
     tables.forEach(table =>
       tableArray.push({ label: table.name, value: table.name }),
     );
-    if (!tableArray) {
-      this.setState({ validation: { message: 'No datasource that allows DML could be found. Please contact your system administrator.', timestamp: Date.now() } });
-    }
     return tableArray;
   }
 
