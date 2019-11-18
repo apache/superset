@@ -85,10 +85,12 @@ class GeoCoder:
                 resp_content = resp.content.decode()
                 jsondat = json.loads(resp_content)
                 # TODO give better names and clean
+                # TODO make use of relevance if wanted
                 features = jsondat["features"]
                 feature_count = len(features)
                 if feature_count != 0:
                     feature = features[0]
+                    # TODO check if it is possible, that there is no center attribute -> get API doc from mr. Keller
                     # TODO don't raise success_counter if there is no 'center' Attribute
                     geocoded_data[datum_id] = feature["center"] or ""
                     success_counter += 1
