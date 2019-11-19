@@ -417,11 +417,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "filepath_or_buffer": filename,
             "sep": form_data.get("delimiter"),
             # frontend already does int-check, check again in case of tampering
-            "header": int(form_data.get("headerRow", 0)),
-            "index_col": int(form_data.get("indexColumn")),
+            "header": 0
+            if not form_data.get("headerRow")
+            else int(form_data.get("headerRow", 0)),
+            "index_col": None
+            if not form_data.get("indexColumn")
+            else int(form_data.get("indexColumn")),
             "mangle_dupe_cols": bool(form_data.get("mangleDuplicateColumns")),
             "skipinitialspace": bool(form_data.get("skipInitialSpace")),
-            "skiprows": int(form_data.get("skipRows")),
+            "skiprows": int(form_data["skipRows"]) or None,
             "nrows": int(form_data.get("rowsToRead")),
             "skip_blank_lines": bool(form_data.get("skipBlankLines")),
             "parse_dates": form_data.get("parseDates"),
