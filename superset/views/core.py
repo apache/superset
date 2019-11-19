@@ -3234,7 +3234,7 @@ class Superset(BaseSupersetView):
                         3. If there was a problem getting the schema
         """
         try:
-            database = self._get_database_by_id(database_id)
+            database = db.session.query(models.Database).filter_by(id=database_id).one()
             if not self._is_schema_allowed(database, schema):
                 message = _(
                     "Database {0} Schema {1} is not allowed for csv uploads. "
@@ -3246,22 +3246,6 @@ class Superset(BaseSupersetView):
             return database
         except Exception as e:
             raise ValueError(e.args[0])
-
-    def _get_database_by_id(self, database_id: int) -> models.Database:
-        """ Returns the Database for the given ID
-
-        Keyword arguments:
-        database_id -- The ID which is used to identify the Database byo
-
-        Raises:
-            ValueError: If the database ID is not valid, i.e. matches no database
-        """
-
-        dbs = db.session.query(models.Database).filter_by(id=database_id).all()
-        if len(dbs) != 1:
-            message = _("None or several matching databases found")
-            raise ValueError(message)
-        return dbs[0]
 
     def _is_schema_allowed(self, database: models.Database, schema: str) -> bool:
         """ Checks whether the specified schema is allowed for csv-uploads
