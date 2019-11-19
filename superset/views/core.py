@@ -3094,6 +3094,8 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/geocoding/geocode", methods=["GET"])
     def geocode(self) -> Response:
+        # columns = [address_column, city_column, country_column]
+        # self._load_data_from_columns(columns)
         return json_success("")
 
     def _get_editable_tables(self):
@@ -3107,6 +3109,18 @@ class Superset(BaseSupersetView):
             ):
                 tables.append(models.TableDto(table.id, table.name, table.database_id))
         return tables
+
+    def _load_data_from_columns(self, table_name, columns):
+        """
+        Get data from columns form table
+        :param table_name: The table name from table from which select
+        :param columns: The names of columns to select
+        :return: The data from columns from given table as list of tuples
+        """
+        selected_columns = ", ".join(filter(None, columns))
+        sql = "SELECT " + selected_columns + " FROM %s" % table_name
+        result = db.engine.connect().execute(sql)
+        return [row for row in result]
 
     def _get_mapbox_key(self):
         return conf["MAPBOX_API_KEY"]
