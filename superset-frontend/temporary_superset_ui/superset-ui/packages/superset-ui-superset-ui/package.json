@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/superset-ui",
-  "version": "0.0.0",
+  "version": "0.12.5",
   "description": "One stop install for all superset-ui packages",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -13,7 +13,9 @@
     "type": "git",
     "url": "git+https://github.com/apache-superset/superset-ui.git"
   },
-  "keywords": ["superset"],
+  "keywords": [
+    "superset"
+  ],
   "author": "Superset",
   "license": "Apache-2.0",
   "bugs": {
@@ -24,15 +26,15 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart": "0.12.4",
-    "@superset-ui/chart-composition": "0.12.4",
-    "@superset-ui/color": "0.12.4",
-    "@superset-ui/connection": "0.12.3",
-    "@superset-ui/core": "0.12.4",
-    "@superset-ui/dimension": "0.12.3",
-    "@superset-ui/number-format": "0.12.4",
-    "@superset-ui/query": "0.12.4",
-    "@superset-ui/time-format": "0.12.4",
-    "@superset-ui/translation": "0.12.0"
+    "@superset-ui/chart": "^0.12.5",
+    "@superset-ui/chart-composition": "^0.12.5",
+    "@superset-ui/color": "^0.12.5",
+    "@superset-ui/connection": "^0.12.5",
+    "@superset-ui/core": "^0.12.5",
+    "@superset-ui/dimension": "^0.12.5",
+    "@superset-ui/number-format": "^0.12.5",
+    "@superset-ui/query": "^0.12.5",
+    "@superset-ui/time-format": "^0.12.5",
+    "@superset-ui/translation": "^0.12.5"
   }
 }
