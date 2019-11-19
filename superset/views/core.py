@@ -3114,24 +3114,24 @@ class Superset(BaseSupersetView):
     def _geocode(self, data):
         pass
 
-    def _add_lat_long_columns(self, table_name: str, lat_column: str, long_column: str):
+    def _add_lat_lon_columns(self, table_name: str, lat_column: str, lon_column: str):
         """
         Add new longitued and latitude columns to table
 
         :param table_name: The table name of table to insert columns
         :param lat_column: The name of latitude column
-        :param long_column: The name of longitude column
+        :param lon_column: The name of longitude column
         """
 
         if self._does_column_name_exist(table_name, lat_column):
-            raise ValueError("Column name for latitude is already in use")
-        if self._does_column_name_exist(table_name, long_column):
-            raise ValueError("Column name for longitude is already in use")
+            raise ValueError("Column name {0} for latitude is already in use".format(lat_column))
+        if self._does_column_name_exist(table_name, lon_column):
+            raise ValueError("Column name {0} for longitude is already in use".format(lon_column))
         connection = db.engine.connect()
         transaction = connection.begin()
         try:
             self._add_column(connection, table_name, lat_column, Float())
-            self._add_column(connection, table_name, long_column, Float())
+            self._add_column(connection, table_name, lon_column, Float())
             transaction.commit()
         except Exception as e:
             transaction.rollback()
@@ -3174,7 +3174,7 @@ class Superset(BaseSupersetView):
         self,
         table_name: str,
         lat_column: str,
-        long_column: str,
+        lon_column: str,
         geo_columns: list,
         data: list,
     ):
@@ -3183,8 +3183,8 @@ class Superset(BaseSupersetView):
 
         :param table_name: The name of table to insert
         :param lat_column: The name of latitude column
-        :param long_column: The name of longitude column
-        :param long_column: The list of selected geographical column names
+        :param lon_column: The name of longitude column
+        :param geo_columns: The list of selected geographical column names
         :param data: row with geographical data and geocoded coordinates
         """
         where_clause = "='%s' AND ".join(filter(None, geo_columns)) + "='%s'"
@@ -3198,7 +3198,7 @@ class Superset(BaseSupersetView):
                     table_name,
                     lat_column,
                     row[number_of_columns],
-                    long_column,
+                    lon_column,
                     row[number_of_columns + 1],
                 )
                 where = "WHERE " + where_clause % (row[:number_of_columns])
