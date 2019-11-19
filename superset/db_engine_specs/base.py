@@ -417,7 +417,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "filepath_or_buffer": filename,
             "sep": form_data["delimiter"],
             # frontend already does int-check, check again in case of tampering
-            "header": 0 if not form_data["headerRow"] else int(form_data["headerRow"]),
+            "header": int(form_data["headerRow"])
+            or 0,  # 0 if not form_data["headerRow"] else int(form_data["headerRow"]),
             "index_col": None
             if not form_data["indexColumn"]
             else int(form_data["indexColumn"]),
@@ -430,9 +431,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if not form_data["rowsToRead"]
             else int(form_data["rowsToRead"]),
             "skip_blank_lines": bool(form_data["skipBlankLines"]),
-            "parse_dates": None
-            if not form_data["parseDates"]
-            else form_data["parseDates"],
+            "parse_dates": form_data["parseDates"] or None,
             "infer_datetime_format": bool(form_data["inferDatetimeFormat"]),
             "chunksize": 10000,
         }
@@ -442,12 +441,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "df": df,
             "name": form_data["tableName"],
             "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
-            "schema": None if not form_data["schema"] else form_data["schema"],
+            "schema": form_data["schema"] or None,
             "if_exists": lower(form_data["ifTableExists"]),
             "index": bool(form_data["dataframeIndex"]),
-            "index_label": None
-            if not form_data["columnLabels"]
-            else form_data["columnLabels"],
+            "index_label": form_data["columnLabels"] or None,
             "chunksize": 10000,
         }
         cls.df_to_sql(**df_to_sql_kwargs)
