@@ -151,14 +151,14 @@ export default class VizTypeControl extends React.PureComponent {
             <Tooltip id="error-tooltip">{t('Click to change visualization type')}</Tooltip>
           }
         >
-          <React.Fragment>
+          <>
             <Label onClick={this.toggleModal} style={LABEL_STYLE}>
               {registry.has(value) ? registry.get(value).name : `${value}`}
             </Label>
             {(!registry.has(value) && <div className="text-danger">
               <i className="fa fa-exclamation-circle text-danger" /> <small>{t('This visualization type is not supported.')}</small>
             </div>)}
-          </React.Fragment>
+          </>
         </OverlayTrigger>
         <Modal
           show={showModal}
