@@ -393,7 +393,7 @@ class SqlEditor extends React.PureComponent {
       : t('You must run the query successfully first');
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
-        <div class="leftItems">
+        <div className="leftItems">
           <Form inline>
             <span>
               <RunQueryActionButton
@@ -470,7 +470,7 @@ class SqlEditor extends React.PureComponent {
             </span>
           </Form>
         </div>
-        <div class="rightItems">
+        <div className="rightItems">
           <TemplateParamsEditor
             language="json"
             onChange={(params) => {
