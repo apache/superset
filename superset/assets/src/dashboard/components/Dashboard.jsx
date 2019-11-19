@@ -31,7 +31,7 @@ import {
 } from '../util/propShapes';
 import { LOG_ACTIONS_MOUNT_DASHBOARD } from '../../logger/LogUtils';
 import OmniContainer from '../../components/OmniContainer';
-import { safeStringify } from '../../utils/safeStringify';
+import { areObjectsEqual } from '../../reduxUtils';
 
 import '../stylesheets/index.less';
 
@@ -117,10 +117,7 @@ class Dashboard extends React.PureComponent {
     const appliedFilters = this.appliedFilters;
     const { activeFilters } = this.props;
     // do not apply filter when dashboard in edit mode
-    if (
-      !editMode &&
-      safeStringify(appliedFilters) !== safeStringify(activeFilters)
-    ) {
+    if (!editMode && !areObjectsEqual(appliedFilters, activeFilters)) {
       // refresh charts if a filter was removed, added, or changed
       const currFilterKeys = Object.keys(activeFilters);
       const appliedFilterKeys = Object.keys(appliedFilters);
@@ -134,15 +131,10 @@ class Dashboard extends React.PureComponent {
         } else if (!appliedFilterKeys.includes(filterKey)) {
           // added filter?
           [].push.apply(affectedChartIds, activeFilters[filterKey].scope);
-        } else if (
-          safeStringify(activeFilters[filterKey].values) !==
-            safeStringify(appliedFilters[filterKey].values) ||
-          safeStringify(activeFilters[filterKey].scope) !==
-            safeStringify(appliedFilters[filterKey].scope)
-        ) {
-          // changed filter field value?
-          const affectedScope = activeFilters[filterKey].scope.concat(
-            appliedFilters[filterKey].scope,
+        } else {
+          // changed filter field value or scope?
+          const affectedScope = (activeFilters[filterKey].scope || []).concat(
+            appliedFilters[filterKey].scope || [],
           );
           [].push.apply(affectedChartIds, affectedScope);
         }
