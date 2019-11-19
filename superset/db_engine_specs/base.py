@@ -415,45 +415,35 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise Exception("Invalid file type selected")
         csv_to_df_kwargs = {
             "filepath_or_buffer": filename,
-            "sep": form_data["delimiter"],
+            "sep": form_data.get("delimiter"),
             # frontend already does int-check, check again in case of tampering
-            "header": 0 if not form_data["headerRow"] else int(form_data["headerRow"]),
-            "index_col": None
-            if not form_data["indexColumn"]
-            else int(form_data["indexColumn"]),
-            "mangle_dupe_cols": bool(form_data["mangleDuplicateColumns"]),
-            "skipinitialspace": bool(form_data["skipInitialSpace"]),
-            "skiprows": None
-            if not form_data["skipRows"]
-            else int(form_data["skipRows"]),
-            "nrows": None
-            if not form_data["rowsToRead"]
-            else int(form_data["rowsToRead"]),
-            "skip_blank_lines": bool(form_data["skipBlankLines"]),
-            "parse_dates": None
-            if not form_data["parseDates"]
-            else form_data["parseDates"],
-            "infer_datetime_format": bool(form_data["inferDatetimeFormat"]),
+            "header": int(form_data.get("headerRow", 0)),
+            "index_col": int(form_data.get("indexColumn")),
+            "mangle_dupe_cols": bool(form_data.get("mangleDuplicateColumns")),
+            "skipinitialspace": bool(form_data.get("skipInitialSpace")),
+            "skiprows": int(form_data.get("skipRows")),
+            "nrows": int(form_data.get("rowsToRead")),
+            "skip_blank_lines": bool(form_data.get("skipBlankLines")),
+            "parse_dates": form_data.get("parseDates"),
+            "infer_datetime_format": bool(form_data.get("inferDatetimeFormat")),
             "chunksize": 10000,
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
 
         df_to_sql_kwargs = {
             "df": df,
-            "name": form_data["tableName"],
+            "name": form_data.get("tableName"),
             "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
-            "schema": None if not form_data["schema"] else form_data["schema"],
-            "if_exists": lower(form_data["ifTableExists"]),
-            "index": bool(form_data["dataframeIndex"]),
-            "index_label": None
-            if not form_data["columnLabels"]
-            else form_data["columnLabels"],
+            "schema": form_data.get("schema"),
+            "if_exists": lower(form_data.get("ifTableExists")),
+            "index": bool(form_data.get("dataframeIndex")),
+            "index_label": form_data.get("columnLabels"),
             "chunksize": 10000,
         }
         cls.df_to_sql(**df_to_sql_kwargs)
 
         table.user_id = g.user.id
-        table.schema = None if not form_data["schema"] else form_data["schema"]
+        table.schema = form_data.get("schema")
         table.fetch_metadata()
         db.session.add(table)
         db.session.commit()
