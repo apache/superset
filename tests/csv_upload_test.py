@@ -243,10 +243,9 @@ class CsvUploadTests(SupersetTestCase):
                 database_name=db_name,
             )
             response = self.get_resp(url, data=form_data, raise_on_error=False)
-            message = (
-                'Table "schema_not_allowed" could not be created. This could be an issue with the schema,'
-                "a connection issue, etc."
-            )
+            message = "Table schema_not_allowed could not be created. This could be an issue with the schema, " \
+                      "a connection issue, etc."
+
             assert message in response
         finally:
             os.remove(filename)
