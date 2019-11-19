@@ -667,10 +667,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             if partition_query is not None:
                 qry = partition_query
-        sql = database.compile_sqla_query(qry)
+        select_star_query = database.compile_sqla_query(qry)
         if indent:
-            sql = sqlparse.format(sql, reindent=True)
-        return sql
+            select_star_query = sqlparse.format(select_star_query, reindent=True)
+        return select_star_query
 
     @classmethod
     def estimate_statement_cost(
