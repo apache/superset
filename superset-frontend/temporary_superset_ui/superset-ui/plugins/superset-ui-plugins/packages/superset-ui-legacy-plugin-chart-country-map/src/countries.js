@@ -18,6 +18,7 @@ import portugal from 'file-loader!./countries/portugal.geojson';
 import russia from 'file-loader!./countries/russia.geojson';
 import singapore from 'file-loader!./countries/singapore.geojson';
 import spain from 'file-loader!./countries/spain.geojson';
+import switzerland from 'file-loader!./countries/switzerland.geojson';
 import thailand from 'file-loader!./countries/thailand.geojson';
 import timorleste from 'file-loader!./countries/timorleste.geojson';
 import uk from 'file-loader!./countries/uk.geojson';
@@ -45,6 +46,7 @@ const countries = {
   russia,
   singapore,
   spain,
+  switzerland,
   thailand,
   timorleste,
   uk,
