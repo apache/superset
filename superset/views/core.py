@@ -3161,9 +3161,8 @@ class Superset(BaseSupersetView):
                     )
                 # pylint: disable:no-member
                 elif isinstance(e.orig, OperationalError):  # type: ignore
-                    message = "Schema {0} is not allowed in a SQLite database".format(
-                        form_data["schema"]
-                    )
+                    message = _("Table {} could not be created. This could be an issue with the schema, a connection " 
+                                "issue, etc.".format(form_data["tableName"]))
                 else:
                     message = str(e)
             return json_error_response(message, status=400)
