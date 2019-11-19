@@ -22,8 +22,31 @@ if [ -z "${SUPERSET_VERSION_RC}" ]; then
   exit 1
 fi
 
-# Building a docker from a tarball
-docker build --no-cache -t apache-superset:${SUPERSET_VERSION_RC} -f Dockerfile.from_tarball . --build-arg VERSION=${SUPERSET_VERSION_RC}
+if [ -z "${SUPERSET_SVN_DEV_PATH}" ]; then
+  SUPERSET_SVN_DEV_PATH="$HOME/svn/superset_dev"
+fi
+
+if [ ${1} == "local" ]; then
+  SUPERSET_RELEASE_RC=apache-superset-incubating-"${SUPERSET_VERSION_RC}"
+  SUPERSET_RELEASE_RC_TARBALL="${SUPERSET_RELEASE_RC}"-source.tar.gz
+  SUPERSET_TARBALL_PATH="${SUPERSET_SVN_DEV_PATH}"/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
+  SUPERSET_TMP_TARBALL_FILENAME=_tmp_"${SUPERSET_VERSION_RC}".tar.gz
+  cp "${SUPERSET_TARBALL_PATH}" "${SUPERSET_TMP_TARBALL_FILENAME}"
+  docker build --no-cache \
+        -t apache-superset:${SUPERSET_VERSION_RC} \
+        -f Dockerfile.from_local_tarball . \
+        --build-arg VERSION=${SUPERSET_VERSION_RC} \
+        --build-arg SUPERSET_BUILD_FROM=local \
+        --build-arg SUPERSET_RELEASE_RC_TARBALL="${SUPERSET_TMP_TARBALL_FILENAME}"
+  rm "${SUPERSET_TMP_TARBALL_FILENAME}"
+else
+  # Building a docker from a tarball
+  docker build --no-cache \
+        -t apache-superset:${SUPERSET_VERSION_RC} \
+        -f Dockerfile.from_svn_tarball . \
+        --build-arg VERSION=${SUPERSET_VERSION_RC} \
+        --build-arg SUPERSET_BUILD_FROM=svn
+fi
 
 echo "---------------------------------------------------"
 echo "After docker build and run, you should be able to access localhost:5001 on your browser"
