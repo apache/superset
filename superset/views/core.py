@@ -3317,14 +3317,17 @@ class Superset(BaseSupersetView):
         """
 
         try:
-            for table in db.session.query(SqlaTable).all():
-                if table.name == form_data["tableName"]:
-                    message = _(
-                        "Table name {0} already exists. Please choose another".format(
-                            form_data["tableName"]
-                        )
+            if (
+                db.session.query(SqlaTable)
+                .filter_by(table_name=form_data["tableName"])
+                .one_or_none()
+            ):
+                message = _(
+                    "Table name {0} already exists. Please choose another".format(
+                        form_data["tableName"]
                     )
-                    raise Exception(message)
+                )
+                raise Exception(message)
 
             table = SqlaTable(table_name=form_data["tableName"])
             table.database = database
@@ -3332,7 +3335,6 @@ class Superset(BaseSupersetView):
             table.database.db_engine_spec.create_and_fill_table_from_csv(
                 form_data, table, csv_filename, database
             )
-            return table
         except Exception as e:
             raise e
 
