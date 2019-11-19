@@ -16,10 +16,11 @@
 # under the License.
 """Unit tests for geocoding"""
 
-from superset import app, db
+from sqlalchemy.engine import reflection
+
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
-from superset.models.helpers import QueryStatus
-from superset.utils.geocoding_utils import GeoCoder
+from superset.models.core import Database
 from superset.views import core as views
 
 from .base_tests import SupersetTestCase
@@ -38,6 +39,57 @@ class GeocodingTests(SupersetTestCase):
 
     def tearDown(self):
         self.logout()
+
+    def test_get_mapbox_api_key(self):
+        superset = views.Superset()
+        api_key = superset._get_mapbox_key()
+        assert isinstance(api_key, str)
+
+    # def test_add_lat_lon_columns(self):
+    #     table = db.session.query(SqlaTable).first()
+    #     database = db.session.query(Database).filter_by(id=table.database_id).first()
+    #     database.allow_dml = True
+    #     db.session.commit()
+    #
+    #     table_name = table.table_name
+    #     lat_column_name = "lat"
+    #     lon_column_name = "lon"
+    #
+    #     columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
+    #     number_of_columns_before = len(columns)
+    #
+    #     views.Superset()._add_lat_lon_columns(
+    #         table_name, lat_column_name, lon_column_name
+    #     )
+    #
+    #     columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
+    #     number_of_columns_after = len(columns)
+    #     assert number_of_columns_after == number_of_columns_before + 2
+    #     column_names = [column["name"] for column in columns]
+    #     assert lon_column_name in column_names
+    #     assert lat_column_name in column_names
+
+    def test_insert_geocoded_data(self):
+        table_name = "birth_names"
+
+        selected_columns = ["name", "gender"]
+        data = [
+            ("Aaron", "boy", 1, "2.2"),
+            ("Amy", "girl", 3, "4.4"),
+            ("Barbara", "girl", 5, "6.6"),
+            ("Bradley", "boy", 7, "8.8"),
+        ]
+        first_column_name = "num"
+        second_column_name = "state"
+
+        views.Superset()._insert_geocoded_data(
+            table_name, first_column_name, second_column_name, selected_columns, data
+        )
+        result = db.engine.execute(
+            "SELECT name, gender, num, state FROM birth_names WHERE name IN ('Aaron', 'Amy', 'Barbara', 'Bradley')"
+        )
+        for row in result:
+            assert row in data
 
     def test_menu_entry_geocode_exist(self):
         url = "/dashboard/list/"

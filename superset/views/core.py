@@ -46,7 +46,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, Column, Float, or_, select, text
+from sqlalchemy.engine import Connection, reflection
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
@@ -119,7 +120,6 @@ SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"
 stats_logger = config["STATS_LOGGER"]
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
-
 
 ALL_DATASOURCE_ACCESS_ERR = __(
     "This endpoint requires the `all_datasource_access` permission"
@@ -653,7 +653,6 @@ def ping():
 
 
 class KV(BaseSupersetView):
-
     """Used for storing and retrieving key value pairs"""
 
     @event_logger.log_this
@@ -685,7 +684,6 @@ appbuilder.add_view_no_menu(KV)
 
 
 class R(BaseSupersetView):
-
     """used for short urls"""
 
     @event_logger.log_this
@@ -3127,6 +3125,24 @@ class Superset(BaseSupersetView):
     def _check_table_config(self, tableName: str):
         pass
 
+    def _load_data_from_columns(self, table_name, columns):
+        """
+        Get data from columns form table
+        :param table_name: The table name from table from which select
+        :param columns: The names of columns to select
+        :return: The data from columns from given table as list of tuples
+        """
+        selected_columns = ", ".join(filter(None, columns))
+        sql = "SELECT " + selected_columns + " FROM %s" % table_name
+        result = db.engine.connect().execute(sql)
+        return [row for row in result]
+
+    def _get_mapbox_key(self):
+        return conf["MAPBOX_API_KEY"]
+
+    def _geocode(self, data):
+        pass
+
     def _geocode(self, data, dev=False):
         """
         internal method which starts the geocoding
@@ -3140,8 +3156,103 @@ class Superset(BaseSupersetView):
         else:
             return self.coder.geocode("MapTiler", data)
 
-    def _add_lat_long_columns(self, data):
-        pass
+    def _add_lat_lon_columns(self, table_name: str, lat_column: str, lon_column: str):
+        """
+        Add new longitued and latitude columns to table
+
+        :param table_name: The table name of table to insert columns
+        :param lat_column: The name of latitude column
+        :param lon_column: The name of longitude column
+        """
+
+        if self._does_column_name_exist(table_name, lat_column):
+            raise ValueError(
+                "Column name {0} for latitude is already in use".format(lat_column)
+            )
+        if self._does_column_name_exist(table_name, lon_column):
+            raise ValueError(
+                "Column name {0} for longitude is already in use".format(lon_column)
+            )
+        connection = db.engine.connect()
+        transaction = connection.begin()
+        try:
+            self._add_column(connection, table_name, lat_column, Float())
+            self._add_column(connection, table_name, lon_column, Float())
+            transaction.commit()
+        except Exception as e:
+            transaction.rollback()
+            raise e
+
+    def _does_column_name_exist(self, table_name: str, column_name: str):
+        """
+        Check if column name already exists in table
+
+        :param table_name: The table name of table to check
+        :param column_name: The name of column to check
+        :return true if column name exists in table
+        """
+        columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
+        column_names = [column["name"] for column in columns]
+        return column_name in column_names
+
+    def _add_column(
+        self,
+        connection: Connection,
+        table_name: str,
+        column_name: str,
+        column_type: str,
+    ):
+        """
+        Add new column to table
+
+        :param connection: The connection to work with
+        :param table_name: The name of table to add a new column
+        :param column_name: The name of latitude column
+        :param column_type: The name of longitude column
+        """
+        column = Column(column_name, column_type)
+        name = column.compile(column_name, dialect=db.engine.dialect)
+        type = column.type.compile(db.engine.dialect)
+        sql = text("ALTER TABLE %s ADD %s %s" % (table_name, name, type))
+        connection.execute(sql)
+
+    def _insert_geocoded_data(
+        self,
+        table_name: str,
+        lat_column: str,
+        lon_column: str,
+        geo_columns: list,
+        data: list,
+    ):
+        """
+        Insert geocoded coordinates in table
+
+        :param table_name: The name of table to insert
+        :param lat_column: The name of latitude column
+        :param lon_column: The name of longitude column
+        :param geo_columns: The list of selected geographical column names
+        :param data: row with geographical data and geocoded coordinates
+        """
+        where_clause = "='%s' AND ".join(filter(None, geo_columns)) + "='%s'"
+        number_of_columns = len(geo_columns)
+
+        connection = db.engine.connect()
+        transaction = connection.begin()
+        try:
+            for row in data:
+                update = "UPDATE %s SET %s=%s, %s=%s " % (
+                    table_name,
+                    lat_column,
+                    row[number_of_columns],
+                    lon_column,
+                    row[number_of_columns + 1],
+                )
+                where = "WHERE " + where_clause % (row[:number_of_columns])
+                connection.execute(text(update + where))
+            transaction.commit()
+        except Exception as e:
+            transaction.rollback()
+            raise e
 
     @api
     @has_access_api
@@ -3195,7 +3306,6 @@ appbuilder.add_view(
     category_label=__("Manage"),
     category_icon="",
 )
-
 
 appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
 
