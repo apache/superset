@@ -3118,10 +3118,10 @@ class Superset(BaseSupersetView):
                 database = self._get_existing_database(database_id, schema)
                 db_name = database.database_name
             else:
+                if not form_data["databaseName"]:
+                    return json_error_response("No database name received", status=400)
                 db_name = (
-                    csv_filename[:-4]
-                    if not form_data["databaseName"]
-                    else form_data["databaseName"]
+                    form_data["databaseName"]
                 )
                 db_name = secure_filename(db_name)
                 if len(db_name) == 0:
