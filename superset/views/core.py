@@ -2294,6 +2294,7 @@ class Superset(BaseSupersetView):
         table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
         if not table:
             table = SqlaTable(table_name=table_name)
+        table.owners = [g.user]
         table.database_id = data.get("dbId")
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")
