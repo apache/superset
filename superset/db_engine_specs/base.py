@@ -414,6 +414,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if not _allowed_file(filename):
             raise Exception("Invalid file type selected")
         csv_to_df_kwargs = {
+            "filepath_or_buffer": filename,
             "sep": form_data["delimiter"],
             # frontend already does int-check, check again in case of tampering
             "header": 0 if not form_data["headerRow"] else int(form_data["headerRow"]),

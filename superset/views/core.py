@@ -3131,6 +3131,8 @@ class Superset(BaseSupersetView):
                         "Database name is not allowed", status=400
                     )
                 database = self._create_database(db_name)
+        except ValueError as e:
+            return json_error_response(e.args[0], status=400)
         except Exception as e:
             return json_error_response(e.args[0], status=400)
 
@@ -3162,6 +3164,8 @@ class Superset(BaseSupersetView):
                     )
                 else:
                     message = str(e)
+            else:
+                message = str(e)
             return json_error_response(message, status=400)
         finally:
             try:
@@ -3246,6 +3250,9 @@ class Superset(BaseSupersetView):
                 )
                 raise ValueError(message)
             return database
+        except ValueError as e:
+            message = _("No row was found for one")
+            raise ValueError(message)
         except Exception as e:
             raise ValueError(e.args[0])
 

@@ -137,7 +137,7 @@ class CsvUploadTests(SupersetTestCase):
             filename = "not_existing_database_id.csv"
             form_data = self.get_full_data(filename, 1337)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
-            assert "None or several matching databases found" in response
+            assert "No row was found for one" in response
         finally:
             os.remove(filename)
 
