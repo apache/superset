@@ -74,11 +74,11 @@ from superset import (
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import (
+    DatabaseCreationException,
     DatabaseNotFound,
     SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
-    DatabaseCreationException,
     TableCreationException,
 )
 from superset.jinja_context import get_template_processor
@@ -3122,9 +3122,7 @@ class Superset(BaseSupersetView):
             else:
                 if not form_data["databaseName"]:
                     return json_error_response("No database name received", status=400)
-                db_name = (
-                    form_data["databaseName"]
-                )
+                db_name = form_data["databaseName"]
                 db_name = secure_filename(db_name)
                 if len(db_name) == 0:
                     return json_error_response(
@@ -3161,8 +3159,10 @@ class Superset(BaseSupersetView):
                     )
                 # pylint: disable:no-member
                 elif isinstance(e.orig, OperationalError):  # type: ignore
-                    message = _("Table {} could not be created. This could be an issue with the schema, a connection " 
-                                "issue, etc.".format(form_data["tableName"]))
+                    message = _(
+                        "Table {} could not be created. This could be an issue with the schema, a connection "
+                        "issue, etc.".format(form_data["tableName"])
+                    )
                 else:
                     message = str(e)
             return json_error_response(message, status=400)
@@ -3207,10 +3207,8 @@ class Superset(BaseSupersetView):
         except Exception as e:
             exception = e
             if isinstance(e, IntegrityError):
-                message = (
-                    "Error when trying to create Database. A database with the name \"{0}\" already exists.".format(
-                        db_name
-                    )
+                message = 'Error when trying to create Database. A database with the name "{0}" already exists.'.format(
+                    db_name
                 )
                 exception = DatabaseCreationException(message)
             try:
@@ -3220,8 +3218,10 @@ class Superset(BaseSupersetView):
                 db.session.commit()
             except OSError:
                 message = _(
-                    "Error when trying to create Database.The database file \"{0}.db\" could not be removed. "
-                    "Please contact your administrator to remove it manually".format(db_name)
+                    'Error when trying to create Database.The database file "{0}.db" could not be removed. '
+                    "Please contact your administrator to remove it manually".format(
+                        db_name
+                    )
                 )
                 exception = DatabaseCreationException(message)
                 pass
