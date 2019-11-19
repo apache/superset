@@ -12,7 +12,7 @@
     "test": "jest",
     "cover": "jest --coverage",
     "dev": "webpack --mode=development --colors --progress --debug --watch",
-    "dev-server": "webpack-dev-server --mode=development --progress",
+    "dev-server": "node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development --progress",
     "prod": "node --max_old_space_size=4096 webpack --mode=production --colors --progress",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production webpack --mode=production --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json ./{src,spec}/**/*.ts{,x}",
