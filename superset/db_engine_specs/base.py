@@ -27,7 +27,6 @@ import sqlparse
 from flask import g
 from flask_babel import lazy_gettext as _
 from sqlalchemy import column, DateTime, select
-from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
@@ -37,7 +36,7 @@ from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextA
 from sqlalchemy.types import TypeEngine
 from werkzeug.utils import secure_filename
 
-from superset import app, db, sql_parse
+from superset import app, sql_parse
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -385,14 +384,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         df.to_sql(**kwargs)
 
     @classmethod
-    def create_table_from_csv(cls, form) -> None:
+    def create_table_from_csv(cls, form, database) -> None:
         """
         Create table from contents of a csv. Note: this method does not create
         metadata for the table.
 
         :param form: Parameters defining how to process data
+        :param database: Database model object for the target database
         """
-        from superset.models.core import Database
 
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
@@ -400,8 +399,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return (
                 extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
             )
-
-        database = db.session.query(Database).filter_by(id=form.con.data.id).one()
 
         filename = secure_filename(form.csv_file.data.filename)
         if not _allowed_file(filename):
