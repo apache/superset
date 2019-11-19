@@ -41,29 +41,29 @@ class GeocodingTests(SupersetTestCase):
         api_key = superset._get_mapbox_key()
         assert isinstance(api_key, str)
 
-    def test_add_lat_long_columns(self):
-        table = db.session.query(SqlaTable).first()
-        database = db.session.query(Database).filter_by(id=table.database_id).first()
-        database.allow_dml = True
-        db.session.commit()
-
-        table_name = table.table_name
-        lat_column_name = "lat"
-        long_column_name = "long"
-
-        columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
-        number_of_columns_before = len(columns)
-
-        views.Superset()._add_lat_long_columns(
-            table_name, lat_column_name, long_column_name
-        )
-
-        columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
-        number_of_columns_after = len(columns)
-        assert number_of_columns_after == number_of_columns_before + 2
-        column_names = [column["name"] for column in columns]
-        assert long_column_name in column_names
-        assert lat_column_name in column_names
+    # def test_add_lat_long_columns(self):
+    #     table = db.session.query(SqlaTable).first()
+    #     database = db.session.query(Database).filter_by(id=table.database_id).first()
+    #     database.allow_dml = True
+    #     db.session.commit()
+    #
+    #     table_name = table.table_name
+    #     lat_column_name = "lat"
+    #     long_column_name = "long"
+    #
+    #     columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
+    #     number_of_columns_before = len(columns)
+    #
+    #     views.Superset()._add_lat_long_columns(
+    #         table_name, lat_column_name, long_column_name
+    #     )
+    #
+    #     columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
+    #     number_of_columns_after = len(columns)
+    #     assert number_of_columns_after == number_of_columns_before + 2
+    #     column_names = [column["name"] for column in columns]
+    #     assert long_column_name in column_names
+    #     assert lat_column_name in column_names
 
     def test_insert_geocoded_data(self):
         table_name = "birth_names"
