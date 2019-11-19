@@ -1,3 +1,31 @@
+## [0.12.5](https://github.com/apache-superset/superset-ui/compare/v0.12.4...v0.12.5) (2019-11-19)
+
+
+### Bug Fixes
+
+* d3 scale types ([#246](https://github.com/apache-superset/superset-ui/issues/246)) ([1bb49a8](https://github.com/apache-superset/superset-ui/commit/1bb49a8f1d2d8b4ea10676091a40cf12686b8cb6))
+
+
+### Features
+
+* add @superset-ui/superset-ui package as one-stop install ([#255](https://github.com/apache-superset/superset-ui/issues/255)) ([f0899d8](https://github.com/apache-superset/superset-ui/commit/f0899d85999dee620563597e13b480b85059cc53))
+
+
+
+## [0.12.4](https://github.com/apache-superset/superset-ui/compare/v0.12.3...v0.12.4) (2019-11-12)
+
+
+### Bug Fixes
+
+* build error ([#235](https://github.com/apache-superset/superset-ui/issues/235)) ([f8e5dda](https://github.com/apache-superset/superset-ui/commit/f8e5ddad1431e2ca243c3ef5a66d30a2bfb3366c))
+
+
+### Features
+
+* add promiseTimeout ([#223](https://github.com/apache-superset/superset-ui/issues/223)) ([d02bb82](https://github.com/apache-superset/superset-ui/commit/d02bb82d3e220f5e7b23545fffa64a5292cc7987))
+* **time-format:** bump d3-time-format ([#244](https://github.com/apache-superset/superset-ui/issues/244)) ([c31a085](https://github.com/apache-superset/superset-ui/commit/c31a085b1c9dab6ca9a389b97f35fffc682f7c34))
+
+
 ## [0.12.3](https://github.com/apache-superset/superset-ui/compare/v0.12.2...v0.12.3) (2019-09-04)
 
 
