@@ -74,10 +74,12 @@ from superset import (
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import (
+    DatabaseCreationException,
     DatabaseNotFound,
     SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
+    TableCreationException,
 )
 from superset.jinja_context import get_template_processor
 from superset.legacy import update_time_range
@@ -3118,24 +3120,26 @@ class Superset(BaseSupersetView):
                 database = self._get_existing_database(database_id, schema)
                 db_name = database.database_name
             else:
-                db_name = (
-                    csv_filename[:-4]
-                    if not form_data["databaseName"]
-                    else form_data["databaseName"]
-                )
+                if not form_data["databaseName"]:
+                    return json_error_response("No database name received", status=400)
+                db_name = form_data["databaseName"]
                 db_name = secure_filename(db_name)
                 if len(db_name) == 0:
                     return json_error_response(
                         "Database name is not allowed", status=400
                     )
                 database = self._create_database(db_name)
-        except Exception as e:
+        except DatabaseCreationException as e:
             return json_error_response(e.args[0], status=400)
+        except Exception as e:
+            return json_error_response(e.args[0], status=500)
 
         try:
             path = self._check_and_save_csv(csv_file, csv_filename)
             self._create_table(form_data, database, csv_filename)
         except Exception as e:
+            if isinstance(e, TableCreationException):
+                message = e.args[0]
             try:
                 os.remove(os.getcwd() + "/" + db_name + ".db")
             except OSError:
@@ -3155,8 +3159,9 @@ class Superset(BaseSupersetView):
                     )
                 # pylint: disable:no-member
                 elif isinstance(e.orig, OperationalError):  # type: ignore
-                    message = "Schema {0} is not allowed in a SQLite database".format(
-                        form_data["schema"]
+                    message = _(
+                        "Table {0} could not be created. This could be an issue with the schema, a connection "
+                        "issue, etc.".format(form_data["tableName"])
                     )
                 else:
                     message = str(e)
@@ -3200,11 +3205,12 @@ class Superset(BaseSupersetView):
             db.session.commit()
             return item
         except Exception as e:
-            message = (
-                "Error when trying to create Database"
-                if isinstance(e, IntegrityError)
-                else str(e)
-            )
+            exception = e
+            if isinstance(e, IntegrityError):
+                message = "Error when trying to create Database. A database with the name {0} already exists.".format(
+                    db_name
+                )
+                exception = DatabaseCreationException(message)
             try:
                 if os.path.isfile(db_path):
                     os.remove(db_path)
@@ -3212,14 +3218,17 @@ class Superset(BaseSupersetView):
                 db.session.commit()
             except OSError:
                 message = _(
-                    "Error when trying to create Database and Database-File could not be removed. "
-                    "Please contact your administrator to remove it manually"
+                    "Error when trying to create Database.The database file {0}.db could not be removed. "
+                    "Please contact your administrator to remove it manually".format(
+                        db_name
+                    )
                 )
+                exception = DatabaseCreationException(message)
                 pass
             except Exception:
                 pass
             stats_logger.incr("failed_csv_upload")
-            raise Exception(message)
+            raise exception
 
     def _get_existing_database(self, database_id: int, schema):
         """Returns the database object for an existing database
@@ -3327,7 +3336,7 @@ class Superset(BaseSupersetView):
                         form_data["tableName"]
                     )
                 )
-                raise Exception(message)
+                raise TableCreationException(message)
 
             table = SqlaTable(table_name=form_data["tableName"])
             table.database = database

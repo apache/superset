@@ -97,16 +97,16 @@ class CsvUploadTests(SupersetTestCase):
     def test_import_csv_in_new(self):
         url = "/superset/csvtodatabase/add"
         filename = "maximum_into_new.csv"
-        database_name = "new_database_max"
+        db_name = "new_database_max"
         table_name = "import_maximum_into_new"
         try:
-            form_data = self.get_full_data(filename, -1, database_name, table_name)
+            form_data = self.get_full_data(filename, -1, db_name, table_name)
             response = self.get_resp(url, data=form_data)
-            message = "{0} imported into database {1}".format(table_name, database_name)
+            message = "{0} imported into database {1}".format(table_name, db_name)
             assert message in response
         finally:
             os.remove(filename)
-            os.remove(os.getcwd() + "/" + database_name + ".db")
+            os.remove(os.getcwd() + "/" + db_name + ".db")
 
     def test_not_allowed_filename(self):
         try:
@@ -208,6 +208,7 @@ class CsvUploadTests(SupersetTestCase):
         url = "/superset/csvtodatabase/add"
         filename = "duplicate_table_name.csv"
         table_name = "duplicate_name"
+        db_name = "duplicate_table_name"
         try:
             init_data = self.get_full_data(
                 filename, self.get_existing_db_id(), table_name=table_name
@@ -215,7 +216,10 @@ class CsvUploadTests(SupersetTestCase):
             self.get_resp(url, data=init_data, raise_on_error=False)
 
             form_data = self.get_full_data(
-                filename, self.get_existing_db_id(), table_name=table_name
+                filename,
+                self.get_existing_db_id(),
+                table_name=table_name,
+                database_name=db_name,
             )
             response = self.get_resp(url, data=form_data, raise_on_error=False)
             message = "Table name {0} already exists. Please choose another".format(
@@ -229,12 +233,21 @@ class CsvUploadTests(SupersetTestCase):
         url = "/superset/csvtodatabase/add"
         filename = "not_allowed_schema.csv"
         schema = "mySchema"
+        db_name = "not_allowed_schema"
         try:
             form_data = self.get_full_data(
-                filename, -1, table_name="schema_not_allowed", schema=schema
+                filename,
+                -1,
+                table_name="schema_not_allowed",
+                schema=schema,
+                database_name=db_name,
             )
             response = self.get_resp(url, data=form_data, raise_on_error=False)
-            message = "Schema {0} is not allowed in a SQLite database".format(schema)
+            message = (
+                "Table schema_not_allowed could not be created. This could be an issue with the schema, "
+                "a connection issue, etc."
+            )
+
             assert message in response
         finally:
             os.remove(filename)
