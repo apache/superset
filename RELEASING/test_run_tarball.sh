@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-set -ex
+set -e
 
 if [ -z "${SUPERSET_VERSION_RC}" ]; then
   echo "SUPERSET_VERSION_RC is required to run this container"
