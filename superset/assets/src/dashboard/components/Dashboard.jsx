@@ -133,8 +133,8 @@ class Dashboard extends React.PureComponent {
           [].push.apply(affectedChartIds, activeFilters[filterKey].scope);
         } else {
           // changed filter field value or scope?
-          const affectedScope = activeFilters[filterKey].scope.concat(
-            appliedFilters[filterKey].scope,
+          const affectedScope = (activeFilters[filterKey].scope || []).concat(
+            appliedFilters[filterKey].scope || [],
           );
           [].push.apply(affectedChartIds, affectedScope);
         }
