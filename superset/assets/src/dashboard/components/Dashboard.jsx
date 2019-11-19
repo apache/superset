@@ -173,10 +173,10 @@ class Dashboard extends React.PureComponent {
 
   render() {
     return (
-      <React.Fragment>
+      <>
         <OmniContainer logEvent={this.props.actions.logEvent} />
         <DashboardBuilder />
-      </React.Fragment>
+      </>
     );
   }
 }

@@ -208,7 +208,7 @@ class ChartRenderer extends React.Component {
     } = this.props;
 
     return (
-      <React.Fragment>
+      <>
         {this.renderTooltip()}
         <SuperChart
           disableErrorBoundary
@@ -226,7 +226,7 @@ class ChartRenderer extends React.Component {
           onRenderSuccess={this.handleRenderSuccess}
           onRenderFailure={this.handleRenderFailure}
         />
-      </React.Fragment>
+      </>
     );
   }
 }
