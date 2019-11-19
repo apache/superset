@@ -216,7 +216,10 @@ class CsvUploadTests(SupersetTestCase):
             self.get_resp(url, data=init_data, raise_on_error=False)
 
             form_data = self.get_full_data(
-                filename, self.get_existing_db_id(), table_name=table_name, database_name=db_name
+                filename,
+                self.get_existing_db_id(),
+                table_name=table_name,
+                database_name=db_name,
             )
             response = self.get_resp(url, data=form_data, raise_on_error=False)
             message = "Table name {0} already exists. Please choose another".format(
@@ -233,11 +236,17 @@ class CsvUploadTests(SupersetTestCase):
         db_name = "not_allowed_schema"
         try:
             form_data = self.get_full_data(
-                filename, -1, table_name="schema_not_allowed", schema=schema, database_name=db_name
+                filename,
+                -1,
+                table_name="schema_not_allowed",
+                schema=schema,
+                database_name=db_name,
             )
             response = self.get_resp(url, data=form_data, raise_on_error=False)
-            message = "Table \"schema_not_allowed\" could not be created. This could be an issue with the schema," \
-                      "a connection issue, etc."
+            message = (
+                'Table "schema_not_allowed" could not be created. This could be an issue with the schema,'
+                "a connection issue, etc."
+            )
             assert message in response
         finally:
             os.remove(filename)
