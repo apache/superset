@@ -54,7 +54,6 @@ echo "login using admin/admin"
 echo "---------------------------------------------------"
 if ! docker run -p 5001:8088 apache-superset:${SUPERSET_VERSION_RC}; then
   echo "---------------------------------------------------"
-  echo "CODE:$?"
   echo "[ERROR] Seems like this apache-superset:${SUPERSET_VERSION_RC} has a setup/startup problem!"
   echo "---------------------------------------------------"
 fi
