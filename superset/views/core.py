@@ -3124,9 +3124,13 @@ class Superset(BaseSupersetView):
         """
 
         if self._does_column_name_exist(table_name, lat_column):
-            raise ValueError("Column name {0} for latitude is already in use".format(lat_column))
+            raise ValueError(
+                "Column name {0} for latitude is already in use".format(lat_column)
+            )
         if self._does_column_name_exist(table_name, lon_column):
-            raise ValueError("Column name {0} for longitude is already in use".format(lon_column))
+            raise ValueError(
+                "Column name {0} for longitude is already in use".format(lon_column)
+            )
         connection = db.engine.connect()
         transaction = connection.begin()
         try:
