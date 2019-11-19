@@ -27,7 +27,6 @@ import sqlparse
 from flask import g
 from flask_babel import lazy_gettext as _
 from sqlalchemy import column, DateTime, select
-from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
@@ -50,9 +49,6 @@ class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
     label: str
     function: str
     duration: Optional[str]
-
-
-config = app.config
 
 
 QueryStatus = utils.QueryStatus
@@ -388,12 +384,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         df.to_sql(**kwargs)
 
     @classmethod
-    def create_table_from_csv(cls, form) -> None:
+    def create_table_from_csv(cls, form, database) -> None:
         """
         Create table from contents of a csv. Note: this method does not create
         metadata for the table.
 
         :param form: Parameters defining how to process data
+        :param database: Database model object for the target database
         """
 
         def _allowed_file(filename: str) -> bool:
@@ -422,10 +419,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
 
+        engine = cls.get_engine(database)
+
         df_to_sql_kwargs = {
             "df": df,
             "name": form.name.data,
-            "con": create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
+            "con": engine,
             "schema": form.schema.data,
             "if_exists": form.if_exists.data,
             "index": form.index.data,

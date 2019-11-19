@@ -23,7 +23,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
 from sqlalchemy import Column
-from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
@@ -98,7 +97,9 @@ class HiveEngineSpec(PrestoEngineSpec):
             return []
 
     @classmethod
-    def create_table_from_csv(cls, form) -> None:  # pylint: disable=too-many-locals
+    def create_table_from_csv(  # pylint: disable=too-many-locals
+        cls, form, database
+    ) -> None:
         """Uploads a csv file and creates a superset datasource in Hive."""
 
         def convert_to_hive_type(col_type):
@@ -174,8 +175,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'
             tblproperties ('skip.header.line.count'='1')"""
-        logging.info(form.con.data)
-        engine = create_engine(form.con.data.sqlalchemy_uri_decrypted)
+        engine = cls.get_engine(database)
         engine.execute(sql)
 
     @classmethod

@@ -40,6 +40,7 @@
           name: $('#database_name').val(),
           impersonate_user: $('#impersonate_user').is(':checked'),
           extras: JSON.parse($("#extra").val()),
+          encrypted_extra: JSON.parse($("#encrypted_extra").val()),
         })
       } catch(parse_error){
         alert("Malformed JSON in the extras field: " + parse_error);
