@@ -34,13 +34,6 @@ from superset.app import create_app
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
 
-# from superset import app, appbuilder, db, examples, security_manager, create_app
-# from superset.common.tags import add_favorites, add_owners, add_types
-# from superset.extensions import celery_app
-# from superset.utils import core as utils, dashboard_import_export, dict_import_export
-
-# config = app.config
-
 
 @click.group(cls=FlaskGroup, create_app=create_app)
 @with_appcontext

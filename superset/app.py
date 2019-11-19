@@ -110,8 +110,6 @@ class SupersetAppInitializer:
         self.configure_fab()
         self.configure_data_sources()
 
-        # self.configure_data_sources()
-
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
         flask_app_mutator = self.config["FLASK_APP_MUTATOR"]
@@ -231,7 +229,7 @@ class SupersetAppInitializer:
             talisman.init_app(self.flask_app, **self.config["TALISMAN_CONFIG"])
 
     def configure_logging(self):
-        self.flask_app.config.get("LOGGING_CONFIGURATOR").configure_logging(
+        self.config["LOGGING_CONFIGURATOR"].configure_logging(
             self.config, self.flask_app.debug
         )
 
@@ -246,7 +244,7 @@ class SupersetAppInitializer:
     def configure_wtf(self):
         if self.config["WTF_CSRF_ENABLED"]:
             csrf = CSRFProtect(self.flask_app)
-            csrf_exempt_list = self.config.get("WTF_CSRF_EXEMPT_LIST", [])
+            csrf_exempt_list = self.config["WTF_CSRF_EXEMPT_LIST"]
             for ex in csrf_exempt_list:
                 csrf.exempt(ex)
 
