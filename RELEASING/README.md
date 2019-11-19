@@ -88,7 +88,7 @@ the same terminal session won't be used for crafting the release candidate and t
 final release. Therefore, it's a good idea to do the following every time you
 work on a new phase of the release process to make sure you aren't releasing
 the wrong files/using wrong names. There's a script to help you set correctly all the
-necessary environment variables:
+necessary environment variables. Change you current directory to `superset/RELEASING`
 
 ```bash
     # usage: set_release_env.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
@@ -116,7 +116,7 @@ The script will output the exported variables, for example for 0.34.1 RC1:
 The first step of preparing an Apache Release is packaging a release candidate
 to be voted on. Make sure you have correctly prepared and tagged the ready to ship
 release on Superset's repo (MAJOR.MINOR branch), the following script will clone 
-the tag and create a source a signed tarball from it:
+the tag and create a signed source tarball from it:
 
 ```bash
     # make_tarball you use the previouly set environment variables
@@ -130,6 +130,16 @@ Note that `make_tarball.sh`:
 This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory 
 - Will refuse to craft a new release candidate if a release already exists on your local svn dev directory
 - Will check `package.json` version number and fails if it's not correctly set
+
+### Build and test the created source tarball
+
+To build and run the just created tarball 
+```bash
+    # Build and run a release candidate tarball
+    ./test_run_tarball.sh local
+    # you should be able to access localhost:5001 on your browser
+    # login using admin/admin
+```
 
 ### Shipping to SVN
 
