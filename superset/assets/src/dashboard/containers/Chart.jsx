@@ -29,7 +29,10 @@ import { changeFilter } from '../actions/dashboardFilters';
 import { addDangerToast } from '../../messageToasts/actions';
 import { refreshChart } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
-import { getActiveFilters } from '../util/activeDashboardFilters';
+import {
+  getActiveFilters,
+  getAppliedFilterValues,
+} from '../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import Chart from '../components/gridComponents/Chart';
 
@@ -48,7 +51,6 @@ function mapStateToProps(
   const { id } = ownProps;
   const chart = chartQueries[id] || {};
   const { colorScheme, colorNamespace } = dashboardState;
-  const filters = getActiveFilters();
 
   return {
     chart,
@@ -57,12 +59,11 @@ function mapStateToProps(
       {},
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    filters: filters || EMPTY_FILTERS,
+    filters: getActiveFilters() || EMPTY_FILTERS,
     // note: this method caches filters if possible to prevent render cascades
     formData: getFormDataWithExtraFilters({
       chart,
-      dashboardMetadata: dashboardInfo.metadata,
-      filters,
+      filters: getAppliedFilterValues(id),
       colorScheme,
       colorNamespace,
       sliceId: id,

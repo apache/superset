@@ -76,3 +76,6 @@ export const FILTER_INDICATORS_DISPLAY_LENGTH = 3;
 // in-component element types: can be added into
 // directPathToChild, used for in dashboard navigation and focus
 export const IN_COMPONENT_ELEMENT_TYPES = ['LABEL'];
+
+// filter scope selector filter fields pane root id
+export const ALL_FILTERS_ROOT = 'ALL_FILTERS_ROOT';

@@ -165,19 +165,26 @@ body {
     padding: 24px 24px 29px 24px;
   }
 
-  .delete-modal-actions-container {
+  .modal-dialog.filter-scope-modal {
+    width: 80%;
+  }
+
+  .dashboard-modal-actions-container {
     margin-top: 24px;
+    text-align: right;
 
     .btn {
       margin-right: 16px;
       &:last-child {
         margin-right: 0;
       }
+    }
+  }
 
-      &.btn-primary {
-        background: @pink !important;
-        border-color: @pink !important;
-      }
+  .dashboard-modal.delete {
+    .btn.btn-primary {
+      background: @pink;
+      border-color: @pink;
     }
   }
 }
