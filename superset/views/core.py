@@ -78,6 +78,8 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
+    DatabaseCreationException,
+    TableCreationException,
 )
 from superset.jinja_context import get_template_processor
 from superset.legacy import update_time_range
@@ -3129,13 +3131,17 @@ class Superset(BaseSupersetView):
                         "Database name is not allowed", status=400
                     )
                 database = self._create_database(db_name)
-        except Exception as e:
+        except DatabaseCreationException as e:
             return json_error_response(e.args[0], status=400)
+        except Exception as e:
+            return json_error_response(e.args[0], status=500)
 
         try:
             path = self._check_and_save_csv(csv_file, csv_filename)
             self._create_table(form_data, database, csv_filename)
         except Exception as e:
+            if isinstance(e, TableCreationException):
+                message = e.args[0]
             try:
                 os.remove(os.getcwd() + "/" + db_name + ".db")
             except OSError:
@@ -3200,11 +3206,14 @@ class Superset(BaseSupersetView):
             db.session.commit()
             return item
         except Exception as e:
-            message = (
-                "Error when trying to create Database"
-                if isinstance(e, IntegrityError)
-                else str(e)
-            )
+            exception = e
+            if isinstance(e, IntegrityError):
+                message = (
+                    "Error when trying to create Database. A database with the name \"{0}\" already exists.".format(
+                        db_name
+                    )
+                )
+                exception = DatabaseCreationException(message)
             try:
                 if os.path.isfile(db_path):
                     os.remove(db_path)
@@ -3212,14 +3221,15 @@ class Superset(BaseSupersetView):
                 db.session.commit()
             except OSError:
                 message = _(
-                    "Error when trying to create Database and Database-File could not be removed. "
-                    "Please contact your administrator to remove it manually"
+                    "Error when trying to create Database.The database file \"{0}.db\" could not be removed. "
+                    "Please contact your administrator to remove it manually".format(db_name)
                 )
+                exception = DatabaseCreationException(message)
                 pass
             except Exception:
                 pass
             stats_logger.incr("failed_csv_upload")
-            raise Exception(message)
+            raise exception
 
     def _get_existing_database(self, database_id: int, schema):
         """Returns the database object for an existing database
@@ -3316,25 +3326,22 @@ class Superset(BaseSupersetView):
                         3. If the data could not be inserted into the table
         """
 
-        try:
-            for table in db.session.query(SqlaTable).all():
-                if table.name == form_data["tableName"]:
-                    message = _(
-                        "Table name {0} already exists. Please choose another".format(
-                            form_data["tableName"]
-                        )
+        for table in db.session.query(SqlaTable).all():
+            if table.name == form_data["tableName"]:
+                message = _(
+                    "Table name {0} already exists. Please choose another".format(
+                        form_data["tableName"]
                     )
-                    raise Exception(message)
+                )
+                raise TableCreationException(message)
 
-            table = SqlaTable(table_name=form_data["tableName"])
-            table.database = database
-            table.database_id = table.database.id
-            table.database.db_engine_spec.create_and_fill_table_from_csv(
-                form_data, table, csv_filename, database
-            )
-            return table
-        except Exception as e:
-            raise e
+        table = SqlaTable(table_name=form_data["tableName"])
+        table.database = database
+        table.database_id = table.database.id
+        table.database.db_engine_spec.create_and_fill_table_from_csv(
+            form_data, table, csv_filename, database
+        )
+        return table
 
 
 appbuilder.add_view_no_menu(Superset)
