@@ -28,5 +28,8 @@ from superset.extensions import celery_app
 # Init the Flask app / configure everything
 create_app()
 
+# Need to import late, as the celery_app will have been setup by "create_app()"
+from . import cache, schedules
+
 # Export the celery app globally for Celery (as run on the cmd line) to find
 app = celery_app
