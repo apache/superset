@@ -30,7 +30,6 @@ import {
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from '../../../logger/LogUtils';
-import { safeStringify } from '../../../utils/safeStringify';
 import { isFilterBox } from '../../util/activeDashboardFilters';
 import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';
 
@@ -119,9 +118,7 @@ class Chart extends React.Component {
 
       for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
         const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
-        if (
-          safeStringify(nextProps[prop]) !== safeStringify(this.props[prop])
-        ) {
+        if (nextProps[prop] !== this.props[prop]) {
           return true;
         }
       }
