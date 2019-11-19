@@ -1678,12 +1678,18 @@ class Superset(BaseSupersetView):
         dashboard.css = data.get("css")
         dashboard.dashboard_title = data["dashboard_title"]
 
-        if "filter_immune_slices" not in md:
-            md["filter_immune_slices"] = []
         if "timed_refresh_immune_slices" not in md:
             md["timed_refresh_immune_slices"] = []
-        if "filter_immune_slice_fields" not in md:
-            md["filter_immune_slice_fields"] = {}
+
+        if "filter_scopes" in data:
+            md.pop("filter_immune_slices", None)
+            md.pop("filter_immune_slice_fields", None)
+            md["filter_scopes"] = json.loads(data.get("filter_scopes", "{}"))
+        else:
+            if "filter_immune_slices" not in md:
+                md["filter_immune_slices"] = []
+            if "filter_immune_slice_fields" not in md:
+                md["filter_immune_slice_fields"] = {}
         md["expanded_slices"] = data["expanded_slices"]
         md["refresh_frequency"] = data.get("refresh_frequency", 0)
         default_filters_data = json.loads(data.get("default_filters", "{}"))
@@ -2292,7 +2298,7 @@ class Superset(BaseSupersetView):
         table_name = data.get("datasourceName")
         table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
         if not table:
-            table = SqlaTable(table_name=table_name)
+            table = SqlaTable(table_name=table_name, owners=[g.user])
         table.database_id = data.get("dbId")
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")

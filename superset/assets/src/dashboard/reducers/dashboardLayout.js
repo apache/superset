@@ -155,6 +155,7 @@ const actionHandlers = {
       const destinationChildren = destinationEntity.children;
       const newRow = newComponentFactory(ROW_TYPE);
       newRow.children = [destinationChildren[destination.index]];
+      newRow.parents = (destinationEntity.parents || []).concat(destination.id);
       destinationChildren[destination.index] = newRow.id;
       nextEntities[newRow.id] = newRow;
     }

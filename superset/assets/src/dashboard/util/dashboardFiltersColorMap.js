@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getDashboardFilterKey } from './getDashboardFilterKey';
+
 // should be consistent with @badge-colors .less variable
 const FILTER_COLORS_COUNT = 20;
 
 let filterColorMap = {};
-
-export function getFilterColorKey(chartId, column) {
-  return `${chartId}_${column}`;
-}
 
 export function getFilterColorMap() {
   return filterColorMap;
@@ -38,7 +36,7 @@ export function buildFilterColorMap(allDashboardFilters = {}) {
       Object.keys(columns)
         .sort()
         .forEach(column => {
-          const key = getFilterColorKey(chartId, column);
+          const key = getDashboardFilterKey({ chartId, column });
           const colorCode = `badge-${filterColorIndex % FILTER_COLORS_COUNT}`;
           /* eslint-disable no-param-reassign */
           colorMap[key] = colorCode;

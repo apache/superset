@@ -21,7 +21,8 @@ from random import random
 
 import prison
 
-from superset import ConnectorRegistry, db, security_manager
+from superset import db, security_manager
+from superset.connectors.sqla.models import SqlaTable
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
@@ -290,6 +291,7 @@ class SqlLabTests(SupersetTestCase):
         self.assertEqual(len(cols), len(cdf.columns))
 
     def test_sqllab_viz(self):
+        self.login("admin")
         examples_dbid = get_example_database().id
         payload = {
             "chartType": "dist_bar",
@@ -319,6 +321,11 @@ class SqlLabTests(SupersetTestCase):
         data = {"data": json.dumps(payload)}
         resp = self.get_json_resp("/superset/sqllab_viz/", data=data)
         self.assertIn("table_id", resp)
+
+        # ensure owner is set correctly
+        table_id = resp["table_id"]
+        table = db.session.query(SqlaTable).filter_by(id=table_id).one()
+        self.assertEqual([owner.username for owner in table.owners], ["admin"])
 
     def test_sql_limit(self):
         self.login("admin")
