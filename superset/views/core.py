@@ -1745,6 +1745,7 @@ class Superset(BaseSupersetView):
                 # extras is sent as json, but required to be a string in the Database model
                 extra=json.dumps(request.json.get("extras", {})),
                 impersonate_user=request.json.get("impersonate_user"),
+                encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
             )
             database.set_sqlalchemy_uri(uri)
 
