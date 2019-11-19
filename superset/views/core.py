@@ -3072,17 +3072,23 @@ class Superset(BaseSupersetView):
             bootstrap_data=json.dumps(bootstrap_data, default=lambda x: x.__dict__),
         )
 
-        @api
-        @has_access_api
-        @expose("/geocoding/columns", methods=["GET"])
-        def columns(self) -> Response:
-            return json_success("")
-
     @api
     @has_access_api
-    @expose("/geocoding/columns", methods=["GET"])
-    def columns(self) -> Response:
-        return json_success("")
+    @expose("/geocoding/columns", methods=["POST"])
+    def columns(self) -> str:
+        """ Get all column names from given table name """
+        column_names = []
+        table_name = request.json.get("tableName")
+        table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
+        if table:
+            for column in table.columns:
+                column_names.append(column.column_name)
+        else:
+            return json_error_response(
+                "No table found with name {0}".format(table_name), status=400
+            )
+
+        return json.dumps(column_names)
 
     @api
     @has_access_api

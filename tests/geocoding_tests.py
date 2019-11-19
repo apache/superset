@@ -86,3 +86,33 @@ class GeocodingTests(SupersetTestCase):
         )
         for row in result:
             assert row in data
+
+    def test_menu_entry_geocode_exist(self):
+        url = "/dashboard/list/"
+        dashboard_page = self.get_resp(url)
+        assert "Geocode Addresses" in dashboard_page
+
+    # def test_geocode_adresses_view_load(self):
+    # url = "/superset/geocoding"
+    # form_get = self.get_resp(url)
+    # assert "Geocode Addresses" in form_get
+
+    def test_get_columns(self):
+        url = "/superset/geocoding/columns"
+
+        table = db.session.query(SqlaTable).all()[0]
+        table_name = table.table_name
+
+        data = {"tableName": table_name}
+        response = self.get_resp(url, json_=data)
+        assert table.columns[0].column_name in response
+
+    def test_get_invalid_columns(self):
+        url = "/superset/geocoding/columns"
+        table_name = "no_table"
+
+        data = {"tableName": table_name}
+        response = self.get_resp(url, json_=data)
+
+        message = "No table found with name {0}".format(table_name)
+        assert message in response
