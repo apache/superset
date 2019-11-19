@@ -19,6 +19,7 @@ Current master: https://superset-ui.netlify.com
 
 | Package | Version |
 |--|--|
+| [@superset-ui/superset-ui](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-superset-ui) | [![Version](https://img.shields.io/npm/v/@superset-ui/superset-ui.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/superset-ui.svg?style=flat-square) |
 | [@superset-ui/chart](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-chart) | [![Version](https://img.shields.io/npm/v/@superset-ui/chart.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/chart.svg?style=flat-square) |
 | [@superset-ui/chart-composition](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-chart-composition) | [![Version](https://img.shields.io/npm/v/@superset-ui/chart-composition.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/chart-composition.svg?style=flat-square) |
 | [@superset-ui/color](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-color) | [![Version](https://img.shields.io/npm/v/@superset-ui/color.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/color.svg?style=flat-square) |
