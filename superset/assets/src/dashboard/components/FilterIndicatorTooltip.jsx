@@ -50,6 +50,7 @@ export default function FilterIndicatorTooltip({
           className="fa fa-pencil filter-edit"
           onClick={clickIconHandler}
           role="button"
+          tabindex="0"
         />
       )}
     </div>
