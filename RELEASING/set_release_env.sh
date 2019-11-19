@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -14,10 +15,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM python:3.6-jessie
+usage() {
+   echo "usage: . set_release_env.sh <SUPERSET_VERSION> <SUPERSET_RC> <PGP_KEY_FULLBANE>"
+}
 
-RUN apt-get update -y
-RUN apt-get install -y jq
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+  usage;
+else
+  export SUPERSET_VERSION="${1}"
+  export SUPERSET_RC="${2}"
+  export SUPERSET_PGP_FULLNAME="${3}"
+  export SUPERSET_VERSION_RC="${SUPERSET_VERSION}rc${SUPERSET_RC}"
+  export SUPERSET_RELEASE=apache-superset-incubating-"${SUPERSET_VERSION}"
+  export SUPERSET_RELEASE_RC=apache-superset-incubating-"${SUPERSET_VERSION_RC}"
+  export SUPERSET_RELEASE_TARBALL="${SUPERSET_RELEASE}"-source.tar.gz
+  export SUPERSET_RELEASE_RC_TARBALL="${SUPERSET_RELEASE_RC}"-source.tar.gz
 
-COPY make_tarball_entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+  echo -------------------------------
+  echo Set Release env variables
+  env | grep SUPERSET
+  echo -------------------------------
+fi
