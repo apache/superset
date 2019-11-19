@@ -3059,8 +3059,8 @@ class Superset(BaseSupersetView):
             return json_error_response("No database is allowed for your csv upload")
 
         db_id = int(request.args.get("db_id"))
-        database = db.session.query(models.Database).filter_by(id=db_id).one()
         try:
+            database = db.session.query(models.Database).filter_by(id=db_id).one()
             schemas_allowed = database.get_schema_access_for_csv_upload()
             if (
                 security_manager.database_access(database)
@@ -3076,6 +3076,8 @@ class Superset(BaseSupersetView):
                 database, schemas_allowed, False
             )
             return self.json_response(schemas_allowed_processed)
+        except ValueError as e:
+            return json_error_response(e.args[0], status=400)
         except Exception:
             return json_error_response(
                 "Failed to fetch schemas allowed for csv upload in this database! "
