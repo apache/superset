@@ -121,8 +121,8 @@ class HiveEngineSpec(PrestoEngineSpec):
                 "No upload bucket specified. You can specify one in the config file."
             )
 
-        table_name = form_data.get("tableName")
-        schema_name = form_data.get("schema")
+        table_name = form_data.get("tableName", "")
+        schema_name = form_data.get("schema", "")
 
         if config["UPLOADED_CSV_HIVE_NAMESPACE"]:
             if "." in table_name or schema_name:
