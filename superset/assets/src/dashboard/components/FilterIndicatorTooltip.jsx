@@ -21,7 +21,6 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { isEmpty } from 'lodash';
 
-
 const propTypes = {
   label: PropTypes.string.isRequired,
   values: PropTypes.array.isRequired,
@@ -47,7 +46,11 @@ export default function FilterIndicatorTooltip({
       </div>
 
       {clickIconHandler && (
-        <i className="fa fa-pencil filter-edit" onClick={clickIconHandler} />
+        <i
+          className="fa fa-pencil filter-edit"
+          onClick={clickIconHandler}
+          role="button"
+        />
       )}
     </div>
   );
