@@ -109,10 +109,10 @@ class App extends React.PureComponent {
       );
     } else {
       content = (
-        <React.Fragment>
+        <>
           <QueryAutoRefresh />
           <TabbedSqlEditors />
-        </React.Fragment>
+        </>
       );
     }
     return (

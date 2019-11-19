@@ -183,7 +183,7 @@
     "eslint-plugin-jsx-a11y": "^5.1.1",
     "eslint-plugin-no-only-tests": "^2.0.1",
     "eslint-plugin-prettier": "^2.6.0",
-    "eslint-plugin-react": "^7.0.1",
+    "eslint-plugin-react": "^7.16.0",
     "exports-loader": "^0.7.0",
     "fetch-mock": "^7.0.0-alpha.6",
     "file-loader": "^1.1.11",
