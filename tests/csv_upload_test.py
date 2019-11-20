@@ -90,6 +90,7 @@ class CsvUploadTests(SupersetTestCase):
         try:
             form_data = self.get_full_data(filename, self.get_existing_db_id())
             response = self.get_resp(url, data=form_data)
+            print(response)
             assert "imported into database" in response
         finally:
             os.remove(filename)
@@ -137,7 +138,7 @@ class CsvUploadTests(SupersetTestCase):
             filename = "not_existing_database_id.csv"
             form_data = self.get_full_data(filename, 1337)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
-            assert "None or several matching databases found" in response
+            assert "No row was found for one" in response
         finally:
             os.remove(filename)
 
@@ -225,6 +226,7 @@ class CsvUploadTests(SupersetTestCase):
             message = "Table name {0} already exists. Please choose another".format(
                 table_name
             )
+            print(response)
             assert message in response
         finally:
             os.remove(filename)
