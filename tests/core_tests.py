@@ -90,7 +90,7 @@ class CoreTests(SupersetTestCase):
 
         # Testing overrides
         resp = self.get_resp("/superset/slice/{}/?standalone=true".format(slc.id))
-        assert "List Roles" not in resp
+        assert '<div class="navbar' not in resp
 
         resp = self.client.get("/superset/slice/-1/")
         assert resp.status_code == 404
