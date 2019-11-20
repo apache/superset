@@ -14,27 +14,36 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset import examples
-from superset.cli import load_test_users_run
-
 from .base_tests import SupersetTestCase
 
 
 class SupersetDataFrameTestCase(SupersetTestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.examples = None
+
+    def setUp(self) -> None:
+        # Late importing here as we need an app context to be pushed...
+        from superset import examples
+
+        self.examples = examples
+
     def test_load_css_templates(self):
-        examples.load_css_templates()
+        self.examples.load_css_templates()
 
     def test_load_energy(self):
-        examples.load_energy()
+        self.examples.load_energy()
 
     def test_load_world_bank_health_n_pop(self):
-        examples.load_world_bank_health_n_pop()
+        self.examples.load_world_bank_health_n_pop()
 
     def test_load_birth_names(self):
-        examples.load_birth_names()
+        self.examples.load_birth_names()
 
     def test_load_test_users_run(self):
+        from superset.cli import load_test_users_run
+
         load_test_users_run()
 
     def test_load_unicode_test_data(self):
-        examples.load_unicode_test_data()
+        self.examples.load_unicode_test_data()
