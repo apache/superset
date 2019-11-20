@@ -19,7 +19,8 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Union
+from enum import Enum
+from typing import List, Optional, Union
 from urllib import parse
 
 import backoff
@@ -974,8 +975,9 @@ class Superset(BaseSupersetView):
         endpoint = "/superset/explore/?form_data={}".format(
             parse.quote(json.dumps({"slice_id": slice_id}))
         )
-        if request.args.get("standalone") == "true":
-            endpoint += "&standalone=true"
+        param = utils.ReservedUrlParameters.STANDALONE.value
+        if request.args.get(param) == "true":
+            endpoint += f"&{param}=true"
         return redirect(endpoint)
 
     def get_query_string_response(self, viz_obj):
@@ -1264,7 +1266,9 @@ class Superset(BaseSupersetView):
                 datasource.name,
             )
 
-        standalone = request.args.get("standalone") == "true"
+        standalone = (
+            request.args.get(utils.ReservedUrlParameters.STANDALONE.value) == "true"
+        )
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
@@ -2166,8 +2170,12 @@ class Superset(BaseSupersetView):
         superset_can_csv = security_manager.can_access("can_csv", "Superset")
         slice_can_edit = security_manager.can_access("can_edit", "SliceModelView")
 
-        standalone_mode = request.args.get("standalone") == "true"
-        edit_mode = request.args.get("edit") == "true"
+        standalone_mode = (
+            request.args.get(utils.ReservedUrlParameters.STANDALONE.value) == "true"
+        )
+        edit_mode = (
+            request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
+        )
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @event_logger.log_this
@@ -2195,7 +2203,7 @@ class Superset(BaseSupersetView):
         url_params = {
             key: value
             for key, value in request.args.items()
-            if key not in ("edit", "standalone")
+            if key not in [param.value for param in utils.ReservedUrlParameters]
         }
 
         bootstrap_data = {

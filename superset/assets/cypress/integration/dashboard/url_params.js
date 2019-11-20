@@ -19,13 +19,14 @@
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 export default () => describe('dashboard url params', () => {
+  const urlParams = { param1: '123', param2: 'abc' };
   let sliceIds = [];
 
   beforeEach(() => {
     cy.server();
     cy.login();
 
-    cy.visit(WORLD_HEALTH_DASHBOARD + '?param1=123&param2=abc');
+    cy.visit(WORLD_HEALTH_DASHBOARD, { qs: urlParams });
 
     cy.get('#app').then((data) => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
@@ -48,7 +49,7 @@ export default () => describe('dashboard url params', () => {
         const requestFormData = xhr.request.body;
         const requestParams = JSON.parse(requestFormData.get('form_data'));
         expect(requestParams.url_params)
-          .deep.eq({ param1: '123', param2: 'abc' });
+          .deep.eq(urlParams);
       });
     });
   });

@@ -1269,3 +1269,13 @@ class TimeRangeEndpoint(str, Enum):
     EXCLUSIVE = "exclusive"
     INCLUSIVE = "inclusive"
     UNKNOWN = "unknown"
+
+
+class ReservedUrlParameters(Enum):
+    """
+    Reserved URL parameters that are used internally by Superset. These will not be
+    passed to chart queries, as they control the behavior of the UI.
+    """
+
+    STANDALONE = "standalone"
+    EDIT_MODE = "edit"
