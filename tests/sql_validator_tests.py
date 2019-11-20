@@ -60,7 +60,11 @@ class SqlValidatorEndpointTests(SupersetTestCase):
         self.assertIn("no SQL validator is configured", resp["error"])
 
     @patch("superset.views.core.get_validator_by_name")
-    @patch.dict("superset._feature_flags", PRESTO_TEST_FEATURE_FLAGS, clear=True)
+    @patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        PRESTO_TEST_FEATURE_FLAGS,
+        clear=True,
+    )
     def test_validate_sql_endpoint_mocked(self, get_validator_by_name):
         """Assert that, with a mocked validator, annotations make it back out
         from the validate_sql_json endpoint as a list of json dictionaries"""
@@ -87,7 +91,11 @@ class SqlValidatorEndpointTests(SupersetTestCase):
         self.assertIn("expected,", resp[0]["message"])
 
     @patch("superset.views.core.get_validator_by_name")
-    @patch.dict("superset._feature_flags", PRESTO_TEST_FEATURE_FLAGS, clear=True)
+    @patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        PRESTO_TEST_FEATURE_FLAGS,
+        clear=True,
+    )
     def test_validate_sql_endpoint_failure(self, get_validator_by_name):
         """Assert that validate_sql_json errors out when the selected validator
         raises an unexpected exception"""

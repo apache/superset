@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset Celery worker"""
 import datetime
 import json
@@ -22,7 +23,8 @@ import time
 import unittest
 import unittest.mock as mock
 
-from superset import app, db, sql_lab
+from tests.test_app import app  # isort:skip
+from superset import db, sql_lab
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.models.helpers import QueryStatus
@@ -32,18 +34,7 @@ from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
 
-BASE_DIR = app.config["BASE_DIR"]
 CELERY_SLEEP_TIME = 5
-
-
-class CeleryConfig(object):
-    BROKER_URL = app.config["CELERY_CONFIG"].BROKER_URL
-    CELERY_IMPORTS = ("superset.sql_lab",)
-    CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
-    CONCURRENCY = 1
-
-
-app.config["CELERY_CONFIG"] = CeleryConfig
 
 
 class UtilityFunctionTests(SupersetTestCase):
@@ -79,10 +70,6 @@ class UtilityFunctionTests(SupersetTestCase):
 
 
 class CeleryTestCase(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super(CeleryTestCase, self).__init__(*args, **kwargs)
-        self.client = app.test_client()
-
     def get_query_by_name(self, sql):
         session = db.session
         query = session.query(Query).filter_by(sql=sql).first()
@@ -97,11 +84,22 @@ class CeleryTestCase(SupersetTestCase):
 
     @classmethod
     def setUpClass(cls):
-        db.session.query(Query).delete()
-        db.session.commit()
+        with app.app_context():
 
-        worker_command = BASE_DIR + "/bin/superset worker -w 2"
-        subprocess.Popen(worker_command, shell=True, stdout=subprocess.PIPE)
+            class CeleryConfig(object):
+                BROKER_URL = app.config["CELERY_CONFIG"].BROKER_URL
+                CELERY_IMPORTS = ("superset.sql_lab",)
+                CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
+                CONCURRENCY = 1
+
+            app.config["CELERY_CONFIG"] = CeleryConfig
+
+            db.session.query(Query).delete()
+            db.session.commit()
+
+            base_dir = app.config["BASE_DIR"]
+            worker_command = base_dir + "/bin/superset worker -w 2"
+            subprocess.Popen(worker_command, shell=True, stdout=subprocess.PIPE)
 
     @classmethod
     def tearDownClass(cls):
@@ -190,6 +188,7 @@ class CeleryTestCase(SupersetTestCase):
         result = self.run_sql(
             db_id, sql_where, "4", async_=True, tmp_table="tmp_async_1", cta=True
         )
+        db.session.close()
         assert result["query"]["state"] in (
             QueryStatus.PENDING,
             QueryStatus.RUNNING,
@@ -224,6 +223,7 @@ class CeleryTestCase(SupersetTestCase):
         result = self.run_sql(
             db_id, sql_where, "5", async_=True, tmp_table=tmp_table, cta=True
         )
+        db.session.close()
         assert result["query"]["state"] in (
             QueryStatus.PENDING,
             QueryStatus.RUNNING,

@@ -791,20 +791,6 @@ def choicify(values):
     return [(v, v) for v in values]
 
 
-def setup_cache(app: Flask, cache_config) -> Optional[Cache]:
-    """Setup the flask-cache on a flask app"""
-    if cache_config:
-        if isinstance(cache_config, dict):
-            if cache_config["CACHE_TYPE"] != "null":
-                return Cache(app, config=cache_config)
-        else:
-            # Accepts a custom cache initialization function,
-            # returning an object compatible with Flask-Caching API
-            return cache_config(app)
-
-    return None
-
-
 def zlib_compress(data):
     """
     Compress things in a py2/3 safe fashion
@@ -830,19 +816,6 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
     else:
         decompressed = zlib.decompress(bytes(blob, "utf-8"))
     return decompressed.decode("utf-8") if decode else decompressed
-
-
-_celery_app = None
-
-
-def get_celery_app(config):
-    global _celery_app
-    if _celery_app:
-        return _celery_app
-    _celery_app = celery.Celery()
-    _celery_app.config_from_object(config["CELERY_CONFIG"])
-    _celery_app.set_default()
-    return _celery_app
 
 
 def to_adhoc(filt, expressionType="SIMPLE", clause="where"):

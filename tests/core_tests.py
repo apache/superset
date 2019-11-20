@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import cgi
 import csv
@@ -33,7 +34,8 @@ import pandas as pd
 import psycopg2
 import sqlalchemy as sqla
 
-from superset import app, dataframe, db, jinja_context, security_manager, sql_lab
+from tests.test_app import app
+from superset import dataframe, db, jinja_context, security_manager, sql_lab
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
@@ -51,16 +53,13 @@ class CoreTests(SupersetTestCase):
     def __init__(self, *args, **kwargs):
         super(CoreTests, self).__init__(*args, **kwargs)
 
-    @classmethod
-    def setUpClass(cls):
-        cls.table_ids = {
-            tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
-        }
-
     def setUp(self):
         db.session.query(Query).delete()
         db.session.query(models.DatasourceAccessRequest).delete()
         db.session.query(models.Log).delete()
+        self.table_ids = {
+            tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
+        }
 
     def tearDown(self):
         db.session.query(Query).delete()
@@ -196,12 +195,11 @@ class CoreTests(SupersetTestCase):
 
     def test_save_slice(self):
         self.login(username="admin")
-        slice_name = "Energy Sankey"
+        slice_name = f"Energy Sankey"
         slice_id = self.get_slice(slice_name, db.session).id
-        db.session.commit()
-        copy_name = "Test Sankey Save"
+        copy_name = f"Test Sankey Save_{random.random()}"
         tbl_id = self.table_ids.get("energy_usage")
-        new_slice_name = "Test Sankey Overwirte"
+        new_slice_name = f"Test Sankey Overwrite_{random.random()}"
 
         url = (
             "/superset/explore/table/{}/?slice_name={}&"
@@ -216,13 +214,17 @@ class CoreTests(SupersetTestCase):
             "slice_id": slice_id,
         }
         # Changing name and save as a new slice
-        self.get_resp(
+        resp = self.client.post(
             url.format(tbl_id, copy_name, "saveas"),
-            {"form_data": json.dumps(form_data)},
+            data={"form_data": json.dumps(form_data)},
         )
-        slices = db.session.query(models.Slice).filter_by(slice_name=copy_name).all()
-        assert len(slices) == 1
-        new_slice_id = slices[0].id
+        db.session.expunge_all()
+        new_slice_id = resp.json["form_data"]["slice_id"]
+        slc = db.session.query(models.Slice).filter_by(id=new_slice_id).one()
+
+        self.assertEqual(slc.slice_name, copy_name)
+        form_data.pop("slice_id")  # We don't save the slice id when saving as
+        self.assertEqual(slc.viz.form_data, form_data)
 
         form_data = {
             "viz_type": "sankey",
@@ -233,14 +235,18 @@ class CoreTests(SupersetTestCase):
             "time_range": "now",
         }
         # Setting the name back to its original name by overwriting new slice
-        self.get_resp(
+        self.client.post(
             url.format(tbl_id, new_slice_name, "overwrite"),
-            {"form_data": json.dumps(form_data)},
+            data={"form_data": json.dumps(form_data)},
         )
-        slc = db.session.query(models.Slice).filter_by(id=new_slice_id).first()
-        assert slc.slice_name == new_slice_name
-        assert slc.viz.form_data == form_data
+        db.session.expunge_all()
+        slc = db.session.query(models.Slice).filter_by(id=new_slice_id).one()
+        self.assertEqual(slc.slice_name, new_slice_name)
+        self.assertEqual(slc.viz.form_data, form_data)
+
+        # Cleanup
         db.session.delete(slc)
+        db.session.commit()
 
     def test_filter_endpoint(self):
         self.login(username="admin")
@@ -406,10 +412,16 @@ class CoreTests(SupersetTestCase):
         database = utils.get_example_database()
         self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
+        # Need to clean up after ourselves
+        database.impersonate_user = False
+        database.allow_dml = False
+        database.allow_run_async = False
+        db.session.commit()
+
     def test_warm_up_cache(self):
         slc = self.get_slice("Girls", db.session)
         data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
-        assert data == [{"slice_id": slc.id, "slice_name": slc.slice_name}]
+        self.assertEqual(data, [{"slice_id": slc.id, "slice_name": slc.slice_name}])
 
         data = self.get_json_resp(
             "/superset/warm_up_cache?table_name=energy_usage&db_name=main"
@@ -430,13 +442,10 @@ class CoreTests(SupersetTestCase):
         assert re.search(r"\/r\/[0-9]+", resp.data.decode("utf-8"))
 
     def test_kv(self):
-        self.logout()
         self.login(username="admin")
 
-        try:
-            resp = self.client.post("/kv/store/", data=dict())
-        except Exception:
-            self.assertRaises(TypeError)
+        resp = self.client.get("/kv/10001/")
+        self.assertEqual(404, resp.status_code)
 
         value = json.dumps({"data": "this is a test"})
         resp = self.client.post("/kv/store/", data=dict(data=value))
@@ -448,11 +457,6 @@ class CoreTests(SupersetTestCase):
         resp = self.client.get("/kv/{}/".format(kv.id))
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(json.loads(value), json.loads(resp.data.decode("utf-8")))
-
-        try:
-            resp = self.client.get("/kv/10001/")
-        except Exception:
-            self.assertRaises(TypeError)
 
     def test_gamma(self):
         self.login(username="gamma")
@@ -808,6 +812,7 @@ class CoreTests(SupersetTestCase):
             )
         )
         assert data == ["this_schema_is_allowed_too"]
+        self.delete_fake_db()
 
     def test_select_star(self):
         self.login(username="admin")
@@ -950,7 +955,11 @@ class CoreTests(SupersetTestCase):
             self.assertDictEqual(deserialized_payload, payload)
             expand_data.assert_called_once()
 
-    @mock.patch.dict("superset._feature_flags", {"FOO": lambda x: 1}, clear=True)
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"FOO": lambda x: 1},
+        clear=True,
+    )
     def test_feature_flag_serialization(self):
         """
         Functions in feature flags don't break bootstrap data serialization.

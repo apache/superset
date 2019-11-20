@@ -28,6 +28,7 @@ from sqlalchemy.exc import ArgumentError
 from superset import app, db, security_manager
 from superset.exceptions import SupersetException
 from superset.models.core import Database
+from superset.utils.cache_manager import CacheManager
 from superset.utils.core import (
     base_json_conv,
     convert_legacy_filters_into_adhoc,
@@ -45,7 +46,6 @@ from superset.utils.core import (
     parse_human_timedelta,
     parse_js_uri_path_item,
     parse_past_timedelta,
-    setup_cache,
     split,
     TimeRangeEndpoint,
     validate_json,
@@ -53,6 +53,7 @@ from superset.utils.core import (
     zlib_decompress,
 )
 from superset.views.utils import get_time_range_endpoints
+from tests.base_tests import SupersetTestCase
 
 
 def mock_parse_human_datetime(s):
@@ -93,7 +94,7 @@ def mock_to_adhoc(filt, expressionType="SIMPLE", clause="where"):
     return result
 
 
-class UtilsTestCase(unittest.TestCase):
+class UtilsTestCase(SupersetTestCase):
     def test_json_int_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
         ts = 1577836800000.0
@@ -809,12 +810,12 @@ class UtilsTestCase(unittest.TestCase):
     def test_setup_cache_no_config(self):
         app = Flask(__name__)
         cache_config = None
-        self.assertIsNone(setup_cache(app, cache_config))
+        self.assertIsNone(CacheManager._setup_cache(app, cache_config))
 
     def test_setup_cache_null_config(self):
         app = Flask(__name__)
         cache_config = {"CACHE_TYPE": "null"}
-        self.assertIsNone(setup_cache(app, cache_config))
+        self.assertIsNone(CacheManager._setup_cache(app, cache_config))
 
     def test_setup_cache_standard_config(self):
         app = Flask(__name__)
@@ -824,7 +825,7 @@ class UtilsTestCase(unittest.TestCase):
             "CACHE_KEY_PREFIX": "superset_results",
             "CACHE_REDIS_URL": "redis://localhost:6379/0",
         }
-        assert isinstance(setup_cache(app, cache_config), Cache) is True
+        assert isinstance(CacheManager._setup_cache(app, cache_config), Cache) is True
 
     def test_setup_cache_custom_function(self):
         app = Flask(__name__)
@@ -833,7 +834,9 @@ class UtilsTestCase(unittest.TestCase):
         def init_cache(app):
             return CustomCache(app, {})
 
-        assert isinstance(setup_cache(app, init_cache), CustomCache) is True
+        assert (
+            isinstance(CacheManager._setup_cache(app, init_cache), CustomCache) is True
+        )
 
     def test_get_stacktrace(self):
         with app.app_context():
@@ -879,6 +882,8 @@ class UtilsTestCase(unittest.TestCase):
         get_or_create_db("test_db", "sqlite:///changed.db")
         database = db.session.query(Database).filter_by(database_name="test_db").one()
         self.assertEqual(database.sqlalchemy_uri, "sqlite:///changed.db")
+        db.session.delete(database)
+        db.session.commit()
 
     def test_get_or_create_db_invalid_uri(self):
         with self.assertRaises(ArgumentError):
