@@ -165,8 +165,8 @@ class TimeTable extends React.PureComponent {
       // Time lag ratio
       const { timeLag } = column;
       const totalLag = Object.keys(reversedEntries).length;
-      if (timeLag > totalLag) {
-        errorMsg = `The time lag set at ${timeLag} exceeds the length of data at ${reversedEntries.length}. No data available.`;
+      if (timeLag >= totalLag) {
+        errorMsg = `The time lag set at ${timeLag} is too large for the length of data at ${reversedEntries.length}. No data available.`;
       } else {
         v = reversedEntries[timeLag][valueField];
       }
