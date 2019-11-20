@@ -70,7 +70,7 @@ def _try_json_readversion(filepath):
 def _try_json_readsha(filepath):
     try:
         with open(filepath, "r") as f:
-            return json.load(f).get("GIT_SHA")[-8:]
+            return json.load(f).get("GIT_SHA")[:8]
     except Exception:
         return None
 
