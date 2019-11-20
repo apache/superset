@@ -3098,16 +3098,17 @@ class Superset(BaseSupersetView):
     def columns(self) -> str:
         """ Get all column names from given table name """
         table_name = request.json.get("tableName", "")
-
-        columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
-        if columns:
-            column_names = [column["name"] for column in columns]
-        else:
-            return json_error_response(
-                "No columns found for table with name {0}".format(table_name),
-                status=400,
+        error_message = "No columns found for table with name {0}".format(table_name)
+        try:
+            columns = reflection.Inspector.from_engine(db.engine).get_columns(
+                table_name
             )
-
+            if columns:
+                column_names = [column["name"] for column in columns]
+            else:
+                return json_error_response(error_message, status=400)
+        except:
+            return json_error_response(error_message, status=400)
         return json.dumps(column_names)
 
     @api
