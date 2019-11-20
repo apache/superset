@@ -119,7 +119,7 @@ release on Superset's repo (MAJOR.MINOR branch), the following script will clone
 the tag and create a signed source tarball from it:
 
 ```bash
-    # make_tarball you use the previouly set environment variables
+    # make_tarball will use the previously set environment variables
     # you can override by passing arguments: make_tarball.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
     ./make_tarball.sh
 ```
@@ -166,16 +166,40 @@ Now you're ready to start the [VOTE] thread. Here's an example of a
 previous release vote thread:
 https://lists.apache.org/thread.html/e60f080ebdda26896214f7d3d5be1ccadfab95d48fbe813252762879@<dev.superset.apache.org>
 
+To easily send a voting request to Superset community, still on the `superset/RELEASING` directory
+
+```bash
+    # Note that this script is python3 and needs no dependencies
+    ./send_email.py -t vote_pmc
+```
+
 Once 3+ binding votes (by PMC members) have been cast and at
 least 72 hours have past, you can post a [RESULT] thread:
 https://lists.apache.org/thread.html/50a6b134d66b86b237d5d7bc89df1b567246d125a71394d78b45f9a8@%3Cdev.superset.apache.org%3E
 
+To easily send the result email, still on the `superset/RELEASING` directory
+
+```bash
+    # Note that this script is python3 and needs no dependencies
+    ./send_email.py -t result_pmc
+```
+
 Following the result thread, yet another [VOTE] thread should be
 started at general@incubator.apache.org.
+
+```bash
+    # Note that this script is python3 and needs no dependencies
+    ./send_email.py -t vote_ipmc
+```
 
 ### Announcing
 
 Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
+
+```bash
+    # Note that this script is python3 and needs no dependencies
+    ./send_email.py -t announce
+```
 
 ### Validating a release
 
