@@ -313,7 +313,7 @@ class SqlEditor extends React.PureComponent {
         onDragStart={this.onResizeStart}
         onDragEnd={this.onResizeEnd}
       >
-        <div ref={this.northPaneRef} className="NorthPane">
+        <div ref={this.northPaneRef} className="north-pane">
           <AceEditorWrapper
             actions={this.props.actions}
             onBlur={this.setQueryEditorSql}
