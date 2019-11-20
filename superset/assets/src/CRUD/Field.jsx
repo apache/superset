@@ -22,7 +22,7 @@ import {
   FormGroup, ControlLabel, HelpBlock, FormControl, OverlayTrigger, Tooltip,
 } from 'react-bootstrap';
 
-import './styles.less';
+import './crud.less';
 
 const propTypes = {
   value: PropTypes.any.isRequired,
