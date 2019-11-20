@@ -33,7 +33,7 @@ import { getDashboardFilterKey } from '../../dashboard/util/getDashboardFilterKe
 import { getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
 import FilterBadgeIcon from '../../components/FilterBadgeIcon';
 
-import './FilterBox.css';
+import './FilterBox.less';
 
 // maps control names to their key in extra_filters
 const TIME_FILTER_MAP = {

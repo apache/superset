@@ -16,56 +16,66 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import '../../dashboard/stylesheets/variables.less';
+
 .select2-highlighted > .filter_box {
-    background-color: transparent;
-    border: 1px superset black;
+  background-color: transparent;
+  border: 1px superset black;
 }
 
 .dashboard .filter_box .slice_container > div:not(.alert) {
-    padding-top: 0;
+  padding-top: 0;
 }
 
 .input-inline {
-    float: left;
-    display: inline-block;
-    padding-right: 3px;
+  float: left;
+  display: inline-block;
+  padding-right: 3px;
 }
 
 ul.select2-results li.select2-highlighted div.filter_box {
-    color: black;
-    border-width: 1px;
-    border-style: solid;
-    border-color: #666;
+  color: black;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #666;
 }
 
 ul.select2-results div.filter_box {
-    color: black;
-    border-style: solid;
-    border-width: 1px;
-    border-color: transparent;
+  color: black;
+  border-style: solid;
+  border-width: 1px;
+  border-color: transparent;
 }
+
 .filter_box {
-    padding: 10px 0;
-    overflow: visible !important;
+  padding: 10px 0;
+  overflow: visible !important;
 }
+
 .filter_box:hover {
-    z-index: 1000;
+  z-index: @z-index-max;
 }
+
 .m-b-5 {
-    margin-bottom: 5px;
+  margin-bottom: 5px;
 }
+
 .filter-container {
-    display: flex;
+  display: flex;
 }
+
 .filter-container label {
-    display: flex;
-    font-weight: bold;
-    margin: 0 0 8px 8px;
+  display: flex;
+  font-weight: bold;
+  margin: 0 0 8px 8px;
 }
+
 .filter-container .filter-badge-container {
-    width: 30px;
-    padding-right: 10px;
+  width: 30px;
+  padding-right: 10px;
 }
+
 .filter-container .filter-badge-container + div {
-    width: 100%;
+  width: 100%;
+  z-index: @z-index-dropdown;
 }
