@@ -3140,7 +3140,6 @@ class Superset(BaseSupersetView):
     def _get_mapbox_key(self):
         return conf["MAPBOX_API_KEY"]
 
-
     def _geocode(self, data, dev=False):
         """
         internal method which starts the geocoding
