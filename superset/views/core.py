@@ -3189,9 +3189,8 @@ class Superset(BaseSupersetView):
             return [row for row in result]
         except Exception:
             raise Exception(
-                "An error occured while getting address data from columns %s".format(
-                    selected_columns
-                )
+                "An error occured while getting address data from columns "
+                + selected_columns
             )
 
     def _geocode(self, data, dev=True):
