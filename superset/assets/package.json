@@ -16,7 +16,8 @@
     "prod": "node --max_old_space_size=4096 webpack --mode=production --colors --progress",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production webpack --mode=production --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json ./{src,spec}/**/*.ts{,x}",
-    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json --fix ./{src,spec}/**/*.ts{,x}",
+    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json --fix ./{src,spec}/**/*.ts{,x} && npm run clean-css",
+    "clean-css": "prettier --write src/**/*.{css,less,sass,scss}",
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true",
     "install-cypress": "npm install cypress@3.4.1"

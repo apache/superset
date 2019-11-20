@@ -17,18 +17,18 @@
  * under the License.
  */
 .filter-badge {
-    width: 20px;
-    height: 20px;
-    background-color: #bababa;
-    border-radius: 2px;
-    z-index: 10;
+  width: 20px;
+  height: 20px;
+  background-color: #bababa;
+  border-radius: 2px;
+  z-index: 10;
 }
 .filter-badge:hover {
-    cursor: pointer;
-    background-color: #9e9e9e;
+  cursor: pointer;
+  background-color: #9e9e9e;
 }
 
 .color-bar.badge-group,
 .filter-badge.badge-group {
-    background-color: rgb(72, 72, 72);
+  background-color: rgb(72, 72, 72);
 }

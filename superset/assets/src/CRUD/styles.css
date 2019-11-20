@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.CRUD i.fa-caret-down, i.fa-caret-up {
-  width: '5px';
+.CRUD i.fa-caret-down,
+i.fa-caret-up {
+  width: "5px";
 }
 .CRUD td.expanded {
-  border-top: '0px';
-  padding: '0px';
+  border-top: "0px";
+  padding: "0px";
 }
 .CRUD .frame {
-  border: '1px solid #AAA';
+  border: "1px solid #AAA";
   border-radius: 5;
   padding: 10;
-  background: '#F4F4F4';
+  background: "#F4F4F4";
 }
