@@ -271,7 +271,7 @@ export class GeocodingForm extends React.Component {
                             )
                           }
                           helpText={t(
-                            'Name of the longitude column to add or overwrite',
+                            'Name of the latitude column to add or overwrite',
                           )}
                         />
                       </td>
