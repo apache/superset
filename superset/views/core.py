@@ -2993,7 +2993,7 @@ class Superset(BaseSupersetView):
         }
 
         return self.render_template(
-            "superset/basic.html",
+            "superset/welcome.html",
             entry="welcome",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
