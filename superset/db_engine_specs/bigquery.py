@@ -182,6 +182,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         """
         try:
             import pandas_gbq
+            from google.oauth2 import service_account
         except ImportError:
             raise Exception(
                 "Could not import the library `pandas_gbq`, which is "
@@ -191,9 +192,16 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
         if not ("name" in kwargs and "schema" in kwargs):
             raise Exception("name and schema need to be defined in kwargs")
+
         gbq_kwargs = {}
         gbq_kwargs["project_id"] = kwargs["con"].engine.url.host
         gbq_kwargs["destination_table"] = f"{kwargs.pop('schema')}.{kwargs.pop('name')}"
+
+        # add credentials if they are set on the SQLAlchemy Dialect:
+        creds = kwargs["con"].dialect.credentials_info
+        if creds:
+            credentials = service_account.Credentials.from_service_account_info(creds)
+            gbq_kwargs["credentials"] = credentials
 
         # Only pass through supported kwargs
         supported_kwarg_keys = {"if_exists"}

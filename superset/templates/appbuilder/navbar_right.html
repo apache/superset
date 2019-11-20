@@ -21,6 +21,9 @@
 {% set documentation_url = appbuilder.app.config['DOCUMENTATION_URL'] %}
 {% set documentation_text = appbuilder.app.config['DOCUMENTATION_TEXT'] %}
 {% set documentation_icon = appbuilder.app.config['DOCUMENTATION_ICON'] %}
+{% set version_string = appbuilder.app.config['VERSION_STRING'] %}
+{% set version_sha = appbuilder.app.config['VERSION_SHA'] %}
+
 {% set locale = session['locale'] %}
 {% if not locale %}
     {% set locale = 'en' %}
@@ -105,6 +108,16 @@
         <ul class="dropdown-menu">
             <li><a href="{{appbuilder.get_url_for_userinfo}}"><span class="fa fa-fw fa-user"></span>{{_("Profile")}}</a></li>
             <li><a href="{{appbuilder.get_url_for_logout}}"><span class="fa fa-fw fa-sign-out"></span>{{_("Logout")}}</a></li>
+            {% if version_string or version_sha %}
+              <li class="fineprint">
+                {% if version_string %}
+                  <div>Version {{version_string}}</div>
+                {% endif %}
+                {% if version_sha %}
+                  <div>SHA: {{version_sha}}</div>
+                {% endif %}
+              </li>
+            {% endif %}
         </ul>
     </li>
 {% else %}
