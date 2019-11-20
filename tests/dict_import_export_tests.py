@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import json
 import unittest
 
 import yaml
 
+from tests.test_app import app
 from superset import db
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -41,15 +43,16 @@ class DictImportExportTests(SupersetTestCase):
 
     @classmethod
     def delete_imports(cls):
-        # Imported data clean up
-        session = db.session
-        for table in session.query(SqlaTable):
-            if DBREF in table.params_dict:
-                session.delete(table)
-        for datasource in session.query(DruidDatasource):
-            if DBREF in datasource.params_dict:
-                session.delete(datasource)
-        session.commit()
+        with app.app_context():
+            # Imported data clean up
+            session = db.session
+            for table in session.query(SqlaTable):
+                if DBREF in table.params_dict:
+                    session.delete(table)
+            for datasource in session.query(DruidDatasource):
+                if DBREF in datasource.params_dict:
+                    session.delete(datasource)
+            session.commit()
 
     @classmethod
     def setUpClass(cls):

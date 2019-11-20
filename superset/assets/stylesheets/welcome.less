@@ -16,15 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.tab-pane {
-  min-height: 400px;
-  background: white;
-  border: 1px solid #bbb;
-  border-top: 0px;
+@import "../stylesheets/less/variables.less";
+
+.table i {
+  padding-top: 6px;
 }
 
-.label {
-  display: inline-block;
-  margin-right: 5px;
-  margin-bottom: 5px;
+img.loading {
+  width: 25px;
+}
+
+.welcome table {
+    display: none;
+    width: 100%;
+}
+
+input {
+    margin-left: 5px;
+    margin-top: 8px;
+}
+
+.panel-body {
+    overflow: auto;
+}
+
+.cal-heatmap-panel {
+  padding: 20px;
+  background-color: @lightest;
+}
+.search input {
+  width: 400px;
+}
+.search-container .fa-search {
+  float: left;
+  margin-left: -25px;
+  margin-top: 12px;
+  font-size: 18px;
 }

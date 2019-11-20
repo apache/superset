@@ -16,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+@import '../../../stylesheets/less/variables.less';
+
 .ReactVirtualized__Grid__innerScrollContainer {
-  border: 1px solid #ccc;
+  border: 1px solid;
 }
 .ReactVirtualized__Table__headerRow {
   font-weight: 700;
   display: flex;
   flex-direction: row;
   align-items: center;
-  border: 1px solid #ccc;
+  border: 1px solid @gray-light;
 }
 .ReactVirtualized__Table__row {
   display: flex;
@@ -42,7 +45,7 @@
 .ReactVirtualized__Table__rowColumn,
 .grid-cell {
   min-width: 0px;
-  border-right: 1px solid #ccc;
+  border-right: 1px solid @gray-light;
   align-self: center;
   padding: 12px;
   font-size: 12px;
@@ -75,8 +78,8 @@
   width: 1em;
   fill: currentColor;
 }
-.even-row { background: #f2f2f2; }
-.odd-row { background: #ffffff; }
+.even-row { background: @gray-bg; }
+.odd-row { background: @lightest; }
 .header-style {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -86,7 +89,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #aaa;
+  color: @gray-heading;
 }
 .cell-text-for-measuring {
   font-family: Helvetica, Arial, sans-serif;

@@ -128,4 +128,5 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
     ],
+    tests_require=["flask-testing==0.7.1"],
 )

@@ -16,16 +16,46 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.Datasource .tab-content {
-  height: 600px;
+@import "../stylesheets/less/variables.less";
+
+.topsql {
+  height: 250px;
+}
+.dataTables_filter {
+  padding-top: 5px;
+  padding-right: 5px;
+}
+.bordered {
+  padding: 0px 0px;
+  border: 1px solid @gray;
+  border-radius: 5px;
+  background-color: @gray-bg;
+}
+div.alert {
+  padding: 5px;
+  margin: 0px;
+}
+.metadata {
   overflow: auto;
+  width: 300px;
+  height: 100px;
 }
-
-.Datasource .change-warning {
-  margin: 16px 10px 0;
-  color: #fe4a49;
+.fillup {
+  width: 100%;
+  height: 100%;
 }
-
-.Datasource .change-warning .bold {
-  font-weight: bold;
+.fillheight {
+  height: 100%;
+}
+.interactions {
+  padding-bottom: 10px;
+}
+#results {
+  overflow: auto;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+table tbody tr td {
+  padding: 1px 4px;
+  font-size: small;
 }
