@@ -44,7 +44,7 @@
 .viztype-selector-container img {
   border: 1px solid #ddd;
   border-radius: 4px;
-  transition: border-color .2s;
+  transition: border-color 0.2s;
 }
 
 .viztype-control-search-box {
