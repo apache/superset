@@ -19,6 +19,7 @@
 
 .superset-legacy-chart-horizon {
   overflow: auto;
+  position: relative;
 }
 
 .superset-legacy-chart-horizon .horizon-row  {
