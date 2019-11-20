@@ -1,0 +1,125 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/************************************************************************/
+/* COLORS                                                               */
+/* Please attempt to use and standardize on these colors,               */
+/* rather than including specific color values in                       */
+/* component styles. This will allow us to more easily adjust theming   */
+/************************************************************************/
+
+@indicator-color: #44C0FF;
+
+@almost-black: #263238;
+@gray-dark: #484848;
+@gray: #879399;
+@gray-light: #CFD8DC;
+@gray-bg: #f5f5f5;
+@gray-heading: #A3A3A3;
+@menu-hover: #F2F3F5;
+@lightest: #ffffff;
+@darkest: #000000;
+
+/* toasts */
+@pink: #E32364;
+@purple: #2C2261;
+
+/* status colors */
+@success: #00BFA5;
+@warning: #FFAB00;
+@error: #FF0000;
+@danger: @pink;
+
+/* general component effects */
+@shadow-highlight: rgb(0, 166, 153);
+
+/* filter indicators */
+/* make sure be consistent with FILTER_COLORS_COUNT in
+   dashboardFiltersColorMap.js
+*/
+@badge-colors:
+  #228be6,
+  #40c057,
+  #fab005,
+  #f76707,
+  #e64980,
+  #15aabf,
+  #7950f2,
+  #fa5252,
+  #74b816,
+  #12b886,
+  #1864ab,
+  #2b8a3e,
+  #e67700,
+  #d9480f,
+  #a61e4d,
+  #0b7285,
+  #5f3dc4,
+  #c92a2a,
+  #5c940d,
+  #087f5b;
+
+@iterations: length(@badge-colors);
+.badge-loop (@i) when (@i > 0) {
+  .filter-badge.badge-@{i},
+  .active .color-bar.badge-@{i},
+  .dashboard-filter-indicators-container:hover .color-bar.badge-@{i},
+  .dashboard-component-chart-holder:hover .color-bar.badge-@{i} {
+    @value:  extract(@badge-colors, @i);
+    background-color: @value;
+  }
+  .badge-loop(@i - 1);
+}
+.badge-loop(@iterations);
+
+/************************************************************************/
+/* OPACITIES                                                            */
+/* Used in LESS filters, e.g. fade(@someColorVar, @someOpacityBelow)    */
+/************************************************************************/
+@opacity-light: 10%;
+@opacity-medium-light: 35%;
+@opacity-medium-heavy: 60%;
+@opacity-heavy: 80%;
+
+/************************************************************************/
+/* SHADES & TINTS                                                       */
+/* Used in LESS filters for shadint/tinting,                            */
+/* e.g. shade(@someColorVar, @colorstop-one) to darken                  */
+/* or tint(@someColorVar, @colorstop-one) to lighten                    */
+/************************************************************************/
+@colorstop-one: 20%;
+@colorstop-two: 40%;
+@colorstop-three: 60%;
+@colorstop-four: 80%;
+
+/************************************************************************/
+/* LAYOUT                                                               */
+/* Widths and heights of things, that might be referred to often        */
+/************************************************************************/
+
+/* builder component pane */
+@builder-pane-width: 374px;
+
+/************************************************************************/
+/* Z-INDEX                                                              */
+/* Think of the site as "layers" rather than an arms race of numbers    */
+/* Try to keep these to a minimum                                       */
+/************************************************************************/
+@z-index-max: 1000;
+@z-index-dropdown: 11;

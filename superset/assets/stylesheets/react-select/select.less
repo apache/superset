@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import "../../stylesheets/less/variables.less";
+
 @import "~react-select/less/select.less";
-@select-primary-color:              black;
+@select-primary-color:              @darkest;
 @select-input-height:               30px;
 
 // imports
@@ -55,7 +57,7 @@
   padding: 0 .5rem;
 }
 .VirtualizedSelectFocusedOption {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: fade(@darkest, @opacity-light);
 }
 .VirtualizedSelectFocusedOption:hover {
   cursor: pointer;

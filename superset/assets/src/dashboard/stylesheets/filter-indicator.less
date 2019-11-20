@@ -34,7 +34,7 @@
     height: 20px;
     overflow: hidden;
     display: flex;
-    background-color: #bababa;
+    background-color: @gray-light;
     transition: width 0.3s;
     border-top-right-radius: 2px;
     border-bottom-right-radius: 2px;
@@ -54,12 +54,12 @@
   }
 
   .filter-indicator-group {
-    box-shadow: rgb(255, 255, 255) -2px 0 0 0, rgb(219, 219, 219) -4px 0 0 0;
+    box-shadow: @lightest -2px 0 0 0, @gray-light -4px 0 0 0;
   }
 }
 
 .show-outline .filter-indicator-group {
-  box-shadow: rgba(0, 166, 153, 1) -2px 0 0 0, rgb(255, 255, 255) -4px 0 0 0, rgb(219, 219, 219) -6px 0 0 0;
+  box-shadow: @shadow-highlight -2px 0 0 0, @lightest -4px 0 0 0, @gray-light -6px 0 0 0;
 }
 
 .dashboard-component-chart-holder,
@@ -82,7 +82,7 @@
   }
 
   .filter-indicator-group {
-    box-shadow: rgb(255, 255, 255) -4px 0 0 0, rgb(219, 219, 219) -6px 0 0 0;
+    box-shadow: @lightest -4px 0 0 0, @gray-light -6px 0 0 0;
   }
 }
 

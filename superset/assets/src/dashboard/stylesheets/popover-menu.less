@@ -49,8 +49,8 @@
   top: -42px;
   height: 40px;
   padding: 0 16px;
-  background: white;
-  box-shadow: 0 1px 2px 1px rgba(0, 0, 0, 0.2);
+  background: @lightest;
+  box-shadow: 0 1px 2px 1px fade(@darkest, @opacity-medium-light);
   font-size: 14px;
   cursor: default;
   z-index: 1000;
@@ -139,7 +139,7 @@
 }
 
 .background-style-option.background--white:before {
-  background: white;
+  background: @lightest;
   border: 1px solid @gray-light;
 }
 
