@@ -22,7 +22,7 @@ export default () => {
     beforeEach(() => {
       cy.login();
       cy.server();
-      cy.visit('/superset/csvtodatabase');
+      cy.visit('/csvimporter/csvtodatabase');
 
       cy.route('/tablemodelview/list').as('finish_import');
     });
