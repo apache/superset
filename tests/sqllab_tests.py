@@ -17,6 +17,7 @@
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime, timedelta
+from random import random
 
 import prison
 
@@ -294,19 +295,19 @@ class SqlLabTests(SupersetTestCase):
         examples_dbid = get_example_database().id
         payload = {
             "chartType": "dist_bar",
-            "datasourceName": "test_viz_flow_table",
+            "datasourceName": f"test_viz_flow_table_{random()}",
             "schema": "superset",
             "columns": [
                 {
                     "is_date": False,
                     "type": "STRING",
-                    "name": "viz_type",
+                    "name": f"viz_type_{random()}",
                     "is_dim": True,
                 },
                 {
                     "is_date": False,
                     "type": "OBJECT",
-                    "name": "ccount",
+                    "name": f"ccount_{random()}",
                     "is_dim": True,
                     "agg": "sum",
                 },
@@ -421,3 +422,4 @@ class SqlLabTests(SupersetTestCase):
             {"examples", "fake_db_100"},
             {r.get("database_name") for r in self.get_json_resp(url)["result"]},
         )
+        self.delete_fake_db()

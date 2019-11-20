@@ -60,7 +60,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_simple_row_column(self):
         presto_column = ("column_name", "row(nested_obj double)", "")
@@ -68,7 +70,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_simple_row_column_with_name_containing_whitespace(self):
         presto_column = ("column name", "row(nested_obj double)", "")
@@ -76,7 +80,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_simple_row_column_with_tricky_nested_field_name(self):
         presto_column = ("column_name", 'row("Field Name(Tricky, Name)" double)', "")
@@ -87,7 +93,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_simple_array_column(self):
         presto_column = ("column_name", "array(double)", "")
@@ -95,7 +103,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_row_within_array_within_row_column(self):
         presto_column = (
@@ -112,7 +122,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_array_within_row_within_array_column(self):
         presto_column = (
@@ -147,7 +159,9 @@ class PrestoTests(DbEngineSpecTestCase):
             self.assertEqual(actual_result.name, expected_result["label"])
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_expand_data_with_simple_structural_columns(self):
         cols = [
@@ -182,7 +196,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_expand_data_with_complex_row_columns(self):
         cols = [
@@ -229,7 +245,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_expand_data_with_complex_array_columns(self):
         cols = [
