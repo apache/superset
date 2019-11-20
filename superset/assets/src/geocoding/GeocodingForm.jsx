@@ -172,7 +172,6 @@ export class GeocodingForm extends React.Component {
                         />
                       </td>
                     </tr>
-                    {/* TODO: Load column data when datasource is selected */}
                     <tr
                       className={
                         this.state.datasource ? null : 'hide-component'
