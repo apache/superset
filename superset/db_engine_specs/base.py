@@ -417,8 +417,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "filepath_or_buffer": filename,
             "sep": form_data["delimiter"],
             # frontend already does int-check, check again in case of tampering
-            "header": int(form_data["headerRow"])
-            or 0,
+            "header": int(form_data["headerRow"]) or 0,
             "index_col": None
             if not form_data["indexColumn"]
             else int(form_data["indexColumn"]),

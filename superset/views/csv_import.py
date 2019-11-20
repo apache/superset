@@ -32,6 +32,7 @@ from superset import app, appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import DatabaseCreationException, TableCreationException
 from superset.utils import core as utils
+
 from .base import api, BaseSupersetView, json_error_response, json_success
 
 config = app.config
