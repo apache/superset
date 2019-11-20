@@ -20,7 +20,7 @@ import React from 'react';
 import ReactDom from 'react-dom';
 import Form from 'react-jsonschema-form';
 import { interpolate } from 'src/showSavedQuery/utils';
-import './index.css';
+import './index.less';
 
 const scheduleInfoContainer = document.getElementById('schedule-info');
 const bootstrapData = JSON.parse(scheduleInfoContainer.getAttribute('data-bootstrap'));
