@@ -32,7 +32,8 @@
     "@types/d3-scale": "^2.0.2",
     "@types/react": "^16.3.0",
     "d3-cloud": "^1.2.5",
-    "d3-scale": "^3.0.1"
+    "d3-scale": "^3.0.1",
+    "encodable": "^0.0.7"
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.12.0",
