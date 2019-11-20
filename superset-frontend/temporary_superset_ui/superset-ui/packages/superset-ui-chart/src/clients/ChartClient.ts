@@ -11,6 +11,7 @@ import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySin
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import { QueryData } from '../models/ChartProps';
 import { AnnotationLayerMetadata } from '../types/Annotation';
+import { PlainObject } from '../types/Base';
 
 // This expands to Partial<All> & (union of all possible single-property types)
 type AtLeastOne<All, Each = { [K in keyof All]: Pick<All, K> }> = Partial<All> & Each[keyof Each];
@@ -21,12 +22,12 @@ export type SliceIdAndOrFormData = AtLeastOne<{
 }>;
 
 interface AnnotationData {
-  [key: string]: object;
+  [key: string]: PlainObject;
 }
 
 export interface ChartData {
   annotationData: AnnotationData;
-  datasource: object;
+  datasource: PlainObject;
   formData: QueryFormData;
   queryData: QueryData;
 }
@@ -73,7 +74,10 @@ export default class ChartClient {
       : Promise.reject(new Error('At least one of sliceId or formData must be specified'));
   }
 
-  async loadQueryData(formData: QueryFormData, options?: Partial<RequestConfig>): Promise<object> {
+  async loadQueryData(
+    formData: QueryFormData,
+    options?: Partial<RequestConfig>,
+  ): Promise<QueryData> {
     const { viz_type: visType } = formData;
     const metaDataRegistry = getChartMetadataRegistry();
     const buildQueryRegistry = getChartBuildQueryRegistry();
@@ -105,10 +109,10 @@ export default class ChartClient {
       .then(response => response.json as Datasource);
   }
 
-  loadAnnotation(annotationLayer: AnnotationLayerMetadata): Promise<object> {
+  loadAnnotation(annotationLayer: AnnotationLayerMetadata): Promise<AnnotationData> {
     /* When annotation does not require query */
     if (!isDefined(annotationLayer.sourceType)) {
-      return Promise.resolve({});
+      return Promise.resolve({} as AnnotationData);
     }
 
     // TODO: Implement
