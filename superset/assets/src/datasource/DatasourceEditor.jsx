@@ -40,7 +40,7 @@ import Field from '../CRUD/Field';
 
 import withToasts from '../messageToasts/enhancers/withToasts';
 
-import './main.css';
+import './main.less';
 
 const checkboxGenerator = (d, onChange) => <CheckboxControl value={d} onChange={onChange} />;
 const DATA_TYPES = ['STRING', 'NUMERIC', 'DATETIME'];

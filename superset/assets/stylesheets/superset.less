@@ -18,6 +18,8 @@
  */
 @import './less/index.less';
 @import "./less/cosmo/variables.less";
+@import './less/index.less';
+@import "./less/variables.less";
 
 @datasource-sql-expression-width: 450px;
 
@@ -26,7 +28,7 @@
 }
 
 .alert.alert-danger > .debugger {
-    color: red;
+    color: @error;
 }
 
 .modal-dialog {
@@ -41,11 +43,11 @@
 }
 
 input.form-control {
-    background-color: white;
+    background-color: @lightest;
 }
 
 .chart-header a.danger {
-    color: red;
+    color: @error;
 }
 
 .disabledButton {
@@ -64,8 +66,8 @@ input.form-control {
 .slice_description {
     padding: 8px;
     margin: 5px 0;
-    border: 1px solid #DDD;
-    background-color: #F8F8F8;
+    border: 1px solid @gray-light;
+    background-color: @gray-bg;
     border-radius: 5px;
     font-size: 12px;
 }
@@ -109,7 +111,7 @@ input[type="checkbox"] {
 .notbtn {
     cursor: default;
     box-shadow: none;
-    border: 1px solid #ccc;
+    border: 1px solid @gray;
 }
 
 hr {
@@ -118,7 +120,7 @@ hr {
 }
 
 span.title-block {
-    background-color: #EEE;
+    background-color: @gray-bg;
     border-radius: 4px;
     padding: 6px 12px;
     margin: 0px 10px;
@@ -165,7 +167,7 @@ img.loading {
 }
 img.viz-thumb-option {
     width: 100px;
-    border: 1px solid gray;
+    border: 1px solid @gray;
     margin-right: 5px;
     border-radius: 5px;
 }
@@ -178,17 +180,11 @@ li.widget:hover {
   z-index: 1000;
 }
 
-div.widget .chart-header {
-  padding-top: 8px;
-  color: #333;
-  margin: 0 10px;
-}
-
 .chart-header .header-text {
   font-size: 20px;
   line-height: 22px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #888;
+  border-bottom: 1px solid @gray;
   margin-top: 10px;
   margin-left: 10px;
   margin-right: 10px;
@@ -201,26 +197,6 @@ div.widget .chart-header {
 
 .slice_container.faded {
   opacity: .2;
-}
-
-div.widget {
-  .slice_container {
-    overflow: hidden;
-  }
-
-  .stack-trace-container.has-trace {
-    .alert-warning:hover {
-      cursor: pointer;
-    }
-  }
-
-  .is-loading {
-    .stack-trace-container,
-    .slice_container {
-      opacity: 0.5;
-      position: relative;
-    }
-  }
 }
 
 .navbar .alert {
@@ -255,12 +231,12 @@ table.table-no-hover tr:hover {
   background: transparent;
   box-shadow: none;
   cursor: initial;
-  border: 1px solid #ccc;
+  border: 1px solid @gray;
   border-radius: 2px;
 }
 
 .editable-title input[type="text"] {
-  border: 1px solid #ccc;
+  border: 1px solid @gray;
   border-radius: 2px;
   padding: 2px;
 }
@@ -391,7 +367,7 @@ table.table-no-hover tr:hover {
     width: 98%;
     padding: 2rem;
     margin: 0 1% 20px 1%;
-    background: #f8f8f8;
+    background: @gray-bg;
 }
 
 /** table on both sides of the gap **/
@@ -470,19 +446,19 @@ table.table-no-hover tr:hover {
     padding-bottom: 15px;
 }
 
-.list-container .filters-container table tr:first-child td {
-    border-top: none;
-}
-.list-container .filters-container table tr:last-child td {
-    border-bottom: 1px solid #b3b3b3;
-}
+// .list-container .filters-container table tr:first-child td {
+//     border-top: none;
+// }
+// .list-container .filters-container table tr:last-child td {
+//     border-bottom: 1px solid @gray-light;
+// }
 
 .list-add-action .btn.btn-sm {
   padding: 5px 6px;
   font-size: 10px;
   line-height: 2px;
   border-radius: 50%;
-  box-shadow: 2px 2px 4px -1px rgba(0, 0, 0, 1);
+  box-shadow: 2px 2px 4px -1px fade(@darkest, @opacity-light);
 }
 
 iframe {
@@ -564,7 +540,7 @@ tr.reactable-column-header th.reactable-header-sortable {
 
 .dismiss-overlay-btn {
   font-weight: bold;
-  background: white;
+  background: @lightest;
   color: @brand-primary;
   border-color: @brand-primary;
 }
@@ -575,7 +551,7 @@ tr.reactable-column-header th.reactable-header-sortable {
     &,
     &:hover,
     &:active {
-      color: #263238;
+      color: @almost-black;
     }
   }
 }

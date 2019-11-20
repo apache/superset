@@ -17,6 +17,7 @@
  * under the License.
  */
 @import "../../stylesheets/less/cosmo/variables.less";
+@import "../../stylesheets/less/variables.less";
 
 body {
   overflow: hidden;
@@ -48,7 +49,7 @@ body {
 .tab-content {
   height: 100%;
   position: relative;
-  background-color: #fff;
+  background-color: @lightest;
 
   > .tab-pane {
     position: absolute;
@@ -60,7 +61,7 @@ body {
 }
 
 .Workspace .btn-sm {
-  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 1px 1px 2px fade(@darkest, @opacity-light);
   margin-top: 2px;
   padding: 4px;
 }
@@ -117,10 +118,10 @@ div.Workspace {
 }
 .sql-toolbar {
   padding: 10px;
-  background-color: #e8e8e8;
+  background-color: @gray-bg;
   display: flex;
   justify-content: space-between;
-  border: 1px solid #ccc;
+  border: 1px solid @gray-light;
   border-top: 0;
 
   form {
@@ -140,7 +141,7 @@ div.Workspace {
   width: 10px;
   height: 10px;
   display: inline-block;
-  background-color: #ccc;
+  background-color: @gray-light;
   line-height: 8px;
   text-align: center;
   vertical-align: middle;
@@ -149,14 +150,14 @@ div.Workspace {
   font-weight: bold;
 }
 .running {
-  background-color: lime;
-  color: black;
+  background-color: fade(@success, @opacity-heavy);
+  color: @darkest;
 }
 .success {
-  background-color: #4ac15f;
+  background-color: @success;
 }
 .failed {
-  background-color: red;
+  background-color: @error;
 }
 
 .handle {
@@ -167,9 +168,9 @@ div.Workspace {
   position: absolute;
   width: 300px;
   opacity: 0.85;
-  border: 1px solid #aaa;
+  border: 1px solid @gray-heading;
   max-height: 600px;
-  box-shadow: rgba(0, 0, 0, 0.8) 5px 5px 25px;
+  box-shadow: fade(@darkest, @opacity-heavy) 5px 5px 25px;
 }
 .SqlLab pre {
   padding: 0px !important;
@@ -235,11 +236,6 @@ div.Workspace {
   height: 100%;
   padding: 10px;
 
-  .clock {
-    background-color: orange;
-    padding: 5px;
-  }
-
   .schemaPane {
     flex: 0 0 300px;
     max-width: 300px;
@@ -250,42 +246,6 @@ div.Workspace {
     flex: 1 1 auto;
     padding-left: 10px;
   }
-
-  .schemaPane-enter-done,
-  .schemaPane-exit {
-    transform: translateX(0);
-  }
-
-  .schemaPane-exit-active {
-    transform: translateX(-120%);
-  }
-
-  .schemaPane-enter-active {
-    transform: translateX(0);
-    max-width: 300px;
-  }
-
-  .schemaPane-enter,
-  .schemaPane-exit-done {
-    max-width: 0;
-    transform: translateX(-120%);
-    overflow: hidden;
-  }
-
-  .schemaPane-exit-done + .queryPane {
-    margin-left: 0;
-  }
-
-  .gutter {
-    border-top: 1px solid #ccc;
-    border-bottom: 1px solid #ccc;
-    width: 3%;
-    margin: 3px 47%;
-  }
-
-  .gutter.gutter-vertical {
-    cursor: row-resize;
-  }
 }
 
 .SqlEditorLeftBar {
@@ -294,7 +254,7 @@ div.Workspace {
   flex-direction: column;
 
   .divider {
-    border-bottom: 1px solid #f2f2f2;
+    border-bottom: 1px solid @gray-bg;
     margin: 15px 0;
   }
 
@@ -327,7 +287,7 @@ div.tablePopover:hover {
 }
 
 .ace_editor {
-  border: 1px solid #ccc;
+  border: 1px solid @gray-light;
 }
 
 .Select-menu-outer {
@@ -345,7 +305,7 @@ div.tablePopover:hover {
 }
 
 .ace_scroller {
-  background-color: #f4f4f4;
+  background-color: @gray-bg;
 }
 
 .TableElement {
@@ -385,7 +345,7 @@ a.Link {
   background: transparent;
   border: none;
   text-align: left;
-  color: white;
+  color: @lightest;
   font-size: 10px;
 }
 .tooltip-inner {
