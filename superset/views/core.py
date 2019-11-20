@@ -3102,13 +3102,27 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/geocoding/geocode", methods=["POST"])
     def geocode(self) -> Response:
-        # TODO this has to be removed and replaced with a call to the get_data_from_table method
+        table_name = request.get("datasource", "")
+        columns = [request.form["streetColumn"], request.form["cityColumn"], request.form["countryColumn"]]
+        lat_column = request.get("latitudeColumnName", "lat")
+        lon_column = request.get("longitudeColumnName", "lon")
+
+        self._load_data_from_columns(table_name, columns)
+
         try:
-            dat = self._geocode(request.data)
-            # TODO enrichted data has to be written into database
-            return json_success(json.dumps(dat))
+            self._add_lat_lon_columns(table_name, lat_column, lon_column)
+        except ValueError as e:
+            return json_error_response(e.args[0], status=400)
         except Exception as e:
-            return json_error_response(e.args)
+            message = "Error happens while create new columns for latitude and longitude"
+            return json_error_response(message, status=500)
+
+        try:
+            data = self._geocode(request.data)
+            self._insert_geocoded_data(table_name, lat_column, lon_column, columns, data)
+            return json_success(json.dumps(data))
+        except Exception as e:
+            return json_error_response(e.args[0])
 
     def _get_editable_tables(self):
         """ Get tables which are allowed to create columns (allow dml on their database) """
@@ -3121,9 +3135,6 @@ class Superset(BaseSupersetView):
             ):
                 tables.append(models.TableDto(table.id, table.name, table.database_id))
         return tables
-
-    def _check_table_config(self, tableName: str):
-        pass
 
     def _load_data_from_columns(self, table_name, columns):
         """
