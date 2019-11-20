@@ -47,6 +47,7 @@ export default class FileDropper extends React.Component {
     this.handleFileInputChanged = this.handleFileInputChanged.bind(this);
     this.setFileRef = this.setFileRef.bind(this);
     this.fileChangeEventHandler = this.fileChangeEventHandler.bind(this);
+    this.fileInputChanged = this.fileInputChanged.bind(this);
 
     this.fileRef = document.createElement('input');
   }
@@ -127,6 +128,12 @@ export default class FileDropper extends React.Component {
     this.handleFileInputChanged(this.fileRef.files);
   }
 
+  fileInputChanged() {
+    if (!this.fileRef.files || this.fileRef.files.length === 0) {
+      this.props.onFileSelected(undefined);
+    }
+  }
+
   render() {
     const {
       isRequired,
@@ -157,6 +164,7 @@ export default class FileDropper extends React.Component {
           className={supportsDragAndDrop() ? `filedropper-input ${
             fileInputClassName || ''
           }` : fileInputClassName}
+          onChange={this.fileInputChanged}
         />
       </div>
     );

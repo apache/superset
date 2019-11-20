@@ -84,6 +84,8 @@ export class CsvToDatabase extends React.PureComponent {
         fileName = file[0].name.slice(0, -4);
       }
       this.setState({ file: file[0], databaseName: fileName });
+    } else {
+      this.setState({ file: undefined, databaseName: '' });
     }
   }
 
