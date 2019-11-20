@@ -25,7 +25,7 @@ import { SupersetClient } from '@superset-ui/connection';
 
 import AsyncSelect from './AsyncSelect';
 import RefreshLabel from './RefreshLabel';
-import './TableSelector.css';
+import './TableSelector.less';
 
 const propTypes = {
   dbId: PropTypes.number.isRequired,
