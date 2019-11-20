@@ -46,14 +46,11 @@ type State = {
 
 class ChartDataProvider extends React.PureComponent<Props, State> {
   readonly chartClient: ChartClient;
+  state: State = { status: 'uninitialized' };
 
   constructor(props: Props) {
     super(props);
-    this.handleFetchData = this.handleFetchData.bind(this);
-    this.handleReceiveData = this.handleReceiveData.bind(this);
-    this.handleError = this.handleError.bind(this);
     this.chartClient = new ChartClient({ client: props.client });
-    this.state = { status: 'uninitialized' };
   }
 
   componentDidMount() {
@@ -69,15 +66,11 @@ class ChartDataProvider extends React.PureComponent<Props, State> {
 
   private extractSliceIdAndFormData() {
     const { formData, sliceId } = this.props;
-    const result: any = {};
 
-    if (formData) result.formData = formData;
-    if (sliceId) result.sliceId = sliceId;
-
-    return result as SliceIdAndOrFormData;
+    return formData ? { formData } : { sliceId: sliceId! };
   }
 
-  private handleFetchData() {
+  private handleFetchData = () => {
     const {
       loadDatasource,
       formDataRequestOptions,
@@ -95,11 +88,14 @@ class ChartDataProvider extends React.PureComponent<Props, State> {
                 ? this.chartClient.loadDatasource(formData.datasource, datasourceRequestOptions)
                 : Promise.resolve(undefined),
               this.chartClient.loadQueryData(formData, queryRequestOptions),
-            ]).then(([datasource, queryData]) => ({
-              datasource,
-              formData,
-              queryData,
-            })),
+            ]).then(
+              ([datasource, queryData]) =>
+                ({
+                  datasource,
+                  formData,
+                  queryData,
+                } as Payload),
+            ),
           )
           .then(this.handleReceiveData)
           .catch(this.handleError);
@@ -107,19 +103,19 @@ class ChartDataProvider extends React.PureComponent<Props, State> {
         this.handleError(error);
       }
     });
-  }
+  };
 
-  handleReceiveData(data: Payload) {
+  private handleReceiveData = (payload?: Payload) => {
     const { onLoaded } = this.props;
-    if (onLoaded) onLoaded(data);
-    this.setState({ payload: data, status: 'loaded' });
-  }
+    if (onLoaded) onLoaded(payload);
+    this.setState({ payload, status: 'loaded' });
+  };
 
-  handleError(error: ProvidedProps['error']) {
+  private handleError = (error: ProvidedProps['error']) => {
     const { onError } = this.props;
     if (onError) onError(error);
     this.setState({ error, status: 'error' });
-  }
+  };
 
   render() {
     const { children } = this.props;
