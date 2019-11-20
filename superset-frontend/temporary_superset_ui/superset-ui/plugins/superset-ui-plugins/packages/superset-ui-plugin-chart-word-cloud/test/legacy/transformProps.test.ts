@@ -1,6 +1,6 @@
 import 'babel-polyfill';
 import { ChartProps } from '@superset-ui/chart';
-import transformProps from '../src/transformProps';
+import transformProps from '../../src/legacy/transformProps';
 
 describe('WordCloud tranformProps', () => {
   const formData = {
@@ -24,12 +24,30 @@ describe('WordCloud tranformProps', () => {
 
   it('should tranform chart props for word cloud viz', () => {
     expect(transformProps(chartProps)).toEqual({
-      colorScheme: 'bnbColors',
       width: 800,
       height: 600,
+      encoding: {
+        color: {
+          field: 'name',
+          scale: {
+            scheme: 'bnbColors',
+          },
+          type: 'nominal',
+        },
+        fontSize: {
+          field: 'sum__num',
+          scale: {
+            range: [0, 70],
+            zero: true,
+          },
+          type: 'quantitative',
+        },
+        text: {
+          field: 'name',
+        },
+      },
       rotation: 'square',
-      sizeRange: [0, 70],
-      data: [{ size: 1, text: 'Hulk' }],
+      data: [{ name: 'Hulk', sum__num: 1 }],
     });
   });
 });
