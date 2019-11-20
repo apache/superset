@@ -25,8 +25,6 @@ from superset.views import core as views
 
 from .base_tests import SupersetTestCase
 
-BASE_DIR = app.config["BASE_DIR"]
-
 
 class GeocodingTests(SupersetTestCase):
     superset = views.Superset()
