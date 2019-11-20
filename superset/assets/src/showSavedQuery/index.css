@@ -16,5 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.btn-add { display: none; }
-.linkback { padding: 0 10px 20px 2px; }
+.btn-add {
+  display: none;
+}
+.linkback {
+  padding: 0 10px 20px 2px;
+}

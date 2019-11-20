@@ -17,14 +17,14 @@
  * under the License.
  */
 .tab-pane {
-    min-height: 400px;
-    background: white;
-    border: 1px solid #bbb;
-    border-top: 0px;
+  min-height: 400px;
+  background: white;
+  border: 1px solid #bbb;
+  border-top: 0px;
 }
 
 .label {
-    display: inline-block;
-    margin-right: 5px;
-    margin-bottom: 5px;
+  display: inline-block;
+  margin-right: 5px;
+  margin-bottom: 5px;
 }

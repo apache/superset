@@ -34,15 +34,16 @@
   margin-bottom: 40px;
 }
 
-.fave-unfave-icon, .edit-desc-icon {
-  padding: 0 0 0 .5em;
+.fave-unfave-icon,
+.edit-desc-icon {
+  padding: 0 0 0 0.5em;
   font-size: 14px;
 }
 
 .checkbox {
-    float: left;
-    margin-top: 0px;
-    margin-right: 3px;
+  float: left;
+  margin-top: 0px;
+  margin-right: 3px;
 }
 
 .control-panel-section {
@@ -51,13 +52,17 @@
 }
 .control-panel-section:last-child {
   padding-bottom: 40px;
- }
+}
 
 .control-panel-section .Select-multi-value-wrapper .Select-input > input {
   width: 100px;
 }
 
-.control-panel-section .metrics-select .Select-multi-value-wrapper .Select-input > input {
+.control-panel-section
+  .metrics-select
+  .Select-multi-value-wrapper
+  .Select-input
+  > input {
   width: 300px;
 }
 
@@ -198,7 +203,7 @@
   font-weight: normal;
   color: #fff;
   padding: 5px 4px 4px;
-  border:0;
+  border: 0;
 }
 
 .label-dropdown ul.dropdown-menu {
@@ -208,7 +213,8 @@
   margin: 20px 0 0;
 }
 
-.label-btn:hover, .label-btn-label:hover {
+.label-btn:hover,
+.label-btn-label:hover {
   background-color: #667177;
   color: #fff;
 }
@@ -259,7 +265,7 @@ h2.section-header {
   padding-bottom: 5px;
 }
 
-.panel-spreaded, 
+.panel-spreaded,
 .panel-spreaded .panel-body {
   padding: 0;
   margin: 0;

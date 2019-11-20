@@ -17,15 +17,15 @@
  * under the License.
  */
 .Datasource .tab-content {
-    height: 600px;
-    overflow: auto;
+  height: 600px;
+  overflow: auto;
 }
 
 .Datasource .change-warning {
-    margin: 16px 10px 0;
-    color: #FE4A49;
+  margin: 16px 10px 0;
+  color: #fe4a49;
 }
 
 .Datasource .change-warning .bold {
-    font-weight: bold;
+  font-weight: bold;
 }
