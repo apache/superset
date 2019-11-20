@@ -43,25 +43,23 @@ RUN chown superset /home/superset
 
 WORKDIR /home/superset
 ARG VERSION
+ARG SUPERSET_RELEASE_RC_TARBALL
 
-RUN svn co https://dist.apache.org/repos/dist/dev/incubator/superset/$VERSION ./
+# Can fetch source from svn or copy tarball from local mounted directory
+COPY $SUPERSET_RELEASE_RC_TARBALL ./
 RUN tar -xvf *.tar.gz
-WORKDIR apache-superset-incubating-$VERSION
+WORKDIR /home/superset/apache-superset-incubating-$VERSION/superset/assets
 
-RUN cd superset/assets \
-    && npm ci \
+RUN npm ci \
     && npm run build \
     && rm -rf node_modules
 
-
 WORKDIR /home/superset/apache-superset-incubating-$VERSION
 RUN pip install --upgrade setuptools pip \
+    && pip install -r requirements.txt \
     && pip install --no-cache-dir .
 
 RUN flask fab babel-compile --target superset/translations
-
-RUN pip install -e . \
-    && rm -rf /root/.cache/pip
 
 ENV PATH=/home/superset/superset/bin:$PATH \
     PYTHONPATH=/home/superset/superset/:$PYTHONPATH

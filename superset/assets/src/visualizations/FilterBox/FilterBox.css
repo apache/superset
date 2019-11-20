@@ -60,7 +60,7 @@ ul.select2-results div.filter_box {
 .filter-container label {
     display: flex;
     font-weight: bold;
-    margin-bottom: 8px;
+    margin: 0 0 8px 8px;
 }
 .filter-container .filter-badge-container {
     width: 30px;

@@ -213,7 +213,7 @@ export default class ResultSet extends React.PureComponent {
           ? results.expanded_columns.map(col => col.name)
           : [];
         return (
-          <React.Fragment>
+          <>
             {this.renderControls.bind(this)()}
             {sql}
             <FilterableTable
@@ -223,7 +223,7 @@ export default class ResultSet extends React.PureComponent {
               filterText={this.state.searchText}
               expandedColumns={expandedColumns}
             />
-          </React.Fragment>
+          </>
         );
       } else if (data && data.length === 0) {
         return <Alert bsStyle="warning">{t('The query returned no data')}</Alert>;
