@@ -83,7 +83,7 @@ export default class WordCloud extends React.PureComponent<
     const { data, width, height, rotation, encoding } = this.props;
 
     const encoder = this.createEncoder(encoding);
-    encoder.channels.fontSize.setDomainFromDataset(data);
+    encoder.setDomainFromDataset(data);
 
     cloudLayout()
       .size([width, height])
