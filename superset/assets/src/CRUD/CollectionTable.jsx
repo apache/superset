@@ -23,7 +23,7 @@ import { t } from '@superset-ui/translation';
 import Button from '../components/Button';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
-import './styles.css';
+import './crud.less';
 
 const propTypes = {
   collection: PropTypes.arrayOf(PropTypes.object).isRequired,

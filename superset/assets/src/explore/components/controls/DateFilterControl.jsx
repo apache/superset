@@ -39,7 +39,7 @@ import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
 
-import './DateFilterControl.css';
+import './DateFilterControl.less';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
 
