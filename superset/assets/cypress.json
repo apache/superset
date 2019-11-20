@@ -7,5 +7,6 @@
   "video": false,
   "videoUploadOnPasses": false,
   "viewportWidth": 1280,
-  "viewportHeight": 800
+  "viewportHeight": 800,
+  "requestTimeout": 10000
 }

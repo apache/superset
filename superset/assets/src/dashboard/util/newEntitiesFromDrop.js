@@ -30,6 +30,7 @@ export default function newEntitiesFromDrop({ dropResult, layout }) {
   const dropEntity = layout[destination.id];
   const dropType = dropEntity.type;
   let newDropChild = newComponentFactory(dragType, dragging.meta);
+  newDropChild.parents = (dropEntity.parents || []).concat(dropEntity.id);
 
   if (componentIsResizable(dragging)) {
     newDropChild.meta.width = // don't set a 0 width
@@ -48,11 +49,14 @@ export default function newEntitiesFromDrop({ dropResult, layout }) {
   if (wrapChildInRow) {
     const rowWrapper = newComponentFactory(ROW_TYPE);
     rowWrapper.children = [newDropChild.id];
+    rowWrapper.parents = (dropEntity.parents || []).concat(dropEntity.id);
     newEntities[rowWrapper.id] = rowWrapper;
     newDropChild = rowWrapper;
+    newDropChild.parents = rowWrapper.parents.concat(rowWrapper.id);
   } else if (dragType === TABS_TYPE) {
     // create a new tab component
     const tabChild = newComponentFactory(TAB_TYPE);
+    tabChild.parents = (dropEntity.parents || []).concat(dropEntity.id);
     newDropChild.children = [tabChild.id];
     newEntities[tabChild.id] = tabChild;
   }

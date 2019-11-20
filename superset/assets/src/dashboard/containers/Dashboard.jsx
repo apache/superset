@@ -27,7 +27,6 @@ import {
 } from '../actions/dashboardState';
 import { triggerQuery } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
-import getLoadStatsPerTopLevelComponent from '../util/logging/getLoadStatsPerTopLevelComponent';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 
 function mapStateToProps(state) {
@@ -49,18 +48,15 @@ function mapStateToProps(state) {
     dashboardState,
     charts,
     datasources,
-    // filters prop: All the filter_box's state in this dashboard
+    // filters prop: a map structure for all the active filter_box's values and scope in this dashboard,
+    // for each filter field. map key is [chartId_column]
     // When dashboard is first loaded into browser,
     // its value is from preselect_filters that dashboard owner saved in dashboard's meta data
     // When user start interacting with dashboard, it will be user picked values from all filter_box
-    filters: getActiveFilters(),
+    activeFilters: getActiveFilters(),
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,
-    loadStats: getLoadStatsPerTopLevelComponent({
-      layout: dashboardLayout.present,
-      chartQueries: charts,
-    }),
   };
 }
 

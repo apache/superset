@@ -64,13 +64,21 @@ that belong to the MAJOR.MINOR version.
 The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
 Then (if needed) apply all cherries that will make the PATCH
 
+Next update the `CHANGELOG.md` with all the changes that are included in the release. Make sure you have
+set your GITHUB_TOKEN environment variable.
+
+```bash
+# will overwrites the local CHANGELOG.md, somehow you need to merge it in
+github-changes -o apache -r incubator-superset --token $GITHUB_TOKEN --between-tags <PREVIOUS_RELEASE_TAG>...<CURRENT_RELEASE_TAG>
+```
+
 Finally bump the version number on `superset/static/assets/package.json`:
 
 ```json
     "version": "0.34.1"
 ```
 
-Commit the change with the version number, then git tag the version with the release candidate and push
+Commit the change with the version number, then git tag the version with the release candidate and push to the branch
 
 ## Setting up the release environment (do every time)
 
@@ -79,74 +87,58 @@ often stretching over several weeks calendar time if votes don't pass, chances a
 the same terminal session won't be used for crafting the release candidate and the
 final release. Therefore, it's a good idea to do the following every time you
 work on a new phase of the release process to make sure you aren't releasing
-the wrong files/using wrong names:
+the wrong files/using wrong names. There's a script to help you set correctly all the
+necessary environment variables. Change you current directory to `superset/RELEASING`
 
 ```bash
-    # Set SUPERSET_VERSION to the release being prepared, e.g. 0.34.1.
-    export SUPERSET_VERSION=XX.YY.ZZ
-    # Set RC to the release candindate number. Replacing QQ below with 1
-    # indicates rc1 i.e. first vote on version above (0.34.1rc1)
-    export SUPERSET_RC=QQ
+    # usage: set_release_env.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
+    . ./set_release_env.sh XX.YY.ZZ QQ "YOUR PGP KEY NAME"
 ```
 
-Then you can generate other derived environment variables that are used
-throughout the release process:
+The script will output the exported variables, for example for 0.34.1 RC1:
 
-```bash
-    # Replace SUPERSET_PGP_FULLNAME with your PGP key name for Apache
-    export SUPERSET_PGP_FULLNAME="YOURFULLNAMEHERE"
-    export SUPERSET_VERSION_RC=${SUPERSET_VERSION}rc${SUPERSET_RC}
-    export SUPERSET_RELEASE=apache-superset-incubating-${SUPERSET_VERSION}
-    export SUPERSET_RELEASE_RC=apache-superset-incubating-${SUPERSET_VERSION_RC}
-    export SUPERSET_RELEASE_TARBALL=${SUPERSET_RELEASE}-source.tar.gz
-    export SUPERSET_RELEASE_RC_TARBALL=${SUPERSET_RELEASE_RC}-source.tar.gz
+```
+    -------------------------------
+    Set Release env variables
+    SUPERSET_VERSION=0.34.1
+    SUPERSET_RC=1
+    SUPERSET_PGP_FULLNAME=You PGP Key Name
+    SUPERSET_VERSION_RC=0.34.1rc1
+    SUPERSET_RELEASE=apache-superset-incubating-0.34.1
+    SUPERSET_RELEASE_RC=apache-superset-incubating-0.34.1rc1
+    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.34.1-source.tar.gz
+    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.34.1rc1-source.tar.gz
+    -------------------------------
 ```
 
 ## Preparing the release candidate
 
 The first step of preparing an Apache Release is packaging a release candidate
-to be voted on. Start by going to the root of the repo and making sure the
-prerequisites are in order:
+to be voted on. Make sure you have correctly prepared and tagged the ready to ship
+release on Superset's repo (MAJOR.MINOR branch), the following script will clone 
+the tag and create a signed source tarball from it:
 
 ```bash
-    # Go to the root directory of the repo, e.g. `~/src/incubator-superset`
-    cd ~/src/incubator-superset/
-    export SUPERSET_REPO_DIR=$(pwd)
-    # make sure you're on the correct branch (e.g. 0.34)
-    git branch
+    # make_tarball you use the previouly set environment variables
+    # you can override by passing arguments: make_tarball.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
+    ./make_tarball.sh
 ```
 
-Make sure the version number under `superset/assets/package.json` corresponds
-to `SUPERSET_VERSION` above (`0.34.1` in example above), and has been committed to the
-branch.
+Note that `make_tarball.sh`:
 
+- By default assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`. 
+This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory 
+- Will refuse to craft a new release candidate if a release already exists on your local svn dev directory
+- Will check `package.json` version number and fails if it's not correctly set
+
+### Build and test the created source tarball
+
+To build and run the just created tarball 
 ```bash
-    grep ${SUPERSET_VERSION} superset/assets/package.json
-```
-
-If nothing shows up, either the version isn't correctly set in `package.json`,
-or the environment variable is misconfigured.
-
-### Crafting tarball and signatures
-
-Now let's craft a source release
-```bash
-    # Let's create a git tag
-    git tag -f ${SUPERSET_VERSION_RC}
-
-    # Create the target folder
-    mkdir -p ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
-    git archive \
-        --format=tar.gz ${SUPERSET_VERSION_RC} \
-        --prefix="${SUPERSET_RELEASE_RC}/" \
-        -o ~/svn/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
-
-    cd ~/svn/superset_dev/${SUPERSET_VERSION_RC}/
-    ${SUPERSET_REPO_DIR}/scripts/sign.sh "${SUPERSET_RELEASE_RC_TARBALL}" "${SUPERSET_PGP_FULLNAME}"
-
-    # To verify to signature
-    gpg --verify "${SUPERSET_RELEASE_RC_TARBALL}".asc "${SUPERSET_RELEASE_RC_TARBALL}"
-
+    # Build and run a release candidate tarball
+    ./test_run_tarball.sh local
+    # you should be able to access localhost:5001 on your browser
+    # login using admin/admin
 ```
 
 ### Shipping to SVN
@@ -159,14 +151,14 @@ Now let's ship this RC into svn's dev folder
     svn commit -m "Release ${SUPERSET_VERSION_RC}"
 ```
 
-### Build and test from source tarball
+### Build and test from SVN source tarball
 
 To make a working build given a tarball
 ```bash
-# Build and run a release candidate tarball
-./test_run_tarball.sh
-# you should be able to access localhost:5001 on your browser
-# login using admin/admin
+    # Build and run a release candidate tarball
+    ./test_run_tarball.sh
+    # you should be able to access localhost:5001 on your browser
+    # login using admin/admin
 ```
 
 ### Voting
