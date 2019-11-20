@@ -17,6 +17,7 @@
 """Unit tests for Superset"""
 import json
 import unittest
+from random import random
 
 from flask import escape
 from sqlalchemy import func
@@ -399,16 +400,19 @@ class DashboardTests(SupersetTestCase):
 
         self.grant_public_access_to_table(table)
 
+        hidden_dash_slug = f"hidden_dash_{random()}"
+        published_dash_slug = f"published_dash_{random()}"
+
         # Create a published and hidden dashboard and add them to the database
         published_dash = models.Dashboard()
         published_dash.dashboard_title = "Published Dashboard"
-        published_dash.slug = "published_dash"
+        published_dash.slug = published_dash_slug
         published_dash.slices = [slice]
         published_dash.published = True
 
         hidden_dash = models.Dashboard()
         hidden_dash.dashboard_title = "Hidden Dashboard"
-        hidden_dash.slug = "hidden_dash"
+        hidden_dash.slug = hidden_dash_slug
         hidden_dash.slices = [slice]
         hidden_dash.published = False
 
@@ -417,22 +421,24 @@ class DashboardTests(SupersetTestCase):
         db.session.commit()
 
         resp = self.get_resp("/dashboard/list/")
-        self.assertNotIn("/superset/dashboard/hidden_dash/", resp)
-        self.assertIn("/superset/dashboard/published_dash/", resp)
+        self.assertNotIn(f"/superset/dashboard/{hidden_dash_slug}/", resp)
+        self.assertIn(f"/superset/dashboard/{published_dash_slug}/", resp)
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")
+        my_dash_slug = f"my_dash_{random()}"
+        not_my_dash_slug = f"not_my_dash_{random()}"
 
         # Create one dashboard I own and another that I don't
         dash = models.Dashboard()
         dash.dashboard_title = "My Dashboard"
-        dash.slug = "my_dash"
+        dash.slug = my_dash_slug
         dash.owners = [user]
         dash.slices = []
 
         hidden_dash = models.Dashboard()
         hidden_dash.dashboard_title = "Not My Dashboard"
-        hidden_dash.slug = "not_my_dash"
+        hidden_dash.slug = not_my_dash_slug
         hidden_dash.slices = []
         hidden_dash.owners = []
 
@@ -443,29 +449,27 @@ class DashboardTests(SupersetTestCase):
         self.login(user.username)
 
         resp = self.get_resp("/dashboard/list/")
-        self.assertIn("/superset/dashboard/my_dash/", resp)
-        self.assertNotIn("/superset/dashboard/not_my_dash/", resp)
+        self.assertIn(f"/superset/dashboard/{my_dash_slug}/", resp)
+        self.assertNotIn(f"/superset/dashboard/{not_my_dash_slug}/", resp)
 
     def test_users_can_view_favorited_dashboards(self):
         user = security_manager.find_user("gamma")
+        fav_dash_slug = f"my_favorite_dash_{random()}"
+        regular_dash_slug = f"regular_dash_{random()}"
 
         favorite_dash = models.Dashboard()
         favorite_dash.dashboard_title = "My Favorite Dashboard"
-        favorite_dash.slug = "my_favorite_dash"
+        favorite_dash.slug = fav_dash_slug
 
         regular_dash = models.Dashboard()
         regular_dash.dashboard_title = "A Plain Ol Dashboard"
-        regular_dash.slug = "regular_dash"
+        regular_dash.slug = regular_dash_slug
 
         db.session.merge(favorite_dash)
         db.session.merge(regular_dash)
         db.session.commit()
 
-        dash = (
-            db.session.query(models.Dashboard)
-            .filter_by(slug="my_favorite_dash")
-            .first()
-        )
+        dash = db.session.query(models.Dashboard).filter_by(slug=fav_dash_slug).first()
 
         favorites = models.FavStar()
         favorites.obj_id = dash.id
@@ -478,12 +482,12 @@ class DashboardTests(SupersetTestCase):
         self.login(user.username)
 
         resp = self.get_resp("/dashboard/list/")
-        self.assertIn("/superset/dashboard/my_favorite_dash/", resp)
+        self.assertIn(f"/superset/dashboard/{fav_dash_slug}/", resp)
 
     def test_user_can_not_view_unpublished_dash(self):
         admin_user = security_manager.find_user("admin")
         gamma_user = security_manager.find_user("gamma")
-        slug = "admin_owned_unpublished_dash"
+        slug = f"admin_owned_unpublished_dash_{random()}"
 
         # Create a dashboard owned by admin and unpublished
         dash = models.Dashboard()

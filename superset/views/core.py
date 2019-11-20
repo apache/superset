@@ -686,7 +686,9 @@ class KV(BaseSupersetView):
     def get_value(self, key_id):
         kv = None
         try:
-            kv = db.session.query(models.KeyValue).filter_by(id=key_id).one()
+            kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()
+            if not kv:
+                return Response(status=404, content_type="text/plain")
         except Exception as e:
             return json_error_response(e)
         return Response(kv.value, status=200, content_type="text/plain")
@@ -735,6 +737,8 @@ appbuilder.add_view_no_menu(R)
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
+
+    logger = logging.getLogger(__name__)
 
     @has_access_api
     @expose("/datasources/")
@@ -2059,6 +2063,7 @@ class Superset(BaseSupersetView):
                 )
                 obj.get_json()
             except Exception as e:
+                self.logger.exception("Failed to warm up cache")
                 return json_error_response(utils.error_msg_from_exception(e))
         return json_success(
             json.dumps(
