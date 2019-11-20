@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import "../../stylesheets/less/variables.less";
+
 .scrollbar-container {
   position: relative;
   overflow: hidden;
@@ -190,18 +192,18 @@
 }
 
 .adhoc-filter-sql-editor {
-  border: rgb(187, 187, 187) solid thin;
+  border: @gray-light solid thin;
 }
 
 .label-default {
-  background-color: #808e95;
+  background-color: @gray;
   font-weight: normal;
 }
 
 .btn.label-btn {
-  background-color: #808e95;
+  background-color: @gray;
   font-weight: normal;
-  color: #fff;
+  color: @lightest;
   padding: 5px 4px 4px;
   border: 0;
 }
@@ -215,8 +217,8 @@
 
 .label-btn:hover,
 .label-btn-label:hover {
-  background-color: #667177;
-  color: #fff;
+  background-color: @gray-dark;
+  color: @lightest;
 }
 
 .label-btn-label {
@@ -242,7 +244,7 @@
 }
 
 .custom-sql-disabled-message {
-  color: gray;
+  color: @gray;
   font-size: 11px;
   text-align: center;
   margin-top: 60px;

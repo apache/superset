@@ -50,12 +50,12 @@
     overflow: hidden;
     width: @builder-pane-width;
     height: 100%;
-    box-shadow: -4px 0 4px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: -4px 0 4px 0 fade(@darkest, @opacity-light);
   }
 
   .slider-container {
     position: absolute;
-    background: white;
+    background: @lightest;
     width: @builder-pane-width * 2;
     height: 100vh;
     display: flex;
@@ -97,7 +97,7 @@
       margin: 0 16px 16px 16px;
       position: relative;
       cursor: move;
-      background: rgba(255, 255, 255, 0.4);
+      background: fade(@lightest, @opacity-medium-light);
 
       &:hover {
         background: @gray-bg;
@@ -132,7 +132,7 @@
 
     .is-added-label {
       background: @almost-black;
-      color: white;
+      color: @lightest;
       font-size: 12px;
       line-height: 1em;
       text-transform: uppercase;
