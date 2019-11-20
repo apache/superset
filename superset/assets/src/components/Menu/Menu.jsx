@@ -50,7 +50,7 @@ const propTypes = {
 export default function Menu({ data: { menu, brand, navbar_right: navbarRight } }) {
   return (
     <header className="top">
-      <Navbar inverse fluid staticTop role="navigation">
+      <Navbar inverse fluid staticTop role="navigation" id="main-menu">
         <Navbar.Header>
           <Navbar.Brand>
             <a className="navbar-brand" href={brand.path}>
