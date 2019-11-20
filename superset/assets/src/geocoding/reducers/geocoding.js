@@ -16,6 +16,61 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function geocodingReducer(state = {}) {
+import * as actions from '../actions/geocoding';
+
+export default function geocodingReducer(state = {}, action) {
+  if (action.type === actions.GET_COLUMNS_FOR_TABLE_SUCCESS) {
+    return Object.assign({}, state, {
+      columnList: action.columnList,
+    });
+  }
+  if (action.type === actions.GET_COLUMNS_FOR_TABLE_FAILURE) {
+    return Object.assign({}, state, {
+      errorStatus: {
+        message: action.message, timestamp: Date.now(),
+      },
+    });
+  }
+  if (action.type === actions.GEOCODE_PROGRESS_SUCCESS) {
+    return Object.assign({}, state, {
+      progress: action.progress,
+    });
+  }
+  if (action.type === actions.GEOCODE_PROGRESS_FAILURE) {
+    return Object.assign({}, state, {
+      errorStatus: {
+        message: action.message, timestamp: Date.now(),
+      },
+    });
+  }
+  if (action.type === actions.GEOCODE_SUCCESS) {
+    return Object.assign({}, state, {
+      infoStatus: {
+        message: 'Geocoding successfully ended.', timestamp: Date.now(),
+      },
+    });
+  }
+  if (action.type === actions.GEOCODE_FAILURE) {
+    return Object.assign({}, state, {
+      errorStatus: {
+        message: action.message, timestamp: Date.now(),
+      },
+    });
+  }
+  if (action.type === actions.GEOCODE_INTERRUPT_SUCCESS) {
+    return Object.assign({}, state, {
+      infoStatus: {
+        message: 'Geocoding successfully interrupted.', timestamp: Date.now(),
+      },
+    });
+  }
+  if (action.type === actions.GEOCODE_INTERRUPT_FAILURE) {
+    return Object.assign({}, state, {
+      errorStatus: {
+        message: action.message, timestamp: Date.now(),
+      },
+    });
+  }
+
   return state;
 }

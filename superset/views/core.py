@@ -17,6 +17,7 @@
 # pylint: disable=C,R,W
 import logging
 import re
+import time
 from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
@@ -26,6 +27,7 @@ import backoff
 import msgpack
 import pandas as pd
 import pyarrow as pa
+import requests
 import simplejson as json
 from flask import (
     abort,
@@ -85,6 +87,7 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
+from superset.utils.geocoding_utils import GeoCoder
 
 from .base import (
     api,
@@ -3052,12 +3055,17 @@ class Superset(BaseSupersetView):
                 stacktrace=utils.get_stacktrace(),
             )
 
+    # Variables for geocoding
+    interruptflag = False
+    coder = GeoCoder(conf)
+
     @has_access
     @expose("/geocoding")
     def geocoding(self):
-        # TODO Get all tables
-
-        bootstrap_data = {"tables": [], "common": self.common_bootstrap_payload()}
+        bootstrap_data = {
+            "tables": self._get_editable_tables(),
+            "common": self.common_bootstrap_payload(),
+        }
 
         if request.args.get("json") == "true":
             return json_success(
@@ -3092,11 +3100,15 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose("/geocoding/geocode", methods=["GET"])
+    @expose("/geocoding/geocode", methods=["POST"])
     def geocode(self) -> Response:
-        # columns = [address_column, city_column, country_column]
-        # self._load_data_from_columns(columns)
-        return json_success("")
+        # TODO this has to be removed and replaced with a call to the get_data_from_table method
+        try:
+            dat = self._geocode(request.data)
+            # TODO enrichted data has to be written into database
+            return json_success(json.dumps(dat))
+        except Exception as e:
+            return json_error_response(e.args)
 
     def _get_editable_tables(self):
         """ Get tables which are allowed to create columns (allow dml on their database) """
@@ -3109,6 +3121,9 @@ class Superset(BaseSupersetView):
             ):
                 tables.append(models.TableDto(table.id, table.name, table.database_id))
         return tables
+
+    def _check_table_config(self, tableName: str):
+        pass
 
     def _load_data_from_columns(self, table_name, columns):
         """
@@ -3125,8 +3140,18 @@ class Superset(BaseSupersetView):
     def _get_mapbox_key(self):
         return conf["MAPBOX_API_KEY"]
 
-    def _geocode(self, data):
-        pass
+    def _geocode(self, data, dev=False):
+        """
+        internal method which starts the geocoding
+        :param data: the data to be geocoded
+        :param dev: Whether to Mock the geocoding process for testing purposes
+        :return: a dictionary containing the data and the corresponding long,lat values
+        """
+        # TODO replace mock-method with mock-geocoder
+        if dev:
+            return self.coder.geocode("", data)
+        else:
+            return self.coder.geocode("MapTiler", data)
 
     def _add_lat_lon_columns(self, table_name: str, lat_column: str, lon_column: str):
         """
@@ -3228,20 +3253,22 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose("/geocoding/is_in_progress", methods=["GET"])
-    def is_in_progress(self) -> Response:
-        return json_success("")
-
-    @api
-    @has_access_api
     @expose("/geocoding/progress", methods=["GET"])
     def progress(self) -> Response:
-        return json_success("")
+        """
+        Method to check the progress of the geocoding task
+        :return: GeoCoding Object
+        """
+        return json_success(
+            json.dumps(self.coder.progress, default=lambda x: x.__dict__)
+        )
 
     @api
     @has_access_api
     @expose("/geocoding/interrupt", methods=["POST"])
     def interrupt(self) -> Response:
+        """ Used for interrupting the geocoding process """
+        self.coder.interruptflag = True
         return json_success("")
 
 

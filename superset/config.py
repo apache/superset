@@ -383,7 +383,8 @@ BACKUP_COUNT = 30
 QUERY_LOGGER = None
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
+MAPBOX_API_KEY = "pk.eyJ1Ijoic2xveXBvZyIsImEiOiJjazJ2dGh4dzQwODJoM2VwZzl2bDY2cmp0In0.M4mwyiyDjW29VWTfhuC0yg"
+MAPTILER_API_KEY = "aKHAVgbTkofeov55g9YX"
 
 # Maximum number of rows returned from a database
 # in async mode, no more than SQL_MAX_ROW will be returned and stored
@@ -458,6 +459,9 @@ HTTP_HEADERS: Dict[str, Any] = {}
 
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
+
+# Timeout for geocoding
+GEOCODING_ASYNC_TIMEOUT = 3600
 
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = 30

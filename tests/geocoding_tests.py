@@ -27,6 +27,8 @@ from .base_tests import SupersetTestCase
 
 
 class GeocodingTests(SupersetTestCase):
+    superset = views.Superset()
+
     def __init__(self, *args, **kwargs):
         super(GeocodingTests, self).__init__(*args, **kwargs)
 
