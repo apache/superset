@@ -23,7 +23,7 @@
 
   .dashboard-builder-sidepane-header {
     font-size: 15px;
-    font-weight: 700;
+    font-weight: @font-weight-bold;
     border-top: 1px solid @gray-light;
     border-bottom: 1px solid @gray-light;
     padding: 16px;
@@ -92,7 +92,7 @@
   .chart-card-container {
     .chart-card {
       border: 1px solid @gray-light;
-      font-weight: 200;
+      font-weight: @font-weight-light;
       padding: 16px;
       margin: 0 16px 16px 16px;
       position: relative;
@@ -107,7 +107,7 @@
     .card-title {
       margin-right: 60px;
       margin-bottom: 8px;
-      font-weight: 800;
+      font-weight: @font-weight-bold;
     }
 
     .card-body {
@@ -119,7 +119,7 @@
           word-break: break-all;
 
           &:first-child {
-            font-weight: 400;
+            font-weight: @font-weight-normal;
           }
         }
       }
