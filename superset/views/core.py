@@ -3103,23 +3103,30 @@ class Superset(BaseSupersetView):
     @expose("/geocoding/geocode", methods=["POST"])
     def geocode(self) -> Response:
         table_name = request.get("datasource", "")
-        columns = [request.form["streetColumn"], request.form["cityColumn"], request.form["countryColumn"]]
+        columns = [
+            request.form["streetColumn"],
+            request.form["cityColumn"],
+            request.form["countryColumn"],
+        ]
         lat_column = request.get("latitudeColumnName", "lat")
         lon_column = request.get("longitudeColumnName", "lon")
-
-        self._load_data_from_columns(table_name, columns)
 
         try:
             self._add_lat_lon_columns(table_name, lat_column, lon_column)
         except ValueError as e:
             return json_error_response(e.args[0], status=400)
-        except Exception as e:
-            message = "Error happens while create new columns for latitude and longitude"
+        except Exception:
+            message = (
+                "An error occured while creating new columns for latitude and longitude"
+            )
             return json_error_response(message, status=500)
 
+        data = self._load_data_from_columns(table_name, columns)
         try:
-            data = self._geocode(request.data)
-            self._insert_geocoded_data(table_name, lat_column, lon_column, columns, data)
+            data = self._geocode(data)
+            self._insert_geocoded_data(
+                table_name, lat_column, lon_column, columns, data
+            )
             return json_success(json.dumps(data))
         except Exception as e:
             return json_error_response(e.args[0])
