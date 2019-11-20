@@ -1,3 +1,37 @@
+## [0.11.9](https://github.com/apache-superset/superset-ui-plugins/compare/v0.11.8...v0.11.9) (2019-11-20)
+
+
+### Bug Fixes
+
+* **plugin-chart-word-cloud:** minor wordcloud update ([73e09f6](https://github.com/apache-superset/superset-ui-plugins/commit/73e09f62ec5edede80d4681707481009c81d6fb2))
+* **legacy-plugin-chart-horizon:** horizon chart should scroll when overflowing ([#180](https://github.com/apache-superset/superset-ui-plugins/issues/180)) ([8a5e84a](https://github.com/apache-superset/superset-ui-plugins/commit/8a5e84a06341c5e2af754689e1899a9040619302))
+
+
+### Features
+
+* **plugin-chart-word-cloud:** convert word cloud to use encodable ([#258](https://github.com/apache-superset/superset-ui-plugins/issues/258)) ([9b14285](https://github.com/apache-superset/superset-ui-plugins/commit/9b142855bc459196ed9b97ddc523755c3ac8a9e6))
+* **legacy-plugin-chart-country-map:** add Liechtenstein to country map chart ([#263](https://github.com/apache-superset/superset-ui-plugins/issues/263)) ([61ab1a2](https://github.com/apache-superset/superset-ui-plugins/commit/61ab1a273cb4cc0cadcfd1b74835167efe45f121))
+
+
+
+## [0.11.8](https://github.com/apache-superset/superset-ui-plugins/compare/v0.11.7...v0.11.8) (2019-11-20)
+
+
+### Features
+
+* **legacy-plugin-chart-country-map:** add Switzerland to country map chart ([#260](https://github.com/apache-superset/superset-ui-plugins/issues/260)) ([2fded8a](https://github.com/apache-superset/superset-ui-plugins/commit/2fded8a07fb03ba9ac56502d374375b7bb58adf1))
+
+
+
+## [0.11.7](https://github.com/apache-superset/superset-ui-plugins/compare/v0.11.6...v0.11.7) (2019-11-15)
+
+
+### Bug Fixes
+
+* **table:** fix rendering boolean ([#256](https://github.com/apache-superset/superset-ui-plugins/issues/256)) ([05e1cae](https://github.com/apache-superset/superset-ui-plugins/commit/05e1caebe6e01e2743e3e6b8f2177893b3e1f1c6))
+
+
+
 ## [0.11.6](https://github.com/apache-superset/superset-ui-plugins/compare/v0.11.5...v0.11.6) (2019-11-13)
 
 
@@ -8,8 +42,8 @@
 
 ### Features
 
-* add india to country_map visualization ([#182](https://github.com/apache-superset/superset-ui-plugins/issues/182)) ([9d5b1c3](https://github.com/apache-superset/superset-ui-plugins/commit/9d5b1c376e661db6d66c5381408cdc8c2d216770))
-* improve table performance ([#246](https://github.com/apache-superset/superset-ui-plugins/issues/246)) ([bc46902](https://github.com/apache-superset/superset-ui-plugins/commit/bc469029468858b011d34e6df5078f12a4b39782))
+* **legacy-plugin-chart-country-map:** add india to country_map visualization ([#182](https://github.com/apache-superset/superset-ui-plugins/issues/182)) ([9d5b1c3](https://github.com/apache-superset/superset-ui-plugins/commit/9d5b1c376e661db6d66c5381408cdc8c2d216770))
+* **table:** improve table performance ([#246](https://github.com/apache-superset/superset-ui-plugins/issues/246)) ([bc46902](https://github.com/apache-superset/superset-ui-plugins/commit/bc469029468858b011d34e6df5078f12a4b39782))
 
 
 
