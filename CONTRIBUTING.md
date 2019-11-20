@@ -925,6 +925,14 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 The `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of either metric names or the JSON representation of the `AdhocMetric` JavaScript type. The `adhoc_filters` is composed of the JSON represent of the `AdhocFilter` JavaScript type (which can comprise of columns or metrics depending on whether it is a WHERE or HAVING clause). The `all_columns`, `all_columns_x`, `columns`, `groupby`, and `order_by_cols` fields all represent column names. 
 
+### Filters Configuration
+
+| Field            | Type          | Notes                             |
+|------------------|---------------|-----------------------------------|
+| `filter_configs` | array(object) | The filter-box **Filters** widget |
+
+The filter-box configuration references column names (via the `column` key) and optionally metric names (via the `metric` key) if sorting is defined. 
+
 ### Options
 
 | Field                  | Type      | Notes                                |
@@ -1031,7 +1039,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `extruded`                      | *N/A* |       |
 | `fill_color_picker`             | *N/A* |       |
 | `filled`                        | *N/A* |       |
-| `filter_configs`                | *N/A* |       |
 | `filter_immune_slice_fields`    | *N/A* |       |
 | `filter_immune_slices`          | *N/A* |       |
 | `filter_nulls`                  | *N/A* |       |
