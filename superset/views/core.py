@@ -3080,57 +3080,6 @@ class Superset(BaseSupersetView):
             bootstrap_data=json.dumps(bootstrap_data, default=lambda x: x.__dict__),
         )
 
-    @api
-    @has_access_api
-    @expose("/geocoding/columns", methods=["POST"])
-    def columns(self) -> str:
-        """ Get all column names from given table name """
-        column_names = []
-        table_name = request.json.get("tableName")
-        table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
-        if table:
-            for column in table.columns:
-                column_names.append(column.column_name)
-        else:
-            return json_error_response(
-                "No table found with name {0}".format(table_name), status=400
-            )
-
-        return json.dumps(column_names)
-
-    @api
-    @has_access_api
-    @expose("/geocoding/geocode", methods=["POST"])
-    def geocode(self) -> Response:
-        table_name = request.get("datasource", "")
-        columns = [
-            request.form["streetColumn"],
-            request.form["cityColumn"],
-            request.form["countryColumn"],
-        ]
-        lat_column = request.get("latitudeColumnName", "lat")
-        lon_column = request.get("longitudeColumnName", "lon")
-
-        try:
-            self._add_lat_lon_columns(table_name, lat_column, lon_column)
-        except ValueError as e:
-            return json_error_response(e.args[0], status=400)
-        except Exception:
-            message = (
-                "An error occured while creating new columns for latitude and longitude"
-            )
-            return json_error_response(message, status=500)
-
-        data = self._load_data_from_columns(table_name, columns)
-        try:
-            data = self._geocode(data)
-            self._insert_geocoded_data(
-                table_name, lat_column, lon_column, columns, data
-            )
-            return json_success(json.dumps(data))
-        except Exception as e:
-            return json_error_response(e.args[0])
-
     def _get_editable_tables(self):
         """ Get tables which are allowed to create columns (allow dml on their database) """
         tables = []
@@ -3143,6 +3092,88 @@ class Superset(BaseSupersetView):
                 tables.append(models.TableDto(table.id, table.name, table.database_id))
         return tables
 
+    @api
+    @has_access_api
+    @expose("/geocoding/columns", methods=["POST"])
+    def columns(self) -> str:
+        """ Get all column names from given table name """
+        table_name = request.json.get("tableName", "")
+
+        columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
+        if columns:
+            column_names = [column["name"] for column in columns]
+        else:
+            return json_error_response(
+                "No columns found for table with name {0}".format(table_name),
+                status=400,
+            )
+
+        return json.dumps(column_names)
+
+    @api
+    @has_access_api
+    @expose("/geocoding/geocode", methods=["POST"])
+    def geocode(self) -> Response:
+        table_name = request.json.get("datasource", "")
+        columns = [
+            request.json.get("streetColumn"),
+            request.json.get("cityColumn"),
+            request.json.get("countryColumn"),
+        ]
+        lat_column = request.json.get("latitudeColumnName", "lat")
+        lon_column = request.json.get("longitudeColumnName", "lon")
+        override_if_exist = request.json.get("overwriteIfExists", False)
+        save_on_stop_geocodeing = request.json.get("saveOnErrorOrInterrupt", True)
+        data = [()]
+
+        try:
+            if not override_if_exist and self._does_column_name_exist(
+                table_name, lat_column
+            ):
+                raise ValueError(
+                    "Column name {0} for latitude is already in use".format(lat_column)
+                )
+            if not override_if_exist and self._does_column_name_exist(
+                table_name, lon_column
+            ):
+                raise ValueError(
+                    "Column name {0} for longitude is already in use".format(lon_column)
+                )
+
+            data = self._load_data_from_columns(table_name, columns)
+        except ValueError as e:
+            return json_error_response(e.args[0], status=400)
+        except Exception as e:
+            return json_error_response(e.args[0], status=500)
+
+        try:
+            data = self._geocode(data)
+        except Exception as e:
+            if not save_on_stop_geocodeing:
+                return json_error_response(e.args[0])
+
+        try:
+            self._add_lat_lon_columns(table_name, lat_column, lon_column)
+            self._insert_geocoded_data(
+                table_name, lat_column, lon_column, columns, data
+            )
+        except Exception as e:
+            return json_error_response(e.args[0], status=500)
+
+        return json_success(json.dumps(data))
+
+    def _does_column_name_exist(self, table_name: str, column_name: str):
+        """
+        Check if column name already exists in table
+
+        :param table_name: The table name of table to check
+        :param column_name: The name of column to check
+        :return true if column name exists in table
+        """
+        columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
+        column_names = [column["name"] for column in columns]
+        return column_name in column_names
+
     def _load_data_from_columns(self, table_name, columns):
         """
         Get data from columns form table
@@ -3150,15 +3181,19 @@ class Superset(BaseSupersetView):
         :param columns: The names of columns to select
         :return: The data from columns from given table as list of tuples
         """
-        selected_columns = ", ".join(filter(None, columns))
-        sql = "SELECT " + selected_columns + " FROM %s" % table_name
-        result = db.engine.connect().execute(sql)
-        return [row for row in result]
+        try:
+            selected_columns = ", ".join(filter(None, columns))
+            sql = "SELECT " + selected_columns + " FROM %s" % table_name
+            result = db.engine.connect().execute(sql)
+            return [row for row in result]
+        except Exception:
+            raise Exception(
+                "An error occured while getting address data from columns %s".format(
+                    selected_columns
+                )
+            )
 
-    def _get_mapbox_key(self):
-        return conf["MAPBOX_API_KEY"]
-
-    def _geocode(self, data, dev=False):
+    def _geocode(self, data, dev=True):
         """
         internal method which starts the geocoding
         :param data: the data to be geocoded
@@ -3179,36 +3214,17 @@ class Superset(BaseSupersetView):
         :param lat_column: The name of latitude column
         :param lon_column: The name of longitude column
         """
-
-        if self._does_column_name_exist(table_name, lat_column):
-            raise ValueError(
-                "Column name {0} for latitude is already in use".format(lat_column)
-            )
-        if self._does_column_name_exist(table_name, lon_column):
-            raise ValueError(
-                "Column name {0} for longitude is already in use".format(lon_column)
-            )
         connection = db.engine.connect()
         transaction = connection.begin()
         try:
             self._add_column(connection, table_name, lat_column, Float())
             self._add_column(connection, table_name, lon_column, Float())
             transaction.commit()
-        except Exception as e:
+        except Exception:
             transaction.rollback()
-            raise e
-
-    def _does_column_name_exist(self, table_name: str, column_name: str):
-        """
-        Check if column name already exists in table
-
-        :param table_name: The table name of table to check
-        :param column_name: The name of column to check
-        :return true if column name exists in table
-        """
-        columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
-        column_names = [column["name"] for column in columns]
-        return column_name in column_names
+            raise Exception(
+                "An error occured while creating new columns for latitude and longitude"
+            )
 
     def _add_column(
         self,
@@ -3265,9 +3281,9 @@ class Superset(BaseSupersetView):
                 where = "WHERE " + where_clause % (row[:number_of_columns])
                 connection.execute(text(update + where))
             transaction.commit()
-        except Exception as e:
+        except Exception:
             transaction.rollback()
-            raise e
+            raise Exception("An error occured while inserting geocoded addresses")
 
     @api
     @has_access_api
