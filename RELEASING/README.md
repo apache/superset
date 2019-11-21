@@ -195,7 +195,7 @@ To easily send the result email, still on the `superset/RELEASING` directory:
 
 The script will interactively ask for extra information needed to fill out the email template. Based on the
 voting description, it will generate a passing, non passing or non conclusive email. 
-here's an examples:
+here's an example:
 
 ```bash
     Sender email (ex: user@apache.org): your_apache_email@apache.org
