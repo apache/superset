@@ -117,15 +117,24 @@ div.Workspace {
   padding-top: 10px;
 }
 .sql-toolbar {
-  padding: 10px;
+  padding: 10px 10px 5px 10px;
   background-color: @gray-bg;
   display: flex;
   justify-content: space-between;
   border: 1px solid @gray-light;
   border-top: 0;
-
   form {
     margin-block-end: 0;
+  }
+  .leftItems form, .rightItems {
+    & > span {
+      margin-right: 5px;
+      margin-bottom: 5px;
+      display: inline-block;
+      &:last-child {
+        margin-right: 0;
+      }
+    }
   }
 }
 .no-shadow {
@@ -194,8 +203,14 @@ div.Workspace {
   left: 0px;
   padding: 0 10px;
 
+  .north-pane {
+    display: flex;
+    flex-direction: column;
+  }
+
   #brace-editor {
     height: calc(100% - 51px);
+    flex-grow: 1;
   }
 
   .ace_content {
