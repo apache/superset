@@ -50,7 +50,7 @@ import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
 export default function(bootstrapData) {
-  const { user_id, datasources, common, editMode } = bootstrapData;
+  const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
 
   const dashboard = { ...bootstrapData.dashboard_data };
   let preselectFilters = {};
@@ -113,11 +113,18 @@ export default function(bootstrapData) {
   dashboard.slices.forEach(slice => {
     const key = slice.slice_id;
     if (['separator', 'markup'].indexOf(slice.form_data.viz_type) === -1) {
+      const form_data = {
+        ...slice.form_data,
+        url_params: {
+          ...slice.form_data.url_params,
+          ...urlParams,
+        },
+      };
       chartQueries[key] = {
         ...chart,
         id: key,
-        form_data: slice.form_data,
-        formData: applyDefaultFormData(slice.form_data),
+        form_data,
+        formData: applyDefaultFormData(form_data),
       };
 
       slices[key] = {
