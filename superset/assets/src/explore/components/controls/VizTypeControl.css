@@ -19,7 +19,7 @@
 .viztype-label {
   margin-top: 10px;
   text-align: center;
-  font-size: 14px;
+  font-size: @font-size-m;
 }
 
 .viztype-selector-container {
