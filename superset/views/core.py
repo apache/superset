@@ -2728,7 +2728,7 @@ class Superset(BaseSupersetView):
         query_params = request.json
         return self.sql_json_exec(query_params)
 
-    def sql_json_exec(self, ):
+    def sql_json_exec(self, query_params):
         """Runs arbitrary sql and returns data as json"""
         # Collect Values
         database_id: int = query_params.get("database_id")
@@ -2913,7 +2913,7 @@ class Superset(BaseSupersetView):
     def queries(self, last_updated_ms):
         return self.queries_exec(last_updated_ms)
 
-    def queries_exec(self, last_updated_us)
+    def queries_exec(self, last_updated_us):
         """Get the updated queries."""
         stats_logger.incr("queries")
         if not g.user.get_id():
