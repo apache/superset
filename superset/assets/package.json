@@ -20,7 +20,7 @@
     "clean-css": "prettier --write src/**/*.{css,less,sass,scss}",
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true",
-    "install-cypress": "npm install cypress@3.4.1"
+    "install-cypress": "npm install cypress@3.6.1"
   },
   "repository": {
     "type": "git",
