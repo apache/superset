@@ -130,6 +130,7 @@ class BaseParameters(object):
 @click.option(
     "--apache_password",
     prompt="Apache password",
+    hide_input=True,
     help="Your LDAP Apache password",
 )
 @click.option("--version", envvar="SUPERSET_VERSION")
