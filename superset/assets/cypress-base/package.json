@@ -9,6 +9,7 @@
   "author": "Apcahe",
   "license": "Apache-2.0",
   "dependencies": {
-    "cypress": "^3.4.1"
+    "cypress": "^3.4.1",
+    "shortid": "^2.2.15"
   }
 }
