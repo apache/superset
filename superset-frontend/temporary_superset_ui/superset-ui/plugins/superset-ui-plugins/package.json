@@ -39,7 +39,7 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@superset-ui/build-config": "^0.1.6",
+    "@superset-ui/build-config": "^0.2.0",
     "@superset-ui/commit-config": "^0.0.9",
     "@superset-ui/superset-ui": "^0.12.5",
     "@types/react": "^16.8.8",
