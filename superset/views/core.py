@@ -2493,7 +2493,7 @@ class Superset(BaseSupersetView):
     def results(self, key):
         return self.results_exec(key)
 
-    def results_exec(self, key):
+    def results_exec(self, key: str):
         """Serves a key off of the results backend
 
         It is possible to pass the `rows` query argument to limit the number
@@ -2728,7 +2728,7 @@ class Superset(BaseSupersetView):
         query_params = request.json
         return self.sql_json_exec(query_params)
 
-    def sql_json_exec(self, query_params):
+    def sql_json_exec(self, query_params: dict):
         """Runs arbitrary sql and returns data as json"""
         # Collect Values
         database_id: int = query_params.get("database_id")
@@ -2744,7 +2744,7 @@ class Superset(BaseSupersetView):
                 " specified. Defaulting to empty dict"
             )
             template_params = {}
-        limit = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
+        limit: int = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
         async_flag: bool = query_params.get("runAsync")
         if limit < 0:
             logging.warning(
@@ -2911,18 +2911,20 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/queries/<last_updated_ms>")
     def queries(self, last_updated_ms):
-        return self.queries_exec(last_updated_ms)
+        """
+        Get the updated queries.
 
-    def queries_exec(self, last_updated_us):
-        """Get the updated queries."""
+        :param last_updated_ms: unix time, milliseconds
+        """
+        last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
+        return self.queries_exec(last_updated_ms_int)
+
+    def queries_exec(self, last_updated_ms_int: int):
         stats_logger.incr("queries")
         if not g.user.get_id():
             return json_error_response(
                 "Please login to access the queries.", status=403
             )
-
-        # Unix time, milliseconds.
-        last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
 
         # UTC date time, same that is stored in the DB.
         last_updated_dt = utils.EPOCH + timedelta(seconds=last_updated_ms_int / 1000)
