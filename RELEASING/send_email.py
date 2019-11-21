@@ -20,7 +20,10 @@ from typing import Dict, List
 import os
 import smtplib
 import ssl
-from string import Template
+try:
+    import jinja2
+except ModuleNotFoundError:
+    exit("Jinja2 is a required dependency for this script")
 
 SMTP_PORT = 587
 SMTP_SERVER = "mail-relay.apache.org"
@@ -28,31 +31,63 @@ PROJECT_NAME = "Superset"
 PROJECT_MODULE = "superset"
 PROJECT_DESCRIPTION = "Apache Superset (incubating) is a modern, enterprise-ready business intelligence web application"
 
+
+def string_comma_to_list(message: str) -> List[str]:
+    if message == "-":
+        return []
+    return message.split(",")
+
+
 voting_steps_info: Dict = {
     "vote_pmc": {
         "receiver_email": "danielvazgaspar@gmail.com",
-        "template": "email_templates/vote_pmc.tmpl",
-        "extra_input": {},
+        "template": "email_templates/vote_pmc.j2",
+        "extra_input": [],
+    },
+    "result_pmc": {
+        "receiver_email": "danielvazgaspar@gmail.com",
+        "template": "email_templates/result_pmc.j2",
+        "extra_input": [
+            {
+                "name": "vote_bindings",
+                "message": "A List of people with +1 binding vote (ex: Max,Grace,Krist). Use - for empty: ",
+                "formatter_func": string_comma_to_list
+            },
+            {
+                "name": "vote_nonbindings",
+                "message": "A List of people with +1 non binding vote (ex: Ville). Use - for empty: ",
+                "formatter_func": string_comma_to_list
+            },
+            {
+                "name": "vote_negatives",
+                "message": "A List of people with -1 vote (ex: John). Use - for empty: ",
+                "formatter_func": string_comma_to_list
+            },
+        ],
     },
     "vote_ipmc": {
         "receiver_email": "danielvazgaspar@gmail.com",
-        "template": "email_templates/vote_ipmc.tmpl",
+        "template": "email_templates/vote_ipmc.j2",
         "extra_input": [
-            {"name": "voting_thread", "message": "The URL for the PMC voting thread: "},
             {
-                "name": "mentors_voted",
-                "message": "A list of mentors that have already voted: ",
+                "name": "voting_thread",
+                "message": "The URL for the PMC voting thread: ",
+            },
+            {
+                "name": "vote_mentors",
+                "message": "A list of mentors that have already voted (ex: Alan,Justin). Use - for empty: ",
+                "formatter_func": string_comma_to_list
             },
         ],
     },
     "result_ipmc": {
         "receiver_email": "danielvazgaspar@gmail.com",
-        "template": "email_templates/result_ipmc.tmpl",
+        "template": "email_templates/result_ipmc.j2",
         "extra_input": {},
     },
     "announce": {
         "receiver_email": "danielvazgaspar@gmail.com",
-        "template": "email_templates/announce.tmpl",
+        "template": "email_templates/announce.j2",
         "extra_input": {},
     },
 }
@@ -95,12 +130,16 @@ def input_extra(parameters: List[Dict]) -> Dict:
     """
     Asks for dynamic extra user input
 
-    :param message: List of dicts, ex: [{"name": "input1", "message": "Write value for input1"}, ...]
+    :param parameters: List of dicts, ex:
+                    [{"name": "input1", "message": "Write value for input1"}, ...]
     :return: Dict, ex: {"input1": "some user input"}
     """
     answers = dict()
     for parameter in parameters:
-        answers[parameter["name"]] = input_required(parameter["message"])
+        if "formatter_func" in parameter:
+            answers[parameter["name"]] = parameter["formatter_func"](input_required(parameter["message"]))
+        else:
+            answers[parameter["name"]] = input_required(parameter["message"])
     return answers
 
 
@@ -112,11 +151,8 @@ def render_template(template_file: str, **kwargs) -> str:
     :kwargs: Named parameters to use when rendering the template
     :return: Rendered template
     """
-    with open(template_file) as file:
-        template_source = file.read()
-    template = Template(template_source)
-    message = template.substitute(kwargs)
-    return message
+    template = jinja2.Template(open(template_file).read())
+    return template.render(kwargs)
 
 
 # Argument parsing
@@ -124,7 +160,7 @@ parser = argparse.ArgumentParser(description="Apache voting mailer script")
 parser.add_argument(
     "-t",
     "--email_type",
-    help="The type of email to send choose from: vote_pmc, result_pmc, vote_ipmc, result_ipmc",
+    help="The type of email to send choose from: vote_pmc, result_pmc, vote_ipmc, result_ipmc, announce",
 )
 args = parser.parse_args()
 email_type: str = str(args.email_type)
@@ -143,9 +179,7 @@ if not version:
 
 # Collect all necessary template arguments
 template_arguments = dict()
-template_arguments["receiver_email"] = voting_steps_info[email_type][
-    "receiver_email"
-]
+template_arguments["receiver_email"] = voting_steps_info[email_type]["receiver_email"]
 template_arguments["project_name"] = PROJECT_NAME
 template_arguments["project_module"] = PROJECT_MODULE
 template_arguments["project_description"] = PROJECT_DESCRIPTION
@@ -157,9 +191,7 @@ template_arguments["sender_email"] = input_required(
 )
 username = input_required("Apache username: ")
 password = input_required("Apache password: ")
-template_arguments.update(
-    input_extra(voting_steps_info[email_type]["extra_input"])
-)
+template_arguments.update(input_extra(voting_steps_info[email_type]["extra_input"]))
 
 
 message = render_template(template, **template_arguments)

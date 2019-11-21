@@ -166,30 +166,54 @@ Now you're ready to start the [VOTE] thread. Here's an example of a
 previous release vote thread:
 https://lists.apache.org/thread.html/e60f080ebdda26896214f7d3d5be1ccadfab95d48fbe813252762879@<dev.superset.apache.org>
 
-To easily send a voting request to Superset community, still on the `superset/RELEASING` directory
+To easily send a voting request to Superset community, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note that this script is python3 and needs no dependencies
-    ./send_email.py -t vote_pmc
+    # Note use Superset's virtualenv 
+    (venv)$ python send_email.py -t vote_pmc
+```
+
+The script will interactively ask for extra information so it can authenticate on the Apache Email Relay.
+The release version and release candidate number are fetched from the previously set environment variables. 
+
+```bash
+    Sender email (ex: user@apache.org): your_apache_email@apache.org
+    Apache username: your_apache_user
+    Apache password: your_apache_password
 ```
 
 Once 3+ binding votes (by PMC members) have been cast and at
 least 72 hours have past, you can post a [RESULT] thread:
 https://lists.apache.org/thread.html/50a6b134d66b86b237d5d7bc89df1b567246d125a71394d78b45f9a8@%3Cdev.superset.apache.org%3E
 
-To easily send the result email, still on the `superset/RELEASING` directory
+To easily send the result email, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note that this script is python3 and needs no dependencies
-    ./send_email.py -t result_pmc
+    # Note use Superset's virtualenv 
+    (venv)$ python send_email.py -t result_pmc
+```
+
+The script will interactively ask for extra information needed to fill out the email template. Based on the
+voting description, it will generate a passing, non passing or non conclusive email. 
+here's an examples:
+
+```bash
+    Sender email (ex: user@apache.org): your_apache_email@apache.org
+    Apache username: your_apache_user
+    Apache password: your_apache_password
+    A List of people with +1 binding vote (ex: Max,Grace,Krist). Use - for empty: Daniel,Alan,Max,Grace
+    A List of people with +1 non binding vote (ex: Ville). Use - for empty: Ville
+    A List of people with -1 vote (ex: John). Use - for empty: -
 ```
 
 Following the result thread, yet another [VOTE] thread should be
 started at general@incubator.apache.org.
 
+To easily send the voting request to Apache community, still on the `superset/RELEASING` directory:
+
 ```bash
-    # Note that this script is python3 and needs no dependencies
-    ./send_email.py -t vote_ipmc
+    # Note use Superset's virtualenv 
+    (venv)$ python send_email.py -t vote_ipmc
 ```
 
 ### Announcing
@@ -197,8 +221,8 @@ started at general@incubator.apache.org.
 Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
 
 ```bash
-    # Note that this script is python3 and needs no dependencies
-    ./send_email.py -t announce
+    # Note use Superset's virtualenv 
+    (venv)$ python send_email.py -t announce
 ```
 
 ### Validating a release
