@@ -1,0 +1,14 @@
+{
+  "name": "superset-cypress",
+  "version": "1.0.0",
+  "description": "run cypress against superset",
+  "scripts": {
+    "cypress": "cypress",
+    "cypress-debug": "cypress open --config watchForFileChanges=true"
+  },
+  "author": "Apcahe",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "cypress": "^3.4.1"
+  }
+}
