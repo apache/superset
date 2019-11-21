@@ -119,19 +119,16 @@ class BaseParameters(object):
 @click.pass_context
 @click.option(
     "--apache_email",
-    required=True,
     prompt="Apache Email",
     help="Your Apache email this will be used for SMTP From",
 )
 @click.option(
     "--apache_username",
-    required=True,
     prompt="Apache username",
     help="Your LDAP Apache username",
 )
 @click.option(
     "--apache_password",
-    required=True,
     prompt="Apache password",
     help="Your LDAP Apache password",
 )
