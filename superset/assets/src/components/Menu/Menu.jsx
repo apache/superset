@@ -24,7 +24,7 @@ import MenuObject from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';
 import LanguagePicker from './LanguagePicker';
-import "./Menu.less"
+import './Menu.less';
 
 const propTypes = {
   data: PropTypes.shape({
