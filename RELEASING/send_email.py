@@ -15,15 +15,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import argparse
-from typing import Dict, List
-import os
+from typing import List
 import smtplib
 import ssl
+
 try:
     import jinja2
 except ModuleNotFoundError:
     exit("Jinja2 is a required dependency for this script")
+try:
+    import click
+except ModuleNotFoundError:
+    exit("Click is a required dependency for this script")
+
 
 SMTP_PORT = 587
 SMTP_SERVER = "mail-relay.apache.org"
@@ -33,64 +37,9 @@ PROJECT_DESCRIPTION = "Apache Superset (incubating) is a modern, enterprise-read
 
 
 def string_comma_to_list(message: str) -> List[str]:
-    if message == "-":
+    if not message:
         return []
     return message.split(",")
-
-
-voting_steps_info: Dict = {
-    "vote_pmc": {
-        "receiver_email": "danielvazgaspar@gmail.com",
-        "template": "email_templates/vote_pmc.j2",
-        "extra_input": [],
-    },
-    "result_pmc": {
-        "receiver_email": "danielvazgaspar@gmail.com",
-        "template": "email_templates/result_pmc.j2",
-        "extra_input": [
-            {
-                "name": "vote_bindings",
-                "message": "A List of people with +1 binding vote (ex: Max,Grace,Krist). Use - for empty: ",
-                "formatter_func": string_comma_to_list
-            },
-            {
-                "name": "vote_nonbindings",
-                "message": "A List of people with +1 non binding vote (ex: Ville). Use - for empty: ",
-                "formatter_func": string_comma_to_list
-            },
-            {
-                "name": "vote_negatives",
-                "message": "A List of people with -1 vote (ex: John). Use - for empty: ",
-                "formatter_func": string_comma_to_list
-            },
-        ],
-    },
-    "vote_ipmc": {
-        "receiver_email": "danielvazgaspar@gmail.com",
-        "template": "email_templates/vote_ipmc.j2",
-        "extra_input": [
-            {
-                "name": "voting_thread",
-                "message": "The URL for the PMC voting thread: ",
-            },
-            {
-                "name": "vote_mentors",
-                "message": "A list of mentors that have already voted (ex: Alan,Justin). Use - for empty: ",
-                "formatter_func": string_comma_to_list
-            },
-        ],
-    },
-    "result_ipmc": {
-        "receiver_email": "danielvazgaspar@gmail.com",
-        "template": "email_templates/result_ipmc.j2",
-        "extra_input": {},
-    },
-    "announce": {
-        "receiver_email": "danielvazgaspar@gmail.com",
-        "template": "email_templates/announce.j2",
-        "extra_input": {},
-    },
-}
 
 
 def send_email(
@@ -112,37 +61,6 @@ def send_email(
         server.sendmail(sender_email, receiver_email, message)
 
 
-def input_required(message: str) -> str:
-    """
-    Asks for required user input infinite times
-
-    :param message: The message to display when asking for user input
-    :return: User input
-    """
-    answer = input(message)
-    while not answer:
-        print("This field is required")
-        answer = input(message)
-    return answer
-
-
-def input_extra(parameters: List[Dict]) -> Dict:
-    """
-    Asks for dynamic extra user input
-
-    :param parameters: List of dicts, ex:
-                    [{"name": "input1", "message": "Write value for input1"}, ...]
-    :return: Dict, ex: {"input1": "some user input"}
-    """
-    answers = dict()
-    for parameter in parameters:
-        if "formatter_func" in parameter:
-            answers[parameter["name"]] = parameter["formatter_func"](input_required(parameter["message"]))
-        else:
-            answers[parameter["name"]] = input_required(parameter["message"])
-    return answers
-
-
 def render_template(template_file: str, **kwargs) -> str:
     """
     Simple render template based on named parameters
@@ -155,68 +73,195 @@ def render_template(template_file: str, **kwargs) -> str:
     return template.render(kwargs)
 
 
-# Argument parsing
-parser = argparse.ArgumentParser(description="Apache voting mailer script")
-parser.add_argument(
-    "-t",
-    "--email_type",
-    help="The type of email to send choose from: vote_pmc, result_pmc, vote_ipmc, result_ipmc, announce",
+def inter_send_email(username, password, sender_email, receiver_email, message):
+    print("--------------------------")
+    print("SMTP Message")
+    print("--------------------------")
+    print(message)
+    print("--------------------------")
+    confirm = input("Is the Email message ok? (yes/no): ")
+    if confirm not in ("Yes", "yes", "y"):
+        exit("Exit by user request")
+
+    try:
+        send_email(
+            SMTP_SERVER,
+            SMTP_PORT,
+            username,
+            password,
+            sender_email,
+            receiver_email,
+            message,
+        )
+        print("Email sent successfully")
+    except smtplib.SMTPAuthenticationError:
+        exit("SMTP User authentication error, Email not sent!")
+    except Exception as e:
+        exit(f"SMTP exception {e}")
+
+
+class BaseParameters(object):
+    def __init__(
+        self, email=None, username=None, password=None, version=None, version_rc=None
+    ):
+        self.email = email
+        self.username = username
+        self.password = password
+        self.version = version
+        self.version_rc = version_rc
+        self.template_arguments = dict()
+
+    def __repr__(self):
+        return f"Apache Credentials: {self.email}/{self.username}/{self.version}/{self.version_rc}"
+
+
+@click.group()
+@click.pass_context
+@click.option(
+    "--apache_email",
+    required=True,
+    prompt="Apache Email",
+    help="Your Apache email this will be used for SMTP From",
 )
-args = parser.parse_args()
-email_type: str = str(args.email_type)
-if email_type not in voting_steps_info:
-    exit("Expected required '--email_type' parameter")
-
-template = voting_steps_info[email_type]["template"]
-
-# Check for required environment variables
-version_rc = os.environ.get("SUPERSET_VERSION_RC")
-if not version_rc:
-    exit("Expected SUPERSET_VERSION_RC environment variable to be set")
-version = os.environ.get("SUPERSET_VERSION")
-if not version:
-    exit("Expected SUPERSET_VERSION environment variable to be set")
-
-# Collect all necessary template arguments
-template_arguments = dict()
-template_arguments["receiver_email"] = voting_steps_info[email_type]["receiver_email"]
-template_arguments["project_name"] = PROJECT_NAME
-template_arguments["project_module"] = PROJECT_MODULE
-template_arguments["project_description"] = PROJECT_DESCRIPTION
-template_arguments["version"] = version
-template_arguments["version_rc"] = version_rc
-# Ask for required user input
-template_arguments["sender_email"] = input_required(
-    "Sender email (ex: user@apache.org): "
+@click.option(
+    "--apache_username",
+    required=True,
+    prompt="Apache username",
+    help="Your LDAP Apache username",
 )
-username = input_required("Apache username: ")
-password = input_required("Apache password: ")
-template_arguments.update(input_extra(voting_steps_info[email_type]["extra_input"]))
+@click.option(
+    "--apache_password",
+    required=True,
+    prompt="Apache password",
+    help="Your LDAP Apache password",
+)
+@click.option("--version", envvar="SUPERSET_VERSION")
+@click.option("--version_rc", envvar="SUPERSET_VERSION_RC")
+def cli(ctx, apache_email, apache_username, apache_password, version, version_rc):
+    """ Welcome to releasing send email CLI interface!  """
+    base_parameters = BaseParameters(
+        apache_email, apache_username, apache_password, version, version_rc
+    )
+    base_parameters.template_arguments["project_name"] = PROJECT_NAME
+    base_parameters.template_arguments["project_module"] = PROJECT_MODULE
+    base_parameters.template_arguments["project_description"] = PROJECT_DESCRIPTION
+    base_parameters.template_arguments["version"] = base_parameters.version
+    base_parameters.template_arguments["version_rc"] = base_parameters.version_rc
+    base_parameters.template_arguments["sender_email"] = base_parameters.email
+    ctx.obj = base_parameters
 
 
-message = render_template(template, **template_arguments)
-
-print("--------------------------")
-print("SMTP Message")
-print("--------------------------")
-print(message)
-print("--------------------------")
-confirm = input("Is the Email message ok? (yes/no): ")
-if confirm not in ("Yes", "yes", "y"):
-    exit("Exit by user request")
-
-try:
-    send_email(
-        SMTP_SERVER,
-        SMTP_PORT,
-        username,
-        password,
-        template_arguments["sender_email"],
-        template_arguments["receiver_email"],
+@cli.command("vote_pmc")
+@click.pass_obj
+def vote_pmc(base_parameters, **kwargs):
+    template_file = "email_templates/vote_pmc.j2"
+    base_parameters.template_arguments["receiver_email"] = "danielvazgaspar@gmail.com"
+    message = render_template(template_file, **base_parameters.template_arguments)
+    inter_send_email(
+        base_parameters.username,
+        base_parameters.password,
+        base_parameters.template_arguments["sender_email"],
+        base_parameters.template_arguments["receiver_email"],
         message,
     )
-    print("Email sent successfully")
-except smtplib.SMTPAuthenticationError:
-    exit("SMTP User authentication error, Email not sent!")
-except Exception as e:
-    exit(f"SMTP exception {e}")
+
+
+@cli.command("result_pmc")
+@click.option(
+    "--vote_bindings",
+    default="",
+    type=str,
+    prompt="A List of people with +1 binding vote (ex: Max,Grace,Krist)",
+)
+@click.option(
+    "--vote_nonbindings",
+    default="",
+    type=str,
+    prompt="A List of people with +1 non binding vote (ex: Ville)",
+)
+@click.option(
+    "--vote_negatives",
+    default="",
+    type=str,
+    prompt="A List of people with -1 vote (ex: John)",
+)
+@click.pass_obj
+def result_pmc(base_parameters, vote_bindings, vote_nonbindings, vote_negatives):
+    template_file = "email_templates/result_pmc.j2"
+    base_parameters.template_arguments["receiver_email"] = "danielvazgaspar@gmail.com"
+    base_parameters.template_arguments["vote_bindings"] = string_comma_to_list(
+        vote_bindings
+    )
+    base_parameters.template_arguments["vote_nonbindings"] = string_comma_to_list(
+        vote_nonbindings
+    )
+    base_parameters.template_arguments["vote_negatives"] = string_comma_to_list(
+        vote_negatives
+    )
+    message = render_template(template_file, **base_parameters.template_arguments)
+    inter_send_email(
+        base_parameters.username,
+        base_parameters.password,
+        base_parameters.template_arguments["sender_email"],
+        base_parameters.template_arguments["receiver_email"],
+        message,
+    )
+
+
+@cli.command("vote_ipmc")
+@click.option("--voting_thread", prompt="The URL for the PMC voting thread")
+@click.option(
+    "--vote_mentors",
+    default="",
+    type=str,
+    prompt="A list of mentors that have already voted (ex: Alan,Justin)",
+)
+@click.pass_obj
+def vote_ipmc(base_parameters, voting_thread, vote_mentors):
+    template_file = "email_templates/vote_ipmc.j2"
+    base_parameters.template_arguments["receiver_email"] = "danielvazgaspar@gmail.com"
+    base_parameters.template_arguments["voting_thread"] = voting_thread
+    base_parameters.template_arguments["vote_mentors"] = string_comma_to_list(
+        vote_mentors
+    )
+    message = render_template(template_file, **base_parameters.template_arguments)
+    inter_send_email(
+        base_parameters.username,
+        base_parameters.password,
+        base_parameters.template_arguments["sender_email"],
+        base_parameters.template_arguments["receiver_email"],
+        message,
+    )
+
+
+@cli.command("result_ipmc")
+@click.pass_obj
+def result_ipmc(base_parameters):
+    template_file = "email_templates/result_ipmc.j2"
+    base_parameters.template_arguments["receiver_email"] = "danielvazgaspar@gmail.com"
+    message = render_template(template_file, **base_parameters.template_arguments)
+    inter_send_email(
+        base_parameters.username,
+        base_parameters.password,
+        base_parameters.template_arguments["sender_email"],
+        base_parameters.template_arguments["receiver_email"],
+        message,
+    )
+
+
+@cli.command("announce")
+@click.pass_obj
+def announce(base_parameters):
+    template_file = "email_templates/announce.j2"
+    base_parameters.template_arguments["receiver_email"] = "danielvazgaspar@gmail.com"
+    message = render_template(template_file, **base_parameters.template_arguments)
+    inter_send_email(
+        base_parameters.username,
+        base_parameters.password,
+        base_parameters.template_arguments["sender_email"],
+        base_parameters.template_arguments["receiver_email"],
+        message,
+    )
+
+
+cli()

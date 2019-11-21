@@ -170,7 +170,7 @@ To easily send a voting request to Superset community, still on the `superset/RE
 
 ```bash
     # Note use Superset's virtualenv 
-    (venv)$ python send_email.py -t vote_pmc
+    (venv)$ python send_email.py vote_pmc
 ```
 
 The script will interactively ask for extra information so it can authenticate on the Apache Email Relay.
@@ -190,7 +190,7 @@ To easily send the result email, still on the `superset/RELEASING` directory:
 
 ```bash
     # Note use Superset's virtualenv 
-    (venv)$ python send_email.py -t result_pmc
+    (venv)$ python send_email.py result_pmc
 ```
 
 The script will interactively ask for extra information needed to fill out the email template. Based on the
@@ -201,9 +201,9 @@ here's an examples:
     Sender email (ex: user@apache.org): your_apache_email@apache.org
     Apache username: your_apache_user
     Apache password: your_apache_password
-    A List of people with +1 binding vote (ex: Max,Grace,Krist). Use - for empty: Daniel,Alan,Max,Grace
-    A List of people with +1 non binding vote (ex: Ville). Use - for empty: Ville
-    A List of people with -1 vote (ex: John). Use - for empty: -
+    A List of people with +1 binding vote (ex: Max,Grace,Krist): Daniel,Alan,Max,Grace
+    A List of people with +1 non binding vote (ex: Ville): Ville
+    A List of people with -1 vote (ex: John):
 ```
 
 Following the result thread, yet another [VOTE] thread should be
@@ -213,7 +213,7 @@ To easily send the voting request to Apache community, still on the `superset/RE
 
 ```bash
     # Note use Superset's virtualenv 
-    (venv)$ python send_email.py -t vote_ipmc
+    (venv)$ python send_email.py vote_ipmc
 ```
 
 ### Announcing
@@ -222,7 +222,7 @@ Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mail
 
 ```bash
     # Note use Superset's virtualenv 
-    (venv)$ python send_email.py -t announce
+    (venv)$ python send_email.py announce
 ```
 
 ### Validating a release
