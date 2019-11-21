@@ -2725,8 +2725,7 @@ class Superset(BaseSupersetView):
     @expose("/sql_json/", methods=["POST"])
     @event_logger.log_this
     def sql_json(self):
-        query_params = request.json
-        return self.sql_json_exec(query_params)
+        return self.sql_json_exec(request.json)
 
     def sql_json_exec(self, query_params: dict):
         """Runs arbitrary sql and returns data as json"""
