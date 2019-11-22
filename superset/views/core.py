@@ -3064,17 +3064,26 @@ class Superset(BaseSupersetView):
             .order_by(TabState.active.desc())
             .first()
         )
-        databases = {
-            database.id: {
-                k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
+
+        databases = {}
+        queries = {}
+
+        # These are unnecessary if sqllab backend persistence is disabled
+        if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
+            databases = {
+                database.id: {
+                    k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
+                }
+                for database in db.session.query(models.Database).all()
             }
-            for database in db.session.query(models.Database).all()
-        }
-        user_queries = db.session.query(Query).filter_by(user_id=g.user.get_id()).all()
-        queries = {
-            query.client_id: {k: v for k, v in query.to_dict().items()}
-            for query in user_queries
-        }
+            user_queries = (
+                db.session.query(Query).filter_by(user_id=g.user.get_id()).all()
+            )
+            queries = {
+                query.client_id: {k: v for k, v in query.to_dict().items()}
+                for query in user_queries
+            }
+
         d = {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
             "common": self.common_bootstrap_payload(),
