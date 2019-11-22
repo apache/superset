@@ -23,6 +23,10 @@
 @import "./cosmo/bootswatch.less";
 @import "../../stylesheets/less/variables.less";
 
+html, body {
+  font-size: @font-size-base;
+  line-height: @line-height-base;
+}
 body {
   position: absolute;
   top: 0;
@@ -31,7 +35,6 @@ body {
   left: 0;
   display: flex;
   flex-direction: column;
-  font-size: @font-size-base;
 }
 
 header {
