@@ -35,7 +35,7 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 from enum import Enum
 from time import struct_time
-from typing import Iterator, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Tuple, Union
 from urllib.parse import unquote_plus
 
 import bleach
@@ -906,8 +906,16 @@ def merge_extra_filters(form_data: dict):
         del form_data["extra_filters"]
 
 
-def merge_request_params(form_data: dict, params: dict):
-    url_params = {}
+def merge_request_params(form_data: Dict[str, Any], params: Dict[str, Any]) -> None:
+    """
+    Merge request parameters to the key `url_params` in form_data. Only updates
+    or appends parameters to `form_data` that are defined in `params; pre-existing
+    parameters not defined in params are left unchanged.
+
+    :param form_data: object to be updated
+    :param params: request parameters received via query string
+    """
+    url_params = form_data.get("url_params", {})
     for key, value in params.items():
         if key in ("form_data", "r"):
             continue
@@ -1234,3 +1242,13 @@ class TimeRangeEndpoint(str, Enum):
     EXCLUSIVE = "exclusive"
     INCLUSIVE = "inclusive"
     UNKNOWN = "unknown"
+
+
+class ReservedUrlParameters(Enum):
+    """
+    Reserved URL parameters that are used internally by Superset. These will not be
+    passed to chart queries, as they control the behavior of the UI.
+    """
+
+    STANDALONE = "standalone"
+    EDIT_MODE = "edit"
