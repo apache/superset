@@ -150,10 +150,16 @@ def cli(ctx, apache_email, apache_username, apache_password, version, version_rc
 
 
 @cli.command("vote_pmc")
+@click.option(
+    "--receiver_email",
+    default="dev@superset.apache.org",
+    type=str,
+    prompt="The receiver email (To:)",
+)
 @click.pass_obj
-def vote_pmc(base_parameters, **kwargs):
+def vote_pmc(base_parameters, receiver_email):
     template_file = "email_templates/vote_pmc.j2"
-    base_parameters.template_arguments["receiver_email"] = "dev@superset.apache.org"
+    base_parameters.template_arguments["receiver_email"] = receiver_email
     message = render_template(template_file, **base_parameters.template_arguments)
     inter_send_email(
         base_parameters.username,
@@ -165,6 +171,12 @@ def vote_pmc(base_parameters, **kwargs):
 
 
 @cli.command("result_pmc")
+@click.option(
+    "--receiver_email",
+    default="dev@superset.apache.org",
+    type=str,
+    prompt="The receiver email (To:)",
+)
 @click.option(
     "--vote_bindings",
     default="",
@@ -184,9 +196,9 @@ def vote_pmc(base_parameters, **kwargs):
     prompt="A List of people with -1 vote (ex: John)",
 )
 @click.pass_obj
-def result_pmc(base_parameters, vote_bindings, vote_nonbindings, vote_negatives):
+def result_pmc(base_parameters, receiver_email, vote_bindings, vote_nonbindings, vote_negatives):
     template_file = "email_templates/result_pmc.j2"
-    base_parameters.template_arguments["receiver_email"] = "dev@superset.apache.org"
+    base_parameters.template_arguments["receiver_email"] = receiver_email
     base_parameters.template_arguments["vote_bindings"] = string_comma_to_list(
         vote_bindings
     )
@@ -207,6 +219,12 @@ def result_pmc(base_parameters, vote_bindings, vote_nonbindings, vote_negatives)
 
 
 @cli.command("vote_ipmc")
+@click.option(
+    "--receiver_email",
+    default="general@incubator.apache.org",
+    type=str,
+    prompt="The receiver email (To:)",
+)
 @click.option("--voting_thread", prompt="The URL for the PMC voting thread")
 @click.option(
     "--vote_mentors",
@@ -215,9 +233,9 @@ def result_pmc(base_parameters, vote_bindings, vote_nonbindings, vote_negatives)
     prompt="A list of mentors that have already voted (ex: Alan,Justin)",
 )
 @click.pass_obj
-def vote_ipmc(base_parameters, voting_thread, vote_mentors):
+def vote_ipmc(base_parameters, receiver_email, voting_thread, vote_mentors):
     template_file = "email_templates/vote_ipmc.j2"
-    base_parameters.template_arguments["receiver_email"] = "general@incubator.apache.org"
+    base_parameters.template_arguments["receiver_email"] = receiver_email
     base_parameters.template_arguments["voting_thread"] = voting_thread
     base_parameters.template_arguments["vote_mentors"] = string_comma_to_list(
         vote_mentors
@@ -233,10 +251,16 @@ def vote_ipmc(base_parameters, voting_thread, vote_mentors):
 
 
 @cli.command("result_ipmc")
+@click.option(
+    "--receiver_email",
+    default="general@incubator.apache.org",
+    type=str,
+    prompt="The receiver email (To:)",
+)
 @click.pass_obj
-def result_ipmc(base_parameters):
+def result_ipmc(base_parameters, receiver_email):
     template_file = "email_templates/result_ipmc.j2"
-    base_parameters.template_arguments["receiver_email"] = "general@incubator.apache.org"
+    base_parameters.template_arguments["receiver_email"] = receiver_email
     message = render_template(template_file, **base_parameters.template_arguments)
     inter_send_email(
         base_parameters.username,
@@ -248,10 +272,16 @@ def result_ipmc(base_parameters):
 
 
 @cli.command("announce")
+@click.option(
+    "--receiver_email",
+    default="dev@superset.apache.org",
+    type=str,
+    prompt="The receiver email (To:)",
+)
 @click.pass_obj
-def announce(base_parameters):
+def announce(base_parameters, receiver_email):
     template_file = "email_templates/announce.j2"
-    base_parameters.template_arguments["receiver_email"] = "dev@superset.apache.org"
+    base_parameters.template_arguments["receiver_email"] = receiver_email
     message = render_template(template_file, **base_parameters.template_arguments)
     inter_send_email(
         base_parameters.username,
