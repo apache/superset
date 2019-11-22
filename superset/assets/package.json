@@ -20,7 +20,8 @@
     "clean-css": "prettier --write src/**/*.{css,less,sass,scss}",
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true",
-    "install-cypress": "npm install cypress@3.4.1"
+    "install-cypress": "npm install cypress@3.4.1",
+    "packages-dev-start": "node ./link_packages.js"
   },
   "repository": {
     "type": "git",
@@ -101,6 +102,7 @@
     "dnd-core": "^2.6.0",
     "dompurify": "^2.0.7",
     "geolib": "^2.0.24",
+    "glob": "^7.1.6",
     "immutable": "^3.8.2",
     "interweave": "^11.2.0",
     "jquery": "^3.4.1",
