@@ -30,6 +30,7 @@ import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
+import ModalTrigger from 'src/components/ModalTrigger';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -53,6 +54,7 @@ const propTypes = {
   layout: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   onSave: PropTypes.func.isRequired,
+  showPropertiesModal: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -190,8 +192,8 @@ class HeaderActionsDropdown extends React.PureComponent {
         />
 
         {editMode && (
-          <MenuItem target="_blank" href={`/dashboard/edit/${dashboardId}`}>
-            {t('Edit dashboard metadata')}
+          <MenuItem onClick={this.props.showPropertiesModal}>
+            {t('Edit dashboard properties')}
           </MenuItem>
         )}
 
