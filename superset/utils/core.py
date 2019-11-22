@@ -645,13 +645,13 @@ def pessimistic_connection_handling(some_engine):
 class QueryStatus:
     """Enum-type class for query statuses"""
 
-    STOPPED = "stopped"
-    FAILED = "failed"
-    PENDING = "pending"
-    RUNNING = "running"
-    SCHEDULED = "scheduled"
-    SUCCESS = "success"
-    TIMED_OUT = "timed_out"
+    STOPPED: str = "stopped"
+    FAILED: str = "failed"
+    PENDING: str = "pending"
+    RUNNING: str = "running"
+    SCHEDULED: str = "scheduled"
+    SUCCESS: str = "success"
+    TIMED_OUT: str = "timed_out"
 
 
 def notify_user_about_perm_udate(granter, user, role, datasource, tpl_name, config):
