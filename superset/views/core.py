@@ -2530,7 +2530,9 @@ class Superset(BaseSupersetView):
             )
 
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
-        obj: dict = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
+        obj: dict = _deserialize_results_payload(
+            payload, query, cast(bool, results_backend_use_msgpack)
+        )
 
         if "rows" in request.args:
             try:
@@ -2737,7 +2739,7 @@ class Superset(BaseSupersetView):
             template_params: dict = json.loads(
                 query_params.get("templateParams") or "{}"
             )
-        except json.decoder.JSONDecodeError:
+        except json.JSONDecodeError:
             logging.warning(
                 f"Invalid template parameter {query_params.get('templateParams')}"
                 " specified. Defaulting to empty dict"
@@ -2752,7 +2754,9 @@ class Superset(BaseSupersetView):
             limit = 0
         select_as_cta: bool = cast(bool, query_params.get("select_as_cta"))
         tmp_table_name: str = cast(str, query_params.get("tmp_table_name"))
-        client_id: str = cast(str, query_params.get("client_id") or utils.shortid()[:10])
+        client_id: str = cast(
+            str, query_params.get("client_id") or utils.shortid()[:10]
+        )
         sql_editor_id: str = cast(str, query_params.get("sql_editor_id"))
         tab_name: str = cast(str, query_params.get("tab"))
         status: str = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
@@ -2823,9 +2827,11 @@ class Superset(BaseSupersetView):
 
         # Flag for whether or not to expand data
         # (feature that will expand Presto row objects and arrays)
-        expand_data: bool = cast(bool, is_feature_enabled(
-            "PRESTO_EXPAND_DATA"
-        ) and query_params.get("expand_data"))
+        expand_data: bool = cast(
+            bool,
+            is_feature_enabled("PRESTO_EXPAND_DATA")
+            and query_params.get("expand_data"),
+        )
 
         # Async request.
         if async_flag:
