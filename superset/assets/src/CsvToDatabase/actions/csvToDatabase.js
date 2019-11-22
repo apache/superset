@@ -25,7 +25,7 @@ export const UPLOAD_CSV_FAILURE = 'UPLOAD_CSV_FAILURE';
 export function uploadCsv(data) {
   return dispatch =>
     SupersetClient.post({
-      endpoint: '/superset/csvtodatabase/add',
+      endpoint: '/csvimporter/csvtodatabase/add',
       postPayload: { ...data },
       stringify: false,
     })

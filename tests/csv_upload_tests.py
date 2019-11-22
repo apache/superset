@@ -80,23 +80,22 @@ class CsvUploadTests(SupersetTestCase):
         assert "Upload a CSV" in add_datasource_page
 
     def test_upload_csv_view_load(self):
-        url = "/superset/csvtodatabase"
+        url = "/csvimporter/csvtodatabase"
         form_get = self.get_resp(url)
         assert "CSV to Database configuration" in form_get
 
     def test_import_csv_in_existing(self):
-        url = "/superset/csvtodatabase/add"
+        url = "/csvimporter/csvtodatabase/add"
         filename = "maximum.csv"
         try:
             form_data = self.get_full_data(filename, self.get_existing_db_id())
             response = self.get_resp(url, data=form_data)
-            print(response)
             assert "imported into database" in response
         finally:
             os.remove(filename)
 
     def test_import_csv_in_new(self):
-        url = "/superset/csvtodatabase/add"
+        url = "/csvimporter/csvtodatabase/add"
         filename = "maximum_into_new.csv"
         db_name = "new_database_max"
         table_name = "import_maximum_into_new"
@@ -111,7 +110,7 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_not_allowed_filename(self):
         try:
-            url = "/superset/csvtodatabase/add"
+            url = "/csvimporter/csvtodatabase/add"
             filename = ",+."
             form_data = self.get_full_data(filename, self.get_existing_db_id())
             response = self.get_resp(url, data=form_data, raise_on_error=False)
@@ -121,7 +120,7 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_invalid_database_id(self):
         try:
-            url = "/superset/csvtodatabase/add"
+            url = "/csvimporter/csvtodatabase/add"
             filename = "invalid_database_id.csv"
             form_data = self.get_full_data(filename, "id")
             response = self.get_resp(url, data=form_data, raise_on_error=False)
@@ -134,7 +133,7 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_not_existing_database_id(self):
         try:
-            url = "/superset/csvtodatabase/add"
+            url = "/csvimporter/csvtodatabase/add"
             filename = "not_existing_database_id.csv"
             form_data = self.get_full_data(filename, 1337)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
@@ -144,7 +143,7 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_not_allowed_upload(self):
         try:
-            url = "/superset/csvtodatabase/add"
+            url = "/csvimporter/csvtodatabase/add"
             filename = "not_allowed_schema.csv"
 
             example_db = utils.get_example_database()
@@ -163,7 +162,7 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_not_allowed_database_name(self):
         try:
-            url = "/superset/csvtodatabase/add"
+            url = "/csvimporter/csvtodatabase/add"
             filename = "not_allowed_database_name.csv"
             form_data = self.get_full_data(filename, -1, "./.")
             response = self.get_resp(url, data=form_data, raise_on_error=False)
@@ -172,7 +171,7 @@ class CsvUploadTests(SupersetTestCase):
             os.remove(filename)
 
     def test_already_exist_database_file(self):
-        url = "/superset/csvtodatabase/add"
+        url = "/csvimporter/csvtodatabase/add"
         filename = "not_allowed_database_name.csv"
         db_name = "existing_db"
         db_path = os.getcwd() + "/" + db_name + ".db"
@@ -193,7 +192,7 @@ class CsvUploadTests(SupersetTestCase):
             os.remove(db_path)
 
     def test_database_exists_no_file(self):
-        url = "/superset/csvtodatabase/add"
+        url = "/csvimporter/csvtodatabase/add"
         filename = "duplicate_database_name.csv"
         db_name = "examples"
         table_name = "uniqueTableName"
@@ -206,7 +205,7 @@ class CsvUploadTests(SupersetTestCase):
             os.remove(filename)
 
     def test_duplicate_table_name(self):
-        url = "/superset/csvtodatabase/add"
+        url = "/csvimporter/csvtodatabase/add"
         filename = "duplicate_table_name.csv"
         table_name = "duplicate_name"
         db_name = "duplicate_table_name"
@@ -226,13 +225,12 @@ class CsvUploadTests(SupersetTestCase):
             message = "Table name {0} already exists. Please choose another".format(
                 table_name
             )
-            print(response)
             assert message in response
         finally:
             os.remove(filename)
 
     def test_schema_is_not_allowed(self):
-        url = "/superset/csvtodatabase/add"
+        url = "/csvimporter/csvtodatabase/add"
         filename = "not_allowed_schema.csv"
         schema = "mySchema"
         db_name = "not_allowed_schema"

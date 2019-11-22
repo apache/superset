@@ -19,6 +19,7 @@ from . import (
     api,
     base,
     core,
+    csv_import,
     dashboard,
     datasource,
     schedules,
