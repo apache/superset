@@ -18,7 +18,8 @@
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production webpack --mode=production --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx .",
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css",
-    "clean-css": "prettier --write '{src,stylesheets}/**/*.{css,less,sass,scss}'"
+    "clean-css": "prettier --write '{src,stylesheets}/**/*.{css,less,sass,scss}'",
+    "packages-dev-start": "node ./link_packages.js"
   },
   "repository": {
     "type": "git",
@@ -107,6 +108,7 @@
     "dnd-core": "^2.6.0",
     "dompurify": "^2.0.7",
     "geolib": "^2.0.24",
+    "glob": "^7.1.6",
     "immutable": "^3.8.2",
     "interweave": "^11.2.0",
     "jquery": "^3.4.1",
