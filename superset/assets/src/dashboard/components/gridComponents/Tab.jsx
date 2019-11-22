@@ -1,13 +1,31 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 
 import DashboardComponent from '../../containers/DashboardComponent';
 import DragDroppable from '../dnd/DragDroppable';
 import EditableTitle from '../../../components/EditableTitle';
+import AnchorLink from '../../../components/AnchorLink';
 import DeleteComponentModal from '../DeleteComponentModal';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
 import { componentShape } from '../../util/propShapes';
-import { DASHBOARD_ROOT_DEPTH } from '../../util/constants';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -23,6 +41,7 @@ const propTypes = {
   onDropOnTab: PropTypes.func,
   onDeleteTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
+  filters: PropTypes.object.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -35,6 +54,7 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
+  setDirectPathToChild: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -58,10 +78,15 @@ export default class Tab extends React.PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleDrop = this.handleDrop.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
+    this.handleChangeTab = this.handleChangeTab.bind(this);
   }
 
   handleChangeFocus(nextFocus) {
     this.setState(() => ({ isFocused: nextFocus }));
+  }
+
+  handleChangeTab({ pathToTabIndex }) {
+    this.props.setDirectPathToChild(pathToTabIndex);
   }
 
   handleChangeText(nextTabText) {
@@ -114,6 +139,7 @@ export default class Tab extends React.PureComponent {
       onResize,
       onResizeStop,
       editMode,
+      isComponentVisible,
     } = this.props;
 
     return (
@@ -150,6 +176,8 @@ export default class Tab extends React.PureComponent {
             onResizeStart={onResizeStart}
             onResize={onResize}
             onResizeStop={onResizeStop}
+            isComponentVisible={isComponentVisible}
+            onChangeTab={this.handleChangeTab}
           />
         ))}
         {/* Make bottom of tab droppable */}
@@ -177,7 +205,14 @@ export default class Tab extends React.PureComponent {
 
   renderTab() {
     const { isFocused } = this.state;
-    const { component, parentComponent, index, depth, editMode } = this.props;
+    const {
+      component,
+      parentComponent,
+      index,
+      depth,
+      editMode,
+      filters,
+    } = this.props;
     const deleteTabIcon = (
       <div className="icon-button">
         <span className="fa fa-trash" />
@@ -192,10 +227,6 @@ export default class Tab extends React.PureComponent {
         index={index}
         depth={depth}
         onDrop={this.handleDrop}
-        // disable drag drop of top-level Tab's to prevent invalid nesting of a child in
-        // itself, e.g. if a top-level Tab has a Tabs child, dragging the Tab into the Tabs would
-        // reusult in circular children
-        disableDragDrop={depth <= DASHBOARD_ROOT_DEPTH + 1}
         editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
@@ -220,6 +251,14 @@ export default class Tab extends React.PureComponent {
                 onSaveTitle={this.handleChangeText}
                 showTooltip={false}
               />
+              {!editMode && (
+                <AnchorLink
+                  anchorLinkId={component.id}
+                  filters={filters}
+                  showShortLinkButton
+                  placement={index >= 5 ? 'left' : 'right'}
+                />
+              )}
             </WithPopoverMenu>
 
             {dropIndicatorProps && <div {...dropIndicatorProps} />}

@@ -1,26 +1,37 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
+import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
 import DashboardBuilder from '../containers/DashboardBuilder';
 import {
   chartPropShape,
   slicePropShape,
   dashboardInfoPropShape,
   dashboardStatePropShape,
-  loadStatsPropShape,
 } from '../util/propShapes';
+import { LOG_ACTIONS_MOUNT_DASHBOARD } from '../../logger/LogUtils';
+import OmniContainer from '../../components/OmniContainer';
 import { areObjectsEqual } from '../../reduxUtils';
-import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
-import {
-  Logger,
-  ActionLog,
-  DASHBOARD_EVENT_NAMES,
-  LOG_ACTIONS_MOUNT_DASHBOARD,
-  LOG_ACTIONS_LOAD_DASHBOARD_PANE,
-  LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
-} from '../../logger';
 
 import '../stylesheets/index.less';
 
@@ -28,14 +39,15 @@ const propTypes = {
   actions: PropTypes.shape({
     addSliceToDashboard: PropTypes.func.isRequired,
     removeSliceFromDashboard: PropTypes.func.isRequired,
-    runQuery: PropTypes.func.isRequired,
+    triggerQuery: PropTypes.func.isRequired,
+    logEvent: PropTypes.func.isRequired,
   }).isRequired,
   dashboardInfo: dashboardInfoPropShape.isRequired,
   dashboardState: dashboardStatePropShape.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
+  activeFilters: PropTypes.object.isRequired,
   datasources: PropTypes.object.isRequired,
-  loadStats: loadStatsPropShape.isRequired,
   layout: PropTypes.object.isRequired,
   impressionId: PropTypes.string.isRequired,
   initMessages: PropTypes.array,
@@ -67,69 +79,14 @@ class Dashboard extends React.PureComponent {
 
   constructor(props) {
     super(props);
-    this.isFirstLoad = true;
-    this.actionLog = new ActionLog({
-      impressionId: props.impressionId,
-      source: 'dashboard',
-      sourceId: props.dashboardInfo.id,
-      eventNames: DASHBOARD_EVENT_NAMES,
-    });
-    Logger.start(this.actionLog);
-    this.initTs = new Date().getTime();
+    this.appliedFilters = {};
   }
 
   componentDidMount() {
-    Logger.append(LOG_ACTIONS_MOUNT_DASHBOARD);
+    this.props.actions.logEvent(LOG_ACTIONS_MOUNT_DASHBOARD);
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (!nextProps.dashboardState.editMode) {
-      // log pane loads
-      const loadedPaneIds = [];
-      let minQueryStartTime = Infinity;
-      const allVisiblePanesDidLoad = Object.entries(nextProps.loadStats).every(
-        ([paneId, stats]) => {
-          const {
-            didLoad,
-            minQueryStartTime: paneMinQueryStart,
-            ...restStats
-          } = stats;
-          if (
-            didLoad &&
-            this.props.loadStats[paneId] &&
-            !this.props.loadStats[paneId].didLoad
-          ) {
-            Logger.append(LOG_ACTIONS_LOAD_DASHBOARD_PANE, {
-              ...restStats,
-              duration: new Date().getTime() - paneMinQueryStart,
-              version: 'v2',
-            });
-
-            if (!this.isFirstLoad) {
-              Logger.send(this.actionLog);
-            }
-          }
-          if (this.isFirstLoad && didLoad && stats.slice_ids.length > 0) {
-            loadedPaneIds.push(paneId);
-            minQueryStartTime = Math.min(minQueryStartTime, paneMinQueryStart);
-          }
-
-          // return true if it is loaded, or it's index is not 0
-          return didLoad || stats.index !== 0;
-        },
-      );
-
-      if (allVisiblePanesDidLoad && this.isFirstLoad) {
-        Logger.append(LOG_ACTIONS_FIRST_DASHBOARD_LOAD, {
-          pane_ids: loadedPaneIds,
-          duration: new Date().getTime() - minQueryStartTime,
-          version: 'v2',
-        });
-        Logger.send(this.actionLog);
-        this.isFirstLoad = false;
-      }
-    }
-
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const currentChartIds = getChartIdsFromLayout(this.props.layout);
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
 
@@ -138,7 +95,10 @@ class Dashboard extends React.PureComponent {
         key => currentChartIds.indexOf(key) === -1,
       );
       newChartIds.forEach(newChartId =>
-        this.props.actions.addSliceToDashboard(newChartId),
+        this.props.actions.addSliceToDashboard(
+          newChartId,
+          getLayoutComponentFromChartId(nextProps.layout, newChartId),
+        ),
       );
     } else if (currentChartIds.length > nextChartIds.length) {
       // remove chart
@@ -151,31 +111,38 @@ class Dashboard extends React.PureComponent {
     }
   }
 
-  componentDidUpdate(prevProps) {
-    const { refresh, filters, hasUnsavedChanges } = this.props.dashboardState;
-    if (refresh) {
-      // refresh charts if a filter was removed, added, or changed
-      let changedFilterKey = null;
-      const currFilterKeys = Object.keys(filters);
-      const prevFilterKeys = Object.keys(prevProps.dashboardState.filters);
+  componentDidUpdate() {
+    const { hasUnsavedChanges, editMode } = this.props.dashboardState;
 
-      currFilterKeys.forEach(key => {
-        const prevFilter = prevProps.dashboardState.filters[key];
-        if (
-          // filter was added or changed
-          typeof prevFilter === 'undefined' ||
-          !areObjectsEqual(prevFilter, filters[key])
-        ) {
-          changedFilterKey = key;
+    const appliedFilters = this.appliedFilters;
+    const { activeFilters } = this.props;
+    // do not apply filter when dashboard in edit mode
+    if (!editMode && !areObjectsEqual(appliedFilters, activeFilters)) {
+      // refresh charts if a filter was removed, added, or changed
+      const currFilterKeys = Object.keys(activeFilters);
+      const appliedFilterKeys = Object.keys(appliedFilters);
+
+      const allKeys = new Set(currFilterKeys.concat(appliedFilterKeys));
+      const affectedChartIds = [];
+      [...allKeys].forEach(filterKey => {
+        if (!currFilterKeys.includes(filterKey)) {
+          // removed filter?
+          [].push.apply(affectedChartIds, appliedFilters[filterKey].scope);
+        } else if (!appliedFilterKeys.includes(filterKey)) {
+          // added filter?
+          [].push.apply(affectedChartIds, activeFilters[filterKey].scope);
+        } else {
+          // changed filter field value or scope?
+          const affectedScope = (activeFilters[filterKey].scope || []).concat(
+            appliedFilters[filterKey].scope || [],
+          );
+          [].push.apply(affectedChartIds, affectedScope);
         }
       });
 
-      if (
-        !!changedFilterKey ||
-        currFilterKeys.length !== prevFilterKeys.length
-      ) {
-        this.refreshExcept(changedFilterKey);
-      }
+      const idSet = new Set(affectedChartIds);
+      this.refreshCharts([...idSet]);
+      this.appliedFilters = activeFilters;
     }
 
     if (hasUnsavedChanges) {
@@ -190,31 +157,19 @@ class Dashboard extends React.PureComponent {
     return Object.values(this.props.charts);
   }
 
-  refreshExcept(filterKey) {
-    const immune = this.props.dashboardInfo.metadata.filter_immune_slices || [];
-
-    this.getAllCharts().forEach(chart => {
-      // filterKey is a string, immune array contains numbers
-      if (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1) {
-        const updatedFormData = getFormDataWithExtraFilters({
-          chart,
-          dashboardMetadata: this.props.dashboardInfo.metadata,
-          filters: this.props.dashboardState.filters,
-          sliceId: chart.id,
-        });
-
-        this.props.actions.runQuery(
-          updatedFormData,
-          false,
-          this.props.timeout,
-          chart.id,
-        );
-      }
+  refreshCharts(ids) {
+    ids.forEach(id => {
+      this.props.actions.triggerQuery(true, id);
     });
   }
 
   render() {
-    return <DashboardBuilder />;
+    return (
+      <>
+        <OmniContainer logEvent={this.props.actions.logEvent} />
+        <DashboardBuilder />
+      </>
+    );
   }
 }
 

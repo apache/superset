@@ -1,4 +1,22 @@
-import React, { Fragment } from 'react';
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import React from 'react';
 import PropTypes from 'prop-types';
 import { Modal, MenuItem } from 'react-bootstrap';
 import cx from 'classnames';
@@ -6,6 +24,7 @@ import cx from 'classnames';
 import Button from './Button';
 
 const propTypes = {
+  dialogClassName: PropTypes.string,
   animation: PropTypes.bool,
   triggerNode: PropTypes.node.isRequired,
   modalTitle: PropTypes.node,
@@ -18,6 +37,7 @@ const propTypes = {
   bsSize: PropTypes.string,
   className: PropTypes.string,
   tooltip: PropTypes.string,
+  backdrop: PropTypes.oneOf(['static', true, false]),
 };
 
 const defaultProps = {
@@ -53,12 +73,14 @@ export default class ModalTrigger extends React.Component {
   renderModal() {
     return (
       <Modal
+        dialogClassName={this.props.dialogClassName}
         animation={this.props.animation}
         show={this.state.showModal}
         onHide={this.close}
         onExit={this.props.onExit}
         bsSize={this.props.bsSize}
         className={this.props.className}
+        backdrop={this.props.backdrop}
       >
         {this.props.modalTitle &&
           <Modal.Header closeButton>
@@ -83,7 +105,7 @@ export default class ModalTrigger extends React.Component {
     });
     if (this.props.isButton) {
       return (
-        <Fragment>
+        <>
           <Button
             className="modal-trigger"
             tooltip={this.props.tooltip}
@@ -92,26 +114,26 @@ export default class ModalTrigger extends React.Component {
             {this.props.triggerNode}
           </Button>
           {this.renderModal()}
-        </Fragment>
+        </>
       );
     } else if (this.props.isMenuItem) {
       return (
-        <Fragment>
+        <>
           <MenuItem onClick={this.open}>
             {this.props.triggerNode}
           </MenuItem>
           {this.renderModal()}
-        </Fragment>
+        </>
       );
     }
     /* eslint-disable jsx-a11y/interactive-supports-focus */
     return (
-      <Fragment>
+      <>
         <span className={classNames} onClick={this.open} role="button">
           {this.props.triggerNode}
         </span>
         {this.renderModal()}
-      </Fragment>
+      </>
     );
   }
 }

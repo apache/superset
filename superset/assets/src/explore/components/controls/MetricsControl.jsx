@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
@@ -36,10 +54,27 @@ const propTypes = {
 const defaultProps = {
   onChange: () => {},
   clearable: true,
+  savedMetrics: [],
+  columns: [],
 };
 
 function isDictionaryForAdhocMetric(value) {
   return value && !(value instanceof AdhocMetric) && value.expressionType;
+}
+
+function columnsContainAllMetrics(value, nextProps) {
+  const columnNames = new Set(
+    [...(nextProps.columns || []), ...(nextProps.savedMetrics || [])]
+    // eslint-disable-next-line camelcase
+      .map(({ column_name, metric_name }) => (column_name || metric_name)),
+  );
+
+  return (Array.isArray(value) ? value : [value])
+    .filter(metric => metric)
+    // find column names
+    .map(metric => metric.column ? metric.column.column_name : metric.column_name || metric)
+    .filter(name => name && typeof name === 'string')
+    .every(name => columnNames.has(name));
 }
 
 // adhoc metrics are stored as dictionaries in URL params. We convert them back into the
@@ -116,15 +151,23 @@ export default class MetricsControl extends React.PureComponent {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    const { value } = this.props;
     if (
-      isEqual(this.props.columns) !== isEqual(nextProps.columns) ||
-      isEqual(this.props.savedMetrics) !== isEqual(nextProps.savedMetrics)
+      !isEqual(this.props.columns, nextProps.columns) ||
+      !isEqual(this.props.savedMetrics, nextProps.savedMetrics)
     ) {
+
       this.setState({ options: this.optionsForSelect(nextProps) });
-      this.props.onChange([]);
+
+      // Remove metrics if selected value no longer a column
+      const containsAllMetrics = columnsContainAllMetrics(value, nextProps);
+
+      if (!containsAllMetrics) {
+        this.props.onChange([]);
+      }
     }
-    if (this.props.value !== nextProps.value) {
+    if (value !== nextProps.value) {
       this.setState({ value: coerceAdhocMetrics(nextProps.value) });
     }
   }
@@ -197,10 +240,14 @@ export default class MetricsControl extends React.PureComponent {
   }
 
   optionsForSelect(props) {
+    const { columns, savedMetrics } = props;
+    const aggregates = columns && columns.length ?
+      Object.keys(AGGREGATES).map(aggregate => ({ aggregate_name: aggregate })) :
+      [];
     const options = [
-      ...props.columns,
-      ...Object.keys(AGGREGATES).map(aggregate => ({ aggregate_name: aggregate })),
-      ...props.savedMetrics,
+      ...(columns || []),
+      ...aggregates,
+      ...(savedMetrics || []),
     ];
 
     return options.reduce((results, option) => {

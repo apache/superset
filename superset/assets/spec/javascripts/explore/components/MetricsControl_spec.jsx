@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
@@ -62,6 +80,14 @@ describe('MetricsControl', () => {
         ...Object.keys(AGGREGATES).map(
           aggregate => ({ aggregate_name: aggregate, optionName: '_aggregate_' + aggregate }),
         ),
+        { optionName: 'sum__value', metric_name: 'sum__value', expression: 'SUM(energy_usage.value)' },
+        { optionName: 'avg__value', metric_name: 'avg__value', expression: 'AVG(energy_usage.value)' },
+      ]);
+    });
+
+    it('does not show aggregates in options if no columns', () => {
+      const { wrapper } = setup({ columns: [] });
+      expect(wrapper.state('options')).toEqual([
         { optionName: 'sum__value', metric_name: 'sum__value', expression: 'SUM(energy_usage.value)' },
         { optionName: 'avg__value', metric_name: 'avg__value', expression: 'AVG(energy_usage.value)' },
       ]);
@@ -306,6 +332,48 @@ describe('MetricsControl', () => {
         { type: 'DOUBLE', column_name: 'value' },
         'SUM(',
       )).toBe(true);
+    });
+
+    it('Removes metrics if savedMetrics changes', () => {
+      const { props, wrapper, onChange } = setup({
+        value: [
+          {
+            expressionType: EXPRESSION_TYPES.SIMPLE,
+            column: { type: 'double', column_name: 'value' },
+            aggregate: AGGREGATES.SUM,
+            label: 'SUM(value)',
+            optionName: 'blahblahblah',
+          },
+        ],
+      });
+      expect(wrapper.state('value')).toHaveLength(1);
+
+      wrapper.setProps({ ...props, columns: [] });
+      expect(onChange.lastCall.args).toEqual([[]]);
+    });
+
+    it('Does not remove custom sql metric if savedMetrics changes', () => {
+      const { props, wrapper, onChange } = setup({
+        value: [
+          {
+            expressionType: EXPRESSION_TYPES.SQL,
+            sqlExpression: 'COUNT(*)',
+            label: 'old label',
+            hasCustomLabel: true,
+          },
+        ],
+      });
+      expect(wrapper.state('value')).toHaveLength(1);
+
+      wrapper.setProps({ ...props, columns: [] });
+      expect(onChange.calledOnce).toEqual(false);
+    });
+    it('Does not fail if no columns or savedMetrics are passed', () => {
+      const { wrapper } = setup({
+        savedMetrics: null,
+        columns: null,
+      });
+      expect(wrapper.exists('.metrics-select')).toEqual(true);
     });
   });
 });

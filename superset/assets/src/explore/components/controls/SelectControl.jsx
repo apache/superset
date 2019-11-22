@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
@@ -17,6 +35,7 @@ const propTypes = {
   isLoading: PropTypes.bool,
   label: PropTypes.string,
   multi: PropTypes.bool,
+  allowAll: PropTypes.bool,
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   onFocus: PropTypes.func,
@@ -30,6 +49,8 @@ const propTypes = {
   noResultsText: PropTypes.string,
   refFunc: PropTypes.func,
   filterOption: PropTypes.func,
+  promptTextCreator: PropTypes.func,
+  commaChoosesOption: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -48,6 +69,9 @@ const defaultProps = {
   valueRenderer: opt => opt.label,
   valueKey: 'value',
   noResultsText: t('No results found'),
+  promptTextCreator: label => `Create Option ${label}`,
+  commaChoosesOption: true,
+  allowAll: false,
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -55,48 +79,65 @@ export default class SelectControl extends React.PureComponent {
     super(props);
     this.state = { options: this.getOptions(props) };
     this.onChange = this.onChange.bind(this);
+    this.createMetaSelectAllOption = this.createMetaSelectAllOption.bind(this);
   }
-  componentWillReceiveProps(nextProps) {
+
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.choices !== this.props.choices ||
         nextProps.options !== this.props.options) {
       const options = this.getOptions(nextProps);
       this.setState({ options });
     }
   }
+
   onChange(opt) {
-    let optionValue = opt ? opt[this.props.valueKey] : null;
-    // if multi, return options values as an array
-    if (this.props.multi) {
-      optionValue = opt ? opt.map(o => o[this.props.valueKey]) : null;
+    let optionValue = null;
+    if (opt) {
+      if (this.props.multi) {
+        optionValue = [];
+        for (const o of opt) {
+          if (o.meta === true) {
+            optionValue = this.getOptions(this.props)
+                              .filter(x => !x.meta)
+                              .map(x => x[this.props.valueKey]);
+            break;
+          } else {
+            optionValue.push(o[this.props.valueKey]);
+          }
+        }
+      } else if (opt.meta === true) {
+        return;
+      } else {
+        optionValue = opt[this.props.valueKey];
+      }
     }
     this.props.onChange(optionValue);
   }
+
   getOptions(props) {
+    let options = [];
     if (props.options) {
-      return props.options;
+      options = props.options.map(x => x);
+    } else {
+      // Accepts different formats of input
+      options = props.choices.map((c) => {
+          let option;
+          if (Array.isArray(c)) {
+              const label = c.length > 1 ? c[1] : c[0];
+              option = { label };
+              option[props.valueKey] = c[0];
+          } else if (Object.is(c)) {
+              option = c;
+          } else {
+              option = { label: c };
+              option[props.valueKey] = c;
+          }
+          return option;
+      });
     }
-    // Accepts different formats of input
-    const options = props.choices.map((c) => {
-      let option;
-      if (Array.isArray(c)) {
-        const label = c.length > 1 ? c[1] : c[0];
-        option = {
-          value: c[0],
-          label,
-        };
-      } else if (Object.is(c)) {
-        option = c;
-      } else {
-        option = {
-          value: c,
-          label: c,
-        };
-      }
-      return option;
-    });
     if (props.freeForm) {
       // For FreeFormSelect, insert value into options if not exist
-      const values = options.map(c => c.value);
+      const values = options.map(c => c[props.valueKey]);
       if (props.value) {
         let valuesToAdd = props.value;
         if (!Array.isArray(valuesToAdd)) {
@@ -104,13 +145,33 @@ export default class SelectControl extends React.PureComponent {
         }
         valuesToAdd.forEach((v) => {
           if (values.indexOf(v) < 0) {
-            options.push({ value: v, label: v });
+            const toAdd = { label: v };
+            toAdd[props.valueKey] = v;
+            options.push(toAdd);
           }
         });
       }
     }
+    if (props.allowAll === true && props.multi === true) {
+      if (options.findIndex(o => this.isMetaSelectAllOption(o)) < 0) {
+        options.unshift(this.createMetaSelectAllOption());
+      }
+    } else {
+      options = options.filter(o => !this.isMetaSelectAllOption(o));
+    }
     return options;
   }
+
+  isMetaSelectAllOption(o) {
+    return o.meta && o.meta === true && o.label === 'Select All';
+  }
+
+  createMetaSelectAllOption() {
+    const option = { label: 'Select All', meta: true };
+    option[this.props.valueKey] = 'Select All';
+    return option;
+  }
+
   render() {
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
     const placeholder = this.props.placeholder || t('%s option(s)', this.state.options.length);
@@ -130,11 +191,23 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer: VirtualizedRendererWrap(this.props.optionRenderer),
       valueRenderer: this.props.valueRenderer,
       noResultsText: this.props.noResultsText,
-      selectComponent: this.props.freeForm ? Creatable : Select,
       disabled: this.props.disabled,
       refFunc: this.props.refFunc,
       filterOption: this.props.filterOption,
+      promptTextCreator: this.props.promptTextCreator,
     };
+    if (this.props.freeForm) {
+      selectProps.selectComponent = Creatable;
+      selectProps.shouldKeyDownEventCreateNewOption = (key) => {
+        const keyCode = key.keyCode;
+        if (this.props.commaChoosesOption && keyCode === 188) {
+          return true;
+        }
+        return (keyCode === 9 || keyCode === 13);
+      };
+    } else {
+      selectProps.selectComponent = Select;
+    }
     return (
       <div>
         {this.props.showHeader &&

@@ -1,9 +1,117 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
 # Updating Superset
 
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Next Version
+
+* [8450](https://github.com/apache/incubator-superset/pull/8450): The time ranger picker
+now uses UTC for the tooltips and default placeholder timestamps (sans timezone).
+
+* [8370](https://github.com/apache/incubator-superset/pull/8370): Deprecates
+  the `HTTP_HEADERS` variable in favor of `DEFAULT_HTTP_HEADERS` and
+  `OVERRIDE_HTTP_HEADERS`. To retain the same behavior you should use
+  `OVERRIDE_HTTP_HEADERS` instead of `HTTP_HEADERS`. `HTTP_HEADERS` will still
+  work but may be removed in a future update.
+
+* We're deprecating the concept of "restricted metric", this feature
+  was not fully working anyhow.
+* [8117](https://github.com/apache/incubator-superset/pull/8117): If you are
+using `ENABLE_PROXY_FIX = True`, review the newly-introducted variable,
+`PROXY_FIX_CONFIG`, which changes the proxy behavior in accordance with
+[Werkzeug](https://werkzeug.palletsprojects.com/en/0.15.x/middleware/proxy_fix/)
+
+* [8069](https://github.com/apache/incubator-superset/pull/8069): introduces
+[MessagePack](https://github.com/msgpack/msgpack-python) and
+[PyArrow](https://arrow.apache.org/docs/python/) for async query results
+backend serialization. To disable set `RESULTS_BACKEND_USE_MSGPACK = False`
+in your configuration.
+
+* [8371](https://github.com/apache/incubator-superset/pull/8371): makes
+`tables.table_name`, `dbs.database_name`, `datasources.cluster_name`, and `clusters.cluster_name` non-nullable.
+Depending on the integrity of the data, manual intervention may be required.
+
+## 0.34.0
+
+* [7848](https://github.com/apache/incubator-superset/pull/7848): If you are
+running redis with celery, celery bump to 4.3.0 requires redis-py upgrade to
+3.2.0 or later.
+
+* [7667](https://github.com/apache/incubator-superset/pull/7667): a change to
+make all Unix timestamp (which by definition are in UTC) comparisons refer
+to a timestamp in UTC as opposed to local time.
+
+* [7653](https://github.com/apache/incubator-superset/pull/7653): a change
+which deprecates the table_columns.database_expression column. Expressions
+should be handled by the DB engine spec conversion, Python date format, or
+custom column expression/type.
+
+* The repo no longer contains translation binaries (`.mo`) files. If you
+  want translations in your build, you now have to run the command
+  `babel-compile --target superset/translations` as part of your builds
+* [5451](https://github.com/apache/incubator-superset/pull/5451): a change
+which adds missing non-nullable fields to the `datasources` table. Depending on
+the integrity of the data, manual intervention may be required.
+
+* [5452](https://github.com/apache/incubator-superset/pull/5452): a change
+which adds missing non-nullable fields and uniqueness constraints (which may be 
+case insensitive depending on your database configuration) to the `columns`and 
+`table_columns` tables. Depending on the integrity of the data, manual 
+intervention may be required.
+* `fabmanager` command line is deprecated since Flask-AppBuilder 2.0.0, use
+the new `flask fab <command>` integrated with *Flask cli*.
+* `SUPERSET_UPDATE_PERMS` environment variable was replaced by
+`FAB_UPDATE_PERMS` config boolean key. To disable automatic
+creation of permissions set `FAB_UPDATE_PERMS = False` on config.
+* [5453](https://github.com/apache/incubator-superset/pull/5453): a change
+which adds missing non-nullable fields and uniqueness constraints (which may be 
+case insensitive depending on your database configuration) to the metrics
+and sql_metrics tables. Depending on the integrity of the data, manual
+intervention may be required.
+* [7616](https://github.com/apache/incubator-superset/pull/7616): this bug fix
+changes time_compare deltas to correctly evaluate to the number of days prior
+instead of number of days in the future. It will change the data for advanced
+analytics time_compare so `1 year` from 5/1/2019 will be calculated as 365 days
+instead of 366 days.
+
+## Superset 0.32.0
+
+* `npm run backend-sync` is deprecated and no longer needed, will fail if called
+* [5445](https://github.com/apache/incubator-superset/pull/5445): a change
+which prevents encoding of empty string from form data in the database.
+This involves a non-schema changing migration which does potentially impact
+a large number of records. Scheduled downtime may be advised.
+
 ## Superset 0.31.0
+
+* If you use `Hive` or `Presto`, we've moved some dependencies that were
+  in the main package as optional now. To get these packages,
+  run `pip install superset[presto]` and/or `pip install superset[hive]` as
+  required.
+
+* Similarly, if you use Celery's `flower`, `gsheetsdb`, `thrift` or
+  `thrift-sasl`, those dependencies have now been made optional in our
+  package, meaning you may have to install them in your environment post
+  0.31.0
+
 * boto3 / botocore was removed from the dependency list. If you use s3
 as a place to store your SQL Lab result set or Hive uploads, you may
 have to rely on an alternate requirements.txt file to install those
@@ -12,6 +120,12 @@ dependencies.
 favor of good old `npm install`. While yarn should still work just fine,
 you should probably align to guarantee builds similar to the ones we
 use in testing and across the community in general.
+
+## Superset 0.30.0
+* 0.30.0 includes a db_migration that removes allow_run_sync. This may
+require downtime because during the migration if the db is migrated first,
+superset will get 500 errors when the code can't find the field (until
+the deploy finishes).
 
 ## Superset 0.29.0
 * India was removed from the "Country Map" visualization as the geojson

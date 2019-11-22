@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
@@ -18,6 +36,7 @@ import {
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
 } from '../../util/constants';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from '../../../logger/LogUtils';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -27,6 +46,9 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+
+  // from redux
+  logEvent: PropTypes.func.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -60,6 +82,7 @@ class Markdown extends React.PureComponent {
       editor: null,
       editorMode: 'preview',
     };
+    this.renderStartTime = Logger.getTimestamp();
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleChangeEditorMode = this.handleChangeEditorMode.bind(this);
@@ -68,7 +91,16 @@ class Markdown extends React.PureComponent {
     this.setEditor = this.setEditor.bind(this);
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentDidMount() {
+    this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
+      viz_type: 'markdown',
+      start_offset: this.renderStartTime,
+      ts: new Date().getTime(),
+      duration: Logger.getTimestamp() - this.renderStartTime,
+    });
+  }
+
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const nextSource = nextProps.component.meta.code;
     if (this.state.markdownSource !== nextSource) {
       this.setState({ markdownSource: nextSource });

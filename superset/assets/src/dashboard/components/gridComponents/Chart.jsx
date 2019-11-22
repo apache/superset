@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -6,28 +24,50 @@ import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
 import MissingChart from '../MissingChart';
 import { slicePropShape, chartPropShape } from '../../util/propShapes';
+import {
+  LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
+  LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
+  LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_FORCE_REFRESH_CHART,
+} from '../../../logger/LogUtils';
+import { isFilterBox } from '../../util/activeDashboardFilters';
+import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
+  componentId: PropTypes.string.isRequired,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   updateSliceName: PropTypes.func.isRequired,
+  isComponentVisible: PropTypes.bool,
 
   // from redux
-  chart: PropTypes.shape(chartPropShape).isRequired,
+  chart: chartPropShape.isRequired,
   formData: PropTypes.object.isRequired,
   datasource: PropTypes.object.isRequired,
   slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
+  // all active filter fields in dashboard
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
+  logEvent: PropTypes.func.isRequired,
   toggleExpandSlice: PropTypes.func.isRequired,
-  addFilter: PropTypes.func.isRequired,
+  changeFilter: PropTypes.func.isRequired,
+  setFocusedFilterField: PropTypes.func.isRequired,
+  unsetFocusedFilterField: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   isExpanded: PropTypes.bool.isRequired,
+  isCached: PropTypes.bool,
   supersetCanExplore: PropTypes.bool.isRequired,
+  supersetCanCSV: PropTypes.bool.isRequired,
   sliceCanEdit: PropTypes.bool.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
+};
+
+const defaultProps = {
+  isCached: false,
+  isComponentVisible: true,
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
@@ -37,6 +77,7 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
   prop => prop !== 'width' && prop !== 'height',
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
+const DEFAULT_HEADER_HEIGHT = 22;
 
 class Chart extends React.Component {
   constructor(props) {
@@ -46,7 +87,9 @@ class Chart extends React.Component {
       height: props.height,
     };
 
-    this.addFilter = this.addFilter.bind(this);
+    this.changeFilter = this.changeFilter.bind(this);
+    this.handleFilterMenuOpen = this.handleFilterMenuOpen.bind(this);
+    this.handleFilterMenuClose = this.handleFilterMenuClose.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
@@ -66,19 +109,27 @@ class Chart extends React.Component {
       return true;
     }
 
-    for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
-      const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
-      if (nextProps[prop] !== this.props[prop]) {
+    // allow chart update/re-render only if visible:
+    // under selected tab or no tab layout
+    if (nextProps.isComponentVisible) {
+      if (nextProps.chart.triggerQuery) {
         return true;
       }
-    }
 
-    if (
-      nextProps.width !== this.props.width ||
-      nextProps.height !== this.props.height
-    ) {
-      clearTimeout(this.resizeTimeout);
-      this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+      for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
+        const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
+        if (nextProps[prop] !== this.props[prop]) {
+          return true;
+        }
+      }
+
+      if (
+        nextProps.width !== this.props.width ||
+        nextProps.height !== this.props.height
+      ) {
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+      }
     }
 
     return false;
@@ -99,7 +150,9 @@ class Chart extends React.Component {
   }
 
   getHeaderHeight() {
-    return (this.headerRef && this.headerRef.offsetHeight) || 30;
+    return (
+      (this.headerRef && this.headerRef.offsetHeight) || DEFAULT_HEADER_HEIGHT
+    );
   }
 
   setDescriptionRef(ref) {
@@ -115,25 +168,50 @@ class Chart extends React.Component {
     this.setState(() => ({ width, height }));
   }
 
-  addFilter(...args) {
-    this.props.addFilter(this.props.chart, ...args);
+  changeFilter(newSelectedValues = {}) {
+    this.props.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
+      id: this.props.chart.id,
+      columns: Object.keys(newSelectedValues),
+    });
+    this.props.changeFilter(this.props.chart.id, newSelectedValues);
+  }
+
+  handleFilterMenuOpen(chartId, column) {
+    this.props.setFocusedFilterField(chartId, column);
+  }
+
+  handleFilterMenuClose() {
+    this.props.unsetFocusedFilterField();
   }
 
   exploreChart() {
+    this.props.logEvent(LOG_ACTIONS_EXPLORE_DASHBOARD_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+    });
     exportChart(this.props.formData);
   }
 
   exportCSV() {
+    this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+    });
     exportChart(this.props.formData, 'csv');
   }
 
   forceRefresh() {
+    this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+    });
     return this.props.refreshChart(this.props.chart, true, this.props.timeout);
   }
 
   render() {
     const {
       id,
+      componentId,
       chart,
       slice,
       datasource,
@@ -146,7 +224,9 @@ class Chart extends React.Component {
       toggleExpandSlice,
       timeout,
       supersetCanExplore,
+      supersetCanCSV,
       sliceCanEdit,
+      addDangerToast,
     } = this.props;
 
     const { width } = this.state;
@@ -160,7 +240,13 @@ class Chart extends React.Component {
     const { queryResponse, chartUpdateEndTime } = chart;
     const isCached = queryResponse && queryResponse.is_cached;
     const cachedDttm = queryResponse && queryResponse.cached_dttm;
-    const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice && slice.viz_type);
+    const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice.viz_type);
+    const initialValues = isFilterBox(id)
+      ? getFilterValuesByFilterId({
+          activeFilters: filters,
+          filterId: id,
+        })
+      : {};
 
     return (
       <div>
@@ -180,7 +266,11 @@ class Chart extends React.Component {
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
+          supersetCanCSV={supersetCanCSV}
           sliceCanEdit={sliceCanEdit}
+          componentId={componentId}
+          filters={filters}
+          addDangerToast={addDangerToast}
         />
 
         {/*
@@ -208,13 +298,15 @@ class Chart extends React.Component {
           <ChartContainer
             width={width}
             height={this.getChartHeight()}
-            addFilter={this.addFilter}
+            addFilter={this.changeFilter}
+            onFilterMenuOpen={this.handleFilterMenuOpen}
+            onFilterMenuClose={this.handleFilterMenuClose}
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}
             chartId={id}
             chartStatus={chart.chartStatus}
             datasource={datasource}
-            filters={filters}
+            initialValues={initialValues}
             formData={formData}
             queryResponse={chart.queryResponse}
             timeout={timeout}
@@ -228,5 +320,6 @@ class Chart extends React.Component {
 }
 
 Chart.propTypes = propTypes;
+Chart.defaultProps = defaultProps;
 
 export default Chart;

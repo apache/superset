@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint-env browser */
 import cx from 'classnames';
 // ParentSize uses resize observer so the dashboard will update size
@@ -18,12 +36,16 @@ import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
 import getDragDropManager from '../util/getDragDropManager';
+import findTabIndexByComponentId from '../util/findTabIndexByComponentId';
 
 import {
+  BUILDER_PANE_TYPE,
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
+import getDirectPathToTabIndex from '../util/getDirectPathToTabIndex';
+import getLeafComponentIdFromPath from '../util/getLeafComponentIdFromPath';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
@@ -33,13 +55,19 @@ const propTypes = {
   dashboardLayout: PropTypes.object.isRequired,
   deleteTopLevelTabs: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
-  showBuilderPane: PropTypes.bool,
+  showBuilderPane: PropTypes.func.isRequired,
+  builderPaneType: PropTypes.string.isRequired,
+  colorScheme: PropTypes.string,
+  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
-  toggleBuilderPane: PropTypes.func.isRequired,
+  directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  setDirectPathToChild: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
   showBuilderPane: false,
+  directPathToChild: [],
+  colorScheme: undefined,
 };
 
 class DashboardBuilder extends React.Component {
@@ -52,11 +80,38 @@ class DashboardBuilder extends React.Component {
     );
   }
 
+  static getRootLevelTabIndex(dashboardLayout, directPathToChild) {
+    return Math.max(
+      0,
+      findTabIndexByComponentId({
+        currentComponent: DashboardBuilder.getRootLevelTabsComponent(
+          dashboardLayout,
+        ),
+        directPathToChild,
+      }),
+    );
+  }
+
+  static getRootLevelTabsComponent(dashboardLayout) {
+    const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
+    const rootChildId = dashboardRoot.children[0];
+    return rootChildId === DASHBOARD_GRID_ID
+      ? dashboardLayout[DASHBOARD_ROOT_ID]
+      : dashboardLayout[rootChildId];
+  }
+
   constructor(props) {
     super(props);
+
+    const { dashboardLayout, directPathToChild } = props;
+    const tabIndex = DashboardBuilder.getRootLevelTabIndex(
+      dashboardLayout,
+      directPathToChild,
+    );
     this.state = {
-      tabIndex: 0, // top-level tabs
+      tabIndex,
     };
+
     this.handleChangeTab = this.handleChangeTab.bind(this);
     this.handleDeleteTopLevelTabs = this.handleDeleteTopLevelTabs.bind(this);
   }
@@ -67,24 +122,49 @@ class DashboardBuilder extends React.Component {
     };
   }
 
-  handleDeleteTopLevelTabs() {
-    this.props.deleteTopLevelTabs();
-    this.setState({ tabIndex: 0 });
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    const nextFocusComponent = getLeafComponentIdFromPath(
+      nextProps.directPathToChild,
+    );
+    const currentFocusComponent = getLeafComponentIdFromPath(
+      this.props.directPathToChild,
+    );
+    if (nextFocusComponent !== currentFocusComponent) {
+      const { dashboardLayout, directPathToChild } = nextProps;
+      const nextTabIndex = DashboardBuilder.getRootLevelTabIndex(
+        dashboardLayout,
+        directPathToChild,
+      );
+
+      this.setState(() => ({ tabIndex: nextTabIndex }));
+    }
   }
 
-  handleChangeTab({ tabIndex }) {
-    this.setState(() => ({ tabIndex }));
-    setTimeout(() => {
-      if (window)
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth',
-        });
-    }, 100);
+  handleDeleteTopLevelTabs() {
+    this.props.deleteTopLevelTabs();
+
+    const { dashboardLayout } = this.props;
+    const firstTab = getDirectPathToTabIndex(
+      DashboardBuilder.getRootLevelTabsComponent(dashboardLayout),
+      0,
+    );
+    this.props.setDirectPathToChild(firstTab);
+  }
+
+  handleChangeTab({ pathToTabIndex }) {
+    this.props.setDirectPathToChild(pathToTabIndex);
   }
 
   render() {
-    const { handleComponentDrop, dashboardLayout, editMode } = this.props;
+    const {
+      handleComponentDrop,
+      dashboardLayout,
+      editMode,
+      showBuilderPane,
+      builderPaneType,
+      setColorSchemeAndUnsavedChanges,
+      colorScheme,
+    } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
@@ -176,6 +256,7 @@ class DashboardBuilder extends React.Component {
                           // see isValidChild for why tabs do not increment the depth of their children
                           depth={DASHBOARD_ROOT_DEPTH + 1} // (topLevelTabs ? 0 : 1)}
                           width={width}
+                          isComponentVisible={index === tabIndex}
                         />
                       </TabPane>
                     ))}
@@ -184,10 +265,13 @@ class DashboardBuilder extends React.Component {
               )}
             </ParentSize>
           </div>
-          {this.props.editMode && this.props.showBuilderPane && (
+          {editMode && builderPaneType !== BUILDER_PANE_TYPE.NONE && (
             <BuilderComponentPane
               topOffset={HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0)}
-              toggleBuilderPane={this.props.toggleBuilderPane}
+              showBuilderPane={showBuilderPane}
+              builderPaneType={builderPaneType}
+              setColorSchemeAndUnsavedChanges={setColorSchemeAndUnsavedChanges}
+              colorScheme={colorScheme}
             />
           )}
         </div>

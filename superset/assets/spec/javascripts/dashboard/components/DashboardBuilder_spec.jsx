@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { Provider } from 'react-redux';
 import React from 'react';
 import { shallow, mount } from 'enzyme';
@@ -13,6 +31,7 @@ import DashboardComponent from '../../../../src/dashboard/containers/DashboardCo
 import DashboardHeader from '../../../../src/dashboard/containers/DashboardHeader';
 import DashboardGrid from '../../../../src/dashboard/containers/DashboardGrid';
 import * as dashboardStateActions from '../../../../src/dashboard/actions/dashboardState';
+import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
 
 import WithDragDropContext from '../helpers/WithDragDropContext';
 import {
@@ -43,9 +62,12 @@ describe('DashboardBuilder', () => {
     dashboardLayout,
     deleteTopLevelTabs() {},
     editMode: false,
-    showBuilderPane: false,
+    showBuilderPane() {},
+    builderPaneType: BUILDER_PANE_TYPE.NONE,
+    setColorSchemeAndUnsavedChanges() {},
+    colorScheme: undefined,
     handleComponentDrop() {},
-    toggleBuilderPane() {},
+    setDirectPathToChild: sinon.spy(),
   };
 
   function setup(overrideProps, useProvider = false, store = mockStore) {
@@ -125,15 +147,31 @@ describe('DashboardBuilder', () => {
     expect(parentSize.find(DashboardGrid)).toHaveLength(expectedCount);
   });
 
-  it('should render a BuilderComponentPane if editMode=showBuilderPane=true', () => {
+  it('should render a BuilderComponentPane if editMode=true and user selects "Insert Components" pane', () => {
     const wrapper = setup();
     expect(wrapper.find(BuilderComponentPane)).toHaveLength(0);
 
-    wrapper.setProps({ ...props, editMode: true, showBuilderPane: true });
+    wrapper.setProps({
+      ...props,
+      editMode: true,
+      builderPaneType: BUILDER_PANE_TYPE.ADD_COMPONENTS,
+    });
     expect(wrapper.find(BuilderComponentPane)).toHaveLength(1);
   });
 
-  it('should change tabs if a top-level Tab is clicked', () => {
+  it('should render a BuilderComponentPane if editMode=true and user selects "Colors" pane', () => {
+    const wrapper = setup();
+    expect(wrapper.find(BuilderComponentPane)).toHaveLength(0);
+
+    wrapper.setProps({
+      ...props,
+      editMode: true,
+      builderPaneType: BUILDER_PANE_TYPE.COLORS,
+    });
+    expect(wrapper.find(BuilderComponentPane)).toHaveLength(1);
+  });
+
+  it('should change redux state if a top-level Tab is clicked', () => {
     const wrapper = setup(
       { dashboardLayout: layoutWithTabs },
       true,
@@ -147,6 +185,6 @@ describe('DashboardBuilder', () => {
       .at(1)
       .simulate('click');
 
-    expect(wrapper.find(TabContainer).prop('activeKey')).toBe(1);
+    expect(props.setDirectPathToChild.callCount).toBe(1);
   });
 });

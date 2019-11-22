@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 // Ids
 export const DASHBOARD_GRID_ID = 'GRID_ID';
 export const DASHBOARD_HEADER_ID = 'HEADER_ID';
@@ -44,3 +62,20 @@ export const SAVE_TYPE_NEWDASHBOARD = 'newDashboard';
 // default dashboard layout data size limit
 // could be overwritten by server-side config
 export const DASHBOARD_POSITION_DATA_LIMIT = 65535;
+
+// Dashboard pane types
+export const BUILDER_PANE_TYPE = {
+  NONE: 'NONE',
+  ADD_COMPONENTS: 'ADD_COMPONENTS',
+  COLORS: 'COLORS',
+};
+
+// filter indicators display length
+export const FILTER_INDICATORS_DISPLAY_LENGTH = 3;
+
+// in-component element types: can be added into
+// directPathToChild, used for in dashboard navigation and focus
+export const IN_COMPONENT_ELEMENT_TYPES = ['LABEL'];
+
+// filter scope selector filter fields pane root id
+export const ALL_FILTERS_ROOT = 'ALL_FILTERS_ROOT';

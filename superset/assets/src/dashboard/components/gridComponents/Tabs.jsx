@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Tabs as BootstrapTabs, Tab as BootstrapTab } from 'react-bootstrap';
@@ -7,10 +25,14 @@ import DragHandle from '../dnd/DragHandle';
 import DashboardComponent from '../../containers/DashboardComponent';
 import DeleteComponentButton from '../DeleteComponentButton';
 import HoverMenu from '../menu/HoverMenu';
+import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
+import getDirectPathToTabIndex from '../../util/getDirectPathToTabIndex';
+import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 import { TAB_TYPE } from '../../util/componentTypes';
+import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from '../../../logger/LogUtils';
 
 const NEW_TAB_INDEX = -1;
 const MAX_TAB_COUNT = 7;
@@ -25,6 +47,8 @@ const propTypes = {
   renderTabContent: PropTypes.bool, // whether to render tabs + content or just tabs
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
+  logEvent: PropTypes.func.isRequired,
+  directPathToChild: PropTypes.arrayOf(PropTypes.string),
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -36,7 +60,7 @@ const propTypes = {
   // dnd
   createComponent: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
-  onChangeTab: PropTypes.func,
+  onChangeTab: PropTypes.func.isRequired,
   deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
 };
@@ -47,7 +71,7 @@ const defaultProps = {
   renderHoverMenu: true,
   availableColumnCount: 0,
   columnWidth: 0,
-  onChangeTab() {},
+  directPathToChild: [],
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -56,8 +80,16 @@ const defaultProps = {
 class Tabs extends React.PureComponent {
   constructor(props) {
     super(props);
+    const tabIndex = Math.max(
+      0,
+      findTabIndexByComponentId({
+        currentComponent: props.component,
+        directPathToChild: props.directPathToChild,
+      }),
+    );
+
     this.state = {
-      tabIndex: 0,
+      tabIndex,
     };
     this.handleClickTab = this.handleClickTab.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
@@ -65,14 +97,44 @@ class Tabs extends React.PureComponent {
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const maxIndex = Math.max(0, nextProps.component.children.length - 1);
     if (this.state.tabIndex > maxIndex) {
       this.setState(() => ({ tabIndex: maxIndex }));
     }
+
+    if (nextProps.isComponentVisible) {
+      const nextFocusComponent = getLeafComponentIdFromPath(
+        nextProps.directPathToChild,
+      );
+      const currentFocusComponent = getLeafComponentIdFromPath(
+        this.props.directPathToChild,
+      );
+
+      if (nextFocusComponent !== currentFocusComponent) {
+        const nextTabIndex = findTabIndexByComponentId({
+          currentComponent: nextProps.component,
+          directPathToChild: nextProps.directPathToChild,
+        });
+
+        // make sure nextFocusComponent is under this tabs component
+        if (nextTabIndex > -1 && nextTabIndex !== this.state.tabIndex) {
+          this.setState(() => ({ tabIndex: nextTabIndex }));
+        }
+      }
+    }
   }
 
-  handleClickTab(tabIndex) {
+  handleClickTab(tabIndex, ev) {
+    if (ev) {
+      const target = ev.target;
+      // special handler for clicking on anchor link icon (or whitespace nearby):
+      // will show short link popover but do not change tab
+      if (target && target.classList.contains('short-link-trigger')) {
+        return;
+      }
+    }
+
     const { component, createComponent } = this.props;
 
     if (tabIndex === NEW_TAB_INDEX) {
@@ -88,8 +150,13 @@ class Tabs extends React.PureComponent {
         },
       });
     } else if (tabIndex !== this.state.tabIndex) {
-      this.setState(() => ({ tabIndex }));
-      this.props.onChangeTab({ tabIndex, tabId: component.children[tabIndex] });
+      this.props.logEvent(LOG_ACTIONS_SELECT_DASHBOARD_TAB, {
+        tab_id: component.id,
+        index: tabIndex,
+      });
+
+      const pathToTabIndex = getDirectPathToTabIndex(component, tabIndex);
+      this.props.onChangeTab({ pathToTabIndex });
     }
   }
 
@@ -135,6 +202,7 @@ class Tabs extends React.PureComponent {
       handleComponentDrop,
       renderTabContent,
       renderHoverMenu,
+      isComponentVisible: isCurrentTabVisible,
       editMode,
     } = this.props;
 
@@ -205,6 +273,9 @@ class Tabs extends React.PureComponent {
                       onResize={onResize}
                       onResizeStop={onResizeStop}
                       onDropOnTab={this.handleDropOnTab}
+                      isComponentVisible={
+                        selectedTabIndex === tabIndex && isCurrentTabVisible
+                      }
                     />
                   )}
                 </BootstrapTab>

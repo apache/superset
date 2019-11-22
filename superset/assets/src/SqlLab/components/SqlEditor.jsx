@@ -1,37 +1,68 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
+import { CSSTransition } from 'react-transition-group';
 import PropTypes from 'prop-types';
-import { throttle } from 'lodash';
 import {
-  Col,
   FormGroup,
   InputGroup,
   Form,
   FormControl,
   Label,
   OverlayTrigger,
-  Row,
   Tooltip,
-  Collapse,
 } from 'react-bootstrap';
-import SplitPane from 'react-split-pane';
+import Split from 'react-split';
 import { t } from '@superset-ui/translation';
+import debounce from 'lodash/debounce';
+import throttle from 'lodash/throttle';
 
 import Button from '../../components/Button';
 import LimitControl from './LimitControl';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
+import ScheduleQueryButton from './ScheduleQueryButton';
+import EstimateQueryCostButton from './EstimateQueryCostButton';
 import ShareSqlLabQuery from './ShareSqlLabQuery';
 import Timer from '../../components/Timer';
 import Hotkeys from '../../components/Hotkeys';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
-import { STATE_BSSTYLE_MAP } from '../constants';
+import {
+  STATE_BSSTYLE_MAP,
+  SQL_EDITOR_GUTTER_HEIGHT,
+  SQL_EDITOR_GUTTER_MARGIN,
+  SQL_TOOLBAR_HEIGHT,
+} from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
+import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
+
+const SQL_EDITOR_PADDING = 10;
+const INITIAL_NORTH_PERCENT = 30;
+const INITIAL_SOUTH_PERCENT = 70;
+const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 2000;
+const VALIDATION_DEBOUNCE_MS = 600;
+const WINDOW_RESIZE_THROTTLE_MS = 100;
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  getHeight: PropTypes.func.isRequired,
   database: PropTypes.object,
   latestQuery: PropTypes.object,
   tables: PropTypes.array.isRequired,
@@ -41,12 +72,16 @@ const propTypes = {
   hideLeftBar: PropTypes.bool,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
+  displayLimit: PropTypes.number.isRequired,
+  saveQueryWarning: PropTypes.string,
+  scheduleQueryWarning: PropTypes.string,
 };
 
 const defaultProps = {
   database: null,
   latestQuery: null,
   hideLeftBar: false,
+  scheduleQueryWarning: null,
 };
 
 class SqlEditor extends React.PureComponent {
@@ -55,17 +90,39 @@ class SqlEditor extends React.PureComponent {
     this.state = {
       autorun: props.queryEditor.autorun,
       ctas: '',
+      northPercent: props.queryEditor.northPercent || INITIAL_NORTH_PERCENT,
+      southPercent: props.queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
       sql: props.queryEditor.sql,
     };
+    this.sqlEditorRef = React.createRef();
+    this.northPaneRef = React.createRef();
 
-    this.onResize = this.onResize.bind(this);
-    this.throttledResize = throttle(this.onResize, 250);
+    this.elementStyle = this.elementStyle.bind(this);
+    this.onResizeStart = this.onResizeStart.bind(this);
+    this.onResizeEnd = this.onResizeEnd.bind(this);
+    this.canValidateQuery = this.canValidateQuery.bind(this);
     this.runQuery = this.runQuery.bind(this);
     this.stopQuery = this.stopQuery.bind(this);
     this.onSqlChanged = this.onSqlChanged.bind(this);
     this.setQueryEditorSql = this.setQueryEditorSql.bind(this);
+    this.setQueryEditorSqlWithDebounce = debounce(
+      this.setQueryEditorSql.bind(this),
+      SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
+    );
+    this.queryPane = this.queryPane.bind(this);
+    this.getAceEditorAndSouthPaneHeights = this.getAceEditorAndSouthPaneHeights.bind(this);
+    this.getSqlEditorHeight = this.getSqlEditorHeight.bind(this);
+    this.requestValidation = debounce(
+      this.requestValidation.bind(this),
+      VALIDATION_DEBOUNCE_MS,
+    );
+    this.getQueryCostEstimate = this.getQueryCostEstimate.bind(this);
+    this.handleWindowResize = throttle(
+      this.handleWindowResize.bind(this),
+      WINDOW_RESIZE_THROTTLE_MS,
+    );
   }
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     if (this.state.autorun) {
       this.setState({ autorun: false });
       this.props.actions.queryEditorSetAutorun(this.props.queryEditor, false);
@@ -73,47 +130,72 @@ class SqlEditor extends React.PureComponent {
     }
   }
   componentDidMount() {
-    this.onResize();
-    window.addEventListener('resize', this.throttledResize);
+    // We need to measure the height of the sql editor post render to figure the height of
+    // the south pane so it gets rendered properly
+    // eslint-disable-next-line react/no-did-mount-set-state
+    this.setState({ height: this.getSqlEditorHeight() });
+
+    window.addEventListener('resize', this.handleWindowResize);
   }
   componentWillUnmount() {
-    window.removeEventListener('resize', this.throttledResize);
+    window.removeEventListener('resize', this.handleWindowResize);
   }
-  onResize() {
-    const height = this.sqlEditorHeight();
-    const editorPaneHeight = this.props.queryEditor.height || 200;
-    const splitPaneHandlerHeight = 15;
-    this.setState({
-      editorPaneHeight,
-      southPaneHeight: height - editorPaneHeight - splitPaneHandlerHeight,
-      height,
-    });
+  onResizeStart() {
+    // Set the heights on the ace editor and the ace content area after drag starts
+    // to smooth out the visual transition to the new heights when drag ends
+    document.getElementsByClassName('ace_content')[0].style.height = '100%';
+  }
+  onResizeEnd([northPercent, southPercent]) {
+    this.setState({ northPercent, southPercent });
 
-    if (this.refs.ace && this.refs.ace.clientHeight) {
-      this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
+    if (this.northPaneRef.current && this.northPaneRef.current.clientHeight) {
+      this.props.actions.persistEditorHeight(this.props.queryEditor,
+        northPercent, southPercent);
     }
   }
   onSqlChanged(sql) {
     this.setState({ sql });
+    this.setQueryEditorSqlWithDebounce(sql);
+    // Request server-side validation of the query text
+    if (this.canValidateQuery()) {
+      // NB. requestValidation is debounced
+      this.requestValidation();
+    }
+  }
+  // One layer of abstraction for easy spying in unit tests
+  getSqlEditorHeight() {
+    return this.sqlEditorRef.current ?
+      (this.sqlEditorRef.current.clientHeight - SQL_EDITOR_PADDING * 2) : 0;
+  }
+  // Return the heights for the ace editor and the south pane as an object
+  // given the height of the sql editor, north pane percent and south pane percent.
+  getAceEditorAndSouthPaneHeights(height, northPercent, southPercent) {
+    return {
+      aceEditorHeight: height * northPercent / 100
+        - (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN)
+        - SQL_TOOLBAR_HEIGHT,
+      southPaneHeight: height * southPercent / 100
+        - (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN),
+    };
   }
   getHotkeyConfig() {
     return [
       {
         name: 'runQuery1',
         key: 'ctrl+r',
-        descr: 'Run query',
+        descr: t('Run query'),
         func: this.runQuery,
       },
       {
         name: 'runQuery2',
         key: 'ctrl+enter',
-        descr: 'Run query',
+        descr: t('Run query'),
         func: this.runQuery,
       },
       {
         name: 'newTab',
         key: 'ctrl+t',
-        descr: 'New tab',
+        descr: t('New tab'),
         func: () => {
           this.props.actions.addQueryEditor({
             ...this.props.queryEditor,
@@ -125,7 +207,7 @@ class SqlEditor extends React.PureComponent {
       {
         name: 'stopQuery',
         key: 'ctrl+x',
-        descr: 'Stop query',
+        descr: t('Stop query'),
         func: this.stopQuery,
       },
     ];
@@ -136,12 +218,55 @@ class SqlEditor extends React.PureComponent {
   setQueryLimit(queryLimit) {
     this.props.actions.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
   }
-  runQuery() {
+  getQueryCostEstimate() {
     if (this.props.database) {
-      this.startQuery(this.props.database.allow_run_async);
+      const qe = this.props.queryEditor;
+      const query = {
+        dbId: qe.dbId,
+        sql: qe.selectedText ? qe.selectedText : this.state.sql,
+        sqlEditorId: qe.id,
+        schema: qe.schema,
+        templateParams: qe.templateParams,
+      };
+      this.props.actions.estimateQueryCost(query);
     }
   }
-  startQuery(runAsync = false, ctas = false) {
+  handleWindowResize() {
+    this.setState({ height: this.getSqlEditorHeight() });
+  }
+  elementStyle(dimension, elementSize, gutterSize) {
+    return {
+      [dimension]: `calc(${elementSize}% - ${gutterSize + SQL_EDITOR_GUTTER_MARGIN}px)`,
+    };
+  }
+  requestValidation() {
+    if (this.props.database) {
+      const qe = this.props.queryEditor;
+      const query = {
+        dbId: qe.dbId,
+        sql: this.state.sql,
+        sqlEditorId: qe.id,
+        schema: qe.schema,
+        templateParams: qe.templateParams,
+      };
+      this.props.actions.validateQuery(query);
+    }
+  }
+  canValidateQuery() {
+    // Check whether or not we can validate the current query based on whether
+    // or not the backend has a validator configured for it.
+    const validatorMap = window.featureFlags.SQL_VALIDATORS_BY_ENGINE;
+    if (this.props.database && validatorMap != null) {
+      return validatorMap.hasOwnProperty(this.props.database.backend);
+    }
+    return false;
+  }
+  runQuery() {
+    if (this.props.database) {
+      this.startQuery();
+    }
+  }
+  startQuery(ctas = false) {
     const qe = this.props.queryEditor;
     const query = {
       dbId: qe.dbId,
@@ -152,8 +277,9 @@ class SqlEditor extends React.PureComponent {
       tempTableName: ctas ? this.state.ctas : '',
       templateParams: qe.templateParams,
       queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
-      runAsync,
+      runAsync: this.props.database ? this.props.database.allow_run_async : false,
       ctas,
+      updateTabState: !qe.selectedText,
     };
     this.props.actions.runQuery(query);
     this.props.actions.setActiveSouthPaneTab('Results');
@@ -164,14 +290,54 @@ class SqlEditor extends React.PureComponent {
     }
   }
   createTableAs() {
-    this.startQuery(true, true);
+    this.startQuery(true);
   }
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
   }
-  sqlEditorHeight() {
-    const horizontalScrollbarHeight = 25;
-    return parseInt(this.props.getHeight(), 10) - horizontalScrollbarHeight;
+  queryPane() {
+    const hotkeys = this.getHotkeyConfig();
+    const { aceEditorHeight, southPaneHeight } = this.getAceEditorAndSouthPaneHeights(
+      this.state.height,
+      this.state.northPercent,
+      this.state.southPercent,
+    );
+    return (
+      <Split
+        className="queryPane"
+        sizes={[this.state.northPercent, this.state.southPercent]}
+        elementStyle={this.elementStyle}
+        minSize={200}
+        direction="vertical"
+        gutterSize={SQL_EDITOR_GUTTER_HEIGHT}
+        onDragStart={this.onResizeStart}
+        onDragEnd={this.onResizeEnd}
+      >
+        <div ref={this.northPaneRef} className="north-pane">
+          <AceEditorWrapper
+            actions={this.props.actions}
+            onBlur={this.setQueryEditorSql}
+            onChange={this.onSqlChanged}
+            queryEditor={this.props.queryEditor}
+            sql={this.props.queryEditor.sql}
+            schemas={this.props.queryEditor.schemaOptions}
+            tables={this.props.queryEditor.tableOptions}
+            extendedTables={this.props.tables}
+            height={`${aceEditorHeight}px`}
+            hotkeys={hotkeys}
+          />
+          {this.renderEditorBottomBar(hotkeys)}
+        </div>
+        <SouthPane
+          editorQueries={this.props.editorQueries}
+          latestQueryId={this.props.latestQuery && this.props.latestQuery.id}
+          dataPreviewQueries={this.props.dataPreviewQueries}
+          actions={this.props.actions}
+          height={southPaneHeight}
+          displayLimit={this.props.displayLimit}
+        />
+      </Split>
+    );
   }
   renderEditorBottomBar(hotkeys) {
     let ctasControls;
@@ -203,25 +369,33 @@ class SqlEditor extends React.PureComponent {
     }
     const qe = this.props.queryEditor;
     let limitWarning = null;
-    if (this.props.latestQuery && this.props.latestQuery.limit_reached) {
+    if (
+      this.props.latestQuery
+      && this.props.latestQuery.results
+      && this.props.latestQuery.results.displayLimitReached
+    ) {
       const tooltip = (
         <Tooltip id="tooltip">
-          It appears that the number of rows in the query results displayed
-          was limited on the server side to
-          the {this.props.latestQuery.rows} limit.
+          {t(`It appears that the number of rows in the query results displayed
+           was limited on the server side to
+           the %s limit.`, this.props.latestQuery.rows)}
         </Tooltip>
       );
       limitWarning = (
         <OverlayTrigger placement="left" overlay={tooltip}>
-          <Label bsStyle="warning" className="m-r-5">LIMIT</Label>
+          <Label bsStyle="warning">LIMIT</Label>
         </OverlayTrigger>
       );
     }
+    const successful = this.props.latestQuery && this.props.latestQuery.state === 'success';
+    const scheduleToolTip = successful
+      ? t('Schedule the query periodically')
+      : t('You must run the query successfully first');
     return (
-      <div className="sql-toolbar clearfix" id="js-sql-toolbar">
-        <div className="pull-left">
+      <div className="sql-toolbar" id="js-sql-toolbar">
+        <div className="leftItems">
           <Form inline>
-            <span className="m-r-5">
+            <span>
               <RunQueryActionButton
                 allowAsync={this.props.database ? this.props.database.allow_run_async : false}
                 dbId={qe.dbId}
@@ -232,23 +406,54 @@ class SqlEditor extends React.PureComponent {
                 sql={this.state.sql}
               />
             </span>
-            <span className="m-r-5">
-              <SaveQuery
+            {
+              isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
+              this.props.database &&
+              this.props.database.allows_cost_estimate &&
+              <span>
+                <EstimateQueryCostButton
+                  dbId={qe.dbId}
+                  schema={qe.schema}
+                  sql={qe.sql}
+                  getEstimate={this.getQueryCostEstimate}
+                  queryCostEstimate={qe.queryCostEstimate}
+                  selectedText={qe.selectedText}
+                  tooltip={t('Estimate the cost before running a query')}
+                />
+              </span>
+            }
+            {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) &&
+            <span>
+              <ScheduleQueryButton
                 defaultLabel={qe.title}
                 sql={qe.sql}
-                className="m-r-5"
-                onSave={this.props.actions.saveQuery}
+                onSchedule={this.props.actions.scheduleQuery}
                 schema={qe.schema}
                 dbId={qe.dbId}
+                scheduleQueryWarning={this.props.scheduleQueryWarning}
+                tooltip={scheduleToolTip}
+                disabled={!successful}
               />
             </span>
-            <span className="m-r-5">
+            }
+            <span>
+              <SaveQuery
+                query={qe}
+                defaultLabel={qe.description == null ? qe.title : qe.description}
+                onSave={this.props.actions.saveQuery}
+                onUpdate={this.props.actions.updateSavedQuery}
+                saveQueryWarning={this.props.saveQueryWarning}
+              />
+            </span>
+            <span>
               <ShareSqlLabQuery queryEditor={qe} />
             </span>
-            <span className="m-r-5">
-              {ctasControls}
-            </span>
-            <span className="inlineBlock m-r-5">
+            { ctasControls && (
+              <span>
+                {ctasControls}
+              </span>
+            )}
+            <span>
               <LimitControl
                 value={(this.props.queryEditor.queryLimit !== undefined) ?
                   this.props.queryEditor.queryLimit : this.props.defaultQueryLimit}
@@ -257,15 +462,15 @@ class SqlEditor extends React.PureComponent {
                 onChange={this.setQueryLimit.bind(this)}
               />
             </span>
-            <span className="m-l-5">
+            <span>
               <Hotkeys
-                header="Keyboard shortcuts"
+                header={t('Keyboard shortcuts')}
                 hotkeys={hotkeys}
               />
             </span>
           </Form>
         </div>
-        <div className="pull-right">
+        <div className="rightItems">
           <TemplateParamsEditor
             language="json"
             onChange={(params) => {
@@ -287,74 +492,23 @@ class SqlEditor extends React.PureComponent {
     );
   }
   render() {
-    const height = this.sqlEditorHeight();
-    const defaultNorthHeight = this.props.queryEditor.height || 200;
-    const hotkeys = this.getHotkeyConfig();
     return (
-      <div
-        className="SqlEditor"
-        style={{
-          height: height + 'px',
-        }}
-      >
-        <Row>
-          <Collapse
-            in={!this.props.hideLeftBar}
-          >
-            <Col
-              xs={6}
-              sm={5}
-              md={4}
-              lg={3}
-            >
-              <SqlEditorLeftBar
-                height={height}
-                database={this.props.database}
-                queryEditor={this.props.queryEditor}
-                tables={this.props.tables}
-                actions={this.props.actions}
-              />
-            </Col>
-          </Collapse>
-          <Col
-            xs={this.props.hideLeftBar ? 12 : 6}
-            sm={this.props.hideLeftBar ? 12 : 7}
-            md={this.props.hideLeftBar ? 12 : 8}
-            lg={this.props.hideLeftBar ? 12 : 9}
-            style={{ height: this.state.height }}
-          >
-            <SplitPane
-              split="horizontal"
-              defaultSize={defaultNorthHeight}
-              minSize={100}
-              onChange={this.onResize}
-            >
-              <div ref="ace" style={{ width: '100%' }}>
-                <div>
-                  <AceEditorWrapper
-                    actions={this.props.actions}
-                    onBlur={this.setQueryEditorSql}
-                    onChange={this.onSqlChanged}
-                    queryEditor={this.props.queryEditor}
-                    sql={this.props.queryEditor.sql}
-                    tables={this.props.tables}
-                    height={((this.state.editorPaneHeight || defaultNorthHeight) - 50) + 'px'}
-                    hotkeys={hotkeys}
-                  />
-                  {this.renderEditorBottomBar(hotkeys)}
-                </div>
-              </div>
-              <div ref="south">
-                <SouthPane
-                  editorQueries={this.props.editorQueries}
-                  dataPreviewQueries={this.props.dataPreviewQueries}
-                  actions={this.props.actions}
-                  height={this.state.southPaneHeight || 0}
-                />
-              </div>
-            </SplitPane>
-          </Col>
-        </Row>
+      <div ref={this.sqlEditorRef} className="SqlEditor">
+        <CSSTransition
+          classNames="schemaPane"
+          in={!this.props.hideLeftBar}
+          timeout={300}
+        >
+          <div className="schemaPane">
+            <SqlEditorLeftBar
+              database={this.props.database}
+              queryEditor={this.props.queryEditor}
+              tables={this.props.tables}
+              actions={this.props.actions}
+            />
+          </div>
+        </CSSTransition>
+        {this.queryPane()}
       </div>
     );
   }

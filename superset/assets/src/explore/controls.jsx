@@ -1,4 +1,22 @@
 /**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/**
  * This file exports all controls available for use in the different visualization types
  *
  * While the React components located in `controls/components` represent different
@@ -48,9 +66,9 @@ import {
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
+import { DEFAULT_VIEWPORT } from '../explore/components/controls/ViewportControl';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -61,6 +79,7 @@ const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
 const D3_FORMAT_OPTIONS = [
+  ['SMART_NUMBER', 'Adaptative formating'],
   ['.1s', '.1s (12345.432 => 10k)'],
   ['.3s', '.3s (12345.432 => 12.3k)'],
   [',.1%', ',.1% (12345.432 => 1,234,543.2%)'],
@@ -69,6 +88,8 @@ const D3_FORMAT_OPTIONS = [
   [',.3f', ',.3f (12345.432 => 12,345.432)'],
   ['+,', '+, (12345.432 => +12,345.432)'],
   ['$,.2f', '$,.2f (12345.432 => $12,345.43)'],
+  ['DURATION', 'Duration in ms (66000 => 1m 6s)'],
+  ['DURATION_SUB', 'Duration in ms (100.40008 => 100ms 400µs 80ns)'],
 ];
 
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
@@ -102,6 +123,7 @@ const sortAxisChoices = [
 const groupByControl = {
   type: 'SelectControl',
   multi: true,
+  freeForm: true,
   label: t('Group by'),
   default: [],
   includeTime: false,
@@ -109,10 +131,12 @@ const groupByControl = {
   optionRenderer: c => <ColumnOption column={c} showType />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
+  allowAll: true,
   filterOption: (opt, text) => (
-    (opt.column_name && opt.column_name.toLowerCase().indexOf(text) >= 0) ||
-    (opt.verbose_name && opt.verbose_name.toLowerCase().indexOf(text) >= 0)
+    (opt.column_name && opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
+    (opt.verbose_name && opt.verbose_name.toLowerCase().indexOf(text.toLowerCase()) >= 0)
   ),
+  promptTextCreator: label => label,
   mapStateToProps: (state, control) => {
     const newState = {};
     if (state.datasource) {
@@ -123,6 +147,7 @@ const groupByControl = {
     }
     return newState;
   },
+  commaChoosesOption: false,
 };
 
 const metrics = {
@@ -148,6 +173,7 @@ const metric = {
   ...metrics,
   multi: false,
   label: t('Metric'),
+  description: t('Metric'),
   default: props => mainMetric(props.savedMetrics),
 };
 
@@ -281,6 +307,16 @@ export const controls = {
     renderTrigger: true,
   },
 
+  legend_format: {
+    label: t('Legend Format'),
+    description: t('Choose the format for legend values'),
+    type: 'SelectControl',
+    clearable: false,
+    default: D3_FORMAT_OPTIONS[0],
+    choices: D3_FORMAT_OPTIONS,
+    renderTrigger: true,
+  },
+
   fill_color_picker: {
     label: t('Fill Color'),
     description: t(' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
@@ -338,8 +374,8 @@ export const controls = {
     label: t('Linear Color Scheme'),
     choices: () => sequentialSchemeRegistry
       .values()
-      .map(value => [value.name, value.label]),
-    default: 'blue_white_yellow',
+      .map(value => [value.id, value.label]),
+    default: sequentialSchemeRegistry.getDefaultKey(),
     clearable: false,
     description: '',
     renderTrigger: true,
@@ -448,6 +484,13 @@ export const controls = {
     description: t('Display total row/column'),
   },
 
+  transpose_pivot: {
+    type: 'CheckboxControl',
+    label: t('Transpose Pivot'),
+    default: false,
+    description: t('Swap Groups and Columns'),
+  },
+
   show_markers: {
     type: 'CheckboxControl',
     label: t('Show Markers'),
@@ -524,12 +567,16 @@ export const controls = {
     choices: [
       'Belgium',
       'Brazil',
+      'Bulgaria',
       'China',
       'Egypt',
       'France',
       'Germany',
+      'India',
       'Italy',
       'Japan',
+      'Korea',
+      'Liechtenstein',
       'Morocco',
       'Myanmar',
       'Netherlands',
@@ -537,6 +584,7 @@ export const controls = {
       'Russia',
       'Singapore',
       'Spain',
+      'Switzerland',
       'Thailand',
       'Timorleste',
       'Uk',
@@ -545,19 +593,6 @@ export const controls = {
       'Zambia',
     ].map(s => [s, s]),
     description: t('The name of the country that Superset should display'),
-  },
-  country_fieldtype: {
-    type: 'SelectControl',
-    label: t('Country Field Type'),
-    default: 'cca2',
-    choices: [
-      ['name', 'Full name'],
-      ['cioc', 'code International Olympic Committee (cioc)'],
-      ['cca2', 'code ISO 3166-1 alpha-2 (cca2)'],
-      ['cca3', 'code ISO 3166-1 alpha-3 (cca3)'],
-    ],
-    description: t('The country code standard that Superset should expect ' +
-    'to find in the [country] column'),
   },
 
   freq: {
@@ -607,9 +642,12 @@ export const controls = {
     optionRenderer: c => <ColumnOption column={c} showType />,
     valueRenderer: c => <ColumnOption column={c} />,
     valueKey: 'column_name',
+    allowAll: true,
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.columns : [],
     }),
+    commaChoosesOption: false,
+    freeForm: true,
   },
 
   spatial: {
@@ -898,26 +936,17 @@ export const controls = {
     freeForm: true,
     label: t('Rule'),
     default: null,
-    choices: formatSelectOptions(['', '1T', '1H', '1D', '7D', '1M', '1AS']),
+    choices: formatSelectOptions(['1T', '1H', '1D', '7D', '1M', '1AS']),
     description: t('Pandas resample rule'),
   },
 
-  resample_how: {
+  resample_method: {
     type: 'SelectControl',
     freeForm: true,
-    label: t('How'),
+    label: t('Method'),
     default: null,
-    choices: formatSelectOptions(['', 'mean', 'sum', 'median']),
-    description: t('Pandas resample how'),
-  },
-
-  resample_fillmethod: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Fill Method'),
-    default: null,
-    choices: formatSelectOptions(['', 'ffill', 'bfill']),
-    description: t('Pandas resample fill method'),
+    choices: formatSelectOptions(['asfreq', 'bfill', 'ffill', 'median', 'mean', 'sum']),
+    description: t('Pandas resample method'),
   },
 
   time_range: {
@@ -925,6 +954,17 @@ export const controls = {
     freeForm: true,
     label: t('Time range'),
     default: t('Last week'),
+    description: t(
+      'The time range for the visualization. All relative times, e.g. "Last month", ' +
+      '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
+      'local time (sans timezone). All tooltips and placeholder times are expressed ' +
+      'in UTC (sans timezone). The timestamps are then evaluated by the database ' +
+      'using the engine\'s local timezone. Note one can explicitly set the timezone ' +
+      'per the ISO 8601 format if specifying either the start and/or end time.',
+    ),
+    mapStateToProps: state => ({
+      endpoints: state.form_data ? state.form_data.time_range_endpoints : null,
+    }),
   },
 
   max_bubble_size: {
@@ -963,7 +1003,7 @@ export const controls = {
     freeForm: true,
     label: t('Number format'),
     renderTrigger: true,
-    default: '.3s',
+    default: 'SMART_NUMBER',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
@@ -1206,7 +1246,7 @@ export const controls = {
     freeForm: true,
     label: t('X Axis Format'),
     renderTrigger: true,
-    default: '.3s',
+    default: 'SMART_NUMBER',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
@@ -1226,7 +1266,7 @@ export const controls = {
     freeForm: true,
     label: t('Y Axis Format'),
     renderTrigger: true,
-    default: '.3s',
+    default: 'SMART_NUMBER',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
     mapStateToProps: (state) => {
@@ -1247,7 +1287,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: t('Right Axis Format'),
-    default: '.3s',
+    default: 'SMART_NUMBER',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
@@ -1270,15 +1310,6 @@ export const controls = {
     default: 'markdown',
     validators: [v.nonEmpty],
     description: t('Pick your favorite markup language'),
-  },
-
-  rotation: {
-    type: 'SelectControl',
-    label: t('Rotation'),
-    choices: formatSelectOptions(['random', 'flat', 'square']),
-    renderTrigger: true,
-    default: 'flat',
-    description: t('Rotation to apply to words in the cloud'),
   },
 
   line_interpolation: {
@@ -1325,7 +1356,7 @@ export const controls = {
       'mean',
       'min',
       'max',
-      'stdev',
+      'std',
       'var',
     ]),
     default: 'sum',
@@ -1356,22 +1387,66 @@ export const controls = {
     ]),
   },
 
-  size_from: {
-    type: 'TextControl',
-    isInt: true,
-    label: t('Font Size From'),
+  header_font_size: {
+    type: 'SelectControl',
+    label: t('Header Font Size'),
     renderTrigger: true,
-    default: '20',
-    description: t('Font size for the smallest value in the list'),
+    clearable: false,
+    default: 0.3,
+    // Values represent the percentage of space a header should take
+    options: [
+      {
+        label: t('Tiny'),
+        value: 0.125,
+      },
+      {
+        label: t('Small'),
+        value: 0.2,
+      },
+      {
+        label: t('Normal'),
+        value: 0.3,
+      },
+      {
+        label: t('Large'),
+        value: 0.4,
+      },
+      {
+        label: t('Huge'),
+        value: 0.5,
+      },
+    ],
   },
 
-  size_to: {
-    type: 'TextControl',
-    isInt: true,
-    label: t('Font Size To'),
+  subheader_font_size: {
+    type: 'SelectControl',
+    label: t('Subheader Font Size'),
     renderTrigger: true,
-    default: '150',
-    description: t('Font size for the biggest value in the list'),
+    clearable: false,
+    default: 0.125,
+    // Values represent the percentage of space a subheader should take
+    options: [
+      {
+        label: t('Tiny'),
+        value: 0.125,
+      },
+      {
+        label: t('Small'),
+        value: 0.2,
+      },
+      {
+        label: t('Normal'),
+        value: 0.3,
+      },
+      {
+        label: t('Large'),
+        value: 0.4,
+      },
+      {
+        label: t('Huge'),
+        value: 0.5,
+      },
+    ],
   },
 
   instant_filtering: {
@@ -1380,7 +1455,7 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: (
-      'Whether to apply filters as they change, or wait for' +
+      'Whether to apply filters as they change, or wait for ' +
       'users to hit an [Apply] button'
     ),
   },
@@ -1455,7 +1530,7 @@ export const controls = {
     label: t('Search Box'),
     renderTrigger: true,
     default: false,
-    description: t('Whether to include a client side search box'),
+    description: t('Whether to include a client-side search box'),
   },
 
   table_filter: {
@@ -1480,14 +1555,6 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: t('Whether to color +/- values'),
-  },
-
-  show_bubbles: {
-    type: 'CheckboxControl',
-    label: t('Show Bubbles'),
-    default: false,
-    renderTrigger: true,
-    description: t('Whether to display bubbles on top of countries'),
   },
 
   show_legend: {
@@ -1759,7 +1826,7 @@ export const controls = {
     'Either a numerical column or `Auto`, which scales the point based ' +
     'on the largest cluster'),
     mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
+      choices: formatSelectOptions(['Auto']).concat(columnChoices(state.datasource)),
     }),
   },
 
@@ -1813,7 +1880,7 @@ export const controls = {
     renderTrigger: false,
     description: t('Parameters related to the view and perspective on the map'),
     // default is whole world mostly centered
-    default: defaultViewport,
+    default: DEFAULT_VIEWPORT,
     // Viewport changes shouldn't prompt user to re-run query
     dontRefreshOnChange: true,
   },
@@ -1858,7 +1925,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Live render'),
     default: true,
-    description: t('Points and clusters will update as viewport is being changed'),
+    description: t('Points and clusters will update as the viewport is being changed'),
   },
 
   mapbox_color: {
@@ -1941,7 +2008,7 @@ export const controls = {
     default: null,
     description: '',
     mapStateToProps: state => ({
-      columns: state.datasource ? state.datasource.columns : [],
+      columns: state.datasource ? state.datasource.columns.filter(c => c.filterable) : [],
       savedMetrics: state.datasource ? state.datasource.metrics : [],
       datasource: state.datasource,
     }),
@@ -1973,6 +2040,13 @@ export const controls = {
     description: t('Extra parameters for use in jinja templated queries'),
   },
 
+  time_range_endpoints: {
+    type: 'HiddenControl',
+    label: t('Time range endpoints'),
+    hidden: true,
+    description: t('Time range endpoints (SIP-15)'),
+  },
+
   order_by_entity: {
     type: 'CheckboxControl',
     label: t('Order by entity id'),
@@ -1994,32 +2068,22 @@ export const controls = {
   color_scheme: {
     type: 'ColorSchemeControl',
     label: t('Color Scheme'),
-    default: 'bnbColors',
+    default: categoricalSchemeRegistry.getDefaultKey(),
     renderTrigger: true,
     choices: () => categoricalSchemeRegistry.keys().map(s => ([s, s])),
     description: t('The color scheme for rendering chart'),
     schemes: () => categoricalSchemeRegistry.getMap(),
   },
 
-  significance_level: {
-    type: 'TextControl',
-    label: t('Significance Level'),
-    default: 0.05,
-    description: t('Threshold alpha level for determining significance'),
-  },
-
-  pvalue_precision: {
-    type: 'TextControl',
-    label: t('p-value precision'),
-    default: 6,
-    description: t('Number of decimal places with which to display p-values'),
-  },
-
-  liftvalue_precision: {
-    type: 'TextControl',
-    label: t('Lift percent precision'),
-    default: 4,
-    description: t('Number of decimal places with which to display lift values'),
+  label_colors: {
+    type: 'ColorMapControl',
+    label: t('Color Map'),
+    default: {},
+    renderTrigger: true,
+    mapStateToProps: state => ({
+      colorNamespace: state.form_data.color_namespace,
+      colorScheme: state.form_data.color_scheme,
+    }),
   },
 
   column_collection: {
@@ -2027,17 +2091,6 @@ export const controls = {
     label: t('Time Series Columns'),
     validators: [v.nonEmpty],
     controlName: 'TimeSeriesColumnControl',
-  },
-
-  rose_area_proportion: {
-    type: 'CheckboxControl',
-    label: t('Use Area Proportions'),
-    description: t(
-      'Check if the Rose Chart should use segment area instead of ' +
-      'segment radius for proportioning',
-    ),
-    default: false,
-    renderTrigger: true,
   },
 
   time_series_option: {
@@ -2287,6 +2340,15 @@ export const controls = {
     renderTrigger: true,
     description: t('Whether to fill the objects'),
     default: true,
+  },
+
+  filter_configs: {
+    type: 'CollectionControl',
+    label: 'Filters',
+    description: t('Filter configuration for the filter box'),
+    validators: [],
+    controlName: 'FilterBoxItemControl',
+    mapStateToProps: ({ datasource }) => ({ datasource }),
   },
 
   normalized: {

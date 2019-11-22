@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Badge, Col, Label, Tabs, Tab, Well } from 'react-bootstrap';
@@ -8,6 +26,7 @@ import getClientErrorObject from '../utils/getClientErrorObject';
 
 import Button from '../components/Button';
 import Loading from '../components/Loading';
+import TableSelector from '../components/TableSelector';
 import CheckboxControl from '../explore/components/controls/CheckboxControl';
 import TextControl from '../explore/components/controls/TextControl';
 import SelectControl from '../explore/components/controls/SelectControl';
@@ -21,11 +40,10 @@ import Field from '../CRUD/Field';
 
 import withToasts from '../messageToasts/enhancers/withToasts';
 
-import './main.css';
+import './main.less';
 
 const checkboxGenerator = (d, onChange) => <CheckboxControl value={d} onChange={onChange} />;
-const styleMonospace = { fontFamily: 'monospace' };
-const DATA_TYPES = ['STRING', 'NUMBER', 'DATETIME'];
+const DATA_TYPES = ['STRING', 'NUMERIC', 'DATETIME'];
 
 function CollectionTabTitle({ title, collection }) {
   return (
@@ -65,44 +83,39 @@ function ColumnCollectionTable({
               label={t('Label')}
               control={<TextControl />}
             />
+            <Field
+              fieldKey="description"
+              label={t('Description')}
+              control={<TextControl />}
+            />
             {allowEditDataType &&
               <Field
                 fieldKey="type"
                 label={t('Data Type')}
-                control={<SelectControl choices={DATA_TYPES} name="type" />}
+                control={<SelectControl choices={DATA_TYPES} name="type" freeForm />}
               />}
             <Field
               fieldKey="python_date_format"
               label={t('Datetime Format')}
-              descr={
+              descr={/* Note the fragmented translations may not work. */
                 <div>
-                  {t('The pattern of the timestamp format, use ')}
+                  {t('The pattern of timestamp format. For strings use ')}
                   <a href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
                     {t('python datetime string pattern')}
                   </a>
-                  {t(` expression. If time is stored in epoch format, put \`epoch_s\` or
-                      \`epoch_ms\`. Leave \`Database Expression\`
-                      below empty if timestamp is stored in '
-                      String or Integer(epoch) type`)}
-                </div>
-              }
-              control={<TextControl />}
-            />
-            <Field
-              fieldKey="database_expression"
-              label={t('Database Expression')}
-              descr={
-                <div>
-                  {t(`
-                    The database expression to cast internal datetime
-                    constants to database date/timestamp type according to the DBAPI.
-                    The expression should follow the pattern of
-                    %Y-%m-%d %H:%M:%S, based on different DBAPI.
-                    The string should be a python string formatter
-                    \`Ex: TO_DATE('{}', 'YYYY-MM-DD HH24:MI:SS')\` for Oracle
-                    Superset uses default expression based on DB URI if this
-                    field is blank.
-                  `)}
+                  {t(' expression which needs to adhere to the ')}
+                  <a href="https://en.wikipedia.org/wiki/ISO_8601">
+                    {t('ISO 8601')}
+                  </a>
+                  {t(` standard to ensure that the lexicographical ordering
+                      coincides with the chronological ordering. If the
+                      timestamp format does not adhere to the ISO 8601 standard
+                      you will need to define an expression and type for
+                      transforming the string into a date or timestamp. Note
+                      currently time zones are not supported. If time is stored
+                      in epoch format, put \`epoch_s\` or \`epoch_ms\`. If no pattern
+                      is specified we fall back to using the optional defaults on a per
+                      database/column name level via the extra parameter.`)}
                 </div>
               }
               control={<TextControl />}
@@ -219,9 +232,8 @@ export class DatasourceEditor extends React.PureComponent {
     };
     this.props.onChange(datasource, this.state.errors);
   }
-
-  onDatasourceChange(newDatasource) {
-    this.setState({ datasource: newDatasource }, this.validateAndChange);
+  onDatasourceChange(datasource) {
+    this.setState({ datasource }, this.validateAndChange);
   }
 
   onDatasourcePropChange(attr, value) {
@@ -260,11 +272,16 @@ export class DatasourceEditor extends React.PureComponent {
   }
   syncMetadata() {
     const { datasource } = this.state;
+    // Handle carefully when the schema is empty
+    const endpoint = (
+      `/datasource/external_metadata/${datasource.type}/${datasource.id}/` +
+      `?db_id=${datasource.database.id}` +
+      `&schema=${datasource.schema || ''}` +
+      `&table_name=${datasource.datasource_name}`
+    );
     this.setState({ metadataLoading: true });
 
-    SupersetClient.get({
-      endpoint: `/datasource/external_metadata/${datasource.type}/${datasource.id}/`,
-    }).then(({ json }) => {
+    SupersetClient.get({ endpoint }).then(({ json }) => {
       this.mergeColumns(json);
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
@@ -319,6 +336,27 @@ export class DatasourceEditor extends React.PureComponent {
     const datasource = this.state.datasource;
     return (
       <Fieldset title={t('Basic')} item={datasource} onChange={this.onDatasourceChange}>
+        {this.state.isSqla &&
+          <Field
+            fieldKey="tableSelector"
+            label={t('Physical Table')}
+            control={
+              <TableSelector
+                dbId={datasource.database.id}
+                schema={datasource.schema}
+                tableName={datasource.datasource_name}
+                onSchemaChange={schema => this.onDatasourcePropChange('schema', schema)}
+                onDbChange={database => this.onDatasourcePropChange('database', database)}
+                onTableChange={table => this.onDatasourcePropChange('datasource_name', table)}
+                sqlLabMode={false}
+                clearable={false}
+                handleError={this.props.addDangerToast}
+              />}
+            descr={t(
+              'The pointer to a physical table. Keep in mind that the chart is ' +
+              'associated to this Superset logical table, and this logical table points ' +
+              'the physical table referenced here.')}
+          />}
         <Field
           fieldKey="description"
           label={t('Description')}
@@ -406,6 +444,14 @@ export class DatasourceEditor extends React.PureComponent {
           label={t('Hours offset')}
           control={<TextControl />}
         />
+        { this.state.isSqla &&
+          <Field
+            fieldKey="template_params"
+            label={t('Template parameters')}
+            descr={t('A set of parameters that become available in the query using Jinja templating syntax')}
+            control={<TextControl />}
+          />
+        }
       </Fieldset>);
   }
 
@@ -461,6 +507,11 @@ export class DatasourceEditor extends React.PureComponent {
           <FormContainer>
             <Fieldset>
               <Field
+                fieldKey="verbose_name"
+                label={t('Label')}
+                control={<TextControl />}
+              />
+              <Field
                 fieldKey="description"
                 label={t('Description')}
                 control={<TextControl />}
@@ -497,7 +548,8 @@ export class DatasourceEditor extends React.PureComponent {
               canEdit
               title={v}
               onSaveTitle={onChange}
-              style={styleMonospace}
+              extraClasses={['datasource-sql-expression']}
+              multiLine
             />),
           description: (v, onChange, label) => (
             <StackedField
@@ -515,30 +567,20 @@ export class DatasourceEditor extends React.PureComponent {
   }
 
   render() {
-    const datasource = this.state.datasource;
+    const { datasource, activeTabKey } = this.state;
     return (
       <div className="Datasource">
         {this.renderErrors()}
         <Tabs
           id="table-tabs"
           onSelect={this.handleTabSelect}
-          defaultActiveKey={1}
+          defaultActiveKey={activeTabKey}
         >
-          <Tab eventKey={1} title={t('Settings')}>
-            {this.state.activeTabKey === 1 &&
-              <div>
-                <Col md={6}>
-                  <FormContainer>
-                    {this.renderSettingsFieldset()}
-                  </FormContainer>
-                </Col>
-                <Col md={6}>
-                  <FormContainer>
-                    {this.renderAdvancedFieldset()}
-                  </FormContainer>
-                </Col>
-              </div>
-            }
+          <Tab
+            title={<CollectionTabTitle collection={datasource.metrics} title={t('Metrics')} />}
+            eventKey={1}
+          >
+            {activeTabKey === 1 && this.renderMetricCollection()}
           </Tab>
           <Tab
             title={
@@ -546,7 +588,7 @@ export class DatasourceEditor extends React.PureComponent {
             }
             eventKey={2}
           >
-            {this.state.activeTabKey === 2 &&
+            {activeTabKey === 2 &&
               <div>
                 <ColumnCollectionTable
                   columns={this.state.databaseColumns}
@@ -573,7 +615,7 @@ export class DatasourceEditor extends React.PureComponent {
               />}
             eventKey={3}
           >
-            {this.state.activeTabKey === 3 &&
+            {activeTabKey === 3 &&
               <ColumnCollectionTable
                 columns={this.state.calculatedColumns}
                 onChange={calculatedColumns => this.setColumns({ calculatedColumns })}
@@ -591,11 +633,25 @@ export class DatasourceEditor extends React.PureComponent {
               />
             }
           </Tab>
-          <Tab
-            title={<CollectionTabTitle collection={datasource.metrics} title={t('Metrics')} />}
-            eventKey={4}
-          >
-            {this.state.activeTabKey === 4 && this.renderMetricCollection()}
+          <Tab eventKey={4} title={t('Settings')}>
+            {activeTabKey === 4 &&
+            <div>
+              <div className="change-warning well">
+                <span className="bold">{t('Be careful.')} </span>
+                {t('Changing these settings will affect all charts using this datasource, including charts owned by other people.')}
+              </div>
+              <Col md={6}>
+                <FormContainer>
+                  {this.renderSettingsFieldset()}
+                </FormContainer>
+              </Col>
+              <Col md={6}>
+                <FormContainer>
+                  {this.renderAdvancedFieldset()}
+                </FormContainer>
+              </Col>
+            </div>
+            }
           </Tab>
         </Tabs>
       </div>

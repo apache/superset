@@ -1,19 +1,39 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import { createStore, compose, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader';
 
-import { initFeatureFlags } from 'src/featureFlags';
+import { initFeatureFlags, isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 import { initEnhancer } from '../reduxUtils';
 import App from './components/App';
+import { emptyQueryResults, clearQueryEditors } from './utils/reduxStateToLocalStorageHelper';
+import { BYTES_PER_CHAR, KB_STORAGE } from './constants';
 import setupApp from '../setup/setupApp';
 
 import './main.less';
-import '../../stylesheets/reactable-pagination.css';
-import '../components/FilterableTable/FilterableTableStyles.css';
+import '../../stylesheets/reactable-pagination.less';
+import '../components/FilterableTable/FilterableTableStyles.less';
 
 setupApp();
 
@@ -32,8 +52,23 @@ const sqlLabPersistStateConfig = {
         // it caused configurations passed from server-side got override.
         // see PR 6257 for details
         delete state[path].common; // eslint-disable-line no-param-reassign
-        subset[path] = state[path];
+
+        if (path === 'sqlLab') {
+          subset[path] = {
+            ...state[path],
+            queries: emptyQueryResults(state[path].queries),
+            queryEditors: clearQueryEditors(state[path].queryEditors),
+          };
+        }
       });
+
+      const data = JSON.stringify(subset);
+      // 2 digit precision
+      const currentSize = Math.round(data.length * BYTES_PER_CHAR / KB_STORAGE * 100) / 100;
+      if (state.localStorageUsageInKilobytes !== currentSize) {
+        state.localStorageUsageInKilobytes = currentSize; // eslint-disable-line no-param-reassign
+      }
+
       return subset;
     },
   },
@@ -44,7 +79,10 @@ const store = createStore(
   initialState,
   compose(
     applyMiddleware(thunkMiddleware),
-    initEnhancer(true, sqlLabPersistStateConfig),
+    initEnhancer(
+      !isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE),
+      sqlLabPersistStateConfig,
+    ),
   ),
 );
 
