@@ -21,7 +21,8 @@
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true",
     "install-cypress": "npm install cypress@3.4.1",
-    "packages-dev-start": "node ./link_packages.js"
+    "plugin-devmode-on": "node ./plugin-devmode.js",
+    "plugin-devmode-off": "npm ci"
   },
   "repository": {
     "type": "git",

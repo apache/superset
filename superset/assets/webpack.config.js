@@ -17,6 +17,7 @@
  * under the License.
  */
 const os = require('os');
+const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
@@ -27,6 +28,7 @@ const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const pluginDevmode = require('./plugin-devmode')
 
 // Parse command-line arguments
 const parsedArgs = require('minimist')(process.argv.slice(2));
@@ -45,6 +47,43 @@ const {
 } = parsedArgs;
 
 const isDevMode = mode !== 'production';
+
+const aliases = {
+  src: path.resolve(APP_DIR, './src'),
+};
+
+if (isDevMode) {
+  // find and alias linked plugins, so that imports point at /src instead of /lib
+  const PACKAGES_ROOT = pluginDevmode.PACKAGES_ROOT;
+
+  const pluginNameSet = new Set(
+    pluginDevmode.findPackages().map(
+      // first get a set of every plugin package name
+      dir => require(path.join(PACKAGES_ROOT, dir.name, 'package.json')).name
+    )
+  );
+
+  // now check which packages in node_modules are symlinks
+  const linkedDirs = fs.readdirSync('./node_modules/@superset-ui', { withFileTypes: true })
+    .filter(entity =>
+      entity.isSymbolicLink() && pluginNameSet.has(`@superset-ui/${entity.name}`)
+    );
+
+  if (linkedDirs.length) {
+    console.log('Aliasing imports for local development:')
+  }
+
+  // add an alias to the /src directory of those packages
+  linkedDirs.forEach(entity => {
+      const packageName = '@superset-ui/' + entity.name;
+      aliases[packageName] = packageName + '/src';
+      console.log(packageName);
+    });
+
+  if (linkedDirs.length) {
+    console.log('To disable import aliasing for local development, run `npm run plugin-devmode-off`')
+  }
+}
 
 const plugins = [
   // creates a manifest.json mapping of name to hashed output used in template files
@@ -137,9 +176,7 @@ const config = {
     },
   },
   resolve: {
-    alias: {
-      src: path.resolve(APP_DIR, './src'),
-    },
+    alias: aliases,
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     symlinks: false,
   },
