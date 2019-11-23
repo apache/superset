@@ -34,13 +34,15 @@
       });
 
       var data = {};
+      const extra = $("#extra").val();
+      const encryptedExtra = $("#encrypted_extra").val();
       try{
         data = JSON.stringify({
           uri: $.trim($("#sqlalchemy_uri").val()),
           name: $('#database_name').val(),
           impersonate_user: $('#impersonate_user').is(':checked'),
-          extras: JSON.parse($("#extra").val()),
-          encrypted_extra: JSON.parse($("#encrypted_extra").val()),
+          extras: extra ? JSON.parse(extra) : {},
+          encrypted_extra: encryptedExtra ? JSON.parse(encryptedExtra) : {},
         })
       } catch(parse_error){
         alert("Malformed JSON in the extras field: " + parse_error);

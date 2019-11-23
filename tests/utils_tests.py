@@ -522,13 +522,27 @@ class UtilsTestCase(SupersetTestCase):
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
 
-    def test_merge_request_params(self):
+    def test_merge_request_params_when_url_params_undefined(self):
         form_data = {"since": "2000", "until": "now"}
         url_params = {"form_data": form_data, "dashboard_ids": "(1,2,3,4,5)"}
         merge_request_params(form_data, url_params)
         self.assertIn("url_params", form_data.keys())
         self.assertIn("dashboard_ids", form_data["url_params"])
         self.assertNotIn("form_data", form_data.keys())
+
+    def test_merge_request_params_when_url_params_predefined(self):
+        form_data = {
+            "since": "2000",
+            "until": "now",
+            "url_params": {"abc": "123", "dashboard_ids": "(1,2,3)"},
+        }
+        url_params = {"form_data": form_data, "dashboard_ids": "(1,2,3,4,5)"}
+        merge_request_params(form_data, url_params)
+        self.assertIn("url_params", form_data.keys())
+        self.assertIn("abc", form_data["url_params"])
+        self.assertEquals(
+            url_params["dashboard_ids"], form_data["url_params"]["dashboard_ids"]
+        )
 
     def test_datetime_f(self):
         self.assertEqual(

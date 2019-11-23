@@ -24,6 +24,7 @@ import MenuObject from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';
 import LanguagePicker from './LanguagePicker';
+import './Menu.less';
 
 const propTypes = {
   data: PropTypes.shape({
@@ -49,7 +50,7 @@ const propTypes = {
 
 export default function Menu({ data: { menu, brand, navbar_right: navbarRight } }) {
   return (
-    <header className="top">
+    <header className="top" id="main-menu">
       <Navbar inverse fluid staticTop role="navigation">
         <Navbar.Header>
           <Navbar.Brand>

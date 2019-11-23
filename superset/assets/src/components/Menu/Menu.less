@@ -16,22 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import DashboardControlsTest from './controls';
-import DashboardEditModeTest from './edit_mode';
-import DashboardFavStarTest from './fav_star';
-import DashboardFilterTest from './filter';
-import DashboardLoadTest from './load';
-import DashboardSaveTest from './save';
-import DashboardTabsTest from './tabs';
-import DashboardUrlParamsTest from './url_params';
 
-describe('Dashboard', () => {
-  DashboardControlsTest();
-  DashboardEditModeTest();
-  DashboardFavStarTest();
-  DashboardFilterTest();
-  DashboardLoadTest();
-  DashboardSaveTest();
-  DashboardTabsTest();
-  DashboardUrlParamsTest();
-});
+#main-menu {
+  .navbar .caret {
+    width: 1rem;
+    padding: 0 0 18px 0;
+    &:before {
+      position: relative;
+      top: -2px;
+    }
+  }
+}
