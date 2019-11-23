@@ -33,7 +33,7 @@ class GeoCoder:  # pylint: disable=too-few-public-methods
     def __init__(self, config):
         self.conf = config
 
-    def geocode(self, geocoder: str, data: dict, async_flag=False):
+    def geocode(self, geocoder: str, data: list, async_flag=False):
         try:
             if geocoder == "MapTiler":
                 return self.__geocode_maptiler(data, async_flag)
@@ -44,26 +44,25 @@ class GeoCoder:  # pylint: disable=too-few-public-methods
             self.progress["progress"] = 0
             self.progress["is_in_progress"] = False
 
-    def __geocode_maptiler(self, data: dict, async_flag) -> dict:
+    def __geocode_maptiler(self, data: list, async_flag) -> list:
         if async_flag:
             raise Exception("Async not supported at this time")
         else:
             return self.__geocode_maptiler_sync(data)
 
-    def __geocode_maptiler_sync(self, data: dict) -> dict:
+    def __geocode_maptiler_sync(self, data: list) -> list:
         """
         geocode the data using the Maptiler API
-        :param data: the addresses to be geocoded
+        :param data: the addresses to be geocoded as a list of tuples
         :return: a dictionary containing the addresses and their long,lat values
         """
-        data = {"a": "HSR Oberseestrasse 10 Rapperswil", "b": "ETH Zürich"}
-        geocoded_data: dict = {}
-        datalen = len(data)
+        data = [("HSR Oberseestrasse 10", "Rapperswil"), ("ETH", "Zürich")]
+        geocoded_data = [()]
+        data_length = len(data)
         counter = 0
         self.progress["success_counter"] = 0
         self.progress["is_in_progress"] = True
         self.progress["progress"] = 0
-        # TODO this expects a dict, prob switch to a list of lists
 
         # for row in data:
         # request_string = ""
@@ -72,21 +71,21 @@ class GeoCoder:  # pylint: disable=too-few-public-methods
         # resp = requests.get(
         # baseurl + request_string + ".json?key=" + self.conf["MAPTILER_API_KEY"]
         # )
-        for datum_id in data:
+        for datum in data:
             try:
                 if self.interruptflag:
                     self.interruptflag = False
                     self.progress["progress"] = 0
                     self.progress["is_in_progress"] = False
                     return geocoded_data
-                address = data[datum_id]
+                address = " ".join(datum)
                 geocoded = self.__get_values_from_address(address)
                 if geocoded is not None:
-                    geocoded_data[datum_id] = geocoded
+                    geocoded_data.append(datum + tuple(geocoded))
 
                     self.progress["success_counter"] += 1
                 counter += 1
-                self.progress["progress"] = counter / datalen
+                self.progress["progress"] = counter / data_length
             # TODO be more precise with the possible exceptions
             except RequestException as e:
                 # TODO decide whether to interrupt here or keep going
@@ -98,11 +97,10 @@ class GeoCoder:  # pylint: disable=too-few-public-methods
 
     def __get_values_from_address(self, address: str):
         baseurl = "https://api.maptiler.com/geocoding/"
-        resp = requests.get(
+        response = requests.get(
             baseurl + address + ".json?key=" + self.conf["MAPTILER_API_KEY"]
         )
-        resp_content = resp.content.decode()
-        jsondat = json.loads(resp_content)
+        jsondat = json.loads(response.content.decode())
         # TODO give better names and clean
         # TODO make use of relevance if wanted
         features = jsondat["features"]

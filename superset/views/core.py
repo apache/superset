@@ -75,6 +75,9 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import (
     DatabaseNotFound,
+    SqlAddColumnException,
+    SqlSelectException,
+    SqlUpdateException,
     SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
@@ -3124,7 +3127,7 @@ class Superset(BaseSupersetView):
         lat_column = request.json.get("latitudeColumnName", "lat")
         lon_column = request.json.get("longitudeColumnName", "lon")
         override_if_exist = request.json.get("overwriteIfExists", False)
-        save_on_stop_geocodeing = request.json.get("saveOnErrorOrInterrupt", True)
+        save_on_stop_geocoding = request.json.get("saveOnErrorOrInterrupt", True)
         data = [()]
 
         try:
@@ -3144,13 +3147,15 @@ class Superset(BaseSupersetView):
             data = self._load_data_from_columns(table_name, columns)
         except ValueError as e:
             return json_error_response(e.args[0], status=400)
+        except SqlSelectException as e:
+            return json_error_response(e.args[0], status=500)
         except Exception as e:
             return json_error_response(e.args[0], status=500)
 
         try:
             data = self._geocode(data)
         except Exception as e:
-            if not save_on_stop_geocodeing:
+            if not save_on_stop_geocoding:
                 return json_error_response(e.args[0])
 
         try:
@@ -3158,6 +3163,10 @@ class Superset(BaseSupersetView):
             self._insert_geocoded_data(
                 table_name, lat_column, lon_column, columns, data
             )
+        except SqlAddColumnException as e:
+            return json_error_response(e.args[0], status=500)
+        except SqlUpdateException as e:
+            return json_error_response(e.args[0], status=500)
         except Exception as e:
             return json_error_response(e.args[0], status=500)
 
@@ -3183,22 +3192,23 @@ class Superset(BaseSupersetView):
         :return: The data from columns from given table as list of tuples
         """
         try:
+            # TODO SQL Injection Check
             selected_columns = ", ".join(filter(None, columns))
             sql = "SELECT " + selected_columns + " FROM %s" % table_name
             result = db.engine.connect().execute(sql)
             return [row for row in result]
         except Exception:
-            raise Exception(
+            raise SqlSelectException(
                 "An error occured while getting address data from columns "
                 + selected_columns
             )
 
-    def _geocode(self, data, dev=True):
+    def _geocode(self, data, dev=False):
         """
         internal method which starts the geocoding
-        :param data: the data to be geocoded
+        :param data: the data to be geocoded as a list of tuples
         :param dev: Whether to Mock the geocoding process for testing purposes
-        :return: a dictionary containing the data and the corresponding long,lat values
+        :return: a list of tuples containing the data and the corresponding long, lat values
         """
         # TODO replace mock-method with mock-geocoder
         if dev:
@@ -3222,7 +3232,7 @@ class Superset(BaseSupersetView):
             transaction.commit()
         except Exception:
             transaction.rollback()
-            raise Exception(
+            raise SqlAddColumnException(
                 "An error occured while creating new columns for latitude and longitude"
             )
 
@@ -3283,7 +3293,9 @@ class Superset(BaseSupersetView):
             transaction.commit()
         except Exception:
             transaction.rollback()
-            raise Exception("An error occured while inserting geocoded addresses")
+            raise SqlUpdateException(
+                "An error occured while inserting geocoded addresses"
+            )
 
     @api
     @has_access_api
