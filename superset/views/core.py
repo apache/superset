@@ -17,17 +17,15 @@
 # pylint: disable=C,R,W
 import logging
 import re
-import time
 from contextlib import closing
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 from urllib import parse
 
 import backoff
 import msgpack
 import pandas as pd
 import pyarrow as pa
-import requests
 import simplejson as json
 from flask import (
     abort,
@@ -46,8 +44,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
-from sqlalchemy import and_, Column, Float, or_, select, text
-from sqlalchemy.engine import Connection, reflection
+from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
@@ -72,12 +69,9 @@ from superset import (
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
+from superset.connectors.sqla.models import AnnotationDatasource
 from superset.exceptions import (
     DatabaseNotFound,
-    SqlAddColumnException,
-    SqlSelectException,
-    SqlUpdateException,
     SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
@@ -90,7 +84,6 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
-from superset.utils.geocoding_utils import GeoCoder
 
 from .base import (
     api,
