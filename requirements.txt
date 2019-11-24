@@ -37,7 +37,7 @@ flask==1.1.1
 future==0.17.1            # via parsedatetime
 geographiclib==1.49       # via geopy
 geopy==1.20.0
-gunicorn==19.8.1
+gunicorn==20.0.2
 humanize==0.5.1
 isodate==0.6.0
 itsdangerous==1.1.0       # via flask
