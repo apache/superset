@@ -25,9 +25,9 @@ from celery.utils.log import get_task_logger
 from sqlalchemy import and_, func
 
 from superset import app, db
+from superset.extensions import celery_app
 from superset.models.core import Dashboard, Log, Slice
 from superset.models.tags import Tag, TaggedObject
-from superset.tasks.celery_app import app as celery_app
 from superset.utils.core import parse_human_datetime
 
 logger = get_task_logger(__name__)

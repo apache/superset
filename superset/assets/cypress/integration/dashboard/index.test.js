@@ -23,6 +23,7 @@ import DashboardFilterTest from './filter';
 import DashboardLoadTest from './load';
 import DashboardSaveTest from './save';
 import DashboardTabsTest from './tabs';
+import DashboardUrlParamsTest from './url_params';
 
 describe('Dashboard', () => {
   DashboardControlsTest();
@@ -32,4 +33,5 @@ describe('Dashboard', () => {
   DashboardLoadTest();
   DashboardSaveTest();
   DashboardTabsTest();
+  DashboardUrlParamsTest();
 });

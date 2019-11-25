@@ -19,7 +19,8 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Union
+from enum import Enum
+from typing import cast, List, Optional, Union
 from urllib import parse
 
 import backoff
@@ -694,7 +695,9 @@ class KV(BaseSupersetView):
     def get_value(self, key_id):
         kv = None
         try:
-            kv = db.session.query(models.KeyValue).filter_by(id=key_id).one()
+            kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()
+            if not kv:
+                return Response(status=404, content_type="text/plain")
         except Exception as e:
             return json_error_response(e)
         return Response(kv.value, status=200, content_type="text/plain")
@@ -743,6 +746,8 @@ appbuilder.add_view_no_menu(R)
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
+
+    logger = logging.getLogger(__name__)
 
     @has_access_api
     @expose("/datasources/")
@@ -982,8 +987,9 @@ class Superset(BaseSupersetView):
         endpoint = "/superset/explore/?form_data={}".format(
             parse.quote(json.dumps({"slice_id": slice_id}))
         )
-        if request.args.get("standalone") == "true":
-            endpoint += "&standalone=true"
+        param = utils.ReservedUrlParameters.STANDALONE.value
+        if request.args.get(param) == "true":
+            endpoint += f"&{param}=true"
         return redirect(endpoint)
 
     def get_query_string_response(self, viz_obj):
@@ -1272,7 +1278,9 @@ class Superset(BaseSupersetView):
                 datasource.name,
             )
 
-        standalone = request.args.get("standalone") == "true"
+        standalone = (
+            request.args.get(utils.ReservedUrlParameters.STANDALONE.value) == "true"
+        )
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
@@ -1682,12 +1690,18 @@ class Superset(BaseSupersetView):
         dashboard.css = data.get("css")
         dashboard.dashboard_title = data["dashboard_title"]
 
-        if "filter_immune_slices" not in md:
-            md["filter_immune_slices"] = []
         if "timed_refresh_immune_slices" not in md:
             md["timed_refresh_immune_slices"] = []
-        if "filter_immune_slice_fields" not in md:
-            md["filter_immune_slice_fields"] = {}
+
+        if "filter_scopes" in data:
+            md.pop("filter_immune_slices", None)
+            md.pop("filter_immune_slice_fields", None)
+            md["filter_scopes"] = json.loads(data.get("filter_scopes", "{}"))
+        else:
+            if "filter_immune_slices" not in md:
+                md["filter_immune_slices"] = []
+            if "filter_immune_slice_fields" not in md:
+                md["filter_immune_slice_fields"] = {}
         md["expanded_slices"] = data["expanded_slices"]
         md["refresh_frequency"] = data.get("refresh_frequency", 0)
         default_filters_data = json.loads(data.get("default_filters", "{}"))
@@ -1747,6 +1761,7 @@ class Superset(BaseSupersetView):
                 # extras is sent as json, but required to be a string in the Database model
                 extra=json.dumps(request.json.get("extras", {})),
                 impersonate_user=request.json.get("impersonate_user"),
+                encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
             )
             database.set_sqlalchemy_uri(uri)
 
@@ -2060,6 +2075,7 @@ class Superset(BaseSupersetView):
                 )
                 obj.get_json()
             except Exception as e:
+                self.logger.exception("Failed to warm up cache")
                 return json_error_response(utils.error_msg_from_exception(e))
         return json_success(
             json.dumps(
@@ -2174,8 +2190,12 @@ class Superset(BaseSupersetView):
         superset_can_csv = security_manager.can_access("can_csv", "Superset")
         slice_can_edit = security_manager.can_access("can_edit", "SliceModelView")
 
-        standalone_mode = request.args.get("standalone") == "true"
-        edit_mode = request.args.get("edit") == "true"
+        standalone_mode = (
+            request.args.get(utils.ReservedUrlParameters.STANDALONE.value) == "true"
+        )
+        edit_mode = (
+            request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
+        )
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @event_logger.log_this
@@ -2200,6 +2220,11 @@ class Superset(BaseSupersetView):
                 "slice_can_edit": slice_can_edit,
             }
         )
+        url_params = {
+            key: value
+            for key, value in request.args.items()
+            if key not in [param.value for param in utils.ReservedUrlParameters]
+        }
 
         bootstrap_data = {
             "user_id": g.user.get_id(),
@@ -2207,6 +2232,7 @@ class Superset(BaseSupersetView):
             "datasources": {ds.uid: ds.data for ds in datasources},
             "common": self.common_bootstrap_payload(),
             "editMode": edit_mode,
+            "urlParams": url_params,
         }
 
         if request.args.get("json") == "true":
@@ -2295,7 +2321,7 @@ class Superset(BaseSupersetView):
         table_name = data.get("datasourceName")
         table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
         if not table:
-            table = SqlaTable(table_name=table_name)
+            table = SqlaTable(table_name=table_name, owners=[g.user])
         table.database_id = data.get("dbId")
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")
@@ -2473,9 +2499,9 @@ class Superset(BaseSupersetView):
     @expose("/results/<key>/")
     @event_logger.log_this
     def results(self, key):
-        return self.results_call(key)
+        return self.results_exec(key)
 
-    def results_call(self, key):
+    def results_exec(self, key: str):
         """Serves a key off of the results backend
 
         It is possible to pass the `rows` query argument to limit the number
@@ -2512,7 +2538,9 @@ class Superset(BaseSupersetView):
             )
 
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
-        obj = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
+        obj: dict = _deserialize_results_payload(
+            payload, query, cast(bool, results_backend_use_msgpack)
+        )
 
         if "rows" in request.args:
             try:
@@ -2707,38 +2735,39 @@ class Superset(BaseSupersetView):
     @expose("/sql_json/", methods=["POST"])
     @event_logger.log_this
     def sql_json(self):
-        request_json = request.json
-        return self.sql_json_call(request_json)
+        return self.sql_json_exec(request.json)
 
-    def sql_json_call(self, request_json):
+    def sql_json_exec(self, query_params: dict):
         """Runs arbitrary sql and returns data as json"""
         # Collect Values
-        database_id: int = request_json.get("database_id")
-        schema: str = request_json.get("schema")
-        sql: str = request_json.get("sql")
+        database_id: int = cast(int, query_params.get("database_id"))
+        schema: str = cast(str, query_params.get("schema"))
+        sql: str = cast(str, query_params.get("sql"))
         try:
             template_params: dict = json.loads(
-                request_json.get("templateParams") or "{}"
+                query_params.get("templateParams") or "{}"
             )
-        except json.decoder.JSONDecodeError:
+        except json.JSONDecodeError:
             logging.warning(
-                f"Invalid template parameter {request_json.get('templateParams')}"
+                f"Invalid template parameter {query_params.get('templateParams')}"
                 " specified. Defaulting to empty dict"
             )
             template_params = {}
-        limit = request_json.get("queryLimit") or app.config["SQL_MAX_ROW"]
-        async_flag: bool = request_json.get("runAsync")
+        limit: int = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
+        async_flag: bool = cast(bool, query_params.get("runAsync"))
         if limit < 0:
             logging.warning(
                 f"Invalid limit of {limit} specified. Defaulting to max limit."
             )
             limit = 0
-        select_as_cta: bool = request_json.get("select_as_cta")
-        tmp_table_name: str = request_json.get("tmp_table_name")
-        client_id: str = request_json.get("client_id") or utils.shortid()[:10]
-        sql_editor_id: str = request_json.get("sql_editor_id")
-        tab_name: str = request_json.get("tab")
-        status: bool = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
+        select_as_cta: bool = cast(bool, query_params.get("select_as_cta"))
+        tmp_table_name: str = cast(str, query_params.get("tmp_table_name"))
+        client_id: str = cast(
+            str, query_params.get("client_id") or utils.shortid()[:10]
+        )
+        sql_editor_id: str = cast(str, query_params.get("sql_editor_id"))
+        tab_name: str = cast(str, query_params.get("tab"))
+        status: str = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).one_or_none()
@@ -2806,9 +2835,11 @@ class Superset(BaseSupersetView):
 
         # Flag for whether or not to expand data
         # (feature that will expand Presto row objects and arrays)
-        expand_data: bool = is_feature_enabled(
-            "PRESTO_EXPAND_DATA"
-        ) and request_json.get("expand_data")
+        expand_data: bool = cast(
+            bool,
+            is_feature_enabled("PRESTO_EXPAND_DATA")
+            and query_params.get("expand_data"),
+        )
 
         # Async request.
         if async_flag:
@@ -2893,18 +2924,20 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/queries/<last_updated_ms>")
     def queries(self, last_updated_ms):
-        return self.queries_call(last_updated_ms)
+        """
+        Get the updated queries.
 
-    def queries_call(self, last_updated_ms):
-        """Get the updated queries."""
+        :param last_updated_ms: unix time, milliseconds
+        """
+        last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
+        return self.queries_exec(last_updated_ms_int)
+
+    def queries_exec(self, last_updated_ms_int: int):
         stats_logger.incr("queries")
         if not g.user.get_id():
             return json_error_response(
                 "Please login to access the queries.", status=403
             )
-
-        # Unix time, milliseconds.
-        last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
 
         # UTC date time, same that is stored in the DB.
         last_updated_dt = utils.EPOCH + timedelta(seconds=last_updated_ms_int / 1000)
@@ -3004,7 +3037,7 @@ class Superset(BaseSupersetView):
         }
 
         return self.render_template(
-            "superset/basic.html",
+            "superset/welcome.html",
             entry="welcome",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
@@ -3056,17 +3089,26 @@ class Superset(BaseSupersetView):
             .order_by(TabState.active.desc())
             .first()
         )
-        databases = {
-            database.id: {
-                k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
+
+        databases = {}
+        queries = {}
+
+        # These are unnecessary if sqllab backend persistence is disabled
+        if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
+            databases = {
+                database.id: {
+                    k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
+                }
+                for database in db.session.query(models.Database).all()
             }
-            for database in db.session.query(models.Database).all()
-        }
-        user_queries = db.session.query(Query).filter_by(user_id=g.user.get_id()).all()
-        queries = {
-            query.client_id: {k: v for k, v in query.to_dict().items()}
-            for query in user_queries
-        }
+            user_queries = (
+                db.session.query(Query).filter_by(user_id=g.user.get_id()).all()
+            )
+            queries = {
+                query.client_id: {k: v for k, v in query.to_dict().items()}
+                for query in user_queries
+            }
+
         d = {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
             "common": self.common_bootstrap_payload(),

@@ -24,7 +24,7 @@ import { SupersetClient } from '@superset-ui/connection';
 
 import withToasts from '../messageToasts/enhancers/withToasts';
 import Loading from '../components/Loading';
-import '../../stylesheets/reactable-pagination.css';
+import '../../stylesheets/reactable-pagination.less';
 
 const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
