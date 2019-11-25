@@ -18,7 +18,7 @@ import json
 import time
 
 import requests
-from requests import HTTPError, RequestException, Timeout, TooManyRedirects
+from requests import HTTPError, RequestException, Timeout
 
 
 class GeocoderUtil:  # pylint: disable=too-few-public-methods
@@ -51,7 +51,6 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         :return: a dictionary containing the addresses and their long,lat values
         """
         errors = []
-        data = [("HSR Oberseestrasse 10", "Rapperswil"), ("ETH", "Zürich")]
         geocoded_data = [()]
         data_length = len(data)
         counter = 0
@@ -67,7 +66,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                     self.progress["is_in_progress"] = False
                     return geocoded_data
                 address = " ".join(datum)
-                geocoded = self._get_values_from_address(address)
+                geocoded = self._get_coordinates_from_address(address)
                 if geocoded is not None:
                     geocoded_data.append(datum + tuple(geocoded))
 
@@ -97,10 +96,11 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
 
         self.progress["progress"] = 100
         self.progress["is_in_progress"] = False
-        # TODO also return amount of geocoded values or store in class-variable and errors
+        # TODO also return amount of geocoded values or store in
+        #  class-variable and errors
         return geocoded_data
 
-    def _get_values_from_address(self, address: str):
+    def _get_coordinates_from_address(self, address: str):
         base_url = "https://api.maptiler.com/geocoding/"
         response = requests.get(
             base_url + address + ".json?key=" + self.conf["MAPTILER_API_KEY"]
@@ -108,7 +108,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         decoded_data = json.loads(response.content.decode())
         # TODO make use of relevance if wanted
         features = decoded_data["features"]
-        if len(features) != 0:
+        if features:
             coordinates = features[0]
             # TODO check if it is possible, that there is no center attribute
             #  -> get API doc from mr. Keller
