@@ -88,14 +88,14 @@ the same terminal session won't be used for crafting the release candidate and t
 final release. Therefore, it's a good idea to do the following every time you
 work on a new phase of the release process to make sure you aren't releasing
 the wrong files/using wrong names. There's a script to help you set correctly all the
-necessary environment variables. Change you current directory to `superset/RELEASING`
+necessary environment variables. Change your current directory to `superset/RELEASING`
 
 ```bash
     # usage: set_release_env.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
     . ./set_release_env.sh XX.YY.ZZ QQ "YOUR PGP KEY NAME"
 ```
 
-The script will output the exported variables, for example for 0.34.1 RC1:
+The script will output the exported variables. Here's example for 0.34.1 RC1:
 
 ```
     -------------------------------
@@ -169,7 +169,7 @@ https://lists.apache.org/thread.html/e60f080ebdda26896214f7d3d5be1ccadfab95d48fb
 To easily send a voting request to Superset community, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note use Superset's virtualenv 
+    # Note: use Superset's virtualenv 
     (venv)$ python send_email.py vote_pmc
 ```
 
@@ -216,13 +216,14 @@ To easily send the voting request to Apache community, still on the `superset/RE
     (venv)$ python send_email.py vote_ipmc
 ```
 
-### Announcing
+Once 3+ binding votes (by IPMC members) have been cast and at
+least 72 hours have past, you can post a [RESULT] thread
 
-Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
+To easily send the result email, still on the `superset/RELEASING` directory:
 
 ```bash
     # Note use Superset's virtualenv 
-    (venv)$ python send_email.py announce
+    (venv)$ python send_email.py result_ipmc
 ```
 
 ### Validating a release
@@ -252,8 +253,19 @@ Then tag the final release:
     git tag -f ${SUPERSET_VERSION}
 ```
 
-Now you can announce the release on the mailing list, make sure to use the
-proper template
+### Update CHANGELOG on superset
+
+Now that we have a final Apache source release we need to open a pull request on Superset
+with the release CHANGELOG, this way we will keep the master branch with an updated CHANGELOG of the existing releases
+
+### Announcing
+
+Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
+
+```bash
+    # Note use Superset's virtualenv 
+    (venv)$ python send_email.py announce
+```
 
 ### Publishing a Convenience Release to PyPI
 From the root of the repo running ./pypi_push.sh will build the
