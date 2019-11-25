@@ -3094,7 +3094,10 @@ class Superset(BaseSupersetView):
                 for database in db.session.query(models.Database).all()
             }
             user_queries = (
-                db.session.query(Query).filter_by(user_id=g.user.get_id()).all()
+                db.session.query(Query)
+                .filter_by(user_id=g.user.get_id())
+                .filter(Query.client_id.in_(tab_state_ids))
+                .all()
             )
             queries = {
                 query.client_id: {k: v for k, v in query.to_dict().items()}
