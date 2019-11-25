@@ -18,25 +18,75 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import FormInfo from 'src/components/FormInfo';
+import FormError from 'src/components/FormError';
+import GeocodingForm from './GeocodingForm';
+import GeocodingProgress from './GeocodingProgress';
 import * as Actions from './actions/geocoding';
 
 const propTypes = {
+  actions: PropTypes.object.isRequired,
   tables: PropTypes.array.isRequired,
+  geocoding: PropTypes.object.isRequired,
 };
 
-export class Geocoding extends React.PureComponent {
+let interval;
+const TIME_BETWEEN_CALLS = 5000;
+
+export class Geocoding extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-
-    };
+    this.fetchProgress = this.fetchProgress.bind(this);
   }
+
+  componentDidMount() {
+    this.fetchProgress();
+  }
+
+  componentWillUnmount() {
+    clearTimeout(interval);
+  }
+
+  getInfoStatus() {
+    const { geocoding } = this.props;
+    if (geocoding && geocoding.infoStatus) {
+      return geocoding.infoStatus;
+    }
+    return undefined;
+  }
+
+  getErrorStatus() {
+    const { geocoding } = this.props;
+    if (geocoding && geocoding.errorStatus) {
+      return geocoding.errorStatus;
+    }
+    return undefined;
+  }
+
+  fetchProgress() {
+    this.props.actions.geocodingProgress();
+    interval = setTimeout(this.fetchProgress, TIME_BETWEEN_CALLS);
+  }
+
   render() {
+    let form = <></>;
+    let progress = <></>;
+    if (this.props.geocoding && this.props.geocoding.progress) {
+      if (this.props.geocoding.progress.is_in_progress) {
+        progress = <GeocodingProgress />;
+      } else {
+        form = <GeocodingForm tables={this.props.tables} />;
+      }
+    }
     return (
-      <p>{t('Test')}</p>
+      <div className="container">
+        <FormInfo status={this.getInfoStatus()} />
+        <FormError status={this.getErrorStatus()} />
+        {form}
+        {progress}
+      </div>
     );
   }
 }
@@ -44,7 +94,7 @@ export class Geocoding extends React.PureComponent {
 Geocoding.propTypes = propTypes;
 
 function mapStateToProps({ geocoding }) {
-  return { geocoding: geocoding.geocoding };
+  return { geocoding };
 }
 
 function mapDispatchToProps(dispatch) {
