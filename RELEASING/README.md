@@ -256,7 +256,7 @@ Then tag the final release:
 ### Update CHANGELOG on superset
 
 Now that we have a final Apache source release we need to open a pull request on Superset
-with the release CHANGELOG, this way we will keep the master branch with an updated CHANGELOG of the existing releases
+with the release CHANGELOG, this way we will keep the master branch with an updated CHANGELOG of the existing releases.
 
 ### Announcing
 
