@@ -72,6 +72,11 @@ set your GITHUB_TOKEN environment variable.
 github-changes -o apache -r incubator-superset --token $GITHUB_TOKEN --between-tags <PREVIOUS_RELEASE_TAG>...<CURRENT_RELEASE_TAG>
 ```
 
+Then, in `UPDATING.md`, a file that contains a list of notifications around
+deprecations and upgrading-related topics,
+make sure to move the content now under the `Next Version` section under a new
+section for the new release.
+
 Finally bump the version number on `superset/static/assets/package.json`:
 
 ```json
@@ -267,10 +272,10 @@ Then tag the final release:
     git tag -f ${SUPERSET_VERSION}
 ```
 
-### Update CHANGELOG on superset
+### Update CHANGELOG and UPDATING on superset
 
 Now that we have a final Apache source release we need to open a pull request on Superset
-with the release CHANGELOG, this way we will keep the master branch with an updated CHANGELOG of the existing releases.
+with the changes on `CHANGELOG.md` and `UPDATING.md`.
 
 ### Publishing a Convenience Release to PyPI
 From the root of the repo running ./pypi_push.sh will build the
@@ -291,12 +296,7 @@ Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mail
 
 ## Post release
 
-In `UPDATING.md`, a file that contains a list of notifications around
-deprecations and upgrading-related topics,
-make sure to move the content now under the `Next Version` section under a new
-section for the new release.
-
-# Refresh documentation website
+#### Refresh documentation website
 
 Every once in a while we want to compile the documentation and publish it.
 Here's how to do it.
