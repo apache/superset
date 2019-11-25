@@ -26,7 +26,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy_utils import create_database, database_exists, drop_database
 from werkzeug.utils import secure_filename
 
 import superset.models.core as models
@@ -103,7 +102,7 @@ class CsvImporter(BaseSupersetView):
 
         try:
             if database_id != -1:
-                schema = None if not form_data["schema"] else form_data["schema"]
+                schema = form_data["schema"] or None
                 database = self._get_existing_database(database_id, schema)
                 db_name = database.database_name
             else:
@@ -115,13 +114,17 @@ class CsvImporter(BaseSupersetView):
                     return json_error_response(
                         "Database name is not allowed", status=400
                     )
-                # database = self._create_database(db_name)
-                # TODO switch back to normal call
-                database = self._create_database(db_name, "postgres", "postgres")
+                # TODO add these fields to frontend
+                password = "postgres"
+                # db_flavor = form_data["db_flavor"] or None
+                # password = form_data["pasword"] or None
+                database = self._create_database(db_name, password=password)
         except ValueError as e:
             return json_error_response(e.args[0], status=400)
         except DatabaseCreationException as e:
             return json_error_response(e.args[0], status=400)
+        except Exception as e:
+            return json_error_response(e.args[0], status=500)
         except Exception as e:
             return json_error_response(e.args[0], status=500)
 
@@ -185,38 +188,24 @@ class CsvImporter(BaseSupersetView):
             Exception: If the Database could not be created
         """
         if db_flavor == "postgres":
-            # normal way
-            engine2 = sqlalchemy.create_engine(
-                "postgresql://postgres:" + password + "@localhost:5432/postgres"
-            )
+            # TODO add possibility to change user
+            # TODO add possibility to use schema
             url = "postgresql://postgres:" + password + "@localhost/" + db_name
-            url2 = "postgresql://postgres:XXXXXXXX@localhost/" + db_name
             engine = sqlalchemy.create_engine(url)
-            "sqlalchemy-utils way"
 
-            # engine = sqlalchemy.create_engine(url)
-            if not database_exists(engine.url):
-                create_database(engine.url)
-            # TODO remove after finishing feature
-            else:
-                drop_database(engine.url)
-                test = create_database(engine.url)
-            # create a Database Object with the same name and URI to add to session
-            item = SQLAInterface(models.Database).obj()
-            item.database_name = db_name
-            # item.sqlalchemy_uri = url2
-            item.sqlalchemy_uri = repr(engine.url)
-            item.password = password
-            item.allow_csv_upload = True
-            db.session.add(item)
-            db.session.commit()
-            sess = db.session
-            # sess = db.session()
-            # engine.connect()
-            # sess.configure(bind=engine)
-            # sess = sess()
-            # dbs = sess.query(models.Database).all()
-            # databases = sess.query(models.Database).filter_by(database_name=db_name).all()
+            # TODO decide whether to fail if database exists
+            try:
+                item = SQLAInterface(models.Database).obj()
+                item.database_name = db_name
+                item.sqlalchemy_uri = repr(engine.url)
+                item.password = password
+                item.allow_csv_upload = True
+                db.session.add(item)
+                db.session.commit()
+            except Exception as e:
+                stats_logger.incr("failed_csv_upload")
+                raise e
+
             return item
         else:
             db_path = os.getcwd() + "/" + db_name + ".db"
