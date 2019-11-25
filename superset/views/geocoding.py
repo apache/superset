@@ -32,7 +32,7 @@ from superset.exceptions import (
     SqlSelectException,
     SqlUpdateException,
 )
-from superset.utils.geocoding_utils import GeoCoder
+from superset.utils.geocoding_utils import GeocoderUtil
 
 from .base import api, BaseSupersetView, json_error_response, json_success
 
@@ -42,7 +42,7 @@ class Geocoder(BaseSupersetView):
 
     # Variables for geocoding
     interruptflag = False
-    coder = GeoCoder(conf)
+    coder = GeocoderUtil(conf)
 
     @has_access
     @expose("/geocoding")
@@ -78,6 +78,7 @@ class Geocoder(BaseSupersetView):
         for database in (
             db.session.query(models.Database).filter_by(allow_dml=True).all()
         ):
+            # TODO loop through all schemas for postgres databases
             for table in (
                 db.session.query(SqlaTable).filter_by(database_id=database.id).all()
             ):
@@ -179,7 +180,7 @@ class Geocoder(BaseSupersetView):
         column_names = [column["name"] for column in columns]
         return column_name in column_names
 
-    def _load_data_from_columns(self, table_name, columns):
+    def _load_data_from_columns(self, table_name: str, columns: list):
         """
         Get data from columns form table
         :param table_name: The table name from table from which select
@@ -199,7 +200,7 @@ class Geocoder(BaseSupersetView):
                 + selected_columns
             )
 
-    def _geocode(self, data, dev=False):
+    def _geocode(self, data: list, dev=False):
         """
         Internal method which starts the geocoding
         :param data: the data to be geocoded as a list of tuples
@@ -214,7 +215,7 @@ class Geocoder(BaseSupersetView):
 
     def _add_lat_lon_columns(self, table_name: str, lat_column: str, lon_column: str):
         """
-        Add new longitued and latitude columns to table
+        Add new longitude and latitude columns to table
         :param table_name: The table name of table to insert columns
         :param lat_column: The name of latitude column
         :param lon_column: The name of longitude column
