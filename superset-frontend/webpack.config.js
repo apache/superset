@@ -79,18 +79,16 @@ if (isDevMode) {
     );
 
   if (linkedDirs.length) {
-    console.log('Aliasing imports for local development:')
-  }
+    console.log('Aliasing imports for local development:');
 
-  // add an alias to the /src directory of those packages
-  linkedDirs.forEach(entity => {
-      const packageName = '@superset-ui/' + entity.name;
-      aliases[packageName] = packageName + '/src';
-      console.log(packageName);
-    });
+    // add an alias to the /src directory of those packages
+    linkedDirs.forEach(entity => {
+        const packageName = '@superset-ui/' + entity.name;
+        aliases[packageName] = packageName + '/src';
+        console.log(packageName);
+      });
 
-  if (linkedDirs.length) {
-    console.log('To disable import aliasing for local development, run `npm run plugin-devmode-off`')
+    console.log('To disable import aliasing for local development, run `npm run plugin-devmode-off`');
   }
 } else {
   output.filename = '[name].[chunkhash].entry.js';

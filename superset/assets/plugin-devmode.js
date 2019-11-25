@@ -23,13 +23,11 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
-// TODO: better output
+const PLUGINS_REPO =
+  process.env.SUPERSET_UI_PLUGINS_PATH
+  || path.resolve("../../../superset-ui-plugins");
 
-const PACKAGES_ROOT = path.join(
-  process.env.SUPERSET_UI_PLUGINS_PATH ||
-    path.resolve("../../../superset-ui-plugins"),
-  "packages"
-);
+const PACKAGES_ROOT = path.join(PLUGINS_REPO, "packages");
 
 if (require.main === module) {
   console.log(`Enabling plugin devmode: Linking packages in ${PACKAGES_ROOT}`);
@@ -40,8 +38,11 @@ if (require.main === module) {
 }
 
 function findPackages() {
+  if (!fs.existsSync(PACKAGES_ROOT)) {
+    return [];
+  }
   return fs
-    .readdirSync(path.join(PACKAGES_ROOT), {
+    .readdirSync(PACKAGES_ROOT, {
       withFileTypes: true
     })
     .filter(thing => thing.isDirectory());
