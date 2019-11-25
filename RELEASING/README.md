@@ -226,6 +226,20 @@ To easily send the result email, still on the `superset/RELEASING` directory:
     (venv)$ python send_email.py result_ipmc
 ```
 
+Again, the script will interactively ask for extra information needed to fill out the email template. Based on the
+voting description, it will generate a passing, non passing or non conclusive email. 
+here's an example:
+
+```bash
+    Sender email (ex: user@apache.org): your_apache_email@apache.org
+    Apache username: your_apache_user
+    Apache password: your_apache_password
+    A List of people with +1 binding vote (ex: Alan, Justin): Alan,Jeff,
+    A List of people with +1 non binding vote (ex: Ville):
+    A List of people with -1 vote (ex: John):
+```
+
+
 ### Validating a release
 
 https://www.apache.org/info/verification.html
@@ -258,6 +272,14 @@ Then tag the final release:
 Now that we have a final Apache source release we need to open a pull request on Superset
 with the release CHANGELOG, this way we will keep the master branch with an updated CHANGELOG of the existing releases.
 
+### Publishing a Convenience Release to PyPI
+From the root of the repo running ./pypi_push.sh will build the
+Javascript bundle and echo the twine command allowing you to publish
+to PyPI. You may need to ask a fellow committer to grant
+you access to it if you don't have access already. Make sure to create
+an account first if you don't have one, and reference your username
+while requesting access to push packages.
+
 ### Announcing
 
 Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
@@ -266,14 +288,6 @@ Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mail
     # Note use Superset's virtualenv 
     (venv)$ python send_email.py announce
 ```
-
-### Publishing a Convenience Release to PyPI
-From the root of the repo running ./pypi_push.sh will build the
-Javascript bundle and echo the twine command allowing you to publish
-to PyPI. You may need to ask a fellow committer to grant
-you access to it if you don't have access already. Make sure to create
-an account first if you don't have one, and reference your username
-while requesting access to push packages.
 
 ## Post release
 
