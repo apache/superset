@@ -32,7 +32,7 @@ const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const pluginDevmode = require('./plugin-devmode')
+const pluginDevmode = require('./plugin-devmode');
 
 // Parse command-line arguments
 const parsedArgs = require('yargs').argv;
@@ -68,21 +68,22 @@ if (isDevMode) {
   const pluginNameSet = new Set(
     pluginDevmode.findPackages().map(
       // first get a set of every plugin package name
-      dir => require(path.join(PACKAGES_ROOT, dir.name, 'package.json')).name
-    )
+      // eslint-disable-next-line import/no-dynamic-require, global-require
+      dir => require(path.join(PACKAGES_ROOT, dir.name, 'package.json')).name,
+    ),
   );
 
   // now check which packages in node_modules are symlinks
   const linkedDirs = fs.readdirSync('./node_modules/@superset-ui', { withFileTypes: true })
     .filter(entity =>
-      entity.isSymbolicLink() && pluginNameSet.has(`@superset-ui/${entity.name}`)
+      entity.isSymbolicLink() && pluginNameSet.has(`@superset-ui/${entity.name}`),
     );
 
   if (linkedDirs.length) {
     console.log('Aliasing imports for local development:');
 
     // add an alias to the /src directory of those packages
-    linkedDirs.forEach(entity => {
+    linkedDirs.forEach((entity) => {
         const packageName = '@superset-ui/' + entity.name;
         aliases[packageName] = packageName + '/src';
         console.log(packageName);
