@@ -403,6 +403,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             IntegrityError: If there was a problem creating the table
         """
 
+        def _str_to_bool(boolstr: str) -> bool:
+            if boolstr == "True" or boolstr == "true":
+                return True
+            elif boolstr == "False" or boolstr == "false":
+                return False
+            else:
+                raise ValueError
+
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
             extension = os.path.splitext(filename)[1]
@@ -442,7 +450,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
             "schema": form_data["schema"] or None,
             "if_exists": lower(form_data["ifTableExists"]),
-            "index": bool(form_data["dataframeIndex"]),
+            "index": _str_to_bool(form_data["dataframeIndex"]),
             "index_label": form_data["columnLabels"] or None,
             "chunksize": 10000,
         }
