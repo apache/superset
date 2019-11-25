@@ -19,12 +19,14 @@ import os
 from sqlite3 import OperationalError
 
 import simplejson as json
+import sqlalchemy
 from flask import flash, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy_utils import create_database, database_exists, drop_database
 from werkzeug.utils import secure_filename
 
 import superset.models.core as models
@@ -113,7 +115,9 @@ class CsvImporter(BaseSupersetView):
                     return json_error_response(
                         "Database name is not allowed", status=400
                     )
-                database = self._create_database(db_name)
+                # database = self._create_database(db_name)
+                # TODO switch back to normal call
+                database = self._create_database(db_name, "postgres", "postgres")
         except ValueError as e:
             return json_error_response(e.args[0], status=400)
         except DatabaseCreationException as e:
@@ -168,56 +172,93 @@ class CsvImporter(BaseSupersetView):
             '"{} imported into database {}"'.format(form_data["tableName"], db_name)
         )
 
-    def _create_database(self, db_name: str):
+    def _create_database(self, db_name: str, db_flavor="sqlite", password=None):
         """ Creates the Database itself as well as the Superset Connection to it
 
         Keyword arguments:
         db_name -- the name for the database to be created
+        db_flavor -- which database to use postgres or sqlite
+        password -- needed for postgres
 
         Raises:
             ValueError: If a file with the database name already exists in the folder
             Exception: If the Database could not be created
         """
-        db_path = os.getcwd() + "/" + db_name + ".db"
-        if os.path.isfile(db_path):
-            message = "Database file for {0} already exists, please choose a different name".format(
-                db_name
+        if db_flavor == "postgres":
+            # normal way
+            engine2 = sqlalchemy.create_engine(
+                "postgresql://postgres:" + password + "@localhost:5432/postgres"
             )
-            raise ValueError(message)
-        try:
+            url = "postgresql://postgres:" + password + "@localhost/" + db_name
+            url2 = "postgresql://postgres:XXXXXXXX@localhost/" + db_name
+            engine = sqlalchemy.create_engine(url)
+            "sqlalchemy-utils way"
+
+            # engine = sqlalchemy.create_engine(url)
+            if not database_exists(engine.url):
+                create_database(engine.url)
+            # TODO remove after finishing feature
+            else:
+                drop_database(engine.url)
+                test = create_database(engine.url)
+            # create a Database Object with the same name and URI to add to session
             item = SQLAInterface(models.Database).obj()
             item.database_name = db_name
-            item.sqlalchemy_uri = "sqlite:///" + db_path
+            # item.sqlalchemy_uri = url2
+            item.sqlalchemy_uri = repr(engine.url)
+            item.password = password
             item.allow_csv_upload = True
-            # TODO check if SQL-injection is possible through add()
             db.session.add(item)
             db.session.commit()
+            sess = db.session
+            # sess = db.session()
+            # engine.connect()
+            # sess.configure(bind=engine)
+            # sess = sess()
+            # dbs = sess.query(models.Database).all()
+            # databases = sess.query(models.Database).filter_by(database_name=db_name).all()
             return item
-        except Exception as e:
-            exception = e
-            if isinstance(e, IntegrityError):
-                message = "Error when trying to create Database. A database with the name {0} already exists.".format(
+        else:
+            db_path = os.getcwd() + "/" + db_name + ".db"
+            if os.path.isfile(db_path):
+                message = "Database file for {0} already exists, please choose a different name".format(
                     db_name
                 )
-                exception = DatabaseCreationException(message)
+                raise ValueError(message)
             try:
-                if os.path.isfile(db_path):
-                    os.remove(db_path)
-                db.session.delete(item)
+                item = SQLAInterface(models.Database).obj()
+                item.database_name = db_name
+                item.sqlalchemy_uri = "sqlite:///" + db_path
+                item.allow_csv_upload = True
+                # TODO check if SQL-injection is possible through add()
+                db.session.add(item)
                 db.session.commit()
-            except OSError:
-                message = _(
-                    "Error when trying to create Database.The database file {0}.db could not be removed. "
-                    "Please contact your administrator to remove it manually".format(
+                return item
+            except Exception as e:
+                exception = e
+                if isinstance(e, IntegrityError):
+                    message = "Error when trying to create Database. A database with the name {0} already exists.".format(
                         db_name
                     )
-                )
-                exception = DatabaseCreationException(message)
-                pass
-            except Exception:
-                pass
-            stats_logger.incr("failed_csv_upload")
-            raise exception
+                    exception = DatabaseCreationException(message)
+                try:
+                    if os.path.isfile(db_path):
+                        os.remove(db_path)
+                    db.session.delete(item)
+                    db.session.commit()
+                except OSError:
+                    message = _(
+                        "Error when trying to create Database.The database file {0}.db could not be removed. "
+                        "Please contact your administrator to remove it manually".format(
+                            db_name
+                        )
+                    )
+                    exception = DatabaseCreationException(message)
+                    pass
+                except Exception:
+                    pass
+                stats_logger.incr("failed_csv_upload")
+                raise exception
 
     def _get_existing_database(self, database_id: int, schema):
         """Returns the database object for an existing database
