@@ -259,7 +259,6 @@ class CsvUploadTests(SupersetTestCase):
         importer = CsvImporter()
         test = importer._create_database("testname", "postgres", "postgres")
         assert isinstance(test, models.Database)
-        assert len(test) == 1
 
     # TODO "activate" test when Fields are implemented and code works as intended
     def test_import_into_new_postgres(self):

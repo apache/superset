@@ -31,7 +31,11 @@ from werkzeug.utils import secure_filename
 import superset.models.core as models
 from superset import app, appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
-from superset.exceptions import DatabaseCreationException, TableCreationException
+from superset.exceptions import (
+    DatabaseCreationException,
+    NoPasswordSuppliedException,
+    TableCreationException,
+)
 from superset.utils import core as utils
 
 from .base import api, BaseSupersetView, json_error_response, json_success
@@ -123,8 +127,8 @@ class CsvImporter(BaseSupersetView):
             return json_error_response(e.args[0], status=400)
         except DatabaseCreationException as e:
             return json_error_response(e.args[0], status=400)
-        except Exception as e:
-            return json_error_response(e.args[0], status=500)
+        except NoPasswordSuppliedException:
+            return json_error_response("no password supplied for postgres", status=400)
         except Exception as e:
             return json_error_response(e.args[0], status=500)
 
@@ -185,11 +189,14 @@ class CsvImporter(BaseSupersetView):
 
         Raises:
             ValueError: If a file with the database name already exists in the folder
+            NoPasswordSuppliedException: If the user did not supply a password
             Exception: If the Database could not be created
         """
         if db_flavor == "postgres":
             # TODO add possibility to change user
             # TODO add possibility to use schema
+            if not password:
+                raise NoPasswordSuppliedException
             url = "postgresql://postgres:" + password + "@localhost/" + db_name
             engine = sqlalchemy.create_engine(url)
 
