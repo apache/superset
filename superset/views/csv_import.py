@@ -118,11 +118,9 @@ class CsvImporter(BaseSupersetView):
                     return json_error_response(
                         "Database name is not allowed", status=400
                     )
-                # TODO add these fields to frontend
-                password = "postgres"
-                # db_flavor = form_data["db_flavor"] or None
-                # password = form_data["pasword"] or None
-                database = self._create_database(db_name, password=password)
+                db_flavor = form_data["databaseFlavor"] or None
+                postgres_password = form_data["postgresPassword"] or None
+                database = self._create_database(db_name, db_flavor, postgres_password)
         except ValueError as e:
             return json_error_response(e.args[0], status=400)
         except DatabaseCreationException as e:
@@ -179,13 +177,13 @@ class CsvImporter(BaseSupersetView):
             '"{} imported into database {}"'.format(form_data["tableName"], db_name)
         )
 
-    def _create_database(self, db_name: str, db_flavor="sqlite", password=None):
+    def _create_database(self, db_name: str, db_flavor="sqlite", postgres_password=None):
         """ Creates the Database itself as well as the Superset Connection to it
 
         Keyword arguments:
         db_name -- the name for the database to be created
         db_flavor -- which database to use postgres or sqlite
-        password -- needed for postgres
+        postgres_password -- needed for postgres
 
         Raises:
             ValueError: If a file with the database name already exists in the folder
@@ -195,9 +193,9 @@ class CsvImporter(BaseSupersetView):
         if db_flavor == "postgres":
             # TODO add possibility to change user
             # TODO add possibility to use schema
-            if not password:
+            if not postgres_password:
                 raise NoPasswordSuppliedException
-            url = "postgresql://postgres:" + password + "@localhost/" + db_name
+            url = "postgresql://postgres:" + postgres_password + "@localhost/" + db_name
             engine = sqlalchemy.create_engine(url)
 
             # TODO decide whether to fail if database exists
@@ -205,7 +203,7 @@ class CsvImporter(BaseSupersetView):
                 item = SQLAInterface(models.Database).obj()
                 item.database_name = db_name
                 item.sqlalchemy_uri = repr(engine.url)
-                item.password = password
+                item.password = postgres_password
                 item.allow_csv_upload = True
                 db.session.add(item)
                 db.session.commit()

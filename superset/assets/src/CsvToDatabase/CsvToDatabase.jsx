@@ -46,6 +46,8 @@ export class CsvToDatabase extends React.PureComponent {
     this.state = {
       tableName: '',
       databaseName: '',
+      selectedDatabaseFlavor: { label: t('SQLite'), value: 'sqlite' },
+      postgresPassword: '',
       file: undefined,
       selectedConnection: { label: t('In a new database'), value: -1 },
       schema: '',
@@ -57,6 +59,10 @@ export class CsvToDatabase extends React.PureComponent {
         { label: t('Fail'), value: 'Fail' },
         { label: t('Replace'), value: 'Replace' },
         { label: t('Append'), value: 'Append' },
+      ],
+      databaseFlavorValues: [
+          { label: t('SQLite'), value: 'sqlite' },
+          { label: t('PostgreSQL'), value: 'postgres' },
       ],
       indexColumn: '',
       mangleDuplicateColumns: true,
@@ -72,6 +78,7 @@ export class CsvToDatabase extends React.PureComponent {
     this.setFile = this.setFile.bind(this);
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
     this.setTableExists = this.setTableExists.bind(this);
+    this.setDatabaseFlavor = this.setDatabaseFlavor.bind(this);
     this.setUserInput = this.setUserInput.bind(this);
     this.getConnectionStrings = this.getConnectionStrings.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -90,8 +97,8 @@ export class CsvToDatabase extends React.PureComponent {
   }
 
   setSelectedConnection(connection) {
-    let databaseName = '';
-    if (connection.value === -1 && this.state.file) {
+    let databaseName = this.state.databaseName;
+    if (connection.value === -1 && this.state.file && !databaseName) {
       databaseName = this.state.file.name.slice(0, -4);
     }
     this.setState({
@@ -102,6 +109,10 @@ export class CsvToDatabase extends React.PureComponent {
 
   setTableExists(value) {
     this.setState({ selectedTableExists: value });
+  }
+
+  setDatabaseFlavor(value) {
+    this.setState({ selectedDatabaseFlavor: value });
   }
 
   setUserInput(event) {
@@ -127,6 +138,8 @@ export class CsvToDatabase extends React.PureComponent {
     const {
       tableName,
       databaseName,
+      selectedDatabaseFlavor,
+      postgresPassword,
       file,
       selectedConnection,
       schema,
@@ -147,9 +160,11 @@ export class CsvToDatabase extends React.PureComponent {
     } = this.state;
     this.props.actions.uploadCsv({
       tableName,
-      databaseName,
       file,
       connectionId: selectedConnection.value,
+      databaseName: selectedConnection.value === -1 ? databaseName : '',
+      databaseFlavor: selectedConnection.value === -1 ? selectedDatabaseFlavor.value : '',
+      postgresPassword: selectedConnection.value === -1 && selectedDatabaseFlavor.value === 'postgres' ? postgresPassword : '',
       schema,
       delimiter,
       ifTableExists: selectedTableExists.value,
@@ -256,6 +271,51 @@ export class CsvToDatabase extends React.PureComponent {
                           value={this.state.databaseName}
                           onChange={this.setUserInput}
                           helpText={t('Name of the database file to be created.')}
+                        />
+                      </td>
+                    </tr>
+                    <tr
+                      className={
+                        this.state.selectedConnection.value === -1
+                          ? null
+                          : 'hide-component'
+                      }
+                    >
+                      <td className="col-lg-2">
+                        {t('Database Flavor')} <Asterisk />
+                      </td>
+                      <td>
+                        <FormSelect
+                          id={'databaseFlavor'}
+                          value={this.state.selectedDatabaseFlavor}
+                          onChange={this.setDatabaseFlavor}
+                          options={this.state.databaseFlavorValues}
+                          clearable={false}
+                          helpText={t('Choose Database flavor to create a new database')}
+                        />
+                      </td>
+                    </tr>
+                    <tr
+                      className={
+                        this.state.selectedConnection.value === -1
+                          ? this.state.selectedDatabaseFlavor.value === 'postgres'
+                          ? null
+                          : 'hide-component'
+                          : 'hide-component'
+                      }
+                    >
+                      <td className="col-lg-2">
+                        {t('PostgreSQL Password')} <Asterisk />
+                      </td>
+                      <td>
+                        <FormInput
+                          type="password"
+                          name="postgresPassword"
+                          placeHolder={t('PostgreSQL Password')}
+                          required={this.state.selectedDatabaseFlavor.value === 'postgres'}
+                          value={this.state.postgresPassword}
+                          onChange={this.setUserInput}
+                          helpText={t('Password of the PostgreSQL user.')}
                         />
                       </td>
                     </tr>
