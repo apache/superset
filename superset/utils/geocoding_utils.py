@@ -89,9 +89,8 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                 )
             except RequestException as e:
                 errors.append(
-                    "While trying to geocode address {0}, an error occurred: {1}".format(
-                        address, e.args[0]
-                    )
+                    "While trying to geocode address {0}, "
+                    "an error occurred: {1}".format(address, e.args[0])
                 )
 
         self.progress["progress"] = 100
