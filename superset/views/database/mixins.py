@@ -28,7 +28,7 @@ from superset.views.base import BaseFilter
 
 class DatabaseFilter(BaseFilter):
     # TODO(bogdan): consider caching.
-    def get_databases_from_schema_access(self):
+    def schema_access_databases(self):  # noqa
         found_databases = set()
         for vm in security_manager.user_view_menu_names("schema_access"):
             database_name, _ = security_manager.unpack_schema_perm(vm)
@@ -40,13 +40,14 @@ class DatabaseFilter(BaseFilter):
             return query
         database_perms = security_manager.user_view_menu_names("database_access")
         # TODO(bogdan): consider adding datasource access here as well.
-        schema_access_databases = self.get_databases_from_schema_access()
+        schema_access_databases = self.schema_access_databases()
         return query.filter(
             or_(
                 self.model.perm.in_(database_perms),
                 self.model.database_name.in_(schema_access_databases),
             )
         )
+
 
 class DatabaseMixin:
     list_title = _("Databases")

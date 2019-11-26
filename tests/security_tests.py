@@ -62,8 +62,7 @@ def delete_schema_perm(view_menu_name: str) -> None:
 class RolePermissionTests(SupersetTestCase):
     """Testing export role permissions."""
 
-    @classmethod
-    def setUpClass(cls):
+    def setUp(self):
         session = db.session
         security_manager.add_role(SCHEMA_ACCESS_ROLE)
         session.commit()
@@ -89,8 +88,7 @@ class RolePermissionTests(SupersetTestCase):
         gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
         session.commit()
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self):
         session = db.session
         ds = (
             session.query(SqlaTable)
@@ -373,13 +371,13 @@ class RolePermissionTests(SupersetTestCase):
         table.schema = "tmp_perm_schema"
         table.table_name = "tmp_perm_table_v2"
         session.commit()
-        # TODO(bogdan): modify slice permission on the table update.
+        # TODO(bogdan): modify slice permissions on the table update.
         self.assertNotEquals(slice.perm, table.perm)
         self.assertEquals(slice.perm, f"[tmp_database].[tmp_perm_table](id:{table.id})")
         self.assertEquals(
             table.perm, f"[tmp_database].[tmp_perm_table_v2](id:{table.id})"
         )
-        # TODO(bogdan): modify slice schema permission on the table update.
+        # TODO(bogdan): modify slice schema permissions on the table update.
         self.assertNotEquals(slice.schema_perm, table.schema_perm)
         self.assertIsNone(slice.schema_perm)
 

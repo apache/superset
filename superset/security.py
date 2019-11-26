@@ -452,13 +452,11 @@ class SupersetSecurityManager(SecurityManager):
             return schemas
 
         # schema_access
-        accessible_schemas = set(
-            [
-                self.unpack_schema_perm(s)[1]
-                for s in self.user_view_menu_names("schema_access")
-                if s.startswith(f"[{database}].")
-            ]
-        )
+        accessible_schemas = {
+            self.unpack_schema_perm(s)[1]
+            for s in self.user_view_menu_names("schema_access")
+            if s.startswith(f"[{database}].")
+        }
 
         # datasource_access
         perms = self.user_view_menu_names("datasource_access")
