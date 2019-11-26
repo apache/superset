@@ -194,7 +194,7 @@ https://lists.apache.org/thread.html/50a6b134d66b86b237d5d7bc89df1b567246d125a71
 To easily send the result email, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note use Superset's virtualenv 
+    # Note: use Superset's virtualenv 
     (venv)$ python send_email.py result_pmc
 ```
 
@@ -217,7 +217,7 @@ started at general@incubator.apache.org.
 To easily send the voting request to Apache community, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note use Superset's virtualenv 
+    # Note: use Superset's virtualenv 
     (venv)$ python send_email.py vote_ipmc
 ```
 
@@ -227,7 +227,7 @@ least 72 hours have past, you can post a [RESULT] thread
 To easily send the result email, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note use Superset's virtualenv 
+    # Note: use Superset's virtualenv 
     (venv)$ python send_email.py result_ipmc
 ```
 
@@ -278,6 +278,7 @@ Now that we have a final Apache source release we need to open a pull request on
 with the changes on `CHANGELOG.md` and `UPDATING.md`.
 
 ### Publishing a Convenience Release to PyPI
+
 From the root of the repo running ./pypi_push.sh will build the
 Javascript bundle and echo the twine command allowing you to publish
 to PyPI. You may need to ask a fellow committer to grant
