@@ -38,11 +38,6 @@ class GeocodingTests(SupersetTestCase):
     def tearDown(self):
         self.logout()
 
-    def test_get_mapbox_api_key(self):
-        superset = views.Superset()
-        api_key = superset._get_mapbox_key()
-        assert isinstance(api_key, str)
-
     # def test_add_lat_lon_columns(self):
     #     table = db.session.query(SqlaTable).first()
     #     database = db.session.query(Database).filter_by(id=table.database_id).first()
@@ -102,12 +97,13 @@ class GeocodingTests(SupersetTestCase):
     def test_get_columns(self):
         url = "/superset/geocoding/columns"
 
-        table = db.session.query(SqlaTable).all()[0]
+        table = db.session.query(SqlaTable).first()
         table_name = table.table_name
+        columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
 
         data = {"tableName": table_name}
         response = self.get_resp(url, json_=data)
-        assert table.columns[0].column_name in response
+        assert columns[0].get("name") in response
 
     def test_get_invalid_columns(self):
         url = "/superset/geocoding/columns"
@@ -116,5 +112,5 @@ class GeocodingTests(SupersetTestCase):
         data = {"tableName": table_name}
         response = self.get_resp(url, json_=data)
 
-        message = "No table found with name {0}".format(table_name)
+        message = "No columns found for table with name {0}".format(table_name)
         assert message in response
