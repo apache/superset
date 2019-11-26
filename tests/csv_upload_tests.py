@@ -17,8 +17,10 @@
 """Unit tests for CSV Upload"""
 import os
 
+import superset.models.core as models
 from superset import db
 from superset.utils import core as utils
+from superset.views.csv_import import CsvImporter
 
 from .base_tests import SupersetTestCase
 
@@ -51,6 +53,7 @@ class CsvUploadTests(SupersetTestCase):
     def get_full_data(
         self, filename, db_id, database_name="", table_name="TableForTesting", schema=""
     ):
+        # TODO add password and db_flavor fields
         form_data = {
             "file": self.create_csv_file(filename),
             "connectionId": db_id,
@@ -251,3 +254,43 @@ class CsvUploadTests(SupersetTestCase):
             assert message in response
         finally:
             os.remove(filename)
+
+    def test_create_Postgres_database(self):
+        importer = CsvImporter()
+        test = importer._create_database("testname", "postgres", "postgres")
+        assert isinstance(test, models.Database)
+
+    # TODO "activate" test when Fields are implemented and code works as intended
+    def test_import_into_new_postgres(self):
+        url = "/csvimporter/csvtodatabase/add"
+        filename = "into_new_postgres.csv"
+        schema = ""
+        db_name = "csv_into_new_postgres_db"
+        table_name = "newlyimported_into_postgres"
+        # db_flavor = "postgres"
+        # password = "postgres"
+        importer = CsvImporter()
+        try:
+            form_data = self.get_full_data(filename, -1, db_name, table_name)
+            # response = self.get_resp(url, data=form_data)
+            # message = "{0} imported into database {1}".format(table_name, db_name)
+            # assert message in response
+        finally:
+            assert True
+
+    # TODO "activate test" and set password to None, assert correct Exception is thrown and caught
+    def test_postgres_no_password_supplied(self):
+        url = "/csvimporter/csvtodatabase/add"
+        filename = "postgres_no_password.csv"
+        schema = ""
+        db_name = "csv_into_new_postgres_no_pw"
+        table_name = "no_password_supplied"
+        importer = CsvImporter()
+        # db_flavor = "postgres"
+        try:
+            form_data = self.get_full_data(filename, -1, db_name, table_name)
+            # response = self.get_resp(url, data=form_data)
+            # message = {"no password supplied for postgres"}
+            # assert message in response
+        finally:
+            assert True

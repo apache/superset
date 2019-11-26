@@ -62,3 +62,7 @@ class DatabaseCreationException(SupersetException):
 
 class TableCreationException(SupersetException):
     status = 400
+
+
+class NoPasswordSuppliedException(SupersetException):
+    status = 400
