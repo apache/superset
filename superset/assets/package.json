@@ -131,6 +131,7 @@
     "react-jsonschema-form": "^1.2.0",
     "react-markdown": "^3.3.0",
     "react-redux": "^5.0.2",
+    "react-router-dom": "^5.1.2",
     "react-search-input": "^0.11.3",
     "react-select": "1.2.1",
     "react-select-fast-filter-options": "^0.2.1",
