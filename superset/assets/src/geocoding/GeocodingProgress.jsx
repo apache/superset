@@ -65,7 +65,6 @@ export class GeocodingProgress extends React.Component {
           <div className="progressContainer">
             <p>{t('The geocoding is currently in progress, this may take a while!')}</p>
             <ProgressBar striped now={this.getProgress()} label={`${this.getProgress()} %`} />
-            <p>{t('You can cancel the process by clicking on the Cancel button')}</p>
             <Button bsStyle="danger" onClick={this.interruptGeocoding}>
               {t('Stop Geocoding')} <i className="fa fa-ban" />
             </Button>
