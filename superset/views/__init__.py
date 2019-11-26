@@ -21,6 +21,7 @@ from . import (
     core,
     dashboard,
     datasource,
+    geocoding,
     schedules,
     sql_lab,
     tags,
