@@ -83,11 +83,8 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_can_all("SqlMetricInlineView", perm_set)
         self.assert_can_all("TableColumnInlineView", perm_set)
         self.assert_can_all("TableModelView", perm_set)
-        self.assert_can_all("DruidDatasourceModelView", perm_set)
-        self.assert_can_all("DruidMetricInlineView", perm_set)
 
         self.assertIn(("all_datasource_access", "all_datasource_access"), perm_set)
-        self.assertIn(("muldelete", "DruidDatasourceModelView"), perm_set)
 
     def assert_cannot_alpha(self, perm_set):
         if app.config["ENABLE_ACCESS_REQUEST"]:
@@ -100,7 +97,6 @@ class RolePermissionTests(SupersetTestCase):
     def assert_can_admin(self, perm_set):
         self.assert_can_read("DatabaseAsync", perm_set)
         self.assert_can_all("DatabaseView", perm_set)
-        self.assert_can_all("DruidClusterModelView", perm_set)
         self.assert_can_all("RoleModelView", perm_set)
         self.assert_can_all("UserDBModelView", perm_set)
 
@@ -178,13 +174,6 @@ class RolePermissionTests(SupersetTestCase):
             security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu(
                     "can_edit", "SqlMetricInlineView"
-                )
-            )
-        )
-        self.assertTrue(
-            security_manager._is_alpha_only(
-                security_manager.find_permission_view_menu(
-                    "can_delete", "DruidMetricInlineView"
                 )
             )
         )
