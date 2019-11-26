@@ -52,8 +52,8 @@ export class GeocodingForm extends React.Component {
       streetColumn: undefined,
       cityColumn: undefined,
       countryColumn: undefined,
-      longitudeColumnName: 'longitude',
-      latitudeColumnName: 'latitude',
+      longitudeColumnName: 'lon',
+      latitudeColumnName: 'lat',
       overwriteIfExists: false,
       saveOnErrorOrInterrupt: true,
       validation,
@@ -178,7 +178,7 @@ export class GeocodingForm extends React.Component {
                         this.state.datasource ? null : 'hide-component'
                       }
                     >
-                      <td className="col-lg-2">{t('Street Column')}</td>
+                      <td className="col-lg-2">{t('Street column')}</td>
                       <td>
                         <FormSelect
                           id={'streetColumn'}
@@ -188,7 +188,8 @@ export class GeocodingForm extends React.Component {
                           }
                           value={this.state.streetColumn}
                           helpText={t(
-                            'Name of the column where the street is stored.',
+                            'Name of the column where the street and possibly house number is stored  ' +
+                              '. This can also be a place.',
                           )}
                         />
                       </td>
@@ -198,7 +199,7 @@ export class GeocodingForm extends React.Component {
                         this.state.datasource ? null : 'hide-component'
                       }
                     >
-                      <td className="col-lg-2">{t('City Column')}</td>
+                      <td className="col-lg-2">{t('City column')}</td>
                       <td>
                         <FormSelect
                           id={'cityColumn'}
@@ -218,7 +219,7 @@ export class GeocodingForm extends React.Component {
                         this.state.datasource ? null : 'hide-component'
                       }
                     >
-                      <td className="col-lg-2">{t('Country Column')}</td>
+                      <td className="col-lg-2">{t('Country column')}</td>
                       <td>
                         <FormSelect
                           id={'countryColumn'}
@@ -229,28 +230,6 @@ export class GeocodingForm extends React.Component {
                           value={this.state.countryColumn}
                           helpText={t(
                             'Name of the column where the country is stored.',
-                          )}
-                        />
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="col-lg-2">
-                        {t('Name of longitude column')} <Asterisk />
-                      </td>
-                      <td>
-                        <FormInput
-                          type="text"
-                          required
-                          value={this.state.longitudeColumnName}
-                          name="longitudeColumnName"
-                          onChange={event =>
-                            this.setPropertyValue(
-                              event.target.name,
-                              event.target.value,
-                            )
-                          }
-                          helpText={t(
-                            'Name of the longitude column to add or overwrite',
                           )}
                         />
                       </td>
@@ -272,7 +251,29 @@ export class GeocodingForm extends React.Component {
                             )
                           }
                           helpText={t(
-                            'Name of the longitude column to add or overwrite',
+                            'Name of the latitude column to add or overwrite.',
+                          )}
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="col-lg-2">
+                        {t('Name of longitude column')} <Asterisk />
+                      </td>
+                      <td>
+                        <FormInput
+                          type="text"
+                          required
+                          value={this.state.longitudeColumnName}
+                          name="longitudeColumnName"
+                          onChange={event =>
+                            this.setPropertyValue(
+                              event.target.name,
+                              event.target.value,
+                            )
+                          }
+                          helpText={t(
+                            'Name of the longitude column to add or overwrite.',
                           )}
                         />
                       </td>
