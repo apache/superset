@@ -98,13 +98,12 @@ class SupersetAppInitializer:
         celery_app.set_default()
         flask_app = self.flask_app
 
-        """
-            Here, we want to ensure that every call into Celery task has an app context
-            setup properly
-        """
+        # Here, we want to ensure that every call into Celery task has an app context
+        # setup properly
         task_base = celery_app.Task
 
         class AppContextTask(task_base):  # type: ignore
+            # pylint: disable=too-few-public-methods
             abstract = True
 
             # Grab each call into the task and set up an app context
