@@ -55,6 +55,8 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         data_length = len(data)
         counter = 0
         self.progress["success_counter"] = 0
+        self.progress["doubt_counter"] = 0
+        self.progress["failed_counter"] = 0
         self.progress["is_in_progress"] = True
         self.progress["progress"] = 0
 
@@ -68,9 +70,17 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                 address = " ".join(datum)
                 geocoded = self._get_coordinates_from_address(address)
                 if geocoded is not None:
-                    geocoded_data.append(datum + tuple(geocoded))
+                    center_coordinates = geocoded[1]
+                    relevance = geocoded[0]
+                    if relevance > 0.8:
+                        self.progress["success_counter"] += 1
+                    elif relevance > 0.49:
+                        self.progress["doubt_counter"] += 1
+                    else:
+                        self.progress["failed_counter"] += 1
 
-                    self.progress["success_counter"] += 1
+                    geocoded_data.append(datum + tuple(center_coordinates))
+
                 counter += 1
                 self.progress["progress"] = counter / data_length
             except ConnectionError as e:
@@ -108,10 +118,12 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         # TODO make use of relevance
         features = decoded_data["features"]
         if features:
-            coordinates = features[0]
+            feature = features[0]
+            center = feature["center"]
+            relevance = feature["relevance"]
             # TODO check if it is possible, that there is no center attribute
             #  -> get API doc from mr. Keller
-            return coordinates["center"] or None
+            return [center, relevance] or None
         return None
 
     # TODO remove it in mocking class
