@@ -74,22 +74,22 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                 counter += 1
                 self.progress["progress"] = counter / data_length
             except ConnectionError as e:
-                errors.append("A network error occurs: {0}".format(e.args[0]))
+                errors.append("A network error occurred: {0}".format(e.args[0]))
             except HTTPError as e:
                 errors.append(
-                    "The request for {0} returns a wrong HTTP answer: {1}".format(
+                    "The request for {0} returned a wrong HTTP answer: {1}".format(
                         address, e.args[0]
                     )
                 )
             except Timeout as e:
                 errors.append(
-                    "The request for {0} run into a time out: {1}".format(
+                    "The request for {0} ran into a time out: {1}".format(
                         address, e.args[0]
                     )
                 )
             except RequestException as e:
                 errors.append(
-                    "While geocode the address {0}, an error occurs: {1}".format(
+                    "While trying to geocode address {0}, an error occurred: {1}".format(
                         address, e.args[0]
                     )
                 )
