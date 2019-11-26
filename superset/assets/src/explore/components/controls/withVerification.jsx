@@ -85,4 +85,3 @@ export default function withVerification(WrappedComponent, optionLabel, optionsN
   withVerificationComponent.propTypes = WrappedComponent.propTypes;
   return withVerificationComponent;
 }
-

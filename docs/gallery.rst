@@ -204,4 +204,3 @@ Visualizations Gallery
 
 .. image:: images/viz_thumbnails/world_map.png
    :scale: 25 %
-

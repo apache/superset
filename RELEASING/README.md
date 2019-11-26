@@ -56,9 +56,9 @@ need to be done at every release.
 
 ## Crafting a source release
 
-When crafting a new minor or major release we create 
+When crafting a new minor or major release we create
 a branch named with the release MAJOR.MINOR version.
-This new branch will hold all PATCH and release candidates 
+This new branch will hold all PATCH and release candidates
 that belong to the MAJOR.MINOR version.
 
 The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.

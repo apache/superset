@@ -39,7 +39,7 @@ To run the container, simply run:
 docker-compose up
 ```
 
-After several minutes for superset initialization to finish, you can open a browser and view [`http://localhost:8088`](http://localhost:8088) 
+After several minutes for superset initialization to finish, you can open a browser and view [`http://localhost:8088`](http://localhost:8088)
 to start your journey.
 
 ## Developing

@@ -122,4 +122,3 @@ by saving the following YAML to file and then running the ``import_datasources``
         columns:
         - column_name: ds
           verbose_name: datetime
-

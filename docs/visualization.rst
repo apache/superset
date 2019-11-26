@@ -95,7 +95,7 @@ List of Countries
 +----------+-----------------------+
 |  BR-MS   | Mato Grosso do Sul    |
 +----------+-----------------------+
-|  BR-MT   | Mato Grosso           | 
+|  BR-MT   | Mato Grosso           |
 +----------+-----------------------+
 |  BR-MG   | Minas Gerais          |
 +----------+-----------------------+
@@ -105,11 +105,11 @@ List of Countries
 +----------+-----------------------+
 |  BR-PR   | Paraná                |
 +----------+-----------------------+
-|  BR-PE   | Pernambuco            |  
+|  BR-PE   | Pernambuco            |
 +----------+-----------------------+
-|  BR-PI   | Piauí                 |  
+|  BR-PI   | Piauí                 |
 +----------+-----------------------+
-|  BR-RJ   | Rio de Janeiro        |  
+|  BR-RJ   | Rio de Janeiro        |
 +----------+-----------------------+
 |  BR-RN   | Rio Grande do Norte   |
 +----------+-----------------------+
@@ -1703,7 +1703,7 @@ List of Countries
 +------+------------------------------+
 |ISO   | Name of region               |
 +======+==============================+
-|UA-71 |           Cherkasy           |  
+|UA-71 |           Cherkasy           |
 +------+------------------------------+
 |UA-74 |         Chernihiv            |
 +------+------------------------------+
@@ -1729,7 +1729,7 @@ List of Countries
 +------+------------------------------+
 |UA-35 |         Kirovohrad           |
 +------+------------------------------+
-|UA-46 |         L'viv                | 
+|UA-46 |         L'viv                |
 +------+------------------------------+
 |UA-09 |         Luhans'k             |
 +------+------------------------------+
@@ -1737,7 +1737,7 @@ List of Countries
 +------+------------------------------+
 |UA-51 |         Odessa               |
 +------+------------------------------+
-|UA-53 |         Poltava              | 
+|UA-53 |         Poltava              |
 +------+------------------------------+
 |UA-56 |         Rivne                |
 +------+------------------------------+
@@ -1878,7 +1878,7 @@ To add a new country in country map tools, we need to follow the following steps
 1. You need shapefiles which contain data of your map.
    You can get this file on this site: https://www.diva-gis.org/gdata
 
-2. You need to add ISO 3166-2 with column name ISO for all record in your file. 
+2. You need to add ISO 3166-2 with column name ISO for all record in your file.
    It's important because it's a norm for mapping your data with geojson file
 
 3. You need to convert shapefile to geojson file.
@@ -1919,7 +1919,3 @@ To add a new country in country map tools, we need to follow the following steps
         ].map(s => [s, s]),
         description: 'The name of country that Superset should display',
     },
-       
-
-
-
