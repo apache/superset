@@ -41,8 +41,7 @@ class Geocoder(BaseSupersetView):
     """Geocoding methods and API!"""
 
     # Variables for geocoding
-    interruptflag = False
-    coder = GeocoderUtil(conf)
+    geocoder_util = GeocoderUtil(conf)
 
     @has_access
     @expose("/geocoding")
@@ -209,9 +208,9 @@ class Geocoder(BaseSupersetView):
         """
         # TODO replace mock-method with mock-geocoder
         if dev:
-            return self.coder.geocode("", data)
+            return self.geocoder_util.geocode("", data)
         else:
-            return self.coder.geocode("MapTiler", data)
+            return self.geocoder_util.geocode("MapTiler", data)
 
     def _add_lat_lon_columns(self, table_name: str, lat_column: str, lon_column: str):
         """
@@ -302,7 +301,7 @@ class Geocoder(BaseSupersetView):
         :return: GeoCoding Object
         """
         return json_success(
-            json.dumps(self.coder.progress, default=lambda x: x.__dict__)
+            json.dumps(self.geocoder_util.progress, default=lambda x: x.__dict__)
         )
 
     @api
@@ -310,7 +309,7 @@ class Geocoder(BaseSupersetView):
     @expose("/geocoding/interrupt", methods=["POST"])
     def interrupt(self) -> Response:
         """ Used for interrupting the geocoding process """
-        self.coder.interruptflag = True
+        self.geocoder_util.interruptflag = True
         return json_success("")
 
 

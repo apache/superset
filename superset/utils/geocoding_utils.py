@@ -106,16 +106,16 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
             base_url + address + ".json?key=" + self.conf["MAPTILER_API_KEY"]
         )
         decoded_data = json.loads(response.content.decode())
-        # TODO make use of relevance if wanted
+        # TODO make use of relevance
         features = decoded_data["features"]
         if features:
             coordinates = features[0]
             # TODO check if it is possible, that there is no center attribute
             #  -> get API doc from mr. Keller
-            # TODO don't raise success_counter if there is no 'center' Attribute
             return coordinates["center"] or None
         return None
 
+    # TODO remove it in mocking class
     def _geocode_testing(self) -> dict:
         counter = 0
         datalen = 10
