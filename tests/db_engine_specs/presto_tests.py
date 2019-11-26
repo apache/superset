@@ -19,9 +19,9 @@ from unittest import mock, skipUnless
 import pandas as pd
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql import select
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
+from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
 
 class PrestoTests(DbEngineSpecTestCase):
