@@ -295,7 +295,7 @@ class CsvUploadTests(SupersetTestCase):
         try:
             response = self.get_resp(url, data=form_data)
             message = "{0} imported into database {1}".format(table_name, db_name)
-            print(response) # show error message in build
+            print(response)  # show error message in build
             assert message in response
         finally:
             os.remove(filename)
