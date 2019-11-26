@@ -17,8 +17,10 @@
 """Unit tests for CSV Upload"""
 import os
 
+import sqlalchemy_utils
+
 import superset.models.core as models
-from superset import db
+from superset import conf, db
 from superset.utils import core as utils
 from superset.views.csv_import import CsvImporter
 
@@ -58,15 +60,12 @@ class CsvUploadTests(SupersetTestCase):
         table_name="TableForTesting",
         schema="",
         database_flavor="sqlite",
-        password="",
     ):
-        # TODO add password and db_flavor fields
         form_data = {
             "file": self.create_csv_file(filename),
             "connectionId": database_id,
             "databaseName": database_name,
             "databaseFlavor": database_flavor,
-            "postgresPassword": password,
             "schema": schema,
             "tableName": table_name,
             "delimiter": ",",
@@ -264,36 +263,110 @@ class CsvUploadTests(SupersetTestCase):
         finally:
             os.remove(filename)
 
-    def test_create_Postgres_database(self):
-        importer = CsvImporter()
-        test = importer._create_database("testname", "postgres", "postgres")
-        assert isinstance(test, models.Database)
+    def test_create_postgres_database(self):
+        conf["POSTGRES_USERNAME"] = "postgres"
+        conf["POSTGRES_PASSWORD"] = "postgres"
+        db_name = "my_postgres_db"
+        try:
+            test = CsvImporter()._create_database(db_name, "postgres")
+            assert isinstance(test, models.Database)
+        finally:
+            url = (
+                "postgresql://"
+                + conf["POSTGRES_USERNAME"]
+                + ":"
+                + conf["POSTGRES_PASSWORD"]
+                + "@localhost/"
+                + db_name
+            )
+            if sqlalchemy_utils.database_exists(url):
+                sqlalchemy_utils.drop_database(url)
 
     def test_import_into_new_postgres(self):
         url = "/csvimporter/csvtodatabase/add"
         filename = "into_new_postgres.csv"
-        schema = ""
         db_name = "csv_into_new_postgres_db"
         table_name = "newlyimported_into_postgres"
-        db_flavor = "postgres"
-        password = "postgres"
         form_data = self.get_full_data(
-            filename, -1, db_name, table_name, schema, db_flavor, password
+            filename, -1, db_name, table_name, database_flavor="postgres"
         )
-        response = self.get_resp(url, data=form_data)
-        message = "{0} imported into database {1}".format(table_name, db_name)
-        assert message in response
+        conf["POSTGRES_USERNAME"] = "postgres"
+        conf["POSTGRES_PASSWORD"] = "postgres"
+        try:
+            response = self.get_resp(url, data=form_data)
+            message = "{0} imported into database {1}".format(table_name, db_name)
+            print(response) # show error message in build
+            assert message in response
+        finally:
+            os.remove(filename)
+            url = (
+                "postgresql://"
+                + conf["POSTGRES_USERNAME"]
+                + ":"
+                + conf["POSTGRES_PASSWORD"]
+                + "@localhost/"
+                + db_name
+            )
+            if sqlalchemy_utils.database_exists(url):
+                sqlalchemy_utils.drop_database(url)
 
     def test_postgres_no_password_supplied(self):
         url = "/csvimporter/csvtodatabase/add"
         filename = "postgres_no_password.csv"
-        schema = ""
         db_name = "csv_into_new_postgres_no_pw"
-        table_name = "no_password_supplied"
-        db_flavor = "postgres"
         form_data = self.get_full_data(
-            filename, -1, db_name, table_name, schema, db_flavor
+            filename, -1, db_name, database_flavor="postgres"
         )
-        response = self.get_resp(url, data=form_data)
-        message = "No password supplied for PostgreSQL"
-        assert message in response
+        conf["POSTGRES_USERNAME"] = "postgres"
+        conf["POSTGRES_PASSWORD"] = ""
+        try:
+            response = self.get_resp(url, data=form_data)
+            message = "No password supplied for PostgreSQL"
+            assert message in response
+        finally:
+            os.remove(filename)
+
+    def test_postgres_no_username_supplied(self):
+        url = "/csvimporter/csvtodatabase/add"
+        filename = "postgres_no_username.csv"
+        db_name = "csv_into_new_postgres_no_username"
+        form_data = self.get_full_data(
+            filename, -1, db_name, database_flavor="postgres"
+        )
+        conf["POSTGRES_USERNAME"] = ""
+        conf["POSTGRES_PASSWORD"] = "postgres"
+        try:
+            response = self.get_resp(url, data=form_data)
+            message = "No username supplied for PostgreSQL"
+            assert message in response
+        finally:
+            os.remove(filename)
+
+    def test_postgres_already_exist(self):
+        url = "/csvimporter/csvtodatabase/add"
+        filename = "postgres_already_exist.csv"
+        db_name = "postgres_already_exist"
+        form_data = self.get_full_data(
+            filename, -1, db_name, database_flavor="postgres"
+        )
+
+        conf["POSTGRES_USERNAME"] = "postgres"
+        conf["POSTGRES_PASSWORD"] = "postgres"
+        CsvImporter()._create_database(db_name, "postgres")
+
+        try:
+            response = self.get_resp(url, data=form_data)
+            message = "The database {0} already exist".format(db_name)
+            assert message in response
+        finally:
+            os.remove(filename)
+            url = (
+                "postgresql://"
+                + conf["POSTGRES_USERNAME"]
+                + ":"
+                + conf["POSTGRES_PASSWORD"]
+                + "@localhost/"
+                + db_name
+            )
+            if sqlalchemy_utils.database_exists(url):
+                sqlalchemy_utils.drop_database(url)

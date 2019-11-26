@@ -30,11 +30,12 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
 import superset.models.core as models
-from superset import app, appbuilder, db, security_manager
+from superset import app, appbuilder, conf, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
     DatabaseCreationException,
     NoPasswordSuppliedException,
+    NoUsernameSuppliedException,
     TableCreationException,
 )
 from superset.utils import core as utils
@@ -120,11 +121,12 @@ class CsvImporter(BaseSupersetView):
                         "Database name is not allowed", status=400
                     )
                 db_flavor = form_data["databaseFlavor"] or None
-                postgres_password = form_data["postgresPassword"] or None
-                database = self._create_database(db_name, db_flavor, postgres_password)
+                database = self._create_database(db_name, db_flavor)
         except ValueError as e:
             return json_error_response(e.args[0], status=400)
         except DatabaseCreationException as e:
+            return json_error_response(e.args[0], status=400)
+        except NoUsernameSuppliedException as e:
             return json_error_response(e.args[0], status=400)
         except NoPasswordSuppliedException as e:
             return json_error_response(e.args[0], status=400)
@@ -178,32 +180,45 @@ class CsvImporter(BaseSupersetView):
             '"{} imported into database {}"'.format(form_data["tableName"], db_name)
         )
 
-    def _create_database(
-        self, db_name: str, db_flavor="sqlite", postgres_password=None
-    ):
+    def _create_database(self, db_name: str, db_flavor="sqlite"):
         """ Creates the Database itself as well as the Superset Connection to it
 
         Keyword arguments:
         db_name -- the name for the database to be created
         db_flavor -- which database to use postgres or sqlite
-        postgres_password -- needed for postgres
 
         Raises:
             ValueError: If a file with the database name already exists in the folder
+            NoUserSuppliedException: If the user did not supply a username
             NoPasswordSuppliedException: If the user did not supply a password
             Exception: If the Database could not be created
         """
         if db_flavor == "postgres":
-            # TODO add possibility to change user
             # TODO add possibility to use schema
+
+            postgres_user = conf["POSTGRES_USERNAME"]
+            postgres_password = conf["POSTGRES_PASSWORD"]
+
+            if not postgres_user:
+                raise NoUsernameSuppliedException("No username supplied for PostgreSQL")
             if not postgres_password:
                 raise NoPasswordSuppliedException("No password supplied for PostgreSQL")
-            url = "postgresql://postgres:" + postgres_password + "@localhost/" + db_name
+            url = (
+                "postgresql://"
+                + postgres_user
+                + ":"
+                + postgres_password
+                + "@localhost/"
+                + db_name
+            )
             engine = sqlalchemy.create_engine(url)
             if not sqlalchemy_utils.database_exists(engine.url):
                 sqlalchemy_utils.create_database(engine.url)
+            else:
+                raise DatabaseCreationException(
+                    "The database {0} already exist".format(db_name)
+                )
 
-            # TODO decide whether to fail if database exists
             try:
                 item = SQLAInterface(models.Database).obj()
                 item.database_name = db_name

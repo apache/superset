@@ -47,7 +47,6 @@ export class CsvToDatabase extends React.PureComponent {
       tableName: '',
       databaseName: '',
       selectedDatabaseFlavor: { label: t('SQLite'), value: 'sqlite' },
-      postgresPassword: '',
       file: undefined,
       selectedConnection: { label: t('In a new database'), value: -1 },
       schema: '',
@@ -139,7 +138,6 @@ export class CsvToDatabase extends React.PureComponent {
       tableName,
       databaseName,
       selectedDatabaseFlavor,
-      postgresPassword,
       file,
       selectedConnection,
       schema,
@@ -164,7 +162,6 @@ export class CsvToDatabase extends React.PureComponent {
       connectionId: selectedConnection.value,
       databaseName: selectedConnection.value === -1 ? databaseName : '',
       databaseFlavor: selectedConnection.value === -1 ? selectedDatabaseFlavor.value : '',
-      postgresPassword: selectedConnection.value === -1 && selectedDatabaseFlavor.value === 'postgres' ? postgresPassword : '',
       schema,
       delimiter,
       ifTableExists: selectedTableExists.value,
@@ -245,7 +242,7 @@ export class CsvToDatabase extends React.PureComponent {
                       <td>
                         <FormSelect
                           id={'database'}
-                          required={true}
+                          required
                           value={this.state.selectedConnection}
                           onChange={this.setSelectedConnection}
                           options={this.getConnectionStrings()}
@@ -297,29 +294,6 @@ export class CsvToDatabase extends React.PureComponent {
                         />
                       </td>
                     </tr>
-                    <tr
-                      className={
-                        this.state.selectedConnection.value === -1
-                          && this.state.selectedDatabaseFlavor.value === 'postgres'
-                          ? null
-                          : 'hide-component'
-                      }
-                    >
-                      <td className="col-lg-2">
-                        {t('PostgreSQL Password')} <Asterisk />
-                      </td>
-                      <td>
-                        <FormInput
-                          type="password"
-                          name="postgresPassword"
-                          placeHolder={t('PostgreSQL Password')}
-                          required={this.state.selectedDatabaseFlavor.value === 'postgres'}
-                          value={this.state.postgresPassword}
-                          onChange={this.setUserInput}
-                          helpText={t('Password of the PostgreSQL user.')}
-                        />
-                      </td>
-                    </tr>
                     <tr>
                       <td className="col-lg-2">{t('Schema')}</td>
                       <td>
@@ -356,7 +330,7 @@ export class CsvToDatabase extends React.PureComponent {
                       <td>
                         <FormSelect
                           id={'tableExists'}
-                          required={true}
+                          required
                           value={this.state.selectedTableExists}
                           onChange={this.setTableExists}
                           options={this.state.tableExistsValues}

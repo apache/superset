@@ -66,3 +66,7 @@ class TableCreationException(SupersetException):
 
 class NoPasswordSuppliedException(SupersetException):
     status = 400
+
+
+class NoUsernameSuppliedException(SupersetException):
+    status = 400
