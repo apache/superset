@@ -203,7 +203,12 @@ const config = {
         ],
         use: [
           isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
-          'css-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              sourceMap: true,
+            },
+          },
         ],
       },
       {
@@ -211,8 +216,18 @@ const config = {
         include: APP_DIR,
         use: [
           isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
-          'css-loader',
-          'less-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              sourceMap: true,
+            },
+          },
+          {
+            loader: 'less-loader',
+            options: {
+              sourceMap: true,
+            },
+          },
         ],
       },
       /* for css linking images */
