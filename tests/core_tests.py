@@ -405,6 +405,57 @@ class CoreTests(SupersetTestCase):
         assert table.name in resp
         assert "/superset/explore/table/{}".format(table.id) in resp
 
+    def test_tablemodelview_add(self):
+        mock_config = {
+            "DTTM_CONFIG": {
+                "dttm": {
+                    "expression": "test_expression",
+                    "python_date_format": "test_python_date_format",
+                },
+                "id": {"expression": "test_expression"},
+                "nonexistant": {
+                    "expression": "test_expression_v2",
+                    "python_date_format": "python_date_format_v2",
+                },
+            },
+            "MAIN_DTTM_COLUMN": "dttm",
+        }
+        self.login(username="admin")
+        # assert that /tablemodelview/add responds with 200
+        example_db = utils.get_example_database()
+
+        logs_table = db.session.query(SqlaTable).filter_by(table_name="logs").first()
+        if logs_table:
+            db.session.delete(logs_table)
+            db.session.commit()
+        with mock.patch("superset.connectors.sqla.views.config", mock_config):
+            resp = self.client.post(
+                "/tablemodelview/add",
+                data=dict(database=example_db.id, table_name="logs"),
+                follow_redirects=True,
+            )
+        self.assertEqual(resp.status_code, 200)
+        added_table = db.session.query(SqlaTable).filter_by(table_name="logs").one()
+
+        # Make sure that dttm column is set properly
+        self.assertEqual(added_table.main_dttm_col, "dttm")
+
+        # Make sure that dttm defaults were propagated.
+        assert len(added_table.dttm_cols) == 2
+
+        dttm_col = [c for c in added_table.columns if c.column_name == "dttm"][0]
+        self.assertEqual(dttm_col.expression, "test_expression")
+        self.assertEqual(dttm_col.python_date_format, "test_python_date_format")
+        self.assertTrue(dttm_col.is_dttm)
+
+        id_col = [c for c in added_table.columns if c.column_name == "id"][0]
+        self.assertEqual(id_col.expression, "test_expression")
+        self.assertIsNone(id_col.python_date_format)
+        self.assertTrue(id_col.is_dttm)
+
+        db.session.delete(added_table)
+        db.session.commit()
+
     def test_add_slice(self):
         self.login(username="admin")
         # assert that /chart/add responds with 200

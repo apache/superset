@@ -19,7 +19,17 @@ import logging
 import re
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Hashable,
+    List,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import pandas as pd
 import sqlalchemy as sa
@@ -1073,8 +1083,34 @@ class SqlaTable(Model, BaseDatasource):
     def get_sqla_table_object(self) -> Table:
         return self.database.get_table(self.table_name, schema=self.schema)
 
-    def fetch_metadata(self, commit=True) -> None:
+    def fetch_metadata(
+        self,
+        commit=True,
+        dttm_config: Optional[Dict[str, Dict[str, str]]] = None,
+        main_dttm_col: Optional[str] = None,
+    ) -> None:
         """Fetches the metadata for the table and merges it in"""
+
+        def column_dttm_mutator(col_obj: Column) -> None:
+            # Configure dttm colums according to the superset config.
+            if dttm_config:
+                if col_obj.column_name in dttm_config:
+                    col_obj.is_dttm = True
+                    if (
+                        not col_obj.expression
+                        and "expression" in dttm_config[col_obj.column_name]
+                    ):
+                        col_obj.expression = dttm_config[col_obj.column_name][
+                            "expression"
+                        ]
+                    if (
+                        not col_obj.python_date_format
+                        and "python_date_format" in dttm_config[col_obj.column_name]
+                    ):
+                        col_obj.python_date_format = dttm_config[col_obj.column_name][
+                            "python_date_format"
+                        ]
+
         try:
             table = self.get_sqla_table_object()
         except Exception as e:
@@ -1113,6 +1149,15 @@ class SqlaTable(Model, BaseDatasource):
                 dbcol.avg = dbcol.is_numeric
                 dbcol.is_dttm = dbcol.is_temporal
                 db_engine_spec.alter_new_orm_column(dbcol)
+                # apply dttm defaults
+                column_dttm_mutator(dbcol)
+                # set default main dttm column
+                if (
+                    main_dttm_col
+                    and dbcol.is_dttm
+                    and dbcol.column_name == main_dttm_col
+                ):
+                    any_date_col = dbcol.column_name
             else:
                 dbcol.type = datatype
             dbcol.groupby = True

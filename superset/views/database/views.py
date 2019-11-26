@@ -133,14 +133,20 @@ class CsvToDatabaseView(SimpleFormView):
                 .one_or_none()
             )
             if table:
-                table.fetch_metadata()
+                table.fetch_metadata(
+                    dttm_config=config["DTTM_CONFIG"],
+                    main_dttm_col=config["MAIN_DTTM_COLUMN"],
+                )
             if not table:
                 table = SqlaTable(table_name=table_name)
                 table.database = database
                 table.database_id = database.id
                 table.user_id = g.user.id
                 table.schema = form.schema.data
-                table.fetch_metadata()
+                table.fetch_metadata(
+                    dttm_config=config["DTTM_CONFIG"],
+                    main_dttm_col=config["MAIN_DTTM_COLUMN"],
+                )
                 db.session.add(table)
             db.session.commit()
         except Exception as e:  # pylint: disable=broad-except

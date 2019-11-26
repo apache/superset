@@ -29,7 +29,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
 
-from superset import app, appbuilder, db, security_manager
+from superset import app, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
 from superset.constants import RouteMethod
 from superset.utils import core as utils
@@ -45,6 +45,7 @@ from superset.views.base import (
 from . import models
 
 logger = logging.getLogger(__name__)
+config = app.config
 
 
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
@@ -399,7 +400,9 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
             )
 
     def post_add(self, table, flash_message=True):
-        table.fetch_metadata()
+        table.fetch_metadata(
+            dttm_config=config["DTTM_CONFIG"], main_dttm_col=config["MAIN_DTTM_COLUMN"]
+        )
         security_manager.add_permission_view_menu("datasource_access", table.get_perm())
         if table.schema:
             security_manager.add_permission_view_menu(
@@ -442,7 +445,10 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
         failures = []
         for t in tables:
             try:
-                t.fetch_metadata()
+                t.fetch_metadata(
+                    dttm_config=config["DTTM_CONFIG"],
+                    main_dttm_col=config["MAIN_DTTM_COLUMN"],
+                )
                 successes.append(t)
             except Exception:
                 failures.append(t)
@@ -465,7 +471,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     @expose("/list/")
     @has_access
     def list(self):
-        if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
+        if not config["ENABLE_REACT_CRUD_VIEWS"]:
             return super().list()
 
         return super().render_app_template()
