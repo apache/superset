@@ -25,7 +25,7 @@ import { t } from '@superset-ui/translation';
 
 import { fetchObjects } from '../tags';
 import Loading from '../components/Loading';
-import '../../stylesheets/reactable-pagination.css';
+import '../../stylesheets/reactable-pagination.less';
 
 const propTypes = {
   search: PropTypes.string,
@@ -46,7 +46,7 @@ export default class TagsTable extends React.PureComponent {
   componentDidMount() {
     this.fetchResults(this.props.search);
   }
-  componentWillReceiveProps(newProps) {
+  UNSAFE_componentWillReceiveProps(newProps) {
     if (this.props.search !== newProps.search) {
       this.fetchResults(newProps.search);
     }
