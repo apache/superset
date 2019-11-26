@@ -55,9 +55,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_can_read(view_menu, permissions_set)
         self.assert_can_write(view_menu, permissions_set)
 
-    def assert_cannot_gamma(self, perm_set):
-        self.assert_cannot_write("DruidColumnInlineView", perm_set)
-
     def assert_can_gamma(self, perm_set):
         self.assert_can_read("DatabaseAsync", perm_set)
         self.assert_can_read("TableModelView", perm_set)
@@ -86,7 +83,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_can_all("SqlMetricInlineView", perm_set)
         self.assert_can_all("TableColumnInlineView", perm_set)
         self.assert_can_all("TableModelView", perm_set)
-        self.assert_can_all("DruidColumnInlineView", perm_set)
         self.assert_can_all("DruidDatasourceModelView", perm_set)
         self.assert_can_all("DruidMetricInlineView", perm_set)
 
@@ -209,7 +205,6 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_gamma_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples("Gamma"))
-        self.assert_cannot_gamma(get_perm_tuples("Gamma"))
         self.assert_cannot_alpha(get_perm_tuples("Alpha"))
 
     @unittest.skipUnless(
@@ -234,7 +229,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(("can_csv", "Superset"), sql_lab_set)
         self.assertIn(("can_search_queries", "Superset"), sql_lab_set)
 
-        self.assert_cannot_gamma(sql_lab_set)
         self.assert_cannot_alpha(sql_lab_set)
 
     def test_granter_permissions(self):
@@ -242,7 +236,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(("can_override_role_permissions", "Superset"), granter_set)
         self.assertIn(("can_approve", "Superset"), granter_set)
 
-        self.assert_cannot_gamma(granter_set)
         self.assert_cannot_alpha(granter_set)
 
     def test_gamma_permissions(self):
@@ -273,7 +266,6 @@ class RolePermissionTests(SupersetTestCase):
 
         # check read only perms
         assert_can_read("TableModelView")
-        assert_cannot_write("DruidColumnInlineView")
 
         # make sure that user can create slices and dashboards
         assert_can_all("SliceModelView")
