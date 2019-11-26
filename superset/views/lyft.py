@@ -82,7 +82,7 @@ class Lyft(Superset):
                 "tab": request.form.get("tab"),
             }
 
-        return self.sql_json_call(request_json)
+        return self.sql_json_exec(request_json)
 
     @event_logger.log_this
     @expose("/queries/<last_updated_ms>")
@@ -91,7 +91,7 @@ class Lyft(Superset):
             self.authorize()
         except (UserDontExistException, SupersetException) as e:
             return json_error_response("{}".format(e))
-        return self.queries_call(last_updated_ms)
+        return self.queries_exec(last_updated_ms)
 
     @event_logger.log_this
     @expose("/results/<key>")
@@ -100,7 +100,7 @@ class Lyft(Superset):
             self.authorize()
         except (UserDontExistException, SupersetException) as e:
             return json_error_response("{}".format(e))
-        return self.results_call(key)
+        return self.results_exec(key)
 
 
 appbuilder.add_view_no_menu(Lyft)
