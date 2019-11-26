@@ -233,10 +233,8 @@ class CsvImporter(BaseSupersetView):
             except Exception as e:
                 exception = e
                 if isinstance(e, IntegrityError):
-                    message = "Error when trying to create Database. A database with the name {0} already exists.".format(
-                        db_name
-                    )
-                    exception = DatabaseCreationException(message)
+                    message = "Error when trying to create Database"
+                    exception = IntegrityError(message)
                 try:
                     if os.path.isfile(db_path):
                         os.remove(db_path)
