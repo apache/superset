@@ -104,7 +104,7 @@ class SupersetAppInitializer:
         """
         task_base = celery_app.Task
 
-        class AppContextTask(task_base):
+        class AppContextTask(task_base):  # type: ignore
             abstract = True
 
             # Grab each call into the task and set up an app context

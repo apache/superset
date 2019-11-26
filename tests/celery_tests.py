@@ -23,10 +23,11 @@ import time
 import unittest
 import unittest.mock as mock
 
-from flask import _app_ctx_stack, current_app
+import flask
+from flask import current_app
 
 from tests.test_app import app
-from superset import db, sql_lab, create_app
+from superset import db, sql_lab
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.extensions import celery_app
@@ -83,10 +84,10 @@ class AppContextTests(SupersetTestCase):
 
         # Make sure the app gets pushed onto the stack properly
         try:
-            popped_app = _app_ctx_stack.pop()
+            popped_app = flask._app_ctx_stack.pop()
             my_task()
         finally:
-            _app_ctx_stack.push(popped_app)
+            flask._app_ctx_stack.push(popped_app)
 
 
 class CeleryTestCase(SupersetTestCase):

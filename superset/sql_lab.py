@@ -397,9 +397,7 @@ def execute_sql_statements(
 
     if store_results and results_backend:
         key = str(uuid.uuid4())
-        logger.info(
-            f"Query {query_id}: Storing results in results backend, key: {key}"
-        )
+        logger.info(f"Query {query_id}: Storing results in results backend, key: {key}")
         with stats_timing("sqllab.query.results_backend_write", stats_logger):
             with stats_timing(
                 "sqllab.query.results_backend_write_serialization", stats_logger
