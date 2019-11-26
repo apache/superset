@@ -20,7 +20,7 @@ import re
 from contextlib import closing
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import cast, List, Optional, Union
+from typing import Any, cast, Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
@@ -3063,17 +3063,15 @@ class Superset(BaseSupersetView):
             ),
         )
 
-    @has_access
-    @expose("/sqllab")
-    def sqllab(self):
-        """SQL Editor"""
-
+    @staticmethod
+    def _get_sqllab_payload() -> Dict[str, Any]:
         # send list of tab state ids
-        tab_state_ids = (
+        tabs_state = (
             db.session.query(TabState.id, TabState.label)
             .filter_by(user_id=g.user.get_id())
             .all()
         )
+        tab_state_ids = [tab_state[0] for tab_state in tabs_state]
         # return first active tab, or fallback to another one if no tab is active
         active_tab = (
             db.session.query(TabState)
@@ -3082,8 +3080,8 @@ class Superset(BaseSupersetView):
             .first()
         )
 
-        databases = {}
-        queries = {}
+        databases: Dict[int, Any] = {}
+        queries: Dict[str, Any] = {}
 
         # These are unnecessary if sqllab backend persistence is disabled
         if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
@@ -3093,10 +3091,11 @@ class Superset(BaseSupersetView):
                 }
                 for database in db.session.query(models.Database).all()
             }
+            # return all user queries associated with existing SQL editors
             user_queries = (
                 db.session.query(Query)
                 .filter_by(user_id=g.user.get_id())
-                .filter(Query.client_id.in_(tab_state_ids))
+                .filter(Query.sql_editor_id.in_(tab_state_ids))
                 .all()
             )
             queries = {
@@ -3104,18 +3103,27 @@ class Superset(BaseSupersetView):
                 for query in user_queries
             }
 
-        d = {
+        return {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
             "common": self.common_bootstrap_payload(),
-            "tab_state_ids": tab_state_ids,
+            "tab_state_ids": tabs_state,
             "active_tab": active_tab.to_dict() if active_tab else None,
             "databases": databases,
             "queries": queries,
         }
+
+    @has_access
+    @expose("/sqllab")
+    def sqllab(self):
+        """SQL Editor"""
+
+        payload = self._get_sqllab_payload()
+        bootstrap_data = json.dumps(
+            payload, default=utils.pessimistic_json_iso_dttm_ser
+        )
+
         return self.render_template(
-            "superset/basic.html",
-            entry="sqllab",
-            bootstrap_data=json.dumps(d, default=utils.pessimistic_json_iso_dttm_ser),
+            "superset/basic.html", entry="sqllab", bootstrap_data=bootstrap_data
         )
 
     @api
