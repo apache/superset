@@ -234,7 +234,7 @@ class CsvImporter(BaseSupersetView):
                 exception = e
                 if isinstance(e, IntegrityError):
                     message = "Error when trying to create Database"
-                    exception = IntegrityError(message)
+                    exception = DatabaseCreationException(message)
                 try:
                     if os.path.isfile(db_path):
                         os.remove(db_path)
