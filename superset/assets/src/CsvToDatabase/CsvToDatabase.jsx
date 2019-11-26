@@ -245,6 +245,7 @@ export class CsvToDatabase extends React.PureComponent {
                       <td>
                         <FormSelect
                           id={'database'}
+                          required={true}
                           value={this.state.selectedConnection}
                           onChange={this.setSelectedConnection}
                           options={this.getConnectionStrings()}
@@ -287,20 +288,20 @@ export class CsvToDatabase extends React.PureComponent {
                       <td>
                         <FormSelect
                           id={'databaseFlavor'}
+                          required={this.state.selectedConnection.value === -1}
                           value={this.state.selectedDatabaseFlavor}
                           onChange={this.setDatabaseFlavor}
                           options={this.state.databaseFlavorValues}
                           clearable={false}
-                          helpText={t('Choose Database flavor to create a new database')}
+                          helpText={t('Choose database flavor to create a new database')}
                         />
                       </td>
                     </tr>
                     <tr
                       className={
                         this.state.selectedConnection.value === -1
-                          ? this.state.selectedDatabaseFlavor.value === 'postgres'
+                          && this.state.selectedDatabaseFlavor.value === 'postgres'
                           ? null
-                          : 'hide-component'
                           : 'hide-component'
                       }
                     >
@@ -355,6 +356,7 @@ export class CsvToDatabase extends React.PureComponent {
                       <td>
                         <FormSelect
                           id={'tableExists'}
+                          required={true}
                           value={this.state.selectedTableExists}
                           onChange={this.setTableExists}
                           options={this.state.tableExistsValues}
