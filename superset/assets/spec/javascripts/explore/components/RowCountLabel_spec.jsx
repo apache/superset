@@ -31,7 +31,9 @@ describe('RowCountLabel', () => {
   };
 
   it('is valid', () => {
-    expect(React.isValidElement(<RowCountLabel {...defaultProps} />)).toBe(true);
+    expect(React.isValidElement(<RowCountLabel {...defaultProps} />)).toBe(
+      true,
+    );
   });
   it('renders a Label and a TooltipWrapper', () => {
     const wrapper = shallow(<RowCountLabel {...defaultProps} />);
@@ -44,6 +46,11 @@ describe('RowCountLabel', () => {
       limit: 100,
     };
     const wrapper = shallow(<RowCountLabel {...props} />);
-    expect(wrapper.find(Label).first().props().bsStyle).toBe('danger');
+    expect(
+      wrapper
+        .find(Label)
+        .first()
+        .props().bsStyle,
+    ).toBe('danger');
   });
 });

@@ -23,13 +23,13 @@ import { interpolate } from 'src/showSavedQuery/utils';
 import './index.less';
 
 const scheduleInfoContainer = document.getElementById('schedule-info');
-const bootstrapData = JSON.parse(scheduleInfoContainer.getAttribute('data-bootstrap'));
+const bootstrapData = JSON.parse(
+  scheduleInfoContainer.getAttribute('data-bootstrap'),
+);
 const config = bootstrapData.common.feature_flags.SCHEDULED_QUERIES;
 const query = bootstrapData.common.query;
 const scheduleInfo = query.extra_json.schedule_info;
-const linkback = config.linkback
-  ? interpolate(config.linkback, query)
-  : null;
+const linkback = config.linkback ? interpolate(config.linkback, query) : null;
 
 if (scheduleInfo && config) {
   // hide instructions when showing schedule info
@@ -45,12 +45,14 @@ if (scheduleInfo && config) {
       >
         <br />
       </Form>
-      {linkback && <div className="linkback">
-        <a href={linkback}>
-          <i className="fa fa-link" />&nbsp;
-          Pipeline status
-        </a>
-      </div>}
+      {linkback && (
+        <div className="linkback">
+          <a href={linkback}>
+            <i className="fa fa-link" />
+            &nbsp; Pipeline status
+          </a>
+        </div>
+      )}
     </div>,
     scheduleInfoContainer,
   );

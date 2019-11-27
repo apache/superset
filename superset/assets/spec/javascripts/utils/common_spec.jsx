@@ -16,15 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { optionFromValue, prepareCopyToClipboardTabularData } from '../../../src/utils/common';
+import {
+  optionFromValue,
+  prepareCopyToClipboardTabularData,
+} from '../../../src/utils/common';
 
 describe('utils/common', () => {
   describe('optionFromValue', () => {
     it('converts values as expected', () => {
-      expect(optionFromValue(false)).toEqual({ value: false, label: '<false>' });
+      expect(optionFromValue(false)).toEqual({
+        value: false,
+        label: '<false>',
+      });
       expect(optionFromValue(true)).toEqual({ value: true, label: '<true>' });
-      expect(optionFromValue(null)).toEqual({ value: '<NULL>', label: '<NULL>' });
-      expect(optionFromValue('')).toEqual({ value: '', label: '<empty string>' });
+      expect(optionFromValue(null)).toEqual({
+        value: '<NULL>',
+        label: '<NULL>',
+      });
+      expect(optionFromValue('')).toEqual({
+        value: '',
+        label: '<empty string>',
+      });
       expect(optionFromValue('foo')).toEqual({ value: 'foo', label: 'foo' });
       expect(optionFromValue(5)).toEqual({ value: 5, label: '5' });
     });
@@ -36,10 +48,12 @@ describe('utils/common', () => {
     });
     it('converts non empty array', () => {
       const array = [
-          { column1: 'lorem', column2: 'ipsum' },
-          { column1: 'dolor', column2: 'sit', column3: 'amet' },
+        { column1: 'lorem', column2: 'ipsum' },
+        { column1: 'dolor', column2: 'sit', column3: 'amet' },
       ];
-      expect(prepareCopyToClipboardTabularData(array)).toEqual('lorem\tipsum\ndolor\tsit\tamet\n');
+      expect(prepareCopyToClipboardTabularData(array)).toEqual(
+        'lorem\tipsum\ndolor\tsit\tamet\n',
+      );
     });
   });
 });

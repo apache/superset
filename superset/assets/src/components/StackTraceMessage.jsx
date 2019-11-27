@@ -44,29 +44,29 @@ class StackTraceMessage extends React.PureComponent {
 
   render() {
     return (
-      <div className={`stack-trace-container${this.props.stackTrace ? ' has-trace' : ''}`}>
+      <div
+        className={`stack-trace-container${
+          this.props.stackTrace ? ' has-trace' : ''
+        }`}
+      >
         <Alert
           bsStyle="warning"
-          onClick={() => this.setState({ showStackTrace: !this.state.showStackTrace })}
+          onClick={() =>
+            this.setState({ showStackTrace: !this.state.showStackTrace })
+          }
         >
           {this.props.message}
-          {this.props.link &&
-          <a
-            href={this.props.link}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            (Request Access)
-          </a>
-       }
+          {this.props.link && (
+            <a href={this.props.link} target="_blank" rel="noopener noreferrer">
+              (Request Access)
+            </a>
+          )}
         </Alert>
-        {this.props.stackTrace &&
+        {this.props.stackTrace && (
           <Collapse in={this.state.showStackTrace}>
-            <pre>
-              {this.props.stackTrace}
-            </pre>
+            <pre>{this.props.stackTrace}</pre>
           </Collapse>
-        }
+        )}
       </div>
     );
   }

@@ -28,22 +28,25 @@ const propTypes = {
   children: PropTypes.node.isRequired,
 };
 
-export default function PopoverSection({ title, isSelected, children, onSelect, info }) {
+export default function PopoverSection({
+  title,
+  isSelected,
+  children,
+  onSelect,
+  info,
+}) {
   return (
     <div className={'PopoverSection ' + (!isSelected ? 'dimmed' : '')}>
       <div onClick={onSelect} className="pointer">
         <strong>{title}</strong> &nbsp;
-        {info &&
-          <InfoTooltipWithTrigger
-            tooltip={info}
-            label="date-free-tooltip"
-          />}
+        {info && (
+          <InfoTooltipWithTrigger tooltip={info} label="date-free-tooltip" />
+        )}
         &nbsp;
         <i className={isSelected ? 'fa fa-check text-primary' : ''} />
       </div>
-      <div className="m-t-5 m-l-5">
-        {children}
-      </div>
-    </div>);
+      <div className="m-t-5 m-l-5">{children}</div>
+    </div>
+  );
 }
 PopoverSection.propTypes = propTypes;

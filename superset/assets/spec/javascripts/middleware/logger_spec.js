@@ -70,33 +70,32 @@ describe('logger middleware', () => {
 
     clock.tick(2000);
     expect(SupersetClient.post.callCount).toBe(1);
-    expect(SupersetClient.post.getCall(0).args[0].endpoint).toMatch('/superset/log/');
+    expect(SupersetClient.post.getCall(0).args[0].endpoint).toMatch(
+      '/superset/log/',
+    );
   });
 
-  it(
-    'should include ts, start_offset, event_name, impression_id, source, and source_id in every event',
-    () => {
-      const clock = sinon.useFakeTimers();
-      logger(mockStore)(next)(action);
-      clock.tick(2000);
+  it('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
+    const clock = sinon.useFakeTimers();
+    logger(mockStore)(next)(action);
+    clock.tick(2000);
 
-      expect(SupersetClient.post.callCount).toBe(1);
-      const events = SupersetClient.post.getCall(0).args[0].postPayload.events;
-      const mockEventdata = action.payload.eventData;
-      const mockEventname = action.payload.eventName;
-      expect(events[0]).toMatchObject({
-        key: mockEventdata.key,
-        event_name: mockEventname,
-        impression_id: mockStore.getState().impressionId,
-        source: 'dashboard',
-        source_id: mockStore.getState().dashboardInfo.id,
-        event_type: 'timing',
-      });
+    expect(SupersetClient.post.callCount).toBe(1);
+    const events = SupersetClient.post.getCall(0).args[0].postPayload.events;
+    const mockEventdata = action.payload.eventData;
+    const mockEventname = action.payload.eventName;
+    expect(events[0]).toMatchObject({
+      key: mockEventdata.key,
+      event_name: mockEventname,
+      impression_id: mockStore.getState().impressionId,
+      source: 'dashboard',
+      source_id: mockStore.getState().dashboardInfo.id,
+      event_type: 'timing',
+    });
 
-      expect(typeof events[0].ts).toBe('number');
-      expect(typeof events[0].start_offset).toBe('number');
-    },
-  );
+    expect(typeof events[0].ts).toBe('number');
+    expect(typeof events[0].start_offset).toBe('number');
+  });
 
   it('should debounce a few log requests to one', () => {
     const clock = sinon.useFakeTimers();
@@ -106,6 +105,8 @@ describe('logger middleware', () => {
     clock.tick(2000);
 
     expect(SupersetClient.post.callCount).toBe(1);
-    expect(SupersetClient.post.getCall(0).args[0].postPayload.events).toHaveLength(3);
+    expect(
+      SupersetClient.post.getCall(0).args[0].postPayload.events,
+    ).toHaveLength(3);
   });
 });

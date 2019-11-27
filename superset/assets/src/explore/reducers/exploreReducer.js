@@ -17,9 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import {
-  getControlsState,
-} from '../store';
+import { getControlsState } from '../store';
 import { getControlState, getFormDataFromControls } from '../controlUtils';
 import * as actions from '../actions/exploreActions';
 
@@ -44,21 +42,18 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.FETCH_DATASOURCES_STARTED]() {
-
       return {
         ...state,
         isDatasourcesLoading: true,
       };
     },
     [actions.FETCH_DATASOURCES_SUCCEEDED]() {
-
       return {
         ...state,
         isDatasourcesLoading: false,
       };
     },
     [actions.FETCH_DATASOURCES_FAILED]() {
-
       return {
         ...state,
         isDatasourcesLoading: false,
@@ -115,7 +110,9 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.UPDATE_CHART_TITLE]() {
-      const updatedSlice = Object.assign({}, state.slice, { slice_name: action.slice_name });
+      const updatedSlice = Object.assign({}, state.slice, {
+        slice_name: action.slice_name,
+      });
       return {
         ...state,
         slice: updatedSlice,
@@ -124,7 +121,10 @@ export default function exploreReducer(state = {}, action) {
     [actions.RESET_FIELDS]() {
       return {
         ...state,
-        controls: getControlsState(state, getFormDataFromControls(state.controls)),
+        controls: getControlsState(
+          state,
+          getFormDataFromControls(state.controls),
+        ),
       };
     },
     [actions.CREATE_NEW_SLICE]() {

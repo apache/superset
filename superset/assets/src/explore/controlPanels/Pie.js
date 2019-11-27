@@ -46,10 +46,10 @@ export default {
       default: 25,
     },
     number_format: {
-      description: (
-        t('D3 format syntax: https://github.com/d3/d3-format') + ' ' +
-        t('Only applies when the "Label Type" is not set to a percentage.')
-      ),
+      description:
+        t('D3 format syntax: https://github.com/d3/d3-format') +
+        ' ' +
+        t('Only applies when the "Label Type" is not set to a percentage.'),
     },
   },
 };

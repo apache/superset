@@ -55,11 +55,21 @@ class SaveModal extends React.Component {
   }
   componentDidMount() {
     this.props.actions.fetchDashboards(this.props.userId).then(() => {
-      const dashboardIds = this.props.dashboards.map(dashboard => dashboard.value);
-      let recentDashboard = sessionStorage.getItem('save_chart_recent_dashboard');
+      const dashboardIds = this.props.dashboards.map(
+        dashboard => dashboard.value,
+      );
+      let recentDashboard = sessionStorage.getItem(
+        'save_chart_recent_dashboard',
+      );
       recentDashboard = recentDashboard && parseInt(recentDashboard, 10);
-      if (recentDashboard !== null && dashboardIds.indexOf(recentDashboard) !== -1) {
-        this.setState({ saveToDashboardId: recentDashboard, addToDash: 'existing' });
+      if (
+        recentDashboard !== null &&
+        dashboardIds.indexOf(recentDashboard) !== -1
+      ) {
+        this.setState({
+          saveToDashboardId: recentDashboard,
+          addToDash: 'existing',
+        });
       }
     });
   }
@@ -131,19 +141,24 @@ class SaveModal extends React.Component {
     }
     sliceParams.goto_dash = gotodash;
 
-    this.props.actions.saveSlice(this.props.form_data, sliceParams).then(({ data }) => {
-      if (data.dashboard_id === null) {
-        sessionStorage.removeItem('save_chart_recent_dashboard');
-      } else {
-        sessionStorage.setItem('save_chart_recent_dashboard', data.dashboard_id);
-      }
-      // Go to new slice url or dashboard url
-      if (gotodash) {
-        window.location = supersetURL(data.dashboard);
-      } else {
-        window.location = data.slice.slice_url;
-      }
-    });
+    this.props.actions
+      .saveSlice(this.props.form_data, sliceParams)
+      .then(({ data }) => {
+        if (data.dashboard_id === null) {
+          sessionStorage.removeItem('save_chart_recent_dashboard');
+        } else {
+          sessionStorage.setItem(
+            'save_chart_recent_dashboard',
+            data.dashboard_id,
+          );
+        }
+        // Go to new slice url or dashboard url
+        if (gotodash) {
+          window.location = supersetURL(data.dashboard);
+        } else {
+          window.location = data.slice.slice_url;
+        }
+      });
     this.props.onHide();
   }
   removeAlert() {
@@ -153,7 +168,8 @@ class SaveModal extends React.Component {
     this.setState({ alert: null });
   }
   render() {
-    const canNotSaveToDash = EXPLORE_ONLY_VIZ_TYPE.indexOf(this.state.vizType) > -1;
+    const canNotSaveToDash =
+      EXPLORE_ONLY_VIZ_TYPE.indexOf(this.state.vizType) > -1;
     return (
       <Modal show onHide={this.props.onHide} bsStyle="large">
         <Modal.Header closeButton>
@@ -281,7 +297,4 @@ function mapStateToProps({ explore, saveModal }) {
 }
 
 export { SaveModal };
-export default connect(
-  mapStateToProps,
-  () => ({}),
-)(SaveModal);
+export default connect(mapStateToProps, () => ({}))(SaveModal);

@@ -40,10 +40,7 @@ const store = createStore(
     messageToasts: messageToastReducer,
   }),
   {},
-  compose(
-    applyMiddleware(thunk),
-    initEnhancer(false),
-  ),
+  compose(applyMiddleware(thunk), initEnhancer(false)),
 );
 
 const App = () => (

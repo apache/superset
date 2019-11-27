@@ -58,7 +58,7 @@ function getValidationRules() {
 function getValidator() {
   const rules = getValidationRules();
   return (formData, errors) => {
-    rules.forEach((rule) => {
+    rules.forEach(rule => {
       const test = validators[rule.name];
       const args = rule.arguments.map(name => formData[name]);
       const container = rule.container || rule.arguments.slice(-1)[0];
@@ -181,7 +181,7 @@ class ScheduleQueryButton extends React.PureComponent {
     return (
       <span className="ScheduleQueryButton">
         <ModalTrigger
-          ref={(ref) => {
+          ref={ref => {
             this.saveModal = ref;
           }}
           modalTitle={t('Schedule Query')}
