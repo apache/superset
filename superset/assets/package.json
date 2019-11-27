@@ -200,7 +200,7 @@
     "minimist": "^1.2.0",
     "optimize-css-assets-webpack-plugin": "^5.0.1",
     "po2json": "^0.4.5",
-    "prettier": "^1.12.1",
+    "prettier": "^1.19.1",
     "react-test-renderer": "^16.9.0",
     "redux-mock-store": "^1.2.3",
     "sinon": "^4.5.0",

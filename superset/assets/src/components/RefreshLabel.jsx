@@ -30,15 +30,13 @@ const propTypes = {
 class RefreshLabel extends React.PureComponent {
   render() {
     return (
-      <TooltipWrapper
-        tooltip={this.props.tooltipContent}
-        label="cache-desc"
-      >
+      <TooltipWrapper tooltip={this.props.tooltipContent} label="cache-desc">
         <i
           className="RefreshLabel fa fa-refresh pointer"
           onClick={this.props.onClick}
         />
-      </TooltipWrapper>);
+      </TooltipWrapper>
+    );
   }
 }
 RefreshLabel.propTypes = propTypes;

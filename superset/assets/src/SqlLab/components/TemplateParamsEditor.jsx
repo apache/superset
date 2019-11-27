@@ -91,7 +91,8 @@ export default class TemplateParamsEditor extends React.Component {
           rel="noopener noreferrer"
         >
           Jinja templating
-        </a> syntax.
+        </a>{' '}
+        syntax.
       </p>
     );
   }
@@ -115,26 +116,24 @@ export default class TemplateParamsEditor extends React.Component {
     );
   }
   render() {
-    const paramCount = this.state.parsedJSON ? Object.keys(this.state.parsedJSON).length : 0;
+    const paramCount = this.state.parsedJSON
+      ? Object.keys(this.state.parsedJSON).length
+      : 0;
     return (
       <ModalTrigger
         modalTitle={t('Template Parameters')}
         triggerNode={
-          <Button
-            tooltip={t('Edit template parameters')}
-          >
+          <Button tooltip={t('Edit template parameters')}>
             {`${t('parameters')} `}
-            {paramCount > 0 &&
-              <Badge>{paramCount}</Badge>
-            }
-            {!this.state.isValid &&
+            {paramCount > 0 && <Badge>{paramCount}</Badge>}
+            {!this.state.isValid && (
               <InfoTooltipWithTrigger
                 icon="exclamation-triangle"
                 bsStyle="danger"
                 tooltip={t('Invalid JSON')}
                 label="invalid-json"
               />
-            }
+            )}
           </Button>
         }
         modalBody={this.renderModalBody(true)}

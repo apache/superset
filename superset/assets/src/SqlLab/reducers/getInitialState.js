@@ -65,7 +65,9 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
         title: activeTab.label,
         sql: activeTab.sql,
         selectedText: null,
-        latestQueryId: activeTab.latest_query ? activeTab.latest_query.id : null,
+        latestQueryId: activeTab.latest_query
+          ? activeTab.latest_query.id
+          : null,
         autorun: activeTab.autorun,
         templateParams: activeTab.template_params,
         dbId: activeTab.database_id,
@@ -93,7 +95,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
 
   const tables = [];
   if (activeTab) {
-    activeTab.table_schemas.forEach((tableSchema) => {
+    activeTab.table_schemas.forEach(tableSchema => {
       const {
         columns,
         selectStar,
@@ -128,7 +130,10 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
    * hasn't used SQL Lab after it has been turned on, the state will be stored
    * in the browser's local storage.
    */
-  if (localStorage.getItem('redux') && JSON.parse(localStorage.getItem('redux')).sqlLab) {
+  if (
+    localStorage.getItem('redux') &&
+    JSON.parse(localStorage.getItem('redux')).sqlLab
+  ) {
     const sqlLab = JSON.parse(localStorage.getItem('redux')).sqlLab;
 
     if (sqlLab.queryEditors.length === 0) {
@@ -137,13 +142,17 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     } else {
       // add query editors and tables to state with a special flag so they can
       // be migrated if the `SQLLAB_BACKEND_PERSISTENCE` feature flag is on
-      sqlLab.queryEditors.forEach(qe => queryEditors.push({
-        ...qe,
-        inLocalStorage: true,
-        loaded: true,
-      }));
-      sqlLab.tables.forEach(table => tables.push({ ...table, inLocalStorage: true }));
-      Object.values(sqlLab.queries).forEach((query) => {
+      sqlLab.queryEditors.forEach(qe =>
+        queryEditors.push({
+          ...qe,
+          inLocalStorage: true,
+          loaded: true,
+        }),
+      );
+      sqlLab.tables.forEach(table =>
+        tables.push({ ...table, inLocalStorage: true }),
+      );
+      Object.values(sqlLab.queries).forEach(query => {
         queries[query.id] = { ...query, inLocalStorage: true };
       });
       tabHistory.push(...sqlLab.tabHistory);

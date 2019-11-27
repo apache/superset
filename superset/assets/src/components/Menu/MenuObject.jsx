@@ -25,7 +25,9 @@ const propTypes = {
   icon: PropTypes.string.isRequired,
   index: PropTypes.number.isRequired,
   url: PropTypes.string,
-  childs: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.object])),
+  childs: PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  ),
 };
 
 export default function MenuObject({ label, icon, childs, url, index }) {
@@ -44,7 +46,11 @@ export default function MenuObject({ label, icon, childs, url, index }) {
     </>
   );
   return (
-    <NavDropdown id={`menu-dropdown-${label}`} eventKey={index} title={navTitle}>
+    <NavDropdown
+      id={`menu-dropdown-${label}`}
+      eventKey={index}
+      title={navTitle}
+    >
       {childs.map((child, index1) =>
         child === '-' ? (
           <MenuItem key={`$${index1}`} divider />

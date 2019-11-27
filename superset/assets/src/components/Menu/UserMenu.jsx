@@ -31,9 +31,9 @@ export default function UserMenu({ userInfoUrl, userLogoutUrl }) {
     <NavDropdown
       id="user-menu-dropwn"
       title={
-        <React.Fragment>
+        <>
           <i className="fa fa-user" />
-        </React.Fragment>
+        </>
       }
     >
       <MenuItem href={userInfoUrl}>

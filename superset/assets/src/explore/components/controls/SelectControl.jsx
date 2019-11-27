@@ -39,7 +39,11 @@ const propTypes = {
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   onFocus: PropTypes.func,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
+  value: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number,
+    PropTypes.array,
+  ]),
   showHeader: PropTypes.bool,
   optionRenderer: PropTypes.func,
   valueRenderer: PropTypes.func,
@@ -83,8 +87,10 @@ export default class SelectControl extends React.PureComponent {
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
-    if (nextProps.choices !== this.props.choices ||
-        nextProps.options !== this.props.options) {
+    if (
+      nextProps.choices !== this.props.choices ||
+      nextProps.options !== this.props.options
+    ) {
       const options = this.getOptions(nextProps);
       this.setState({ options });
     }
@@ -98,8 +104,8 @@ export default class SelectControl extends React.PureComponent {
         for (const o of opt) {
           if (o.meta === true) {
             optionValue = this.getOptions(this.props)
-                              .filter(x => !x.meta)
-                              .map(x => x[this.props.valueKey]);
+              .filter(x => !x.meta)
+              .map(x => x[this.props.valueKey]);
             break;
           } else {
             optionValue.push(o[this.props.valueKey]);
@@ -120,19 +126,19 @@ export default class SelectControl extends React.PureComponent {
       options = props.options.map(x => x);
     } else {
       // Accepts different formats of input
-      options = props.choices.map((c) => {
-          let option;
-          if (Array.isArray(c)) {
-              const label = c.length > 1 ? c[1] : c[0];
-              option = { label };
-              option[props.valueKey] = c[0];
-          } else if (Object.is(c)) {
-              option = c;
-          } else {
-              option = { label: c };
-              option[props.valueKey] = c;
-          }
-          return option;
+      options = props.choices.map(c => {
+        let option;
+        if (Array.isArray(c)) {
+          const label = c.length > 1 ? c[1] : c[0];
+          option = { label };
+          option[props.valueKey] = c[0];
+        } else if (Object.is(c)) {
+          option = c;
+        } else {
+          option = { label: c };
+          option[props.valueKey] = c;
+        }
+        return option;
       });
     }
     if (props.freeForm) {
@@ -143,7 +149,7 @@ export default class SelectControl extends React.PureComponent {
         if (!Array.isArray(valuesToAdd)) {
           valuesToAdd = [valuesToAdd];
         }
-        valuesToAdd.forEach((v) => {
+        valuesToAdd.forEach(v => {
           if (values.indexOf(v) < 0) {
             const toAdd = { label: v };
             toAdd[props.valueKey] = v;
@@ -174,7 +180,8 @@ export default class SelectControl extends React.PureComponent {
 
   render() {
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
-    const placeholder = this.props.placeholder || t('%s option(s)', this.state.options.length);
+    const placeholder =
+      this.props.placeholder || t('%s option(s)', this.state.options.length);
     const selectProps = {
       multi: this.props.multi,
       name: `select-${this.props.name}`,
@@ -198,21 +205,19 @@ export default class SelectControl extends React.PureComponent {
     };
     if (this.props.freeForm) {
       selectProps.selectComponent = Creatable;
-      selectProps.shouldKeyDownEventCreateNewOption = (key) => {
+      selectProps.shouldKeyDownEventCreateNewOption = key => {
         const keyCode = key.keyCode;
         if (this.props.commaChoosesOption && keyCode === 188) {
           return true;
         }
-        return (keyCode === 9 || keyCode === 13);
+        return keyCode === 9 || keyCode === 13;
       };
     } else {
       selectProps.selectComponent = Select;
     }
     return (
       <div>
-        {this.props.showHeader &&
-          <ControlHeader {...this.props} />
-        }
+        {this.props.showHeader && <ControlHeader {...this.props} />}
         <OnPasteSelect {...selectProps} selectWrap={VirtualizedSelect} />
       </div>
     );

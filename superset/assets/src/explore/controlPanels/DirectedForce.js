@@ -32,10 +32,7 @@ export default {
     },
     {
       label: t('Options'),
-      controlSetRows: [
-        ['link_length'],
-        ['charge'],
-      ],
+      controlSetRows: [['link_length'], ['charge']],
     },
   ],
   controlOverrides: {

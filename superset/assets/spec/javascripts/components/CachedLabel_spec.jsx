@@ -29,14 +29,10 @@ describe('CachedLabel', () => {
   };
 
   it('is valid', () => {
-    expect(
-      React.isValidElement(<CachedLabel {...defaultProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<CachedLabel {...defaultProps} />)).toBe(true);
   });
   it('renders', () => {
-    const wrapper = shallow(
-      <CachedLabel {...defaultProps} />,
-    );
+    const wrapper = shallow(<CachedLabel {...defaultProps} />);
     expect(wrapper.find(Label)).toHaveLength(1);
   });
 });

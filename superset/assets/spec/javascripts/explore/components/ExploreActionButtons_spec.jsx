@@ -18,8 +18,7 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import ExploreActionButtons from
-  '../../../../src/explore/components/ExploreActionButtons';
+import ExploreActionButtons from '../../../../src/explore/components/ExploreActionButtons';
 
 describe('ExploreActionButtons', () => {
   const defaultProps = {
