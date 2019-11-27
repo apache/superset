@@ -1086,7 +1086,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     verbose_name = _("Time Series - Line Chart")
     sort_series = False
     is_timeseries = True
-    pivot_fill_value = None
+    pivot_fill_value: Optional[int] = None
 
     def to_series(self, df, classed="", title_suffix=""):
         cols = []
