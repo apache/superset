@@ -23,10 +23,14 @@ import time
 import unittest
 import unittest.mock as mock
 
-from tests.test_app import app  # isort:skip
+import flask
+from flask import current_app
+
+from tests.test_app import app
 from superset import db, sql_lab
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.extensions import celery_app
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
@@ -67,6 +71,23 @@ class UtilityFunctionTests(SupersetTestCase):
             "Luke_Father = 'Darth Vader'",
             q.as_create_table("tmp"),
         )
+
+
+class AppContextTests(SupersetTestCase):
+    def test_in_app_context(self):
+        @celery_app.task()
+        def my_task():
+            self.assertTrue(current_app)
+
+        # Make sure we can call tasks with an app already setup
+        my_task()
+
+        # Make sure the app gets pushed onto the stack properly
+        try:
+            popped_app = flask._app_ctx_stack.pop()
+            my_task()
+        finally:
+            flask._app_ctx_stack.push(popped_app)
 
 
 class CeleryTestCase(SupersetTestCase):
