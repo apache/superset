@@ -341,12 +341,11 @@ class CsvUploadTests(SupersetTestCase):
         form_data = self.get_full_data(
             filename, -1, db_name, database_flavor="postgres"
         )
-
         conf["POSTGRES_USERNAME"] = "postgres"
         conf["POSTGRES_PASSWORD"] = "postgres"
-        CsvImporter()._create_database(db_name, "postgres")
 
         try:
+            CsvImporter()._create_database(db_name, "postgres")
             response = self.get_resp(url, data=form_data)
             message = "The database {0} already exist".format(db_name)
             assert message in response
