@@ -22,13 +22,13 @@
 }
 
 .dashboard-header {
-  background: white;
+  background: @lightest;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.1); /* @TODO color */
+  box-shadow: 0 4px 4px 0 fade(@darkest, @opacity-light); /* @TODO color */
 }
 
 .dashboard-content {
@@ -45,7 +45,7 @@
 
 /* drop shadow for top-level tabs only */
 .dashboard .dashboard-component-tabs {
-  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 4px 0 fade(@darkest, @opacity-light);
   padding-left: 8px; /* note this is added to tab-level padding, to match header */
 }
 
@@ -61,7 +61,7 @@
 }
 
 .dropdown-toggle.btn.btn-primary .caret {
-  color: white;
+  color: @lightest;
 }
 
 .background--transparent {
@@ -69,5 +69,5 @@
 }
 
 .background--white {
-  background-color: white;
+  background-color: @lightest;
 }

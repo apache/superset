@@ -18,7 +18,7 @@
 set -ex
 
 # Create an admin user (you will be prompted to set username, first and last name before setting a password)
-export FLASK_APP=superset:app
+export FLASK_APP="superset.app:create_app()"
 flask fab create-admin
 
 # Initialize the database

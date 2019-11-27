@@ -37,7 +37,7 @@ import MetricOption from '../../../components/MetricOption';
 import DatasourceModal from '../../../datasource/DatasourceModal';
 import ChangeDatasourceModal from '../../../datasource/ChangeDatasourceModal';
 import TooltipWrapper from '../../../components/TooltipWrapper';
-import './DatasourceControl.css';
+import './DatasourceControl.less';
 
 const propTypes = {
   onChange: PropTypes.func,

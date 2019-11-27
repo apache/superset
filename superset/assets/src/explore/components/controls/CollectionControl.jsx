@@ -27,7 +27,7 @@ import {
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 import ControlHeader from '../ControlHeader';
 import controlMap from './';
-import './CollectionControl.css';
+import './CollectionControl.less';
 
 const propTypes = {
   name: PropTypes.string.isRequired,

@@ -29,7 +29,7 @@ import MetricOption from '../../components/MetricOption';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
-import './TimeTable.css';
+import './TimeTable.less';
 
 const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
 
@@ -165,8 +165,8 @@ class TimeTable extends React.PureComponent {
       // Time lag ratio
       const { timeLag } = column;
       const totalLag = Object.keys(reversedEntries).length;
-      if (timeLag > totalLag) {
-        errorMsg = `The time lag set at ${timeLag} exceeds the length of data at ${reversedEntries.length}. No data available.`;
+      if (timeLag >= totalLag) {
+        errorMsg = `The time lag set at ${timeLag} is too large for the length of data at ${reversedEntries.length}. No data available.`;
       } else {
         v = reversedEntries[timeLag][valueField];
       }

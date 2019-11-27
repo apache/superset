@@ -119,7 +119,7 @@ release on Superset's repo (MAJOR.MINOR branch), the following script will clone
 the tag and create a signed source tarball from it:
 
 ```bash
-    # make_tarball you use the previouly set environment variables
+    # make_tarball will use the previously set environment variables
     # you can override by passing arguments: make_tarball.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
     ./make_tarball.sh
 ```
@@ -166,16 +166,64 @@ Now you're ready to start the [VOTE] thread. Here's an example of a
 previous release vote thread:
 https://lists.apache.org/thread.html/e60f080ebdda26896214f7d3d5be1ccadfab95d48fbe813252762879@<dev.superset.apache.org>
 
+To easily send a voting request to Superset community, still on the `superset/RELEASING` directory:
+
+```bash
+    # Note use Superset's virtualenv 
+    (venv)$ python send_email.py vote_pmc
+```
+
+The script will interactively ask for extra information so it can authenticate on the Apache Email Relay.
+The release version and release candidate number are fetched from the previously set environment variables. 
+
+```bash
+    Sender email (ex: user@apache.org): your_apache_email@apache.org
+    Apache username: your_apache_user
+    Apache password: your_apache_password
+```
+
 Once 3+ binding votes (by PMC members) have been cast and at
 least 72 hours have past, you can post a [RESULT] thread:
 https://lists.apache.org/thread.html/50a6b134d66b86b237d5d7bc89df1b567246d125a71394d78b45f9a8@%3Cdev.superset.apache.org%3E
 
+To easily send the result email, still on the `superset/RELEASING` directory:
+
+```bash
+    # Note use Superset's virtualenv 
+    (venv)$ python send_email.py result_pmc
+```
+
+The script will interactively ask for extra information needed to fill out the email template. Based on the
+voting description, it will generate a passing, non passing or non conclusive email. 
+here's an example:
+
+```bash
+    Sender email (ex: user@apache.org): your_apache_email@apache.org
+    Apache username: your_apache_user
+    Apache password: your_apache_password
+    A List of people with +1 binding vote (ex: Max,Grace,Krist): Daniel,Alan,Max,Grace
+    A List of people with +1 non binding vote (ex: Ville): Ville
+    A List of people with -1 vote (ex: John):
+```
+
 Following the result thread, yet another [VOTE] thread should be
 started at general@incubator.apache.org.
+
+To easily send the voting request to Apache community, still on the `superset/RELEASING` directory:
+
+```bash
+    # Note use Superset's virtualenv 
+    (venv)$ python send_email.py vote_ipmc
+```
 
 ### Announcing
 
 Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
+
+```bash
+    # Note use Superset's virtualenv 
+    (venv)$ python send_email.py announce
+```
 
 ### Validating a release
 

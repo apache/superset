@@ -143,7 +143,6 @@ class SqlEditor extends React.PureComponent {
   onResizeStart() {
     // Set the heights on the ace editor and the ace content area after drag starts
     // to smooth out the visual transition to the new heights when drag ends
-    document.getElementById('brace-editor').style.height = `calc(100% - ${SQL_TOOLBAR_HEIGHT}px)`;
     document.getElementsByClassName('ace_content')[0].style.height = '100%';
   }
   onResizeEnd([northPercent, southPercent]) {
@@ -314,7 +313,7 @@ class SqlEditor extends React.PureComponent {
         onDragStart={this.onResizeStart}
         onDragEnd={this.onResizeEnd}
       >
-        <div ref={this.northPaneRef}>
+        <div ref={this.northPaneRef} className="north-pane">
           <AceEditorWrapper
             actions={this.props.actions}
             onBlur={this.setQueryEditorSql}
@@ -384,7 +383,7 @@ class SqlEditor extends React.PureComponent {
       );
       limitWarning = (
         <OverlayTrigger placement="left" overlay={tooltip}>
-          <Label bsStyle="warning" className="m-r-5">LIMIT</Label>
+          <Label bsStyle="warning">LIMIT</Label>
         </OverlayTrigger>
       );
     }
@@ -394,9 +393,9 @@ class SqlEditor extends React.PureComponent {
       : t('You must run the query successfully first');
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
-        <div>
+        <div className="leftItems">
           <Form inline>
-            <span className="m-r-5">
+            <span>
               <RunQueryActionButton
                 allowAsync={this.props.database ? this.props.database.allow_run_async : false}
                 dbId={qe.dbId}
@@ -411,7 +410,7 @@ class SqlEditor extends React.PureComponent {
               isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
               this.props.database &&
               this.props.database.allows_cost_estimate &&
-              <span className="m-r-5">
+              <span>
                 <EstimateQueryCostButton
                   dbId={qe.dbId}
                   schema={qe.schema}
@@ -420,16 +419,14 @@ class SqlEditor extends React.PureComponent {
                   queryCostEstimate={qe.queryCostEstimate}
                   selectedText={qe.selectedText}
                   tooltip={t('Estimate the cost before running a query')}
-                  className="m-r-5"
                 />
               </span>
             }
             {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) &&
-            <span className="m-r-5">
+            <span>
               <ScheduleQueryButton
                 defaultLabel={qe.title}
                 sql={qe.sql}
-                className="m-r-5"
                 onSchedule={this.props.actions.scheduleQuery}
                 schema={qe.schema}
                 dbId={qe.dbId}
@@ -439,23 +436,24 @@ class SqlEditor extends React.PureComponent {
               />
             </span>
             }
-            <span className="m-r-5">
+            <span>
               <SaveQuery
                 query={qe}
                 defaultLabel={qe.description == null ? qe.title : qe.description}
-                className="m-r-5"
                 onSave={this.props.actions.saveQuery}
                 onUpdate={this.props.actions.updateSavedQuery}
                 saveQueryWarning={this.props.saveQueryWarning}
               />
             </span>
-            <span className="m-r-5">
+            <span>
               <ShareSqlLabQuery queryEditor={qe} />
             </span>
-            <span className="m-r-5">
-              {ctasControls}
-            </span>
-            <span className="inlineBlock m-r-5">
+            { ctasControls && (
+              <span>
+                {ctasControls}
+              </span>
+            )}
+            <span>
               <LimitControl
                 value={(this.props.queryEditor.queryLimit !== undefined) ?
                   this.props.queryEditor.queryLimit : this.props.defaultQueryLimit}
@@ -464,7 +462,7 @@ class SqlEditor extends React.PureComponent {
                 onChange={this.setQueryLimit.bind(this)}
               />
             </span>
-            <span className="m-l-5">
+            <span>
               <Hotkeys
                 header={t('Keyboard shortcuts')}
                 hotkeys={hotkeys}
@@ -472,7 +470,7 @@ class SqlEditor extends React.PureComponent {
             </span>
           </Form>
         </div>
-        <div>
+        <div className="rightItems">
           <TemplateParamsEditor
             language="json"
             onChange={(params) => {

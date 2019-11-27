@@ -20,7 +20,7 @@
     "clean-css": "prettier --write src/**/*.{css,less,sass,scss}",
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true",
-    "install-cypress": "npm install cypress@3.4.1"
+    "install-cypress": "npm install cypress@3.6.1"
   },
   "repository": {
     "type": "git",
@@ -106,6 +106,7 @@
     "jquery": "^3.4.1",
     "json-bigint": "^0.3.0",
     "lodash": "^4.17.15",
+    "lodash-es": "^4.17.14",
     "mathjs": "^3.20.2",
     "moment": "^2.20.1",
     "mousetrap": "^1.6.1",

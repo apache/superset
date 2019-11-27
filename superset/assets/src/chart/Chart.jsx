@@ -27,7 +27,7 @@ import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import StackTraceMessage from '../components/StackTraceMessage';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ChartRenderer from './ChartRenderer';
-import './chart.css';
+import './chart.less';
 
 const propTypes = {
   annotationData: PropTypes.object,

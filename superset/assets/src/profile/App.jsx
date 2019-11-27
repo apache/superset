@@ -27,7 +27,7 @@ import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
 
-import './main.css';
+import './main.less';
 
 setupApp();
 
