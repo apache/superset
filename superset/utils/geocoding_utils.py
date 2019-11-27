@@ -107,7 +107,12 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         self.progress["is_in_progress"] = False
         # TODO also return amount of geocoded values or store in
         #  class-variable and errors
-        return geocoded_data
+        success_dict = {
+            "success": self.progress["success_counter"],
+            "doubt": self.progress["doubt_counter"],
+            "failed": self.progress["failed_counter"],
+        }
+        return [geocoded_data, success_dict]
 
     def _get_coordinates_from_address(self, address: str):
         base_url = "https://api.maptiler.com/geocoding/"
