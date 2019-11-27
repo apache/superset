@@ -68,9 +68,9 @@ export class GeocodingForm extends React.Component {
   getDatasources() {
     const { tables } = this.props;
     const tableArray = [];
-    tables.forEach(table =>
-      tableArray.push({ label: table.name, value: table.name }),
-    );
+    tables.forEach(table => {
+      tableArray.push({label: table.fullName, value: table})
+    });
     return tableArray;
   }
 

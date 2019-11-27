@@ -31,11 +31,11 @@ export const GEOCODE_PROGRESS_FAILURE = 'GEOCODE_PROGRESS_FAILURE';
 export const GEOCODE_INTERRUPT_SUCCESS = 'GEOCODE_INTERRUPT_SUCCESS';
 export const GEOCODE_INTERRUPT_FAILURE = 'GEOCODE_INTERRUPT_FAILURE';
 
-export function getColumnsForTable(tableName) {
+export function getColumnsForTable(table) {
     return dispatch =>
     SupersetClient.post({
       endpoint: '/geocoder/geocoding/columns',
-      body: JSON.stringify({ tableName }),
+      body: JSON.stringify({ table }),
       headers: { 'Content-Type': 'application/json' },
     })
       .then((response) => {
