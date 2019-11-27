@@ -23,6 +23,10 @@ assists people when migrating to a new version.
 
 ## 0.35.0
 
+* [8512](https://github.com/apache/incubator-superset/pull/8512): `DRUID_IS_ACTIVE` now
+defaults to False. To enable Druid-API-based functionality, override the
+`DRUID_IS_ACTIVE` configuration variable by setting it to `True` for your deployment.
+
 * [8450](https://github.com/apache/incubator-superset/pull/8450): The time ranger picker
 now uses UTC for the tooltips and default placeholder timestamps (sans timezone).
 
