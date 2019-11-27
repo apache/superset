@@ -16,21 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import "../stylesheets/less/variables.less";
+ 
 .reactable-pagination td {
   padding: 15px 0 0 0!important;
 }
 .reactable-pagination a:focus {
   text-decoration: none;
-  color: #555555;
+  color: @gray-dark;
   outline: 1;
 }
 .reactable-page-button,
 .reactable-next-page,
 .reactable-previous-page {
-  background: #fff;
+  background: @lightest;
   border-radius: 2px;
-  border: 1px solid #b3b3b3;
-  color: #555555;
+  border: 1px solid @gray-light  ;
+  color: @gray-dark;
   display: inline-block;
   font-size: 12px;
   line-height: 1.5;
@@ -42,8 +44,8 @@
   white-space: nowrap;
 }
 .reactable-current-page {
-  border: 1px solid #b3b3b3;
-  color: #555555;
+  border: 1px solid @gray-light;
+  color: @gray-dark;
   font-weight: bold;
   pointer-events: none;
   opacity: 0.65;
@@ -51,8 +53,8 @@
 .reactable-page-button:hover,
 .reactable-next-page:hover,
 .reactable-previous-page:hover {
-  background-color: #efefef;
-  border-color: #949494;
-  color: #555555;
+  background-color: @gray-bg;
+  border-color: @gray;
+  color: @gray-dark;
   text-decoration: none;
 }

@@ -26,7 +26,7 @@ import { t } from '@superset-ui/translation';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
 
 import ControlHeader from '../ControlHeader';
-import './VizTypeControl.css';
+import './VizTypeControl.less';
 
 const propTypes = {
   description: PropTypes.string,
