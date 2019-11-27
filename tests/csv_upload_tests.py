@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for CSV Upload"""
 import os
+import unittest
 
 import sqlalchemy_utils
 
@@ -263,53 +264,6 @@ class CsvUploadTests(SupersetTestCase):
         finally:
             os.remove(filename)
 
-    def test_create_postgres_database(self):
-        conf["POSTGRES_USERNAME"] = "postgres"
-        conf["POSTGRES_PASSWORD"] = "postgres"
-        db_name = "my_postgres_db"
-        try:
-            test = CsvImporter()._create_database(db_name, "postgres")
-            assert isinstance(test, models.Database)
-        finally:
-            url = (
-                "postgresql://"
-                + conf["POSTGRES_USERNAME"]
-                + ":"
-                + conf["POSTGRES_PASSWORD"]
-                + "@localhost/"
-                + db_name
-            )
-            if sqlalchemy_utils.database_exists(url):
-                sqlalchemy_utils.drop_database(url)
-
-    def test_import_into_new_postgres(self):
-        url = "/csvimporter/csvtodatabase/add"
-        filename = "into_new_postgres.csv"
-        db_name = "csv_into_new_postgres_db"
-        table_name = "newlyimported_into_postgres"
-        form_data = self.get_full_data(
-            filename, -1, db_name, table_name, database_flavor="postgres"
-        )
-        conf["POSTGRES_USERNAME"] = "postgres"
-        conf["POSTGRES_PASSWORD"] = "postgres"
-        try:
-            response = self.get_resp(url, data=form_data)
-            message = "{0} imported into database {1}".format(table_name, db_name)
-            print(response)  # show error message in build
-            assert message in response
-        finally:
-            os.remove(filename)
-            url = (
-                "postgresql://"
-                + conf["POSTGRES_USERNAME"]
-                + ":"
-                + conf["POSTGRES_PASSWORD"]
-                + "@localhost/"
-                + db_name
-            )
-            if sqlalchemy_utils.database_exists(url):
-                sqlalchemy_utils.drop_database(url)
-
     def test_postgres_no_password_supplied(self):
         url = "/csvimporter/csvtodatabase/add"
         filename = "postgres_no_password.csv"
@@ -342,6 +296,44 @@ class CsvUploadTests(SupersetTestCase):
         finally:
             os.remove(filename)
 
+    @unittest.skipIf(
+        "mysql" in conf.get("SQLALCHEMY_DATABASE_URI", "")
+        or "sqlite" in conf.get("SQLALCHEMY_DATABASE_URI", ""),
+        "This test only run when a PostgreSQL database exist",
+    )
+    def test_import_into_new_postgres(self):
+        url = "/csvimporter/csvtodatabase/add"
+        filename = "into_new_postgres.csv"
+        db_name = "csv_into_new_postgres_db"
+        table_name = "newlyimported_into_postgres"
+        form_data = self.get_full_data(
+            filename, -1, db_name, table_name, database_flavor="postgres"
+        )
+        conf["POSTGRES_USERNAME"] = "postgres"
+        conf["POSTGRES_PASSWORD"] = "postgres"
+        try:
+            response = self.get_resp(url, data=form_data)
+            message = "{0} imported into database {1}".format(table_name, db_name)
+            print(response)  # show error message in build
+            assert message in response
+        finally:
+            os.remove(filename)
+            url = (
+                "postgresql://"
+                + conf["POSTGRES_USERNAME"]
+                + ":"
+                + conf["POSTGRES_PASSWORD"]
+                + "@localhost/"
+                + db_name
+            )
+            if sqlalchemy_utils.database_exists(url):
+                sqlalchemy_utils.drop_database(url)
+
+    @unittest.skipIf(
+        "mysql" in conf.get("SQLALCHEMY_DATABASE_URI", "")
+        or "sqlite" in conf.get("SQLALCHEMY_DATABASE_URI", ""),
+        "This test only run when a PostgreSQL database exist",
+    )
     def test_postgres_already_exist(self):
         url = "/csvimporter/csvtodatabase/add"
         filename = "postgres_already_exist.csv"
