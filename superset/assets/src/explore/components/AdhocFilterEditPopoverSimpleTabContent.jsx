@@ -77,7 +77,9 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     this.onComparatorChange = this.onComparatorChange.bind(this);
     this.onInputComparatorChange = this.onInputComparatorChange.bind(this);
     this.isOperatorRelevant = this.isOperatorRelevant.bind(this);
-    this.refreshComparatorSuggestions = this.refreshComparatorSuggestions.bind(this);
+    this.refreshComparatorSuggestions = this.refreshComparatorSuggestions.bind(
+      this,
+    );
     this.multiComparatorRef = this.multiComparatorRef.bind(this);
 
     this.state = {
@@ -141,7 +143,9 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         ? currentComparator
         : [currentComparator].filter(element => element);
     } else {
-      newComparator = Array.isArray(currentComparator) ? currentComparator[0] : currentComparator;
+      newComparator = Array.isArray(currentComparator)
+        ? currentComparator[0]
+        : currentComparator;
     }
     this.props.onChange(
       this.props.adhocFilter.duplicateWith({
@@ -173,11 +177,17 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         this.multiComparatorComponent._selectRef.select &&
         this.multiComparatorComponent._selectRef.select.control;
       if (multiComparatorDOMNode) {
-        if (multiComparatorDOMNode.clientHeight !== this.state.multiComparatorHeight) {
+        if (
+          multiComparatorDOMNode.clientHeight !==
+          this.state.multiComparatorHeight
+        ) {
           this.props.onHeightChange(
-            multiComparatorDOMNode.clientHeight - this.state.multiComparatorHeight,
+            multiComparatorDOMNode.clientHeight -
+              this.state.multiComparatorHeight,
           );
-          this.setState({ multiComparatorHeight: multiComparatorDOMNode.clientHeight });
+          this.setState({
+            multiComparatorHeight: multiComparatorDOMNode.clientHeight,
+          });
         }
       }
     }
@@ -201,15 +211,21 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         signal,
         endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
       }).then(({ json }) => {
-        this.setState(() => ({ suggestions: json, abortActiveRequest: null, loading: false }));
+        this.setState(() => ({
+          suggestions: json,
+          abortActiveRequest: null,
+          loading: false,
+        }));
       });
     }
   }
 
   isOperatorRelevant(operator) {
     return !(
-      (this.props.datasource.type === 'druid' && TABLE_ONLY_OPERATORS.indexOf(operator) >= 0) ||
-      (this.props.datasource.type === 'table' && DRUID_ONLY_OPERATORS.indexOf(operator) >= 0) ||
+      (this.props.datasource.type === 'druid' &&
+        TABLE_ONLY_OPERATORS.indexOf(operator) >= 0) ||
+      (this.props.datasource.type === 'table' &&
+        DRUID_ONLY_OPERATORS.indexOf(operator) >= 0) ||
       (this.props.adhocFilter.clause === CLAUSES.HAVING &&
         HAVING_OPERATORS.indexOf(operator) === -1)
     );
@@ -233,10 +249,14 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     let subjectSelectProps = {
       value: adhocFilter.subject ? { value: adhocFilter.subject } : undefined,
       onChange: this.onSubjectChange,
-      optionRenderer: VirtualizedRendererWrap(option => <FilterDefinitionOption option={option} />),
+      optionRenderer: VirtualizedRendererWrap(option => (
+        <FilterDefinitionOption option={option} />
+      )),
       valueRenderer: option => <span>{option.value}</span>,
       valueKey: 'filterOptionName',
-      noResultsText: t('No such column found. To filter on a metric, try the Custom SQL tab.'),
+      noResultsText: t(
+        'No such column found. To filter on a metric, try the Custom SQL tab.',
+      ),
     };
 
     if (datasource.type === 'druid') {
@@ -266,8 +286,12 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         .map(operator => ({ operator })),
       value: adhocFilter.operator,
       onChange: this.onOperatorChange,
-      optionRenderer: VirtualizedRendererWrap(operator => translateOperator(operator.operator)),
-      valueRenderer: operator => <span>{translateOperator(operator.operator)}</span>,
+      optionRenderer: VirtualizedRendererWrap(operator =>
+        translateOperator(operator.operator),
+      ),
+      valueRenderer: operator => (
+        <span>{translateOperator(operator.operator)}</span>
+      ),
       valueKey: 'operator',
     };
 
@@ -280,34 +304,38 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
           <OnPasteSelect {...this.selectProps} {...operatorSelectProps} />
         </FormGroup>
         <FormGroup data-test="adhoc-filter-simple-value">
-          {
-            (
-              MULTI_OPERATORS.indexOf(adhocFilter.operator) >= 0 ||
-              this.state.suggestions.length > 0
-            ) ?
-              <SelectControl
-                multi={MULTI_OPERATORS.indexOf(adhocFilter.operator) >= 0}
-                freeForm
-                name="filter-comparator-value"
-                value={adhocFilter.comparator}
-                isLoading={this.state.loading}
-                choices={this.state.suggestions}
-                onChange={this.onComparatorChange}
-                showHeader={false}
-                noResultsText={t('type a value here')}
-                refFunc={this.multiComparatorRef}
-                disabled={adhocFilter.operator === 'IS NOT NULL' || adhocFilter.operator === 'IS NULL'}
-              /> :
-              <input
-                ref={this.focusComparator}
-                type="text"
-                onChange={this.onInputComparatorChange}
-                value={adhocFilter.comparator || ''}
-                className="form-control input-sm"
-                placeholder={t('Filter value')}
-                disabled={adhocFilter.operator === 'IS NOT NULL' || adhocFilter.operator === 'IS NULL'}
-              />
-          }
+          {MULTI_OPERATORS.indexOf(adhocFilter.operator) >= 0 ||
+          this.state.suggestions.length > 0 ? (
+            <SelectControl
+              multi={MULTI_OPERATORS.indexOf(adhocFilter.operator) >= 0}
+              freeForm
+              name="filter-comparator-value"
+              value={adhocFilter.comparator}
+              isLoading={this.state.loading}
+              choices={this.state.suggestions}
+              onChange={this.onComparatorChange}
+              showHeader={false}
+              noResultsText={t('type a value here')}
+              refFunc={this.multiComparatorRef}
+              disabled={
+                adhocFilter.operator === 'IS NOT NULL' ||
+                adhocFilter.operator === 'IS NULL'
+              }
+            />
+          ) : (
+            <input
+              ref={this.focusComparator}
+              type="text"
+              onChange={this.onInputComparatorChange}
+              value={adhocFilter.comparator || ''}
+              className="form-control input-sm"
+              placeholder={t('Filter value')}
+              disabled={
+                adhocFilter.operator === 'IS NOT NULL' ||
+                adhocFilter.operator === 'IS NULL'
+              }
+            />
+          )}
         </FormGroup>
       </span>
     );

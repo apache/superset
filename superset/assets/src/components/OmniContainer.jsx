@@ -23,9 +23,7 @@ import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import Omnibar from 'omnibar';
-import {
-  LOG_ACTIONS_OMNIBAR_TRIGGERED,
-} from '../logger/LogUtils';
+import { LOG_ACTIONS_OMNIBAR_TRIGGERED } from '../logger/LogUtils';
 
 const propTypes = {
   logEvent: PropTypes.func.isRequired,
@@ -34,17 +32,18 @@ const propTypes = {
 const getDashboards = query =>
   // todo: Build a dedicated endpoint for dashboard searching
   // i.e. superset/v1/api/dashboards?q=${query}
-   SupersetClient.get({
-        endpoint: `/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc&_flt_2_dashboard_title=${query}`,
-      })
-        .then(({ json }) => json.result.map(item => ({
-            title: item.dashboard_title,
-            ...item,
-          }),
-        ))
-        .catch(() => ({
-            title: t('An error occurred while fethching Dashboards'),
-        }));
+  SupersetClient.get({
+    endpoint: `/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc&_flt_2_dashboard_title=${query}`,
+  })
+    .then(({ json }) =>
+      json.result.map(item => ({
+        title: item.dashboard_title,
+        ...item,
+      })),
+    )
+    .catch(() => ({
+      title: t('An error occurred while fethching Dashboards'),
+    }));
 
 class OmniContainer extends React.Component {
   constructor(props) {
@@ -74,19 +73,21 @@ class OmniContainer extends React.Component {
 
         this.setState({ showOmni: !this.state.showOmni });
 
-        document
-          .getElementsByClassName('Omnibar')[0]
-          .focus();
+        document.getElementsByClassName('Omnibar')[0].focus();
       }
     }
   }
 
   render() {
-      return (
-        <Modal show={this.state.showOmni} style={{ marginTop: '25%' }}>
-          <Omnibar className="Omnibar" placeholder="Search all dashboards" extensions={[getDashboards]} />
-        </Modal>
-      );
+    return (
+      <Modal show={this.state.showOmni} style={{ marginTop: '25%' }}>
+        <Omnibar
+          className="Omnibar"
+          placeholder="Search all dashboards"
+          extensions={[getDashboards]}
+        />
+      </Modal>
+    );
   }
 }
 

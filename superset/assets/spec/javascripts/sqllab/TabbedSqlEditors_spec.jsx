@@ -34,26 +34,27 @@ describe('TabbedSqlEditors', () => {
   const mockStore = configureStore(middlewares);
   const store = mockStore(initialState);
 
-  const tabHistory = [
-    'dfsadfs',
-    'newEditorId',
+  const tabHistory = ['dfsadfs', 'newEditorId'];
+
+  const tables = [
+    Object.assign({}, table, {
+      dataPreviewQueryId: 'B1-VQU1zW',
+      queryEditorId: 'newEditorId',
+    }),
   ];
 
-  const tables = [Object.assign({}, table, {
-    dataPreviewQueryId: 'B1-VQU1zW',
-    queryEditorId: 'newEditorId',
-  })];
-
-  const queryEditors = [{
-    autorun: false,
-    dbId: 1,
-    id: 'newEditorId',
-    latestQueryId: 'B1-VQU1zW',
-    schema: null,
-    selectedText: null,
-    sql: 'SELECT ds...',
-    title: 'Untitled Query',
-  }];
+  const queryEditors = [
+    {
+      autorun: false,
+      dbId: 1,
+      id: 'newEditorId',
+      latestQueryId: 'B1-VQU1zW',
+      schema: null,
+      selectedText: null,
+      sql: 'SELECT ds...',
+      title: 'Untitled Query',
+    },
+  ];
   const queries = {
     'B1-VQU1zW': {
       id: 'B1-VQU1zW',
@@ -69,21 +70,21 @@ describe('TabbedSqlEditors', () => {
     queryEditors: initialState.sqlLab.queryEditors,
     tabHistory: initialState.sqlLab.tabHistory,
     editorHeight: '',
-    getHeight: () => ('100px'),
+    getHeight: () => '100px',
     database: {},
     defaultQueryLimit: 1000,
     maxRow: 100000,
   };
-  const getWrapper = () => (
+  const getWrapper = () =>
     shallow(<TabbedSqlEditors {...mockedProps} />, {
       context: { store },
-    }).dive());
+    }).dive();
 
   let wrapper;
   it('is valid', () => {
-    expect(
-      React.isValidElement(<TabbedSqlEditors {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<TabbedSqlEditors {...mockedProps} />)).toBe(
+      true,
+    );
   });
   describe('componentDidMount', () => {
     let uriStub;
@@ -102,24 +103,36 @@ describe('TabbedSqlEditors', () => {
       wrapper = mount(<TabbedSqlEditors {...mockedProps} />, {
         context: { store },
       });
-      expect(TabbedSqlEditors.prototype.componentDidMount.calledOnce).toBe(true);
-      expect(window.history.replaceState.getCall(0).args[2]).toBe('/superset/sqllab');
+      expect(TabbedSqlEditors.prototype.componentDidMount.calledOnce).toBe(
+        true,
+      );
+      expect(window.history.replaceState.getCall(0).args[2]).toBe(
+        '/superset/sqllab',
+      );
     });
     it('should handle savedQueryId', () => {
       uriStub.returns({ savedQueryId: 1 });
       wrapper = mount(<TabbedSqlEditors {...mockedProps} />, {
         context: { store },
       });
-      expect(TabbedSqlEditors.prototype.componentDidMount.calledOnce).toBe(true);
-      expect(window.history.replaceState.getCall(0).args[2]).toBe('/superset/sqllab');
+      expect(TabbedSqlEditors.prototype.componentDidMount.calledOnce).toBe(
+        true,
+      );
+      expect(window.history.replaceState.getCall(0).args[2]).toBe(
+        '/superset/sqllab',
+      );
     });
     it('should handle sql', () => {
       uriStub.returns({ sql: 1, dbid: 1 });
       wrapper = mount(<TabbedSqlEditors {...mockedProps} />, {
         context: { store },
       });
-      expect(TabbedSqlEditors.prototype.componentDidMount.calledOnce).toBe(true);
-      expect(window.history.replaceState.getCall(0).args[2]).toBe('/superset/sqllab');
+      expect(TabbedSqlEditors.prototype.componentDidMount.calledOnce).toBe(
+        true,
+      );
+      expect(window.history.replaceState.getCall(0).args[2]).toBe(
+        '/superset/sqllab',
+      );
     });
   });
   describe('componentWillReceiveProps', () => {
@@ -133,17 +146,23 @@ describe('TabbedSqlEditors', () => {
       spy.restore();
     });
     it('should update queriesArray and dataPreviewQueries', () => {
-      expect(wrapper.state().queriesArray.slice(-1)[0]).toBe(queries['B1-VQU1zW']);
-      expect(wrapper.state().dataPreviewQueries.slice(-1)[0]).toEqual(queries['B1-VQU1zW']);
+      expect(wrapper.state().queriesArray.slice(-1)[0]).toBe(
+        queries['B1-VQU1zW'],
+      );
+      expect(wrapper.state().dataPreviewQueries.slice(-1)[0]).toEqual(
+        queries['B1-VQU1zW'],
+      );
     });
   });
   it('should rename Tab', () => {
-    global.prompt = () => ('new title');
+    global.prompt = () => 'new title';
     wrapper = getWrapper();
     sinon.stub(wrapper.instance().props.actions, 'queryEditorSetTitle');
 
     wrapper.instance().renameTab(queryEditors[0]);
-    expect(wrapper.instance().props.actions.queryEditorSetTitle.getCall(0).args[1]).toBe('new title');
+    expect(
+      wrapper.instance().props.actions.queryEditorSetTitle.getCall(0).args[1],
+    ).toBe('new title');
 
     delete global.prompt;
   });
@@ -152,24 +171,27 @@ describe('TabbedSqlEditors', () => {
     sinon.stub(wrapper.instance().props.actions, 'removeQueryEditor');
 
     wrapper.instance().removeQueryEditor(queryEditors[0]);
-    expect(wrapper.instance().props.actions.removeQueryEditor.getCall(0).args[0])
-        .toBe(queryEditors[0]);
+    expect(
+      wrapper.instance().props.actions.removeQueryEditor.getCall(0).args[0],
+    ).toBe(queryEditors[0]);
   });
   it('should add new query editor', () => {
     wrapper = getWrapper();
     sinon.stub(wrapper.instance().props.actions, 'addQueryEditor');
 
     wrapper.instance().newQueryEditor();
-    expect(wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title)
-        .toContain('Untitled Query');
+    expect(
+      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title,
+    ).toContain('Untitled Query');
   });
   it('should duplicate query editor', () => {
     wrapper = getWrapper();
     sinon.stub(wrapper.instance().props.actions, 'cloneQueryToNewTab');
 
     wrapper.instance().duplicateQueryEditor(queryEditors[0]);
-    expect(wrapper.instance().props.actions.cloneQueryToNewTab.getCall(0).args[0])
-        .toBe(queryEditors[0]);
+    expect(
+      wrapper.instance().props.actions.cloneQueryToNewTab.getCall(0).args[0],
+    ).toBe(queryEditors[0]);
   });
   it('should handle select', () => {
     const mockEvent = {
@@ -186,7 +208,9 @@ describe('TabbedSqlEditors', () => {
 
     // cannot switch to current tab, switchQueryEditor never gets called
     wrapper.instance().handleSelect('dfsadfs', mockEvent);
-    expect(wrapper.instance().props.actions.switchQueryEditor.callCount).toEqual(0);
+    expect(
+      wrapper.instance().props.actions.switchQueryEditor.callCount,
+    ).toEqual(0);
     wrapper.instance().newQueryEditor.restore();
   });
   it('should render', () => {
@@ -194,7 +218,9 @@ describe('TabbedSqlEditors', () => {
     wrapper.setState({ hideLeftBar: true });
 
     const firstTab = wrapper.find(Tab).first();
-    expect(firstTab.props().eventKey).toContain(initialState.sqlLab.queryEditors[0].id);
+    expect(firstTab.props().eventKey).toContain(
+      initialState.sqlLab.queryEditors[0].id,
+    );
     expect(firstTab.find(SqlEditor)).toHaveLength(1);
 
     const lastTab = wrapper.find(Tab).last();
@@ -202,8 +228,18 @@ describe('TabbedSqlEditors', () => {
   });
   it('should disable new tab when offline', () => {
     wrapper = getWrapper();
-    expect(wrapper.find(Tab).last().props().disabled).toBe(false);
+    expect(
+      wrapper
+        .find(Tab)
+        .last()
+        .props().disabled,
+    ).toBe(false);
     wrapper.setProps({ offline: true });
-    expect(wrapper.find(Tab).last().props().disabled).toBe(true);
+    expect(
+      wrapper
+        .find(Tab)
+        .last()
+        .props().disabled,
+    ).toBe(true);
   });
 });

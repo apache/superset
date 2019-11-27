@@ -41,25 +41,33 @@ export default function FormRow({ label, tooltip, control, isCheckbox }) {
   const labelAndTooltip = (
     <span>
       {label}{' '}
-      {tooltip &&
+      {tooltip && (
         <InfoTooltipWithTrigger
           placement="top"
           label={label}
           tooltip={tooltip}
-        />}
-    </span>);
+        />
+      )}
+    </span>
+  );
   if (isCheckbox) {
     return (
       <Row style={STYLE_ROW}>
-        <Col md={4} style={STYLE_RALIGN}>{control}</Col>
+        <Col md={4} style={STYLE_RALIGN}>
+          {control}
+        </Col>
         <Col md={8}>{labelAndTooltip}</Col>
-      </Row>);
+      </Row>
+    );
   }
   return (
     <Row style={STYLE_ROW}>
-      <Col md={4} style={STYLE_RALIGN}>{labelAndTooltip}</Col>
+      <Col md={4} style={STYLE_RALIGN}>
+        {labelAndTooltip}
+      </Col>
       <Col md={8}>{control}</Col>
-    </Row>);
+    </Row>
+  );
 }
 FormRow.propTypes = propTypes;
 FormRow.defaultProps = defaultProps;

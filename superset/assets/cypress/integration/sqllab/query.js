@@ -37,9 +37,9 @@ export default () => {
       cy.get('#brace-editor textarea')
         .clear({ force: true })
         .type(
-        `{selectall}{backspace}SELECT ds, gender, name, num FROM main.birth_names LIMIT ${rowLimit}`,
-        { force: true },
-      );
+          `{selectall}{backspace}SELECT ds, gender, name, num FROM main.birth_names LIMIT ${rowLimit}`,
+          { force: true },
+        );
       cy.get('#js-sql-toolbar button')
         .eq(0)
         .click();
@@ -48,7 +48,7 @@ export default () => {
 
       selectResultsTab()
         .eq(0) // ensures results tab in case preview tab exists
-        .then((tableNodes) => {
+        .then(tableNodes => {
           const [header, bodyWrapper] = tableNodes[0].childNodes;
           const body = bodyWrapper.childNodes[0];
           const expectedColCount = header.childNodes.length;
@@ -62,7 +62,8 @@ export default () => {
       cy.route('savedqueryviewapi/**').as('getSavedQuery');
       cy.route('superset/tables/**').as('getTables');
 
-      const query = 'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';
+      const query =
+        'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';
       const savedQueryTitle = `CYPRESS TEST QUERY ${shortid.generate()}`;
 
       // we will assert that the results of the query we save, and the saved query are the same
@@ -81,7 +82,7 @@ export default () => {
       cy.wait('@sqlLabQuery');
 
       // Save results to check agains below
-      selectResultsTab().then((resultsA) => {
+      selectResultsTab().then(resultsA => {
         initialResultsTable = resultsA[0];
       });
 
@@ -93,8 +94,8 @@ export default () => {
       cy.get('.modal-sm input')
         .clear({ force: true })
         .type(`{selectall}{backspace}${savedQueryTitle}`, {
-        force: true,
-      });
+          force: true,
+        });
 
       cy.get('.modal-sm .modal-body button')
         .eq(0) // save
@@ -117,10 +118,13 @@ export default () => {
       cy.wait('@sqlLabQuery');
 
       // assert the results of the saved query match the initial results
-      selectResultsTab().then((resultsB) => {
+      selectResultsTab().then(resultsB => {
         savedQueryResultsTable = resultsB[0];
 
-        assertSQLLabResultsAreEqual(initialResultsTable, savedQueryResultsTable);
+        assertSQLLabResultsAreEqual(
+          initialResultsTable,
+          savedQueryResultsTable,
+        );
       });
     });
   });

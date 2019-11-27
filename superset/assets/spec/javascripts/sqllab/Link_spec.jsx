@@ -30,12 +30,10 @@ describe('Link', () => {
     expect(React.isValidElement(<Link>TEST</Link>)).toBe(true);
   });
   it('renders with props', () => {
-    expect(
-      React.isValidElement(<Link {...mockedProps} >TEST</Link>),
-    ).toBe(true);
+    expect(React.isValidElement(<Link {...mockedProps}>TEST</Link>)).toBe(true);
   });
   it('renders an anchor tag', () => {
-    const wrapper = shallow(<Link {...mockedProps} >TEST</Link>);
+    const wrapper = shallow(<Link {...mockedProps}>TEST</Link>);
     expect(wrapper.find('a')).toHaveLength(1);
   });
 });

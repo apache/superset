@@ -31,9 +31,7 @@ describe('QuerySearch', () => {
     height: 0,
   };
   it('is valid', () => {
-    expect(
-      React.isValidElement(<QuerySearch {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<QuerySearch {...mockedProps} />)).toBe(true);
   });
   let wrapper;
   beforeEach(() => {
@@ -45,19 +43,18 @@ describe('QuerySearch', () => {
   });
 
   it('updates fromTime on user selects from time', () => {
-    wrapper.find('[name="select-from"]')
-      .simulate('change', { value: 0 });
+    wrapper.find('[name="select-from"]').simulate('change', { value: 0 });
     expect(wrapper.state().from).toBe(0);
   });
 
   it('updates toTime on user selects to time', () => {
-    wrapper.find('[name="select-to"]')
-      .simulate('change', { value: 0 });
+    wrapper.find('[name="select-to"]').simulate('change', { value: 0 });
     expect(wrapper.state().to).toBe(0);
   });
 
   it('updates status on user selects status', () => {
-    wrapper.find('[name="select-status"]')
+    wrapper
+      .find('[name="select-status"]')
       .simulate('change', { value: 'success' });
     expect(wrapper.state().status).toBe('success');
   });

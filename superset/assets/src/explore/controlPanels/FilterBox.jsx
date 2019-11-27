@@ -38,7 +38,8 @@ export default {
     adhoc_filters: {
       label: t('Limit Selector Values'),
       description: t(
-        'These filters apply to the values available in the dropdowns'),
+        'These filters apply to the values available in the dropdowns',
+      ),
     },
   },
 };

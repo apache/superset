@@ -25,9 +25,7 @@ export default {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [
-        ['series_height', 'horizon_color_scale'],
-      ],
+      controlSetRows: [['series_height', 'horizon_color_scale']],
     },
   ],
 };

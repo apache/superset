@@ -37,8 +37,9 @@ describe('ExploreViewContainer', () => {
   let isFeatureEnabledMock;
 
   beforeAll(() => {
-    isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled')
-        .mockReturnValue(false);
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockReturnValue(false);
 
     const bootstrapData = {
       common: {
@@ -63,9 +64,7 @@ describe('ExploreViewContainer', () => {
   });
 
   it('renders', () => {
-    expect(
-      React.isValidElement(<ExploreViewContainer />),
-    ).toBe(true);
+    expect(React.isValidElement(<ExploreViewContainer />)).toBe(true);
   });
 
   it('renders QueryAndSaveButtons', () => {
@@ -83,8 +82,14 @@ describe('ExploreViewContainer', () => {
   describe('componentWillReceiveProps()', () => {
     it('when controls change, should call resetControls', () => {
       expect(wrapper.instance().props.controls.viz_type.value).toBe('table');
-      const resetControls = sinon.stub(wrapper.instance().props.actions, 'resetControls');
-      const triggerQuery = sinon.stub(wrapper.instance().props.actions, 'triggerQuery');
+      const resetControls = sinon.stub(
+        wrapper.instance().props.actions,
+        'resetControls',
+      );
+      const triggerQuery = sinon.stub(
+        wrapper.instance().props.actions,
+        'triggerQuery',
+      );
 
       // triggers componentWillReceiveProps
       wrapper.setProps({

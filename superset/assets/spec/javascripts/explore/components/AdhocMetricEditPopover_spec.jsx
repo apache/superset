@@ -22,7 +22,9 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Button, FormGroup, Popover } from 'react-bootstrap';
 
-import AdhocMetric, { EXPRESSION_TYPES } from '../../../../src/explore/AdhocMetric';
+import AdhocMetric, {
+  EXPRESSION_TYPES,
+} from '../../../../src/explore/AdhocMetric';
 import AdhocMetricEditPopover from '../../../../src/explore/components/AdhocMetricEditPopover';
 import { AGGREGATES } from '../../../../src/explore/constants';
 
@@ -68,19 +70,25 @@ describe('AdhocMetricEditPopover', () => {
   it('overwrites the adhocMetric in state with onColumnChange', () => {
     const { wrapper } = setup();
     wrapper.instance().onColumnChange(columns[0]);
-    expect(wrapper.state('adhocMetric')).toEqual(sumValueAdhocMetric.duplicateWith({ column: columns[0] }));
+    expect(wrapper.state('adhocMetric')).toEqual(
+      sumValueAdhocMetric.duplicateWith({ column: columns[0] }),
+    );
   });
 
   it('overwrites the adhocMetric in state with onAggregateChange', () => {
     const { wrapper } = setup();
     wrapper.instance().onAggregateChange({ aggregate: AGGREGATES.AVG });
-    expect(wrapper.state('adhocMetric')).toEqual(sumValueAdhocMetric.duplicateWith({ aggregate: AGGREGATES.AVG }));
+    expect(wrapper.state('adhocMetric')).toEqual(
+      sumValueAdhocMetric.duplicateWith({ aggregate: AGGREGATES.AVG }),
+    );
   });
 
   it('overwrites the adhocMetric in state with onSqlExpressionChange', () => {
     const { wrapper } = setup({ adhocMetric: sqlExpressionAdhocMetric });
     wrapper.instance().onSqlExpressionChange('COUNT(1)');
-    expect(wrapper.state('adhocMetric')).toEqual(sqlExpressionAdhocMetric.duplicateWith({ sqlExpression: 'COUNT(1)' }));
+    expect(wrapper.state('adhocMetric')).toEqual(
+      sqlExpressionAdhocMetric.duplicateWith({ sqlExpression: 'COUNT(1)' }),
+    );
   });
 
   it('overwrites the adhocMetric in state with onLabelChange', () => {

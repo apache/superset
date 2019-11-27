@@ -48,7 +48,9 @@ const propTypes = {
   }).isRequired,
 };
 
-export default function Menu({ data: { menu, brand, navbar_right: navbarRight } }) {
+export default function Menu({
+  data: { menu, brand, navbar_right: navbarRight },
+}) {
   return (
     <header className="top" id="main-menu">
       <Navbar inverse fluid staticTop role="navigation">
@@ -80,7 +82,10 @@ export default function Menu({ data: { menu, brand, navbar_right: navbarRight } 
             </NavItem>
           )}
           {navbarRight.show_language_picker && (
-            <LanguagePicker locale={navbarRight.locale} languages={navbarRight.languages} />
+            <LanguagePicker
+              locale={navbarRight.locale}
+              languages={navbarRight.languages}
+            />
           )}
           {!navbarRight.user_is_anonymous && (
             <UserMenu

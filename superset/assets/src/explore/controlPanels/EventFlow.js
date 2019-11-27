@@ -35,15 +35,11 @@ export default {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [
-        ['adhoc_filters'],
-      ],
+      controlSetRows: [['adhoc_filters']],
     },
     {
       label: t('Additional metadata'),
-      controlSetRows: [
-        ['all_columns'],
-      ],
+      controlSetRows: [['all_columns']],
     },
   ],
   controlOverrides: {
@@ -54,14 +50,16 @@ export default {
     all_columns_x: {
       label: t('Column containing event names'),
       validators: [nonEmpty],
-      default: control => (
-        control.choices && control.choices.length > 0 ?
-          control.choices[0][0] : null
-      ),
+      default: control =>
+        control.choices && control.choices.length > 0
+          ? control.choices[0][0]
+          : null,
     },
     row_limit: {
       label: t('Event count limit'),
-      description: t('The maximum number of events to return, equivalent to the number of rows'),
+      description: t(
+        'The maximum number of events to return, equivalent to the number of rows',
+      ),
     },
     all_columns: {
       label: t('Meta data'),

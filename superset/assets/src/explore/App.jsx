@@ -39,17 +39,16 @@ setupApp();
 setupPlugins();
 
 const exploreViewContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
+const bootstrapData = JSON.parse(
+  exploreViewContainer.getAttribute('data-bootstrap'),
+);
 initFeatureFlags(bootstrapData.common.feature_flags);
 const initState = getInitialState(bootstrapData);
 
 const store = createStore(
   rootReducer,
   initState,
-  compose(
-    applyMiddleware(thunk, logger),
-    initEnhancer(false),
-  ),
+  compose(applyMiddleware(thunk, logger), initEnhancer(false)),
 );
 
 const App = () => (
