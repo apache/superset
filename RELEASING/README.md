@@ -317,12 +317,12 @@ cd ~/
 git clone https://git-wip-us.apache.org/repos/asf/incubator-superset-site.git
 
 # copy
-cp -r /tmp/tmp_superset_docs/ ~/incubator-superset-site.git/
+cp -r /tmp/tmp_superset_docs/* ~/incubator-superset-site/
 
 # commit and push to `asf-site` branch
-cd ~/incubator-superset-site.git/
+cd ~/incubator-superset-site/
 git checkout asf-site
 git add .
 git commit -a -m "New doc version"
-git push origin master
+git push origin asf-site
 ```
