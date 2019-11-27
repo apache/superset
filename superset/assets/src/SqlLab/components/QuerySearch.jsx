@@ -208,7 +208,13 @@ class QuerySearch extends React.PureComponent {
           <div className="col-sm-2">
             <AsyncSelect
               onChange={this.onChange}
-              dataEndpoint="/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t)))"
+              dataEndpoint={
+                '/api/v1/database/?q=' +
+                '(keys:!(none),' +
+                'columns:!(id,database_name),' +
+                'filters:!((col:expose_in_sqllab,opr:eq,value:!t)),' +
+                'order_columns:database_name,order_direction:asc,page:0,page_size:-1)'
+              }
               value={this.state.databaseId}
               mutator={this.dbMutator}
               placeholder={t('Filter by database')}

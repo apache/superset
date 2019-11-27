@@ -410,7 +410,7 @@ class SqlLabTests(SupersetTestCase):
         self.create_fake_db()
 
         arguments = {
-            "keys": [],
+            "keys": ["none"],
             "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
             "order_column": "database_name",
             "order_direction": "asc",
