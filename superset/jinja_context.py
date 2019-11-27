@@ -56,6 +56,9 @@ def url_param(param: str, default: Optional[str] = None) -> Optional[Any]:
     parameters in the explore view as well as from the dashboard, and
     it should carry through to your queries.
 
+    Default values for URL parameters can be defined in chart metdata by
+    adding the key-value pair `url_params: {'foo': 'bar'}`
+
     :param param: the parameter to lookup
     :param default: the value to return in the absence of the parameter
     """

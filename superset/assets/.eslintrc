@@ -27,21 +27,28 @@
   "env": {
     "browser": true
   },
+  "plugins": ["react"],
   "rules": {
-    "camelcase": ["error", {
-      "allow": ["^UNSAFE_"],
-      "properties": "never"
-    }],
+    "camelcase": [
+      "error",
+      {
+        "allow": ["^UNSAFE_"],
+        "properties": "never"
+      }
+    ],
     "class-methods-use-this": 0,
     "func-names": 0,
     "guard-for-in": 0,
-    "import/extensions": ["error", {
-      ".js": "always",
-      ".jsx": "always",
-      ".ts": "always",
-      ".tsx": "always",
-      ".json": "always"
-    }],
+    "import/extensions": [
+      "error",
+      {
+        ".js": "always",
+        ".jsx": "always",
+        ".ts": "always",
+        ".tsx": "always",
+        ".json": "always"
+      }
+    ],
     "import/no-named-as-default": 0,
     "import/prefer-default-export": 0,
     "indent": 0,
@@ -68,9 +75,14 @@
     "react/no-string-refs": 0,
     "react/no-unescaped-entities": 0,
     "react/no-unused-prop-types": 0,
-    "react/require-default-props": 0
+    "react/require-default-props": 0,
+    "react/jsx-fragments": 1,
+    "react/prop-types": 0
   },
   "settings": {
-    "import/resolver": "webpack"
+    "import/resolver": "webpack",
+    "react": {
+      "version": "detect"
+    }
   }
 }

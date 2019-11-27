@@ -14,14 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import unittest
+# isort:skip_file
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, PropertyMock
 
 from flask_babel import gettext as __
 from selenium.common.exceptions import WebDriverException
 
-from superset import app, db
+from tests.test_app import app
+from superset import db
 from superset.models.core import Dashboard, Slice
 from superset.models.schedules import (
     DashboardEmailSchedule,
@@ -35,11 +36,12 @@ from superset.tasks.schedules import (
     deliver_slice,
     next_schedules,
 )
+from tests.base_tests import SupersetTestCase
 
 from .utils import read_fixture
 
 
-class SchedulesTestCase(unittest.TestCase):
+class SchedulesTestCase(SupersetTestCase):
 
     RECIPIENTS = "recipient1@superset.com, recipient2@superset.com"
     BCC = "bcc@superset.com"
@@ -47,41 +49,45 @@ class SchedulesTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.common_data = dict(
-            active=True,
-            crontab="* * * * *",
-            recipients=cls.RECIPIENTS,
-            deliver_as_group=True,
-            delivery_type=EmailDeliveryType.inline,
-        )
+        with app.app_context():
+            cls.common_data = dict(
+                active=True,
+                crontab="* * * * *",
+                recipients=cls.RECIPIENTS,
+                deliver_as_group=True,
+                delivery_type=EmailDeliveryType.inline,
+            )
 
-        # Pick up a random slice and dashboard
-        slce = db.session.query(Slice).all()[0]
-        dashboard = db.session.query(Dashboard).all()[0]
+            # Pick up a random slice and dashboard
+            slce = db.session.query(Slice).all()[0]
+            dashboard = db.session.query(Dashboard).all()[0]
 
-        dashboard_schedule = DashboardEmailSchedule(**cls.common_data)
-        dashboard_schedule.dashboard_id = dashboard.id
-        dashboard_schedule.user_id = 1
-        db.session.add(dashboard_schedule)
+            dashboard_schedule = DashboardEmailSchedule(**cls.common_data)
+            dashboard_schedule.dashboard_id = dashboard.id
+            dashboard_schedule.user_id = 1
+            db.session.add(dashboard_schedule)
 
-        slice_schedule = SliceEmailSchedule(**cls.common_data)
-        slice_schedule.slice_id = slce.id
-        slice_schedule.user_id = 1
-        slice_schedule.email_format = SliceEmailReportFormat.data
+            slice_schedule = SliceEmailSchedule(**cls.common_data)
+            slice_schedule.slice_id = slce.id
+            slice_schedule.user_id = 1
+            slice_schedule.email_format = SliceEmailReportFormat.data
 
-        db.session.add(slice_schedule)
-        db.session.commit()
+            db.session.add(slice_schedule)
+            db.session.commit()
 
-        cls.slice_schedule = slice_schedule.id
-        cls.dashboard_schedule = dashboard_schedule.id
+            cls.slice_schedule = slice_schedule.id
+            cls.dashboard_schedule = dashboard_schedule.id
 
     @classmethod
     def tearDownClass(cls):
-        db.session.query(SliceEmailSchedule).filter_by(id=cls.slice_schedule).delete()
-        db.session.query(DashboardEmailSchedule).filter_by(
-            id=cls.dashboard_schedule
-        ).delete()
-        db.session.commit()
+        with app.app_context():
+            db.session.query(SliceEmailSchedule).filter_by(
+                id=cls.slice_schedule
+            ).delete()
+            db.session.query(DashboardEmailSchedule).filter_by(
+                id=cls.dashboard_schedule
+            ).delete()
+            db.session.commit()
 
     def test_crontab_scheduler(self):
         crontab = "* * * * *"

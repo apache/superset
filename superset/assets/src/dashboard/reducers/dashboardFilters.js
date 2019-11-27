@@ -17,33 +17,52 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { DASHBOARD_ROOT_ID } from '../util/constants';
 import {
   ADD_FILTER,
   REMOVE_FILTER,
   CHANGE_FILTER,
   UPDATE_DIRECT_PATH_TO_FILTER,
+  UPDATE_LAYOUT_COMPONENTS,
+  UPDATE_DASHBOARD_FILTERS_SCOPE,
 } from '../actions/dashboardFilters';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
+import { DASHBOARD_ROOT_ID } from '../util/constants';
 import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
 import { buildFilterColorMap } from '../util/dashboardFiltersColorMap';
 import { buildActiveFilters } from '../util/activeDashboardFilters';
+import { getChartIdAndColumnFromFilterKey } from '../util/getDashboardFilterKey';
+
+export const DASHBOARD_FILTER_SCOPE_GLOBAL = {
+  scope: [DASHBOARD_ROOT_ID],
+  immune: [],
+};
 
 export const dashboardFilter = {
-  chartId: 0,
-  componentId: '',
+  chartId: null,
+  componentId: null,
+  filterName: null,
   directPathToFilter: [],
-  scope: DASHBOARD_ROOT_ID,
   isDateFilter: false,
   isInstantFilter: true,
   columns: {},
+  labels: {},
+  scopes: {},
 };
+
+const CHANGE_FILTER_VALUE_ACTIONS = [ADD_FILTER, REMOVE_FILTER, CHANGE_FILTER];
 
 export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
   const actionHandlers = {
     [ADD_FILTER]() {
       const { chartId, component, form_data } = action;
       const { columns, labels } = getFilterConfigsFromFormdata(form_data);
+      const scopes = Object.keys(columns).reduce(
+        (map, column) => ({
+          ...map,
+          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
+        }),
+        {},
+      );
       const directPathToFilter = component
         ? (component.parents || []).slice().concat(component.id)
         : [];
@@ -52,9 +71,11 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
         ...dashboardFilter,
         chartId,
         componentId: component.id,
+        filterName: component.meta.sliceName,
         directPathToFilter,
         columns,
         labels,
+        scopes,
         isInstantFilter: !!form_data.instant_filtering,
         isDateFilter: Object.keys(columns).includes(TIME_RANGE),
       };
@@ -97,10 +118,43 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
     },
   };
 
-  if (action.type === REMOVE_FILTER) {
+  if (action.type === UPDATE_LAYOUT_COMPONENTS) {
+    buildActiveFilters({
+      dashboardFilters,
+      components: action.components,
+    });
+    return dashboardFilters;
+  } else if (action.type === UPDATE_DASHBOARD_FILTERS_SCOPE) {
+    const allDashboardFiltersScope = action.scopes;
+    // update filter scope for each filter field
+    const updatedFilters = Object.entries(allDashboardFiltersScope).reduce(
+      (map, entry) => {
+        const [filterKey, { scope, immune }] = entry;
+        const { chartId, column } = getChartIdAndColumnFromFilterKey(filterKey);
+        const scopes = {
+          ...map[chartId].scopes,
+          [column]: {
+            scope,
+            immune,
+          },
+        };
+        return {
+          ...map,
+          [chartId]: {
+            ...map[chartId],
+            scopes,
+          },
+        };
+      },
+      dashboardFilters,
+    );
+
+    buildActiveFilters({ dashboardFilters: updatedFilters });
+    return updatedFilters;
+  } else if (action.type === REMOVE_FILTER) {
     const { chartId } = action;
     const { [chartId]: deletedFilter, ...updatedFilters } = dashboardFilters;
-    buildActiveFilters(updatedFilters);
+    buildActiveFilters({ dashboardFilters: updatedFilters });
     buildFilterColorMap(updatedFilters);
 
     return updatedFilters;
@@ -111,8 +165,11 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
         dashboardFilters[action.chartId],
       ),
     };
-    buildActiveFilters(updatedFilters);
-    buildFilterColorMap(updatedFilters);
+
+    if (CHANGE_FILTER_VALUE_ACTIONS.includes(action.type)) {
+      buildActiveFilters({ dashboardFilters: updatedFilters });
+      buildFilterColorMap(updatedFilters);
+    }
 
     return updatedFilters;
   }

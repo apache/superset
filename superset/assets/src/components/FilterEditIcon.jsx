@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import './FilterEditIcon.css';
+import './FilterEditIcon.less';
 
 const propTypes = {
   clickIconHandler: PropTypes.func,
@@ -34,7 +34,7 @@ export default function FilterEditIcon({ clickIconHandler = () => {} }) {
       className="filter-edit"
       viewBox="0 0 12 12"
     >
-      <path d="M11.8049 1.75476C12.0649 2.01472 12.0649 2.43466 11.8049 2.69463L10.5851 3.91446L8.08547 1.4148L9.3053 0.194973C9.56526 -0.064991 9.9852 -0.064991 10.2452 0.194973L11.8049 1.75476ZM0 12V9.50035L7.37231 2.12804L9.87196 4.62769L2.49965 12H0Z" fill="#fff" />
+      <path d="M11.8049 1.75476C12.0649 2.01472 12.0649 2.43466 11.8049 2.69463L10.5851 3.91446L8.08547 1.4148L9.3053 0.194973C9.56526 -0.064991 9.9852 -0.064991 10.2452 0.194973L11.8049 1.75476ZM0 12V9.50035L7.37231 2.12804L9.87196 4.62769L2.49965 12H0Z" />
     </svg>
   );
 }

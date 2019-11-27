@@ -238,10 +238,10 @@ class TabbedSqlEditors extends React.PureComponent {
       const state = latestQuery ? latestQuery.state : '';
 
       const title = (
-        <React.Fragment>
+        <>
           <TabStatusIcon onClose={() => this.removeQueryEditor(qe)} tabState={state} />{' '}
           {qe.title}{' '}
-        </React.Fragment>
+        </>
       );
       const tabTitle = (
         <SplitButton

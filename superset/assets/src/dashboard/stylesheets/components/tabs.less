@@ -18,7 +18,7 @@
  */
 .dashboard-component-tabs {
   width: 100%;
-  background-color: white;
+  background-color: @lightest;
 
   & .nav-tabs {
     border-bottom: none;
@@ -43,7 +43,7 @@
 
       & > a:focus {
         outline: none;
-        background: #fff;
+        background: @lightest;
       }
 
       & .dragdroppable-tab {
@@ -90,7 +90,7 @@
       height: 3px;
       width: 100%;
       bottom: 0;
-      background: linear-gradient(to right, #e32464, #2c2261);
+      background: linear-gradient(to right, @indicator-color, shade(@indicator-color, @colorstop-two));
     }
   }
 

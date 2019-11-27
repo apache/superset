@@ -21,7 +21,6 @@ from . import (
     core,
     dashboard,
     datasource,
-    lyft,
     schedules,
     sql_lab,
     tags,

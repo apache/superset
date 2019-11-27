@@ -12,14 +12,15 @@
     "test": "jest",
     "cover": "jest --coverage",
     "dev": "webpack --mode=development --colors --progress --debug --watch",
-    "dev-server": "webpack-dev-server --mode=development --progress",
+    "dev-server": "node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development --progress",
     "prod": "node --max_old_space_size=4096 webpack --mode=production --colors --progress",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production webpack --mode=production --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json ./{src,spec}/**/*.ts{,x}",
-    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json --fix ./{src,spec}/**/*.ts{,x}",
+    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json --fix ./{src,spec}/**/*.ts{,x} && npm run clean-css",
+    "clean-css": "prettier --write src/**/*.{css,less,sass,scss}",
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true",
-    "install-cypress": "npm install cypress@3.4.1"
+    "install-cypress": "npm install cypress@3.6.1"
   },
   "repository": {
     "type": "git",
@@ -76,7 +77,7 @@
     "@superset-ui/legacy-plugin-chart-word-cloud": "^0.11.0",
     "@superset-ui/legacy-plugin-chart-world-map": "^0.11.0",
     "@superset-ui/legacy-preset-chart-big-number": "^0.11.0",
-    "@superset-ui/legacy-preset-chart-deckgl": "^0.1.0",
+    "@superset-ui/legacy-preset-chart-deckgl": "^0.1.1",
     "@superset-ui/legacy-preset-chart-kepler": "^0.1.1",
     "@superset-ui/legacy-preset-chart-nvd3": "^0.11.5",
     "@superset-ui/number-format": "^0.12.1",
@@ -105,8 +106,8 @@
     "interweave": "^11.2.0",
     "jquery": "^3.4.1",
     "json-bigint": "^0.3.0",
-    "kepler.gl": "0.1.6",
     "lodash": "^4.17.15",
+    "lodash-es": "^4.17.14",
     "mathjs": "^3.20.2",
     "moment": "^2.20.1",
     "mousetrap": "^1.6.1",
@@ -120,6 +121,7 @@
     "react-bootstrap-dialog": "^0.10.0",
     "react-bootstrap-slider": "2.1.5",
     "react-bootstrap-table-next": "^1.4.0",
+    "react-checkbox-tree": "^1.5.1",
     "react-color": "^2.13.8",
     "react-datetime": "^2.14.0",
     "react-dnd": "^2.5.4",
@@ -189,7 +191,7 @@
     "eslint-plugin-jsx-a11y": "^5.1.1",
     "eslint-plugin-no-only-tests": "^2.0.1",
     "eslint-plugin-prettier": "^2.6.0",
-    "eslint-plugin-react": "^7.0.1",
+    "eslint-plugin-react": "^7.16.0",
     "exports-loader": "^0.7.0",
     "fetch-mock": "^7.0.0-alpha.6",
     "file-loader": "^1.1.11",
@@ -228,5 +230,10 @@
   },
   "optionalDependencies": {
     "fsevents": "^2.0.7"
+  },
+  "stylelint": {
+    "rules": {
+      "block-opening-brace-space-before": "always"
+    }
   }
 }

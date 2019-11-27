@@ -15,9 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from flask import request
+from typing import Optional
 
-from superset import tables_cache
+from flask import Flask, request
+from flask_caching import Cache
+
+from superset.extensions import cache_manager
 
 
 def view_cache_key(*unused_args, **unused_kwargs) -> str:
@@ -43,7 +46,7 @@ def memoized_func(key=view_cache_key, attribute_in_key=None):
     """
 
     def wrap(f):
-        if tables_cache:
+        if cache_manager.tables_cache:
 
             def wrapped_f(self, *args, **kwargs):
                 if not kwargs.get("cache", True):
@@ -55,11 +58,13 @@ def memoized_func(key=view_cache_key, attribute_in_key=None):
                     )
                 else:
                     cache_key = key(*args, **kwargs)
-                o = tables_cache.get(cache_key)
+                o = cache_manager.tables_cache.get(cache_key)
                 if not kwargs.get("force") and o is not None:
                     return o
                 o = f(self, *args, **kwargs)
-                tables_cache.set(cache_key, o, timeout=kwargs.get("cache_timeout"))
+                cache_manager.tables_cache.set(
+                    cache_key, o, timeout=kwargs.get("cache_timeout")
+                )
                 return o
 
         else:
