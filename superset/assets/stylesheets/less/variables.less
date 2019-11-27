@@ -28,8 +28,8 @@
 
 @almost-black: #263238;
 @gray-dark: #484848;
-@gray: #879399;
 @gray-light: #CFD8DC;
+@gray: #879399;
 @gray-bg: #f5f5f5;
 @gray-heading: #A3A3A3;
 @menu-hover: #F2F3F5;
@@ -123,3 +123,32 @@
 /************************************************************************/
 @z-index-max: 1000;
 @z-index-dropdown: 11;
+
+/************************************************************************/
+/* TYPOGRAPHY                                                           */
+/* Commonly used font weights, line heights, etc. These should be the   */
+/* core values used to build more complex styles for headers, etc.      */
+/************************************************************************/
+
+// Weights
+@font-weight-light: 200;
+@font-weight-normal: 400;
+@font-weight-bold: 700;
+
+// Font Sizes
+@font-size-base: 14px; // Base `rem` units on this, as needed.
+// Ranged Sizes
+@font-size-xxs: 9px;
+@font-size-xs: 10px;
+@font-size-s: 12px; // mapping 11px;
+@font-size-m: @font-size-base; // maps to @font-size-base; for now
+@font-size-l: 16px;
+@font-size-xl: 21px; // mapping 20px, 24px when there's a 32 aboves it
+@font-size-xxl: 28px;
+
+// Line Heights
+@line-height-base: 1.4;
+// Ranged Sizes
+@line-height-tight: 1;
+@line-height-normal: @line-height-base;
+@line-height-loose: 2;

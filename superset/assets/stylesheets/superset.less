@@ -23,10 +23,6 @@
 
 @datasource-sql-expression-width: 450px;
 
-.emph {
-  font-weight: bold !important;
-}
-
 .alert.alert-danger > .debugger {
     color: @error;
 }
@@ -69,7 +65,7 @@ input.form-control {
     border: 1px solid @gray-light;
     background-color: @gray-bg;
     border-radius: 5px;
-    font-size: 12px;
+    font-size: @font-size-s;
 }
 
 .slice_info {
@@ -124,7 +120,7 @@ span.title-block {
     border-radius: 4px;
     padding: 6px 12px;
     margin: 0px 10px;
-    font-size: 20px;
+    font-size: @font-size-xl;
 }
 
 .nvtooltip {
@@ -137,14 +133,14 @@ span.title-block {
     -webkit-transition-delay: 0ms;
 }
 .nvtooltip table td {
-    font-size: 11px !important;
+    font-size: @font-size-s !important;
 }
 div.navbar {
   z-index: 999;
   .dropdown-menu .fineprint {
     padding: 10px 20px 0 20px;
     color: @gray-light;
-    font-size: 1rem;
+    font-size: @font-size-m;
     div {
       white-space: nowrap;
     }
@@ -181,7 +177,7 @@ li.widget:hover {
 }
 
 .chart-header .header-text {
-  font-size: 20px;
+  font-size: @font-size-xl;
   line-height: 22px;
   padding-bottom: 8px;
   border-bottom: 1px solid @gray;
@@ -206,7 +202,7 @@ li.widget:hover {
 }
 
 .table-condensed {
-    font-size: 12px;
+    font-size: @font-size-s;
 }
 
 .table-condensed input[type="checkbox"] {
@@ -243,7 +239,6 @@ table.table-no-hover tr:hover {
 
 .editable-title.datasource-sql-expression {
   font-family: @font-family-monospace;
-  font-size: 95%;
   display: inline-block;
   min-width: @datasource-sql-expression-width;
 }
@@ -261,7 +256,6 @@ table.table-no-hover tr:hover {
   border-color: transparent;
   background: transparent;
   font-size: inherit;
-  line-height: inherit;
   white-space: normal;
   text-align: left;
   cursor: initial;
@@ -292,7 +286,7 @@ table.table-no-hover tr:hover {
     top: 2px;
     right: 0;
     visibility: hidden;
-    font-size: 11px;
+    font-size: @font-size-s;
     text-align: center;
     vertical-align: middle;
   }
@@ -305,7 +299,7 @@ table.table-no-hover tr:hover {
 
 .dashboard-component.dashboard-component-header .anchor-link-container {
   .fa.fa-link {
-    font-size: 16px;
+    font-size: @font-size-l;
   }
 }
 
@@ -455,7 +449,7 @@ table.table-no-hover tr:hover {
 
 .list-add-action .btn.btn-sm {
   padding: 5px 6px;
-  font-size: 10px;
+  font-size: @font-size-xs;
   line-height: 2px;
   border-radius: 50%;
   box-shadow: 2px 2px 4px -1px fade(@darkest, @opacity-light);
@@ -490,11 +484,11 @@ iframe {
 
 g.annotation-container {
   line {
-    stroke: @stroke-primary;
+    stroke: @brand-primary;
   }
 
   rect.annotation {
-    stroke: @stroke-primary;
+    stroke: @brand-primary;
     fill-opacity: 0.1;
     stroke-width: 1;
   }
@@ -534,12 +528,12 @@ tr.reactable-column-header th.reactable-header-sortable {
 }
 
 .refresh-overlay-btn {
-  font-weight: bold;
+  font-weight: @font-weight-bold;
   margin-right: 10px;
 }
 
 .dismiss-overlay-btn {
-  font-weight: bold;
+  font-weight: @font-weight-bold;
   background: @lightest;
   color: @brand-primary;
   border-color: @brand-primary;
@@ -567,6 +561,6 @@ tr.reactable-column-header th.reactable-header-sortable {
 td.filtered {
   background-color: lighten(desaturate(@brand-primary, 50%), 50%);
 }
-.text-bigger {
-  font-size: 110%;
+.table-name {
+  font-size: @font-size-l;
 }

@@ -196,7 +196,7 @@ class TableElement extends React.PureComponent {
         <div className="pull-left">
           <a
             href="#"
-            className="table-name text-bigger"
+            className="table-name"
             onClick={(e) => { this.toggleTable(e); }}
           >
             <strong>
