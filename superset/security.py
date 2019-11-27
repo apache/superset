@@ -813,3 +813,13 @@ class SupersetSecurityManager(SecurityManager):
         """
 
         self.assert_datasource_permission(viz.datasource)
+
+    def get_row_level_security_filters(self, table):
+        """
+        Retrieves the appropriate row level security filters for the current user and the passed table.
+
+        :param table: The table to check against
+        :returns: A list of clause strings.
+        """
+        roles = [role.id for role in g.user.roles]
+        return [filter.clause for filter in filter(lambda x: x.role_id in roles, table.row_level_security_filters)]

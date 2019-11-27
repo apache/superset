@@ -55,7 +55,7 @@ from superset.db_engine_specs.base import TimestampExpression
 from superset.exceptions import DatabaseNotFound
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
-from superset.models.core import Database
+from superset.models.core import Database, RowLevelSecurityFilter
 from superset.models.helpers import QueryResult
 from superset.utils import core as utils, import_datasource
 
@@ -363,6 +363,7 @@ class SqlaTable(Model, BaseDatasource):
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
+    row_level_security_filters = relationship(RowLevelSecurityFilter, backref="tables", lazy=True)
 
     baselink = "tablemodelview"
 
@@ -977,6 +978,13 @@ class SqlaTable(Model, BaseDatasource):
         return or_(*groups)
 
     def query(self, query_obj: Dict) -> QueryResult:
+        filters = security_manager.get_row_level_security_filters(self) # Self is the Table model
+        if len(filters) > 0:
+            where = query_obj['extras']['where']
+            if len(where) > 0:
+                where = "({}) AND ".format(where)
+            query_obj['extras']['where'] = "{} {}".format(where, " AND ".join(filters))
+        
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql

@@ -1353,6 +1353,19 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         return "<ul>" + action_list + "</ul>"
 
 
+class RowLevelSecurityFilter(Model, AuditMixinNullable):
+    """
+    Custom where clauses attached to Tables and Roles.
+    """
+
+    __tablename__ = "row_level_security_filters"
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    role_id = Column(Integer, ForeignKey("ab_role.id"), nullable=False)
+    table_id = Column(Integer, ForeignKey("tables.id"), nullable=False)
+    clause = Column(Text, nullable=False)
+    # Also look up the backref stuff to go into the table model??
+
+
 # events for updating tags
 if is_feature_enabled("TAGGING_SYSTEM"):
     sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
