@@ -18,6 +18,15 @@ under the License.
 -->
 ## Change Log
 
+### 0.35.1 (2019/11/15 13:47 +00:00)
+- [#8457](https://github.com/apache/incubator-superset/pull/8457) [fix] Improve csv upload functionality (#8457) (@villebro)
+- [#8566](https://github.com/apache/incubator-superset/pull/8566) [druid] Fix, pydruid forced dependency (#8566) (@dpgaspar)
+- [#8558](https://github.com/apache/incubator-superset/pull/8558) bump legacy-preset-chart-nvd3 to 0.11.5 (#8558) (@nytai)
+- [#8498](https://github.com/apache/incubator-superset/pull/8498) build: bump dompurify version because of nasty xss bypass. (#8498) (@MarcusSorealheis)
+- [#8477](https://github.com/apache/incubator-superset/pull/8477) [cli] Fix, import datasources exported by UI (#8477) (@dpgaspar)
+- [#8487](https://github.com/apache/incubator-superset/pull/8487) fixing typo. (#8487) (@MarcusSorealheis)
+- [#8430](https://github.com/apache/incubator-superset/pull/8430) [pydruid] Bumping the pydruid version (#8430) (@john-bodley)
+
 ### 0.35.0 (2019/10/31 11:12 +00:00)
 - [#8436](https://github.com/apache/incubator-superset/pull/8436) [fix] Updating parse_human_timedelta typing (#8436) (@john-bodley)
 - [#8423](https://github.com/apache/incubator-superset/pull/8423) chore: disable another flaky cypress test (#8423) (@mistercrunch)

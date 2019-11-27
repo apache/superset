@@ -24,6 +24,7 @@ import {
   getDashboardFilterKey,
 } from './getDashboardFilterKey';
 import { CHART_TYPE } from '../util/componentTypes';
+import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../reducers/dashboardFilters';
 
 let allFilterBoxChartIds = [];
 let activeFilters = {};
@@ -61,7 +62,9 @@ export function getAppliedFilterValues(chartId) {
   return appliedFilterValuesByChart[chartId];
 }
 
-export function getChartIdsInFilterScope({ filterScope }) {
+export function getChartIdsInFilterScope({
+  filterScope = DASHBOARD_FILTER_SCOPE_GLOBAL,
+}) {
   function traverse(chartIds = [], component = {}, immuneChartIds = []) {
     if (!component) {
       return;

@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import "../../../../stylesheets/less/variables.less";
+
 .viztype-label {
   margin-top: 10px;
   text-align: center;
-  font-size: 14px;
+  font-size: @font-size-m;
 }
 
 .viztype-selector-container {
@@ -29,7 +31,7 @@
 }
 
 .viztype-selector-container:hover img {
-  border: 1px solid #aaa;
+  border: 1px solid @gray-heading;
 }
 
 .viztype-selector-container.selected {
@@ -38,13 +40,13 @@
 }
 
 .viztype-selector-container.selected img {
-  border: 1px solid #333;
+  border: 1px solid @almost-black;
 }
 
 .viztype-selector-container img {
-  border: 1px solid #ddd;
+  border: 1px solid @gray-light;
   border-radius: 4px;
-  transition: border-color .2s;
+  transition: border-color 0.2s;
 }
 
 .viztype-control-search-box {
