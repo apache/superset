@@ -112,7 +112,8 @@ class Geocoder(BaseSupersetView):
     def geocode(self) -> Response:
         """
         Geocode addresses in given columns from given table
-        :return: geocoded data as list of tuples or an error message if somethings went wrong
+        :return: geocoded data as list of tuples with success, doubt and failed counters as dict bundled in a list
+                 or an error message if somethings went wrong
         """
         table_name = request.json.get("datasource", "")
         columns = [
@@ -157,7 +158,7 @@ class Geocoder(BaseSupersetView):
         try:
             self._add_lat_lon_columns(table_name, lat_column, lon_column)
             self._insert_geocoded_data(
-                table_name, lat_column, lon_column, columns, data
+                table_name, lat_column, lon_column, columns, data[0]
             )
         except SqlAddColumnException as e:
             return json_error_response(e.args[0], status=500)
