@@ -1158,7 +1158,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
             )
         else:
             df = df.pivot_table(
-                index=DTTM_ALIAS, columns=fd.get("groupby"), values=self.metric_labels
+                index=DTTM_ALIAS,
+                columns=fd.get("groupby"),
+                values=self.metric_labels,
+                fill_value=0,
             )
 
         rule = fd.get("resample_rule")
