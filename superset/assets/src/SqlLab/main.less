@@ -126,7 +126,8 @@ div.Workspace {
   form {
     margin-block-end: 0;
   }
-  .leftItems form, .rightItems {
+  .leftItems form,
+  .rightItems {
     & > span {
       margin-right: 5px;
       margin-bottom: 5px;
@@ -151,12 +152,12 @@ div.Workspace {
   height: 10px;
   display: inline-block;
   background-color: @gray-light;
-  line-height: 8px;
+  line-height: 8px; // set specifically for closing 'x'
   text-align: center;
   vertical-align: middle;
-  font-size: 15px;
+  font-size: @font-size-m;
   margin-top: -3px;
-  font-weight: bold;
+  font-weight: @font-weight-bold;
 }
 .running {
   background-color: fade(@success, @opacity-heavy);
@@ -185,7 +186,7 @@ div.Workspace {
   padding: 0px !important;
   margin: 0px;
   border: none;
-  font-size: 12px;
+  font-size: @font-size-s;
   background-color: transparent !important;
 }
 
@@ -233,7 +234,7 @@ div.Workspace {
 
   .ddbtn-tab {
     font-size: inherit;
-    font-weight: bold;
+    font-weight: @font-weight-bold;
 
     &:active {
       background: none;
@@ -361,7 +362,7 @@ a.Link {
   border: none;
   text-align: left;
   color: @lightest;
-  font-size: 10px;
+  font-size: @font-size-xs;
 }
 .tooltip-inner {
   max-width: 500px;
@@ -414,5 +415,5 @@ a.Link {
 }
 
 .cost-estimate {
-  font-size: 12px;
+  font-size: @font-size-s;
 }
