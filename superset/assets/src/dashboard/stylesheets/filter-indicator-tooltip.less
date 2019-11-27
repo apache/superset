@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import '../../../stylesheets/less/variables.less';
+
 #filter-indicator-tooltip {
-  font-size: 15px;
+  font-size: @font-size-m;
   text-align: left;
 
   > .tooltip-arrow {
@@ -40,7 +42,6 @@
   position: relative;
 
   .filter-content {
-    line-height: 22px;
     margin-right: 22px;
     text-align: left;
     display: flex;
@@ -48,7 +49,7 @@
     align-items: stretch;
 
     label {
-      font-weight: 700;
+      font-weight: @font-weight-bold;
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;

@@ -22,8 +22,8 @@
   position: relative;
 
   .dashboard-builder-sidepane-header {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: @font-size-l;
+    font-weight: @font-weight-bold;
     border-top: 1px solid @gray-light;
     border-bottom: 1px solid @gray-light;
     padding: 16px;
@@ -32,7 +32,7 @@
   }
 
   .trigger {
-    font-size: 16px;
+    font-size: @font-size-l;
     color: @almost-black;
     opacity: 1;
     margin-left: auto;
@@ -92,7 +92,7 @@
   .chart-card-container {
     .chart-card {
       border: 1px solid @gray-light;
-      font-weight: 200;
+      font-weight: @font-weight-light;
       padding: 16px;
       margin: 0 16px 16px 16px;
       position: relative;
@@ -107,7 +107,7 @@
     .card-title {
       margin-right: 60px;
       margin-bottom: 8px;
-      font-weight: 800;
+      font-weight: @font-weight-bold;
     }
 
     .card-body {
@@ -119,7 +119,7 @@
           word-break: break-all;
 
           &:first-child {
-            font-weight: 400;
+            font-weight: @font-weight-normal;
           }
         }
       }
@@ -133,8 +133,8 @@
     .is-added-label {
       background: @almost-black;
       color: @lightest;
-      font-size: 12px;
-      line-height: 1em;
+      font-size: @font-size-s;
+      line-height: @line-height-tight;
       text-transform: uppercase;
       position: absolute;
       padding: 4px 8px;
@@ -164,8 +164,7 @@
 
       .dropdown.btn-group button,
       input {
-        font-size: 14px;
-        line-height: 16px;
+        font-size: @font-size-m;
         padding: 7px 12px;
         height: 32px;
         border: 1px solid @gray-light;

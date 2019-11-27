@@ -39,7 +39,7 @@
 .fave-unfave-icon,
 .edit-desc-icon {
   padding: 0 0 0 0.5em;
-  font-size: 14px;
+  font-size: @font-size-m;
 }
 
 .checkbox {
@@ -99,7 +99,6 @@
 }
 .input-inline {
   float: left;
-  display: inline-block;
   padding-right: 3px;
 }
 .input-inline .Select-control {
@@ -131,7 +130,7 @@
   width: 30px;
   display: inline-block;
   text-align: center;
-  font-weight: bold;
+  font-weight: @font-weight-bold;
 }
 
 .datasource-container {
@@ -179,7 +178,7 @@
 }
 
 .filter-edit-clause-info {
-  font-size: 10px;
+  font-size: @font-size-xs;
   padding-left: 5px;
 }
 
@@ -197,12 +196,12 @@
 
 .label-default {
   background-color: @gray;
-  font-weight: normal;
+  font-weight: @font-weight-normal;
 }
 
 .btn.label-btn {
   background-color: @gray;
-  font-weight: normal;
+  font-weight: @font-weight-normal;
   color: @lightest;
   padding: 5px 4px 4px;
   border: 0;
@@ -230,7 +229,7 @@
 }
 
 .adhoc-label-arrow {
-  font-size: 9px;
+  font-size: @font-size-xxs;
   margin-left: 3px;
   position: static;
 }
@@ -245,14 +244,14 @@
 
 .custom-sql-disabled-message {
   color: @gray;
-  font-size: 11px;
+  font-size: @font-size-xs;
   text-align: center;
   margin-top: 60px;
 }
 
 h1.section-header {
-  font-size: 14px;
-  font-weight: bold;
+  font-size: @font-size-m;
+  font-weight: @font-weight-bold;
   margin-bottom: 0;
   margin-top: 0;
   padding-bottom: 5px;
@@ -260,8 +259,8 @@ h1.section-header {
 }
 
 h2.section-header {
-  font-size: 13px;
-  font-weight: bold;
+  font-size: @font-size-s;
+  font-weight: @font-weight-bold;
   margin-bottom: 0;
   margin-top: 0;
   padding-bottom: 5px;

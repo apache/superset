@@ -18,8 +18,7 @@
  */
 .dashboard-component-header {
   width: 100%;
-  line-height: 1.1;
-  font-weight: 700;
+  font-weight: @font-weight-bold;
   padding: 16px 0;
   color: @almost-black;
 }
@@ -42,14 +41,8 @@
 }
 
 .dashboard-header .dashboard-component-header {
-  font-weight: 300;
+  font-weight: @font-weight-light;
   width: auto;
-}
-
-.dashboard-header .undo-action,
-.dashboard-header .redo-action {
-  line-height: 18px;
-  font-size: 12px;
 }
 
 .dashboard--editing .dragdroppable-row .dashboard-component-header {
@@ -57,21 +50,21 @@
 }
 
 .header-style-option {
-  font-weight: 700;
+  font-weight: @font-weight-bold;
   color: @almost-black;
 }
 
 /* note: sizes should be a multiple of the 8px grid unit so that rows in the grid align */
 .header-small {
-  font-size: 16px;
+  font-size: @font-size-l;
 }
 
 .header-medium {
-  font-size: 24px;
+  font-size: @font-size-xl;
 }
 
 .header-large {
-  font-size: 32px;
+  font-size: @font-size-xxl;
 }
 
 .background--white .dashboard-component-header,
