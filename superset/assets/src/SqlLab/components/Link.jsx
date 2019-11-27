@@ -38,14 +38,9 @@ const defaultProps = {
   tooltip: null,
 };
 
-
 class Link extends React.PureComponent {
   render() {
-    const tooltip = (
-      <Tooltip id="tooltip">
-        {this.props.tooltip}
-      </Tooltip>
-    );
+    const tooltip = <Tooltip id="tooltip">{this.props.tooltip}</Tooltip>;
     const link = (
       <a
         href={this.props.href}

@@ -37,7 +37,6 @@ describe('store', () => {
   });
 
   describe('applyDefaultFormData', () => {
-
     window.featureFlags = {
       SCOPED_FILTER: false,
     };
@@ -77,6 +76,5 @@ describe('store', () => {
       const outputFormData = applyDefaultFormData(inputFormData);
       expect(outputFormData.this_should_no_be_here).toBe(undefined);
     });
-
   });
 });

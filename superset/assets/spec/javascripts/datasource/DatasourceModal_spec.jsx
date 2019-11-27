@@ -68,7 +68,7 @@ describe('DatasourceModal', () => {
     expect(wrapper.find(DatasourceEditor)).toHaveLength(1);
   });
 
-  it('saves on confirm', (done) => {
+  it('saves on confirm', done => {
     inst.onConfirmSave();
     setTimeout(() => {
       expect(fetchMock.calls(SAVE_ENDPOINT)).toHaveLength(1);

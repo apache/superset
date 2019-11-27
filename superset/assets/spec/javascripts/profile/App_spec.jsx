@@ -28,9 +28,7 @@ describe('App', () => {
     user,
   };
   it('is valid', () => {
-    expect(
-      React.isValidElement(<App {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<App {...mockedProps} />)).toBe(true);
   });
 
   it('renders 2 Col', () => {

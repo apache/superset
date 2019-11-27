@@ -22,15 +22,12 @@ import { mount } from 'enzyme';
 import { user, userNoPerms } from './fixtures';
 import Security from '../../../src/profile/components/Security';
 
-
 describe('Security', () => {
   const mockedProps = {
     user,
   };
   it('is valid', () => {
-    expect(
-      React.isValidElement(<Security {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<Security {...mockedProps} />)).toBe(true);
   });
   it('renders 2 role labels', () => {
     const wrapper = mount(<Security {...mockedProps} />);

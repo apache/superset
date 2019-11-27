@@ -45,23 +45,17 @@ export default {
     {
       label: t('Y Axis 1'),
       expanded: true,
-      controlSetRows: [
-        ['line_charts', 'y_axis_format'],
-      ],
+      controlSetRows: [['line_charts', 'y_axis_format']],
     },
     {
       label: t('Y Axis 2'),
       expanded: false,
-      controlSetRows: [
-        ['line_charts_2', 'y_axis_2_format'],
-      ],
+      controlSetRows: [['line_charts_2', 'y_axis_2_format']],
     },
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [
-        ['adhoc_filters'],
-      ],
+      controlSetRows: [['adhoc_filters']],
     },
     annotations,
   ],
@@ -80,14 +74,10 @@ export default {
   },
   sectionOverrides: {
     sqlaTimeSeries: {
-      controlSetRows: [
-        ['time_range'],
-      ],
+      controlSetRows: [['time_range']],
     },
     druidTimeSeries: {
-      controlSetRows: [
-        ['time_range'],
-      ],
+      controlSetRows: [['time_range']],
     },
   },
 };

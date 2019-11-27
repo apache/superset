@@ -23,7 +23,7 @@ import * as sections from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
   const formData = {};
-  Object.keys(controlsState).forEach((controlName) => {
+  Object.keys(controlsState).forEach(controlName => {
     formData[controlName] = controlsState[controlName].value;
   });
   return formData;
@@ -34,7 +34,7 @@ export function validateControl(control) {
   if (validators && validators.length > 0) {
     const validatedControl = { ...control };
     const validationErrors = [];
-    validators.forEach((f) => {
+    validators.forEach(f => {
       const v = f(control.value);
       if (v) {
         validationErrors.push(v);
@@ -54,7 +54,10 @@ export function getControlConfig(controlKey, vizType) {
   // Gets the control definition, applies overrides, and executes
   // the mapStatetoProps
   const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
-  const { controlOverrides = {}, controlPanelSections = [] } = controlPanelConfig;
+  const {
+    controlOverrides = {},
+    controlPanelSections = [],
+  } = controlPanelConfig;
 
   if (!isGlobalControl(controlKey)) {
     for (const section of controlPanelSections) {
@@ -114,7 +117,10 @@ function handleMissingChoice(control) {
 }
 
 export function getControlStateFromControlConfig(controlConfig, state, value) {
-  const controlState = applyMapStateToPropsToControl({ ...controlConfig }, state);
+  const controlState = applyMapStateToPropsToControl(
+    { ...controlConfig },
+    state,
+  );
 
   // If default is a function, evaluate it
   if (typeof controlState.default === 'function') {
@@ -122,19 +128,28 @@ export function getControlStateFromControlConfig(controlConfig, state, value) {
   }
 
   // If a choice control went from multi=false to true, wrap value in array
-  const controlValue = controlConfig.multi && value && !Array.isArray(value) ? [value] : value;
-  controlState.value = typeof controlValue === 'undefined' ? controlState.default : controlValue;
+  const controlValue =
+    controlConfig.multi && value && !Array.isArray(value) ? [value] : value;
+  controlState.value =
+    typeof controlValue === 'undefined' ? controlState.default : controlValue;
 
   return validateControl(handleMissingChoice(controlState));
 }
 
 export function getControlState(controlKey, vizType, state, value) {
-  return getControlStateFromControlConfig(getControlConfig(controlKey, vizType), state, value);
+  return getControlStateFromControlConfig(
+    getControlConfig(controlKey, vizType),
+    state,
+    value,
+  );
 }
 
 export function sectionsToRender(vizType, datasourceType) {
   const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
-  const { sectionOverrides = {}, controlPanelSections = [] } = controlPanelConfig;
+  const {
+    sectionOverrides = {},
+    controlPanelSections = [],
+  } = controlPanelConfig;
 
   const sectionsCopy = { ...sections };
 
@@ -149,27 +164,43 @@ export function sectionsToRender(vizType, datasourceType) {
     }
   });
 
-  const { datasourceAndVizType, sqlaTimeSeries, druidTimeSeries, filters } = sectionsCopy;
-
-  return [].concat(
+  const {
     datasourceAndVizType,
-    datasourceType === 'table' ? sqlaTimeSeries : druidTimeSeries,
-    isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? filters : undefined,
-    controlPanelSections,
-  ).filter(section => section);
+    sqlaTimeSeries,
+    druidTimeSeries,
+    filters,
+  } = sectionsCopy;
+
+  return []
+    .concat(
+      datasourceAndVizType,
+      datasourceType === 'table' ? sqlaTimeSeries : druidTimeSeries,
+      isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? filters : undefined,
+      controlPanelSections,
+    )
+    .filter(section => section);
 }
 
 export function getAllControlsState(vizType, datasourceType, state, formData) {
   const controlsState = {};
-  sectionsToRender(vizType, datasourceType).forEach(
-    section => section.controlSetRows.forEach(
-      fieldsetRow => fieldsetRow.forEach((field) => {
+  sectionsToRender(vizType, datasourceType).forEach(section =>
+    section.controlSetRows.forEach(fieldsetRow =>
+      fieldsetRow.forEach(field => {
         if (typeof field === 'string') {
-          controlsState[field] = getControlState(field, vizType, state, formData[field]);
+          controlsState[field] = getControlState(
+            field,
+            vizType,
+            state,
+            formData[field],
+          );
         } else if (field != null && typeof field === 'object') {
           if (field.config && field.name) {
             const { config, name } = field;
-            controlsState[name] = getControlStateFromControlConfig(config, state, formData[name]);
+            controlsState[name] = getControlStateFromControlConfig(
+              config,
+              state,
+              formData[name],
+            );
           }
         }
       }),

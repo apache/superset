@@ -85,13 +85,17 @@ export default class AdhocMetricOption extends React.PureComponent {
         onExited={this.onOverlayExited}
       >
         <Label style={{ margin: this.props.multi ? 0 : 3, cursor: 'pointer' }}>
-          <div onMouseDownCapture={(e) => { e.stopPropagation(); }}>
+          <div
+            onMouseDownCapture={e => {
+              e.stopPropagation();
+            }}
+          >
             <span className="m-r-5 option-label">
               {adhocMetric.label}
               <i
-                className={
-                  `glyphicon glyphicon-triangle-${this.state.overlayShown ? 'left' : 'right'} adhoc-label-arrow`
-                }
+                className={`glyphicon glyphicon-triangle-${
+                  this.state.overlayShown ? 'left' : 'right'
+                } adhoc-label-arrow`}
               />
             </span>
           </div>

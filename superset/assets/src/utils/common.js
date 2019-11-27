@@ -34,7 +34,7 @@ export function storeQuery(query) {
   return SupersetClient.post({
     endpoint: '/kv/store/',
     postPayload: { data: query },
-  }).then((response) => {
+  }).then(response => {
     const baseUrl = window.location.origin + window.location.pathname;
     const url = `${baseUrl}?id=${response.json.id}`;
     return url;
@@ -45,7 +45,7 @@ export function getParamsFromUrl() {
   const hash = window.location.search;
   const params = hash.split('?')[1].split('&');
   const newParams = {};
-  params.forEach((p) => {
+  params.forEach(p => {
     const value = p.split('=')[1].replace(/\+/g, ' ');
     const key = p.split('=')[0];
     newParams[key] = value;
@@ -62,8 +62,10 @@ export function getShortUrl(longUrl) {
   })
     .then(({ text }) => text)
     .catch(response =>
-      getClientErrorObject(response)
-        .then(({ error, statusText }) => Promise.reject(error || statusText)));
+      getClientErrorObject(response).then(({ error, statusText }) =>
+        Promise.reject(error || statusText),
+      ),
+    );
 }
 
 export function supersetURL(rootUrl, getParams = {}) {

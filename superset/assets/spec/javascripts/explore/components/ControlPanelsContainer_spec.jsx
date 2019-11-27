@@ -29,15 +29,18 @@ import * as featureFlags from 'src/featureFlags';
 describe('ControlPanelsContainer', () => {
   let wrapper;
   let scopedFilterOn = false;
-  const isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled')
-      .mockImplementation(() => scopedFilterOn);
+  const isFeatureEnabledMock = jest
+    .spyOn(featureFlags, 'isFeatureEnabled')
+    .mockImplementation(() => scopedFilterOn);
 
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue('table', {
       controlPanelSections: [
         {
           label: t('GROUP BY'),
-          description: t('Use this section if you want a query that aggregates'),
+          description: t(
+            'Use this section if you want a query that aggregates',
+          ),
           expanded: true,
           controlSetRows: [
             ['groupby'],
@@ -60,9 +63,7 @@ describe('ControlPanelsContainer', () => {
         {
           label: t('Query'),
           expanded: true,
-          controlSetRows: [
-            ['adhoc_filters'],
-          ],
+          controlSetRows: [['adhoc_filters']],
         },
         {
           label: t('Options'),

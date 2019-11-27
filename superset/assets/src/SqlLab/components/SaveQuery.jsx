@@ -107,7 +107,9 @@ class SaveQuery extends React.PureComponent {
         <Row>
           <Col md={12}>
             <small>
-              <label className="control-label" htmlFor="embed-height">{t('Description')}</label>
+              <label className="control-label" htmlFor="embed-height">
+                {t('Description')}
+              </label>
             </small>
             <FormControl
               componentClass="textarea"
@@ -122,9 +124,7 @@ class SaveQuery extends React.PureComponent {
           <div>
             <Row>
               <Col md={12}>
-                <small>
-                  {this.props.saveQueryWarning}
-                </small>
+                <small>{this.props.saveQueryWarning}</small>
               </Col>
             </Row>
             <br />
@@ -160,12 +160,18 @@ class SaveQuery extends React.PureComponent {
     return (
       <span className="SaveQuery">
         <ModalTrigger
-          ref={(ref) => { this.saveModal = ref; }}
+          ref={ref => {
+            this.saveModal = ref;
+          }}
           modalTitle={t('Save Query')}
           modalBody={this.renderModalBody()}
           backdrop="static"
           triggerNode={
-            <Button bsSize="small" className="toggleSave" onClick={this.toggleSave}>
+            <Button
+              bsSize="small"
+              className="toggleSave"
+              onClick={this.toggleSave}
+            >
               <i className="fa fa-save" /> {t('Save Query')}
             </Button>
           }

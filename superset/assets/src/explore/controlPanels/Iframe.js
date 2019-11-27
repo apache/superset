@@ -22,9 +22,7 @@ export default {
   controlPanelSections: [
     {
       label: t('Options'),
-      controlSetRows: [
-        ['url'],
-      ],
+      controlSetRows: [['url']],
     },
   ],
 };

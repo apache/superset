@@ -76,7 +76,9 @@ const defaultProps = {
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.handleRenderContainerFailure = this.handleRenderContainerFailure.bind(this);
+    this.handleRenderContainerFailure = this.handleRenderContainerFailure.bind(
+      this,
+    );
   }
 
   componentDidMount() {
@@ -114,7 +116,11 @@ class Chart extends React.PureComponent {
   handleRenderContainerFailure(error, info) {
     const { actions, chartId } = this.props;
     console.warn(error); // eslint-disable-line
-    actions.chartRenderingFailed(error.toString(), chartId, info ? info.componentStack : null);
+    actions.chartRenderingFailed(
+      error.toString(),
+      chartId,
+      info ? info.componentStack : null,
+    );
 
     actions.logEvent(LOG_ACTIONS_RENDER_CHART_CONTAINER, {
       slice_id: chartId,
@@ -133,7 +139,8 @@ class Chart extends React.PureComponent {
         message={chartAlert}
         link={queryResponse ? queryResponse.link : null}
         stackTrace={chartStackTrace}
-      />);
+      />
+    );
   }
 
   render() {
@@ -160,12 +167,14 @@ class Chart extends React.PureComponent {
       return <Alert bsStyle="warning">{errorMessage}</Alert>;
     }
     return (
-      <ErrorBoundary onError={this.handleRenderContainerFailure} showMessage={false}>
+      <ErrorBoundary
+        onError={this.handleRenderContainerFailure}
+        showMessage={false}
+      >
         <div
           className={`chart-container ${isLoading ? 'is-loading' : ''}`}
           style={containerStyles}
         >
-
           {isLoading && <Loading size={50} />}
 
           {!isLoading && !chartAlert && isFaded && (

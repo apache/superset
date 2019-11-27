@@ -42,10 +42,7 @@ const initState = getInitialState(bootstrapData);
 const store = createStore(
   rootReducer,
   initState,
-  compose(
-    applyMiddleware(thunk, logger),
-    initEnhancer(false),
-  ),
+  compose(applyMiddleware(thunk, logger), initEnhancer(false)),
 );
 
 const App = () => (

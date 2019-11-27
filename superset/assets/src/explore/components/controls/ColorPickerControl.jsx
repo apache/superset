@@ -51,7 +51,8 @@ const styles = {
     borderRadius: '1px',
     display: 'inline-block',
     cursor: 'pointer',
-    boxShadow: 'rgba(0, 0, 0, 0.15) 0px 0px 0px 1px inset, rgba(0, 0, 0, 0.25) 0px 0px 4px inset',
+    boxShadow:
+      'rgba(0, 0, 0, 0.15) 0px 0px 0px 1px inset, rgba(0, 0, 0, 0.25) 0px 0px 4px inset',
   },
   color: {
     ...swatchCommon,
@@ -59,7 +60,8 @@ const styles = {
   },
   checkboard: {
     ...swatchCommon,
-    background: 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==") left center',
+    background:
+      'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==") left center',
   },
 };
 export default class ColorPickerControl extends React.Component {
@@ -73,8 +75,7 @@ export default class ColorPickerControl extends React.Component {
   renderPopover() {
     const presetColors = getCategoricalSchemeRegistry()
       .get()
-      .colors
-      .filter((s, i) => i < 7);
+      .colors.filter((s, i) => i < 7);
     return (
       <Popover id="filter-popover" className="color-popover">
         <SketchPicker
@@ -87,8 +88,9 @@ export default class ColorPickerControl extends React.Component {
   }
   render() {
     const c = this.props.value || { r: 0, g: 0, b: 0, a: 0 };
-    const colStyle = Object.assign(
-      {}, styles.color, { background: `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})` });
+    const colStyle = Object.assign({}, styles.color, {
+      background: `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})`,
+    });
     return (
       <div>
         <ControlHeader {...this.props} />

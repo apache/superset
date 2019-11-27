@@ -62,8 +62,7 @@ export default class FilterBoxItemControl extends React.Component {
   onControlChange(attr, value) {
     this.setState({ [attr]: value }, this.onChange);
   }
-  setType() {
-  }
+  setType() {}
   textSummary() {
     return this.state.column || 'N/A';
   }
@@ -99,8 +98,9 @@ export default class FilterBoxItemControl extends React.Component {
           label={t('Default')}
           tooltip={t(
             '(optional) default value for the filter, when using ' +
-            'the multiple option, you can use a semicolon-delimited list ' +
-            'of options.')}
+              'the multiple option, you can use a semicolon-delimited list ' +
+              'of options.',
+          )}
           control={
             <TextControl
               value={this.state.defaultValue}
@@ -140,7 +140,8 @@ export default class FilterBoxItemControl extends React.Component {
           isCheckbox
           tooltip={t(
             'Multiple selections allowed, otherwise filter ' +
-            'is limited to a single value')}
+              'is limited to a single value',
+          )}
           control={
             <CheckboxControl
               value={this.state.multiple}
@@ -159,14 +160,13 @@ export default class FilterBoxItemControl extends React.Component {
             />
           }
         />
-      </div>);
+      </div>
+    );
   }
   renderPopover() {
     return (
       <Popover id="ts-col-popo" title={t('Filter Configuration')}>
-        <div style={STYLE_WIDTH}>
-          {this.renderForm()}
-        </div>
+        <div style={STYLE_WIDTH}>{this.renderForm()}</div>
       </Popover>
     );
   }
