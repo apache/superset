@@ -983,6 +983,13 @@ class CoreTests(SupersetTestCase):
             data = self.get_resp(url)
             self.assertTrue(html in data)
 
+    def test_sqllab_backend_persistence_payload(self):
+        self.login()
+
+        app.config["SQLLAB_BACKEND_PERSISTENCE"] = True
+        payload = views.Superset._get_sqllab_payload()
+        self.assertEqual(payload, {})
+
 
 if __name__ == "__main__":
     unittest.main()
