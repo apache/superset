@@ -46,6 +46,7 @@ export class CsvToDatabase extends React.PureComponent {
     this.state = {
       tableName: '',
       databaseName: '',
+      selectedDatabaseFlavor: { label: t('SQLite'), value: 'sqlite' },
       file: undefined,
       selectedConnection: { label: t('In a new database'), value: -1 },
       schema: '',
@@ -57,6 +58,10 @@ export class CsvToDatabase extends React.PureComponent {
         { label: t('Fail'), value: 'Fail' },
         { label: t('Replace'), value: 'Replace' },
         { label: t('Append'), value: 'Append' },
+      ],
+      databaseFlavorValues: [
+          { label: t('SQLite'), value: 'sqlite' },
+          { label: t('PostgreSQL'), value: 'postgres' },
       ],
       indexColumn: '',
       mangleDuplicateColumns: true,
@@ -72,6 +77,7 @@ export class CsvToDatabase extends React.PureComponent {
     this.setFile = this.setFile.bind(this);
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
     this.setTableExists = this.setTableExists.bind(this);
+    this.setDatabaseFlavor = this.setDatabaseFlavor.bind(this);
     this.setUserInput = this.setUserInput.bind(this);
     this.getConnectionStrings = this.getConnectionStrings.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -90,8 +96,8 @@ export class CsvToDatabase extends React.PureComponent {
   }
 
   setSelectedConnection(connection) {
-    let databaseName = '';
-    if (connection.value === -1 && this.state.file) {
+    let databaseName = this.state.databaseName;
+    if (connection.value === -1 && this.state.file && !databaseName) {
       databaseName = this.state.file.name.slice(0, -4);
     }
     this.setState({
@@ -102,6 +108,10 @@ export class CsvToDatabase extends React.PureComponent {
 
   setTableExists(value) {
     this.setState({ selectedTableExists: value });
+  }
+
+  setDatabaseFlavor(value) {
+    this.setState({ selectedDatabaseFlavor: value });
   }
 
   setUserInput(event) {
@@ -127,6 +137,7 @@ export class CsvToDatabase extends React.PureComponent {
     const {
       tableName,
       databaseName,
+      selectedDatabaseFlavor,
       file,
       selectedConnection,
       schema,
@@ -147,9 +158,10 @@ export class CsvToDatabase extends React.PureComponent {
     } = this.state;
     this.props.actions.uploadCsv({
       tableName,
-      databaseName,
       file,
       connectionId: selectedConnection.value,
+      databaseName: selectedConnection.value === -1 ? databaseName : '',
+      databaseFlavor: selectedConnection.value === -1 ? selectedDatabaseFlavor.value : '',
       schema,
       delimiter,
       ifTableExists: selectedTableExists.value,
@@ -230,6 +242,7 @@ export class CsvToDatabase extends React.PureComponent {
                       <td>
                         <FormSelect
                           id={'database'}
+                          required
                           value={this.state.selectedConnection}
                           onChange={this.setSelectedConnection}
                           options={this.getConnectionStrings()}
@@ -256,6 +269,28 @@ export class CsvToDatabase extends React.PureComponent {
                           value={this.state.databaseName}
                           onChange={this.setUserInput}
                           helpText={t('Name of the database file to be created.')}
+                        />
+                      </td>
+                    </tr>
+                    <tr
+                      className={
+                        this.state.selectedConnection.value === -1
+                          ? null
+                          : 'hide-component'
+                      }
+                    >
+                      <td className="col-lg-2">
+                        {t('Database Flavor')} <Asterisk />
+                      </td>
+                      <td>
+                        <FormSelect
+                          id={'databaseFlavor'}
+                          required={this.state.selectedConnection.value === -1}
+                          value={this.state.selectedDatabaseFlavor}
+                          onChange={this.setDatabaseFlavor}
+                          options={this.state.databaseFlavorValues}
+                          clearable={false}
+                          helpText={t('Choose database flavor to create a new database')}
                         />
                       </td>
                     </tr>
@@ -295,6 +330,7 @@ export class CsvToDatabase extends React.PureComponent {
                       <td>
                         <FormSelect
                           id={'tableExists'}
+                          required
                           value={this.state.selectedTableExists}
                           onChange={this.setTableExists}
                           options={this.state.tableExistsValues}

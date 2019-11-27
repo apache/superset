@@ -20,6 +20,7 @@ from sqlite3 import OperationalError
 
 import simplejson as json
 import sqlalchemy
+import sqlalchemy_utils
 from flask import flash, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -29,11 +30,12 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
 import superset.models.core as models
-from superset import app, appbuilder, db, security_manager
+from superset import app, appbuilder, conf, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
     DatabaseCreationException,
     NoPasswordSuppliedException,
+    NoUsernameSuppliedException,
     TableCreationException,
 )
 from superset.utils import core as utils
@@ -118,17 +120,16 @@ class CsvImporter(BaseSupersetView):
                     return json_error_response(
                         "Database name is not allowed", status=400
                     )
-                # TODO add these fields to frontend
-                password = "postgres"
-                # db_flavor = form_data["db_flavor"] or None
-                # password = form_data["pasword"] or None
-                database = self._create_database(db_name, password=password)
+                db_flavor = form_data["databaseFlavor"] or None
+                database = self._create_database(db_name, db_flavor)
         except ValueError as e:
             return json_error_response(e.args[0], status=400)
         except DatabaseCreationException as e:
             return json_error_response(e.args[0], status=400)
-        except NoPasswordSuppliedException:
-            return json_error_response("no password supplied for postgres", status=400)
+        except NoUsernameSuppliedException as e:
+            return json_error_response(e.args[0], status=400)
+        except NoPasswordSuppliedException as e:
+            return json_error_response(e.args[0], status=400)
         except Exception as e:
             return json_error_response(e.args[0], status=500)
 
@@ -179,33 +180,50 @@ class CsvImporter(BaseSupersetView):
             '"{} imported into database {}"'.format(form_data["tableName"], db_name)
         )
 
-    def _create_database(self, db_name: str, db_flavor="sqlite", password=None):
+    def _create_database(self, db_name: str, db_flavor="sqlite"):
         """ Creates the Database itself as well as the Superset Connection to it
 
         Keyword arguments:
         db_name -- the name for the database to be created
         db_flavor -- which database to use postgres or sqlite
-        password -- needed for postgres
 
         Raises:
             ValueError: If a file with the database name already exists in the folder
+            NoUserSuppliedException: If the user did not supply a username
             NoPasswordSuppliedException: If the user did not supply a password
             Exception: If the Database could not be created
         """
         if db_flavor == "postgres":
-            # TODO add possibility to change user
             # TODO add possibility to use schema
-            if not password:
-                raise NoPasswordSuppliedException
-            url = "postgresql://postgres:" + password + "@localhost/" + db_name
-            engine = sqlalchemy.create_engine(url)
 
-            # TODO decide whether to fail if database exists
+            postgres_user = conf["POSTGRES_USERNAME"]
+            postgres_password = conf["POSTGRES_PASSWORD"]
+
+            if not postgres_user:
+                raise NoUsernameSuppliedException("No username supplied for PostgreSQL")
+            if not postgres_password:
+                raise NoPasswordSuppliedException("No password supplied for PostgreSQL")
+            url = (
+                "postgresql://"
+                + postgres_user
+                + ":"
+                + postgres_password
+                + "@localhost/"
+                + db_name
+            )
+            engine = sqlalchemy.create_engine(url)
+            if not sqlalchemy_utils.database_exists(engine.url):
+                sqlalchemy_utils.create_database(engine.url)
+            else:
+                raise DatabaseCreationException(
+                    "The database {0} already exist".format(db_name)
+                )
+
             try:
                 item = SQLAInterface(models.Database).obj()
                 item.database_name = db_name
                 item.sqlalchemy_uri = repr(engine.url)
-                item.password = password
+                item.password = postgres_password
                 item.allow_csv_upload = True
                 db.session.add(item)
                 db.session.commit()
