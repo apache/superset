@@ -48,7 +48,7 @@ def load_css_templates():
         opacity: 1;
     }
     .chart-header .header{
-        font-weight: normal;
+        font-weight: @font-weight-normal;
         font-size: 12px;
     }
     /*
@@ -96,7 +96,7 @@ def load_css_templates():
         opacity: 1;
     }
     .chart-header .header{
-        font-weight: normal;
+        font-weight: @font-weight-normal;
         font-size: 12px;
     }
     .nvd3 text {

@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import "../../stylesheets/less/variables.less";
+
 .CRUD {
   .text-right {
     text-align: right;
@@ -24,24 +26,24 @@
     padding: 10px;
   }
   .control-label {
-    font-weight: bold;
-    font-size: 16px;
+    font-weight: @font-weight-bold;
+    font-size: @font-size-l;
   }
   .tiny-cell {
     width: 5px;
   }
   i.fa-caret-down,
   i.fa-caret-up {
-    width: "5px";
+    width: 5px;
   }
   td.expanded {
-    border-top: "0px";
-    padding: "0px";
+    border-top: 0;
+    padding: 0;
   }
   .frame {
-    border: "1px solid #AAA";
+    border: 1px solid @gray-heading;
     border-radius: 5;
     padding: 10;
-    background: "#F4F4F4";
+    background: @gray-bg;
   }
 }

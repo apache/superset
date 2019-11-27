@@ -17,13 +17,13 @@
  * under the License.
  */
 
-@import '../../../stylesheets/less/variables.less';
+@import "../../../stylesheets/less/variables.less";
 
 .ReactVirtualized__Grid__innerScrollContainer {
   border: 1px solid;
 }
 .ReactVirtualized__Table__headerRow {
-  font-weight: 700;
+  font-weight: @font-weight-bold;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -48,10 +48,10 @@
   border-right: 1px solid @gray-light;
   align-self: center;
   padding: 12px;
-  font-size: 12px;
+  font-size: @font-size-s;
 }
 .grid-header-cell {
-  font-weight: 700;
+  font-weight: @font-weight-bold;
 }
 .ReactVirtualized__Table__headerColumn:last-of-type,
 .ReactVirtualized__Table__rowColumn:last-of-type {
@@ -78,8 +78,12 @@
   width: 1em;
   fill: currentColor;
 }
-.even-row { background: @gray-bg; }
-.odd-row { background: @lightest; }
+.even-row {
+  background: @gray-bg;
+}
+.odd-row {
+  background: @lightest;
+}
 .header-style {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -93,5 +97,5 @@
 }
 .cell-text-for-measuring {
   font-family: Helvetica, Arial, sans-serif;
-  font-size: 12px;
+  font-size: @font-size-s;
 }

@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import "../../../stylesheets/less/cosmo/variables.less";
+@import '../../../stylesheets/less/cosmo/variables.less';
 
 .filter-scope-container {
   display: flex;
   flex-direction: column;
   height: 80%;
   margin-right: -24px;
-  font-size: 14px;
+  font-size: @font-size-m;
 
   .nav.nav-tabs {
     border: none;
@@ -41,7 +41,7 @@
 
   .dashboard-modal-actions-container {
     height: 64px;
-    border-top: 1px solid #ccc;
+    border-top: 1px solid @gray-light;
     padding: 24px;
     margin: 0 0 0 -24px;
   }
@@ -53,7 +53,7 @@
 
 .filter-scope-header {
   height: 64px;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid @gray-light;
   padding-left: 24px;
   margin-left: -24px;
 
@@ -81,14 +81,16 @@
   position: relative;
   height: 100%;
 
-  a, a:active, a:hover {
+  a,
+  a:active,
+  a:hover {
     color: @almost-black;
     text-decoration: none;
   }
 
   .react-checkbox-tree .rct-icon.rct-icon-expand-all,
   .react-checkbox-tree .rct-icon.rct-icon-collapse-all {
-    font-size: 13px;
+    font-size: @font-size-m;
     font-family: @font-family-sans-serif;
     color: @brand-primary;
 
@@ -109,11 +111,11 @@
     position: relative;
     width: 40%;
     padding: 16px 16px 16px 0;
-    border-right: 1px solid #ccc;
+    border-right: 1px solid @gray-light;
 
     .filter-container {
       label {
-        font-weight: normal;
+        font-weight: @font-weight-normal;
         margin: 0 0 0 16px;
         word-break: break-all;
       }
@@ -127,16 +129,16 @@
       margin-left: -24px;
 
       &.is-selected {
-        border: 1px solid #aaa;
+        border: 1px solid @gray-heading;
         border-radius: 4px;
-        background-color: #eee;
+        background-color: @gray-bg;
         margin-left: -25px;
       }
     }
 
     .react-checkbox-tree {
       .rct-title .root {
-        font-weight: bold;
+        font-weight: @font-weight-bold;
       }
 
       .rct-text {
@@ -154,7 +156,7 @@
   .react-checkbox-tree {
     flex-direction: column;
     color: @almost-black;
-    font-size: 14px;
+    font-size: @font-size-m;
 
     .filter-scope-type {
       padding: 8px 0;
@@ -167,16 +169,16 @@
       }
 
       &.chart {
-        font-weight: normal;
+        font-weight: @font-weight-normal;
       }
 
       &.selected-filter {
         padding-left: 28px;
         position: relative;
-        color: #aaa;
+        color: @gray-heading;
 
         &::before {
-          content: " ";
+          content: ' ';
           position: absolute;
           left: 0;
           top: 50%;
@@ -184,13 +186,13 @@
           height: 18px;
           border-radius: 2px;
           margin-top: -9px;
-          box-shadow: inset 0 0 0 2px #ccc;
+          box-shadow: inset 0 0 0 2px @gray-light;
           background: #f2f2f2;
         }
       }
 
       &.root {
-        font-weight: bold;
+        font-weight: @font-weight-bold;
       }
     }
 
@@ -256,9 +258,9 @@
     right: 16px;
     top: 16px;
     border-radius: 4px;
-    border: 1px solid #ccc;
+    border: 1px solid @gray-light;
     padding: 4px 8px 4px 8px;
-    font-size: 13px;
+    font-size: @font-size-m;
     outline: none;
 
     &:focus {

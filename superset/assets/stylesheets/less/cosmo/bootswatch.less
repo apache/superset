@@ -94,7 +94,7 @@
 
 .caret:before {
   font-family: "FontAwesome";
-  font-size: 10px;
+  font-size: @font-size-xs;
   content: "\f078";
 }
 
@@ -281,7 +281,7 @@ table,
   border-radius: 2px;
 }
 label {
-  font-weight: normal;
+  font-weight: @font-weight-normal;
 }
 
 // Progress bars ==============================================================
@@ -290,7 +290,7 @@ label {
   height: 14px;
   .box-shadow(none);
   .progress-bar {
-    font-size: 12px;
+    font-size: @font-size-s;
     line-height: 12px;
     padding-top: 1px;
   }
@@ -317,7 +317,7 @@ label {
       border-bottom: 1px solid @gray-light;
       h1, h2, h3, h4, h5, h6 {
         margin: 10px 0 0 0;
-        font-weight: bold;
+        font-weight: @font-weight-bold;
       }
     }
     .close {
@@ -335,7 +335,7 @@ label {
       border-bottom: 1px solid @gray-light;
       h1, h2, h3, h4, h5, h6 {
         margin: 10px 0 0 0;
-        font-weight: bold;
+        font-weight: @font-weight-bold;
       }
     }
     .close {
@@ -402,7 +402,7 @@ a.list-group-item {
 
 .nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {
   background-color: #fff;
-  font-weight: bold;
+  font-weight: @font-weight-bold;
   border-top: 3px solid @brand-primary;
 }
 
