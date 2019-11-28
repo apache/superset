@@ -60,11 +60,11 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
         if tt == "DATETIME":
             return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}', \
              'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""  # pylint: disable=line-too-long
-"""
-If you store nvchar for oracle time in your hana model 
-and you need to be able to filter time in superset, 
-just uncomment the following or convert time by expression
-"""
-#        if tt == "STRING":
-#            return f"TO_CHAR('{dttm.date().isoformat()}', 'YYYYMMDD')"
+        """
+        If you store nvchar for oracle time in your hana model 
+        and you need to be able to filter time in superset, 
+        just uncomment the following or convert time by expression
+        """
+        #if tt == "STRING":
+            #return f"TO_CHAR('{dttm.date().isoformat()}', 'YYYYMMDD')"
         return None
