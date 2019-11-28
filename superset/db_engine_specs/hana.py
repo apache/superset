@@ -73,12 +73,9 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
         write the expression in the "expression" field 
         and make sure to define the target type as "DATETIME" 
         with a checkmark on the "Is temporal" field. 
-        After this you should be able to use that 
+        After this you should be able to use that
         expression as your temporal column.
         """
-        """
-        if tt == "STRING":
-            return f"TO_CHAR('{dttm.date().isoformat()}', 'YYYYMMDD')"
-        """
-
+        # if tt == "STRING":
+        #     return f"TO_CHAR('{dttm.date().isoformat()}', 'YYYYMMDD')"
         return None
