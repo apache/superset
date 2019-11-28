@@ -66,7 +66,8 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
         just uncomment the following or convert time by expression
         
         If your primary temporal column is in string format, 
-        you can create an expression that parses the string-based date/datetime/timestamp 
+        you can create an expression that parses the string-based
+        date/datetime/timestamp 
         into a native date/datetime/timestamp value.
         Just select the table, click columns, add a new column,
         write the expression in the "expression" field 
