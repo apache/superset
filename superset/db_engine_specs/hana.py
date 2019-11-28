@@ -42,9 +42,42 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        """
+        Tested: hana time returns DATETIME and STRING
+        HANA:
+        :return dttm->DATETIME
+        HANA->DATE:f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
+
+        :return dttm->DATETIME
+        HANA->TIMESTAMP:
+        f"TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}',
+        'YYYY-MM-DD"T"HH24:MI:SS.ff6')"
+
+        :return dttm->STRING
+        HANA->NVARCHAR TYPE:f"TO_CHAR('{dttm.date().isoformat()}', 'YYYYMMDD')"
+        """
         tt = target_type.upper()
-        if tt == "DATE":
-            return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        if tt == "TIMESTAMP":
-            return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""  # pylint: disable=line-too-long
+        if tt == "DATETIME":
+            return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}', \
+             'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""  # pylint: disable=line-too-long
+        """
+        If you store nvchar for oracle time in your hana model 
+        and you need to be able to filter time in superset, 
+        just uncomment the following or convert time by expression
+        
+        If your primary temporal column is in string format, 
+        you can create an expression that parses the string-based date/datetime/timestamp 
+        into a native date/datetime/timestamp value.
+        Just select the table, click columns, add a new column,
+        write the expression in the "expression" field 
+        and make sure to define the target type as "DATETIME" 
+        with a checkmark on the "Is temporal" field. 
+        After this you should be able to use that 
+        expression as your temporal column.
+        """
+        """
+        if tt == "STRING":
+            return f"TO_CHAR('{dttm.date().isoformat()}', 'YYYYMMDD')"
+        """
+
         return None
