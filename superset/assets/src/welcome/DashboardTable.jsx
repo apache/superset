@@ -24,7 +24,7 @@ import { t } from '@superset-ui/translation';
 
 import withToasts from '../messageToasts/enhancers/withToasts';
 import Loading from '../components/Loading';
-import '../../stylesheets/reactable-pagination.css';
+import '../../stylesheets/reactable-pagination.less';
 
 const propTypes = {
   search: PropTypes.string,
@@ -41,13 +41,16 @@ class DashboardTable extends React.PureComponent {
 
   componentDidMount() {
     SupersetClient.get({
-      endpoint: '/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc',
+      endpoint:
+        '/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc',
     })
       .then(({ json }) => {
-         this.setState({ dashboards: json.result });
+        this.setState({ dashboards: json.result });
       })
       .catch(() => {
-        this.props.addDangerToast(t('An error occurred while fethching Dashboards'));
+        this.props.addDangerToast(
+          t('An error occurred while fethching Dashboards'),
+        );
       });
   }
 
@@ -79,7 +82,8 @@ class DashboardTable extends React.PureComponent {
               <Td column="modified" value={o.changed_on} className="text-muted">
                 {unsafe(o.modified)}
               </Td>
-            </Tr>))}
+            </Tr>
+          ))}
         </Table>
       );
     }

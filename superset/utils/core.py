@@ -33,8 +33,9 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
+from enum import Enum
 from time import struct_time
-from typing import Iterator, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Tuple, Union
 from urllib.parse import unquote_plus
 
 import bleach
@@ -644,13 +645,13 @@ def pessimistic_connection_handling(some_engine):
 class QueryStatus:
     """Enum-type class for query statuses"""
 
-    STOPPED = "stopped"
-    FAILED = "failed"
-    PENDING = "pending"
-    RUNNING = "running"
-    SCHEDULED = "scheduled"
-    SUCCESS = "success"
-    TIMED_OUT = "timed_out"
+    STOPPED: str = "stopped"
+    FAILED: str = "failed"
+    PENDING: str = "pending"
+    RUNNING: str = "running"
+    SCHEDULED: str = "scheduled"
+    SUCCESS: str = "success"
+    TIMED_OUT: str = "timed_out"
 
 
 def notify_user_about_perm_udate(granter, user, role, datasource, tpl_name, config):
@@ -668,7 +669,7 @@ def notify_user_about_perm_udate(granter, user, role, datasource, tpl_name, conf
         msg,
         config,
         bcc=granter.email,
-        dryrun=not config.get("EMAIL_NOTIFICATIONS"),
+        dryrun=not config["EMAIL_NOTIFICATIONS"],
     )
 
 
@@ -690,7 +691,7 @@ def send_email_smtp(
     send_email_smtp(
         'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
     """
-    smtp_mail_from = config.get("SMTP_MAIL_FROM")
+    smtp_mail_from = config["SMTP_MAIL_FROM"]
     to = get_email_address_list(to)
 
     msg = MIMEMultipart(mime_subtype)
@@ -746,12 +747,12 @@ def send_email_smtp(
 
 
 def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
-    SMTP_HOST = config.get("SMTP_HOST")
-    SMTP_PORT = config.get("SMTP_PORT")
-    SMTP_USER = config.get("SMTP_USER")
-    SMTP_PASSWORD = config.get("SMTP_PASSWORD")
-    SMTP_STARTTLS = config.get("SMTP_STARTTLS")
-    SMTP_SSL = config.get("SMTP_SSL")
+    SMTP_HOST = config["SMTP_HOST"]
+    SMTP_PORT = config["SMTP_PORT"]
+    SMTP_USER = config["SMTP_USER"]
+    SMTP_PASSWORD = config["SMTP_PASSWORD"]
+    SMTP_STARTTLS = config["SMTP_STARTTLS"]
+    SMTP_SSL = config["SMTP_SSL"]
 
     if not dryrun:
         s = (
@@ -790,20 +791,6 @@ def choicify(values):
     return [(v, v) for v in values]
 
 
-def setup_cache(app: Flask, cache_config) -> Optional[Cache]:
-    """Setup the flask-cache on a flask app"""
-    if cache_config:
-        if isinstance(cache_config, dict):
-            if cache_config.get("CACHE_TYPE") != "null":
-                return Cache(app, config=cache_config)
-        else:
-            # Accepts a custom cache initialization function,
-            # returning an object compatible with Flask-Caching API
-            return cache_config(app)
-
-    return None
-
-
 def zlib_compress(data):
     """
     Compress things in a py2/3 safe fashion
@@ -829,19 +816,6 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
     else:
         decompressed = zlib.decompress(bytes(blob, "utf-8"))
     return decompressed.decode("utf-8") if decode else decompressed
-
-
-_celery_app = None
-
-
-def get_celery_app(config):
-    global _celery_app
-    if _celery_app:
-        return _celery_app
-    _celery_app = celery.Celery()
-    _celery_app.config_from_object(config.get("CELERY_CONFIG"))
-    _celery_app.set_default()
-    return _celery_app
 
 
 def to_adhoc(filt, expressionType="SIMPLE", clause="where"):
@@ -932,8 +906,16 @@ def merge_extra_filters(form_data: dict):
         del form_data["extra_filters"]
 
 
-def merge_request_params(form_data: dict, params: dict):
-    url_params = {}
+def merge_request_params(form_data: Dict[str, Any], params: Dict[str, Any]) -> None:
+    """
+    Merge request parameters to the key `url_params` in form_data. Only updates
+    or appends parameters to `form_data` that are defined in `params; pre-existing
+    parameters not defined in params are left unchanged.
+
+    :param form_data: object to be updated
+    :param params: request parameters received via query string
+    """
+    url_params = form_data.get("url_params", {})
     for key, value in params.items():
         if key in ("form_data", "r"):
             continue
@@ -1210,7 +1192,7 @@ class DatasourceName(NamedTuple):
 
 
 def get_stacktrace():
-    if current_app.config.get("SHOW_STACKTRACE"):
+    if current_app.config["SHOW_STACKTRACE"]:
         return traceback.format_exc()
 
 
@@ -1244,3 +1226,29 @@ def split(
             elif not quotes:
                 quotes = True
     yield s[i:]
+
+
+class TimeRangeEndpoint(str, Enum):
+    """
+    The time range endpoint types which represent inclusive, exclusive, or unknown.
+
+    Unknown represents endpoints which are ill-defined as though the interval may be
+    [start, end] the filter may behave like (start, end] due to mixed data types and
+    lexicographical ordering.
+
+    :see: https://github.com/apache/incubator-superset/issues/6360
+    """
+
+    EXCLUSIVE = "exclusive"
+    INCLUSIVE = "inclusive"
+    UNKNOWN = "unknown"
+
+
+class ReservedUrlParameters(Enum):
+    """
+    Reserved URL parameters that are used internally by Superset. These will not be
+    passed to chart queries, as they control the behavior of the UI.
+    """
+
+    STANDALONE = "standalone"
+    EDIT_MODE = "edit"

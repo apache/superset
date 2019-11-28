@@ -19,10 +19,6 @@
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from wtforms import Field
 
-from superset import app
-
-config = app.config
-
 
 class CommaSeparatedListField(Field):
     widget = BS3TextFieldWidget()

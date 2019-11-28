@@ -3124,8 +3124,8 @@
       "CSV to Database configuration": [
         "csv 到数据库配置"
       ],
-      "CSV file \"{0}\" uploaded to table \"{1}\" in database \"{2}\"": [
-        "csv 文件 \"{0}\" 上传到数据库 \"{2}\" 中的表 \"{1}\""
+      "CSV file \"%(csv_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\"": [
+        "csv 文件 \"%(csv_filename)s\" 上传到数据库 \"%(db_name)s\" 中的表 \"%(table_name)s\""
       ],
       "User": [
         "用户"

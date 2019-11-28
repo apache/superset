@@ -50,12 +50,13 @@ class MySQLEngineSpec(BaseEngineSpec):
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        if target_type.upper() in ("DATETIME", "DATE"):
-            return "STR_TO_DATE('{}', '%Y-%m-%d %H:%i:%s')".format(
-                dttm.strftime("%Y-%m-%d %H:%M:%S")
-            )
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == "DATE":
+            return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
+        if tt == "DATETIME":
+            return f"""STR_TO_DATE('{dttm.isoformat(sep=" ", timespec="microseconds")}', '%Y-%m-%d %H:%i:%s.%f')"""  # pylint: disable=line-too-long
+        return None
 
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):

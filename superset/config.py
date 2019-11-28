@@ -28,17 +28,22 @@ import logging
 import os
 import sys
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List
+from datetime import date
+from typing import Any, Callable, Dict, List, Optional
 
 from celery.schedules import crontab
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
 from superset.stats_logger import DummyStatsLogger
+from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
+EVENT_LOGGER = DBEventLogger()
+
+SUPERSET_LOG_VIEW = True
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 if "SUPERSET_HOME" in os.environ:
@@ -54,10 +59,18 @@ VERSION_INFO_FILE = os.path.join(PACKAGE_DIR, "version_info.json")
 PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets" "package.json")
 
 
-def _try_json_readfile(filepath):
+def _try_json_readversion(filepath):
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("version")
+    except Exception:
+        return None
+
+
+def _try_json_readsha(filepath):
+    try:
+        with open(filepath, "r") as f:
+            return json.load(f).get("GIT_SHA")
     except Exception:
         return None
 
@@ -67,9 +80,11 @@ def _try_json_readfile(filepath):
 # that we're actually running Superset, we will have already installed, therefore it WILL
 # exist. When unit tests are running, however, it WILL NOT exist, so we fall
 # back to reading package.json
-VERSION_STRING = _try_json_readfile(VERSION_INFO_FILE) or _try_json_readfile(
+VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversion(
     PACKAGE_JSON_FILE
 )
+
+VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE)
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
@@ -109,6 +124,7 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
 # def lookup_password(url):
 #     return 'secret'
 # SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
+SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
@@ -154,9 +170,14 @@ LOGO_TARGET_PATH = None
 # [TimeZone List]
 # See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 # other tz can be overridden by providing a local_config
-DRUID_IS_ACTIVE = True
 DRUID_TZ = tz.tzutc()
 DRUID_ANALYSIS_TYPES = ["cardinality"]
+
+# Legacy Druid connector
+# Druid supports a SQL interface in its newer versions.
+# Setting this flag to True enables the deprecated, API-based Druid
+# connector. This feature may be removed at a future date.
+DRUID_IS_ACTIVE = False
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -232,6 +253,9 @@ DEFAULT_FEATURE_FLAGS = {
     "PRESTO_EXPAND_DATA": False,
 }
 
+# This is merely a default.
+FEATURE_FLAGS: Dict[str, bool] = {}
+
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
 # can alter it, and returns a similar dict. Note the dict of feature
@@ -279,7 +303,7 @@ SUPERSET_WEBSERVER_DOMAINS = None
 
 # Allowed format types for upload on Database view
 # TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
-ALLOWED_EXTENSIONS = set(["csv"])
+ALLOWED_EXTENSIONS = {"csv", "tsv"}
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.
@@ -371,6 +395,7 @@ BACKUP_COUNT = 30
 #     security_manager=None,
 # ):
 #     pass
+QUERY_LOGGER = None
 
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
@@ -444,6 +469,7 @@ CELERY_CONFIG = CeleryConfig
 # override anything set within the app
 DEFAULT_HTTP_HEADERS: Dict[str, Any] = {}
 OVERRIDE_HTTP_HEADERS: Dict[str, Any] = {}
+HTTP_HEADERS: Dict[str, Any] = {}
 
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
@@ -475,7 +501,7 @@ RESULTS_BACKEND = None
 # rather than JSON. This feature requires additional testing from the
 # community before it is fully adopted, so this config option is provided
 # in order to disable should breaking issues be discovered.
-RESULTS_BACKEND_USE_MSGPACK = True
+RESULTS_BACKEND_USE_MSGPACK = False
 
 # The S3 bucket where you want to store your external hive tables created
 # from CSV files. For example, 'companyname-superset'
@@ -522,12 +548,17 @@ SMTP_PASSWORD = "superset"
 SMTP_MAIL_FROM = "superset@superset.com"
 
 if not CACHE_DEFAULT_TIMEOUT:
-    CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get("CACHE_DEFAULT_TIMEOUT")  # type: ignore
+    CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG["CACHE_DEFAULT_TIMEOUT"]
+
+
+ENABLE_CHUNK_ENCODING = False
 
 # Whether to bump the logging level to ERROR on the flask_appbuilder package
 # Set to False if/when debugging FAB related issues like
 # permission management
 SILENCE_FAB = True
+
+FAB_ADD_SECURITY_VIEWS = True
 
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
@@ -637,8 +668,11 @@ WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
+
 # Send user to a link where they can read more about Superset
 DOCUMENTATION_URL = None
+DOCUMENTATION_TEXT = "Documentation"
+DOCUMENTATION_ICON = None  # Recommended size: 16x16
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
@@ -678,6 +712,18 @@ SEND_FILE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 365  # Cache static resources
 # URI to database storing the example data, points to
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
 SQLALCHEMY_EXAMPLES_URI = None
+
+# SIP-15 should be enabled for all new Superset deployments which ensures that the time
+# range endpoints adhere to [start, end). For existing deployments admins should provide
+# a dedicated period of time to allow chart producers to update their charts before
+# mass migrating all charts to use the [start, end) interval.
+#
+# Note if no end date for the grace period is specified then the grace period is
+# indefinite.
+SIP_15_ENABLED = False
+SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
+SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
+SIP_15_TOAST_MESSAGE = 'Action Required: Preview then save your chart using the new time range endpoints <a target="_blank" href="{url}" class="alert-link">here</a>.'
 
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful

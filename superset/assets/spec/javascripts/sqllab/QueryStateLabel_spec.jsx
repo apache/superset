@@ -29,9 +29,9 @@ describe('SavedQuery', () => {
     },
   };
   it('is valid', () => {
-    expect(
-      React.isValidElement(<QueryStateLabel {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<QueryStateLabel {...mockedProps} />)).toBe(
+      true,
+    );
   });
   it('has an Overlay and a Popover', () => {
     const wrapper = shallow(<QueryStateLabel {...mockedProps} />);

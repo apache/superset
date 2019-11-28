@@ -26,26 +26,30 @@ import QueryTable from './QueryTable';
 const propTypes = {
   queries: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired,
+  displayLimit: PropTypes.number.isRequired,
 };
 
-const QueryHistory = (props) => {
+const QueryHistory = props => {
   if (props.queries.length > 0) {
     return (
       <QueryTable
         columns={[
-          'state', 'started', 'duration', 'progress',
-          'rows', 'sql', 'output', 'actions',
+          'state',
+          'started',
+          'duration',
+          'progress',
+          'rows',
+          'sql',
+          'output',
+          'actions',
         ]}
         queries={props.queries}
         actions={props.actions}
+        displayLimit={props.displayLimit}
       />
     );
   }
-  return (
-    <Alert bsStyle="info">
-      {t('No query history yet...')}
-    </Alert>
-  );
+  return <Alert bsStyle="info">{t('No query history yet...')}</Alert>;
 };
 QueryHistory.propTypes = propTypes;
 

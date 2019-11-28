@@ -32,13 +32,7 @@ export const DEFAULT_VIEWPORT = {
   pitch: 0,
 };
 
-const PARAMS = [
-  'longitude',
-  'latitude',
-  'zoom',
-  'bearing',
-  'pitch',
-];
+const PARAMS = ['longitude', 'latitude', 'zoom', 'bearing', 'pitch'];
 
 const propTypes = {
   onChange: PropTypes.func.isRequired,
@@ -111,9 +105,7 @@ export default class ViewportControl extends React.Component {
           placement="right"
           overlay={this.renderPopover()}
         >
-          <Label style={{ cursor: 'pointer' }}>
-            {this.renderLabel()}
-          </Label>
+          <Label style={{ cursor: 'pointer' }}>{this.renderLabel()}</Label>
         </OverlayTrigger>
       </div>
     );

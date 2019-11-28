@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
+
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.models.core import Database
 from tests.base_tests import SupersetTestCase
@@ -26,3 +28,6 @@ class DbEngineSpecTestCase(SupersetTestCase):
         main = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
         limited = engine_spec_class.apply_limit_to_sql(sql, limit, main)
         self.assertEqual(expected_sql, limited)
+
+    def get_dttm(self):
+        return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")

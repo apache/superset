@@ -126,7 +126,6 @@ Installation & Configuration
 Resources
 -------------
 * [Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
-* [Gitter (live chat) Channel](https://gitter.im/airbnb/superset)
 * [Docker image](https://hub.docker.com/r/amancevice/superset/) (community contributed)
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
 * [Stackoverflow tag](https://stackoverflow.com/questions/tagged/apache-superset)
@@ -157,6 +156,7 @@ the world know they are using Superset. Join our growing community!
  1. [Apollo GraphQL](https://www.apollographql.com/)
  1. [Ascendica Development](http://ascendicadevelopment.com)
  1. [Astronomer](https://www.astronomer.io)
+ 1. [bilibili](https://www.bilibili.com)
  1. [Brilliant.org](https://brilliant.org/)
  1. [Capital Service S.A.](http://capitalservice.pl)
  1. [Clark.de](http://clark.de/)

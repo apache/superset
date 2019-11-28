@@ -70,10 +70,9 @@ export default class TemplateParamsEditor extends React.Component {
       isValid = false;
     }
     this.setState({ parsedJSON, isValid, codeText });
-    if (isValid) {
-      this.props.onChange(codeText);
-    } else {
-      this.props.onChange('{}');
+    const newValue = isValid ? codeText : '{}';
+    if (newValue !== this.props.code) {
+      this.props.onChange(newValue);
     }
   }
   renderDoc() {
@@ -92,7 +91,8 @@ export default class TemplateParamsEditor extends React.Component {
           rel="noopener noreferrer"
         >
           Jinja templating
-        </a> syntax.
+        </a>{' '}
+        syntax.
       </p>
     );
   }
@@ -116,27 +116,24 @@ export default class TemplateParamsEditor extends React.Component {
     );
   }
   render() {
-    const paramCount = this.state.parsedJSON ? Object.keys(this.state.parsedJSON).length : 0;
+    const paramCount = this.state.parsedJSON
+      ? Object.keys(this.state.parsedJSON).length
+      : 0;
     return (
       <ModalTrigger
         modalTitle={t('Template Parameters')}
         triggerNode={
-          <Button
-            className="m-r-5"
-            tooltip={t('Edit template parameters')}
-          >
+          <Button tooltip={t('Edit template parameters')}>
             {`${t('parameters')} `}
-            {paramCount > 0 &&
-              <Badge>{paramCount}</Badge>
-            }
-            {!this.state.isValid &&
+            {paramCount > 0 && <Badge>{paramCount}</Badge>}
+            {!this.state.isValid && (
               <InfoTooltipWithTrigger
                 icon="exclamation-triangle"
                 bsStyle="danger"
                 tooltip={t('Invalid JSON')}
                 label="invalid-json"
               />
-            }
+            )}
           </Button>
         }
         modalBody={this.renderModalBody(true)}

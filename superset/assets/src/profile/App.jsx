@@ -27,22 +27,21 @@ import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
 
-import './main.css';
+import './main.less';
 
 setupApp();
 
 const profileViewContainer = document.getElementById('app');
-const bootstrap = JSON.parse(profileViewContainer.getAttribute('data-bootstrap'));
+const bootstrap = JSON.parse(
+  profileViewContainer.getAttribute('data-bootstrap'),
+);
 
 const store = createStore(
   combineReducers({
     messageToasts: messageToastReducer,
   }),
   {},
-  compose(
-    applyMiddleware(thunk),
-    initEnhancer(false),
-  ),
+  compose(applyMiddleware(thunk), initEnhancer(false)),
 );
 
 const Application = () => (

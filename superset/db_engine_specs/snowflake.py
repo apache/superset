@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
+from typing import Optional
 from urllib import parse
 
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -61,3 +63,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     @classmethod
     def epoch_ms_to_dttm(cls) -> str:
         return "DATEADD(MS, {col}, '1970-01-01')"
+
+    @classmethod
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == "DATE":
+            return f"TO_DATE('{dttm.date().isoformat()}')"
+        if tt == "DATETIME":
+            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
+        if tt == "TIMESTAMP":
+            return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}')"""
+        return None

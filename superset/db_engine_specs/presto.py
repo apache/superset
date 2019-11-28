@@ -409,6 +409,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         database,
         table_name: str,
         engine: Engine,
+        sql: Optional[str] = None,
         schema: str = None,
         limit: int = 100,
         show_cols: bool = False,
@@ -432,6 +433,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             database,
             table_name,
             engine,
+            sql,
             schema,
             limit,
             show_cols,
@@ -443,19 +445,20 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def estimate_statement_cost(  # pylint: disable=too-many-locals
         cls, statement: str, database, cursor, user_name: str
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         """
-        Generate a SQL query that estimates the cost of a given statement.
+        Run a SQL query that estimates the cost of a given statement.
 
         :param statement: A single SQL statement
         :param database: Database instance
         :param cursor: Cursor instance
         :param username: Effective username
+        :return: JSON response from Presto
         """
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
 
-        sql_query_mutator = config.get("SQL_QUERY_MUTATOR")
+        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
             sql = sql_query_mutator(sql, user_name, security_manager, database)
 
@@ -476,7 +479,18 @@ class PrestoEngineSpec(BaseEngineSpec):
         #     }
         #   }
         result = json.loads(cursor.fetchone()[0])
-        estimate = result["estimate"]
+        return result
+
+    @classmethod
+    def query_cost_formatter(
+        cls, raw_cost: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
+        """
+        Format cost estimate.
+
+        :param raw_cost: JSON estimate from Presto
+        :return: Human readable cost estimate
+        """
 
         def humanize(value: Any, suffix: str) -> str:
             try:
@@ -493,7 +507,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
             return f"{value} {prefix}{suffix}"
 
-        cost = {}
+        cost = []
         columns = [
             ("outputRowCount", "Output count", " rows"),
             ("outputSizeInBytes", "Output size", "B"),
@@ -501,9 +515,13 @@ class PrestoEngineSpec(BaseEngineSpec):
             ("maxMemory", "Max memory", "B"),
             ("networkCost", "Network cost", ""),
         ]
-        for key, label, suffix in columns:
-            if key in estimate:
-                cost[label] = humanize(estimate[key], suffix)
+        for row in raw_cost:
+            estimate: Dict[str, float] = row.get("estimate", {})
+            statement_cost = {}
+            for key, label, suffix in columns:
+                if key in estimate:
+                    statement_cost[label] = humanize(estimate[key], suffix).strip()
+            cost.append(statement_cost)
 
         return cost
 
@@ -520,13 +538,13 @@ class PrestoEngineSpec(BaseEngineSpec):
         return uri
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
         if tt == "DATE":
-            return "from_iso8601_date('{}')".format(dttm.isoformat()[:10])
+            return f"""from_iso8601_date('{dttm.date().isoformat()}')"""
         if tt == "TIMESTAMP":
-            return "from_iso8601_timestamp('{}')".format(dttm.isoformat())
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long
+        return None
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

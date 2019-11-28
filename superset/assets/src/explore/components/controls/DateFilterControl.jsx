@@ -39,7 +39,7 @@ import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
 
-import './DateFilterControl.css';
+import './DateFilterControl.less';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
 
@@ -64,15 +64,30 @@ const COMMON_TIME_FRAMES = [
   'Last year',
   'No filter',
 ];
-const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
+const TIME_GRAIN_OPTIONS = [
+  'seconds',
+  'minutes',
+  'hours',
+  'days',
+  'weeks',
+  'months',
+  'years',
+];
 
 const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
-const DEFAULT_SINCE = moment().startOf('day').subtract(7, 'days').format(MOMENT_FORMAT);
-const DEFAULT_UNTIL = moment().startOf('day').format(MOMENT_FORMAT);
+const DEFAULT_SINCE = moment()
+  .utc()
+  .startOf('day')
+  .subtract(7, 'days')
+  .format(MOMENT_FORMAT);
+const DEFAULT_UNTIL = moment()
+  .utc()
+  .startOf('day')
+  .format(MOMENT_FORMAT);
 const SEPARATOR = ' : ';
 const FREEFORM_TOOLTIP = t(
   'Superset supports smart date parsing. Strings like `last sunday` or ' +
-  '`last october` can be used.',
+    '`last october` can be used.',
 );
 
 const DATE_FILTER_POPOVER_STYLE = { width: '250px' };
@@ -87,6 +102,7 @@ const propTypes = {
   height: PropTypes.number,
   onOpenDateFilterControl: PropTypes.func,
   onCloseDateFilterControl: PropTypes.func,
+  endpoints: PropTypes.arrayOf(PropTypes.string),
 };
 
 const defaultProps = {
@@ -102,7 +118,7 @@ function isValidMoment(s) {
    * parsed as "Fri Jan 01 2010 00:00:00" local time. This function does a
    * better check by comparing a string with a parse/format roundtrip.
    */
-  return (s === moment(s, MOMENT_FORMAT).format(MOMENT_FORMAT));
+  return s === moment(s, MOMENT_FORMAT).format(MOMENT_FORMAT);
 }
 
 function getStateFromSeparator(value) {
@@ -116,8 +132,15 @@ function getStateFromCommonTimeFrame(value) {
     tab: TABS.DEFAULTS,
     type: TYPES.DEFAULTS,
     common: value,
-    since: moment().startOf('day').subtract(1, units).format(MOMENT_FORMAT),
-    until: moment().startOf('day').format(MOMENT_FORMAT),
+    since: moment()
+      .utc()
+      .startOf('day')
+      .subtract(1, units)
+      .format(MOMENT_FORMAT),
+    until: moment()
+      .utc()
+      .startOf('day')
+      .format(MOMENT_FORMAT),
   };
 }
 
@@ -126,17 +149,24 @@ function getStateFromCustomRange(value) {
   let since;
   let until;
   if (rel === RELATIVE_TIME_OPTIONS.LAST) {
-    until = moment().startOf('day').format(MOMENT_FORMAT);
+    until = moment()
+      .utc()
+      .startOf('day')
+      .format(MOMENT_FORMAT);
     since = moment()
+      .utc()
       .startOf('day')
       .subtract(num, grain)
       .format(MOMENT_FORMAT);
   } else {
     until = moment()
+      .utc()
       .startOf('day')
       .add(num, grain)
       .format(MOMENT_FORMAT);
-    since = moment().startOf('day').format(MOMENT_FORMAT);
+    since = moment()
+      .startOf('day')
+      .format(MOMENT_FORMAT);
   }
   return {
     tab: TABS.CUSTOM,
@@ -215,14 +245,17 @@ export default class DateFilterControl extends React.Component {
   }
   setCustomRange(key, value) {
     const updatedState = { ...this.state, [key]: value };
-    const combinedValue = [updatedState.rel, updatedState.num, updatedState.grain].join(' ');
+    const combinedValue = [
+      updatedState.rel,
+      updatedState.num,
+      updatedState.grain,
+    ].join(' ');
     this.setState(getStateFromCustomRange(combinedValue));
   }
   setCustomStartEnd(key, value) {
-    const closeCalendar = (
+    const closeCalendar =
       (key === 'since' && this.state.sinceViewMode === 'days') ||
-      (key === 'until' && this.state.untilViewMode === 'days')
-    );
+      (key === 'until' && this.state.untilViewMode === 'days');
     this.setState({
       type: TYPES.CUSTOM_START_END,
       [key]: typeof value === 'string' ? value : value.format(MOMENT_FORMAT),
@@ -258,10 +291,7 @@ export default class DateFilterControl extends React.Component {
     // if user click outside popover, popover will hide and we will call onCloseDateFilterControl,
     // but need to exclude OverlayTrigger component to avoid handle click events twice.
     if (target.getAttribute('name') !== 'popover-trigger') {
-      if (
-        this.popoverContainer &&
-        !this.popoverContainer.contains(target)
-      ) {
+      if (this.popoverContainer && !this.popoverContainer.contains(target)) {
         this.props.onCloseDateFilterControl();
       }
     }
@@ -280,7 +310,10 @@ export default class DateFilterControl extends React.Component {
 
   close() {
     let val;
-    if (this.state.type === TYPES.DEFAULTS || this.state.tab === TABS.DEFAULTS) {
+    if (
+      this.state.type === TYPES.DEFAULTS ||
+      this.state.tab === TABS.DEFAULTS
+    ) {
       val = this.state.common;
     } else if (this.state.type === TYPES.CUSTOM_RANGE) {
       val = `${this.state.rel} ${this.state.num} ${this.state.grain}`;
@@ -293,10 +326,16 @@ export default class DateFilterControl extends React.Component {
     this.setState({ showSinceCalendar: false, showUntilCalendar: false });
   }
   isValidSince(date) {
-    return (!isValidMoment(this.state.until) || date <= moment(this.state.until, MOMENT_FORMAT));
+    return (
+      !isValidMoment(this.state.until) ||
+      date <= moment(this.state.until, MOMENT_FORMAT)
+    );
   }
   isValidUntil(date) {
-    return (!isValidMoment(this.state.since) || date >= moment(this.state.since, MOMENT_FORMAT));
+    return (
+      !isValidMoment(this.state.since) ||
+      date >= moment(this.state.since, MOMENT_FORMAT)
+    );
   }
   toggleCalendar(key) {
     const nextState = {};
@@ -343,16 +382,19 @@ export default class DateFilterControl extends React.Component {
       >
         {grain}
       </MenuItem>
-      ));
-    const timeFrames = COMMON_TIME_FRAMES.map((timeFrame) => {
+    ));
+    const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => {
       const nextState = getStateFromCommonTimeFrame(timeFrame);
+      const endpoints = this.props.endpoints;
       return (
         <OverlayTrigger
           key={timeFrame}
           placement="left"
           overlay={
             <Tooltip id={`tooltip-${timeFrame}`}>
-              {nextState.since}<br />{nextState.until}
+              {nextState.since} {endpoints && `(${endpoints[0]})`}
+              <br />
+              {nextState.until} {endpoints && `(${endpoints[1]})`}
             </Tooltip>
           }
         >
@@ -370,7 +412,12 @@ export default class DateFilterControl extends React.Component {
     });
     return (
       <Popover id="filter-popover" placement="top" positionTop={0}>
-        <div style={DATE_FILTER_POPOVER_STYLE} ref={(ref) => { this.popoverContainer = ref; }}>
+        <div
+          style={DATE_FILTER_POPOVER_STYLE}
+          ref={ref => {
+            this.popoverContainer = ref;
+          }}
+        >
           <Tabs
             defaultActiveKey={this.state.tab === TABS.DEFAULTS ? 1 : 2}
             id="type"
@@ -387,8 +434,14 @@ export default class DateFilterControl extends React.Component {
                   isSelected={this.state.type === TYPES.CUSTOM_RANGE}
                   onSelect={this.setTypeCustomRange}
                 >
-                  <div className="clearfix centered" style={{ marginTop: '12px' }}>
-                    <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
+                  <div
+                    className="clearfix centered"
+                    style={{ marginTop: '12px' }}
+                  >
+                    <div
+                      style={{ width: '60px', marginTop: '-4px' }}
+                      className="input-inline"
+                    >
                       <DropdownButton
                         bsSize="small"
                         componentClass={InputGroup.Button}
@@ -401,29 +454,39 @@ export default class DateFilterControl extends React.Component {
                           key={RELATIVE_TIME_OPTIONS.LAST}
                           eventKey={RELATIVE_TIME_OPTIONS.LAST}
                           active={this.state.rel === RELATIVE_TIME_OPTIONS.LAST}
-                        >Last
+                        >
+                          Last
                         </MenuItem>
                         <MenuItem
                           onSelect={value => this.setCustomRange('rel', value)}
                           key={RELATIVE_TIME_OPTIONS.NEXT}
                           eventKey={RELATIVE_TIME_OPTIONS.NEXT}
                           active={this.state.rel === RELATIVE_TIME_OPTIONS.NEXT}
-                        >Next
+                        >
+                          Next
                         </MenuItem>
                       </DropdownButton>
                     </div>
-                    <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
+                    <div
+                      style={{ width: '60px', marginTop: '-4px' }}
+                      className="input-inline"
+                    >
                       <FormControl
                         bsSize="small"
                         type="text"
-                        onChange={event => this.setCustomRange('num', event.target.value)}
+                        onChange={event =>
+                          this.setCustomRange('num', event.target.value)
+                        }
                         onFocus={this.setTypeCustomRange}
                         onKeyPress={this.onEnter}
                         value={this.state.num}
                         style={{ height: '30px' }}
                       />
                     </div>
-                    <div style={{ width: '90px', marginTop: '-4px' }} className="input-inline">
+                    <div
+                      style={{ width: '90px', marginTop: '-4px' }}
+                      className="input-inline"
+                    >
                       <DropdownButton
                         bsSize="small"
                         componentClass={InputGroup.Button}
@@ -442,20 +505,30 @@ export default class DateFilterControl extends React.Component {
                   onSelect={this.setTypeCustomStartEnd}
                   info={FREEFORM_TOOLTIP}
                 >
-                  <div ref={(ref) => { this.startEndSectionRef = ref; }}>
+                  <div
+                    ref={ref => {
+                      this.startEndSectionRef = ref;
+                    }}
+                  >
                     <InputGroup>
                       <div style={{ margin: '5px 0' }}>
                         <Datetime
                           value={this.state.since}
                           defaultValue={this.state.since}
                           viewDate={this.state.since}
-                          onChange={value => this.setCustomStartEnd('since', value)}
+                          onChange={value =>
+                            this.setCustomStartEnd('since', value)
+                          }
                           isValidDate={this.isValidSince}
                           onClick={this.setTypeCustomStartEnd}
-                          renderInput={props => this.renderInput(props, 'showSinceCalendar')}
+                          renderInput={props =>
+                            this.renderInput(props, 'showSinceCalendar')
+                          }
                           open={this.state.showSinceCalendar}
                           viewMode={this.state.sinceViewMode}
-                          onViewModeChange={sinceViewMode => this.setState({ sinceViewMode })}
+                          onViewModeChange={sinceViewMode =>
+                            this.setState({ sinceViewMode })
+                          }
                         />
                       </div>
                       <div style={{ margin: '5px 0' }}>
@@ -463,13 +536,19 @@ export default class DateFilterControl extends React.Component {
                           value={this.state.until}
                           defaultValue={this.state.until}
                           viewDate={this.state.until}
-                          onChange={value => this.setCustomStartEnd('until', value)}
+                          onChange={value =>
+                            this.setCustomStartEnd('until', value)
+                          }
                           isValidDate={this.isValidUntil}
                           onClick={this.setTypeCustomStartEnd}
-                          renderInput={props => this.renderInput(props, 'showUntilCalendar')}
+                          renderInput={props =>
+                            this.renderInput(props, 'showUntilCalendar')
+                          }
                           open={this.state.showUntilCalendar}
                           viewMode={this.state.untilViewMode}
-                          onViewModeChange={untilViewMode => this.setState({ untilViewMode })}
+                          onViewModeChange={untilViewMode =>
+                            this.setState({ untilViewMode })
+                          }
                         />
                       </div>
                     </InputGroup>
@@ -494,7 +573,16 @@ export default class DateFilterControl extends React.Component {
   }
   render() {
     let value = this.props.value || defaultProps.value;
-    value = value.split(SEPARATOR).map((v, idx) => v.replace('T00:00:00', '') || (idx === 0 ? '-∞' : '∞')).join(SEPARATOR);
+    const endpoints = this.props.endpoints;
+    value = value
+      .split(SEPARATOR)
+      .map((v, idx) =>
+        moment(v).isValid()
+          ? v.replace('T00:00:00', '') +
+            (endpoints ? ` (${endpoints[idx]})` : '')
+          : v || (idx === 0 ? '-∞' : '∞'),
+      )
+      .join(SEPARATOR);
     return (
       <div>
         <ControlHeader {...this.props} />
@@ -508,7 +596,9 @@ export default class DateFilterControl extends React.Component {
           overlay={this.renderPopover()}
           onClick={this.handleClickTrigger}
         >
-          <Label name="popover-trigger" style={{ cursor: 'pointer' }}>{value}</Label>
+          <Label name="popover-trigger" style={{ cursor: 'pointer' }}>
+            {value}
+          </Label>
         </OverlayTrigger>
       </div>
     );

@@ -109,6 +109,7 @@ The following RDBMS are currently supported:
 - `Apache Spark SQL <https://spark.apache.org/sql/>`_
 - `BigQuery <https://cloud.google.com/bigquery/>`_
 - `ClickHouse <https://clickhouse.yandex/>`_
+- `Elasticsearch <https://www.elastic.co/products/elasticsearch/>`_
 - `Exasol <https://www.exasol.com/>`_
 - `Google Sheets <https://www.google.com/sheets/about/>`_
 - `Greenplum <https://greenplum.org/>`_
@@ -122,6 +123,7 @@ The following RDBMS are currently supported:
 - `SQL Server <https://www.microsoft.com/en-us/sql-server/>`_
 - `Teradata <https://www.teradata.com/>`_
 - `Vertica <https://www.vertica.com/>`_
+- `Hana <https://www.sap.com/products/hana.html>`_
 
 Other database engines with a proper DB-API driver and SQLAlchemy dialect should
 be supported as well.
@@ -153,7 +155,7 @@ Contents
     :maxdepth: 2
 
     installation
-    tutorial
+    tutorials
     security
     sqllab
     gallery

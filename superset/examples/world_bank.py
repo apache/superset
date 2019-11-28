@@ -104,11 +104,10 @@ def load_world_bank_health_n_pop(only_metadata=False, force=False):
         "groupby": [],
         "metric": "sum__SP_POP_TOTL",
         "metrics": ["sum__SP_POP_TOTL"],
-        "row_limit": config.get("ROW_LIMIT"),
+        "row_limit": config["ROW_LIMIT"],
         "since": "2014-01-01",
         "until": "2014-01-02",
         "time_range": "2014-01-01 : 2014-01-02",
-        "where": "",
         "markup_type": "markdown",
         "country_fieldtype": "cca3",
         "secondary_metric": {
@@ -226,10 +225,12 @@ def load_world_bank_health_n_pop(only_metadata=False, force=False):
                 y="sum__SP_DYN_LE00_IN",
                 size="sum__SP_POP_TOTL",
                 max_bubble_size="50",
-                filters=[
+                adhoc_filters=[
                     {
-                        "col": "country_code",
-                        "val": [
+                        "clause": "WHERE",
+                        "expressionType": "SIMPLE",
+                        "filterOptionName": "2745eae5",
+                        "comparator": [
                             "TCA",
                             "MNP",
                             "DMA",
@@ -245,7 +246,8 @@ def load_world_bank_health_n_pop(only_metadata=False, force=False):
                             "AMA",
                             "PLW",
                         ],
-                        "op": "not in",
+                        "operator": "not in",
+                        "subject": "country_code",
                     }
                 ],
             ),
@@ -327,7 +329,7 @@ def load_world_bank_health_n_pop(only_metadata=False, force=False):
         merge_slice(slc)
 
     print("Creating a World's Health Bank dashboard")
-    dash_name = "World's Bank Data"
+    dash_name = "World Bank's Data"
     slug = "world_health"
     dash = db.session.query(Dash).filter_by(slug=slug).first()
 

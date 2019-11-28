@@ -18,7 +18,7 @@ import unittest
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import numpy
 from flask import Flask
@@ -28,6 +28,7 @@ from sqlalchemy.exc import ArgumentError
 from superset import app, db, security_manager
 from superset.exceptions import SupersetException
 from superset.models.core import Database
+from superset.utils.cache_manager import CacheManager
 from superset.utils.core import (
     base_json_conv,
     convert_legacy_filters_into_adhoc,
@@ -45,12 +46,14 @@ from superset.utils.core import (
     parse_human_timedelta,
     parse_js_uri_path_item,
     parse_past_timedelta,
-    setup_cache,
     split,
+    TimeRangeEndpoint,
     validate_json,
     zlib_compress,
     zlib_decompress,
 )
+from superset.views.utils import get_time_range_endpoints
+from tests.base_tests import SupersetTestCase
 
 
 def mock_parse_human_datetime(s):
@@ -91,7 +94,7 @@ def mock_to_adhoc(filt, expressionType="SIMPLE", clause="where"):
     return result
 
 
-class UtilsTestCase(unittest.TestCase):
+class UtilsTestCase(SupersetTestCase):
     def test_json_int_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
         ts = 1577836800000.0
@@ -519,13 +522,27 @@ class UtilsTestCase(unittest.TestCase):
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
 
-    def test_merge_request_params(self):
+    def test_merge_request_params_when_url_params_undefined(self):
         form_data = {"since": "2000", "until": "now"}
         url_params = {"form_data": form_data, "dashboard_ids": "(1,2,3,4,5)"}
         merge_request_params(form_data, url_params)
         self.assertIn("url_params", form_data.keys())
         self.assertIn("dashboard_ids", form_data["url_params"])
         self.assertNotIn("form_data", form_data.keys())
+
+    def test_merge_request_params_when_url_params_predefined(self):
+        form_data = {
+            "since": "2000",
+            "until": "now",
+            "url_params": {"abc": "123", "dashboard_ids": "(1,2,3)"},
+        }
+        url_params = {"form_data": form_data, "dashboard_ids": "(1,2,3,4,5)"}
+        merge_request_params(form_data, url_params)
+        self.assertIn("url_params", form_data.keys())
+        self.assertIn("abc", form_data["url_params"])
+        self.assertEquals(
+            url_params["dashboard_ids"], form_data["url_params"]["dashboard_ids"]
+        )
 
     def test_datetime_f(self):
         self.assertEqual(
@@ -807,12 +824,12 @@ class UtilsTestCase(unittest.TestCase):
     def test_setup_cache_no_config(self):
         app = Flask(__name__)
         cache_config = None
-        self.assertIsNone(setup_cache(app, cache_config))
+        self.assertIsNone(CacheManager._setup_cache(app, cache_config))
 
     def test_setup_cache_null_config(self):
         app = Flask(__name__)
         cache_config = {"CACHE_TYPE": "null"}
-        self.assertIsNone(setup_cache(app, cache_config))
+        self.assertIsNone(CacheManager._setup_cache(app, cache_config))
 
     def test_setup_cache_standard_config(self):
         app = Flask(__name__)
@@ -822,7 +839,7 @@ class UtilsTestCase(unittest.TestCase):
             "CACHE_KEY_PREFIX": "superset_results",
             "CACHE_REDIS_URL": "redis://localhost:6379/0",
         }
-        assert isinstance(setup_cache(app, cache_config), Cache) is True
+        assert isinstance(CacheManager._setup_cache(app, cache_config), Cache) is True
 
     def test_setup_cache_custom_function(self):
         app = Flask(__name__)
@@ -831,7 +848,9 @@ class UtilsTestCase(unittest.TestCase):
         def init_cache(app):
             return CustomCache(app, {})
 
-        assert isinstance(setup_cache(app, init_cache), CustomCache) is True
+        assert (
+            isinstance(CacheManager._setup_cache(app, init_cache), CustomCache) is True
+        )
 
     def test_get_stacktrace(self):
         with app.app_context():
@@ -877,7 +896,61 @@ class UtilsTestCase(unittest.TestCase):
         get_or_create_db("test_db", "sqlite:///changed.db")
         database = db.session.query(Database).filter_by(database_name="test_db").one()
         self.assertEqual(database.sqlalchemy_uri, "sqlite:///changed.db")
+        db.session.delete(database)
+        db.session.commit()
 
     def test_get_or_create_db_invalid_uri(self):
         with self.assertRaises(ArgumentError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
+
+    def test_get_time_range_endpoints(self):
+        self.assertEqual(
+            get_time_range_endpoints(form_data={}),
+            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
+        )
+
+        self.assertEqual(
+            get_time_range_endpoints(
+                form_data={"time_range_endpoints": ["inclusive", "inclusive"]}
+            ),
+            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
+        )
+
+        self.assertEqual(
+            get_time_range_endpoints(form_data={"datasource": "1_druid"}),
+            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
+        )
+
+        slc = Mock()
+        slc.datasource.database.get_extra.return_value = {}
+
+        self.assertEqual(
+            get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
+            (TimeRangeEndpoint.UNKNOWN, TimeRangeEndpoint.INCLUSIVE),
+        )
+
+        slc.datasource.database.get_extra.return_value = {
+            "time_range_endpoints": ["inclusive", "inclusive"]
+        }
+
+        self.assertEqual(
+            get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
+            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
+        )
+
+        self.assertIsNone(get_time_range_endpoints(form_data={}, slc=slc))
+
+        with app.app_context():
+            app.config["SIP_15_GRACE_PERIOD_END"] = date.today() + timedelta(days=1)
+
+            self.assertEqual(
+                get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
+                (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
+            )
+
+            app.config["SIP_15_GRACE_PERIOD_END"] = date.today()
+
+            self.assertEqual(
+                get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
+                (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
+            )

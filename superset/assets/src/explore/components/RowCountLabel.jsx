@@ -37,12 +37,11 @@ const defaultProps = {
 
 export default function RowCountLabel({ rowcount, limit, suffix }) {
   const limitReached = rowcount === limit;
-  const bsStyle = (limitReached || rowcount === 0) ? 'danger' : 'default';
+  const bsStyle = limitReached || rowcount === 0 ? 'danger' : 'default';
   const formattedRowCount = getNumberFormatter()(rowcount);
   const tooltip = (
     <span>
-      {limitReached &&
-        <div>{t('Limit reached')}</div>}
+      {limitReached && <div>{t('Limit reached')}</div>}
       {rowcount}
     </span>
   );
@@ -52,7 +51,7 @@ export default function RowCountLabel({ rowcount, limit, suffix }) {
         bsStyle={bsStyle}
         style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
       >
-        {formattedRowCount}{' '}{suffix}
+        {formattedRowCount} {suffix}
       </Label>
     </TooltipWrapper>
   );

@@ -19,11 +19,11 @@ import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import simplejson as json
 import yaml
-from flask import abort, flash, g, get_flashed_messages, redirect, Response
+from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
 from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
@@ -34,7 +34,7 @@ from flask_wtf.form import FlaskForm
 from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
 
-from superset import conf, db, get_feature_flags, security_manager
+from superset import appbuilder, conf, db, get_feature_flags, security_manager
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
@@ -47,6 +47,7 @@ FRONTEND_CONF_KEYS = (
     "SQL_MAX_ROW",
     "SUPERSET_WEBSERVER_DOMAINS",
     "SQLLAB_SAVE_WARNING_MESSAGE",
+    "DISPLAY_MAX_ROW",
 )
 
 
@@ -168,16 +169,63 @@ class BaseSupersetView(BaseView):
             mimetype="application/json",
         )
 
+    def menu_data(self):
+        menu = appbuilder.menu.get_data()
+        root_path = "#"
+        logo_target_path = ""
+        if not g.user.is_anonymous:
+            try:
+                logo_target_path = (
+                    appbuilder.app.config.get("LOGO_TARGET_PATH")
+                    or f"/profile/{g.user.username}/"
+                )
+            # when user object has no username
+            except NameError as e:
+                logging.exception(e)
+
+            if logo_target_path.startswith("/"):
+                root_path = f"/superset{logo_target_path}"
+            else:
+                root_path = logo_target_path
+
+        languages = {}
+        for lang in appbuilder.languages:
+            languages[lang] = {
+                **appbuilder.languages[lang],
+                "url": appbuilder.get_url_for_locale(lang),
+            }
+        return {
+            "menu": menu,
+            "brand": {
+                "path": root_path,
+                "icon": appbuilder.app_icon,
+                "alt": appbuilder.app_name,
+            },
+            "navbar_right": {
+                "bug_report_url": appbuilder.app.config.get("BUG_REPORT_URL"),
+                "documentation_url": appbuilder.app.config.get("DOCUMENTATION_URL"),
+                "languages": languages,
+                "show_language_picker": len(languages.keys()) > 1,
+                "user_is_anonymous": g.user.is_anonymous,
+                "user_info_url": appbuilder.get_url_for_userinfo,
+                "user_logout_url": appbuilder.get_url_for_logout,
+                "user_login_url": appbuilder.get_url_for_login,
+                "locale": session.get("locale", "en"),
+            },
+        }
+
     def common_bootstrap_payload(self):
         """Common data always sent to the client"""
         messages = get_flashed_messages(with_categories=True)
         locale = str(get_locale())
+
         return {
             "flash_messages": messages,
             "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
             "locale": locale,
             "language_pack": get_language_pack(locale),
             "feature_flags": get_feature_flags(),
+            "menu_data": self.menu_data(),
         }
 
 
@@ -207,12 +255,20 @@ def validate_json(form, field):
 
 
 class YamlExportMixin(object):
+    yaml_dict_key: Optional[str] = None
+    """
+    Override this if you want a dict response instead, with a certain key. 
+    Used on DatabaseView for cli compatibility
+    """
+
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(self, items):
         if not isinstance(items, list):
             items = [items]
 
         data = [t.export_to_dict() for t in items]
+        if self.yaml_dict_key:
+            data = {self.yaml_dict_key: data}
         return Response(
             yaml.safe_dump(data),
             headers=generate_download_headers("yaml"),

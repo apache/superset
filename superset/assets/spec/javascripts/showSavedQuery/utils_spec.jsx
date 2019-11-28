@@ -43,7 +43,6 @@ describe('getNestedValue', () => {
   });
 });
 
-
 describe('interpolate', () => {
   it('is a function', () => {
     expect(typeof interpolate).toBe('function');

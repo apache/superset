@@ -31,7 +31,10 @@ const propTypes = {
   showTooltip: PropTypes.bool,
   emptyText: PropTypes.node,
   style: PropTypes.object,
-  extraClasses: PropTypes.oneOfType([PropTypes.arrayOf(PropTypes.string), PropTypes.string]),
+  extraClasses: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.string),
+    PropTypes.string,
+  ]),
 };
 const defaultProps = {
   title: t('Title'),
@@ -77,8 +80,9 @@ export default class EditableTitle extends React.PureComponent {
 
     // For multi-line values, save the actual rendered size of the displayed text.
     // Later, if a textarea is constructed for editing the value, we'll need this.
-    const contentBoundingRect = (this.contentRef.current) ?
-      this.contentRef.current.getBoundingClientRect() : null;
+    const contentBoundingRect = this.contentRef.current
+      ? this.contentRef.current.getBoundingClientRect()
+      : null;
 
     this.setState({ isEditing: true, contentBoundingRect });
   }
@@ -144,8 +148,15 @@ export default class EditableTitle extends React.PureComponent {
 
   render() {
     const { isEditing, title, contentBoundingRect } = this.state;
-    const { emptyText, multiLine, showTooltip, canEdit,
-      noPermitTooltip, style, extraClasses } = this.props;
+    const {
+      emptyText,
+      multiLine,
+      showTooltip,
+      canEdit,
+      noPermitTooltip,
+      style,
+      extraClasses,
+    } = this.props;
 
     let value;
     if (title) {
@@ -156,43 +167,51 @@ export default class EditableTitle extends React.PureComponent {
 
     // Construct an inline style based on previously-saved height of the rendered label. Only
     // used in multi-line contexts.
-    const editStyle = (isEditing && contentBoundingRect) ? { height: `${contentBoundingRect.height}px` } : null;
+    const editStyle =
+      isEditing && contentBoundingRect
+        ? { height: `${contentBoundingRect.height}px` }
+        : null;
 
     // Create a textarea when we're editing a multi-line value, otherwise create an input (which may
     // be text or a button).
-    let input = multiLine && isEditing ? (
-      <textarea
-        ref={this.contentRef}
-        required
-        value={value}
-        className={!title ? 'text-muted' : null}
-        onKeyDown={this.handleKeyDown}
-        onChange={this.handleChange}
-        onBlur={this.handleBlur}
-        onClick={this.handleClick}
-        onKeyPress={this.handleKeyPress}
-        style={editStyle}
-      />
-    ) : (
-      <input
-        ref={this.contentRef}
-        required
-        type={isEditing ? 'text' : 'button'}
-        value={value}
-        className={!title ? 'text-muted' : null}
-        onKeyDown={this.handleKeyDown}
-        onChange={this.handleChange}
-        onBlur={this.handleBlur}
-        onClick={this.handleClick}
-        onKeyPress={this.handleKeyPress}
-      />
-    );
+    let input =
+      multiLine && isEditing ? (
+        <textarea
+          ref={this.contentRef}
+          required
+          value={value}
+          className={!title ? 'text-muted' : null}
+          onKeyDown={this.handleKeyDown}
+          onChange={this.handleChange}
+          onBlur={this.handleBlur}
+          onClick={this.handleClick}
+          onKeyPress={this.handleKeyPress}
+          style={editStyle}
+        />
+      ) : (
+        <input
+          ref={this.contentRef}
+          required
+          type={isEditing ? 'text' : 'button'}
+          value={value}
+          className={!title ? 'text-muted' : null}
+          onKeyDown={this.handleKeyDown}
+          onChange={this.handleChange}
+          onBlur={this.handleBlur}
+          onClick={this.handleClick}
+          onKeyPress={this.handleKeyPress}
+        />
+      );
     if (showTooltip && !isEditing) {
       input = (
         <TooltipWrapper
           label="title"
-          tooltip={canEdit ? t('click to edit') :
-            noPermitTooltip || t('You don\'t have the rights to alter this title.')}
+          tooltip={
+            canEdit
+              ? t('click to edit')
+              : noPermitTooltip ||
+                t("You don't have the rights to alter this title.")
+          }
         >
           {input}
         </TooltipWrapper>

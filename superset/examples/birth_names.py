@@ -122,11 +122,10 @@ def load_birth_names(only_metadata=False, force=False):
                 "optionName": "metric_11",
             }
         ],
-        "row_limit": config.get("ROW_LIMIT"),
+        "row_limit": config["ROW_LIMIT"],
         "since": "100 years ago",
         "until": "now",
         "viz_type": "table",
-        "where": "",
         "markup_type": "markdown",
     }
 

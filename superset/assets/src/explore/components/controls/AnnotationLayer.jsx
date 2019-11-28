@@ -155,7 +155,9 @@ export default class AnnotationLayer extends React.PureComponent {
     this.applyAnnotation = this.applyAnnotation.bind(this);
     this.fetchOptions = this.fetchOptions.bind(this);
     this.handleAnnotationType = this.handleAnnotationType.bind(this);
-    this.handleAnnotationSourceType = this.handleAnnotationSourceType.bind(this);
+    this.handleAnnotationSourceType = this.handleAnnotationSourceType.bind(
+      this,
+    );
     this.handleValue = this.handleValue.bind(this);
     this.isValidForm = this.isValidForm.bind(this);
   }
@@ -173,8 +175,11 @@ export default class AnnotationLayer extends React.PureComponent {
 
   getSupportedSourceTypes(annotationType) {
     // Get vis types that can be source.
-    const sources = getChartMetadataRegistry().entries()
-      .filter(({ value: chartMetadata }) => chartMetadata.canBeAnnotationType(annotationType))
+    const sources = getChartMetadataRegistry()
+      .entries()
+      .filter(({ value: chartMetadata }) =>
+        chartMetadata.canBeAnnotationType(annotationType),
+      )
       .map(({ key, value: chartMetadata }) => ({
         value: key,
         label: chartMetadata.name,
@@ -201,7 +206,14 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   isValidForm() {
-    const { name, annotationType, sourceType, value, timeColumn, intervalEndColumn } = this.state;
+    const {
+      name,
+      annotationType,
+      sourceType,
+      value,
+      timeColumn,
+      intervalEndColumn,
+    } = this.state;
     const errors = [nonEmpty(name), nonEmpty(annotationType), nonEmpty(value)];
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE) {
       if (annotationType === ANNOTATION_TYPES.EVENT) {
@@ -248,7 +260,9 @@ export default class AnnotationLayer extends React.PureComponent {
   fetchOptions(annotationType, sourceType, isLoadingOptions) {
     if (isLoadingOptions === true) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-        SupersetClient.get({ endpoint: '/annotationlayermodelview/api/read?' }).then(({ json }) => {
+        SupersetClient.get({
+          endpoint: '/annotationlayermodelview/api/read?',
+        }).then(({ json }) => {
           const layers = json
             ? json.result.map(layer => ({
                 value: layer.id,
@@ -261,18 +275,22 @@ export default class AnnotationLayer extends React.PureComponent {
           });
         });
       } else if (requiresQuery(sourceType)) {
-        SupersetClient.get({ endpoint: '/superset/user_slices' }).then(({ json }) => {
-          const registry = getChartMetadataRegistry();
-          this.setState({
-            isLoadingOptions: false,
-            valueOptions: json
-              .filter((x) => {
-                const metadata = registry.get(x.viz_type);
-                return metadata && metadata.canBeAnnotationType(annotationType);
-              })
-              .map(x => ({ value: x.id, label: x.title, slice: x })),
-          });
-        });
+        SupersetClient.get({ endpoint: '/superset/user_slices' }).then(
+          ({ json }) => {
+            const registry = getChartMetadataRegistry();
+            this.setState({
+              isLoadingOptions: false,
+              valueOptions: json
+                .filter(x => {
+                  const metadata = registry.get(x.viz_type);
+                  return (
+                    metadata && metadata.canBeAnnotationType(annotationType)
+                  );
+                })
+                .map(x => ({ value: x.id, label: x.title, slice: x })),
+            });
+          },
+        );
       } else {
         this.setState({
           isLoadingOptions: false,
@@ -292,7 +310,7 @@ export default class AnnotationLayer extends React.PureComponent {
   applyAnnotation() {
     if (this.state.name.length) {
       const annotation = {};
-      Object.keys(this.state).forEach((k) => {
+      Object.keys(this.state).forEach(k => {
         if (this.state[k] !== null) {
           annotation[k] = this.state[k];
         }
@@ -301,7 +319,8 @@ export default class AnnotationLayer extends React.PureComponent {
       delete annotation.valueOptions;
       delete annotation.isLoadingOptions;
       delete annotation.validationErrors;
-      annotation.color = annotation.color === AUTOMATIC_COLOR ? null : annotation.color;
+      annotation.color =
+        annotation.color === AUTOMATIC_COLOR ? null : annotation.color;
       this.props.addAnnotationLayer(annotation);
       this.setState({ isNew: false, oldName: this.state.name });
     }
@@ -313,7 +332,13 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   renderValueConfiguration() {
-    const { annotationType, sourceType, value, valueOptions, isLoadingOptions } = this.state;
+    const {
+      annotationType,
+      sourceType,
+      value,
+      valueOptions,
+      isLoadingOptions,
+    } = this.state;
     let label = '';
     let description = '';
     if (requiresQuery(sourceType)) {
@@ -362,7 +387,9 @@ export default class AnnotationLayer extends React.PureComponent {
           placeholder=""
           value={value}
           onChange={this.handleValue}
-          validationErrors={this.isValidFormula(value, annotationType) ? ['Bad formula.'] : []}
+          validationErrors={
+            this.isValidFormula(value, annotationType) ? ['Bad formula.'] : []
+          }
         />
       );
     }
@@ -458,10 +485,12 @@ export default class AnnotationLayer extends React.PureComponent {
                 description={`This controls whether the "time_range" field from the current
                   view should be passed down to the chart containing the annotation data.`}
                 value={!!Object.keys(overrides).find(x => x === 'time_range')}
-                onChange={(v) => {
+                onChange={v => {
                   delete overrides.time_range;
                   if (v) {
-                    this.setState({ overrides: { ...overrides, time_range: null } });
+                    this.setState({
+                      overrides: { ...overrides, time_range: null },
+                    });
                   } else {
                     this.setState({ overrides: { ...overrides } });
                   }
@@ -473,8 +502,10 @@ export default class AnnotationLayer extends React.PureComponent {
                 label="Override time grain"
                 description={`This controls whether the time grain field from the current
                   view should be passed down to the chart containing the annotation data.`}
-                value={!!Object.keys(overrides).find(x => x === 'time_grain_sqla')}
-                onChange={(v) => {
+                value={
+                  !!Object.keys(overrides).find(x => x === 'time_grain_sqla')
+                }
+                onChange={v => {
                   delete overrides.time_grain_sqla;
                   delete overrides.granularity;
                   if (v) {
@@ -498,7 +529,9 @@ export default class AnnotationLayer extends React.PureComponent {
                   (example:  24 hours, 7 days, 56 weeks, 365 days)`}
                 placeholder=""
                 value={overrides.time_shift}
-                onChange={v => this.setState({ overrides: { ...overrides, time_shift: v } })}
+                onChange={v =>
+                  this.setState({ overrides: { ...overrides, time_shift: v } })
+                }
               />
             </div>
           </PopoverSection>
@@ -509,11 +542,18 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   renderDisplayConfiguration() {
-    const { color, opacity, style, width, showMarkers, hideLine, annotationType } = this.state;
+    const {
+      color,
+      opacity,
+      style,
+      width,
+      showMarkers,
+      hideLine,
+      annotationType,
+    } = this.state;
     const colorScheme = getCategoricalSchemeRegistry()
       .get(this.props.colorScheme)
-      .colors
-      .concat();
+      .colors.concat();
     if (
       color &&
       color !== AUTOMATIC_COLOR &&
@@ -609,13 +649,17 @@ export default class AnnotationLayer extends React.PureComponent {
 
     const metadata = getChartMetadataRegistry().get(this.props.vizType);
     const supportedAnnotationTypes = metadata
-      ? metadata.supportedAnnotationTypes.map(type => ANNOTATION_TYPES_METADATA[type])
+      ? metadata.supportedAnnotationTypes.map(
+          type => ANNOTATION_TYPES_METADATA[type],
+        )
       : [];
     const supportedSourceTypes = this.getSupportedSourceTypes(annotationType);
 
     return (
       <div>
-        {this.props.error && <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>}
+        {this.props.error && (
+          <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>
+        )}
         <div style={{ display: 'flex', flexDirection: 'row' }}>
           <div style={{ marginRight: '2rem' }}>
             <PopoverSection
@@ -669,11 +713,19 @@ export default class AnnotationLayer extends React.PureComponent {
             {!isNew ? t('Remove') : t('Cancel')}
           </Button>
           <div>
-            <Button bsSize="sm" disabled={!isValid} onClick={this.applyAnnotation}>
+            <Button
+              bsSize="sm"
+              disabled={!isValid}
+              onClick={this.applyAnnotation}
+            >
               {t('Apply')}
             </Button>
 
-            <Button bsSize="sm" disabled={!isValid} onClick={this.submitAnnotation}>
+            <Button
+              bsSize="sm"
+              disabled={!isValid}
+              onClick={this.submitAnnotation}
+            >
               {t('OK')}
             </Button>
           </div>

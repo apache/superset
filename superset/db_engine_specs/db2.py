@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
-
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 
@@ -51,7 +49,3 @@ class Db2EngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "(TIMESTAMP('1970-01-01', '00:00:00') + {col} SECONDS)"
-
-    @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        return "'{}'".format(dttm.strftime("%Y-%m-%d-%H.%M.%S"))

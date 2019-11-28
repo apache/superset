@@ -44,7 +44,8 @@ export default class CheckboxControl extends React.Component {
         onChange={this.onChange.bind(this)}
         style={checkboxStyle}
         checked={!!this.props.value}
-      />);
+      />
+    );
   }
   render() {
     if (this.props.label) {
@@ -52,6 +53,7 @@ export default class CheckboxControl extends React.Component {
         <ControlHeader
           {...this.props}
           leftNode={this.renderCheckbox()}
+          onClick={this.onChange.bind(this)}
         />
       );
     }

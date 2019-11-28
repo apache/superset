@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from typing import Optional
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
@@ -43,10 +44,10 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
         if tt == "DATE":
-            return "toDate('{}')".format(dttm.strftime("%Y-%m-%d"))
+            return f"toDate('{dttm.date().isoformat()}')"
         if tt == "DATETIME":
-            return "toDateTime('{}')".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+            return f"""toDateTime('{dttm.isoformat(sep=" ", timespec="seconds")}')"""
+        return None
