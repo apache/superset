@@ -103,6 +103,7 @@ class DatabaseMixin:
         "changed_by",
         "queries",
         "saved_queries",
+        "encrypted_extra",
     )
     edit_columns = add_columns
     show_columns = [
