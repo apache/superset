@@ -99,7 +99,6 @@ from .base import (
     SupersetFilter,
     SupersetModelView,
 )
-from .dashboard import api as dashboard_api, views as dash_views
 from .dashboard.filters import DashboardFilter
 from .database import api as database_api, views as in_views
 from .utils import (
@@ -426,6 +425,8 @@ class SliceAddView(SliceModelView):
 
 
 appbuilder.add_view_no_menu(SliceAddView)
+
+from .dashboard import api as dashboard_api, views as dash_views
 
 
 @talisman(force_https=False)

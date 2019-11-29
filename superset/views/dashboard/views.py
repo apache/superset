@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import redirect, request, Response
+from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -22,9 +22,14 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
-from superset import appbuilder, event_logger
+from superset import appbuilder, db, event_logger
 
-from ..base import DeleteMixin, generate_download_headers, SupersetModelView
+from ..base import (
+    BaseSupersetView,
+    DeleteMixin,
+    generate_download_headers,
+    SupersetModelView,
+)
 from .mixin import DashboardMixin
 
 
@@ -63,6 +68,24 @@ appbuilder.add_view(
     category="",
     category_icon="",
 )
+
+
+class Dashboard(BaseSupersetView):
+    """The base views for Superset!"""
+
+    @has_access
+    @expose("/new/")
+    def new(self):  # pylint: disable=no-self-use
+        """Creates a new, blank dashboard and redirects to it in edit mode"""
+        new_dashboard = models.Dashboard(
+            dashboard_title="[ untitled dashboard ]", owners=[g.user]
+        )
+        db.session.add(new_dashboard)
+        db.session.commit()
+        return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
+
+
+appbuilder.add_view_no_menu(Dashboard)
 
 
 class DashboardModelViewAsync(DashboardModelView):
