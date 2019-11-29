@@ -60,22 +60,6 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
         if tt == "DATETIME":
             return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}', \
              'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""  # pylint: disable=line-too-long
-        """
-        If you store nvchar for oracle time in your hana model 
-        and you need to be able to filter time in superset, 
-        just uncomment the following or convert time by expression
-        
-        If your primary temporal column is in string format, 
-        you can create an expression that parses the string-based
-        date/datetime/timestamp 
-        into a native date/datetime/timestamp value.
-        Just select the table, click columns, add a new column,
-        write the expression in the "expression" field 
-        and make sure to define the target type as "DATETIME" 
-        with a checkmark on the "Is temporal" field. 
-        After this you should be able to use that
-        expression as your temporal column.
-        """
         # if tt == "STRING":
         #     return f"TO_CHAR('{dttm.date().isoformat()}', 'YYYYMMDD')"
         return None
