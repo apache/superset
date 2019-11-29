@@ -25,12 +25,9 @@ from datetime import datetime, timedelta
 from typing import Any, List, Optional, Tuple
 
 from dateutil.relativedelta import relativedelta
-from flask import g, request
+from flask import g, request, current_app
 from jinja2.sandbox import SandboxedEnvironment
 
-from superset import app
-
-config = app.config
 BASE_CONTEXT = {
     "datetime": datetime,
     "random": random,
@@ -39,7 +36,6 @@ BASE_CONTEXT = {
     "timedelta": timedelta,
     "uuid": uuid,
 }
-BASE_CONTEXT.update(config["JINJA_CONTEXT_ADDONS"])
 
 
 def url_param(param: str, default: Optional[str] = None) -> Optional[Any]:
@@ -209,6 +205,7 @@ class BaseTemplateProcessor:
             "form_data": {},
         }
         self.context.update(kwargs)
+        BASE_CONTEXT.update(current_app.config["JINJA_CONTEXT_ADDONS"])
         self.context.update(BASE_CONTEXT)
         if self.engine:
             self.context[self.engine] = self
