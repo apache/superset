@@ -25,7 +25,7 @@ from datetime import datetime, timedelta
 from typing import Any, List, Optional, Tuple
 
 from dateutil.relativedelta import relativedelta
-from flask import g, request, current_app
+from flask import current_app, g, request
 from jinja2.sandbox import SandboxedEnvironment
 
 BASE_CONTEXT = {
