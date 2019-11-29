@@ -77,6 +77,7 @@ export function geocode(data) {
       .then(() => {
         dispatch({ type: GEOCODE_SUCCESS });
         dispatch(geocodingProgress());
+        window.open('/tablemodelview/list/', '_self');
       })
       .catch((response) => {
         getClientErrorObject(response).then((error) => {
