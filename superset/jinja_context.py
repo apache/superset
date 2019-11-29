@@ -18,24 +18,12 @@
 """Defines the templating context for SQL Lab"""
 import inspect
 import json
-import random
-import time
-import uuid
-from datetime import datetime, timedelta
 from typing import Any, List, Optional, Tuple
 
-from dateutil.relativedelta import relativedelta
-from flask import current_app, g, request
+from flask import g, request
 from jinja2.sandbox import SandboxedEnvironment
 
-BASE_CONTEXT = {
-    "datetime": datetime,
-    "random": random,
-    "relativedelta": relativedelta,
-    "time": time,
-    "timedelta": timedelta,
-    "uuid": uuid,
-}
+from superset import jinja_base_context
 
 
 def url_param(param: str, default: Optional[str] = None) -> Optional[Any]:
@@ -205,8 +193,7 @@ class BaseTemplateProcessor:
             "form_data": {},
         }
         self.context.update(kwargs)
-        BASE_CONTEXT.update(current_app.config["JINJA_CONTEXT_ADDONS"])
-        self.context.update(BASE_CONTEXT)
+        self.context.update(jinja_base_context)
         if self.engine:
             self.context[self.engine] = self
         self.env = SandboxedEnvironment()
