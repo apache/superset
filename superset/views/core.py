@@ -3232,6 +3232,8 @@ appbuilder.add_link(
 appbuilder.add_separator("Sources")
 
 
+
+
 @app.after_request
 def apply_http_headers(response: Response):
     """Applies the configuration's http headers to all responses"""

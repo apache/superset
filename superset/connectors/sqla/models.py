@@ -55,8 +55,8 @@ from superset.db_engine_specs.base import TimestampExpression
 from superset.exceptions import DatabaseNotFound
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
-from superset.models.core import Database, RowLevelSecurityFilter
-from superset.models.helpers import QueryResult
+from superset.models.core import Database
+from superset.models.helpers import QueryResult, AuditMixinNullable
 from superset.utils import core as utils, import_datasource
 
 config = app.config
@@ -363,7 +363,6 @@ class SqlaTable(Model, BaseDatasource):
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
-    row_level_security_filters = relationship(RowLevelSecurityFilter, backref="tables", lazy=True)
 
     baselink = "tablemodelview"
 
@@ -1177,3 +1176,21 @@ class SqlaTable(Model, BaseDatasource):
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
+
+
+
+class RowLevelSecurityFilter(Model, AuditMixinNullable):
+    """
+    Custom where clauses attached to Tables and Roles.
+    """
+
+    __tablename__ = "row_level_security_filters"
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    role_id = Column(Integer, ForeignKey("ab_role.id"), nullable=False)
+    role = relationship(
+        security_manager.role_model, backref="row_level_security_filters"
+    )
+
+    table_id = Column(Integer, ForeignKey("tables.id"), nullable=False)
+    table = relationship(SqlaTable, backref="row_level_security_filters")
+    clause = Column(Text, nullable=False)
