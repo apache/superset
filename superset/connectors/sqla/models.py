@@ -56,7 +56,7 @@ from superset.exceptions import DatabaseNotFound
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
-from superset.models.helpers import QueryResult, AuditMixinNullable
+from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.utils import core as utils, import_datasource
 
 config = app.config
