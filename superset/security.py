@@ -821,7 +821,10 @@ class SupersetSecurityManager(SecurityManager):
         :param table: The table to check against
         :returns: A list of clause strings.
         """
-        roles = [role.id for role in (g.user.roles if g.user else [])]
+        try:
+            roles = [role.id for role in g.user.roles]
+        except AttributeError:
+            roles = []
         return [
             filter.clause
             for filter in filter(
