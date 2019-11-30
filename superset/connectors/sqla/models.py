@@ -984,7 +984,7 @@ class SqlaTable(Model, BaseDatasource):
             where = query_obj["extras"]["where"]
             if len(where) > 0:
                 where = "({}) AND ".format(where)
-            query_obj["extras"]["where"] = "{} {}".format(where, " AND ".join(filters))
+            query_obj["extras"]["where"] = "{} ({})".format(where, ") AND (".join(filters))
 
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
