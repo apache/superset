@@ -821,5 +821,10 @@ class SupersetSecurityManager(SecurityManager):
         :param table: The table to check against
         :returns: A list of clause strings.
         """
-        roles = [role.id for role in g.user.roles]
-        return [filter.clause for filter in filter(lambda x: x.role_id in roles, table.row_level_security_filters)]
+        roles = [role.id for role in (g.user.roles if g.user else [])]
+        return [
+            filter.clause
+            for filter in filter(
+                lambda x: x.role_id in roles, table.row_level_security_filters
+            )
+        ]

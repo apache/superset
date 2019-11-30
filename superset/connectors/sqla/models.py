@@ -977,13 +977,15 @@ class SqlaTable(Model, BaseDatasource):
         return or_(*groups)
 
     def query(self, query_obj: Dict) -> QueryResult:
-        filters = security_manager.get_row_level_security_filters(self) # Self is the Table model
+        filters = security_manager.get_row_level_security_filters(
+            self
+        )  # Self is the Table model
         if len(filters) > 0:
-            where = query_obj['extras']['where']
+            where = query_obj["extras"]["where"]
             if len(where) > 0:
                 where = "({}) AND ".format(where)
-            query_obj['extras']['where'] = "{} {}".format(where, " AND ".join(filters))
-        
+            query_obj["extras"]["where"] = "{} {}".format(where, " AND ".join(filters))
+
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
@@ -1176,7 +1178,6 @@ class SqlaTable(Model, BaseDatasource):
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
-
 
 
 class RowLevelSecurityFilter(Model, AuditMixinNullable):

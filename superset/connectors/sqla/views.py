@@ -227,7 +227,6 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-
 class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.RowLevelSecurityFilter)
 
@@ -238,33 +237,25 @@ class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
 
     list_columns = ["table", "role", "clause", "creator", "modified"]
     order_columns = ["modified"]
-    edit_columns = [
-        "table",
-        "role",
-        "clause",
-    ]
+    edit_columns = ["table", "role", "clause"]
     show_columns = edit_columns
     search_columns = ("table", "role", "clause")
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
     description_columns = {
-        "table": _(
-            "This is the table this filter will be applied to."
-        ),
-        "role": _(
-            "This is the role this filter will be applied to."
-        ),
+        "table": _("This is the table this filter will be applied to."),
+        "role": _("This is the role this filter will be applied to."),
         "clause": _(
             "This is the condition that will be added to the WHERE clause. "
             "For example, to only return rows for a particular client, you might put in: client_id = 9"
-        )
+        ),
     }
     label_columns = {
         "table": _("Table"),
         "role": _("Role"),
         "clause": _("Clause"),
         "creator": _("Creator"),
-        "modified": _("Modified")
+        "modified": _("Modified"),
     }
 
 
@@ -307,7 +298,11 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     ]
     base_filters = [["id", DatasourceFilter, lambda: []]]
     show_columns = edit_columns + ["perm", "slices"]
-    related_views = [TableColumnInlineView, SqlMetricInlineView, RowLevelSecurityFiltersModelView]
+    related_views = [
+        TableColumnInlineView,
+        SqlMetricInlineView,
+        RowLevelSecurityFiltersModelView,
+    ]
     base_order = ("changed_on", "desc")
     search_columns = ("database", "schema", "table_name", "owners", "is_sqllab_view")
     description_columns = {
