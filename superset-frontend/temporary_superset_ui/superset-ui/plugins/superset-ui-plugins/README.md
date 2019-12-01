@@ -9,7 +9,7 @@
 `@superset-ui/legacy-*` packages are extracted from the classic [Apache Superset](https://github.com/apache/incubator-superset) and converted into plugins.
 These packages are extracted with minimal changes (almost as-is). They also depend on legacy API (`viz.py`) to function.
 
-`@superset-ui/plugin-*` packages are newer and has higher quality in general.
+`@superset-ui/plugin-*` packages are newer and higher quality in general.
 A key difference that they do not depend on `viz.py`
 (which contain visualization-specific python code) and interface with
 `/api/v1/query/` instead: a new generic endpoint instead meant to
