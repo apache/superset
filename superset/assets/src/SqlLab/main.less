@@ -262,6 +262,42 @@ div.Workspace {
     flex: 1 1 auto;
     padding-left: 10px;
   }
+
+  .schemaPane-enter-done,
+  .schemaPane-exit {
+    transform: translateX(0);
+  }
+
+  .schemaPane-exit-active {
+    transform: translateX(-120%);
+  }
+
+  .schemaPane-enter-active {
+    transform: translateX(0);
+    max-width: 300px;
+  }
+
+  .schemaPane-enter,
+  .schemaPane-exit-done {
+    max-width: 0;
+    transform: translateX(-120%);
+    overflow: hidden;
+  }
+
+  .schemaPane-exit-done + .queryPane {
+    margin-left: 0;
+  }
+
+  .gutter {
+    border-top: 1px solid @gray-light;
+    border-bottom: 1px solid @gray-light;
+    width: 3%;
+    margin: 3px 47%;
+  }
+
+  .gutter.gutter-vertical {
+    cursor: row-resize;
+  }
 }
 
 .SqlEditorLeftBar {
