@@ -18,18 +18,11 @@
  */
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { addStatusMessage, STATUS_TYPE } from 'src/components/StatusMessages/actions/statusMessages';
 
 export const GET_COLUMNS_FOR_TABLE_SUCCESS = 'GET_COLUMNS_FOR_TABLE_SUCCESS';
-export const GET_COLUMNS_FOR_TABLE_FAILURE = 'GET_COLUMNS_FOR_TABLE_FAILURE';
-
-export const GEOCODE_SUCCESS = 'GEOCODE_SUCCESS';
-export const GEOCODE_FAILURE = 'GEOCODE_FAILURE';
 
 export const GEOCODE_PROGRESS_SUCCESS = 'GEOCODE_PROGRESS_SUCCESS';
-export const GEOCODE_PROGRESS_FAILURE = 'GEOCODE_PROGRESS_FAILURE';
-
-export const GEOCODE_INTERRUPT_SUCCESS = 'GEOCODE_INTERRUPT_SUCCESS';
-export const GEOCODE_INTERRUPT_FAILURE = 'GEOCODE_INTERRUPT_FAILURE';
 
 export function getColumnsForTable(tableName) {
     return dispatch =>
@@ -43,7 +36,7 @@ export function getColumnsForTable(tableName) {
       })
       .catch((response) => {
         getClientErrorObject(response).then((error) => {
-          dispatch({ type: GET_COLUMNS_FOR_TABLE_FAILURE, message: error.error });
+          dispatch(addStatusMessage(error.error, STATUS_TYPE.ERROR));
         });
       });
 }
@@ -62,7 +55,7 @@ export function geocodingProgress() {
     })
     .catch((response) => {
       getClientErrorObject(response).then((error) => {
-        dispatch({ type: GEOCODE_PROGRESS_FAILURE, message: error.error });
+        dispatch(addStatusMessage(error.error, STATUS_TYPE.ERROR));
       });
     });
 }
@@ -75,13 +68,13 @@ export function geocode(data) {
       headers: { 'Content-Type': 'application/json' },
     })
       .then(() => {
-        dispatch({ type: GEOCODE_SUCCESS });
+        dispatch(addStatusMessage('Geocoding successfully ended.', STATUS_TYPE.INFO));
         dispatch(geocodingProgress());
         window.open('/tablemodelview/list/', '_self');
       })
       .catch((response) => {
         getClientErrorObject(response).then((error) => {
-          dispatch({ type: GEOCODE_FAILURE, message: error.error });
+          dispatch(addStatusMessage(error.error, STATUS_TYPE.ERROR));
         });
       });
 }
@@ -92,11 +85,11 @@ export function interruptGeocoding() {
       endpoint: '/geocoder/geocoding/interrupt',
     })
       .then(() => {
-        dispatch({ type: GEOCODE_INTERRUPT_SUCCESS });
+        dispatch(addStatusMessage('Geocoding successfully interrupted.', STATUS_TYPE.INFO));
       })
       .catch((response) => {
         getClientErrorObject(response).then((error) => {
-          dispatch({ type: GEOCODE_INTERRUPT_FAILURE, message: error.error });
+          dispatch(addStatusMessage(error.error, STATUS_TYPE.ERROR));
         });
       });
 }

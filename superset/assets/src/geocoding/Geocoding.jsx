@@ -20,8 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import FormInfo from 'src/components/FormInfo';
-import FormError from 'src/components/FormError';
+import StatusMessages from 'src/components/StatusMessages/StatusMessages';
 import GeocodingForm from './GeocodingForm';
 import GeocodingProgress from './GeocodingProgress';
 import * as Actions from './actions/geocoding';
@@ -82,8 +81,7 @@ export class Geocoding extends React.Component {
     }
     return (
       <div className="container">
-        <FormInfo status={this.getInfoStatus()} />
-        <FormError status={this.getErrorStatus()} />
+        <StatusMessages />
         {form}
         {progress}
       </div>

@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
-
-import statusMessageReducer from 'src/components/StatusMessages/reducers/statusMessages';
-import geocodingReducer from './geocoding';
-
-export default combineReducers({
-  geocoding: geocodingReducer,
-  statusMessages: statusMessageReducer,
-});
+ .disabled-component {
+    background: #f5f5f5
+  }
+  
