@@ -70,3 +70,6 @@ class NoPasswordSuppliedException(SupersetException):
 
 class NoUsernameSuppliedException(SupersetException):
     status = 400
+
+class InvalidURIException(SupersetException):
+    status = 400
