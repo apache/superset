@@ -106,7 +106,7 @@ class AnnotationDatasource(BaseDatasource):
     def get_query_str(self, query_obj):
         raise NotImplementedError()
 
-    def values_for_column(self, column_name, limit=10000):
+    def values_for_column(self, column_name, limit=10000, filters=None):
         raise NotImplementedError()
 
 
@@ -558,7 +558,9 @@ class SqlaTable(Model, BaseDatasource):
             d["template_params"] = self.template_params
         return d
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> List:
+    def values_for_column(
+        self, column_name: str, limit: int = 10000, filters=None
+    ) -> List:
         """Runs query against sqla to retrieve some
         sample values for the given column.
         """
@@ -571,6 +573,11 @@ class SqlaTable(Model, BaseDatasource):
             .select_from(self.get_from_clause(tp))
             .distinct()
         )
+
+        if filters:
+            where_clause_and = self.process_filters(filters, cols)
+            qry = qry.where(and_(*where_clause_and))
+
         if limit:
             qry = qry.limit(limit)
 
@@ -655,6 +662,51 @@ class SqlaTable(Model, BaseDatasource):
             return None
 
         return self.make_sqla_column_compatible(sqla_metric, label)
+
+    def process_filters(self, filter, cols):
+        where_clause_and = []
+        for flt in filter:
+            if not all([flt.get(s) for s in ["col", "op"]]):
+                continue
+            col = flt["col"]
+            op = flt["op"]
+            col_obj = cols.get(col)
+            if col_obj:
+                is_list_target = op in ("in", "not in")
+                eq = self.filter_values_handler(
+                    flt.get("val"),
+                    target_column_is_numeric=col_obj.is_num,
+                    is_list_target=is_list_target,
+                )
+                if op in ("in", "not in"):
+                    cond = col_obj.get_sqla_col().in_(eq)
+                    if "<NULL>" in eq:
+                        cond = or_(cond, col_obj.get_sqla_col() == None)
+                    if op == "not in":
+                        cond = ~cond
+                    where_clause_and.append(cond)
+                else:
+                    if col_obj.is_num:
+                        eq = utils.string_to_num(flt["val"])
+                    if op == "==":
+                        where_clause_and.append(col_obj.get_sqla_col() == eq)
+                    elif op == "!=":
+                        where_clause_and.append(col_obj.get_sqla_col() != eq)
+                    elif op == ">":
+                        where_clause_and.append(col_obj.get_sqla_col() > eq)
+                    elif op == "<":
+                        where_clause_and.append(col_obj.get_sqla_col() < eq)
+                    elif op == ">=":
+                        where_clause_and.append(col_obj.get_sqla_col() >= eq)
+                    elif op == "<=":
+                        where_clause_and.append(col_obj.get_sqla_col() <= eq)
+                    elif op == "LIKE":
+                        where_clause_and.append(col_obj.get_sqla_col().like(eq))
+                    elif op == "IS NULL":
+                        where_clause_and.append(col_obj.get_sqla_col() == None)
+                    elif op == "IS NOT NULL":
+                        where_clause_and.append(col_obj.get_sqla_col() != None)
+        return where_clause_and
 
     def get_sqla_query(  # sqla
         self,
@@ -791,49 +843,10 @@ class SqlaTable(Model, BaseDatasource):
         if not columns:
             qry = qry.group_by(*groupby_exprs_with_timestamp.values())
 
-        where_clause_and = []
         having_clause_and: List = []
-        for flt in filter:
-            if not all([flt.get(s) for s in ["col", "op"]]):
-                continue
-            col = flt["col"]
-            op = flt["op"]
-            col_obj = cols.get(col)
-            if col_obj:
-                is_list_target = op in ("in", "not in")
-                eq = self.filter_values_handler(
-                    flt.get("val"),
-                    target_column_is_numeric=col_obj.is_num,
-                    is_list_target=is_list_target,
-                )
-                if op in ("in", "not in"):
-                    cond = col_obj.get_sqla_col().in_(eq)
-                    if "<NULL>" in eq:
-                        cond = or_(cond, col_obj.get_sqla_col() == None)
-                    if op == "not in":
-                        cond = ~cond
-                    where_clause_and.append(cond)
-                else:
-                    if col_obj.is_num:
-                        eq = utils.string_to_num(flt["val"])
-                    if op == "==":
-                        where_clause_and.append(col_obj.get_sqla_col() == eq)
-                    elif op == "!=":
-                        where_clause_and.append(col_obj.get_sqla_col() != eq)
-                    elif op == ">":
-                        where_clause_and.append(col_obj.get_sqla_col() > eq)
-                    elif op == "<":
-                        where_clause_and.append(col_obj.get_sqla_col() < eq)
-                    elif op == ">=":
-                        where_clause_and.append(col_obj.get_sqla_col() >= eq)
-                    elif op == "<=":
-                        where_clause_and.append(col_obj.get_sqla_col() <= eq)
-                    elif op == "LIKE":
-                        where_clause_and.append(col_obj.get_sqla_col().like(eq))
-                    elif op == "IS NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() == None)
-                    elif op == "IS NOT NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() != None)
+
+        where_clause_and = self.process_filters(filter, cols)
+
         if extras:
             where = extras.get("where")
             if where:

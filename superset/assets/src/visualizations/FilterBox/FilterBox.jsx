@@ -100,8 +100,12 @@ class FilterBox extends React.Component {
       selectedValues: props.origSelectedValues,
       // this flag is used by non-instant filter, to make the apply button enabled/disabled
       hasChanged: false,
+      cascadingFilterChoices: {},
     };
     this.changeFilter = this.changeFilter.bind(this);
+    this.cascadeFilters = this.cascadeFilters.bind(this);
+    this.isSelected = this.isSelected.bind(this);
+    this.isCascadingFilterChoice = this.isCascadingFilterChoice.bind(this);
     this.onFilterMenuOpen = this.onFilterMenuOpen.bind(this, props.chartId);
     this.onFilterMenuClose = this.onFilterMenuClose.bind(this);
     this.onFocus = this.onFilterMenuOpen;
@@ -139,6 +143,60 @@ class FilterBox extends React.Component {
     });
   }
 
+  cascadeFilters(filter, selectedValues) {
+    const filters = Object.keys(this.props.filtersChoices);
+    const filterIndex = filters.indexOf(filter);
+    if (filterIndex === -1) {
+      return false;
+    };
+
+    // Construct requestFilters from preceding filters
+    // to be used in backend request form_data
+    const requestFilters = { filters: [] };
+    filters.slice(0, filterIndex + 1).forEach((precedingFilter) => {
+      if (precedingFilter in selectedValues) {
+        const precedingFilterValues = selectedValues[precedingFilter];
+        if (precedingFilterValues.length > 0) {
+          const requestFilter = {
+            col: precedingFilter,
+            op: 'in',
+            val: precedingFilterValues,
+          };
+          requestFilters.filters.push(requestFilter);
+        }
+      }
+    });
+
+    // For each filter following the one that was just changed,
+    // make an API request to get the filtered choices
+    const newCascadingFilterChoices = Object.assign({}, this.state.cascadingFilterChoices);
+
+    filters.slice(filterIndex + 1).forEach((nextFilter) => {
+      $.ajax({
+        type: 'GET',
+        url: `/superset/filter/${this.props.datasource.type}/${this.props.datasource.id}/${nextFilter}/`,
+        data: {
+          form_data: JSON.stringify(requestFilters),
+        },
+        success: (data) => {
+          newCascadingFilterChoices[nextFilter] = data;
+          this.setState({ cascadingFilterChoices: newCascadingFilterChoices });
+        },
+      });
+    });
+  }
+
+  isSelected(filter, option) {
+    return this.state.selectedValues[filter] &&
+      this.state.selectedValues[filter].includes(option.id);
+  }
+
+  isCascadingFilterChoice(filter, option) {
+    return Object.keys(this.state.cascadingFilterChoices).length > 0 && this.state.cascadingFilterChoices[filter] ?
+      this.state.cascadingFilterChoices[filter].includes(option.id) :
+      true;
+  }
+
   changeFilter(filter, options) {
     const fltr = TIME_FILTER_MAP[filter] || filter;
     let vals = null;
@@ -157,6 +215,7 @@ class FilterBox extends React.Component {
     };
 
     this.setState({ selectedValues, hasChanged: true }, () => {
+      this.cascadeFilters(filter, selectedValues);
       if (this.props.instantFiltering) {
         this.props.onChange({ [fltr]: vals }, false);
       }
@@ -268,6 +327,7 @@ class FilterBox extends React.Component {
         value = filterConfig.defaultValue;
       }
     }
+
     return (
       <OnPasteSelect
         placeholder={t('Select [%s]', label)}
@@ -275,17 +335,19 @@ class FilterBox extends React.Component {
         multi={filterConfig.multiple}
         clearable={filterConfig.clearable}
         value={value}
-        options={data.map(opt => {
-          const perc = Math.round((opt.metric / max) * 100);
-          const backgroundImage =
-            'linear-gradient(to right, lightgrey, ' +
-            `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`;
-          const style = {
-            backgroundImage,
-            padding: '2px 5px',
-          };
-          return { value: opt.id, label: opt.id, style };
-        })}
+        options={data
+          .filter((opt) => this.isSelected(key, opt) || this.isCascadingFilterChoice(key, opt))
+          .map(opt => {
+            const perc = Math.round((opt.metric / max) * 100);
+            const backgroundImage =
+              'linear-gradient(to right, lightgrey, ' +
+              `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`;
+            const style = {
+              backgroundImage,
+              padding: '2px 5px',
+            };
+            return { value: opt.id, label: opt.id, style };
+          })}
         onChange={(...args) => {
           this.changeFilter(key, ...args);
         }}

@@ -1326,11 +1326,20 @@ class Superset(BaseSupersetView):
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
         security_manager.assert_datasource_permission(datasource)
-        payload = json.dumps(
-            datasource.values_for_column(column, config["FILTER_SELECT_ROW_LIMIT"]),
-            default=utils.json_int_dttm_ser,
-        )
-        return json_success(payload)
+        filters = get_form_data()[0].get("filters")
+
+        def get_values_for_column():
+            payload = datasource.values_for_column(
+                column_name=column,
+                limit=config.get("FILTER_SELECT_ROW_LIMIT", 10000),
+                filters=filters,
+            )
+            return json.dumps(payload)
+
+        payload = json.loads(get_values_for_column())
+
+        json_data = json.dumps(payload, default=utils.json_int_dttm_ser)
+        return json_success(json_data)
 
     def save_or_overwrite_slice(
         self,
