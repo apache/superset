@@ -20,7 +20,7 @@
 .filedropper-container {
   width: 100%;
   min-width: 200px;
-  min-height: 100px;
+  min-height: 50px;
   flex-direction: column;
   align-items: center;
   border: dashed 1px black;
@@ -54,4 +54,10 @@
 .filedropper-separatortext {
   font-weight: 700;
   opacity: 0.4;
+}
+
+.filedropper-file {
+  font-weight: 700;
+  opacity: 0.5;
+  margin-top: 5px;
 }
