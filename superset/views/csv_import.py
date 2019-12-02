@@ -211,6 +211,10 @@ class CsvImporter(BaseSupersetView):
                 + "@localhost/"
                 + db_name
             )
+            try:
+                sqlalchemy_uri_validator(url)
+            except (ArgumentError, AttributeError) :
+                raise InvalidURIException("Invalid URI. Username, password or database-name lead to an error")
             engine = sqlalchemy.create_engine(url)
             if not sqlalchemy_utils.database_exists(engine.url):
                 sqlalchemy_utils.create_database(engine.url)
@@ -222,7 +226,7 @@ class CsvImporter(BaseSupersetView):
             try:
                 item = SQLAInterface(models.Database).obj()
                 item.database_name = db_name
-                item.sqlalchemy_uri = repr(engine.url)
+                item.sqlalchemy_uri = engine.url
                 item.password = postgres_password
                 item.allow_csv_upload = True
                 db.session.add(item)
