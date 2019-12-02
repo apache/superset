@@ -36,7 +36,6 @@ import './CsvToDatabase.css';
 const propTypes = {
   databases: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired,
-  uploadStatus: PropTypes.object,
 };
 
 export class CsvToDatabase extends React.PureComponent {
@@ -518,10 +517,6 @@ export class CsvToDatabase extends React.PureComponent {
 
 CsvToDatabase.propTypes = propTypes;
 
-function mapStateToProps({ uploadStatus }) {
-  return { uploadStatus: uploadStatus.uploadStatus };
-}
-
 function mapDispatchToProps(dispatch) {
   return {
     actions: bindActionCreators(Actions, dispatch),
@@ -529,6 +524,6 @@ function mapDispatchToProps(dispatch) {
 }
 
 export default connect(
-  mapStateToProps,
+  null,
   mapDispatchToProps,
 )(CsvToDatabase);
