@@ -94,7 +94,6 @@ export class GeocodingForm extends React.Component {
     }
     this.setState({ datasource,
       streetColumn: undefined,
-      zipColumn: undefined,
       cityColumn: undefined,
       countryColumn: undefined,
     });
