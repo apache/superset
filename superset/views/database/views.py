@@ -38,7 +38,7 @@ config = app.config
 stats_logger = config["STATS_LOGGER"]
 
 
-def sqlalchemy_uri_form_validator(field: StringField) -> None:
+def sqlalchemy_uri_form_validator(_, field: StringField) -> None:
     """
         Check if user has submitted a valid SQLAlchemy URI
     """
