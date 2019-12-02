@@ -204,7 +204,7 @@ class Geocoder(BaseSupersetView):
                 + selected_columns
             )
 
-    def _geocode(self, data: list, dev=True):
+    def _geocode(self, data: list, dev=False):
         """
         Internal method which starts the geocoding
         :param data: the data to be geocoded as a list of tuples
