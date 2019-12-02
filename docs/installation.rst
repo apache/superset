@@ -220,7 +220,7 @@ setup known to work well in production: ::
         --limit-request-line 0 \
         --limit-request-field_size 0 \
         --statsd-host localhost:8125 \
-        superset:app
+        "superset.app:create_app()"
 
 Refer to the
 `Gunicorn documentation <https://docs.gunicorn.org/en/stable/design.html>`_
