@@ -17,7 +17,9 @@
 """Unit tests for geocoding"""
 
 from sqlalchemy.engine import reflection
+from sqlalchemy_utils import table_name
 
+import superset.models.core as models
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
@@ -52,21 +54,25 @@ class GeocodingTests(SupersetTestCase):
         url = "/geocoder/geocoding/columns"
 
         table = db.session.query(SqlaTable).first()
-        table_name = table.table_name
-        columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
+        tableDto = models.TableDto(
+            table.id, table.table_name, table.schema, table.database_id
+        )
+        columns = reflection.Inspector.from_engine(db.engine).get_columns(
+            table.table_name
+        )
 
-        data = {"tableName": table_name}
+        data = {"table": tableDto.to_json()}
         response = self.get_resp(url, json_=data)
         assert columns[0].get("name") in response
 
     def test_get_invalid_columns(self):
         url = "/geocoder/geocoding/columns"
-        table_name = "no_table"
+        tableDto = models.TableDto(10001, "no_table")
 
-        data = {"tableName": table_name}
+        data = {"table": tableDto.to_json()}
         response = self.get_resp(url, json_=data)
 
-        message = "No columns found for table with name {0}".format(table_name)
+        message = "No columns found for table with name {0}".format(tableDto.name)
         assert message in response
 
     # def test_add_lat_lon_columns(self):
