@@ -17,10 +17,11 @@
 
 from typing import Type
 
+from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
-from flask_babel import lazy_gettext as _
+
 from superset import security_manager
 
 
@@ -40,6 +41,7 @@ def sqlalchemy_uri_validator(
                 " <p>Example:'postgresql://user:password@your-postgres-db/database'</p>"
             )
         )
+
 
 def schema_allows_csv_upload(database, schema):
     if not database.allow_csv_upload:

@@ -15,13 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import inspect
+
 from flask import Markup
-from sqlalchemy import MetaData
 from flask_babel import lazy_gettext as _
-from superset.utils import core as utils
-from superset.views.base import SupersetFilter
+from sqlalchemy import MetaData
+
 from superset import security_manager
 from superset.exceptions import SupersetException
+from superset.utils import core as utils
+from superset.views.base import SupersetFilter
+
 
 class DatabaseFilter(SupersetFilter):
     def apply(self, query, value):
@@ -29,6 +32,7 @@ class DatabaseFilter(SupersetFilter):
             return query
         perms = self.get_view_menus("database_access")
         return query.filter(self.model.perm.in_(perms))
+
 
 class DatabaseMixin:
     list_title = _("Databases")
@@ -211,7 +215,7 @@ class DatabaseMixin:
     def pre_update(self, database):
         self._pre_add_update(database)
 
-    def pre_delete(self, obj): # pylint: disable=no-self-use
+    def pre_delete(self, obj):  # pylint: disable=no-self-use
         if obj.tables:
             raise SupersetException(
                 Markup(
@@ -221,7 +225,7 @@ class DatabaseMixin:
                 )
             )
 
-    def check_extra(self, database): # pylint: disable=no-self-use
+    def check_extra(self, database):  # pylint: disable=no-self-use
         # this will check whether json.loads(extra) can succeed
         try:
             extra = database.get_extra()
@@ -238,7 +242,7 @@ class DatabaseMixin:
                     "{} is invalid.".format(key)
                 )
 
-    def check_encrypted_extra(self, database): # pylint: disable=no-self-use
+    def check_encrypted_extra(self, database):  # pylint: disable=no-self-use
         # this will check whether json.loads(secure_extra) can succeed
         try:
             database.get_encrypted_extra()

@@ -25,14 +25,14 @@ from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app, appbuilder, db # , security_manager
+from superset import app, appbuilder, db  # , security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
-from .mixins import DatabaseMixin
-from .validators import sqlalchemy_uri_validator, schema_allows_csv_upload
 from .forms import CsvToDatabaseForm
+from .mixins import DatabaseMixin
+from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
 
 config = app.config
 stats_logger = config["STATS_LOGGER"]
@@ -44,7 +44,10 @@ def sqlalchemy_uri_form_validator(field: StringField) -> None:
     """
     sqlalchemy_uri_validator(field.data, exception=ValidationError)
 
-class DatabaseView(DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin): # pylint: disable=too-many-ancestors
+
+class DatabaseView(
+    DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Database)
 
     add_template = "superset/models/database/add.html"
@@ -144,7 +147,7 @@ class CsvToDatabaseView(SimpleFormView):
                 table.fetch_metadata()
                 db.session.add(table)
             db.session.commit()
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             db.session.rollback()
             try:
                 os.remove(path)
@@ -181,14 +184,14 @@ class CsvToDatabaseView(SimpleFormView):
 appbuilder.add_view_no_menu(CsvToDatabaseView)
 
 
-class DatabaseTablesAsync(DatabaseView): # pylint: disable=too-many-ancestors
+class DatabaseTablesAsync(DatabaseView):  # pylint: disable=too-many-ancestors
     list_columns = ["id", "all_table_names_in_database", "all_schema_names"]
 
 
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
 
 
-class DatabaseAsync(DatabaseView): # pylint: disable=too-many-ancestors
+class DatabaseAsync(DatabaseView):  # pylint: disable=too-many-ancestors
     list_columns = [
         "id",
         "database_name",
