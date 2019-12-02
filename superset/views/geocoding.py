@@ -17,7 +17,7 @@
 # pylint: disable=C,R,W
 
 import simplejson as json
-from flask import request, Response
+from flask import flash, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
@@ -166,7 +166,11 @@ class Geocoder(BaseSupersetView):
             return json_error_response(e.args[0], status=500)
         except Exception as e:
             return json_error_response(e.args[0], status=500)
-
+        progress = self.geocoder.progress
+        message = _(
+            "Geocoded values, success: {}, doubt: {}, fail: {}".format(progress["success_counter"], progress["doubt_counter"], success["failed_counter"])
+        )
+        flash(message, "success")
         return json_success(json.dumps(data))
 
     def _does_column_name_exist(self, table_name: str, column_name: str):
