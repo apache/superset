@@ -14,7 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-version: '2'
+x-superset-build: &superset-build
+  context: ./
+  dockerfile: Dockerfile
+x-superset-depends-on: &superset-depends-on
+  - postgres
+  - redis
+x-superset-volumes: &superset-volumes
+  # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+  - ./docker/docker-init.sh:/app/docker-init.sh
+  - ./docker/pythonpath:/app/pythonpath_docker
+  - ./docker/superset_config.py:/app/pythonpath/superset_config.py
+  - ./superset:/app/superset
+
+version: "3.7"
 services:
   redis:
     image: redis:3.2
@@ -27,42 +40,39 @@ services:
   postgres:
     image: postgres:10
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: superset
-      POSTGRES_PASSWORD: superset
-      POSTGRES_USER: superset
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres:/var/lib/postgresql/data
 
   superset:
-    build:
-      context: ../../
-      dockerfile: contrib/docker/Dockerfile
+    build: *superset-build
+    command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
+    env_file: docker/.env
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: superset
-      POSTGRES_USER: superset
-      POSTGRES_PASSWORD: superset
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      # If using production, comment development volume below
-      #SUPERSET_ENV: production
-      SUPERSET_ENV: development
-    user: root:root
     ports:
       - 8088:8088
-    depends_on:
-      - postgres
-      - redis
-    volumes:
-      # this is needed to communicate with the postgres and redis services
-      - ./superset_config.py:/home/superset/superset/superset_config.py
-      # this is needed for development, remove with SUPERSET_ENV=production
-      - ../../superset:/home/superset/superset
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+
+  superset-init:
+    build: *superset-build
+    command: ["/app/docker-init.sh"]
+    env_file: docker/.env
+    environment:
+      SUPERSET_LOAD_EXAMPLES: "yes"
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+
+  superset-worker:
+    build: *superset-build
+    command: ["celery", "worker", "--app=superset.sql_lab:celery_app", "-Ofair"]
+    env_file: docker/.env
+    restart: unless-stopped
+    ports:
+      - 8088:8088
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
 
 volumes:
   postgres:

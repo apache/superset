@@ -14,7 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+#
+# This file is included in the final Docker image and SHOULD be overridden when
+# deploying the image to prod. Settings configured here are intended for use in local
+# development environments. Also note that superset_config_docker.py is imported
+# as a final step as a means to override "defaults" configured here
+#
+
+import logging
 import os
+
+
+logger = logging.getLogger()
 
 
 def get_env_variable(var_name, default=None):
@@ -56,3 +68,16 @@ class CeleryConfig(object):
 
 
 CELERY_CONFIG = CeleryConfig
+
+#
+# Optionally import superset_config_docker.py (which will have been included on
+# the PYTHONPATH) in order to allow for local settings to be overridden
+#
+try:
+    from superset_config_docker import *  # noqa
+    import superset_config_docker
+
+    logger.info(f"Loaded your Docker configuration at "
+                f"[{superset_config_docker.__file__}]")
+except ImportError:
+    logger.info("Using default Docker config...")
