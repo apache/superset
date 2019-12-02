@@ -34,7 +34,7 @@ export const GEOCODE_INTERRUPT_FAILURE = 'GEOCODE_INTERRUPT_FAILURE';
 export function getColumnsForTable(tableName) {
     return dispatch =>
     SupersetClient.post({
-      endpoint: '/superset/geocoding/columns',
+      endpoint: '/geocoder/geocoding/columns',
       body: JSON.stringify({ tableName }),
       headers: { 'Content-Type': 'application/json' },
     })
@@ -55,7 +55,7 @@ export function resetColumnsForTable() {
 export function geocodingProgress() {
   return dispatch =>
   SupersetClient.get({
-    endpoint: '/superset/geocoding/progress',
+    endpoint: '/geocoder/geocoding/progress',
   })
     .then((response) => {
       dispatch({ type: GEOCODE_PROGRESS_SUCCESS, progress: response.json });
@@ -70,13 +70,14 @@ export function geocodingProgress() {
 export function geocode(data) {
     return dispatch =>
     SupersetClient.post({
-      endpoint: '/superset/geocoding/geocode',
+      endpoint: '/geocoder/geocoding/geocode',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' },
     })
       .then(() => {
         dispatch({ type: GEOCODE_SUCCESS });
         dispatch(geocodingProgress());
+        window.open('/tablemodelview/list/', '_self');
       })
       .catch((response) => {
         getClientErrorObject(response).then((error) => {
@@ -88,7 +89,7 @@ export function geocode(data) {
 export function interruptGeocoding() {
     return dispatch =>
     SupersetClient.post({
-      endpoint: '/superset/geocoding/interrupt',
+      endpoint: '/geocoder/geocoding/interrupt',
     })
       .then(() => {
         dispatch({ type: GEOCODE_INTERRUPT_SUCCESS });

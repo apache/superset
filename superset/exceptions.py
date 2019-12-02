@@ -54,3 +54,19 @@ class SpatialException(SupersetException):
 
 class DatabaseNotFound(SupersetException):
     status = 400
+
+
+class SqlException(SupersetException):
+    status = 500
+
+
+class SqlSelectException(SqlException):
+    status = 500
+
+
+class SqlAddColumnException(SqlException):
+    status = 500
+
+
+class SqlUpdateException(SqlException):
+    status = 500
