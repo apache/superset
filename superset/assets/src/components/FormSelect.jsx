@@ -20,6 +20,7 @@ import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-virtualized-select';
 import FormHelpText from './FormHelpText';
+import './FormSelect.css';
 
 const propTypes = {
   id: PropTypes.string,
@@ -29,6 +30,7 @@ const propTypes = {
   required: PropTypes.bool,
   clearable: PropTypes.bool,
   helpText: PropTypes.string,
+  disabled: PropTypes.bool,
 };
 
 export default class FormSelect extends PureComponent {
@@ -41,17 +43,20 @@ export default class FormSelect extends PureComponent {
       required,
       clearable,
       helpText,
+      disabled,
     } = this.props;
     const help = helpText && <FormHelpText helpText={helpText} />;
     return (
       <>
         <Select
+          classname={disabled ? 'disabled-component' : null}
           id={id}
           value={value}
           onChange={onChange}
           options={options}
           clearable={clearable}
           required={required}
+          disabled={disabled}
         />
         {help}
       </>

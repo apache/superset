@@ -173,7 +173,7 @@ export class GeocodingForm extends React.Component {
                     </tr>
                     <tr
                       className={
-                        this.state.datasource ? null : 'hide-component'
+                        this.state.datasource ? null : 'disable-component'
                       }
                     >
                       <td className="col-lg-2">{t('Street column')}</td>
@@ -189,12 +189,13 @@ export class GeocodingForm extends React.Component {
                             'Name of the column where the street and possibly house number is stored  ' +
                               '. This can also be a place.',
                           )}
+                          disabled={!this.state.datasource}
                         />
                       </td>
                     </tr>
                     <tr
                       className={
-                        this.state.datasource ? null : 'hide-component'
+                        this.state.datasource ? null : 'disable-component'
                       }
                     >
                       <td className="col-lg-2">{t('City column')}</td>
@@ -209,12 +210,13 @@ export class GeocodingForm extends React.Component {
                           helpText={t(
                             'Name of the column where the city is stored.',
                           )}
+                          disabled={!this.state.datasource}
                         />
                       </td>
                     </tr>
                     <tr
                       className={
-                        this.state.datasource ? null : 'hide-component'
+                        this.state.datasource ? null : 'disable-component'
                       }
                     >
                       <td className="col-lg-2">{t('Country column')}</td>
@@ -229,6 +231,7 @@ export class GeocodingForm extends React.Component {
                           helpText={t(
                             'Name of the column where the country is stored.',
                           )}
+                          disabled={!this.state.datasource}
                         />
                       </td>
                     </tr>
