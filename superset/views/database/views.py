@@ -25,7 +25,7 @@ from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app, appbuilder, db  # , security_manager
+from superset import app, appbuilder, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
