@@ -20,6 +20,7 @@ import json
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
+from sqlalchemy.exc import IntegrityError
 
 from superset import appbuilder, db
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -49,7 +50,11 @@ class Datasource(BaseSupersetView):
             )
         orm_datasource.update_from_object(datasource)
         data = orm_datasource.data
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError as e:
+            return json_error_response(e, status="500")
+
         return self.json_response(data)
 
     @expose("/get/<datasource_type>/<datasource_id>/")
