@@ -91,14 +91,13 @@ export class GeocodingForm extends React.Component {
       this.props.actions.getColumnsForTable(datasource.value);
     } else {
       this.props.actions.resetColumnsForTable();
-      this.setState({
-        streetColumn: undefined,
-        zipColumn: undefined,
-        cityColumn: undefined,
-        countryColumn: undefined,
-      });
     }
-    this.setState({ datasource });
+    this.setState({ datasource,
+      streetColumn: undefined,
+      zipColumn: undefined,
+      cityColumn: undefined,
+      countryColumn: undefined,
+    });
   }
 
   setPropertyValue(name, value) {
