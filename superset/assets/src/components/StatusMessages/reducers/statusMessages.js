@@ -16,23 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/connection';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
-import { addStatusMessage, STATUS_TYPE } from 'src/components/StatusMessages/actions/statusMessages';
+import { addToArr, removeFromArr } from 'src/reduxUtils';
+import * as actions from '../actions/statusMessages';
 
-export function uploadCsv(data) {
-  return dispatch =>
-    SupersetClient.post({
-      endpoint: '/csvimporter/csvtodatabase/add',
-      postPayload: { ...data },
-      stringify: false,
-    })
-      .then(() => {
-        window.open('/tablemodelview/list/', '_self');
-      })
-      .catch((response) => {
-        getClientErrorObject(response).then((error) => {
-          dispatch(addStatusMessage(error.error, STATUS_TYPE.ERROR));
-        });
-      });
+export default function statusMessageReducer(state = {}, action) {
+  if (action.type === actions.ADD_STATUS_MESSAGE) {
+    const statusMessages = state.statusMessages ? state.statusMessages.slice() : [];
+    const newState = Object.assign({}, state, { statusMessages });
+    return addToArr(newState, 'statusMessages', action.status);
+  }
+  if (action.type === actions.REMOVE_STATUS_MESSAGE) {
+    return removeFromArr(state, 'statusMessages', action.status);
+  }
+
+  return state;
 }
