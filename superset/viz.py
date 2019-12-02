@@ -1086,6 +1086,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     verbose_name = _("Time Series - Line Chart")
     sort_series = False
     is_timeseries = True
+    pivot_fill_value: Optional[int] = None
 
     def to_series(self, df, classed="", title_suffix=""):
         cols = []
@@ -1158,7 +1159,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
             )
         else:
             df = df.pivot_table(
-                index=DTTM_ALIAS, columns=fd.get("groupby"), values=self.metric_labels
+                index=DTTM_ALIAS,
+                columns=fd.get("groupby"),
+                values=self.metric_labels,
+                fill_value=self.pivot_fill_value,
             )
 
         rule = fd.get("resample_rule")
@@ -1444,6 +1448,7 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     viz_type = "area"
     verbose_name = _("Time Series - Stacked")
     sort_series = True
+    pivot_fill_value = 0
 
 
 class DistributionPieViz(NVD3Viz):
