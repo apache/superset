@@ -306,7 +306,7 @@ class CsvImporter(BaseSupersetView):
                 db.session.commit()
         except Exception:
             message = _(
-                "Error when trying to create Database.The database could not be removed. "
+                "Error when trying to create database {0}.The database could not be removed. "
                 "Please contact your administrator to remove it manually".format(
                     database.database_name
                 )
