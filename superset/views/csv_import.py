@@ -113,10 +113,11 @@ class CsvImporter(BaseSupersetView):
         try:
             form_data = request.form
             csv_file = request.files["file"]
-            csv_filename = self._clean_filename(csv_file.filename, "CSV")
             csv_path = None
-            database_id = self._convert_database_id(form_data["connectionId"])
+            csv_filename = self._clean_filename(csv_file.filename, "CSV")
+            database = None
             db_flavor = form_data["databaseFlavor"] or None
+            database_id = self._convert_database_id(form_data["connectionId"])
             table_name = form_data["tableName"]
             self._check_table_name(table_name)
 
@@ -288,14 +289,15 @@ class CsvImporter(BaseSupersetView):
     def _remove_database(self, database, db_flavor=SQLITE):
         """Remove database in an exception case
         :param database: the database to remove
-        :param db_path: if the database was kind of sqlite, remove the path too
+        :param db_flavor: the kind of database
         """
         try:
-            if db_flavor == SQLITE and os.path.isfile(database.sqlalchemy_uri):
-                os.remove(database.sqlalchemy_uri)
-            db.session.rollback()
-            db.session.delete(database)
-            db.session.commit()
+            if database:
+                if db_flavor == SQLITE and os.path.isfile(database.sqlalchemy_uri):
+                    os.remove(database.sqlalchemy_uri)
+                db.session.rollback()
+                db.session.delete(database)
+                db.session.commit()
         except Exception:
             message = _(
                 "Error when trying to create Database.The database could not be removed. "
