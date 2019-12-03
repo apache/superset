@@ -20,7 +20,7 @@ import enum
 from typing import Optional
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Index
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -78,6 +78,9 @@ class TaggedObject(Model, AuditMixinNullable):
     object_type = Column(Enum(ObjectTypes))
 
     tag = relationship("Tag", backref="objects")
+
+    object_id_index = Index('object_id', unique=False)
+    __table_args__ = (Index('ix_tagged_object_object_id', object_id, unique=False),)
 
 
 def get_tag(name, session, type_):

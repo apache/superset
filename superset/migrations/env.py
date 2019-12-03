@@ -40,6 +40,26 @@ target_metadata = Base.metadata  # pylint: disable=no-member
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+IGNORED_TABLES = [
+                "paris_iris_mapping",
+                "bart_lines",
+                "long_lat",
+                "wb_health_population",
+                "energy_usage",
+                "birth_france_by_region",
+                "birth_names",
+                "random_time_series",
+                "unicode_test",
+                "sf_population_polygons",
+                "multi_format_timeseries",
+                "flights",
+        ]
+
+
+def include_object(object_, name, type_, reflected, compare_to):
+    if(type_ == "table"):
+        return name not in IGNORED_TABLES
+    return True
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -97,6 +117,7 @@ def run_migrations_online():
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
+        include_object=include_object,
         # compare_type=True,
         process_revision_directives=process_revision_directives,
         **kwargs

@@ -32,6 +32,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    Index,
 )
 from sqlalchemy.orm import backref, relationship
 
@@ -206,6 +207,10 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     database = relationship("Database", foreign_keys=[database_id])
     schema = Column(String(256))
 
+    tab_state_id_index = Index('id', unique=True)
+
+    __table_args__ = (sqla.Index("ix_tab_state_id", id, unique=True),)
+
     # tables that are open in the schema browser and their data previews
     table_schemas = relationship(
         "TableSchema",
@@ -223,7 +228,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     latest_query = relationship("Query")
 
     # other properties
-    autorun = Column(Boolean, default=False)
+    autorun = Column(Boolean, default=False, nullable=False)
     template_params = Column(Text)
 
     def to_dict(self):
@@ -261,6 +266,8 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
     description = Column(Text)
 
     expanded = Column(Boolean, default=False)
+    
+    __table_args__ = (sqla.Index("ix_table_schema_id", id, unique=True),)
 
     def to_dict(self):
         try:

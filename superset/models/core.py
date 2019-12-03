@@ -772,7 +772,7 @@ class Database(
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
-    allow_csv_upload = Column(Boolean, default=False)
+    allow_csv_upload = Column(Boolean, default=False, nullable=False)
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
