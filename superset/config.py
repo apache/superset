@@ -384,6 +384,8 @@ QUERY_LOGGER = None
 
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
+
+# Postgres username and password
 POSTGRES_USERNAME = os.environ.get("POSTGRES_USERNAME", "")
 POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "")
 
