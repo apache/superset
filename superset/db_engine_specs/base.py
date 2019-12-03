@@ -414,12 +414,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise Exception("Invalid file type selected")
         csv_to_df_kwargs = {
             "filepath_or_buffer": filename,
-            "sep": form_data["delimiter"],
+            "sep": form_data.get("delimiter"),
             # frontend already does int-check, check again in case of tampering
             "header": int(form_data["headerRow"]) or 0,
-            "index_col": None
-            if not form_data["indexColumn"]
-            else int(form_data["indexColumn"]),
+            "index_col": form_data.get("indexColumn", type=int) or None,
             "mangle_dupe_cols": strtobool(form_data["mangleDuplicateColumns"]),
             "skipinitialspace": strtobool(form_data["skipInitialSpace"]),
             "skiprows": None
