@@ -303,26 +303,14 @@ Every once in a while we want to compile the documentation and publish it.
 Here's how to do it.
 
 ```bash
-# install doc dependencies
-pip install -r docs/requirements.txt
+./make_docs.sh
+```
 
-# build the docs
-python setup.py build_sphinx
+Superset documentation site is ready at http://localhost:5002
 
-# copy html files to temp folder
-cp -r docs/_build/html/ /tmp/tmp_superset_docs/
-
-# clone the docs repo
-cd ~/
-git clone https://git-wip-us.apache.org/repos/asf/incubator-superset-site.git
-
-# copy
-cp -r /tmp/tmp_superset_docs/ ~/incubator-superset-site.git/
-
-# commit and push to `asf-site` branch
-cd ~/incubator-superset-site.git/
-git checkout asf-site
-git add .
-git commit -a -m "New doc version"
-git push origin master
+```
+$ cd /tmp/incubator-superset-site-${SUPERSET_VERSION}
+$ git add .
+$ git commit -a -m "New doc version ${SUPERSET_VERSION}"
+$ git push origin asf-site
 ```
