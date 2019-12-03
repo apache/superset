@@ -753,7 +753,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
     database_name = Column(String(250), unique=True, nullable=False)
-    sqlalchemy_uri = Column(String(1024))
+    sqlalchemy_uri = Column(String(1024), nullable=False)
     password = Column(EncryptedType(String(1024), config["SECRET_KEY"]))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
