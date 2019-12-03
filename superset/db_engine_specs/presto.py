@@ -957,6 +957,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             return ""
         return df.to_dict()[field_to_return][0]
 
+    # TODO: remove
     @classmethod
     def get_pandas_dtype(cls, cursor_description: List[tuple]) -> Dict[str, str]:
         return {

@@ -35,33 +35,6 @@ from superset.utils.core import JS_MAX_INTEGER
 INFER_COL_TYPES_THRESHOLD = 95
 INFER_COL_TYPES_SAMPLE_SIZE = 100
 
-
-def dedup(l, suffix="__", case_sensitive=True):
-    """De-duplicates a list of string by suffixing a counter
-
-    Always returns the same number of entries as provided, and always returns
-    unique values. Case sensitive comparison by default.
-
-    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar', 'Bar'])))
-    foo,bar,bar__1,bar__2,Bar
-    >>> print(
-        ','.join(dedup(['foo', 'bar', 'bar', 'bar', 'Bar'], case_sensitive=False))
-    )
-    foo,bar,bar__1,bar__2,Bar__3
-    """
-    new_l = []
-    seen = {}
-    for s in l:
-        s_fixed_case = s if case_sensitive else s.lower()
-        if s_fixed_case in seen:
-            seen[s_fixed_case] += 1
-            s += suffix + str(seen[s_fixed_case])
-        else:
-            seen[s_fixed_case] = 0
-        new_l.append(s)
-    return new_l
-
-
 def is_numeric(dtype):
     if hasattr(dtype, "_is_numeric"):
         return dtype._is_numeric
@@ -85,52 +58,94 @@ class SupersetDataFrame(object):
         "V": None,  # raw data (void)
     }
 
-    def __init__(self, data, cursor_description, db_engine_spec):
-        data = data or []
+    def __init__(self, table):
 
-        column_names = []
-        dtype = None
-        if cursor_description:
-            # get deduped list of column names
-            column_names = dedup([col[0] for col in cursor_description])
+        self.df = table.to_pandas_df()
+        self._type_dict = table.type_dict  # TODO: this data is currently lost on async query serialization
 
-            # fix cursor descriptor with the deduped names
-            cursor_description = [
-                tuple([column_name, *list(description)[1:]])
-                for column_name, description in zip(column_names, cursor_description)
-            ]
 
-            # get type for better type casting, if possible
-            dtype = db_engine_spec.get_pandas_dtype(cursor_description)
+    # def __init__(self, data, cursor_description, db_engine_spec):
+    #     data = data or []
 
-        self.column_names = column_names
+    #     print('*********** data')
+    #     print(data)
 
-        if dtype:
-            # put data in a 2D array so we can efficiently access each column;
-            # the reshape ensures the shape is 2D in case data is empty
-            array = np.array(data, dtype="object").reshape(-1, len(column_names))
-            # convert each column in data into a Series of the proper dtype; we
-            # need to do this because we can not specify a mixed dtype when
-            # instantiating the DataFrame, and this allows us to have different
-            # dtypes for each column.
-            data = {
-                column: pd.Series(array[:, i], dtype=dtype[column])
-                for i, column in enumerate(column_names)
-            }
-            self.df = pd.DataFrame(data, columns=column_names)
-        else:
-            self.df = pd.DataFrame(list(data), columns=column_names).infer_objects()
+    #     column_names = []
+    #     dtype = None
+    #     if cursor_description:
+    #         # get deduped list of column names
+    #         column_names = dedup([col[0] for col in cursor_description])
 
-        self._type_dict = {}
-        try:
-            # The driver may not be passing a cursor.description
-            self._type_dict = {
-                col: db_engine_spec.get_datatype(cursor_description[i][1])
-                for i, col in enumerate(column_names)
-                if cursor_description
-            }
-        except Exception as e:
-            logging.exception(e)
+    #         # fix cursor descriptor with the deduped names
+    #         cursor_description = [
+    #             tuple([column_name, *list(description)[1:]])
+    #             for column_name, description in zip(column_names, cursor_description)
+    #         ]
+
+    #         # get type for better type casting, if possible
+    #         dtype = db_engine_spec.get_pandas_dtype(cursor_description)
+
+    #     self.column_names = column_names
+
+    #     print('*********** dtype')
+    #     print(dtype)
+
+
+    #     array = np.array(data).reshape(-1, len(column_names))
+    #     new_data = [
+    #         pa.array(array[:, i])
+    #         for i, column in enumerate(column_names)
+    #     ]
+        
+    #     print('*********** reshaped data')
+    #     print(new_data)
+
+    #     # batch = pa.RecordBatch.from_arrays(new_data, column_names)
+
+    #     # print('*********** batch')
+    #     # print(batch)
+    #     # print(batch.schema)
+
+    #     table = pa.Table.from_arrays(new_data, names=column_names)
+
+    #     print('*********** table')
+    #     print(table)
+
+    #     self.df = table.to_pandas(integer_object_nulls=True)
+
+    #     print('*********** df')
+    #     print(self.df.dtypes)
+    #     print(self.df)
+
+    #     # if dtype:
+    #     #     # put data in a 2D array so we can efficiently access each column;
+    #     #     # the reshape ensures the shape is 2D in case data is empty
+    #     #     array = np.array(data, dtype="object").reshape(-1, len(column_names))
+
+    #     #     print('*********** array')
+    #     #     print(array)
+    #     #     # convert each column in data into a Series of the proper dtype; we
+    #     #     # need to do this because we can not specify a mixed dtype when
+    #     #     # instantiating the DataFrame, and this allows us to have different
+    #     #     # dtypes for each column.
+    #     #     data = {
+    #     #         column: pd.Series(array[:, i], dtype=dtype[column])
+    #     #         for i, column in enumerate(column_names)
+    #     #     }
+    #     #     self.df = pd.DataFrame(data, columns=column_names)
+    #     # else:
+    #     #     self.df = pd.DataFrame(list(data), columns=column_names).infer_objects()
+
+    #     self._type_dict = {}
+    #     try:
+    #         # The driver may not be passing a cursor.description
+    #         self._type_dict = {
+    #             col: db_engine_spec.get_datatype(cursor_description[i][1])
+    #             for i, col in enumerate(column_names)
+    #             if cursor_description
+    #         }
+    #     except Exception as e:
+    #         logging.exception(e)
 
     @property
     def raw_df(self):
@@ -215,7 +230,7 @@ class SupersetDataFrame(object):
         if (
             hasattr(dtype, "type")
             and issubclass(dtype.type, np.generic)
-            and is_numeric(dtype)
+            and is_numeric(dtype)   # TODO: how does `object` dtype affect this?
         ):
             return "sum"
         return None
@@ -224,7 +239,7 @@ class SupersetDataFrame(object):
     def columns(self):
         """Provides metadata about columns for data visualization.
 
-        :return: dict, with the fields name, type, is_date, is_dim and agg.
+        :return: array containing dicts with the fields name, type, is_date, is_dim and agg.
         """
         if self.df.empty:
             return None

@@ -66,6 +66,7 @@ from superset import (
     results_backend_use_msgpack,
     security_manager,
     sql_lab,
+    table,
     talisman,
     viz,
 )
@@ -222,9 +223,11 @@ def _deserialize_results_payload(
             ds_payload = msgpack.loads(payload, raw=False)
 
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
-            df = pa.deserialize(ds_payload["data"])
+            # df = pa.deserialize(ds_payload["data"])
+            pa_table = pa.deserialize(ds_payload["data"])
 
         # TODO: optimize this, perhaps via df.to_dict, then traversing
+        df = table.SupersetTable.pa_table_to_df(pa_table)
         ds_payload["data"] = dataframe.SupersetDataFrame.format_data(df) or []
 
         db_engine_spec = query.database.db_engine_spec

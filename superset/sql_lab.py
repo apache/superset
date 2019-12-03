@@ -25,6 +25,7 @@ from typing import Optional, Tuple, Union
 import backoff
 import msgpack
 import pyarrow as pa
+import pyarrow.parquet as pq
 import simplejson as json
 import sqlalchemy
 from celery.exceptions import SoftTimeLimitExceeded
@@ -41,6 +42,7 @@ from superset import (
     security_manager,
 )
 from superset.dataframe import SupersetDataFrame
+from superset.table import SupersetTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
@@ -250,7 +252,8 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
 
     logger.debug(f"Query {query_id}: Fetching cursor description")
     cursor_description = cursor.description
-    return SupersetDataFrame(data, cursor_description, db_engine_spec)
+    # return SupersetDataFrame(data, cursor_description, db_engine_spec)
+    return SupersetTable(data, cursor_description, db_engine_spec)
 
 
 def _serialize_payload(
@@ -264,28 +267,37 @@ def _serialize_payload(
 
 
 def _serialize_and_expand_data(
-    cdf: SupersetDataFrame,
+    result_table: SupersetTable,
     db_engine_spec: BaseEngineSpec,
     use_msgpack: Optional[bool] = False,
     expand_data: bool = False,
 ) -> Tuple[Union[bytes, str], list, list, list]:
-    selected_columns: list = cdf.columns or []
+    selected_columns: list = result_table.columns or [] # TODO: port SupersetDataFrame columns logic
     expanded_columns: list
 
     if use_msgpack:
         with stats_timing(
             "sqllab.query.results_backend_pa_serialization", stats_logger
         ):
-            data = (
-                pa.default_serialization_context()
-                .serialize(cdf.raw_df)
-                .to_buffer()
-                .to_pybytes()
-            )
+            # data = (
+            #     pa.default_serialization_context()
+            #     .serialize(cdf.raw_df)
+            #     .to_buffer()
+            #     .to_pybytes()
+            # )
+
+            data = pa.default_serialization_context().serialize(result_table.pa_table).to_buffer().to_pybytes()  # TODO: Parquet serialization
+
         # expand when loading data from results backend
         all_columns, expanded_columns = (selected_columns, [])
     else:
+        cdf = SupersetDataFrame(result_table)
+        print('****************** cdf from table')
+        print(cdf)
         data = cdf.data or []
+
+        print('****************** cdf data')
+        print(data)
         if expand_data:
             all_columns, data, expanded_columns = db_engine_spec.expand_data(
                 selected_columns, data
@@ -355,7 +367,7 @@ def execute_sql_statements(
                 query.set_extra_json_key("progress", msg)
                 session.commit()
                 try:
-                    cdf = execute_sql_statement(
+                    result_table = execute_sql_statement(
                         statement, query, user_name, session, cursor
                     )
                 except Exception as e:
@@ -366,7 +378,7 @@ def execute_sql_statements(
                     return payload
 
     # Success, updating the query entry in database
-    query.rows = cdf.size
+    query.rows = result_table.size
     query.progress = 100
     query.set_extra_json_key("progress", None)
     if query.select_as_cta:
@@ -380,9 +392,10 @@ def execute_sql_statements(
     query.end_time = now_as_float()
 
     data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
-        cdf, db_engine_spec, store_results and results_backend_use_msgpack, expand_data
+        result_table, db_engine_spec, store_results and results_backend_use_msgpack, expand_data
     )
 
+    # TODO: data should be saved separately from metadata (likely in Parquet)
     payload.update(
         {
             "status": QueryStatus.SUCCESS,
