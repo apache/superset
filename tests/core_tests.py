@@ -41,6 +41,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
+from superset.table import SupersetTable
 from superset.utils import core as utils
 from superset.views import core as views
 from superset.views.database.views import DatabaseView
@@ -704,7 +705,8 @@ class CoreTests(SupersetTestCase):
             (datetime.datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=tz),),
             (datetime.datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=tz),),
         ]
-        df = dataframe.SupersetDataFrame(list(data), [["data"]], BaseEngineSpec)
+        table = SupersetTable(list(data), [["data"]], BaseEngineSpec)
+        df = dataframe.SupersetDataFrame(table)
         data = df.data
         self.assertDictEqual(
             data[0], {"data": pd.Timestamp("2017-11-18 21:53:00.219225+0100", tz=tz)}
@@ -719,9 +721,8 @@ class CoreTests(SupersetTestCase):
             (1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000)),
             (2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000)),
         ]
-        df = dataframe.SupersetDataFrame(
-            list(data), [["col1"], ["col2"], ["col3"]], MssqlEngineSpec
-        )
+        table = SupersetTable(list(data), [["col1"], ["col2"], ["col3"]], MssqlEngineSpec)
+        df = dataframe.SupersetDataFrame(table)
         data = df.data
         self.assertEqual(len(data), 2)
         self.assertEqual(
@@ -735,9 +736,8 @@ class CoreTests(SupersetTestCase):
             Row((1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000))),
             Row((2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000))),
         ]
-        df = dataframe.SupersetDataFrame(
-            list(data), [["col1"], ["col2"], ["col3"]], MssqlEngineSpec
-        )
+        table = SupersetTable(list(data), [["col1"], ["col2"], ["col3"]], MssqlEngineSpec)
+        df = dataframe.SupersetDataFrame(table)
         data = df.data
         self.assertEqual(len(data), 2)
         self.assertEqual(
@@ -873,7 +873,8 @@ class CoreTests(SupersetTestCase):
             ("d", "datetime"),
         )
         db_engine_spec = BaseEngineSpec()
-        cdf = dataframe.SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        table = SupersetTable(data, cursor_descr, db_engine_spec)
+        cdf = dataframe.SupersetDataFrame(table)
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",
@@ -916,7 +917,8 @@ class CoreTests(SupersetTestCase):
             ("d", "datetime"),
         )
         db_engine_spec = BaseEngineSpec()
-        cdf = dataframe.SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        table = SupersetTable(data, cursor_descr, db_engine_spec)
+        cdf = dataframe.SupersetDataFrame(table)
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",

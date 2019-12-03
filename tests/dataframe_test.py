@@ -17,7 +17,8 @@
 import numpy as np
 import pandas as pd
 
-from superset.dataframe import dedup, SupersetDataFrame
+from superset.dataframe import SupersetDataFrame
+from superset.table import SupersetTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 
@@ -25,25 +26,11 @@ from .base_tests import SupersetTestCase
 
 
 class SupersetDataFrameTestCase(SupersetTestCase):
-    def test_dedup(self):
-        self.assertEqual(dedup(["foo", "bar"]), ["foo", "bar"])
-        self.assertEqual(
-            dedup(["foo", "bar", "foo", "bar", "Foo"]),
-            ["foo", "bar", "foo__1", "bar__1", "Foo"],
-        )
-        self.assertEqual(
-            dedup(["foo", "bar", "bar", "bar", "Bar"]),
-            ["foo", "bar", "bar__1", "bar__2", "Bar"],
-        )
-        self.assertEqual(
-            dedup(["foo", "bar", "bar", "bar", "Bar"], case_sensitive=False),
-            ["foo", "bar", "bar__1", "bar__2", "Bar__3"],
-        )
-
     def test_get_columns_basic(self):
         data = [("a1", "b1", "c1"), ("a2", "b2", "c2")]
         cursor_descr = (("a", "string"), ("b", "string"), ("c", "string"))
-        cdf = SupersetDataFrame(data, cursor_descr, BaseEngineSpec)
+        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
+        cdf = SupersetDataFrame(table)
         self.assertEqual(
             cdf.columns,
             [
@@ -56,7 +43,8 @@ class SupersetDataFrameTestCase(SupersetTestCase):
     def test_get_columns_with_int(self):
         data = [("a1", 1), ("a2", 2)]
         cursor_descr = (("a", "string"), ("b", "int"))
-        cdf = SupersetDataFrame(data, cursor_descr, BaseEngineSpec)
+        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
+        cdf = SupersetDataFrame(table)
         self.assertEqual(
             cdf.columns,
             [
@@ -74,7 +62,8 @@ class SupersetDataFrameTestCase(SupersetTestCase):
     def test_get_columns_type_inference(self):
         data = [(1.2, 1), (3.14, 2)]
         cursor_descr = (("a", None), ("b", None))
-        cdf = SupersetDataFrame(data, cursor_descr, BaseEngineSpec)
+        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
+        cdf = SupersetDataFrame(table)
         self.assertEqual(
             cdf.columns,
             [
@@ -109,24 +98,18 @@ class SupersetDataFrameTestCase(SupersetTestCase):
     def test_dedup_with_data(self):
         data = [("a", 1), ("a", 2)]
         cursor_descr = (("a", "string"), ("a", "string"))
-        cdf = SupersetDataFrame(data, cursor_descr, BaseEngineSpec)
+        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
+        cdf = SupersetDataFrame(table)
         self.assertListEqual(cdf.column_names, ["a", "a__1"])
 
     def test_int64_with_missing_data(self):
         data = [(None,), (1239162456494753670,), (None,), (None,), (None,), (None,)]
         cursor_descr = [("user_id", "bigint", None, None, None, None, True)]
 
-        # the base engine spec does not provide a dtype based on the cursor
-        # description, so the column is inferred as float64 because of the
-        # missing data
-        cdf = SupersetDataFrame(data, cursor_descr, BaseEngineSpec)
-        np.testing.assert_array_equal(
-            cdf.raw_df.values.tolist(),
-            [[np.nan], [1.2391624564947538e18], [np.nan], [np.nan], [np.nan], [np.nan]],
-        )
-
-        # currently only Presto provides a dtype based on the cursor description
-        cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
+        # int64 coluns with null values are interpreted as dtype `object`
+        # in order to prevent precision loss due to the default float64 dtype
+        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
+        cdf = SupersetDataFrame(table)
         np.testing.assert_array_equal(
             cdf.raw_df.values.tolist(),
             [[np.nan], [1239162456494753670], [np.nan], [np.nan], [np.nan], [np.nan]],
@@ -135,7 +118,8 @@ class SupersetDataFrameTestCase(SupersetTestCase):
     def test_pandas_datetime64(self):
         data = [(None,)]
         cursor_descr = [("ds", "timestamp", None, None, None, None, True)]
-        cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
+        table = SupersetTable(data, cursor_descr, PrestoEngineSpec)
+        cdf = SupersetDataFrame(table)
         self.assertEqual(cdf.raw_df.dtypes[0], np.dtype("<M8[ns]"))
 
     def test_no_type_coercion(self):
@@ -144,7 +128,8 @@ class SupersetDataFrameTestCase(SupersetTestCase):
             ("one", "varchar", None, None, None, None, True),
             ("two", "integer", None, None, None, None, True),
         ]
-        cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
+        table = SupersetTable(data, cursor_descr, PrestoEngineSpec)
+        cdf = SupersetDataFrame(table)
         self.assertEqual(cdf.raw_df.dtypes[0], np.dtype("O"))
         self.assertEqual(cdf.raw_df.dtypes[1], pd.Int64Dtype())
 
@@ -154,6 +139,7 @@ class SupersetDataFrameTestCase(SupersetTestCase):
             ("one", "varchar", None, None, None, None, True),
             ("two", "integer", None, None, None, None, True),
         ]
-        cdf = SupersetDataFrame(data, cursor_descr, PrestoEngineSpec)
+        table = SupersetTable(data, cursor_descr, PrestoEngineSpec)
+        cdf = SupersetDataFrame(table)
         self.assertEqual(cdf.raw_df.dtypes[0], np.dtype("O"))
         self.assertEqual(cdf.raw_df.dtypes[1], pd.Int64Dtype())

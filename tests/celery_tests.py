@@ -29,6 +29,7 @@ from flask import current_app
 from tests.test_app import app
 from superset import db, sql_lab
 from superset.dataframe import SupersetDataFrame
+from superset.table import SupersetTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.extensions import celery_app
 from superset.models.helpers import QueryStatus
@@ -275,7 +276,8 @@ class CeleryTestCase(SupersetTestCase):
             ("d", "datetime"),
         )
         db_engine_spec = BaseEngineSpec()
-        cdf = SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        table = SupersetTable(data, cursor_descr, db_engine_spec)
+        cdf = SupersetDataFrame(table)
 
         with mock.patch.object(
             db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
@@ -296,7 +298,8 @@ class CeleryTestCase(SupersetTestCase):
             ("d", "datetime"),
         )
         db_engine_spec = BaseEngineSpec()
-        cdf = SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        table = SupersetTable(data, cursor_descr, db_engine_spec)
+        cdf = SupersetDataFrame(table)
 
         with mock.patch.object(
             db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
@@ -318,7 +321,8 @@ class CeleryTestCase(SupersetTestCase):
             ("d", "datetime"),
         )
         db_engine_spec = BaseEngineSpec()
-        cdf = SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        table = SupersetTable(data, cursor_descr, db_engine_spec)
+        cdf = SupersetDataFrame(table)
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",
@@ -351,7 +355,8 @@ class CeleryTestCase(SupersetTestCase):
             ("d", "datetime"),
         )
         db_engine_spec = BaseEngineSpec()
-        cdf = SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        table = SupersetTable(data, cursor_descr, db_engine_spec)
+        cdf = SupersetDataFrame(table)
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",
