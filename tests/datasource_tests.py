@@ -89,7 +89,7 @@ class DatasourceTests(SupersetTestCase):
         )
         data = dict(data=json.dumps(datasource_post_copy))
         resp = self.get_json_resp("/datasource/save/", data, raise_on_error=False)
-        self.assertIn("IntegrityError", resp["error"])
+        self.assertIn("Duplicate column name(s): <new column>", resp["error"])
 
     def test_get_datasource(self):
         self.login(username="admin")
