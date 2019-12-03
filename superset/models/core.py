@@ -486,6 +486,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         metadata = MetaData(bind=self.get_sqla_engine())
         metadata.reflect()
 
+    @renders("dashboard_title")
     def dashboard_link(self) -> Markup:
         title = escape(self.dashboard_title or "<empty>")
         return Markup(f'<a href="{self.url}">{title}</a>')

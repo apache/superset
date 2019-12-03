@@ -35,6 +35,19 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
         "delete": "delete",
         "info": "list",
     }
+
+    show_columns = [
+        "dashboard_title",
+        "slug",
+        "owners.id",
+        "owners.username",
+        "position_json",
+        "css",
+        "json_metadata",
+        "published",
+        "table_names",
+        "charts"
+    ]
     resource_name = "dashboard"
     allow_browser_login = True
 

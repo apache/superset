@@ -33,7 +33,7 @@ class DashboardMixin:
     edit_title = _("Edit Dashboard")
 
     list_columns = ["dashboard_link", "creator", "published", "modified"]
-    order_columns = ["modified", "published"]
+    order_columns = ["dashboard_link", "modified", "published"]
     edit_columns = [
         "dashboard_title",
         "slug",
