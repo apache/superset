@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import json
 from collections import Counter
 
@@ -100,8 +99,8 @@ class Datasource(BaseSupersetView):
             database = (
                 db.session.query(Database).filter_by(id=request.args.get("db_id")).one()
             )
-            Table = ConnectorRegistry.sources["table"]
-            datasource = Table(
+            table = ConnectorRegistry.sources["table"]
+            datasource = table(
                 database=database,
                 table_name=request.args.get("table_name"),
                 schema=request.args.get("schema") or None,
