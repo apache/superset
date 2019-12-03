@@ -20,13 +20,13 @@ import os
 import re
 from contextlib import closing
 from datetime import datetime
+from distutils.util import strtobool
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING, Union
 
 import pandas as pd
 import sqlparse
 from flask import g
 from flask_babel import lazy_gettext as _
-from numpy.core.defchararray import lower
 from sqlalchemy import column, DateTime, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
@@ -402,15 +402,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Raises:
             IntegrityError: If there was a problem creating the table
         """
-
-        def _str_to_bool(boolstr: str) -> bool:
-            if boolstr == "True" or boolstr == "true":
-                return True
-            elif boolstr == "False" or boolstr == "false":
-                return False
-            else:
-                raise ValueError
-
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
             extension = os.path.splitext(filename)[1]
@@ -429,17 +420,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "index_col": None
             if not form_data["indexColumn"]
             else int(form_data["indexColumn"]),
-            "mangle_dupe_cols": bool(form_data["mangleDuplicateColumns"]),
-            "skipinitialspace": bool(form_data["skipInitialSpace"]),
+            "mangle_dupe_cols": strtobool(form_data["mangleDuplicateColumns"]),
+            "skipinitialspace": strtobool(form_data["skipInitialSpace"]),
             "skiprows": None
             if not form_data["skipRows"]
             else int(form_data["skipRows"]),
             "nrows": None
             if not form_data["rowsToRead"]
             else int(form_data["rowsToRead"]),
-            "skip_blank_lines": bool(form_data["skipBlankLines"]),
+            "skip_blank_lines": strtobool(form_data["skipBlankLines"]),
             "parse_dates": form_data["parseDates"] or None,
-            "infer_datetime_format": bool(form_data["inferDatetimeFormat"]),
+            "infer_datetime_format": strtobool(form_data["inferDatetimeFormat"]),
             "chunksize": 10000,
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
@@ -449,8 +440,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "name": form_data["tableName"],
             "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
             "schema": form_data["schema"] or None,
-            "if_exists": lower(form_data["ifTableExists"]),
-            "index": _str_to_bool(form_data["dataframeIndex"]),
+            "if_exists": form_data["ifTableExists"].lower(),
+            "index": strtobool(form_data["dataframeIndex"]),
             "index_label": form_data["columnLabels"] or None,
             "chunksize": 10000,
         }
