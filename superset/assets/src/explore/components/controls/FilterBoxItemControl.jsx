@@ -76,10 +76,15 @@ export default class FilterBoxItemControl extends React.Component {
               value={this.state.column}
               name="column"
               clearable={false}
-              options={this.props.datasource.columns.map(col => ({
-                value: col.column_name,
-                label: col.column_name,
-              }))}
+              options={this.props.datasource.columns
+                .filter(col => col !== this.state.column)
+                .map(col => ({
+                  value: col.column_name,
+                  label: col.column_name,
+                }))
+                .concat([
+                  { value: this.state.column, label: this.state.column },
+                ])}
               onChange={v => this.onControlChange('column', v)}
             />
           }
@@ -116,10 +121,15 @@ export default class FilterBoxItemControl extends React.Component {
             <SelectControl
               value={this.state.metric}
               name="column"
-              options={this.props.datasource.metrics.map(m => ({
-                value: m.metric_name,
-                label: m.metric_name,
-              }))}
+              options={this.props.datasource.metrics
+                .filter(metric => metric !== this.state.metric)
+                .map(m => ({
+                  value: m.metric_name,
+                  label: m.metric_name,
+                }))
+                .concat([
+                  { value: this.state.metric, label: this.state.metric },
+                ])}
               onChange={v => this.onControlChange('metric', v)}
             />
           }
