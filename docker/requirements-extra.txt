@@ -14,27 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-**/__pycache__/
-**/.mypy_cache
-**/.pytest_cache
-**/.tox
-**/.vscode
-**/.idea
-**/.coverage
-**/.DS_Store
-**/.eggs
-**/.python-version
-**/*.egg-info
-**/*.bak
-**/*.db
-**/*.pyc
-**/*.sqllite
-**/*.swp
-
-tests/
-docs/
-install/
-superset/assets/node_modules/
-superset/assets/cypress/
-superset/assets/coverage/
-venv
+gevent==1.4.0
+psycopg2-binary==2.7.5
+redis==3.2.1

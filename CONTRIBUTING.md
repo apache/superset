@@ -456,6 +456,10 @@ If you run this service from somewhere other than your local machine, you may ne
 npm install --global webpack webpack-cli webpack-dev-server
 ```
 
+#### Docker 
+
+See docs [here](docker/README.md)
+
 #### Updating NPM packages
 
 Use npm in the prescribed way, making sure that
