@@ -20,8 +20,9 @@ import sys
 
 from superset import conf
 
-db_name = sys.argv[1]
-path = conf["BASE_DIR"]
-db_path = os.path.abspath(os.path.join(os.getcwd(), path + db_name + ".db"))
-if os.path.isfile(db_path):
-    os.remove(db_path)
+if __name__ == "__main__":
+    db_name = sys.argv[1]
+    path = conf["BASE_DIR"]
+    db_path = os.path.abspath(os.path.join(os.getcwd(), path + db_name + ".db"))
+    if os.path.isfile(db_path):
+        os.remove(db_path)
