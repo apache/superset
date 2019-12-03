@@ -218,7 +218,6 @@ class CsvImporter(BaseSupersetView):
                 + "@localhost/"
                 + db_name
             )
-            # TODO if there is time look for a better method to do this, otherwise document it
             enurl = (
                 "postgresql://"
                 + postgres_user
