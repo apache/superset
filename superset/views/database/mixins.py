@@ -28,14 +28,16 @@ from superset.views.base import BaseFilter
 
 class DatabaseFilter(BaseFilter):
     # TODO(bogdan): consider caching.
-    def schema_access_databases(self):  # noqa
+    def schema_access_databases(self):  # noqa pylint: disable=no-self-use
         found_databases = set()
         for vm in security_manager.user_view_menu_names("schema_access"):
             database_name, _ = security_manager.unpack_schema_perm(vm)
             found_databases.add(database_name)
         return found_databases
 
-    def apply(self, query, func):  # noqa
+    def apply(
+        self, query, func
+    ):  # noqa pylint: disable=unused-argument,arguments-differ
         if security_manager.all_database_access():
             return query
         database_perms = security_manager.user_view_menu_names("database_access")
