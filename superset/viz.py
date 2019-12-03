@@ -47,7 +47,7 @@ from markdown import markdown
 from pandas.tseries.frequencies import to_offset
 
 from superset import app, cache, get_css_manifest_files
-from superset.constants import NULLSTRING
+from superset.constants import NULL_STRING
 from superset.exceptions import NullValueException, SpatialException
 from superset.utils import core as utils
 from superset.utils.core import (
@@ -1547,9 +1547,9 @@ class DistributionBarViz(DistributionPieViz):
         columns = fd.get("columns") or []
 
         # pandas will throw away nulls when grouping/pivoting,
-        # so we substitute NULLSTRING for any nulls in the necessary columns
+        # so we substitute NULL_STRING for any nulls in the necessary columns
         filled_cols = self.groupby + columns
-        df[filled_cols] = df[filled_cols].fillna(value=NULLSTRING)
+        df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         row = df.groupby(self.groupby).sum()[metrics[0]].copy()
         row.sort_values(ascending=False, inplace=True)

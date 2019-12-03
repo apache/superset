@@ -19,7 +19,7 @@
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from './getClientErrorObject';
 
-export const NULLSTRING = '<NULL>';
+export const NULL_STRING = '<NULL>';
 
 export function getParamFromQuery(query, param) {
   const vars = query.split('&');
@@ -80,7 +80,7 @@ export function supersetURL(rootUrl, getParams = {}) {
 
 export function optionLabel(opt) {
   if (opt === null) {
-    return NULLSTRING;
+    return NULL_STRING;
   } else if (opt === '') {
     return '<empty string>';
   } else if (opt === true) {
@@ -95,7 +95,7 @@ export function optionLabel(opt) {
 
 export function optionValue(opt) {
   if (opt === null) {
-    return NULLSTRING;
+    return NULL_STRING;
   }
   return opt;
 }

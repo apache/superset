@@ -16,4 +16,4 @@
 # under the License.
 
 # string to use when None values *need* to be converted to/from strings
-NULLSTRING = "<NULL>"
+NULL_STRING = "<NULL>"
