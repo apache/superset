@@ -20,7 +20,6 @@ import unittest
 
 import sqlalchemy_utils
 
-import superset.models.core as models
 from superset import conf, db
 from superset.utils import core as utils
 from superset.views.csv_import import CsvImporter
@@ -58,7 +57,7 @@ class CsvUploadTests(SupersetTestCase):
         filename,
         database_id,
         database_name="",
-        table_name="TableForTesting",
+        table_name="",
         schema="",
         database_flavor="sqlite",
     ):
@@ -98,9 +97,12 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_import_csv_in_existing(self):
         url = "/csvimporter/csvtodatabase/add"
-        filename = "maximum.csv"
+        filename = "in_existing.csv"
+        table_name = "in_existing"
         try:
-            form_data = self.get_full_data(filename, self.get_existing_db_id())
+            form_data = self.get_full_data(
+                filename, self.get_existing_db_id(), table_name=table_name
+            )
             response = self.get_resp(url, data=form_data)
             assert "imported into database" in response
         finally:
@@ -126,7 +128,7 @@ class CsvUploadTests(SupersetTestCase):
             filename = ",+."
             form_data = self.get_full_data(filename, self.get_existing_db_id())
             response = self.get_resp(url, data=form_data, raise_on_error=False)
-            assert "Filename is not allowed" in response
+            assert "Name {0} is not allowed for CSV".format(filename) in response
         finally:
             os.remove(filename)
 
@@ -147,7 +149,8 @@ class CsvUploadTests(SupersetTestCase):
         try:
             url = "/csvimporter/csvtodatabase/add"
             filename = "not_existing_database_id.csv"
-            form_data = self.get_full_data(filename, 1337)
+            table_name = "not_existing_db"
+            form_data = self.get_full_data(filename, 1337, table_name=table_name)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
             assert "No row was found for one" in response
         finally:
@@ -156,13 +159,16 @@ class CsvUploadTests(SupersetTestCase):
     def test_not_allowed_upload(self):
         try:
             url = "/csvimporter/csvtodatabase/add"
-            filename = "not_allowed_schema.csv"
+            filename = "not_allowed_upload.csv"
+            table_name = "not_alowed_upload"
 
             example_db = utils.get_example_database()
             example_db.allow_csv_upload = False
             db.session.commit()
 
-            form_data = self.get_full_data(filename, example_db.id)
+            form_data = self.get_full_data(
+                filename, example_db.id, table_name=table_name
+            )
             response = self.get_resp(url, data=form_data, raise_on_error=False)
             message = "Database {0} Schema {1} is not allowed for csv uploads.".format(
                 example_db.database_name, None
@@ -176,22 +182,27 @@ class CsvUploadTests(SupersetTestCase):
         try:
             url = "/csvimporter/csvtodatabase/add"
             filename = "not_allowed_database_name.csv"
-            form_data = self.get_full_data(filename, -1, "./.")
+            table_name = "not_allowed_database_name"
+            database_name = "./."
+            form_data = self.get_full_data(filename, -1, database_name, table_name)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
-            assert "Database name is not allowed" in response
+            assert (
+                "Name {0} is not allowed for database".format(database_name) in response
+            )
         finally:
             os.remove(filename)
 
     def test_already_exist_database_file(self):
         url = "/csvimporter/csvtodatabase/add"
-        filename = "not_allowed_database_name.csv"
+        filename = "already_exist_database_file.csv"
         db_name = "existing_db"
+        table_name = "allready_exist_database_file"
         db_path = os.getcwd() + "/" + db_name + ".db"
         try:
             existing_file = open(db_path, "w+")
             existing_file.close()
 
-            form_data = self.get_full_data(filename, -1, db_name)
+            form_data = self.get_full_data(filename, -1, db_name, table_name)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
             assert (
                 "Database file for {0} already exists, please choose a different name".format(
@@ -230,8 +241,8 @@ class CsvUploadTests(SupersetTestCase):
             form_data = self.get_full_data(
                 filename,
                 self.get_existing_db_id(),
-                table_name=table_name,
                 database_name=db_name,
+                table_name=table_name,
             )
             response = self.get_resp(url, data=form_data, raise_on_error=False)
             message = "Table name {0} already exists. Please choose another".format(
@@ -246,18 +257,13 @@ class CsvUploadTests(SupersetTestCase):
         filename = "not_allowed_schema.csv"
         schema = "mySchema"
         db_name = "not_allowed_schema"
+        table_name = "schema_not_allowed"
         try:
-            form_data = self.get_full_data(
-                filename,
-                -1,
-                table_name="schema_not_allowed",
-                schema=schema,
-                database_name=db_name,
-            )
+            form_data = self.get_full_data(filename, -1, db_name, table_name, schema)
             response = self.get_resp(url, data=form_data, raise_on_error=False)
             message = (
-                "Table schema_not_allowed could not be created. This could be an issue with the schema, "
-                "a connection issue, etc."
+                "Table {0} could not be filled with CSV {1}. This could be an issue with the schema, a connection "
+                "issue, etc.".format(table_name, filename)
             )
 
             assert message in response
@@ -268,8 +274,9 @@ class CsvUploadTests(SupersetTestCase):
         url = "/csvimporter/csvtodatabase/add"
         filename = "postgres_no_password.csv"
         db_name = "csv_into_new_postgres_no_pw"
+        table_name = "postgres_no_password"
         form_data = self.get_full_data(
-            filename, -1, db_name, database_flavor="postgres"
+            filename, -1, db_name, table_name, database_flavor="postgres"
         )
         conf["POSTGRES_USERNAME"] = "postgres"
         conf["POSTGRES_PASSWORD"] = ""
@@ -284,8 +291,9 @@ class CsvUploadTests(SupersetTestCase):
         url = "/csvimporter/csvtodatabase/add"
         filename = "postgres_no_username.csv"
         db_name = "csv_into_new_postgres_no_username"
+        table_name = "postgres_no_username"
         form_data = self.get_full_data(
-            filename, -1, db_name, database_flavor="postgres"
+            filename, -1, db_name, table_name, database_flavor="postgres"
         )
         conf["POSTGRES_USERNAME"] = ""
         conf["POSTGRES_PASSWORD"] = "postgres"
@@ -338,8 +346,9 @@ class CsvUploadTests(SupersetTestCase):
         url = "/csvimporter/csvtodatabase/add"
         filename = "postgres_already_exist.csv"
         db_name = "postgres_already_exist"
+        table_name = "postgres_already_exist"
         form_data = self.get_full_data(
-            filename, -1, db_name, database_flavor="postgres"
+            filename, -1, db_name, table_name, database_flavor="postgres"
         )
         conf["POSTGRES_USERNAME"] = "postgres"
         conf["POSTGRES_PASSWORD"] = "postgres"

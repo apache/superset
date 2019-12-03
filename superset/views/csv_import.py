@@ -116,16 +116,20 @@ class CsvImporter(BaseSupersetView):
             csv_path = None
             csv_filename = self._clean_filename(csv_file.filename, "CSV")
             database = None
-            db_flavor = form_data["databaseFlavor"] or None
-            database_id = self._convert_database_id(form_data["connectionId"])
-            table_name = form_data["tableName"]
+            db_flavor = form_data.get("databaseFlavor") or None
+            database_id = self._convert_database_id(form_data.get("connectionId"))
+            table_name = form_data.get("tableName", "")
             self._check_table_name(table_name)
 
             if database_id != NEW_DATABASE_ID:
-                database = self._get_existing_database(database_id, form_data["schema"])
+                database = self._get_existing_database(
+                    database_id, form_data.get("schema") or None
+                )
                 db_name = database.database_name
             else:
-                db_name = self._clean_filename(form_data["databaseName"], "database")
+                db_name = self._clean_filename(
+                    form_data.get("databaseName", ""), "database"
+                )
                 database = self._create_database(db_name, db_flavor)
 
             table = self._create_table(table_name, database)
@@ -146,7 +150,7 @@ class CsvImporter(BaseSupersetView):
             return json_error_response(e.args[0], status=BAD_REQUEST)
         except (DatabaseCreationException, TableCreationException) as e:
             STATS_LOGGER.incr("failed_csv_upload")
-            if database_id == NEW_DATABASE_ID:
+            if NEW_DATABASE_ID == database_id:
                 self._remove_database(database, db_flavor)
             return json_error_response(e.args[0], status=BAD_REQUEST)
         except (Exception, DatabaseDeletionException) as e:
@@ -160,11 +164,9 @@ class CsvImporter(BaseSupersetView):
                 pass
 
         STATS_LOGGER.incr("successful_csv_upload")
-        message = "{} imported into database {}".format(form_data["tableName"], db_name)
+        message = '"{} imported into database {}"'.format(table_name, db_name)
         flash(message, "success")
-        return json_success(
-            '"{} imported into database {}"'.format(form_data["tableName"], db_name)
-        )
+        return json_success(message)
 
     def _clean_filename(self, filename: str, purpose: str) -> str:
         """ Clean filename from disallowed characters
@@ -177,7 +179,7 @@ class CsvImporter(BaseSupersetView):
         cleaned_filename = secure_filename(filename)
         if len(cleaned_filename) == 0:
             raise NameNotAllowed(
-                "Filename {0} is not allowed for ".format(filename, purpose)
+                "Name {0} is not allowed for {1}".format(filename, purpose)
             )
         return cleaned_filename
 
@@ -278,13 +280,13 @@ class CsvImporter(BaseSupersetView):
         :param db_name: the database name of SQLite
         :param database: the database object to configure
         """
-        db_path = SQLALCHEMY_SQLITE_CONNECTION + os.getcwd() + "/" + db_name + ".db"
+        db_path = os.getcwd() + "/" + db_name + ".db"
         if os.path.isfile(db_path):
             message = "Database file for {0} already exists, please choose a different name".format(
                 db_name
             )
             raise ValueError(message)
-        database.sqlalchemy_uri = db_path
+        database.sqlalchemy_uri = SQLALCHEMY_SQLITE_CONNECTION + db_path
 
     def _remove_database(self, database, db_flavor=SQLITE):
         """Remove database in an exception case
@@ -293,8 +295,12 @@ class CsvImporter(BaseSupersetView):
         """
         try:
             if database:
-                if db_flavor == SQLITE and os.path.isfile(database.sqlalchemy_uri):
-                    os.remove(database.sqlalchemy_uri)
+                if db_flavor == SQLITE:
+                    db_path = database.sqlalchemy_uri.replace(
+                        SQLALCHEMY_SQLITE_CONNECTION, ""
+                    )
+                    if os.path.isfile(db_path):
+                        os.remove(db_path)
                 db.session.rollback()
                 db.session.delete(database)
                 db.session.commit()
@@ -421,7 +427,7 @@ class CsvImporter(BaseSupersetView):
         except Exception:
             raise TableCreationException(
                 "Table {0} could not be filled with CSV {1}. This could be an issue with the schema, a connection "
-                "issue, etc.".format(form_data["tableName"], csv_filename)
+                "issue, etc.".format(form_data.get("tableName"), csv_filename)
             )
 
 
