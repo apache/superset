@@ -822,6 +822,7 @@ function nvd3Vis(element, props) {
       }
 
       // render chart
+      chart.margin(margins);
       svg
         .datum(data)
         .transition()
