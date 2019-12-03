@@ -18,9 +18,10 @@
 import os
 import sys
 
+from superset import conf
+
 db_name = sys.argv[1]
-db_path = os.path.abspath(
-    os.path.join(os.getcwd(), "../../../../../../" + db_name + ".db")
-)
+path = conf["BASE_DIR"]
+db_path = os.path.abspath(os.path.join(os.getcwd(), path + db_name + ".db"))
 if os.path.isfile(db_path):
     os.remove(db_path)
