@@ -192,10 +192,21 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const { chartAlert, chartStatus, vizType, chartId } = this.props;
+    const {
+      chartAlert,
+      chartStatus,
+      vizType,
+      chartId,
+      refreshOverlayVisible,
+    } = this.props;
 
     // Skip chart rendering
-    if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
+    if (
+      refreshOverlayVisible ||
+      chartStatus === 'loading' ||
+      !!chartAlert ||
+      chartStatus === null
+    ) {
       return null;
     }
 
