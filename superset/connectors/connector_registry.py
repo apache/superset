@@ -18,6 +18,7 @@
 from collections import OrderedDict
 from typing import Dict, List, Optional, Set, Type, TYPE_CHECKING
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, subqueryload
 
 if TYPE_CHECKING:
@@ -75,13 +76,23 @@ class ConnectorRegistry(object):
 
     @classmethod
     def query_datasources_by_permissions(
-        cls, session: Session, database: "Database", permissions: Set[str]
+        cls,
+        session: Session,
+        database: "Database",
+        permissions: Set[str],
+        schema_perms: Set[str],
     ) -> List["BaseDatasource"]:
+        # TODO(bogdan): add unit test
         datasource_class = ConnectorRegistry.sources[database.type]
         return (
             session.query(datasource_class)
             .filter_by(database_id=database.id)
-            .filter(datasource_class.perm.in_(permissions))
+            .filter(
+                or_(
+                    datasource_class.perm.in_(permissions),
+                    datasource_class.schema_perm.in_(schema_perms),
+                )
+            )
             .all()
         )
 
@@ -111,5 +122,5 @@ class ConnectorRegistry(object):
     ) -> List["BaseDatasource"]:
         datasource_class = ConnectorRegistry.sources[database.type]
         return datasource_class.query_datasources_by_name(
-            session, database, datasource_name, schema=None
+            session, database, datasource_name, schema=schema
         )
