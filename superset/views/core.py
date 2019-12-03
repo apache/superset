@@ -223,7 +223,6 @@ def _deserialize_results_payload(
             ds_payload = msgpack.loads(payload, raw=False)
 
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
-            # df = pa.deserialize(ds_payload["data"])
             pa_table = pa.deserialize(ds_payload["data"])
 
         # TODO: optimize this, perhaps via df.to_dict, then traversing

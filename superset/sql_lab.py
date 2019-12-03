@@ -25,7 +25,6 @@ from typing import Optional, Tuple, Union
 import backoff
 import msgpack
 import pyarrow as pa
-import pyarrow.parquet as pq
 import simplejson as json
 import sqlalchemy
 from celery.exceptions import SoftTimeLimitExceeded
@@ -272,32 +271,26 @@ def _serialize_and_expand_data(
     use_msgpack: Optional[bool] = False,
     expand_data: bool = False,
 ) -> Tuple[Union[bytes, str], list, list, list]:
-    selected_columns: list = result_table.columns or [] # TODO: port SupersetDataFrame columns logic
+    selected_columns: list = result_table.columns or []
     expanded_columns: list
 
     if use_msgpack:
         with stats_timing(
             "sqllab.query.results_backend_pa_serialization", stats_logger
         ):
-            # data = (
-            #     pa.default_serialization_context()
-            #     .serialize(cdf.raw_df)
-            #     .to_buffer()
-            #     .to_pybytes()
-            # )
-
-            data = pa.default_serialization_context().serialize(result_table.pa_table).to_buffer().to_pybytes()  # TODO: Parquet serialization
+            data = (
+                pa.default_serialization_context()
+                .serialize(result_table.pa_table)
+                .to_buffer()
+                .to_pybytes()
+            )
 
         # expand when loading data from results backend
         all_columns, expanded_columns = (selected_columns, [])
     else:
         cdf = SupersetDataFrame(result_table)
-        print('****************** cdf from table')
-        print(cdf)
         data = cdf.data or []
 
-        print('****************** cdf data')
-        print(data)
         if expand_data:
             all_columns, data, expanded_columns = db_engine_spec.expand_data(
                 selected_columns, data
