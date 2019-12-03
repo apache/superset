@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import functools
 import logging
 import traceback
@@ -63,10 +62,18 @@ def get_error_msg():
     return error_msg
 
 
-def json_error_response(msg=None, status=500, stacktrace=None, payload=None, link=None):
+def json_error_response(
+        msg=None,
+        status=500,
+        stacktrace=None,
+        payload=None,
+        link=None
+):
     if not payload:
         payload = {"error": "{}".format(msg)}
-        payload["stacktrace"] = utils.get_stacktrace()
+    if not stacktrace:
+        stacktrace = utils.get_stacktrace()
+    payload["stacktrace"] = stacktrace
     if link:
         payload["link"] = link
 
@@ -102,7 +109,7 @@ def api(f):
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-except
             logging.exception(e)
             return json_error_response(get_error_msg())
 
@@ -141,7 +148,7 @@ def handle_api_exception(f):
                 stacktrace=traceback.format_exc(),
                 status=e.code,
             )
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-except
             logging.exception(e)
             return json_error_response(
                 utils.error_msg_from_exception(e), stacktrace=utils.get_stacktrace()
@@ -162,14 +169,14 @@ def get_user_roles():
 
 
 class BaseSupersetView(BaseView):
-    def json_response(self, obj, status=200):
+    def json_response(self, obj, status=200): # pylint: disable=no-self-use
         return Response(
             json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,
             mimetype="application/json",
         )
 
-    def menu_data(self):
+    def menu_data(self): # pylint: disable=no-self-use
         menu = appbuilder.menu.get_data()
         root_path = "#"
         logo_target_path = ""
@@ -229,7 +236,7 @@ class BaseSupersetView(BaseView):
         }
 
 
-class SupersetListWidget(ListWidget):
+class SupersetListWidget(ListWidget): # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
 
 
@@ -238,7 +245,7 @@ class SupersetModelView(ModelView):
     list_widget = SupersetListWidget
 
 
-class ListWidgetWithCheckboxes(ListWidget):
+class ListWidgetWithCheckboxes(ListWidget): # pylint: disable=too-few-public-methods
     """An alternative to list view that renders Boolean fields as checkboxes
 
     Works in conjunction with the `checkbox` view."""
@@ -246,7 +253,7 @@ class ListWidgetWithCheckboxes(ListWidget):
     template = "superset/fab_overrides/list_with_checkboxes.html"
 
 
-def validate_json(form, field):
+def validate_json(_form, field):
     try:
         json.loads(field.data)
     except Exception as e:
@@ -254,10 +261,10 @@ def validate_json(form, field):
         raise Exception(_("json isn't valid"))
 
 
-class YamlExportMixin(object):
+class YamlExportMixin(object): # pylint: disable=too-few-public-methods
     yaml_dict_key: Optional[str] = None
     """
-    Override this if you want a dict response instead, with a certain key. 
+    Override this if you want a dict response instead, with a certain key.
     Used on DatabaseView for cli compatibility
     """
 
@@ -276,21 +283,21 @@ class YamlExportMixin(object):
         )
 
 
-class DeleteMixin(object):
-    def _delete(self, pk):
+class DeleteMixin(object): # pylint: disable=too-few-public-methods
+    def _delete(self, primary_key):
         """
             Delete function logic, override to implement diferent logic
-            deletes the record with primary_key = pk
+            deletes the record with primary_key = primary_key
 
-            :param pk:
+            :param primary_key:
                 record primary key to delete
         """
-        item = self.datamodel.get(pk, self._base_filters)
+        item = self.datamodel.get(primary_key, self._base_filters)
         if not item:
             abort(404)
         try:
             self.pre_delete(item)
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-except
             flash(str(e), "danger")
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
@@ -340,7 +347,7 @@ class DeleteMixin(object):
         for item in items:
             try:
                 self.pre_delete(item)
-            except Exception as e:
+            except Exception as e: # pylint: disable=broad-except
                 flash(str(e), "danger")
             else:
                 self._delete(item.id)
@@ -357,7 +364,7 @@ class SupersetFilter(BaseFilter):
     to be able to make multiple checks but query the db only once
     """
 
-    def get_user_roles(self):
+    def get_user_roles(self): # pylint: disable=no-self-use
         return get_user_roles()
 
     def get_all_permissions(self):
@@ -365,8 +372,8 @@ class SupersetFilter(BaseFilter):
         perms = set()
         for role in self.get_user_roles():
             for perm_view in role.permissions:
-                t = (perm_view.permission.name, perm_view.view_menu.name)
-                perms.add(t)
+                tupe = (perm_view.permission.name, perm_view.view_menu.name)
+                perms.add(tupe)
         return perms
 
     def has_role(self, role_name_or_list):
@@ -387,9 +394,12 @@ class SupersetFilter(BaseFilter):
                 vm.add(vm_name)
         return vm
 
+    def apply(self, query, value):
+        raise NotImplementedError
+
 
 class DatasourceFilter(SupersetFilter):
-    def apply(self, query, func):
+    def apply(self, query, value):
         if security_manager.all_datasource_access():
             return query
         perms = self.get_view_menus("datasource_access")
@@ -397,7 +407,7 @@ class DatasourceFilter(SupersetFilter):
         return query.filter(self.model.perm.in_(perms))
 
 
-class CsvResponse(Response):
+class CsvResponse(Response): # pylint: disable=too-many-ancestors
     """
     Override Response to take into account csv encoding from config.py
     """
@@ -428,8 +438,8 @@ def check_ownership(obj, raise_if_false=True):
     roles = [r.name for r in get_user_roles()]
     if "Admin" in roles:
         return True
-    session = db.create_scoped_session()
-    orig_obj = session.query(obj.__class__).filter_by(id=obj.id).first()
+    scoped_session = db.create_scoped_session()
+    orig_obj = scoped_session.query(obj.__class__).filter_by(id=obj.id).first()
 
     # Making a list of owners that works across ORM models
     owners = []
@@ -451,7 +461,7 @@ def check_ownership(obj, raise_if_false=True):
 
 
 def bind_field(
-    self, form: DynamicForm, unbound_field: UnboundField, options: Dict[Any, Any]
+    _, form: DynamicForm, unbound_field: UnboundField, options: Dict[Any, Any]
 ) -> Field:
     """
     Customize how fields are bound by stripping all whitespace.
