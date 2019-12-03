@@ -26,12 +26,12 @@ RUN mkdir /app \
             libpq-dev \
         && rm -rf /var/lib/apt/lists/*
 
-COPY requirements* ./setup.py ./MANIFEST.in ./README.md ./app/
+COPY ./requirements.txt ./setup.py ./MANIFEST.in ./README.md ./app/
 COPY superset /app/superset
 
 RUN cd /app \
         && pip install --upgrade setuptools pip \
-        && pip install -r requirements.txt -r requirements-dev.txt \
+        && pip install -r requirements.txt \
         && pip install -e .
 
 
