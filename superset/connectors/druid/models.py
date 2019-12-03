@@ -292,6 +292,10 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         return self.verbose_name or self.cluster_name
 
 
+sa.event.listen(DruidCluster, "after_insert", security_manager.set_perm)
+sa.event.listen(DruidCluster, "after_update", security_manager.set_perm)
+
+
 class DruidColumn(Model, BaseColumn):
     """ORM model for storing Druid datasource column metadata"""
 
@@ -529,8 +533,7 @@ class DruidDatasource(Model, BaseDatasource):
         else:
             return None
 
-    @property
-    def schema_perm(self) -> Optional[str]:
+    def get_schema_perm(self) -> Optional[str]:
         """Returns schema permission if present, cluster one otherwise."""
         return security_manager.get_schema_perm(self.cluster, self.schema)
 

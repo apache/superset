@@ -18,20 +18,37 @@ import inspect
 
 from flask import Markup
 from flask_babel import lazy_gettext as _
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, or_
 
 from superset import security_manager
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
-from superset.views.base import SupersetFilter
+from superset.views.base import BaseFilter
 
 
-class DatabaseFilter(SupersetFilter):
-    def apply(self, query, value):
+class DatabaseFilter(BaseFilter):
+    # TODO(bogdan): consider caching.
+    def schema_access_databases(self):  # noqa pylint: disable=no-self-use
+        found_databases = set()
+        for vm in security_manager.user_view_menu_names("schema_access"):
+            database_name, _ = security_manager.unpack_schema_perm(vm)
+            found_databases.add(database_name)
+        return found_databases
+
+    def apply(
+        self, query, func
+    ):  # noqa pylint: disable=unused-argument,arguments-differ
         if security_manager.all_database_access():
             return query
-        perms = self.get_view_menus("database_access")
-        return query.filter(self.model.perm.in_(perms))
+        database_perms = security_manager.user_view_menu_names("database_access")
+        # TODO(bogdan): consider adding datasource access here as well.
+        schema_access_databases = self.schema_access_databases()
+        return query.filter(
+            or_(
+                self.model.perm.in_(database_perms),
+                self.model.database_name.in_(schema_access_databases),
+            )
+        )
 
 
 class DatabaseMixin:

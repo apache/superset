@@ -459,8 +459,7 @@ class SqlaTable(Model, BaseDatasource):
         anchor = f'<a target="_blank" href="{self.explore_url}">{name}</a>'
         return Markup(anchor)
 
-    @property
-    def schema_perm(self) -> Optional[str]:
+    def get_schema_perm(self) -> Optional[str]:
         """Returns schema permission if present, database one otherwise."""
         return security_manager.get_schema_perm(self.database, self.schema)
 
