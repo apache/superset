@@ -61,7 +61,7 @@ class Datasource(BaseSupersetView):
         ]
         if duplicates:
             return json_error_response(
-                f"Duplicate column name(s): {','.join(duplicates)}", status="500"
+                f"Duplicate column name(s): {','.join(duplicates)}", status="409"
             )
 
         orm_datasource.update_from_object(datasource)
