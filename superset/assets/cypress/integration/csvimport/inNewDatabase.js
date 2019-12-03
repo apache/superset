@@ -32,6 +32,10 @@ export default () => {
       cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + databaseName, { timeout: 30000 });
     });
 
+    afterEach(() => {
+      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + databaseName, { timeout: 30000 });
+    });
+
     it('test import in new database', () => {
 
       cy.get('#tableName')
