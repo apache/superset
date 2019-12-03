@@ -27,7 +27,6 @@ import pandas as pd
 import sqlparse
 from flask import g
 from flask_babel import lazy_gettext as _
-from numpy.core.defchararray import lower
 from sqlalchemy import column, DateTime, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
@@ -441,7 +440,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "name": form_data["tableName"],
             "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
             "schema": form_data["schema"] or None,
-            "if_exists": lower(form_data["ifTableExists"]),
+            "if_exists": form_data["ifTableExists"].lower(),
             "index": strtobool(form_data["dataframeIndex"]),
             "index_label": form_data["columnLabels"] or None,
             "chunksize": 10000,
