@@ -1559,9 +1559,9 @@ class DruidDatasource(Model, BaseDatasource):
                     alphaNumeric=is_numeric_col,
                 )
             elif op == "IS NULL":
-                cond = Dimension(col) is None
+                cond = Filter(dimension=col, value="")
             elif op == "IS NOT NULL":
-                cond = Dimension(col) is not None
+                cond = ~Filter(dimension=col, value="")
 
             if filters:
                 filters = Filter(type="and", fields=[cond, filters])
