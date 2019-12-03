@@ -57,19 +57,15 @@ Start with Docker
 -----------------
 
 .. note ::
-    The Docker-related files and documentation has been
-    community-contributed and
-    is not actively maintained and managed by the core committers working on
-    the project. Some issues have been reported as of 2019-01.
-    Help and contributions around Docker are welcomed!
+    The Docker-related files and documentation are actively maintained and
+    managed by the core committers working on the project. Help and contributions
+    around Docker are welcomed!
 
 If you know docker, then you're lucky, we have shortcut road for you to
 initialize development environment: ::
 
     git clone https://github.com/apache/incubator-superset/
-    cd incubator-superset/contrib/docker
-    # prefix with SUPERSET_LOAD_EXAMPLES=yes to load examples:
-    docker-compose run --rm superset ./docker-init.sh
+    cd incubator-superset
     # you can run this command everytime you need to start superset now:
     docker-compose up
 
@@ -83,15 +79,14 @@ Don't forget to reload the page to take the new frontend into account though.
 See also `CONTRIBUTING.md#building <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#building>`_,
 for alternative way of serving the frontend.
 
-It is also possible to run Superset in non-development mode: in the `docker-compose.yml` file remove
-the volumes needed for development and change the variable `SUPERSET_ENV` to `production`.
+It is currently not recommended to run docker-compose in production.
 
 If you are attempting to build on a Mac and it exits with 137 you need to increase your docker resources.
 OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for memory)
 
 Or if you're curious and want to install superset from bottom up, then go ahead.
 
-See also `contrib/docker/README.md <https://github.com/apache/incubator-superset/blob/master/contrib/docker/README.md>`_
+See also `docker/README.md <https://github.com/apache/incubator-superset/blob/master/docker/README.md>`_
 
 OS dependencies
 ---------------
