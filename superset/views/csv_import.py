@@ -17,7 +17,6 @@
 # pylint: disable=C,R,W
 import os
 from sqlite3 import OperationalError
-from sqlalchemy_utils import EncryptedType
 
 import simplejson as json
 import sqlalchemy
@@ -27,7 +26,10 @@ from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __, lazy_gettext as _
-from sqlalchemy.exc import IntegrityError
+from marshmallow import ValidationError
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import ArgumentError, IntegrityError
+from sqlalchemy_utils import EncryptedType
 from werkzeug.utils import secure_filename
 
 import superset.models.core as models
@@ -35,16 +37,13 @@ from superset import app, appbuilder, conf, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
     DatabaseCreationException,
+    InvalidURIException,
     NoPasswordSuppliedException,
     NoUsernameSuppliedException,
     TableCreationException,
-    InvalidURIException,
 )
 from superset.utils import core as utils
-from marshmallow import ValidationError
-from sqlalchemy.exc import ArgumentError
 from superset.views.database import sqlalchemy_uri_validator
-from sqlalchemy.engine.url import make_url
 
 from .base import api, BaseSupersetView, json_error_response, json_success
 
@@ -129,15 +128,15 @@ class CsvImporter(BaseSupersetView):
                 db_flavor = form_data["databaseFlavor"] or None
                 database = self._create_database(db_name, db_flavor)
         except ValueError as e:
-            return json_error_response(e.args[0], status=401)
+            return json_error_response(e.args[0], status=400)
         except DatabaseCreationException as e:
-            return json_error_response(e.args[0], status=402)
+            return json_error_response(e.args[0], status=400)
         except NoUsernameSuppliedException as e:
-            return json_error_response(e.args[0], status=403)
+            return json_error_response(e.args[0], status=400)
         except NoPasswordSuppliedException as e:
-            return json_error_response(e.args[0], status=404)
+            return json_error_response(e.args[0], status=400)
         except InvalidURIException as e:
-            return json_error_response(e.args[0], status=405)
+            return json_error_response(e.args[0], status=400)
         except Exception as e:
             return json_error_response(e.args[0], status=500)
 
@@ -219,11 +218,22 @@ class CsvImporter(BaseSupersetView):
                 + "@localhost/"
                 + db_name
             )
+            # TODO if there is time look for a better method to do this, otherwise document it
+            enurl = (
+                "postgresql://"
+                + postgres_user
+                + ":"
+                + "XXXXXXXXXX"
+                + "@localhost/"
+                + db_name
+            )
             try:
                 url2 = make_url(url)
 
-            except (ArgumentError, AttributeError) :
-                raise InvalidURIException("Invalid URI. Username, password or database-name lead to an error")
+            except (ArgumentError, AttributeError):
+                raise InvalidURIException(
+                    "Invalid URI. Username, password or database-name lead to an error"
+                )
             engine = sqlalchemy.create_engine(url2)
             if not sqlalchemy_utils.database_exists(engine.url):
                 sqlalchemy_utils.create_database(engine.url)
@@ -236,7 +246,7 @@ class CsvImporter(BaseSupersetView):
                 encpass = EncryptedType(postgres_password, conf["SECRET_KEY"])
                 item = SQLAInterface(models.Database).obj()
                 item.database_name = db_name
-                item.sqlalchemy_uri = engine.url
+                item.sqlalchemy_uri = enurl  # engine.url
                 item.password = postgres_password
                 item.allow_csv_upload = True
                 db.session.add(item)
