@@ -37,6 +37,7 @@ from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
 from sqlalchemy.types import TypeEngine
 from werkzeug.utils import secure_filename
+from wtforms_json import MultiDict
 
 from superset import app, db, sql_parse
 from superset.utils import core as utils
@@ -390,7 +391,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def create_and_fill_table_from_csv(
-        cls, form_data: dict, table, csv_filename: str, database
+        cls, form_data: MultiDict, table, csv_filename: str, database
     ) -> None:
         """ import the data in the csv-file into the given table
 
