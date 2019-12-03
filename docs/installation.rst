@@ -57,7 +57,7 @@ Start with Docker
 -----------------
 
 .. note ::
-    The Docker-related files and documentation is actively maintained and
+    The Docker-related files and documentation are actively maintained and
     managed by the core committers working on the project. Help and contributions
     around Docker are welcomed!
 
