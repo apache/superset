@@ -19,3 +19,7 @@
 .hide-component {
   display: none;
 }
+
+.td-no-padding {
+  padding: 0 !important;
+}

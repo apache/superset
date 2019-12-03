@@ -23,21 +23,19 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Asterisk from 'src/components/Asterisk';
 import FileDropper from 'src/components/FileDropper/FileDropper';
-import FormError from 'src/components/FormError';
 import DropArea from 'src/components/FileDropper/DropArea';
 import Button from 'src/components/Button';
 import AdvancedOptions from 'src/components/AdvancedOptions/AdvancedOptions';
 import FormInput from 'src/components/FormInput';
 import FormCheckbox from 'src/components/FormCheckbox';
-import FormHelpText from 'src/components/FormHelpText';
 import FormSelect from 'src/components/FormSelect';
+import StatusMessages from 'src/components/StatusMessages/StatusMessages';
 import * as Actions from './actions/csvToDatabase';
 import './CsvToDatabase.css';
 
 const propTypes = {
   databases: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired,
-  uploadStatus: PropTypes.object,
 };
 
 export class CsvToDatabase extends React.PureComponent {
@@ -183,7 +181,7 @@ export class CsvToDatabase extends React.PureComponent {
   render() {
     return (
       <div className="container">
-        <FormError status={this.props.uploadStatus} />
+        <StatusMessages />
         <div className="panel panel-primary">
           <div className="panel-heading">
             <h4 className="panel-title">{t('CSV to Database configuration')}</h4>
@@ -218,7 +216,7 @@ export class CsvToDatabase extends React.PureComponent {
                       <td className="col-lg-2">
                         {t('CSV File')} <Asterisk />
                       </td>
-                      <td>
+                      <td className="td-no-padding">
                         <FileDropper
                           onFileSelected={this.setFile}
                           allowedMimeTypes={['text/csv']}
@@ -230,9 +228,9 @@ export class CsvToDatabase extends React.PureComponent {
                             fileName={
                               this.state.file ? this.state.file.name : undefined
                             }
+                            buttonText="Select a CSV"
                           />
                         </FileDropper>
-                        <FormHelpText helpText={t('Select a CSV file to be uploaded to a database.')} />
                       </td>
                     </tr>
                     <tr>
@@ -519,10 +517,6 @@ export class CsvToDatabase extends React.PureComponent {
 
 CsvToDatabase.propTypes = propTypes;
 
-function mapStateToProps({ uploadStatus }) {
-  return { uploadStatus: uploadStatus.uploadStatus };
-}
-
 function mapDispatchToProps(dispatch) {
   return {
     actions: bindActionCreators(Actions, dispatch),
@@ -530,6 +524,6 @@ function mapDispatchToProps(dispatch) {
 }
 
 export default connect(
-  mapStateToProps,
+  null,
   mapDispatchToProps,
 )(CsvToDatabase);
