@@ -114,6 +114,7 @@ class CsvImporter(BaseSupersetView):
             form_data = request.form
             csv_file = request.files["file"]
             csv_filename = self._clean_filename(csv_file.filename, "CSV")
+            csv_path = None
             database_id = self._convert_database_id(form_data["connectionId"])
             db_flavor = form_data["databaseFlavor"] or None
             table_name = form_data["tableName"]
@@ -152,7 +153,8 @@ class CsvImporter(BaseSupersetView):
             return json_error_response(e.args[0])
         finally:
             try:
-                os.remove(csv_path)
+                if csv_path:
+                    os.remove(csv_path)
             except OSError:
                 pass
 
