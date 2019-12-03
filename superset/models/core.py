@@ -85,6 +85,7 @@ def set_related_perm(mapper, connection, target):
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
             target.perm = ds.perm
+            target.schema_perm = ds.schema_perm
 
 
 def copy_dashboard(mapper, connection, target):
@@ -172,6 +173,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
+    schema_perm = Column(String(1000))
     owners = relationship(security_manager.user_model, secondary=slice_user)
 
     export_fields = [

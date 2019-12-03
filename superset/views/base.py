@@ -31,6 +31,7 @@ from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
+from sqlalchemy import or_
 from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
 
@@ -348,53 +349,18 @@ class DeleteMixin(object):
         return redirect(self.get_redirect())
 
 
-class SupersetFilter(BaseFilter):
-
-    """Add utility function to make BaseFilter easy and fast
-
-    These utility function exist in the SecurityManager, but would do
-    a database round trip at every check. Here we cache the role objects
-    to be able to make multiple checks but query the db only once
-    """
-
-    def get_user_roles(self):
-        return get_user_roles()
-
-    def get_all_permissions(self):
-        """Returns a set of tuples with the perm name and view menu name"""
-        perms = set()
-        for role in self.get_user_roles():
-            for perm_view in role.permissions:
-                t = (perm_view.permission.name, perm_view.view_menu.name)
-                perms.add(t)
-        return perms
-
-    def has_role(self, role_name_or_list):
-        """Whether the user has this role name"""
-        if not isinstance(role_name_or_list, list):
-            role_name_or_list = [role_name_or_list]
-        return any([r.name in role_name_or_list for r in self.get_user_roles()])
-
-    def has_perm(self, permission_name, view_menu_name):
-        """Whether the user has this perm"""
-        return (permission_name, view_menu_name) in self.get_all_permissions()
-
-    def get_view_menus(self, permission_name):
-        """Returns the details of view_menus for a perm name"""
-        vm = set()
-        for perm_name, vm_name in self.get_all_permissions():
-            if perm_name == permission_name:
-                vm.add(vm_name)
-        return vm
-
-
-class DatasourceFilter(SupersetFilter):
-    def apply(self, query, func):
+class DatasourceFilter(BaseFilter):
+    def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
             return query
-        perms = self.get_view_menus("datasource_access")
-        # TODO(bogdan): add `schema_access` support here
-        return query.filter(self.model.perm.in_(perms))
+        datasource_perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
+        return query.filter(
+            or_(
+                self.model.perm.in_(datasource_perms),
+                self.model.schema_perm.in_(schema_perms),
+            )
+        )
 
 
 class CsvResponse(Response):
