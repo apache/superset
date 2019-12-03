@@ -224,6 +224,32 @@ class DruidFuncTestCase(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
+    def test_get_filters_is_null_filter(self):
+        filtr = {"col": "A", "op": "IS NULL"}
+        col = DruidColumn(column_name="A")
+        column_dict = {"A": col}
+        res = DruidDatasource.get_filters([filtr], [], column_dict)
+        self.assertEqual("selector", res.filter["filter"]["type"])
+        self.assertEqual("", res.filter["filter"]["value"])
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
+    def test_get_filters_is_not_null_filter(self):
+        filtr = {"col": "A", "op": "IS NOT NULL"}
+        col = DruidColumn(column_name="A")
+        column_dict = {"A": col}
+        res = DruidDatasource.get_filters([filtr], [], column_dict)
+        self.assertEqual("not", res.filter["filter"]["type"])
+        self.assertIn("field", res.filter["filter"])
+        self.assertEqual(
+            "selector", res.filter["filter"]["field"].filter["filter"]["type"]
+        )
+        self.assertEqual("", res.filter["filter"]["field"].filter["filter"]["value"])
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_constructs_regex_filter(self):
         filtr = {"col": "A", "op": "regex", "val": "[abc]"}
         col = DruidColumn(column_name="A")
