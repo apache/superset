@@ -44,6 +44,9 @@ const bootstrapData = JSON.parse(
 );
 initFeatureFlags(bootstrapData.common.feature_flags);
 const initState = getInitialState(bootstrapData);
+if (!initState.explore.form_data.viz_type) {
+  initState.explore.form_data.viz_type = 'table';
+}
 
 const store = createStore(
   rootReducer,
