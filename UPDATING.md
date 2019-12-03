@@ -21,13 +21,19 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Next
+
+* [8721](https://github.com/apache/incubator-superset/pull/8721): When using the cache
+warmup Celery task you should now specify the `SUPERSET_WEBSERVER_PROTOCOL` variable
+in your configuration (probably either "http" or "https"). This defaults to "http".
+
 ## 0.35.0
 
 * [8512](https://github.com/apache/incubator-superset/pull/8512): `DRUID_IS_ACTIVE` now
 defaults to False. To enable Druid-API-based functionality, override the
 `DRUID_IS_ACTIVE` configuration variable by setting it to `True` for your deployment.
 
-* [8450](https://github.com/apache/incubator-superset/pull/8450): The time ranger picker
+* [8450](https://github.com/apache/incubator-superset/pull/8450): The time range picker
 now uses UTC for the tooltips and default placeholder timestamps (sans timezone).
 
 * [8370](https://github.com/apache/incubator-superset/pull/8370): Deprecates
