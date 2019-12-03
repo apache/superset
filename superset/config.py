@@ -106,6 +106,10 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
+# The postgres username and password used for inserting a csv into a new postgres database
+POSTGRES_USERNAME = os.environ.get("POSTGRES_USERNAME", "")
+POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "")
+
 # In order to hook up a custom password store for all SQLACHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
 # returns a password and set SQLALCHEMY_CUSTOM_PASSWORD_STORE.
@@ -384,8 +388,6 @@ QUERY_LOGGER = None
 
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
-POSTGRES_USERNAME = "postgres"
-POSTGRES_PASSWORD = "postgres"
 
 # Maximum number of rows returned from a database
 # in async mode, no more than SQL_MAX_ROW will be returned and stored
