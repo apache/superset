@@ -41,6 +41,7 @@ import ANNOTATION_TYPES, {
 import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import { nonEmpty } from '../../validators';
+import './AnnotationLayer.less';
 
 const AUTOMATIC_COLOR = '';
 
@@ -331,6 +332,14 @@ export default class AnnotationLayer extends React.PureComponent {
     this.props.close();
   }
 
+  renderOption(option) {
+    return (
+      <span className="optionWrapper" title={option.label}>
+        {option.label}
+      </span>
+    );
+  }
+
   renderValueConfiguration() {
     const {
       annotationType,
@@ -373,6 +382,7 @@ export default class AnnotationLayer extends React.PureComponent {
           value={value}
           onChange={this.handleValue}
           validationErrors={!value ? ['Mandatory'] : []}
+          optionRenderer={this.renderOption}
         />
       );
     }
