@@ -62,13 +62,7 @@ def get_error_msg():
     return error_msg
 
 
-def json_error_response(
-        msg=None,
-        status=500,
-        stacktrace=None,
-        payload=None,
-        link=None
-):
+def json_error_response(msg=None, status=500, stacktrace=None, payload=None, link=None):
     if not payload:
         payload = {"error": "{}".format(msg)}
     if not stacktrace:
@@ -109,7 +103,7 @@ def api(f):
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
             return json_error_response(get_error_msg())
 
@@ -148,7 +142,7 @@ def handle_api_exception(f):
                 stacktrace=traceback.format_exc(),
                 status=e.code,
             )
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
             return json_error_response(
                 utils.error_msg_from_exception(e), stacktrace=utils.get_stacktrace()
@@ -169,14 +163,14 @@ def get_user_roles():
 
 
 class BaseSupersetView(BaseView):
-    def json_response(self, obj, status=200): # pylint: disable=no-self-use
+    def json_response(self, obj, status=200):  # pylint: disable=no-self-use
         return Response(
             json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,
             mimetype="application/json",
         )
 
-    def menu_data(self): # pylint: disable=no-self-use
+    def menu_data(self):  # pylint: disable=no-self-use
         menu = appbuilder.menu.get_data()
         root_path = "#"
         logo_target_path = ""
@@ -236,7 +230,7 @@ class BaseSupersetView(BaseView):
         }
 
 
-class SupersetListWidget(ListWidget): # pylint: disable=too-few-public-methods
+class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
 
 
@@ -245,7 +239,7 @@ class SupersetModelView(ModelView):
     list_widget = SupersetListWidget
 
 
-class ListWidgetWithCheckboxes(ListWidget): # pylint: disable=too-few-public-methods
+class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-methods
     """An alternative to list view that renders Boolean fields as checkboxes
 
     Works in conjunction with the `checkbox` view."""
@@ -261,7 +255,7 @@ def validate_json(_form, field):
         raise Exception(_("json isn't valid"))
 
 
-class YamlExportMixin(object): # pylint: disable=too-few-public-methods
+class YamlExportMixin(object):  # pylint: disable=too-few-public-methods
     yaml_dict_key: Optional[str] = None
     """
     Override this if you want a dict response instead, with a certain key.
@@ -283,7 +277,7 @@ class YamlExportMixin(object): # pylint: disable=too-few-public-methods
         )
 
 
-class DeleteMixin(object): # pylint: disable=too-few-public-methods
+class DeleteMixin(object):  # pylint: disable=too-few-public-methods
     def _delete(self, primary_key):
         """
             Delete function logic, override to implement diferent logic
@@ -297,7 +291,7 @@ class DeleteMixin(object): # pylint: disable=too-few-public-methods
             abort(404)
         try:
             self.pre_delete(item)
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             flash(str(e), "danger")
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
@@ -347,7 +341,7 @@ class DeleteMixin(object): # pylint: disable=too-few-public-methods
         for item in items:
             try:
                 self.pre_delete(item)
-            except Exception as e: # pylint: disable=broad-except
+            except Exception as e:  # pylint: disable=broad-except
                 flash(str(e), "danger")
             else:
                 self._delete(item.id)
@@ -364,7 +358,7 @@ class SupersetFilter(BaseFilter):
     to be able to make multiple checks but query the db only once
     """
 
-    def get_user_roles(self): # pylint: disable=no-self-use
+    def get_user_roles(self):  # pylint: disable=no-self-use
         return get_user_roles()
 
     def get_all_permissions(self):
@@ -407,7 +401,7 @@ class DatasourceFilter(SupersetFilter):
         return query.filter(self.model.perm.in_(perms))
 
 
-class CsvResponse(Response): # pylint: disable=too-many-ancestors
+class CsvResponse(Response):  # pylint: disable=too-many-ancestors
     """
     Override Response to take into account csv encoding from config.py
     """

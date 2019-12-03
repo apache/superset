@@ -24,7 +24,7 @@ from superset.models.annotations import Annotation, AnnotationLayer
 from .base import DeleteMixin, SupersetModelView
 
 
-class StartEndDttmValidator(object): # pylint: disable=too-few-public-methods
+class StartEndDttmValidator(object):  # pylint: disable=too-few-public-methods
     """
     Validates dttm fields.
     """
@@ -42,7 +42,9 @@ class StartEndDttmValidator(object): # pylint: disable=too-few-public-methods
             )
 
 
-class AnnotationModelView(SupersetModelView, DeleteMixin): # pylint: disable=too-many-ancestors
+class AnnotationModelView(
+    SupersetModelView, DeleteMixin
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Annotation)
 
     list_title = _("List Annotation")
@@ -88,7 +90,9 @@ class AnnotationModelView(SupersetModelView, DeleteMixin): # pylint: disable=too
         self.pre_add(item)
 
 
-class AnnotationLayerModelView(SupersetModelView, DeleteMixin): # pylint: disable=too-many-ancestors
+class AnnotationLayerModelView(
+    SupersetModelView, DeleteMixin
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AnnotationLayer)
 
     list_title = _("List Annotation Layer")

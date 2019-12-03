@@ -41,7 +41,9 @@ from superset.views.core import json_success
 from .base import DeleteMixin, SupersetModelView
 
 
-class EmailScheduleView(SupersetModelView, DeleteMixin): # pylint: disable=too-many-ancestors
+class EmailScheduleView(
+    SupersetModelView, DeleteMixin
+):  # pylint: disable=too-many-ancestors
     _extra_data = {"test_email": False, "test_email_recipients": None}
     schedule_type: Optional[Type] = None
     schedule_type_model: Optional[Type] = None
@@ -148,7 +150,9 @@ class EmailScheduleView(SupersetModelView, DeleteMixin): # pylint: disable=too-m
         return json_success(json.dumps(schedules, default=json_iso_dttm_ser))
 
 
-class DashboardEmailScheduleView(EmailScheduleView): # pylint: disable=too-many-ancestors
+class DashboardEmailScheduleView(
+    EmailScheduleView
+):  # pylint: disable=too-many-ancestors
     schedule_type = ScheduleType.dashboard.value
     schedule_type_model = Dashboard
 
@@ -207,7 +211,7 @@ class DashboardEmailScheduleView(EmailScheduleView): # pylint: disable=too-many-
         super(DashboardEmailScheduleView, self).pre_add(item)
 
 
-class SliceEmailScheduleView(EmailScheduleView): # pylint: disable=too-many-ancestors
+class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-ancestors
     schedule_type = ScheduleType.slice.value
     schedule_type_model = Slice
     add_title = _("Schedule Email Reports for Charts")

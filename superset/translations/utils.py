@@ -39,7 +39,7 @@ def get_language_pack(locale):
             with open(filename) as f:
                 pack = json.load(f)
                 ALL_LANGUAGE_PACKS[locale] = pack
-        except Exception: # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             # Assuming english, client side falls back on english
             pass
     return pack
