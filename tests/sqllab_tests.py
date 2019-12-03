@@ -313,7 +313,6 @@ class SqlLabTests(SupersetTestCase):
                     "type": "OBJECT",
                     "name": f"ccount_{random()}",
                     "is_dim": True,
-                    "agg": "sum",
                 },
             ],
             "sql": """\

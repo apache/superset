@@ -137,24 +137,11 @@ class SupersetDataFrame(object):
     def is_id(cls, column_name):
         return column_name.startswith("id") or column_name.endswith("id")
 
-    @classmethod
-    def agg_func(cls, dtype, column_name):
-        # consider checking for key substring too.
-        if cls.is_id(column_name):
-            return "count_distinct"
-        if (
-            hasattr(dtype, "type")
-            and issubclass(dtype.type, np.generic)
-            and is_numeric(dtype)   # TODO: how does `object` dtype affect this?
-        ):
-            return "sum"
-        return None
-
     @property
     def columns(self):
         """Provides metadata about columns for data visualization.
 
-        :return: array containing dicts with the fields name, type, is_date, is_dim and agg.
+        :return: array containing dicts with the fields name, type, is_date, is_dim.
         """
         if self.df.empty:
             return None
@@ -168,7 +155,6 @@ class SupersetDataFrame(object):
             db_type_str = self._type_dict.get(col) or self.db_type(self.df.dtypes[col])
             column = {
                 "name": col,
-                "agg": self.agg_func(self.df.dtypes[col], col),
                 "type": db_type_str,
                 "is_date": self.is_date(self.df.dtypes[col], db_type_str),
                 "is_dim": self.is_dimension(self.df.dtypes[col], col),
@@ -192,9 +178,7 @@ class SupersetDataFrame(object):
                     and self.datetime_conversion_rate(sample[col])
                     > INFER_COL_TYPES_THRESHOLD
                 ):
-                    column.update({"is_date": True, "is_dim": False, "agg": None})
-            # 'agg' is optional attribute
-            if not column["agg"]:
-                column.pop("agg", None)
+                    column.update({"is_date": True, "is_dim": False})
+
             columns.append(column)
         return columns
