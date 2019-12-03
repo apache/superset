@@ -586,6 +586,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         slices = copy(dashboard_to_import.slices)
         old_to_new_slc_id_dict = {}
         new_filter_immune_slices = []
+        new_filter_immune_slice_fields = {}
         new_timed_refresh_immune_slices = []
         new_expanded_slices = {}
         i_params_dict = dashboard_to_import.params_dict
@@ -611,6 +612,13 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 and old_slc_id_str in i_params_dict["filter_immune_slices"]
             ):
                 new_filter_immune_slices.append(new_slc_id_str)
+            if (
+                "filter_immune_slice_fields" in i_params_dict
+                and old_slc_id_str in i_params_dict["filter_immune_slice_fields"]
+            ):
+                new_filter_immune_slice_fields[new_slc_id_str] = i_params_dict[
+                    "filter_immune_slice_fields"
+                ][old_slc_id_str]
             if (
                 "timed_refresh_immune_slices" in i_params_dict
                 and old_slc_id_str in i_params_dict["timed_refresh_immune_slices"]
@@ -646,6 +654,10 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         if new_filter_immune_slices:
             dashboard_to_import.alter_params(
                 filter_immune_slices=new_filter_immune_slices
+            )
+        if new_filter_immune_slice_fields:
+            dashboard_to_import.alter_params(
+                filter_immune_slice_fields=new_filter_immune_slice_fields
             )
         if new_timed_refresh_immune_slices:
             dashboard_to_import.alter_params(
