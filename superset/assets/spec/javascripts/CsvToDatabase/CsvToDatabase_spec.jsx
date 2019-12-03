@@ -20,7 +20,7 @@ import React from 'react';
 import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import { CsvToDatabase } from 'src/CsvToDatabase/CsvToDatabase';
+import CsvToDatabase from 'src/CsvToDatabase/CsvToDatabase';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
