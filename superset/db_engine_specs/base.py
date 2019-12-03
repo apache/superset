@@ -20,13 +20,13 @@ import os
 import re
 from contextlib import closing
 from datetime import datetime
+from distutils.util import strtobool
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING, Union
 
 import pandas as pd
 import sqlparse
 from flask import g
 from flask_babel import lazy_gettext as _
-from numpy.core.defchararray import lower
 from sqlalchemy import column, DateTime, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
@@ -37,6 +37,7 @@ from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
 from sqlalchemy.types import TypeEngine
 from werkzeug.utils import secure_filename
+from wtforms_json import MultiDict
 
 from superset import app, db, sql_parse
 from superset.utils import core as utils
@@ -390,7 +391,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def create_and_fill_table_from_csv(
-        cls, form_data: dict, table, csv_filename: str, database
+        cls, form_data: MultiDict, table, csv_filename: str, database
     ) -> None:
         """ import the data in the csv-file into the given table
 
@@ -402,14 +403,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Raises:
             IntegrityError: If there was a problem creating the table
         """
-
-        def _str_to_bool(boolstr: str) -> bool:
-            if boolstr == "True" or boolstr == "true":
-                return True
-            elif boolstr == "False" or boolstr == "false":
-                return False
-            else:
-                raise ValueError
 
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
@@ -423,41 +416,35 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise Exception("Invalid file type selected")
         csv_to_df_kwargs = {
             "filepath_or_buffer": filename,
-            "sep": form_data["delimiter"],
+            "sep": form_data.get("delimiter"),
             # frontend already does int-check, check again in case of tampering
-            "header": int(form_data["headerRow"]) or 0,
-            "index_col": None
-            if not form_data["indexColumn"]
-            else int(form_data["indexColumn"]),
-            "mangle_dupe_cols": bool(form_data["mangleDuplicateColumns"]),
-            "skipinitialspace": bool(form_data["skipInitialSpace"]),
-            "skiprows": None
-            if not form_data["skipRows"]
-            else int(form_data["skipRows"]),
-            "nrows": None
-            if not form_data["rowsToRead"]
-            else int(form_data["rowsToRead"]),
-            "skip_blank_lines": bool(form_data["skipBlankLines"]),
-            "parse_dates": form_data["parseDates"] or None,
-            "infer_datetime_format": bool(form_data["inferDatetimeFormat"]),
+            "header": form_data.get("headerRow", type=int) or 0,
+            "index_col": form_data.get("indexColumn", type=int) or None,
+            "mangle_dupe_cols": strtobool(form_data.get("mangleDuplicateColumns")),
+            "skipinitialspace": strtobool(form_data.get("skipInitialSpace")),
+            "skiprows": form_data.get("skipRows", type=int) or None,
+            "nrows": form_data.get("rowsToRead", type=int) or None,
+            "skip_blank_lines": strtobool(form_data.get("skipBlankLines")),
+            "parse_dates": form_data.get("parseDates") or None,
+            "infer_datetime_format": strtobool(form_data.get("inferDatetimeFormat")),
             "chunksize": 10000,
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
 
         df_to_sql_kwargs = {
             "df": df,
-            "name": form_data["tableName"],
+            "name": form_data.get("tableName"),
             "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
-            "schema": form_data["schema"] or None,
-            "if_exists": lower(form_data["ifTableExists"]),
-            "index": _str_to_bool(form_data["dataframeIndex"]),
-            "index_label": form_data["columnLabels"] or None,
+            "schema": form_data.get("schema") or None,
+            "if_exists": form_data.get("ifTableExists").lower(),
+            "index": strtobool(form_data.get("dataframeIndex")),
+            "index_label": form_data.get("columnLabels") or None,
             "chunksize": 10000,
         }
         cls.df_to_sql(**df_to_sql_kwargs)
 
         table.user_id = g.user.id
-        table.schema = None if not form_data["schema"] else form_data["schema"]
+        table.schema = form_data.get("schema") or None
         table.fetch_metadata()
         db.session.add(table)
         db.session.commit()
