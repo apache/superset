@@ -384,8 +384,8 @@ QUERY_LOGGER = None
 
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
-POSTGRES_USERNAME = os.environ.get("POSTGRES_USERNAME", "")
-POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "")
+POSTGRES_USERNAME = "postgres"
+POSTGRES_PASSWORD = "postgres"
 
 # Maximum number of rows returned from a database
 # in async mode, no more than SQL_MAX_ROW will be returned and stored

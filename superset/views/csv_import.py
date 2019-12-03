@@ -17,6 +17,7 @@
 # pylint: disable=C,R,W
 import os
 from sqlite3 import OperationalError
+from sqlalchemy_utils import EncryptedType
 
 import simplejson as json
 import sqlalchemy
@@ -37,8 +38,13 @@ from superset.exceptions import (
     NoPasswordSuppliedException,
     NoUsernameSuppliedException,
     TableCreationException,
+    InvalidURIException,
 )
 from superset.utils import core as utils
+from marshmallow import ValidationError
+from sqlalchemy.exc import ArgumentError
+from superset.views.database import sqlalchemy_uri_validator
+from sqlalchemy.engine.url import make_url
 
 from .base import api, BaseSupersetView, json_error_response, json_success
 
@@ -123,13 +129,15 @@ class CsvImporter(BaseSupersetView):
                 db_flavor = form_data["databaseFlavor"] or None
                 database = self._create_database(db_name, db_flavor)
         except ValueError as e:
-            return json_error_response(e.args[0], status=400)
+            return json_error_response(e.args[0], status=401)
         except DatabaseCreationException as e:
-            return json_error_response(e.args[0], status=400)
+            return json_error_response(e.args[0], status=402)
         except NoUsernameSuppliedException as e:
-            return json_error_response(e.args[0], status=400)
+            return json_error_response(e.args[0], status=403)
         except NoPasswordSuppliedException as e:
-            return json_error_response(e.args[0], status=400)
+            return json_error_response(e.args[0], status=404)
+        except InvalidURIException as e:
+            return json_error_response(e.args[0], status=405)
         except Exception as e:
             return json_error_response(e.args[0], status=500)
 
@@ -212,10 +220,11 @@ class CsvImporter(BaseSupersetView):
                 + db_name
             )
             try:
-                sqlalchemy_uri_validator(url)
+                url2 = make_url(url)
+
             except (ArgumentError, AttributeError) :
                 raise InvalidURIException("Invalid URI. Username, password or database-name lead to an error")
-            engine = sqlalchemy.create_engine(url)
+            engine = sqlalchemy.create_engine(url2)
             if not sqlalchemy_utils.database_exists(engine.url):
                 sqlalchemy_utils.create_database(engine.url)
             else:
@@ -224,6 +233,7 @@ class CsvImporter(BaseSupersetView):
                 )
 
             try:
+                encpass = EncryptedType(postgres_password, conf["SECRET_KEY"])
                 item = SQLAInterface(models.Database).obj()
                 item.database_name = db_name
                 item.sqlalchemy_uri = engine.url
