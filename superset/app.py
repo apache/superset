@@ -33,6 +33,7 @@ from superset.extensions import (
     celery_app,
     db,
     feature_flag_manager,
+    jinja_context_manager,
     manifest_processor,
     migrate,
     results_backend_manager,
@@ -159,6 +160,8 @@ class SupersetAppInitializer:
 
         self.configure_cache()
 
+        self.configure_jinja_context()
+
         with self.flask_app.app_context():
             self.init_app_in_ctx()
 
@@ -199,6 +202,9 @@ class SupersetAppInitializer:
         appbuilder.security_manager_class = custom_sm
         appbuilder.update_perms = False
         appbuilder.init_app(self.flask_app, db.session)
+
+    def configure_jinja_context(self):
+        jinja_context_manager.init_app(self.flask_app)
 
     def configure_middlewares(self):
         if self.config["ENABLE_CORS"]:
