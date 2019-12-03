@@ -16,6 +16,8 @@
 # under the License.
 # pylint: disable=C,R,W
 
+import logging
+
 import simplejson as json
 from flask import request, Response
 from flask_appbuilder import expose
@@ -42,6 +44,8 @@ class Geocoder(BaseSupersetView):
 
     # Variables for geocoding
     geocoder_util = GeocoderUtil(conf)
+    stats_logger = conf["STATS_LOGGER"]
+    logger = logging.getLogger(__name__)
 
     @has_access
     @expose("/geocoding")
@@ -107,7 +111,9 @@ class Geocoder(BaseSupersetView):
                 column_names = [column.column_name for column in table.columns]
             else:
                 return json_error_response(error_message, status=400)
-        except:
+        except Exception as e:
+            self.logger.exception(f"Failed getting columns {e}")
+            self.stats_logger.incr(error_message)
             return json_error_response(error_message, status=400)
         return json.dumps(column_names)
 
@@ -147,6 +153,8 @@ class Geocoder(BaseSupersetView):
 
             data = self._load_data_from_columns(table_name, columns)
         except ValueError as e:
+            self.logger.exception(f"ValueError when querying for lat/lon columns {e}")
+            # self.stats_logger.incr("")
             return json_error_response(e.args[0], status=400)
         except SqlSelectException as e:
             return json_error_response(e.args[0], status=500)
