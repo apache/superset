@@ -62,6 +62,7 @@ try:
         MapLookupExtraction,
         RegexExtraction,
         RegisteredLookupExtraction,
+        TimeFormatExtraction,
     )
     from pydruid.utils.filters import Dimension, Filter
     from pydruid.utils.having import Aggregation, Having
@@ -1436,6 +1437,10 @@ class DruidDatasource(Model, BaseDatasource):
                 extraction_fn = RegexExtraction(fn["expr"])
             elif ext_type == "registeredLookup":
                 extraction_fn = RegisteredLookupExtraction(fn.get("lookup"))
+            elif ext_type == "timeFormat":
+                extraction_fn = TimeFormatExtraction(
+                    fn.get("format"), fn.get("locale"), fn.get("timeZone")
+                )
             else:
                 raise Exception(_("Unsupported extraction function: " + ext_type))
         return (col, extraction_fn)
