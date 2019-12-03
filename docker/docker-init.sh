@@ -17,15 +17,14 @@
 #
 set -ex
 
-export FLASK_APP="superset.app:create_app()"
-
 # Create an admin user
 echo "Setting up admin user..."
 flask fab create-admin \
-                    --firstname Superset \
-                    --lastname Admin \
-                    --email admin@superset.com \
-                    --password admin
+              --username admin \
+              --firstname Superset \
+              --lastname Admin \
+              --email admin@superset.com \
+              --password admin
 
 # Initialize the database
 echo "Migrating the DB..."

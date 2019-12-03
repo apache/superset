@@ -23,8 +23,7 @@ x-superset-depends-on: &superset-depends-on
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker/docker-init.sh:/app/docker-init.sh
-  - ./docker/pythonpath:/app/pythonpath_docker
-  - ./docker/superset_config.py:/app/pythonpath/superset_config.py
+  - ./docker/pythonpath_dev:/app/pythonpath
   - ./superset:/app/superset
 
 version: "3.7"
@@ -38,6 +37,7 @@ services:
       - redis:/data
 
   postgres:
+    env_file: docker/.env
     image: postgres:10
     restart: unless-stopped
     ports:
@@ -66,11 +66,9 @@ services:
 
   superset-worker:
     build: *superset-build
-    command: ["celery", "worker", "--app=superset.sql_lab:celery_app", "-Ofair"]
+    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair"]
     env_file: docker/.env
     restart: unless-stopped
-    ports:
-      - 8088:8088
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 

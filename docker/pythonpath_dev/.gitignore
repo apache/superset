@@ -19,4 +19,5 @@
 *
 # DON'T ignore the .gitignore
 !.gitignore
-!superset_config_docker.example
+!superset_config.py
+!superset_config_local.example
