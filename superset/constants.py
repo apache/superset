@@ -15,5 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# ATTENTION: If you change any constants, make sure to also change utils/common.js
+
 # string to use when None values *need* to be converted to/from strings
 NULL_STRING = "<NULL>"

@@ -19,6 +19,8 @@
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from './getClientErrorObject';
 
+// ATTENTION: If you change any constants, make sure to also change constants.py
+
 export const NULL_STRING = '<NULL>';
 
 export function getParamFromQuery(query, param) {
