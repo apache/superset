@@ -18,6 +18,7 @@
 """ Superset wrapper around pyarrow.Table.
 """
 import logging
+import re
 from datetime import date, datetime
 
 import numpy as np
@@ -51,6 +52,37 @@ def dedup(l, suffix="__", case_sensitive=True):
 
 
 class SupersetTable(object):
+    # Mapping pyarrow datatypes to generic database types:
+    # https://arrow.apache.org/docs/python/api/datatypes.html
+    # `timestamp` is handled explictly due to variable timezone formatting.
+    type_map = {
+        "null": "NULL",
+        "bool_": "BOOL",
+        "int8": "INT",
+        "int16": "INT",
+        "int32": "INT",
+        "int64": "INT",
+        "uint8": "INT",
+        "uint16": "INT",
+        "uint32": "INT",
+        "uint64": "INT",
+        "float16": "FLOAT",
+        "float32": "FLOAT",
+        "float64": "FLOAT",
+        "time32": "DATETIME",
+        "time64": "DATETIME",
+        # timestamp(unit[, tz])
+        "date32": "DATETIME",
+        "date64": "DATETIME",
+        "binary": "BYTE",
+        "string": "STRING",
+        "utf8": "STRING",
+        "large_binary": "BYTE",
+        "large_string": "STRING",
+        "large_utf8": "STRING",
+        "decimal128": "FLOAT",
+    }
+
     def __init__(self, data, cursor_description, db_engine_spec):
         data = data or []
         column_names = []
@@ -91,6 +123,37 @@ class SupersetTable(object):
     def pa_table_to_df(cls, pa_table):
         return pa_table.to_pandas(integer_object_nulls=True)
 
+    @staticmethod
+    def is_date(db_type_str):
+        return db_type_str == 'DATETIME'
+
+    @staticmethod
+    def is_dimension(column_name, db_type_str):
+        is_id = column_name.startswith("id") or column_name.endswith("id")
+        if is_id:
+            return False
+        return db_type_str in ("OBJECT", "BOOL")
+
+    @classmethod
+    def is_id(cls, column_name):
+        return column_name.startswith("id") or column_name.endswith("id")
+
+
+    def data_type(self, col_name: str, dtype: str):
+        """Given a pyarrow data type, Returns a generic database type"""
+        set_type = self._type_dict.get(col_name)
+        if set_type:
+            return set_type
+
+        mapped_type = self.type_map.get(dtype)
+        if mapped_type:
+            return mapped_type
+
+        if re.search("^timestamp", dtype):
+            return "DATETIME"
+
+        return None
+
     def to_pandas_df(self):
         return self.pa_table_to_df(self.table)
 
@@ -108,21 +171,19 @@ class SupersetTable(object):
 
     @property
     def columns(self):
-        # TODO: port metadata from SupersetDataFrame implementation
         if not self.table.columns:
             return None
 
         columns = []
-        for col in self.table.column_names:
-            # db_type_str = self._type_dict.get(col) # or self.db_type(self.df.dtypes[col])
+        for col in self.table.schema:
+            pa_dtype = str(col.type)
+            db_type_str = self.data_type(col.name, pa_dtype)
             column = {
-                "name": col,
-                # "agg": self.agg_func(self.df.dtypes[col], col),
-                "type": None,
-                "is_date": False, #self.is_date(self.df.dtypes[col], db_type_str),
-                "is_dim": False, #self.is_dimension(self.df.dtypes[col], col),
+                "name": col.name,
+                "type": db_type_str,
+                "is_date": self.is_date(db_type_str),
+                "is_dim": self.is_dimension(col.name, db_type_str),
             }
-
             columns.append(column)
 
         return columns
