@@ -16,8 +16,8 @@
 # under the License.
 # pylint: disable=C,R,W
 import json
-
 from collections import Counter
+
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
