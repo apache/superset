@@ -24,7 +24,6 @@ import AdhocFilterEditPopover from './AdhocFilterEditPopover';
 import AdhocFilter from '../AdhocFilter';
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
-import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -97,15 +96,6 @@ export default class AdhocFilterOption extends React.PureComponent {
         <Label className="adhoc-filter-option">
           <div onMouseDownCapture={this.onMouseDown}>
             <span className="m-r-5 option-label">
-              {adhocFilter.fromFormData &&
-                <>
-                <i className="fa fa-warning" />
-                <InfoTooltipWithTrigger
-                  className="m-r-5 text-warning"
-                  icon="warning"
-                  tooltip="Filter was inherited from dashboard"
-                  label={`filter`}
-                /></>}
               {adhocFilter.getDefaultLabel()}
               <i
                 className={`glyphicon glyphicon-triangle-${
