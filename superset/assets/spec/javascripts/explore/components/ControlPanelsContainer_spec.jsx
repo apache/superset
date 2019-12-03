@@ -100,10 +100,4 @@ describe('ControlPanelsContainer', () => {
     wrapper = shallow(<ControlPanelsContainer {...getDefaultProps()} />);
     expect(wrapper.find(ControlPanelSection)).toHaveLength(6);
   });
-
-  it('renders filter panel when SCOPED_FILTER flag is on', () => {
-    scopedFilterOn = true;
-    wrapper = shallow(<ControlPanelsContainer {...getDefaultProps()} />);
-    expect(wrapper.find(ControlPanelSection)).toHaveLength(7);
-  });
 });

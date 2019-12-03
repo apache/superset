@@ -168,14 +168,12 @@ export function sectionsToRender(vizType, datasourceType) {
     datasourceAndVizType,
     sqlaTimeSeries,
     druidTimeSeries,
-    filters,
   } = sectionsCopy;
 
   return []
     .concat(
       datasourceAndVizType,
       datasourceType === 'table' ? sqlaTimeSeries : druidTimeSeries,
-      isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? filters : undefined,
       controlPanelSections,
     )
     .filter(section => section);
