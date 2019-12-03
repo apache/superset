@@ -50,12 +50,20 @@ def validate_slug_uniqueness(value):
         raise ValidationError("Must be unique")
 
 
+def validate_owners(value):
+    current_app.appbuilder.get_session.query(current_app.appbuilder.sm.user_model).get(
+        value
+    )
+    if not value:
+        raise ValidationError(f"User {value} does not exist")
+
+
 class DashboardPostSchema(Schema):
     dashboard_title = fields.String(required=True, validate=Length(1, 500))
     slug = fields.String(
         required=True, validate=[Length(1, 255), validate_slug_uniqueness]
     )
-    owners = fields.List(fields.Integer())
+    owners = fields.List(fields.Integer(validate=validate_owners))
     position_json = fields.String(validate=validate_json)
     css = fields.String()
     json_metadata = fields.String(validate=validate_json)
@@ -63,7 +71,19 @@ class DashboardPostSchema(Schema):
 
     @post_load
     def post_load(self, data):
-        return models.Dashboard(**data)
+        new_data = dict.copy(data)
+        new_data["owners"] = list()
+        if g.user.id not in data["owners"]:
+            data["owners"].append(g.user.id)
+        # owners = [o for o in data["owners"]]
+        # for slc in data.get("slices", []):
+        #     slc.owners = list(set(owners) | set(slc.owners))
+        for owner_id in data["owners"]:
+            user = current_app.appbuilder.get_session.query(
+                current_app.appbuilder.sm.user_model
+            ).get(owner_id)
+            new_data["owners"].append(user)
+        return models.Dashboard(**new_data)
 
     @pre_load
     def pre_load(self, data):
@@ -73,11 +93,6 @@ class DashboardPostSchema(Schema):
             data["slug"] = data["slug"].strip()
             data["slug"] = data["slug"].replace(" ", "-")
             data["slug"] = re.sub(r"[^\w\-]+", "", data["slug"])
-        if g.user.id not in data["owners"]:
-            data["owners"].append(g.user.id)
-        owners = [o for o in data["owners"]]
-        for slc in data.get("slices", []):
-            slc.owners = list(set(owners) | set(slc.owners))
 
 
 class DashboardRestApi(DashboardMixin, ModelRestApi):
