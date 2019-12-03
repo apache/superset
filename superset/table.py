@@ -21,15 +21,9 @@ import logging
 from datetime import date, datetime
 
 import numpy as np
-# import pandas as pd
 import pyarrow as pa
-# from pandas.core.common import maybe_box_datetimelike
-# from pandas.core.dtypes.dtypes import ExtensionDtype
-
-# from superset.utils.core import JS_MAX_INTEGER
 
 
-# TODO: DRY up
 def dedup(l, suffix="__", case_sensitive=True):
     """De-duplicates a list of string by suffixing a counter
 
@@ -59,12 +53,6 @@ def dedup(l, suffix="__", case_sensitive=True):
 class SupersetTable(object):
     def __init__(self, data, cursor_description, db_engine_spec):
         data = data or []
-
-        print('************ SupersetTable')
-
-        print('*********** data')
-        print(data)
-
         column_names = []
 
         if cursor_description:
@@ -77,25 +65,16 @@ class SupersetTable(object):
                 for column_name, description in zip(column_names, cursor_description)
             ]
 
-        print('*********** column_names')
-        print(column_names)
-
         # put data in a 2D array so we can efficiently access each column;
-        # the reshape ensures the shape is 2D in case data is empty
-        array = np.array(data).reshape(-1, len(column_names)) # dtype="object"
+        array = np.array(data)
 
-        new_data = [
-            pa.array(array[:, i])
-            for i, column in enumerate(column_names)
-        ]
+        if array.size > 0:
+            data = [
+                pa.array(array[:, i])
+                for i, column in enumerate(column_names)
+            ]
         
-        print('*********** reshaped data')
-        print(new_data)
-
-        self.table = pa.Table.from_arrays(new_data, names=column_names)
-
-        print('*********** table')
-        print(self.table)
+        self.table = pa.Table.from_arrays(data, names=column_names)
 
         self._type_dict = {}
         try:
@@ -107,10 +86,6 @@ class SupersetTable(object):
             }
         except Exception as e:
             logging.exception(e)
-
-        print('*********** self._type_dict')
-        print(self._type_dict)
-
 
     @classmethod
     def pa_table_to_df(cls, pa_table):
@@ -137,13 +112,6 @@ class SupersetTable(object):
         if not self.table.columns:
             return None
 
-        print('************* self.table.column_names')
-        print(self.table.column_names)
-        # for col in self.table.columns:
-        #     print(col.data)
-
-
-
         columns = []
         for col in self.table.column_names:
             # db_type_str = self._type_dict.get(col) # or self.db_type(self.df.dtypes[col])
@@ -156,8 +124,5 @@ class SupersetTable(object):
             }
 
             columns.append(column)
-
-        # print('************* table columns')
-        # print(columns)
 
         return columns
