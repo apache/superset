@@ -28,7 +28,6 @@ from flask import current_app
 
 from tests.test_app import app
 from superset import db, sql_lab
-from superset.dataframe import SupersetDataFrame
 from superset.table import SupersetTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.extensions import celery_app
@@ -277,13 +276,12 @@ class CeleryTestCase(SupersetTestCase):
         )
         db_engine_spec = BaseEngineSpec()
         table = SupersetTable(data, cursor_descr, db_engine_spec)
-        cdf = SupersetDataFrame(table)
 
         with mock.patch.object(
             db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
         ) as expand_data:
             data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-                cdf, db_engine_spec, False, True
+                table, db_engine_spec, False, True
             )
             expand_data.assert_called_once()
 
@@ -299,13 +297,12 @@ class CeleryTestCase(SupersetTestCase):
         )
         db_engine_spec = BaseEngineSpec()
         table = SupersetTable(data, cursor_descr, db_engine_spec)
-        cdf = SupersetDataFrame(table)
 
         with mock.patch.object(
             db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
         ) as expand_data:
             data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-                cdf, db_engine_spec, True
+                table, db_engine_spec, True
             )
             expand_data.assert_not_called()
 
@@ -322,14 +319,13 @@ class CeleryTestCase(SupersetTestCase):
         )
         db_engine_spec = BaseEngineSpec()
         table = SupersetTable(data, cursor_descr, db_engine_spec)
-        cdf = SupersetDataFrame(table)
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",
             "status": QueryStatus.PENDING,
         }
         serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-            cdf, db_engine_spec, use_new_deserialization
+            table, db_engine_spec, use_new_deserialization
         )
         payload = {
             "query_id": 1,
@@ -356,14 +352,13 @@ class CeleryTestCase(SupersetTestCase):
         )
         db_engine_spec = BaseEngineSpec()
         table = SupersetTable(data, cursor_descr, db_engine_spec)
-        cdf = SupersetDataFrame(table)
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",
             "status": QueryStatus.PENDING,
         }
         serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-            cdf, db_engine_spec, use_new_deserialization
+            table, db_engine_spec, use_new_deserialization
         )
         payload = {
             "query_id": 1,

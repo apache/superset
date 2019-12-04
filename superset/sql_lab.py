@@ -40,7 +40,7 @@ from superset import (
     results_backend_use_msgpack,
     security_manager,
 )
-from superset.dataframe import SupersetDataFrame
+from superset.dataframe import df_to_dict
 from superset.table import SupersetTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.extensions import celery_app
@@ -251,7 +251,6 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
 
     logger.debug(f"Query {query_id}: Fetching cursor description")
     cursor_description = cursor.description
-    # return SupersetDataFrame(data, cursor_description, db_engine_spec)
     return SupersetTable(data, cursor_description, db_engine_spec)
 
 
@@ -271,7 +270,7 @@ def _serialize_and_expand_data(
     use_msgpack: Optional[bool] = False,
     expand_data: bool = False,
 ) -> Tuple[Union[bytes, str], list, list, list]:
-    selected_columns: list = result_table.columns or []
+    selected_columns: list = result_table.columns
     expanded_columns: list
 
     if use_msgpack:
@@ -288,8 +287,8 @@ def _serialize_and_expand_data(
         # expand when loading data from results backend
         all_columns, expanded_columns = (selected_columns, [])
     else:
-        cdf = SupersetDataFrame(result_table)
-        data = cdf.data or []
+        df = result_table.to_pandas_df()
+        data = df_to_dict(df) or []
 
         if expand_data:
             all_columns, data, expanded_columns = db_engine_spec.expand_data(

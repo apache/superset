@@ -19,8 +19,6 @@
 """
 import logging
 import re
-from datetime import date, datetime
-
 import numpy as np
 import pyarrow as pa
 
@@ -52,37 +50,6 @@ def dedup(l, suffix="__", case_sensitive=True):
 
 
 class SupersetTable(object):
-    # Mapping pyarrow datatypes to generic database types:
-    # https://arrow.apache.org/docs/python/api/datatypes.html
-    # `timestamp` is handled explictly due to variable timezone formatting.
-    type_map = {
-        "null": "NULL",
-        "bool_": "BOOL",
-        "int8": "INT",
-        "int16": "INT",
-        "int32": "INT",
-        "int64": "INT",
-        "uint8": "INT",
-        "uint16": "INT",
-        "uint32": "INT",
-        "uint64": "INT",
-        "float16": "FLOAT",
-        "float32": "FLOAT",
-        "float64": "FLOAT",
-        "time32": "DATETIME",
-        "time64": "DATETIME",
-        # timestamp(unit[, tz])
-        "date32": "DATETIME",
-        "date64": "DATETIME",
-        "binary": "BYTE",
-        "string": "STRING",
-        "utf8": "STRING",
-        "large_binary": "BYTE",
-        "large_string": "STRING",
-        "large_utf8": "STRING",
-        "decimal128": "FLOAT",
-    }
-
     def __init__(self, data, cursor_description, db_engine_spec):
         data = data or []
         column_names = []
@@ -98,8 +65,7 @@ class SupersetTable(object):
             ]
 
         # put data in a 2D array so we can efficiently access each column;
-        array = np.array(data)
-
+        array = np.array(data, dtype="object")
         if array.size > 0:
             data = [
                 pa.array(array[:, i])
@@ -107,7 +73,6 @@ class SupersetTable(object):
             ]
         
         self.table = pa.Table.from_arrays(data, names=column_names)
-
         self._type_dict = {}
         try:
             # The driver may not be passing a cursor.description
@@ -125,33 +90,36 @@ class SupersetTable(object):
 
     @staticmethod
     def is_date(db_type_str):
-        return db_type_str == 'DATETIME'
-
-    @staticmethod
-    def is_dimension(column_name, db_type_str):
-        is_id = column_name.startswith("id") or column_name.endswith("id")
-        if is_id:
-            return False
-        return db_type_str in ("OBJECT", "BOOL")
+        return db_type_str in ('DATETIME', 'TIMESTAMP')
 
     @classmethod
     def is_id(cls, column_name):
         return column_name.startswith("id") or column_name.endswith("id")
 
-
-    def data_type(self, col_name: str, dtype: str):
+    def data_type(self, col_name: str, pa_dtype: pa.DataType):
         """Given a pyarrow data type, Returns a generic database type"""
         set_type = self._type_dict.get(col_name)
         if set_type:
             return set_type
 
-        mapped_type = self.type_map.get(dtype)
+        mapped_type = self.convert_pa_dtype(pa_dtype)
         if mapped_type:
             return mapped_type
 
-        if re.search("^timestamp", dtype):
-            return "DATETIME"
+        return None
 
+    @staticmethod
+    def convert_pa_dtype(pa_dtype: pa.DataType):
+        if pa.types.is_boolean(pa_dtype):
+            return 'BOOL'
+        if pa.types.is_integer(pa_dtype):
+            return 'INT'
+        if pa.types.is_floating(pa_dtype):
+            return 'FLOAT'
+        if pa.types.is_string(pa_dtype):
+            return 'STRING'
+        if pa.types.is_temporal(pa_dtype):
+            return 'DATETIME'
         return None
 
     def to_pandas_df(self):
@@ -162,27 +130,21 @@ class SupersetTable(object):
         return self.table
 
     @property
-    def type_dict(self):
-        return self._type_dict
-
-    @property
     def size(self):
         return self.table.num_rows
 
     @property
     def columns(self):
-        if not self.table.columns:
-            return None
+        if not self.table.column_names:
+            return []
 
         columns = []
         for col in self.table.schema:
-            pa_dtype = str(col.type)
-            db_type_str = self.data_type(col.name, pa_dtype)
+            db_type_str = self.data_type(col.name, col.type)
             column = {
                 "name": col.name,
                 "type": db_type_str,
                 "is_date": self.is_date(db_type_str),
-                "is_dim": self.is_dimension(col.name, db_type_str),
             }
             columns.append(column)
 
