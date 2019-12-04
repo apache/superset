@@ -16,6 +16,7 @@
 # under the License.
 import uuid
 from datetime import datetime
+from math import nan
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -23,6 +24,7 @@ import pandas as pd
 
 import superset.viz as viz
 from superset import app
+from superset.constants import NULL_STRING
 from superset.exceptions import SpatialException
 from superset.utils.core import DTTM_ALIAS
 
@@ -396,6 +398,82 @@ class TableVizTestCase(SupersetTestCase):
         test_viz = viz.TableViz(datasource, form_data)
         with self.assertRaises(Exception):
             test_viz.should_be_timeseries()
+
+
+class DistBarVizTestCase(SupersetTestCase):
+    def test_groupby_nulls(self):
+        form_data = {
+            "metrics": ["votes"],
+            "adhoc_filters": [],
+            "groupby": ["toppings"],
+            "columns": [],
+        }
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            {
+                "toppings": ["cheese", "pepperoni", "anchovies", None],
+                "votes": [3, 5, 1, 2],
+            }
+        )
+        test_viz = viz.DistributionBarViz(datasource, form_data)
+        data = test_viz.get_data(df)[0]
+        self.assertEqual("votes", data["key"])
+        expected_values = [
+            {"x": "pepperoni", "y": 5},
+            {"x": "cheese", "y": 3},
+            {"x": NULL_STRING, "y": 2},
+            {"x": "anchovies", "y": 1},
+        ]
+        self.assertEqual(expected_values, data["values"])
+
+    def test_groupby_nans(self):
+        form_data = {
+            "metrics": ["count"],
+            "adhoc_filters": [],
+            "groupby": ["beds"],
+            "columns": [],
+        }
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame({"beds": [0, 1, nan, 2], "count": [30, 42, 3, 29]})
+        test_viz = viz.DistributionBarViz(datasource, form_data)
+        data = test_viz.get_data(df)[0]
+        self.assertEqual("count", data["key"])
+        expected_values = [
+            {"x": "1.0", "y": 42},
+            {"x": "0.0", "y": 30},
+            {"x": "2.0", "y": 29},
+            {"x": NULL_STRING, "y": 3},
+        ]
+        self.assertEqual(expected_values, data["values"])
+
+    def test_column_nulls(self):
+        form_data = {
+            "metrics": ["votes"],
+            "adhoc_filters": [],
+            "groupby": ["toppings"],
+            "columns": ["role"],
+        }
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            {
+                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
+                "role": ["engineer", "engineer", None, None],
+                "votes": [3, 5, 1, 2],
+            }
+        )
+        test_viz = viz.DistributionBarViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        expected = [
+            {
+                "key": NULL_STRING,
+                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
+            },
+            {
+                "key": "engineer",
+                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
+            },
+        ]
+        self.assertEqual(expected, data)
 
 
 class PairedTTestTestCase(SupersetTestCase):
