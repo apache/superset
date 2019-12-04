@@ -21,16 +21,19 @@ from datetime import datetime
 from sys import getsizeof
 from typing import Optional, Tuple, Union
 
+# pylint and isort disagree on the correct import order.
+# Let's have isort win.
+# pylint: disable=ungrouped-imports
 import backoff
 import msgpack
 import pyarrow as pa
 import simplejson as json
 import sqlalchemy
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool
 from celery.exceptions import SoftTimeLimitExceeded
 from contextlib2 import contextmanager
 from flask_babel import lazy_gettext as _
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
 from superset import (
     app,
@@ -52,6 +55,8 @@ config = app.config
 stats_logger = config["STATS_LOGGER"]
 SQLLAB_TIMEOUT = config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
+SQL_MAX_ROW = config["SQL_MAX_ROW"]
+SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
 
@@ -177,7 +182,6 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
     db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()
-    sql_max_rows = app.config["SQL_MAX_ROW"]
 
     if not parsed_query.is_readonly() and not database.allow_dml:
         raise SqlLabSecurityException(
@@ -199,15 +203,14 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
         sql = parsed_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
     if parsed_query.is_select():
-        if sql_max_rows and (not query.limit or query.limit > sql_max_rows):
-            query.limit = sql_max_rows
+        if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
+            query.limit = SQL_MAX_ROW
         if query.limit:
             sql = database.apply_limit_to_sql(sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
-    sql_query_mutator = config["SQL_QUERY_MUTATOR"]
-    if sql_query_mutator:
-        sql = sql_query_mutator(sql, user_name, security_manager, database)
+    if SQL_QUERY_MUTATOR:
+        sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
 
     try:
         if log_query:

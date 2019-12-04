@@ -257,11 +257,11 @@ def validate_json(_form, field):
 
 
 class YamlExportMixin(object):  # pylint: disable=too-few-public-methods
-    yaml_dict_key: Optional[str] = None
     """
     Override this if you want a dict response instead, with a certain key.
     Used on DatabaseView for cli compatibility
     """
+    yaml_dict_key: Optional[str] = None
 
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(self, items):
@@ -350,8 +350,8 @@ class DeleteMixin(object):  # pylint: disable=too-few-public-methods
         return redirect(self.get_redirect())
 
 
-class DatasourceFilter(BaseFilter):
-    def apply(self, query, func):  # noqa
+class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    def apply(self, query, value):
         if security_manager.all_datasource_access():
             return query
         datasource_perms = security_manager.user_view_menu_names("datasource_access")

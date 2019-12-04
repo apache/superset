@@ -272,5 +272,7 @@ for k in keys:
 
 
 def get_template_processor(database, table=None, query=None, **kwargs):
-    tp = template_processors.get(database.backend, BaseTemplateProcessor)
-    return tp(database=database, table=table, query=query, **kwargs)
+    template_processor = template_processors.get(
+        database.backend, BaseTemplateProcessor
+    )
+    return template_processor(database=database, table=table, query=query, **kwargs)
