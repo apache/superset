@@ -223,7 +223,7 @@ export default class TimeSeriesColumnControl extends React.Component {
                 value={this.state.timeRatio}
                 onChange={this.onTextInputChange.bind(this, 'timeRatio')}
                 bsSize="small"
-                placeholder="Time Lag"
+                placeholder="Time Ratio"
               />,
             )}
           {this.state.colType === 'time' &&
