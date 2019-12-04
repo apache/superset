@@ -30,6 +30,8 @@ import FormInput from 'src/components/FormInput';
 import FormCheckbox from 'src/components/FormCheckbox';
 import FormSelect from 'src/components/FormSelect';
 import StatusMessages from 'src/components/StatusMessages/StatusMessages';
+import FormHelpText from 'src/components/FormHelpText';
+import { supportsDragAndDrop } from 'src/utils/common';
 import * as Actions from './actions/csvToDatabase';
 import './CsvToDatabase.css';
 
@@ -179,6 +181,7 @@ export class CsvToDatabase extends React.PureComponent {
   }
 
   render() {
+    const fileHelpText = !supportsDragAndDrop() && <FormHelpText helpText={t('Select a CSV file to be uploaded to a database')} />;
     return (
       <div className="container">
         <StatusMessages />
@@ -216,7 +219,7 @@ export class CsvToDatabase extends React.PureComponent {
                       <td className="col-lg-2">
                         {t('CSV File')} <Asterisk />
                       </td>
-                      <td className="td-no-padding">
+                      <td className={supportsDragAndDrop() ? 'td-no-padding' : null}>
                         <FileDropper
                           onFileSelected={this.setFile}
                           allowedMimeTypes={['text/csv']}
@@ -231,6 +234,7 @@ export class CsvToDatabase extends React.PureComponent {
                             buttonText="Select a CSV"
                           />
                         </FileDropper>
+                        {fileHelpText}
                       </td>
                     </tr>
                     <tr>
