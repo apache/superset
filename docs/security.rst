@@ -159,7 +159,7 @@ Restricting access to a subset of a particular table
 """"""""""""""""""""""""""""""""""""""""""""""""""""
 
 Using ``Row level security filters`` (under the ``Security`` menu) you can create 
-filters that are assigned to a particular table, as well as a particular role.  
+filters that are assigned to a particular table, as well as a set of roles. 
 Say people in your finance department should only have access to rows where 
 ``department = "finance"``.  You could create a ``Row level security filter`` 
 with that clause, and assign it to your ``Finance`` role, as well as the 
@@ -171,7 +171,7 @@ filter for the last 30 days and apply it to a specific role, with a clause like
 ``date_field > DATE_SUB(NOW(), INTERVAL 30 DAY)``.  It can also support multiple 
 conditions: ``client_id = 6 AND advertiser="foo"``, etc. 
 
-You can throw whatever you want in there to define the subset of the table you want the role in question to have access to.
+You can throw whatever you want in there to define the subset of the table you want the roles in question to have access to.
 
 All relevant ``Row level security filters`` will be ANDed together, so it's 
 possible to create a situation where two roles conflict in such a way as to 
