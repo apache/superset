@@ -105,8 +105,6 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
 
         self.progress["progress"] = 100
         self.progress["is_in_progress"] = False
-        # TODO also return amount of geocoded values or store in
-        #  class-variable and errors
         success_dict = {
             "success": self.progress["success_counter"],
             "doubt": self.progress["doubt_counter"],
@@ -120,18 +118,14 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
             base_url + address + ".json?key=" + self.conf["MAPTILER_API_KEY"]
         )
         decoded_data = json.loads(response.content.decode())
-        # TODO make use of relevance
         features = decoded_data["features"]
         if features:
             feature = features[0]
             center = feature["center"]
             relevance = feature["relevance"]
-            # TODO check if it is possible, that there is no center attribute
-            #  -> get API doc from mr. Keller
             return [center, relevance] or None
         return None
 
-    # TODO remove it in mocking class
     def _geocode_testing(self) -> dict:
         counter = 0
         datalen = 10

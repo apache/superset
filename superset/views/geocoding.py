@@ -168,7 +168,11 @@ class Geocoder(BaseSupersetView):
             return json_error_response(e.args[0], status=500)
         progress = self.geocoder.progress
         message = _(
-            "Geocoded values, success: {}, doubt: {}, fail: {}".format(progress["success_counter"], progress["doubt_counter"], success["failed_counter"])
+            "Geocoded values, success: {}, doubt: {}, fail: {}".format(
+                progress["success_counter"],
+                progress["doubt_counter"],
+                success["failed_counter"],
+            )
         )
         flash(message, "success")
         return json_success(json.dumps(data))
@@ -211,7 +215,6 @@ class Geocoder(BaseSupersetView):
         :param dev: Whether to Mock the geocoding process for testing purposes
         :return: a list of tuples containing the data and the corresponding long, lat values
         """
-        # TODO replace mock-method with mock-geocoder
         if dev:
             return self.geocoder_util.geocode("", data)
         else:
