@@ -77,11 +77,14 @@ class Geocoder(BaseSupersetView):
         for database in (
             db.session.query(models.Database).filter_by(allow_dml=True).all()
         ):
-            # TODO loop through all schemas for postgres databases
             for table in (
                 db.session.query(SqlaTable).filter_by(database_id=database.id).all()
             ):
-                tables.append(models.TableDto(table.id, table.name, table.database_id))
+                tables.append(
+                    models.TableDto(
+                        table.id, table.table_name, table.schema, table.database_id
+                    )
+                )
         return tables
 
     @api
@@ -92,14 +95,16 @@ class Geocoder(BaseSupersetView):
         Get all column names from given table name
         :return: list of column names or an error message if table with given name does not exist
         """
-        table_name = request.json.get("tableName", "")
-        error_message = "No columns found for table with name {0}".format(table_name)
+        tableDto = request.json.get("table", models.TableDto())
+        error_message = "No columns found for table with name {0}".format(
+            tableDto.get("fullName", "undefined")
+        )
         try:
-            columns = reflection.Inspector.from_engine(db.engine).get_columns(
-                table_name
+            table = (
+                db.session.query(SqlaTable).filter_by(id=tableDto.get("id", "")).first()
             )
-            if columns:
-                column_names = [column["name"] for column in columns]
+            if table and table.columns:
+                column_names = [column.column_name for column in table.columns]
             else:
                 return json_error_response(error_message, status=400)
         except:

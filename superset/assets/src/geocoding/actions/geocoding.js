@@ -24,11 +24,11 @@ export const GET_COLUMNS_FOR_TABLE_SUCCESS = 'GET_COLUMNS_FOR_TABLE_SUCCESS';
 
 export const GEOCODE_PROGRESS_SUCCESS = 'GEOCODE_PROGRESS_SUCCESS';
 
-export function getColumnsForTable(tableName) {
+export function getColumnsForTable(table) {
     return dispatch =>
     SupersetClient.post({
       endpoint: '/geocoder/geocoding/columns',
-      body: JSON.stringify({ tableName }),
+      body: JSON.stringify({ table }),
       headers: { 'Content-Type': 'application/json' },
     })
       .then((response) => {
