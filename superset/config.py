@@ -67,10 +67,10 @@ def _try_json_readversion(filepath):
         return None
 
 
-def _try_json_readsha(filepath):
+def _try_json_readsha(filepath, length):
     try:
         with open(filepath, "r") as f:
-            return json.load(f).get("GIT_SHA")
+            return json.load(f).get("GIT_SHA")[:length]
     except Exception:
         return None
 
@@ -84,7 +84,8 @@ VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversi
     PACKAGE_JSON_FILE
 )
 
-VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE)
+VERSION_SHA_LENGTH = 8
+VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
