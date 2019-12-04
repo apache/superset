@@ -246,11 +246,7 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
             current_app.appbuilder.get_session.commit()
             return self.response(
                 200,
-                **{
-                    "result": self.edit_model_schema.dump(
-                        item.data, many=False
-                    ).data
-                },
+                **{"result": self.edit_model_schema.dump(item.data, many=False).data},
             )
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))

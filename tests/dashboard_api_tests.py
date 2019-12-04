@@ -56,9 +56,11 @@ class DashboardApiTests(SupersetTestCase):
         return dashboard
 
     def get_user_id(self, username: str) -> int:
-        user = db.session.query(
-            security_manager.user_model
-        ).filter_by(username=username).one_or_none()
+        user = (
+            db.session.query(security_manager.user_model)
+            .filter_by(username=username)
+            .one_or_none()
+        )
         return user.id
 
     def test_delete_dashboard(self):
@@ -102,7 +104,7 @@ class DashboardApiTests(SupersetTestCase):
         """
             Dashboard API: Test delete not owned
         """
-        #TODO
+        # TODO
         # Create 2 alpha users
         # Create dashboard with alpha_1
         # alpha_2 tries to delete that dashboard
@@ -116,10 +118,10 @@ class DashboardApiTests(SupersetTestCase):
             "dashboard_title": "title1",
             "slug": "slug1",
             "owners": [admin_id],
-            "position_json": "{\"a\": \"A\"}",
+            "position_json": '{"a": "A"}',
             "css": "css",
-            "json_metadata": "{\"b\": \"B\"}",
-            "published": True
+            "json_metadata": '{"b": "B"}',
+            "published": True,
         }
         self.login(username="admin")
         uri = f"api/v1/dashboard/"
@@ -139,10 +141,10 @@ class DashboardApiTests(SupersetTestCase):
             "dashboard_title": "",
             "slug": "slug1",
             "owners": [admin_id],
-            "position_json": "{\"a\": \"A\"}",
+            "position_json": '{"a": "A"}',
             "css": "css",
-            "json_metadata": "{\"b\": \"B\"}",
-            "published": True
+            "json_metadata": '{"b": "B"}',
+            "published": True,
         }
         self.login(username="admin")
         uri = f"api/v1/dashboard/"
