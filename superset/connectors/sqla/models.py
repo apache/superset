@@ -656,6 +656,15 @@ class SqlaTable(Model, BaseDatasource):
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
+    def _get_row_level_filters(self) -> List[str]:
+        """
+        Return the appropriate row level security filters for this table and the current user.
+
+        :returns: A list of SQL clauses to be ANDed together.
+        :rtype: List[str]
+        """
+        return security_manager.get_row_level_security_filters(self)
+
     def get_sqla_query(  # sqla
         self,
         groupby,
@@ -834,6 +843,10 @@ class SqlaTable(Model, BaseDatasource):
                         where_clause_and.append(col_obj.get_sqla_col() == None)
                     elif op == "IS NOT NULL":
                         where_clause_and.append(col_obj.get_sqla_col() != None)
+
+        where_clause_and += [
+            text("({})".format(f)) for f in self._get_row_level_filters()
+        ]
         if extras:
             where = extras.get("where")
             if where:
@@ -943,7 +956,6 @@ class SqlaTable(Model, BaseDatasource):
                     result.df, dimensions, groupby_exprs_sans_timestamp
                 )
                 qry = qry.where(top_groups)
-
         return SqlaQuery(
             extra_cache_keys=extra_cache_keys,
             labels_expected=labels_expected,
@@ -977,17 +989,6 @@ class SqlaTable(Model, BaseDatasource):
         return or_(*groups)
 
     def query(self, query_obj: Dict) -> QueryResult:
-        filters = security_manager.get_row_level_security_filters(
-            self
-        )  # Self is the Table model
-        if len(filters) > 0:
-            where = query_obj["extras"]["where"]
-            if len(where) > 0:
-                where = "({}) AND ".format(where)
-            query_obj["extras"]["where"] = "{} ({})".format(
-                where, ") AND (".join(filters)
-            )
-
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
