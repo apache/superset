@@ -154,17 +154,25 @@ class Geocoder(BaseSupersetView):
             data = self._load_data_from_columns(table_name, columns)
         except ValueError as e:
             self.logger.exception(f"ValueError when querying for lat/lon columns {e}")
-            # self.stats_logger.incr("")
+            self.stats_logger.incr("failed_geocoding")
             return json_error_response(e.args[0], status=400)
         except SqlSelectException as e:
+            self.logger.exception(
+                f"SqlSelectException when preparing for geocoding {e}"
+            )
+            self.stats_logger.incr("failed_geocoding")
             return json_error_response(e.args[0], status=500)
         except Exception as e:
+            self.logger.exception(f"Exception when preparing for geocoding {e}")
+            self.stats_logger.incr("failed_geocoding")
             return json_error_response(e.args[0], status=500)
 
         try:
             data = self._geocode(data)
         except Exception as e:
+            self.logger.exception(f"Exception when geocoding data {e}")
             if not save_on_stop_geocoding:
+                self.stats_logger.incr("failed_geocoding")
                 return json_error_response(e.args[0])
 
         try:
@@ -172,13 +180,17 @@ class Geocoder(BaseSupersetView):
             self._insert_geocoded_data(
                 table_name, lat_column, lon_column, columns, data
             )
-        except SqlAddColumnException as e:
-            return json_error_response(e.args[0], status=500)
-        except SqlUpdateException as e:
+        except (SqlAddColumnException, SqlUpdateException) as e:
+            self.logger.exception(f"Failed to add columns/ data after geocoding {e}")
+            self.stats_logger.incr("failed_geocoding")
             return json_error_response(e.args[0], status=500)
         except Exception as e:
+            self.logger.exception(
+                f"Exception when adding columns/ data after geocoding {e}"
+            )
+            self.stats_logger.incr("failed_geocoding")
             return json_error_response(e.args[0], status=500)
-
+        self.stats_logger.incr("succesful_geocoding")
         return json_success(json.dumps(data))
 
     def _does_column_name_exist(self, table_name: str, column_name: str):
