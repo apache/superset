@@ -235,16 +235,16 @@ class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
     add_title = _("Add Row level security filter")
     edit_title = _("Edit Row level security filter")
 
-    list_columns = ["table", "role", "clause", "creator", "modified"]
+    list_columns = ["table", "roles", "clause", "creator", "modified"]
     order_columns = ["modified"]
-    edit_columns = ["table", "role", "clause"]
+    edit_columns = ["table", "roles", "clause"]
     show_columns = edit_columns
-    search_columns = ("table", "role", "clause")
+    search_columns = ("table", "roles", "clause")
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
     description_columns = {
         "table": _("This is the table this filter will be applied to."),
-        "role": _("This is the role this filter will be applied to."),
+        "roles": _("These are the roles this filter will be applied to."),
         "clause": _(
             "This is the condition that will be added to the WHERE clause. "
             "For example, to only return rows for a particular client, you might put in: client_id = 9"
@@ -252,7 +252,7 @@ class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
     }
     label_columns = {
         "table": _("Table"),
-        "role": _("Role"),
+        "roles": _("Roles"),
         "clause": _("Clause"),
         "creator": _("Creator"),
         "modified": _("Modified"),

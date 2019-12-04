@@ -824,10 +824,9 @@ class SupersetSecurityManager(SecurityManager):
         try:
             roles = [role.id for role in g.user.roles]
             return [
-                filter.clause
-                for filter in filter(
-                    lambda x: x.role_id in roles, table.row_level_security_filters
-                )
+                f.clause
+                for f in table.row_level_security_filters
+                if any(r.id in roles for r in f.roles)
             ]
         except AttributeError:
             return []

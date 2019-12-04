@@ -1183,6 +1183,15 @@ sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
 
 
+RLSFilterRoles = Table(
+    "rls_filter_roles",
+    Model.metadata,
+    Column("id", Integer, primary_key=True),
+    Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
+    Column("rlsfilter_id", Integer, ForeignKey("row_level_security_filters.id")),
+)
+
+
 class RowLevelSecurityFilter(Model, AuditMixinNullable):
     """
     Custom where clauses attached to Tables and Roles.
@@ -1190,9 +1199,10 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
 
     __tablename__ = "row_level_security_filters"
     id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
-    role_id = Column(Integer, ForeignKey("ab_role.id"), nullable=False)
-    role = relationship(
-        security_manager.role_model, backref="row_level_security_filters"
+    roles = relationship(
+        security_manager.role_model,
+        secondary=RLSFilterRoles,
+        backref="row_level_security_filters",
     )
 
     table_id = Column(Integer, ForeignKey("tables.id"), nullable=False)
