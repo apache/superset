@@ -202,6 +202,7 @@ export default class SelectControl extends React.PureComponent {
       refFunc: this.props.refFunc,
       filterOption: this.props.filterOption,
       promptTextCreator: this.props.promptTextCreator,
+      ignoreAccents: false,
     };
     if (this.props.freeForm) {
       selectProps.selectComponent = Creatable;
