@@ -139,13 +139,13 @@ class Geocoder(BaseSupersetView):
 
         try:
             if not override_if_exist and self._does_column_name_exist(
-                table_name, lat_column
+                table_name.get("fullName"), lat_column
             ):
                 raise ValueError(
                     "Column name {0} for latitude is already in use".format(lat_column)
                 )
             if not override_if_exist and self._does_column_name_exist(
-                table_name, lon_column
+                table_name.get("fullName"), lon_column
             ):
                 raise ValueError(
                     "Column name {0} for longitude is already in use".format(lon_column)
@@ -153,24 +153,26 @@ class Geocoder(BaseSupersetView):
 
             data = self._load_data_from_columns(table_name, columns)
         except ValueError as e:
-            self.logger.exception(f"ValueError when querying for lat/lon columns {e}")
+            self.logger.exception(
+                f"ValueError when querying for lat/lon columns {e.orig}"
+            )
             self.stats_logger.incr("failed_geocoding")
             return json_error_response(e.args[0], status=400)
         except SqlSelectException as e:
             self.logger.exception(
-                f"SqlSelectException when preparing for geocoding {e}"
+                f"SqlSelectException when preparing for geocoding {e.orig}"
             )
             self.stats_logger.incr("failed_geocoding")
             return json_error_response(e.args[0], status=500)
         except Exception as e:
-            self.logger.exception(f"Exception when preparing for geocoding {e}")
+            self.logger.exception(f"Exception when preparing for geocoding {e.orig}")
             self.stats_logger.incr("failed_geocoding")
             return json_error_response(e.args[0], status=500)
 
         try:
             data = self._geocode(data)
         except Exception as e:
-            self.logger.exception(f"Exception when geocoding data {e}")
+            self.logger.exception(f"Exception when geocoding data {e.orig}")
             if not save_on_stop_geocoding:
                 self.stats_logger.incr("failed_geocoding")
                 return json_error_response(e.args[0])
@@ -181,12 +183,14 @@ class Geocoder(BaseSupersetView):
                 table_name, lat_column, lon_column, columns, data
             )
         except (SqlAddColumnException, SqlUpdateException) as e:
-            self.logger.exception(f"Failed to add columns/ data after geocoding {e}")
+            self.logger.exception(
+                f"Failed to add columns/ data after geocoding {e.orig}"
+            )
             self.stats_logger.incr("failed_geocoding")
             return json_error_response(e.args[0], status=500)
         except Exception as e:
             self.logger.exception(
-                f"Exception when adding columns/ data after geocoding {e}"
+                f"Exception when adding columns/ data after geocoding {e.orig}"
             )
             self.stats_logger.incr("failed_geocoding")
             return json_error_response(e.args[0], status=500)
@@ -215,13 +219,15 @@ class Geocoder(BaseSupersetView):
         try:
             # TODO SQL Injection Check
             selected_columns = ", ".join(filter(None, columns))
-            sql = "SELECT " + selected_columns + " FROM %s" % table_name
+            # TODO remove asdf
+            sql = "SELECT " + selected_columns + "asdf FROM %s" % table_name
             result = db.engine.connect().execute(sql)
             return [row for row in result]
-        except Exception:
+        except Exception as e:
             raise SqlSelectException(
                 "An error occured while getting address data from columns "
-                + selected_columns
+                + selected_columns,
+                e,
             )
 
     def _geocode(self, data: list, dev=False):

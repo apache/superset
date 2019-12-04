@@ -61,6 +61,10 @@ class SqlException(SupersetException):
 
 
 class SqlSelectException(SqlException):
+    def __init__(self, msg, orig_e):
+        super(SqlException, self).__init__(msg)
+        self.orig = orig_e
+
     status = 500
 
 
