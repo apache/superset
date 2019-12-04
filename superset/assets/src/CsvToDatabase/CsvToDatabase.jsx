@@ -49,7 +49,7 @@ export class CsvToDatabase extends React.PureComponent {
       selectedDatabaseFlavor: { label: t('SQLite'), value: 'sqlite' },
       file: undefined,
       selectedConnection: { label: t('In a new database'), value: -1 },
-      schema: '',
+      schema: undefined,
       delimiter: ',',
       selectedTableExists: { label: t('Fail'), value: 'Fail' },
       headerRow: '0',
@@ -80,6 +80,8 @@ export class CsvToDatabase extends React.PureComponent {
     this.setDatabaseFlavor = this.setDatabaseFlavor.bind(this);
     this.setUserInput = this.setUserInput.bind(this);
     this.getConnectionStrings = this.getConnectionStrings.bind(this);
+    this.getSchemasAllowed = this.getSchemasAllowed.bind(this);
+    this.setSchema = this.setSchema.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }
 
@@ -103,7 +105,12 @@ export class CsvToDatabase extends React.PureComponent {
     this.setState({
       selectedConnection: connection,
       databaseName,
+      schema: undefined,
     });
+    const schemas = this.getSchemasAllowed(connection);
+    if (schemas.length > 0) {
+      this.setState({ schema: schemas[0] });
+    }
   }
 
   setTableExists(value) {
@@ -130,6 +137,26 @@ export class CsvToDatabase extends React.PureComponent {
       connections.push({ label: database.name, value: database.id }),
     );
     return connections;
+  }
+
+  getSchemasAllowed(selectedDatabase) {
+    const schemas = [];
+    this.props.databases.forEach((database) => {
+      if (selectedDatabase) {
+        if (selectedDatabase.value === database.id) {
+          database.allowed_schemas.forEach(schema =>
+            schemas.push({ label: schema, value: schema }));
+        }
+      } else if (this.state.selectedConnection.value === database.id) {
+          database.allowed_schemas.forEach(schema =>
+            schemas.push({ label: schema, value: schema }));
+      }
+    });
+    return schemas;
+  }
+
+  setSchema(value) {
+    this.setState({ schema: value });
   }
 
   handleSubmit(event) {
@@ -162,7 +189,7 @@ export class CsvToDatabase extends React.PureComponent {
       connectionId: selectedConnection.value,
       databaseName: selectedConnection.value === -1 ? databaseName : '',
       databaseFlavor: selectedConnection.value === -1 ? selectedDatabaseFlavor.value : '',
-      schema,
+      schema: schema ? schema.value : '',
       delimiter,
       ifTableExists: selectedTableExists.value,
       headerRow,
@@ -299,12 +326,12 @@ export class CsvToDatabase extends React.PureComponent {
                     <tr>
                       <td className="col-lg-2">{t('Schema')}</td>
                       <td>
-                        <FormInput
-                          type="text"
+                        <FormSelect
                           name="schema"
-                          placeholder={t('Schema')}
                           value={this.state.schema}
-                          onChange={this.setUserInput}
+                          onChange={this.setSchema}
+                          options={this.getSchemasAllowed()}
+                          clearable={false}
                           helpText={t('Specify a schema (if database flavor supports this)')}
                         />
                       </td>
