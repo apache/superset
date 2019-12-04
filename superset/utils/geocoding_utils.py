@@ -75,16 +75,17 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                 address = " ".join(datum)
                 geocoded = self._get_coordinates_from_address(address)
                 if geocoded is not None:
-                    center_coordinates = geocoded[1]
-                    relevance = geocoded[0]
+                    center_coordinates = geocoded[0]
+                    relevance = geocoded[1]
                     if relevance > 0.8:
                         self.progress["success_counter"] += 1
                     elif relevance > 0.49:
                         self.progress["doubt_counter"] += 1
                     else:
                         self.progress["failed_counter"] += 1
-
-                    geocoded_data.append(datum.append(center_coordinates))
+                    datum.append(str(center_coordinates[0]))
+                    datum.append(str(center_coordinates[1]))
+                    geocoded_data.append(datum)
 
                 counter += 1
                 self.progress["progress"] = counter / data_length

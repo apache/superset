@@ -175,9 +175,9 @@ class Geocoder(BaseSupersetView):
             return json_error_response(e.args[0], status=500)
         except Exception as e:
             return json_error_response(e.args[0], status=500)
-        progress = self.geocoder.progress
+        progress = self.geocoder_util.progress
         message = (
-            f"Geocoded values, success: {progress['success_counter']}, doubt: {progress['doub_counter']}, "
+            f"Geocoded values, success: {progress['success_counter']}, doubt: {progress['doubt_counter']}, "
             f"fail: {progress['failed_counter']}"
         )
         flash(message, "success")
@@ -299,10 +299,10 @@ class Geocoder(BaseSupersetView):
                     lon_column,
                     row[number_of_columns + 1],
                 )
-                where = "WHERE " + where_clause % (row[:number_of_columns])
+                where = "WHERE " + where_clause % (tuple(row[:number_of_columns]))
                 connection.execute(text(update + where))
             transaction.commit()
-        except Exception:
+        except Exception as e:
             transaction.rollback()
             raise SqlUpdateException(
                 "An error occured while inserting geocoded addresses"
