@@ -1364,7 +1364,24 @@ if is_feature_enabled("TAGGING_SYSTEM"):
 
 
 class TableDto:
-    def __init__(self, id, name, database_id):
+    def __init__(self, id="", name="", schema="", database_id=""):
         self.id = id
         self.name = name
+        self.schema = schema
         self.database_id = database_id
+        self.fullName = ""
+        if schema:
+            self.fullName = schema + "."
+        self.fullName += name
+
+    def to_json(self):
+        values = {}
+        dict.__init__(
+            values,
+            id=self.id,
+            name=self.name,
+            schema=self.schema,
+            database_id=self.database_id,
+            fullName=self.fullName,
+        )
+        return values
