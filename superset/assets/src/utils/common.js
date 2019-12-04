@@ -19,6 +19,10 @@
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from './getClientErrorObject';
 
+// ATTENTION: If you change any constants, make sure to also change constants.py
+
+export const NULL_STRING = '<NULL>';
+
 export function getParamFromQuery(query, param) {
   const vars = query.split('&');
   for (let i = 0; i < vars.length; i += 1) {
@@ -78,7 +82,7 @@ export function supersetURL(rootUrl, getParams = {}) {
 
 export function optionLabel(opt) {
   if (opt === null) {
-    return '<NULL>';
+    return NULL_STRING;
   } else if (opt === '') {
     return '<empty string>';
   } else if (opt === true) {
@@ -93,7 +97,7 @@ export function optionLabel(opt) {
 
 export function optionValue(opt) {
   if (opt === null) {
-    return '<NULL>';
+    return NULL_STRING;
   }
   return opt;
 }

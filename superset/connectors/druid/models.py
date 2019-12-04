@@ -50,6 +50,7 @@ from sqlalchemy_utils import EncryptedType
 
 from superset import conf, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.constants import NULL_STRING
 from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
@@ -1366,7 +1367,7 @@ class DruidDatasource(Model, BaseDatasource):
         Here we replace None with <NULL> and make the whole series a
         str instead of an object.
         """
-        df[groupby_cols] = df[groupby_cols].fillna("<NULL>").astype("unicode")
+        df[groupby_cols] = df[groupby_cols].fillna(NULL_STRING).astype("unicode")
         return df
 
     def query(self, query_obj: Dict) -> QueryResult:
