@@ -23,6 +23,10 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [8732](https://github.com/apache/incubator-superset/pull/8732): Swagger user interface is now enabled by default. 
+A new permission `show on SwaggerView` is created by `superset init` and given to the `Admin` Role. To disable the UI,
+set `FAB_API_SWAGGER_UI = False` on config.
+
 * [8721](https://github.com/apache/incubator-superset/pull/8721): When using the cache
 warmup Celery task you should now specify the `SUPERSET_WEBSERVER_PROTOCOL` variable
 in your configuration (probably either "http" or "https"). This defaults to "http".
