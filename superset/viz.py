@@ -1832,19 +1832,21 @@ class FilterBoxViz(BaseViz):
             col = flt.get("column")
             metric = flt.get("metric")
             df = self.dataframes.get(col)
-            if metric:
-                df = df.sort_values(
-                    utils.get_metric_name(metric), ascending=flt.get("asc")
-                )
-                d[col] = [
-                    {"id": row[0], "text": row[0], "metric": row[1]}
-                    for row in df.itertuples(index=False)
-                ]
-            else:
-                df = df.sort_values(col, ascending=flt.get("asc"))
-                d[col] = [
-                    {"id": row[0], "text": row[0]} for row in df.itertuples(index=False)
-                ]
+            if df is not None:
+                if metric:
+                    df = df.sort_values(
+                        utils.get_metric_name(metric), ascending=flt.get("asc")
+                    )
+                    d[col] = [
+                        {"id": row[0], "text": row[0], "metric": row[1]}
+                        for row in df.itertuples(index=False)
+                    ]
+                else:
+                    df = df.sort_values(col, ascending=flt.get("asc"))
+                    d[col] = [
+                        {"id": row[0], "text": row[0]}
+                        for row in df.itertuples(index=False)
+                    ]
         return d
 
 
