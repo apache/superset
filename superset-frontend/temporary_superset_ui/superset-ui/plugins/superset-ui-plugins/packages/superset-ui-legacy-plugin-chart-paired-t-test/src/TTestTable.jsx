@@ -214,7 +214,7 @@ class TTestTable extends React.Component {
       values.push(
         <Td
           key={numGroups + 3}
-          className={this.getSignificance(i)}
+          className={this.getSignificance(i).toString()}
           column="significant"
           data={this.getSignificance(i)}
         />,
