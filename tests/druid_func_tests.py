@@ -209,7 +209,7 @@ class DruidFuncTestCase(SupersetTestCase):
         self.assertFalse(res.filter["filter"]["lowerStrict"])
         self.assertEqual("A", res.filter["filter"]["dimension"])
         self.assertEqual("h", res.filter["filter"]["lower"])
-        self.assertFalse(res.filter["filter"]["alphaNumeric"])
+        self.assertEqual("lexicographic", res.filter["filter"]["ordering"])
         filtr["op"] = ">"
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertTrue(res.filter["filter"]["lowerStrict"])
@@ -220,6 +220,9 @@ class DruidFuncTestCase(SupersetTestCase):
         filtr["op"] = "<"
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertTrue(res.filter["filter"]["upperStrict"])
+        filtr["val"] = 1
+        res = DruidDatasource.get_filters([filtr], ["A"], column_dict)
+        self.assertEqual("numeric", res.filter["filter"]["ordering"])
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
