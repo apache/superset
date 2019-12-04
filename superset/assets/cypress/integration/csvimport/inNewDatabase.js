@@ -61,12 +61,9 @@ export default () => {
         { force: true },
       );
 
-      cy.get('#databaseFlavor')
-        .clear({ force: true })
-        .type(
-        'sqlite',
-        { force: true },
-      );
+      cy.get('#databaseFlavor').then((elem) => {
+        elem.val('sqlite');
+      });
 
       cy.get('#delimiter')
         .clear({ force: true })
@@ -105,12 +102,9 @@ export default () => {
         { force: true },
       );
 
-      cy.get('#databaseFlavor')
-        .clear({ force: true })
-        .type(
-        'postgres',
-        { force: true },
-      );
+      cy.get('#databaseFlavor').then((elem) => {
+        elem.val('postgres');
+      });
 
       cy.get('#delimiter')
         .clear({ force: true })
