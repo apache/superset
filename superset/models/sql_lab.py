@@ -259,13 +259,18 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
     expanded = Column(Boolean, default=False)
 
     def to_dict(self):
+        try:
+            description = json.loads(self.description)
+        except json.JSONDecodeError:
+            description = None
+
         return {
             "id": self.id,
             "tab_state_id": self.tab_state_id,
             "database_id": self.database_id,
             "schema": self.schema,
             "table": self.table,
-            "description": json.loads(self.description),
+            "description": description,
             "expanded": self.expanded,
         }
 
