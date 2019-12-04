@@ -261,6 +261,7 @@ class YamlExportMixin(object):  # pylint: disable=too-few-public-methods
     Override this if you want a dict response instead, with a certain key.
     Used on DatabaseView for cli compatibility
     """
+
     yaml_dict_key: Optional[str] = None
 
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
