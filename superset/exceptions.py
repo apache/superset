@@ -70,3 +70,7 @@ class SqlAddColumnException(SqlException):
 
 class SqlUpdateException(SqlException):
     status = 500
+
+
+class NoAPIKeySuppliedException(SupersetException):
+    status = 400

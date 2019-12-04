@@ -133,20 +133,22 @@ class Geocoder(BaseSupersetView):
         data = [()]
 
         try:
+            # TODO set not override in brace
             if not override_if_exist and self._does_column_name_exist(
-                table_name, lat_column
+                table_name.get("fullName"), lat_column
             ):
                 raise ValueError(
                     "Column name {0} for latitude is already in use".format(lat_column)
                 )
             if not override_if_exist and self._does_column_name_exist(
-                table_name, lon_column
+                table_name.get("fullName"), lon_column
             ):
                 raise ValueError(
                     "Column name {0} for longitude is already in use".format(lon_column)
                 )
 
-            data = self._load_data_from_columns(table_name, columns)
+            data = self._load_data_from_columns(table_name.get("fullName"), columns)
+
         except ValueError as e:
             return json_error_response(e.args[0], status=400)
         except SqlSelectException as e:
@@ -161,9 +163,11 @@ class Geocoder(BaseSupersetView):
                 return json_error_response(e.args[0])
 
         try:
-            self._add_lat_lon_columns(table_name, lat_column, lon_column)
+            self._add_lat_lon_columns(
+                table_name.get("fullName"), lat_column, lon_column
+            )
             self._insert_geocoded_data(
-                table_name, lat_column, lon_column, columns, data[0]
+                table_name.get("fullName"), lat_column, lon_column, columns, data[0]
             )
         except SqlAddColumnException as e:
             return json_error_response(e.args[0], status=500)
@@ -202,9 +206,10 @@ class Geocoder(BaseSupersetView):
             # TODO SQL Injection Check
             selected_columns = ", ".join(filter(None, columns))
             sql = "SELECT " + selected_columns + " FROM %s" % table_name
-            result = db.engine.connect().execute(sql)
+            result = db.session.execute(sql)
+            # result = db.engine.connect().execute(sql)
             return [row for row in result]
-        except Exception:
+        except Exception as e:
             raise SqlSelectException(
                 "An error occured while getting address data from columns "
                 + selected_columns
@@ -236,11 +241,12 @@ class Geocoder(BaseSupersetView):
             self._add_column(connection, table_name, lat_column, Float())
             self._add_column(connection, table_name, lon_column, Float())
             transaction.commit()
-        except Exception:
+        except Exception as e:
             transaction.rollback()
-            raise SqlAddColumnException(
+            # TODO remove this workaround
+            """raise SqlAddColumnException(
                 "An error occured while creating new columns for latitude and longitude"
-            )
+            )"""
 
     def _add_column(
         self,

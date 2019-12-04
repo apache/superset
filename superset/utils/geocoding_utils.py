@@ -20,6 +20,8 @@ import time
 import requests
 from requests import HTTPError, RequestException, Timeout
 
+from superset.exceptions import NoAPIKeySuppliedException
+
 
 class GeocoderUtil:  # pylint: disable=too-few-public-methods
     """
@@ -50,6 +52,8 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         :param data: the addresses to be geocoded as a list of tuples
         :return: a dictionary containing the addresses and their long,lat values
         """
+        if not self.conf["MAPTILER_API_KEY"]:
+            raise NoAPIKeySuppliedException
         errors: list = []
         geocoded_data: list = []
         data_length: int = len(data)
@@ -67,6 +71,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                     self.progress["progress"] = 0
                     self.progress["is_in_progress"] = False
                     return geocoded_data
+                datum = list(map(str, datum))
                 address = " ".join(datum)
                 geocoded = self._get_coordinates_from_address(address)
                 if geocoded is not None:
