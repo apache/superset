@@ -205,7 +205,7 @@
     "redux-mock-store": "^1.2.3",
     "sinon": "^4.5.0",
     "speed-measure-webpack-plugin": "^1.2.3",
-    "style-loader": "^0.21.0",
+    "style-loader": "^1.0.0",
     "terser-webpack-plugin": "^1.1.0",
     "thread-loader": "^1.2.0",
     "transform-loader": "^0.2.3",
