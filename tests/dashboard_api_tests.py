@@ -63,5 +63,5 @@ class DashboardApiTests(SupersetTestCase):
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 200)
-        model = self.db.session.query(models.Dashboard).get(dashboard_id)
+        model = db.session.query(models.Dashboard).get(dashboard_id)
         self.assertEqual(model, None)

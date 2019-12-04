@@ -163,12 +163,9 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
         """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
-        try:
-            item = self.add_model_schema.load(request.json)
-        except ValidationError as err:
-            return self.response_422(message=err.messages)
+        item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
-        if isinstance(item.data, dict):
+        if item.errors:
             return self.response_422(message=item.errors)
         try:
             self.datamodel.add(item.data, raise_exception=True)
