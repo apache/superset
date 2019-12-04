@@ -1185,7 +1185,7 @@ sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
 
 RLSFilterRoles = Table(
     "rls_filter_roles",
-    Model.metadata,
+    metadata,
     Column("id", Integer, primary_key=True),
     Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
     Column("rlsfilter_id", Integer, ForeignKey("row_level_security_filters.id")),
