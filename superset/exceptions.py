@@ -53,18 +53,22 @@ class SpatialException(SupersetException):
 
 
 class DatabaseNotFound(SupersetException):
+    def __init__(self, msg, orig_e):
+        super(SupersetException, self).__init__(msg)
+        self.orig = orig_e
+
     status = 400
 
 
 class SqlException(SupersetException):
+    def __init__(self, msg, orig_e):
+        super(SupersetException, self).__init__(msg)
+        self.orig = orig_e
+
     status = 500
 
 
 class SqlSelectException(SqlException):
-    def __init__(self, msg, orig_e):
-        super(SqlException, self).__init__(msg)
-        self.orig = orig_e
-
     status = 500
 
 

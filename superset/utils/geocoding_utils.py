@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import time
 
 import requests
@@ -26,6 +27,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
     The GeoCoder object holds the logic for geocoding given data
     """
 
+    logger = logging.getLogger(__name__)
     interruptflag = False
     conf: dict = {}
     progress: dict = {}
@@ -74,20 +76,32 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                 counter += 1
                 self.progress["progress"] = counter / data_length
             except ConnectionError as e:
+                self.logger.exception(
+                    f"Geocoding ConnectionError for address: {address} exception-message: {e}"
+                )
                 errors.append("A network error occurred: {0}".format(e.args[0]))
             except HTTPError as e:
+                self.logger.exception(
+                    f"Geocoding HTTPError for address: {address} exception-message: {e}"
+                )
                 errors.append(
                     "The request for {0} returned a wrong HTTP answer: {1}".format(
                         address, e.args[0]
                     )
                 )
             except Timeout as e:
+                self.logger.exception(
+                    f"Geocoding Timeout for address: {address} exception-message: {e}"
+                )
                 errors.append(
                     "The request for {0} ran into a time out: {1}".format(
                         address, e.args[0]
                     )
                 )
             except RequestException as e:
+                self.logger.exception(
+                    f"Geocoding RequestException for address: {address} exception-message: {e}"
+                )
                 errors.append(
                     "While trying to geocode address {0}, "
                     "an error occurred: {1}".format(address, e.args[0])

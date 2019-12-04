@@ -219,8 +219,7 @@ class Geocoder(BaseSupersetView):
         try:
             # TODO SQL Injection Check
             selected_columns = ", ".join(filter(None, columns))
-            # TODO remove asdf
-            sql = "SELECT " + selected_columns + "asdf FROM %s" % table_name
+            sql = "SELECT " + selected_columns + "FROM %s" % table_name
             result = db.engine.connect().execute(sql)
             return [row for row in result]
         except Exception as e:
@@ -257,10 +256,11 @@ class Geocoder(BaseSupersetView):
             self._add_column(connection, table_name, lat_column, Float())
             self._add_column(connection, table_name, lon_column, Float())
             transaction.commit()
-        except Exception:
+        except Exception as e:
             transaction.rollback()
             raise SqlAddColumnException(
-                "An error occured while creating new columns for latitude and longitude"
+                "An error occured while creating new columns for latitude and longitude",
+                e,
             )
 
     def _add_column(
@@ -317,10 +317,10 @@ class Geocoder(BaseSupersetView):
                 where = "WHERE " + where_clause % (row[:number_of_columns])
                 connection.execute(text(update + where))
             transaction.commit()
-        except Exception:
+        except Exception as e:
             transaction.rollback()
             raise SqlUpdateException(
-                "An error occured while inserting geocoded addresses"
+                "An error occured while inserting geocoded addresses", e
             )
 
     @api
