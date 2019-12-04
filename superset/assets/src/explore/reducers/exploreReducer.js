@@ -57,9 +57,8 @@ export default function exploreReducer(state = {}, action) {
         datasource_type: action.datasource.type,
       };
       return {
-        ...state,
+        ...newState,
         form_data: newFormData,
-        datasource: action.datasource,
         controls: getControlsState(newState, newFormData),
       };
     },
