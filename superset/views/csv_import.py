@@ -43,6 +43,7 @@ from superset.exceptions import (
     TableCreationException,
 )
 from superset.utils import core as utils
+from superset.views.database import sqlalchemy_uri_validator
 
 from .base import api, BaseSupersetView, json_error_response, json_success
 
@@ -229,6 +230,7 @@ class CsvImporter(BaseSupersetView):
             NoPasswordSuppliedException: If the user did not supply a password
             DatabaseCreationException: If the database could not be created
         """
+
         database = SQLAInterface(models.Database).obj()
         database.database_name = db_name
         database.allow_csv_upload = True
@@ -270,6 +272,14 @@ class CsvImporter(BaseSupersetView):
             + "@localhost/"
             + db_name
         )
+        enurl = (
+            "postgresql://"
+            + postgres_user
+            + ":"
+            + "XXXXXXXXXX"
+            + "@localhost/"
+            + db_name
+        )
         engine = sqlalchemy.create_engine(url)
         if not sqlalchemy_utils.database_exists(engine.url):
             sqlalchemy_utils.create_database(engine.url)
@@ -278,7 +288,7 @@ class CsvImporter(BaseSupersetView):
                 "The database {0} already exist".format(db_name)
             )
 
-        database.sqlalchemy_uri = repr(engine.url)
+        database.sqlalchemy_uri = enurl
         database.password = postgres_password
 
     def _setup_sqlite(self, db_name, database) -> None:
