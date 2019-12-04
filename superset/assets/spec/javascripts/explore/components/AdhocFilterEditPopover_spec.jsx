@@ -22,7 +22,10 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Button, Popover, Tab, Tabs } from 'react-bootstrap';
 
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/explore/AdhocFilter';
+import AdhocFilter, {
+  EXPRESSION_TYPES,
+  CLAUSES,
+} from '../../../../src/explore/AdhocFilter';
 import AdhocMetric from '../../../../src/explore/AdhocMetric';
 import AdhocFilterEditPopover from '../../../../src/explore/components/AdhocFilterEditPopover';
 import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/explore/components/AdhocFilterEditPopoverSimpleTabContent';
@@ -81,7 +84,9 @@ describe('AdhocFilterEditPopover', () => {
     expect(wrapper.find(Tabs)).toHaveLength(1);
     expect(wrapper.find(Tab)).toHaveLength(2);
     expect(wrapper.find(Button)).toHaveLength(2);
-    expect(wrapper.find(AdhocFilterEditPopoverSimpleTabContent)).toHaveLength(1);
+    expect(wrapper.find(AdhocFilterEditPopoverSimpleTabContent)).toHaveLength(
+      1,
+    );
   });
 
   it('renders sql tab content when the adhoc filter expressionType is sql', () => {
@@ -102,7 +107,9 @@ describe('AdhocFilterEditPopover', () => {
   it('prevents saving if the filter is invalid', () => {
     const { wrapper } = setup();
     expect(wrapper.find(Button).find({ disabled: true })).toHaveLength(0);
-    wrapper.instance().onAdhocFilterChange(simpleAdhocFilter.duplicateWith({ operator: null }));
+    wrapper
+      .instance()
+      .onAdhocFilterChange(simpleAdhocFilter.duplicateWith({ operator: null }));
     expect(wrapper.find(Button).find({ disabled: true })).toHaveLength(1);
     wrapper.instance().onAdhocFilterChange(sqlAdhocFilter);
     expect(wrapper.find(Button).find({ disabled: true })).toHaveLength(0);

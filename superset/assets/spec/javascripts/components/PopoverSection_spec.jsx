@@ -31,7 +31,7 @@ describe('PopoverSection', () => {
   };
 
   let wrapper;
-  const factory = (overrideProps) => {
+  const factory = overrideProps => {
     const props = Object.assign({}, defaultProps, overrideProps || {});
     return shallow(<PopoverSection {...props} />);
   };
@@ -39,7 +39,9 @@ describe('PopoverSection', () => {
     wrapper = factory();
   });
   it('renders', () => {
-    expect(React.isValidElement(<PopoverSection {...defaultProps} />)).toBe(true);
+    expect(React.isValidElement(<PopoverSection {...defaultProps} />)).toBe(
+      true,
+    );
   });
   it('is show an icon when selected', () => {
     expect(wrapper.find('.fa-check')).toHaveLength(1);

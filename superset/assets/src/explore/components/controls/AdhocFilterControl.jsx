@@ -43,7 +43,9 @@ const propTypes = {
   savedMetrics: PropTypes.arrayOf(savedMetricType),
   formData: PropTypes.shape({
     metric: PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
-    metrics: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, adhocMetricType])),
+    metrics: PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
+    ),
   }),
 };
 
@@ -60,7 +62,6 @@ function isDictionaryForAdhocFilter(value) {
 }
 
 export default class AdhocFilterControl extends React.Component {
-
   constructor(props) {
     super(props);
     this.optionsForSelect = this.optionsForSelect.bind(this);
@@ -68,9 +69,9 @@ export default class AdhocFilterControl extends React.Component {
     this.onChange = this.onChange.bind(this);
     this.getMetricExpression = this.getMetricExpression.bind(this);
 
-    const filters = (this.props.value || []).map(filter => (
-      isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter
-    ));
+    const filters = (this.props.value || []).map(filter =>
+      isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
+    );
 
     this.optionRenderer = VirtualizedRendererWrap(option => (
       <FilterDefinitionOption option={option} />
@@ -98,95 +99,116 @@ export default class AdhocFilterControl extends React.Component {
     }
     if (this.props.value !== nextProps.value) {
       this.setState({
-        values: (nextProps.value || []).map(
-          filter => (isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter
-        )),
+        values: (nextProps.value || []).map(filter =>
+          isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
+        ),
       });
     }
   }
 
   onFilterEdit(changedFilter) {
-    this.props.onChange(this.state.values.map((value) => {
-      if (value.filterOptionName === changedFilter.filterOptionName) {
-        return changedFilter;
-      }
-      return value;
-    }));
+    this.props.onChange(
+      this.state.values.map(value => {
+        if (value.filterOptionName === changedFilter.filterOptionName) {
+          return changedFilter;
+        }
+        return value;
+      }),
+    );
   }
 
   onChange(opts) {
-    this.props.onChange(opts.map((option) => {
-      if (option.saved_metric_name) {
-        return new AdhocFilter({
-          expressionType: this.props.datasource.type === 'druid' ?
-            EXPRESSION_TYPES.SIMPLE :
-            EXPRESSION_TYPES.SQL,
-          subject: this.props.datasource.type === 'druid' ?
-            option.saved_metric_name :
-            this.getMetricExpression(option.saved_metric_name),
-          operator: OPERATORS['>'],
-          comparator: 0,
-          clause: CLAUSES.HAVING,
-        });
-      } else if (option.label) {
-        return new AdhocFilter({
-          expressionType: this.props.datasource.type === 'druid' ?
-            EXPRESSION_TYPES.SIMPLE :
-            EXPRESSION_TYPES.SQL,
-          subject: this.props.datasource.type === 'druid' ?
-            option.label :
-            new AdhocMetric(option).translateToSql(),
-          operator: OPERATORS['>'],
-          comparator: 0,
-          clause: CLAUSES.HAVING,
-        });
-      } else if (option.column_name) {
-        return new AdhocFilter({
-          expressionType: EXPRESSION_TYPES.SIMPLE,
-          subject: option.column_name,
-          operator: OPERATORS['=='],
-          comparator: '',
-          clause: CLAUSES.WHERE,
-        });
-      } else if (option instanceof AdhocFilter) {
-        return option;
-      }
-      return null;
-    }).filter(option => option));
+    this.props.onChange(
+      opts
+        .map(option => {
+          if (option.saved_metric_name) {
+            return new AdhocFilter({
+              expressionType:
+                this.props.datasource.type === 'druid'
+                  ? EXPRESSION_TYPES.SIMPLE
+                  : EXPRESSION_TYPES.SQL,
+              subject:
+                this.props.datasource.type === 'druid'
+                  ? option.saved_metric_name
+                  : this.getMetricExpression(option.saved_metric_name),
+              operator: OPERATORS['>'],
+              comparator: 0,
+              clause: CLAUSES.HAVING,
+            });
+          } else if (option.label) {
+            return new AdhocFilter({
+              expressionType:
+                this.props.datasource.type === 'druid'
+                  ? EXPRESSION_TYPES.SIMPLE
+                  : EXPRESSION_TYPES.SQL,
+              subject:
+                this.props.datasource.type === 'druid'
+                  ? option.label
+                  : new AdhocMetric(option).translateToSql(),
+              operator: OPERATORS['>'],
+              comparator: 0,
+              clause: CLAUSES.HAVING,
+            });
+          } else if (option.column_name) {
+            return new AdhocFilter({
+              expressionType: EXPRESSION_TYPES.SIMPLE,
+              subject: option.column_name,
+              operator: OPERATORS['=='],
+              comparator: '',
+              clause: CLAUSES.WHERE,
+            });
+          } else if (option instanceof AdhocFilter) {
+            return option;
+          }
+          return null;
+        })
+        .filter(option => option),
+    );
   }
 
   getMetricExpression(savedMetricName) {
-    return this.props.savedMetrics.find((
-      savedMetric => savedMetric.metric_name === savedMetricName
-    )).expression;
+    return this.props.savedMetrics.find(
+      savedMetric => savedMetric.metric_name === savedMetricName,
+    ).expression;
   }
 
   optionsForSelect(props) {
     const options = [
       ...props.columns,
-      ...[...(props.formData.metrics || []), props.formData.metric].map(metric => (
-        metric && (
-          typeof metric === 'string' ?
-          { saved_metric_name: metric } :
-          new AdhocMetric(metric)
-        )
-      )),
+      ...[...(props.formData.metrics || []), props.formData.metric].map(
+        metric =>
+          metric &&
+          (typeof metric === 'string'
+            ? { saved_metric_name: metric }
+            : new AdhocMetric(metric)),
+      ),
     ].filter(option => option);
 
-    return options.reduce((results, option) => {
-      if (option.saved_metric_name) {
-        results.push({ ...option, filterOptionName: option.saved_metric_name });
-      } else if (option.column_name) {
-        results.push({ ...option, filterOptionName: '_col_' + option.column_name });
-      } else if (option instanceof AdhocMetric) {
-        results.push({ ...option, filterOptionName: '_adhocmetric_' + option.label });
-      }
-      return results;
-    }, []).sort((a, b) => (
-      (a.saved_metric_name || a.column_name || a.label).localeCompare((
-        b.saved_metric_name || b.column_name || b.label
-      ))
-    ));
+    return options
+      .reduce((results, option) => {
+        if (option.saved_metric_name) {
+          results.push({
+            ...option,
+            filterOptionName: option.saved_metric_name,
+          });
+        } else if (option.column_name) {
+          results.push({
+            ...option,
+            filterOptionName: '_col_' + option.column_name,
+          });
+        } else if (option instanceof AdhocMetric) {
+          results.push({
+            ...option,
+            filterOptionName: '_adhocmetric_' + option.label,
+          });
+        }
+        return results;
+      }, [])
+      .sort((a, b) =>
+        (a.saved_metric_name || a.column_name || a.label).localeCompare(
+          b.saved_metric_name || b.column_name || b.label,
+        ),
+      );
   }
 
   render() {

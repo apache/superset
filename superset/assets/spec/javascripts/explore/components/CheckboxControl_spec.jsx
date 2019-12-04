@@ -54,7 +54,10 @@ describe('CheckboxControl', () => {
 
     fullComponent.instance().forceUpdate();
 
-    fullComponent.find('label span').last().simulate('click');
+    fullComponent
+      .find('label span')
+      .last()
+      .simulate('click');
 
     expect(spy.calledOnce).toBe(true);
   });

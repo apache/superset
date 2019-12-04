@@ -372,3 +372,66 @@ class PrestoTests(DbEngineSpecTestCase):
             PrestoEngineSpec.convert_dttm("TIMESTAMP", dttm),
             "from_iso8601_timestamp('2019-01-02T03:04:05.678900')",
         )
+
+    def test_query_cost_formatter(self):
+        raw_cost = [
+            {
+                "inputTableColumnInfos": [
+                    {
+                        "table": {
+                            "catalog": "hive",
+                            "schemaTable": {
+                                "schema": "default",
+                                "table": "fact_passenger_state",
+                            },
+                        },
+                        "columnConstraints": [
+                            {
+                                "columnName": "ds",
+                                "typeSignature": "varchar",
+                                "domain": {
+                                    "nullsAllowed": False,
+                                    "ranges": [
+                                        {
+                                            "low": {
+                                                "value": "2019-07-10",
+                                                "bound": "EXACTLY",
+                                            },
+                                            "high": {
+                                                "value": "2019-07-10",
+                                                "bound": "EXACTLY",
+                                            },
+                                        }
+                                    ],
+                                },
+                            }
+                        ],
+                        "estimate": {
+                            "outputRowCount": 9.04969899e8,
+                            "outputSizeInBytes": 3.54143678301e11,
+                            "cpuCost": 3.54143678301e11,
+                            "maxMemory": 0.0,
+                            "networkCost": 0.0,
+                        },
+                    }
+                ],
+                "estimate": {
+                    "outputRowCount": 9.04969899e8,
+                    "outputSizeInBytes": 3.54143678301e11,
+                    "cpuCost": 3.54143678301e11,
+                    "maxMemory": 0.0,
+                    "networkCost": 3.54143678301e11,
+                },
+            }
+        ]
+        formatted_cost = PrestoEngineSpec.query_cost_formatter(raw_cost)
+        expected = [
+            {
+                "Output count": "904 M rows",
+                "Output size": "354 GB",
+                "CPU cost": "354 G",
+                "Max memory": "0 B",
+                "Network cost": "354 G",
+            }
+        ]
+        self.assertEqual(formatted_cost, expected)

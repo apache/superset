@@ -19,17 +19,28 @@ under the License.
 
 # Getting Started with Superset using Docker
 
-Docker is an easy way to get started with Superset.
+Docker is an easy way to get started with Superset. 
+
+## Prerequisites
+
+1. Docker! [link](https://www.docker.com/get-started)
+1. Docker-compose [link](https://docs.docker.com/compose/install/)
+
+## Configuration
+
+The `/app/pythonpath` folder is mounted from [./docker/pythonpath_dev](./docker/pythonpath_dev) 
+which contains a base configuration [./docker/pythonpath/superset_config.py](./docker/pythonpath/superset_config.py) 
+intended for use with local development.
+
+### Local overrides
+
+In order to override configuration settings locally, simply make a copy of [./docker/pythonpath/superset_config_local.example](./docker/pythonpath/superset_config_local.example)
+into [./docker/pythonpath/superset_config_docker.py](./docker/pythonpath/superset_config_docker.py) (git ignored) and fill in your overrides.
 
 ## Initializing Database
 
-To initialize the database with a user and example charts, dashboards and datasets run:
-
-```bash
-docker-compose run -e SUPERSET_LOAD_EXAMPLES=yes --rm superset ./docker-init.sh
-```
-
-This may take a minute.
+The DB will initialize itself upon startup via the init container (superset-init)
+(This may take a minute.)
 
 ## Normal Operation
 

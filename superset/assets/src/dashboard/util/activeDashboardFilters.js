@@ -49,9 +49,9 @@ export function isFilterBox(chartId) {
 export function getAppliedFilterValues(chartId) {
   // use cached data if possible
   if (!(chartId in appliedFilterValuesByChart)) {
-    const applicableFilters = Object.entries(activeFilters).filter(
-      ([, { scope: chartIds }]) => chartIds.includes(chartId),
-    );
+    const applicableFilters = Object.entries(
+      activeFilters,
+    ).filter(([, { scope: chartIds }]) => chartIds.includes(chartId));
     appliedFilterValuesByChart[chartId] = flow(
       keyBy(
         ([filterKey]) => getChartIdAndColumnFromFilterKey(filterKey).column,

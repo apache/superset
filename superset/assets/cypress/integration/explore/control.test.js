@@ -100,9 +100,10 @@ describe('AdhocMetrics', () => {
     cy.get('#metrics-edit-popover').within(() => {
       cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
       cy.get('.ace_content').click();
-      cy.get('.ace_text-input')
-        .type('/COUNT(DISTINCT name)', { force: true });
-      cy.get('button').contains('Save').click();
+      cy.get('.ace_text-input').type('/COUNT(DISTINCT name)', { force: true });
+      cy.get('button')
+        .contains('Save')
+        .click();
     });
 
     cy.get('button.query').click();
@@ -130,11 +131,14 @@ describe('AdhocMetrics', () => {
       cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
       cy.get('.ace_identifier').contains('sum_girls');
       cy.get('.ace_content').click();
-      cy.get('.ace_text-input')
-        .type('{selectall}{backspace}SUM(num)', { force: true });
+      cy.get('.ace_text-input').type('{selectall}{backspace}SUM(num)', {
+        force: true,
+      });
       cy.get('#adhoc-metric-edit-tabs-tab-SIMPLE').click();
       cy.get('.select-value-label').contains('num');
-      cy.get('button').contains('Save').click();
+      cy.get('button')
+        .contains('Save')
+        .click();
     });
 
     cy.get('button.query').click();
@@ -200,8 +204,7 @@ describe('AdhocFilters', () => {
     cy.get('#filter-edit-popover').within(() => {
       cy.get('#adhoc-filter-edit-tabs-tab-SQL').click();
       cy.get('.ace_content').click();
-      cy.get('.ace_text-input')
-        .type("'Amy' OR name = 'Bob'", { force: true });
+      cy.get('.ace_text-input').type("'Amy' OR name = 'Bob'", { force: true });
       cy.get('button')
         .contains('Save')
         .click();
@@ -214,7 +217,6 @@ describe('AdhocFilters', () => {
     });
   });
 });
-
 
 describe('Advanced analytics', () => {
   beforeEach(() => {
@@ -274,13 +276,21 @@ describe('Annotations', () => {
     });
 
     cy.get('.popover-content').within(() => {
-      cy.get('[data-test=annotation-layer-name-header]').siblings().first().within(() => {
-        cy.get('input').type('Goal line');
-      });
-      cy.get('[data-test=annotation-layer-value-header]').siblings().first().within(() => {
-        cy.get('input').type('y=1400000');
-      });
-      cy.get('button').contains('OK').click();
+      cy.get('[data-test=annotation-layer-name-header]')
+        .siblings()
+        .first()
+        .within(() => {
+          cy.get('input').type('Goal line');
+        });
+      cy.get('[data-test=annotation-layer-value-header]')
+        .siblings()
+        .first()
+        .within(() => {
+          cy.get('input').type('y=1400000');
+        });
+      cy.get('button')
+        .contains('OK')
+        .click();
     });
 
     cy.get('button.query').click();

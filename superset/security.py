@@ -17,12 +17,16 @@
 # pylint: disable=C,R,W
 """A set of constants and methods to manage permissions and security"""
 import logging
-from typing import Callable, List, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, List, Optional, Set, Tuple, TYPE_CHECKING, Union
 
 from flask import current_app, g
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
+from flask_appbuilder.security.sqla.models import (
+    assoc_permissionview_role,
+    assoc_user_role,
+)
 from flask_appbuilder.security.views import (
     PermissionModelView,
     PermissionViewModelView,
@@ -148,6 +152,12 @@ class SupersetSecurityManager(SecurityManager):
             return f"[{database}].[{schema}]"
 
         return None
+
+    def unpack_schema_perm(self, schema_permission: str) -> Tuple[str, str]:
+        # [database_name].[schema_name]
+        schema_name = schema_permission.split(".")[1][1:-1]
+        database_name = schema_permission.split(".")[0][1:-1]
+        return database_name, schema_name
 
     def can_access(self, permission_name: str, view_name: str) -> bool:
         """
@@ -378,19 +388,48 @@ class SupersetSecurityManager(SecurityManager):
             if not self._datasource_access_by_fullname(database, t, schema)
         ]
 
-    def _user_datasource_perms(self) -> Set[str]:
-        """
-        Return the set of FAB permission view-menu names the user can access.
+    def get_public_role(self) -> Optional[Any]:  # Optional[self.role_model]
+        from superset import conf
 
-        :returns: The set of FAB permission view-menu names
-        """
+        if not conf.get("PUBLIC_ROLE_LIKE_GAMMA", False):
+            return None
 
-        datasource_perms = set()
-        for r in g.user.roles:
-            for perm in r.permissions:
-                if perm.permission and "datasource_access" == perm.permission.name:
-                    datasource_perms.add(perm.view_menu.name)
-        return datasource_perms
+        from superset import db
+
+        return db.session.query(self.role_model).filter_by(name="Public").first()
+
+    def user_view_menu_names(self, permission_name: str) -> Set[str]:
+        from superset import db
+
+        base_query = (
+            db.session.query(self.viewmenu_model.name)
+            .join(self.permissionview_model)
+            .join(self.permission_model)
+            .join(assoc_permissionview_role)
+            .join(self.role_model)
+        )
+
+        if not g.user.is_anonymous:
+            # filter by user id
+            view_menu_names = (
+                base_query.join(assoc_user_role)
+                .join(self.user_model)
+                .filter(self.user_model.id == g.user.id)
+                .filter(self.permission_model.name == permission_name)
+            ).all()
+            return set([s.name for s in view_menu_names])
+
+        # Properly treat anonymous user
+        public_role = self.get_public_role()
+        if public_role:
+            # filter by public role
+            view_menu_names = (
+                base_query.filter(self.role_model.id == public_role.id).filter(
+                    self.permission_model.name == permission_name
+                )
+            ).all()
+            return set([s.name for s in view_menu_names])
+        return set()
 
     def schemas_accessible_by_user(
         self, database: "Database", schemas: List[str], hierarchical: bool = True
@@ -412,23 +451,27 @@ class SupersetSecurityManager(SecurityManager):
         ):
             return schemas
 
-        subset = set()
-        for schema in schemas:
-            schema_perm = self.get_schema_perm(database, schema)
-            if schema_perm and self.can_access("schema_access", schema_perm):
-                subset.add(schema)
+        # schema_access
+        accessible_schemas = {
+            self.unpack_schema_perm(s)[1]
+            for s in self.user_view_menu_names("schema_access")
+            if s.startswith(f"[{database}].")
+        }
 
-        perms = self._user_datasource_perms()
+        # datasource_access
+        perms = self.user_view_menu_names("datasource_access")
         if perms:
             tables = (
-                db.session.query(SqlaTable)
-                .filter(SqlaTable.perm.in_(perms), SqlaTable.database_id == database.id)
-                .all()
+                db.session.query(SqlaTable.schema)
+                .filter(SqlaTable.database_id == database.id)
+                .filter(SqlaTable.schema.isnot(None))
+                .filter(SqlaTable.schema != "")
+                .filter(or_(SqlaTable.perm.in_(perms)))
+                .distinct()
             )
-            for t in tables:
-                if t.schema:
-                    subset.add(t.schema)
-        return sorted(list(subset))
+            accessible_schemas.update([t.schema for t in tables])
+
+        return [s for s in schemas if s in accessible_schemas]
 
     def get_datasources_accessible_by_user(
         self,
@@ -455,9 +498,10 @@ class SupersetSecurityManager(SecurityManager):
             if schema_perm and self.can_access("schema_access", schema_perm):
                 return datasource_names
 
-        user_perms = self._user_datasource_perms()
+        user_perms = self.user_view_menu_names("datasource_access")
+        schema_perms = self.user_view_menu_names("schema_access")
         user_datasources = ConnectorRegistry.query_datasources_by_permissions(
-            db.session, database, user_perms
+            db.session, database, user_perms, schema_perms
         )
         if schema:
             names = {d.table_name for d in user_datasources if d.schema == schema}
@@ -525,7 +569,7 @@ class SupersetSecurityManager(SecurityManager):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
         for datasource in datasources:
             merge_pv("datasource_access", datasource.get_perm())
-            merge_pv("schema_access", datasource.schema_perm)
+            merge_pv("schema_access", datasource.get_schema_perm())
 
         logging.info("Creating missing database permissions.")
         databases = db.session.query(models.Database).all()
@@ -737,48 +781,68 @@ class SupersetSecurityManager(SecurityManager):
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
-
+        link_table = target.__table__  # pylint: disable=no-member
         if target.perm != target.get_perm():
-            link_table = target.__table__
             connection.execute(
                 link_table.update()
                 .where(link_table.c.id == target.id)
                 .values(perm=target.get_perm())
             )
 
-        # add to view menu if not already exists
-        permission_name = "datasource_access"
-        view_menu_name = target.get_perm()
-        permission = self.find_permission(permission_name)
-        view_menu = self.find_view_menu(view_menu_name)
-        pv = None
-
-        if not permission:
-            permission_table = (
-                self.permission_model.__table__  # pylint: disable=no-member
-            )
-            connection.execute(permission_table.insert().values(name=permission_name))
-            permission = self.find_permission(permission_name)
-        if not view_menu:
-            view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-            connection.execute(view_menu_table.insert().values(name=view_menu_name))
-            view_menu = self.find_view_menu(view_menu_name)
-
-        if permission and view_menu:
-            pv = (
-                self.get_session.query(self.permissionview_model)
-                .filter_by(permission=permission, view_menu=view_menu)
-                .first()
-            )
-        if not pv and permission and view_menu:
-            permission_view_table = (
-                self.permissionview_model.__table__  # pylint: disable=no-member
-            )
+        if (
+            hasattr(target, "schema_perm")
+            and target.schema_perm != target.get_schema_perm()
+        ):
             connection.execute(
-                permission_view_table.insert().values(
-                    permission_id=permission.id, view_menu_id=view_menu.id
-                )
+                link_table.update()
+                .where(link_table.c.id == target.id)
+                .values(schema_perm=target.get_schema_perm())
             )
+
+        pvm_names = []
+        if target.__tablename__ in {"dbs", "clusters"}:
+            pvm_names.append(("database_access", target.get_perm()))
+        else:
+            pvm_names.append(("datasource_access", target.get_perm()))
+            if target.schema:
+                pvm_names.append(("schema_access", target.get_schema_perm()))
+
+        # TODO(bogdan): modify slice permissions as well.
+        for permission_name, view_menu_name in pvm_names:
+            permission = self.find_permission(permission_name)
+            view_menu = self.find_view_menu(view_menu_name)
+            pv = None
+
+            if not permission:
+                permission_table = (
+                    self.permission_model.__table__  # pylint: disable=no-member
+                )
+                connection.execute(
+                    permission_table.insert().values(name=permission_name)
+                )
+                permission = self.find_permission(permission_name)
+            if not view_menu:
+                view_menu_table = (
+                    self.viewmenu_model.__table__  # pylint: disable=no-member
+                )
+                connection.execute(view_menu_table.insert().values(name=view_menu_name))
+                view_menu = self.find_view_menu(view_menu_name)
+
+            if permission and view_menu:
+                pv = (
+                    self.get_session.query(self.permissionview_model)
+                    .filter_by(permission=permission, view_menu=view_menu)
+                    .first()
+                )
+            if not pv and permission and view_menu:
+                permission_view_table = (
+                    self.permissionview_model.__table__  # pylint: disable=no-member
+                )
+                connection.execute(
+                    permission_view_table.insert().values(
+                        permission_id=permission.id, view_menu_id=view_menu.id
+                    )
+                )
 
     def assert_datasource_permission(self, datasource: "BaseDatasource") -> None:
         """

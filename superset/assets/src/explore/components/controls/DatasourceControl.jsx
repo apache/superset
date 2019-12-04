@@ -60,14 +60,18 @@ class DatasourceControl extends React.PureComponent {
       showChangeDatasourceModal: false,
       menuExpanded: false,
     };
-    this.toggleChangeDatasourceModal = this.toggleChangeDatasourceModal.bind(this);
+    this.toggleChangeDatasourceModal = this.toggleChangeDatasourceModal.bind(
+      this,
+    );
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.renderDatasource = this.renderDatasource.bind(this);
   }
 
   toggleShowDatasource() {
-    this.setState(({ showDatasource }) => ({ showDatasource: !showDatasource }));
+    this.setState(({ showDatasource }) => ({
+      showDatasource: !showDatasource,
+    }));
   }
 
   toggleChangeDatasourceModal() {
@@ -133,13 +137,10 @@ class DatasourceControl extends React.PureComponent {
               bsSize="sm"
               id="datasource_menu"
             >
-              <MenuItem
-                eventKey="3"
-                onClick={this.toggleChangeDatasourceModal}
-              >
+              <MenuItem eventKey="3" onClick={this.toggleChangeDatasourceModal}>
                 {t('Change Datasource')}
               </MenuItem>
-              {datasource.type === 'table' &&
+              {datasource.type === 'table' && (
                 <MenuItem
                   eventKey="3"
                   href={`/superset/sqllab?datasourceKey=${value}`}
@@ -147,11 +148,9 @@ class DatasourceControl extends React.PureComponent {
                   rel="noopener noreferrer"
                 >
                   {t('Explore in SQL Lab')}
-                </MenuItem>}
-              <MenuItem
-                eventKey="3"
-                onClick={this.toggleEditDatasourceModal}
-              >
+                </MenuItem>
+              )}
+              <MenuItem eventKey="3" onClick={this.toggleEditDatasourceModal}>
                 {t('Edit Datasource')}
               </MenuItem>
             </DropdownButton>
@@ -166,13 +165,17 @@ class DatasourceControl extends React.PureComponent {
           >
             <a href="#">
               <i
-                className={`fa fa-${this.state.showDatasource ? 'minus' : 'plus'}-square m-r-5 m-l-5 m-t-4`}
+                className={`fa fa-${
+                  this.state.showDatasource ? 'minus' : 'plus'
+                }-square m-r-5 m-l-5 m-t-4`}
                 onClick={this.toggleShowDatasource}
               />
             </a>
           </OverlayTrigger>
         </div>
-        <Collapse in={this.state.showDatasource}>{this.renderDatasource()}</Collapse>
+        <Collapse in={this.state.showDatasource}>
+          {this.renderDatasource()}
+        </Collapse>
         <DatasourceModal
           datasource={datasource}
           show={showEditDatasourceModal}

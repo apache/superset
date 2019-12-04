@@ -23,17 +23,17 @@ header.top {
 
 body {
   h1 {
-    font-weight: 600;
-    line-height: normal;
-    font-size: 24px;
+    font-weight: @font-weight-bold;
+    line-height: @line-height-base;
+    font-size: @font-size-xxl;
     letter-spacing: -0.2px;
     margin-top: 12px;
     margin-bottom: 12px;
   }
   h2 {
-    font-weight: 600;
-    line-height: normal;
-    font-size: 20px;
+    font-weight: @font-weight-bold;
+    line-height: @line-height-base;
+    font-size: @font-size-xl;
     margin-top: 12px;
     margin-bottom: 8px;
   }
@@ -41,9 +41,9 @@ body {
   h4,
   h5,
   h6 {
-    font-weight: 600;
-    line-height: normal;
-    font-size: 16px;
+    font-weight: @font-weight-bold;
+    line-height: @line-height-base;
+    font-size: @font-size-l;
     letter-spacing: 0.2px;
     margin-top: 8px;
     margin-bottom: 4px;
@@ -55,8 +55,8 @@ body {
 
 .dashboard .chart-header {
   position: relative;
-  font-size: 16px;
-  font-weight: bold;
+  font-size: @font-size-l;
+  font-weight: @font-weight-bold;
 
   .dropdown.btn-group {
     position: absolute;
@@ -75,14 +75,6 @@ body {
 
   .divider {
     margin: 5px 0;
-  }
-
-  .fa-circle {
-    position: absolute;
-    left: 7px;
-    top: 18px;
-    font-size: 4px;
-    color: @pink;
   }
 
   .refresh-tooltip {
@@ -142,9 +134,7 @@ body {
   .dropdown-menu li a {
     padding: 3px 16px;
     color: @almost-black;
-    line-height: 16px;
-    font-size: 14px;
-    letter-spacing: 0.4px;
+    font-size: @font-size-m;
 
     &:hover,
     &:focus {
@@ -217,7 +207,7 @@ body {
   align-items: center;
 
   .favstar {
-    font-size: 24px;
+    font-size: @font-size-xl;
     position: relative;
     margin-left: 8px;
   }

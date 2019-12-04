@@ -18,13 +18,21 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/light';
+import SyntaxHighlighter, {
+  registerLanguage,
+} from 'react-syntax-highlighter/light';
 import htmlSyntax from 'react-syntax-highlighter/languages/hljs/htmlbars';
 import markdownSyntax from 'react-syntax-highlighter/languages/hljs/markdown';
 import sqlSyntax from 'react-syntax-highlighter/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/languages/hljs/json';
 import github from 'react-syntax-highlighter/styles/hljs/github';
-import { DropdownButton, MenuItem, Row, Col, FormControl } from 'react-bootstrap';
+import {
+  DropdownButton,
+  MenuItem,
+  Row,
+  Col,
+  FormControl,
+} from 'react-bootstrap';
 import { Table } from 'reactable-arc';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
@@ -148,7 +156,10 @@ export default class DisplayQueryButton extends React.PureComponent {
       <div style={{ overflow: 'auto' }}>
         <Row>
           <Col md={9}>
-            <RowCountLabel rowcount={data.length} suffix={t('rows retrieved')} />
+            <RowCountLabel
+              rowcount={data.length}
+              suffix={t('rows retrieved')}
+            />
             <CopyToClipboard
               text={prepareCopyToClipboardTabularData(data)}
               wrapped={false}
@@ -183,11 +194,13 @@ export default class DisplayQueryButton extends React.PureComponent {
   }
   renderSamplesModalBody() {
     if (this.state.isLoading) {
-      return (<img
-        className="loading"
-        alt="Loading..."
-        src="/static/assets/images/loading.gif"
-      />);
+      return (
+        <img
+          className="loading"
+          alt="Loading..."
+          src="/static/assets/images/loading.gif"
+        />
+      );
     } else if (this.state.error) {
       return <pre>{this.state.error}</pre>;
     } else if (this.state.data) {
@@ -201,8 +214,10 @@ export default class DisplayQueryButton extends React.PureComponent {
         noCaret
         title={
           <span>
-            <i className="fa fa-bars" />&nbsp;
-          </span>}
+            <i className="fa fa-bars" />
+            &nbsp;
+          </span>
+        }
         bsSize="sm"
         pullRight
         id="query"
@@ -238,10 +253,7 @@ export default class DisplayQueryButton extends React.PureComponent {
           eventKey="2"
         />
         {this.state.sqlSupported && (
-          <MenuItem
-            eventKey="3"
-            onClick={this.redirectSQLLab.bind(this)}
-          >
+          <MenuItem eventKey="3" onClick={this.redirectSQLLab.bind(this)}>
             {t('Run in SQL Lab')}
           </MenuItem>
         )}

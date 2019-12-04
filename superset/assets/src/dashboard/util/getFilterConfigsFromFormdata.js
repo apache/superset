@@ -61,14 +61,14 @@ export default function getFilterConfigsFromFormdata(form_data = {}) {
       [TIME_FILTER_MAP.time_range]: FILTER_LABELS[TIME_RANGE],
     };
 
-    if (show_sqla_time_column) {
+    if (show_sqla_time_granularity) {
       updatedColumns = {
         ...updatedColumns,
         [TIME_FILTER_MAP.time_grain_sqla]: form_data.time_grain_sqla,
       };
     }
 
-    if (show_sqla_time_granularity) {
+    if (show_sqla_time_column) {
       updatedColumns = {
         ...updatedColumns,
         [TIME_FILTER_MAP.granularity_sqla]: form_data.granularity_sqla,

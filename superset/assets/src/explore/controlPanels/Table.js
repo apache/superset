@@ -36,18 +36,12 @@ export default {
       label: t('NOT GROUPED BY'),
       description: t('Use this section if you want to query atomic rows'),
       expanded: true,
-      controlSetRows: [
-        ['all_columns'],
-        ['order_by_cols'],
-        ['row_limit', null],
-      ],
+      controlSetRows: [['all_columns'], ['order_by_cols'], ['row_limit', null]],
     },
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [
-        ['adhoc_filters'],
-      ],
+      controlSetRows: [['adhoc_filters']],
     },
     {
       label: t('Options'),

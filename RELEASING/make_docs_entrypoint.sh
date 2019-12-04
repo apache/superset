@@ -15,24 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-set -ex
+set -e
+git clone --branch asf-site https://git-wip-us.apache.org/repos/asf/incubator-superset-site.git /asf-site
 
-if [ "$#" -ne 0 ]; then
-    exec "$@"
-elif [ "$SUPERSET_ENV" = "development" ]; then
-    celery worker --app=superset.sql_lab:celery_app --pool=gevent -Ofair &
-    # needed by superset runserver
-    (cd superset/assets/ && npm ci)
-    (cd superset/assets/ && npm run dev) &
-    FLASK_ENV=development FLASK_APP="superset.app:create_app()" flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
-elif [ "$SUPERSET_ENV" = "production" ]; then
-    celery worker --app=superset.sql_lab:celery_app --pool=gevent -Ofair &
-    exec gunicorn --bind  0.0.0.0:8088 \
-        --workers $((2 * $(getconf _NPROCESSORS_ONLN) + 1)) \
-        --timeout 60 \
-        --limit-request-line 0 \
-        --limit-request-field_size 0 \
-        "superset.app:create_app()"
-else
-    superset --help
-fi
+# copy html files to temp folder
+cp -rv /superset/docs/_build/html/* /asf-site
+chown -R ${HOST_UID}:${HOST_UID} /asf-site
+
+cd /asf-site
+python -m http.server

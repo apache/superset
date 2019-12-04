@@ -23,6 +23,7 @@ from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, Query, relationship
 
+from superset.constants import NULL_STRING
 from superset.models.core import Slice
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.utils import core as utils
@@ -61,6 +62,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     cache_timeout = Column(Integer)
     params = Column(String(1000))
     perm = Column(String(1000))
+    schema_perm = Column(String(1000))
 
     sql: Optional[str] = None
     owners: List[User]
@@ -219,7 +221,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
                     v = utils.string_to_num(v)
-                if v == "<NULL>":
+                if v == NULL_STRING:
                     return None
                 elif v == "<empty string>":
                     return ""

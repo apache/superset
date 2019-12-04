@@ -31,7 +31,7 @@ export function addToObject(state, arrKey, obj) {
 
 export function alterInObject(state, arrKey, obj, alterations) {
   const newObject = Object.assign({}, state[arrKey]);
-  newObject[obj.id] = (Object.assign({}, newObject[obj.id], alterations));
+  newObject[obj.id] = Object.assign({}, newObject[obj.id], alterations);
   return Object.assign({}, state, { [arrKey]: newObject });
 }
 
@@ -40,7 +40,7 @@ export function alterInArr(state, arrKey, obj, alterations) {
   // new object with an altered property
   const idKey = 'id';
   const newArr = [];
-  state[arrKey].forEach((arrItem) => {
+  state[arrKey].forEach(arrItem => {
     if (obj[idKey] === arrItem[idKey]) {
       newArr.push(Object.assign({}, arrItem, alterations));
     } else {
@@ -52,7 +52,7 @@ export function alterInArr(state, arrKey, obj, alterations) {
 
 export function removeFromArr(state, arrKey, obj, idKey = 'id') {
   const newArr = [];
-  state[arrKey].forEach((arrItem) => {
+  state[arrKey].forEach(arrItem => {
     if (!(obj[idKey] === arrItem[idKey])) {
       newArr.push(arrItem);
     }

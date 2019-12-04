@@ -30,6 +30,7 @@ else
   export SUPERSET_RELEASE_RC=apache-superset-incubating-"${SUPERSET_VERSION_RC}"
   export SUPERSET_RELEASE_TARBALL="${SUPERSET_RELEASE}"-source.tar.gz
   export SUPERSET_RELEASE_RC_TARBALL="${SUPERSET_RELEASE_RC}"-source.tar.gz
+  export SUPERSET_TMP_ASF_SITE_PATH="/tmp/incubator-superset-site-${SUPERSET_VERSION}"
 
   echo -------------------------------
   echo Set Release env variables
