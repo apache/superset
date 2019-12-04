@@ -31,14 +31,14 @@ set `FAB_API_SWAGGER_UI = False` on config.
 warmup Celery task you should now specify the `SUPERSET_WEBSERVER_PROTOCOL` variable
 in your configuration (probably either "http" or "https"). This defaults to "http".
 
-## 0.35.0
-
 * [8512](https://github.com/apache/incubator-superset/pull/8512): `DRUID_IS_ACTIVE` now
 defaults to False. To enable Druid-API-based functionality, override the
 `DRUID_IS_ACTIVE` configuration variable by setting it to `True` for your deployment.
 
 * [8450](https://github.com/apache/incubator-superset/pull/8450): The time range picker
 now uses UTC for the tooltips and default placeholder timestamps (sans timezone).
+
+## 0.35.0
 
 * [8370](https://github.com/apache/incubator-superset/pull/8370): Deprecates
   the `HTTP_HEADERS` variable in favor of `DEFAULT_HTTP_HEADERS` and
