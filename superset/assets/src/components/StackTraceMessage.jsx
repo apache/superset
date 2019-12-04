@@ -19,7 +19,10 @@
 /* eslint-disable react/no-danger */
 import React from 'react';
 import PropTypes from 'prop-types';
+import ReactMarkdown from 'react-markdown';
 import { Alert, Collapse } from 'react-bootstrap';
+
+import './StackTraceMessage.css';
 
 const propTypes = {
   message: PropTypes.node.isRequired,
@@ -55,7 +58,11 @@ class StackTraceMessage extends React.PureComponent {
             this.setState({ showStackTrace: !this.state.showStackTrace })
           }
         >
-          {this.props.message}
+          <ReactMarkdown
+            className="markdown"
+            source={this.props.message}
+            skipHtml
+          />
           {this.props.link && (
             <a href={this.props.link} target="_blank" rel="noopener noreferrer">
               (Request Access)

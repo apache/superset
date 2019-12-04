@@ -492,7 +492,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def extract_error_message(cls, e: Exception) -> str:
-        return f"{cls.engine} error: {cls._extract_error_message(e)}"
+        prefix = f"**{cls.engine} error:**".upper()
+        return f"{prefix} {cls._extract_error_message(e)}"
 
     @classmethod
     def _extract_error_message(cls, e: Exception) -> str:
