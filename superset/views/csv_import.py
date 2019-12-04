@@ -224,7 +224,7 @@ class CsvImporter(BaseSupersetView):
             NoPasswordSuppliedException: If the user did not supply a password
             DatabaseCreationException: If the database could not be created
         """
-        
+
         database = SQLAInterface(models.Database).obj()
         database.database_name = db_name
         database.allow_csv_upload = True
