@@ -24,14 +24,9 @@ import { defaultControls } from 'src/explore/store';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { ControlPanelsContainer } from 'src/explore/components/ControlPanelsContainer';
 import ControlPanelSection from 'src/explore/components/ControlPanelSection';
-import * as featureFlags from 'src/featureFlags';
 
 describe('ControlPanelsContainer', () => {
   let wrapper;
-  let scopedFilterOn = false;
-  const isFeatureEnabledMock = jest
-    .spyOn(featureFlags, 'isFeatureEnabled')
-    .mockImplementation(() => scopedFilterOn);
 
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue('table', {
@@ -81,7 +76,6 @@ describe('ControlPanelsContainer', () => {
 
   afterAll(() => {
     getChartControlPanelRegistry().remove('table');
-    isFeatureEnabledMock.mockRestore();
   });
 
   function getDefaultProps() {

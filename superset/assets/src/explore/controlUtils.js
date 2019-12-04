@@ -17,7 +17,6 @@
  * under the License.
  */
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import controls from './controls';
 import * as sections from './controlPanels/sections';
 
