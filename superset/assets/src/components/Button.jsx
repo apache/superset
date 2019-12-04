@@ -19,7 +19,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { kebabCase } from 'lodash';
-import { Button as BootstrapButton, Tooltip, OverlayTrigger } from 'react-bootstrap';
+import {
+  Button as BootstrapButton,
+  Tooltip,
+  OverlayTrigger,
+} from 'react-bootstrap';
 
 const propTypes = {
   tooltip: PropTypes.node,
@@ -40,9 +44,7 @@ export default function Button(props) {
   delete buttonProps.placement;
 
   let button = (
-    <BootstrapButton {...buttonProps} >
-      {props.children}
-    </BootstrapButton>
+    <BootstrapButton {...buttonProps}>{props.children}</BootstrapButton>
   );
   if (tooltip) {
     if (props.disabled) {
@@ -51,15 +53,16 @@ export default function Button(props) {
       buttonProps.style = { pointerEvents: 'none' };
       button = (
         <div style={BUTTON_WRAPPER_STYLE}>
-          <BootstrapButton {...buttonProps} >
-            {props.children}
-          </BootstrapButton>
-        </div>);
+          <BootstrapButton {...buttonProps}>{props.children}</BootstrapButton>
+        </div>
+      );
     }
     return (
       <OverlayTrigger
         placement={placement}
-        overlay={<Tooltip id={`${kebabCase(tooltip)}-tooltip`}>{tooltip}</Tooltip>}
+        overlay={
+          <Tooltip id={`${kebabCase(tooltip)}-tooltip`}>{tooltip}</Tooltip>
+        }
       >
         {button}
       </OverlayTrigger>

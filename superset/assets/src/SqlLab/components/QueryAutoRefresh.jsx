@@ -51,15 +51,11 @@ class QueryAutoRefresh extends React.PureComponent {
     // if there are started or running queries, this method should return true
     const { queries } = this.props;
     const now = new Date().getTime();
-    const isQueryRunning = q => (
-      ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0
-    );
+    const isQueryRunning = q =>
+      ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0;
 
-    return (
-      Object.values(queries).some(
-        q => isQueryRunning(q) &&
-        now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
-      )
+    return Object.values(queries).some(
+      q => isQueryRunning(q) && now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
     );
   }
   startTimer() {
@@ -75,16 +71,19 @@ class QueryAutoRefresh extends React.PureComponent {
     // only poll /superset/queries/ if there are started or running queries
     if (this.shouldCheckForQueries()) {
       SupersetClient.get({
-        endpoint: `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`,
+        endpoint: `/superset/queries/${this.props.queriesLastUpdate -
+          QUERY_UPDATE_BUFFER_MS}`,
         timeout: QUERY_TIMEOUT_LIMIT,
-      }).then(({ json }) => {
-        if (Object.keys(json).length > 0) {
-          this.props.actions.refreshQueries(json);
-        }
-        this.setState({ offline: false });
-      }).catch(() => {
-        this.setState({ offline: true });
-      });
+      })
+        .then(({ json }) => {
+          if (Object.keys(json).length > 0) {
+            this.props.actions.refreshQueries(json);
+          }
+          this.setState({ offline: false });
+        })
+        .catch(() => {
+          this.setState({ offline: true });
+        });
     } else {
       this.setState({ offline: false });
     }
@@ -114,7 +113,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(QueryAutoRefresh);
+export default connect(mapStateToProps, mapDispatchToProps)(QueryAutoRefresh);

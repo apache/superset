@@ -47,6 +47,7 @@ from markdown import markdown
 from pandas.tseries.frequencies import to_offset
 
 from superset import app, cache, get_css_manifest_files
+from superset.constants import NULL_STRING
 from superset.exceptions import NullValueException, SpatialException
 from superset.utils import core as utils
 from superset.utils.core import (
@@ -1086,6 +1087,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     verbose_name = _("Time Series - Line Chart")
     sort_series = False
     is_timeseries = True
+    pivot_fill_value: Optional[int] = None
 
     def to_series(self, df, classed="", title_suffix=""):
         cols = []
@@ -1158,7 +1160,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
             )
         else:
             df = df.pivot_table(
-                index=DTTM_ALIAS, columns=fd.get("groupby"), values=self.metric_labels
+                index=DTTM_ALIAS,
+                columns=fd.get("groupby"),
+                values=self.metric_labels,
+                fill_value=self.pivot_fill_value,
             )
 
         rule = fd.get("resample_rule")
@@ -1444,6 +1449,7 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     viz_type = "area"
     verbose_name = _("Time Series - Stacked")
     sort_series = True
+    pivot_fill_value = 0
 
 
 class DistributionPieViz(NVD3Viz):
@@ -1538,10 +1544,15 @@ class DistributionBarViz(DistributionPieViz):
     def get_data(self, df):
         fd = self.form_data
         metrics = self.metric_labels
+        columns = fd.get("columns") or []
+
+        # pandas will throw away nulls when grouping/pivoting,
+        # so we substitute NULL_STRING for any nulls in the necessary columns
+        filled_cols = self.groupby + columns
+        df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         row = df.groupby(self.groupby).sum()[metrics[0]].copy()
         row.sort_values(ascending=False, inplace=True)
-        columns = fd.get("columns") or []
         pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
         if fd.get("contribution"):
             pt = pt.T

@@ -19,13 +19,12 @@
 export const LOG_EVENT = 'LOG_EVENT';
 
 export function logEvent(eventName, eventData) {
-  return dispatch => (
+  return dispatch =>
     dispatch({
       type: LOG_EVENT,
       payload: {
         eventName,
         eventData,
       },
-    })
-  );
+    });
 }

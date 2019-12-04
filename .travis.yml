@@ -96,6 +96,9 @@ jobs:
     - language: python
       python: 3.6
       env: TOXENV=pylint
+    - language: python
+      python: 3.6
+      env: TOXENV=docs
 
 script:
   - tox

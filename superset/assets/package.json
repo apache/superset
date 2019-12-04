@@ -17,7 +17,7 @@
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production webpack --mode=production --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json ./{src,spec}/**/*.ts{,x}",
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json --fix ./{src,spec}/**/*.ts{,x} && npm run clean-css",
-    "clean-css": "prettier --write src/**/*.{css,less,sass,scss}",
+    "clean-css": "prettier --write 'src/**/*.{css,less,sass,scss}'",
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true",
     "install-cypress": "npm install cypress@3.6.1"
@@ -200,12 +200,12 @@
     "minimist": "^1.2.0",
     "optimize-css-assets-webpack-plugin": "^5.0.1",
     "po2json": "^0.4.5",
-    "prettier": "^1.12.1",
+    "prettier": "^1.19.1",
     "react-test-renderer": "^16.9.0",
     "redux-mock-store": "^1.2.3",
     "sinon": "^4.5.0",
     "speed-measure-webpack-plugin": "^1.2.3",
-    "style-loader": "^0.21.0",
+    "style-loader": "^1.0.0",
     "terser-webpack-plugin": "^1.1.0",
     "thread-loader": "^1.2.0",
     "transform-loader": "^0.2.3",
@@ -227,7 +227,8 @@
   },
   "stylelint": {
     "rules": {
-      "block-opening-brace-space-before": "always"
+      "block-opening-brace-space-before": "always",
+      "no-missing-end-of-source-newline": "never"
     }
   }
 }

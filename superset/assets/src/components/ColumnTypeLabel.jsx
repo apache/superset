@@ -31,9 +31,18 @@ export default function ColumnTypeLabel({ type }) {
     stringIcon = 'ƒ';
   } else if (type === 'aggregate') {
     stringIcon = 'AGG';
-  } else if (type.match(/.*char.*/i) || type.match(/string.*/i) || type.match(/.*text.*/i)) {
+  } else if (
+    type.match(/.*char.*/i) ||
+    type.match(/string.*/i) ||
+    type.match(/.*text.*/i)
+  ) {
     stringIcon = 'ABC';
-  } else if (type.match(/.*int.*/i) || type === 'LONG' || type === 'DOUBLE' || type === 'FLOAT') {
+  } else if (
+    type.match(/.*int.*/i) ||
+    type === 'LONG' ||
+    type === 'DOUBLE' ||
+    type === 'FLOAT'
+  ) {
     stringIcon = '#';
   } else if (type.match(/.*bool.*/i)) {
     stringIcon = 'T/F';
@@ -43,13 +52,13 @@ export default function ColumnTypeLabel({ type }) {
     stringIcon = '?';
   }
 
-  const typeIcon = stringIcon === 'time' ?
-    <i className="fa fa-clock-o type-label" /> :
-    <div className="type-label">{stringIcon}</div>;
+  const typeIcon =
+    stringIcon === 'time' ? (
+      <i className="fa fa-clock-o type-label" />
+    ) : (
+      <div className="type-label">{stringIcon}</div>
+    );
 
-  return (
-    <span>
-      {typeIcon}
-    </span>);
+  return <span>{typeIcon}</span>;
 }
 ColumnTypeLabel.propTypes = propTypes;

@@ -19,7 +19,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  Label, Row, Col, FormControl, Modal, OverlayTrigger,
+  Label,
+  Row,
+  Col,
+  FormControl,
+  Modal,
+  OverlayTrigger,
   Tooltip,
 } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
@@ -45,15 +50,53 @@ const registry = getChartMetadataRegistry();
 const IMAGE_PER_ROW = 6;
 const LABEL_STYLE = { cursor: 'pointer' };
 const DEFAULT_ORDER = [
-  'line', 'big_number', 'table', 'filter_box', 'dist_bar', 'area', 'bar',
-  'deck_polygon', 'pie', 'time_table', 'pivot_table', 'histogram',
-  'big_number_total', 'deck_scatter', 'deck_hex', 'time_pivot', 'deck_arc',
-  'heatmap', 'deck_grid', 'dual_line', 'deck_screengrid', 'line_multi',
-  'treemap', 'box_plot', 'separator', 'sunburst', 'sankey', 'word_cloud',
-  'mapbox', 'kepler', 'cal_heatmap', 'rose', 'bubble', 'deck_geojson',
-  'horizon', 'markup', 'deck_multi', 'compare', 'partition', 'event_flow',
-  'deck_path', 'directed_force', 'world_map', 'paired_ttest', 'para',
-  'iframe', 'country_map',
+  'line',
+  'big_number',
+  'table',
+  'filter_box',
+  'dist_bar',
+  'area',
+  'bar',
+  'deck_polygon',
+  'pie',
+  'time_table',
+  'pivot_table',
+  'histogram',
+  'big_number_total',
+  'deck_scatter',
+  'deck_hex',
+  'time_pivot',
+  'deck_arc',
+  'heatmap',
+  'deck_grid',
+  'dual_line',
+  'deck_screengrid',
+  'line_multi',
+  'treemap',
+  'box_plot',
+  'separator',
+  'sunburst',
+  'sankey',
+  'word_cloud',
+  'mapbox',
+  'kepler',
+  'cal_heatmap',
+  'rose',
+  'bubble',
+  'deck_geojson',
+  'horizon',
+  'markup',
+  'deck_multi',
+  'compare',
+  'partition',
+  'event_flow',
+  'deck_path',
+  'directed_force',
+  'world_map',
+  'paired_ttest',
+  'para',
+  'iframe',
+  'country_map',
 ];
 
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
@@ -110,10 +153,9 @@ export default class VizTypeControl extends React.PureComponent {
           className={`viztype-selector ${isSelected ? 'selected' : ''}`}
           src={type.thumbnail}
         />
-        <div className="viztype-label">
-          {type.name}
-        </div>
-      </div>);
+        <div className="viztype-label">{type.name}</div>
+      </div>
+    );
   }
 
   render() {
@@ -121,13 +163,14 @@ export default class VizTypeControl extends React.PureComponent {
     const { value } = this.props;
 
     const filterString = filter.toLowerCase();
-    const filteredTypes = DEFAULT_ORDER
-      .filter(type => registry.has(type))
+    const filteredTypes = DEFAULT_ORDER.filter(type => registry.has(type))
       .map(type => ({
         key: type,
         value: registry.get(type),
       }))
-      .concat(registry.entries().filter(({ key }) => !typesWithDefaultOrder.has(key)))
+      .concat(
+        registry.entries().filter(({ key }) => !typesWithDefaultOrder.has(key)),
+      )
       .filter(entry => entry.value.name.toLowerCase().includes(filterString));
 
     const rows = [];
@@ -139,7 +182,8 @@ export default class VizTypeControl extends React.PureComponent {
               {this.renderItem(entry)}
             </Col>
           ))}
-        </Row>);
+        </Row>,
+      );
     }
 
     return (
@@ -148,16 +192,21 @@ export default class VizTypeControl extends React.PureComponent {
         <OverlayTrigger
           placement="right"
           overlay={
-            <Tooltip id="error-tooltip">{t('Click to change visualization type')}</Tooltip>
+            <Tooltip id="error-tooltip">
+              {t('Click to change visualization type')}
+            </Tooltip>
           }
         >
           <>
             <Label onClick={this.toggleModal} style={LABEL_STYLE}>
               {registry.has(value) ? registry.get(value).name : `${value}`}
             </Label>
-            {(!registry.has(value) && <div className="text-danger">
-              <i className="fa fa-exclamation-circle text-danger" /> <small>{t('This visualization type is not supported.')}</small>
-            </div>)}
+            {!registry.has(value) && (
+              <div className="text-danger">
+                <i className="fa fa-exclamation-circle text-danger" />{' '}
+                <small>{t('This visualization type is not supported.')}</small>
+              </div>
+            )}
           </>
         </OverlayTrigger>
         <Modal

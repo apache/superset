@@ -67,8 +67,20 @@ const controlMap = {
   AdhocFilterControl,
   FilterPanel,
   FilterBoxItemControl,
-  MetricsControlVerifiedOptions: withVerification(MetricsControl, 'metric_name', 'savedMetrics'),
-  SelectControlVerifiedOptions: withVerification(SelectControl, 'column_name', 'options'),
-  AdhocFilterControlVerifiedOptions: withVerification(AdhocFilterControl, 'column_name', 'columns'),
+  MetricsControlVerifiedOptions: withVerification(
+    MetricsControl,
+    'metric_name',
+    'savedMetrics',
+  ),
+  SelectControlVerifiedOptions: withVerification(
+    SelectControl,
+    'column_name',
+    'options',
+  ),
+  AdhocFilterControlVerifiedOptions: withVerification(
+    AdhocFilterControl,
+    'column_name',
+    'columns',
+  ),
 };
 export default controlMap;

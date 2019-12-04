@@ -70,7 +70,7 @@ describe('ChangeDatasourceModal', () => {
     expect(wrapper.find(Modal)).toHaveLength(1);
   });
 
-  it('fetches datasources', (done) => {
+  it('fetches datasources', done => {
     inst.onEnterModal();
     setTimeout(() => {
       expect(fetchMock.calls(DATASOURCES_ENDPOINT)).toHaveLength(1);
@@ -79,12 +79,14 @@ describe('ChangeDatasourceModal', () => {
     }, 0);
   });
 
-  it('changes the datasource', (done) => {
+  it('changes the datasource', done => {
     fetchMock.get(DATASOURCE_ENDPOINT, DATASOURCE_PAYLOAD);
     inst.selectDatasource(datasourceData);
     setTimeout(() => {
       expect(fetchMock.calls(DATASOURCE_ENDPOINT)).toHaveLength(1);
-      expect(props.onDatasourceSave.getCall(0).args[0]).toEqual(DATASOURCE_PAYLOAD);
+      expect(props.onDatasourceSave.getCall(0).args[0]).toEqual(
+        DATASOURCE_PAYLOAD,
+      );
       fetchMock.reset();
       done();
     }, 0);

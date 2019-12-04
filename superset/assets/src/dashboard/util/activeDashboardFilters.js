@@ -24,6 +24,7 @@ import {
   getDashboardFilterKey,
 } from './getDashboardFilterKey';
 import { CHART_TYPE } from '../util/componentTypes';
+import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../reducers/dashboardFilters';
 
 let allFilterBoxChartIds = [];
 let activeFilters = {};
@@ -48,9 +49,9 @@ export function isFilterBox(chartId) {
 export function getAppliedFilterValues(chartId) {
   // use cached data if possible
   if (!(chartId in appliedFilterValuesByChart)) {
-    const applicableFilters = Object.entries(activeFilters).filter(
-      ([, { scope: chartIds }]) => chartIds.includes(chartId),
-    );
+    const applicableFilters = Object.entries(
+      activeFilters,
+    ).filter(([, { scope: chartIds }]) => chartIds.includes(chartId));
     appliedFilterValuesByChart[chartId] = flow(
       keyBy(
         ([filterKey]) => getChartIdAndColumnFromFilterKey(filterKey).column,
@@ -61,7 +62,9 @@ export function getAppliedFilterValues(chartId) {
   return appliedFilterValuesByChart[chartId];
 }
 
-export function getChartIdsInFilterScope({ filterScope }) {
+export function getChartIdsInFilterScope({
+  filterScope = DASHBOARD_FILTER_SCOPE_GLOBAL,
+}) {
   function traverse(chartIds = [], component = {}, immuneChartIds = []) {
     if (!component) {
       return;

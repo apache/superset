@@ -70,7 +70,7 @@ describe('DatasourceEditor', () => {
     expect(wrapper.find(Tabs)).toHaveLength(1);
   });
 
-  it('makes an async request', (done) => {
+  it('makes an async request', done => {
     wrapper.setState({ activeTabKey: 2 });
     const syncButton = wrapper.find('.sync-from-source');
     expect(syncButton).toHaveLength(1);
@@ -93,6 +93,11 @@ describe('DatasourceEditor', () => {
   it('renders isSqla fields', () => {
     wrapper.setState({ activeTabKey: 4 });
     expect(wrapper.state('isSqla')).toBe(true);
-    expect(wrapper.find(Field).find({ fieldKey: 'fetch_values_predicate' }).exists()).toBe(true);
+    expect(
+      wrapper
+        .find(Field)
+        .find({ fieldKey: 'fetch_values_predicate' })
+        .exists(),
+    ).toBe(true);
   });
 });

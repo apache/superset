@@ -28,11 +28,13 @@ import adhocMetricType from '../propTypes/adhocMetricType';
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
   onFilterEdit: PropTypes.func.isRequired,
-  options: PropTypes.arrayOf(PropTypes.oneOfType([
-    columnType,
-    PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
-    adhocMetricType,
-  ])).isRequired,
+  options: PropTypes.arrayOf(
+    PropTypes.oneOfType([
+      columnType,
+      PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
+      adhocMetricType,
+    ]),
+  ).isRequired,
   datasource: PropTypes.object,
 };
 
@@ -47,7 +49,7 @@ export default class AdhocFilterOption extends React.PureComponent {
   }
 
   onPopoverResize() {
-   this.forceUpdate();
+    this.forceUpdate();
   }
 
   onOverlayEntered() {
@@ -97,9 +99,9 @@ export default class AdhocFilterOption extends React.PureComponent {
             <span className="m-r-5 option-label">
               {adhocFilter.getDefaultLabel()}
               <i
-                className={
-                  `glyphicon glyphicon-triangle-${this.state.overlayShown ? 'left' : 'right'} adhoc-label-arrow`
-                }
+                className={`glyphicon glyphicon-triangle-${
+                  this.state.overlayShown ? 'left' : 'right'
+                } adhoc-label-arrow`}
               />
             </span>
           </div>

@@ -30,7 +30,7 @@ function ControlSetRow(props) {
   return (
     <div className="row space-1">
       {props.controls.map((control, i) => (
-        <div className={`col-lg-${colSize} col-xs-12`} key={i} >
+        <div className={`col-lg-${colSize} col-xs-12`} key={i}>
           {control}
         </div>
       ))}

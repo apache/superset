@@ -36,6 +36,6 @@ import './commands';
 // The following is a workaround for Cypress not supporting fetch.
 // By setting window.fetch = null, we force the fetch polyfill to fall back
 // to xhr as described here https://github.com/cypress-io/cypress/issues/95
-Cypress.on('window:before:load', (win) => {
+Cypress.on('window:before:load', win => {
   win.fetch = null; // eslint-disable-line no-param-reassign
 });

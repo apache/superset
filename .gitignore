@@ -46,7 +46,7 @@ env_py3
 envpy3
 env36
 local_config.py
-superset_config.py
+/superset_config.py
 superset.egg-info/
 superset/bin/supersetc
 tmp
@@ -66,13 +66,6 @@ yarn-error.log
 *.iml
 venv
 @eaDir/
-
-# Docker
-./Dockerfile
-./docker-build.sh
-./docker-compose.yml
-./docker-entrypoint.sh
-./docker-init.sh
 
 # Test data
 celery_results.sqlite
