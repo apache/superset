@@ -90,9 +90,15 @@ class CsvImporter(BaseSupersetView):
         databases = (
             db.session().query(models.Database).filter_by(allow_csv_upload=True).all()
         )
-        databases_json = [models.DatabaseDto(NEW_DATABASE_ID, "In a new database")]
+        databases_json = [models.DatabaseDto(NEW_DATABASE_ID, "In a new database", [])]
         for database in databases:
-            databases_json.append(models.DatabaseDto(database.id, database.name))
+            databases_json.append(
+                models.DatabaseDto(
+                    database.id,
+                    database.name,
+                    json.loads(database.extra)["schemas_allowed_for_csv_upload"],
+                )
+            )
         return databases_json
 
     @api

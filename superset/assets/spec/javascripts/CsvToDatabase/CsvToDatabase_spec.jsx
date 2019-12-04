@@ -25,7 +25,7 @@ import CsvToDatabase from 'src/CsvToDatabase/CsvToDatabase';
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-const databases = [{ id: -1, name: 'In a new database' }];
+const databases = [{ id: -1, name: 'In a new database', allowed_schemas: [] }];
 
 function setup() {
   return mount(<CsvToDatabase databases={databases} />, { context: { store } });

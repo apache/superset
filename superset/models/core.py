@@ -1364,6 +1364,7 @@ if is_feature_enabled("TAGGING_SYSTEM"):
 
 
 class DatabaseDto:
-    def __init__(self, id, name):
+    def __init__(self, id, name, allowed_schemas):
         self.id = id
         self.name = name
+        self.allowed_schemas = allowed_schemas
