@@ -75,9 +75,6 @@ class DashboardPostSchema(Schema):
         new_data["owners"] = list()
         if g.user.id not in data["owners"]:
             data["owners"].append(g.user.id)
-        # owners = [o for o in data["owners"]]
-        # for slc in data.get("slices", []):
-        #     slc.owners = list(set(owners) | set(slc.owners))
         for owner_id in data["owners"]:
             user = current_app.appbuilder.get_session.query(
                 current_app.appbuilder.sm.user_model
@@ -87,12 +84,27 @@ class DashboardPostSchema(Schema):
 
     @pre_load
     def pre_load(self, data):
-        data["slug"] = data.get("slug") or None
+        data["slug"] = data.get("slug")
         data["owners"] = data.get("owners", [])
         if data["slug"]:
             data["slug"] = data["slug"].strip()
             data["slug"] = data["slug"].replace(" ", "-")
             data["slug"] = re.sub(r"[^\w\-]+", "", data["slug"])
+
+
+class DashboardPutSchema(Schema):
+    dashboard_title = fields.String(validate=Length(0, 500))
+    slug = fields.String(validate=Length(0, 255))
+    owners = fields.List(fields.Integer(validate=validate_owners))
+    position_json = fields.String(validate=validate_json)
+    css = fields.String()
+    json_metadata = fields.String(validate=validate_json)
+    published = fields.Boolean()
+
+    @post_load
+    def post_load(self, data):
+        print(f"POST LOAD")
+        return data
 
 
 class DashboardRestApi(DashboardMixin, ModelRestApi):
@@ -125,6 +137,7 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
     ]
 
     add_model_schema = DashboardPostSchema()
+    edit_model_schema = DashboardPutSchema()
 
     @expose("/", methods=["POST"])
     @protect()
@@ -178,6 +191,84 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
             )
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
+
+    @expose("/<pk>", methods=["PUT"])
+    @protect()
+    @safe
+    def put(self, pk):
+        """Changes a dashboard
+        ---
+        put:
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Model schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Item changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            self.response_400(message="Request is not JSON")
+        item = self.datamodel.get(pk, self._base_filters)
+        if not item:
+            return self.response_404()
+
+        changed_item = self.edit_model_schema.load(request.json)
+        if changed_item.errors:
+            return self.response_422(message=changed_item.errors)
+        try:
+            self.merge_item(item, changed_item.data)
+            current_app.appbuilder.get_session.commit()
+            return self.response(
+                200,
+                **{
+                    "result": self.edit_model_schema.dump(
+                        item.data, many=False
+                    ).data
+                },
+            )
+        except SQLAlchemyError as e:
+            return self.response_422(message=str(e))
+
+    def merge_item(self, item, data):
+        for field in data:
+            if field == "owners":
+                new_owners = list()
+                if g.user.id not in data["owners"]:
+                    data["owners"].append(g.user.id)
+                for owner_id in data["owners"]:
+                    user = current_app.appbuilder.get_session.query(
+                        current_app.appbuilder.sm.user_model
+                    ).get(owner_id)
+                    new_owners.append(user)
+                    item.owners = new_owners
+            else:
+                setattr(item, field, data.get(field))
 
 
 appbuilder.add_api(DashboardRestApi)

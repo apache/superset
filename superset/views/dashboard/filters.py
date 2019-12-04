@@ -25,10 +25,11 @@ from ..base import SupersetFilter
 
 class DashboardFilter(SupersetFilter):
     """
-    List dashboards with the following criteria:
-        1. Those which the user owns
-        2. Those which the user has favorited
-        3. Those which have been published (if they have access to at least one slice)
+    Filter dashboards with the following criteria:
+        1. If user has Admin role don't filter
+        3. Those which the user owns
+        4. Those which the user has favorited
+        5. Those which have been published (if they have access to at least one slice)
 
     If the user is an admin show them all dashboards.
     This means they do not get curation but can still sort by "published"
