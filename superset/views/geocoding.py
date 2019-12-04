@@ -167,12 +167,9 @@ class Geocoder(BaseSupersetView):
         except Exception as e:
             return json_error_response(e.args[0], status=500)
         progress = self.geocoder.progress
-        message = _(
-            "Geocoded values, success: {}, doubt: {}, fail: {}".format(
-                progress["success_counter"],
-                progress["doubt_counter"],
-                success["failed_counter"],
-            )
+        message = (
+            f"Geocoded values, success: {progress['success_counter']}, doubt: {progress['doub_counter']}, "
+            f"fail: {progress['failed_counter']}"
         )
         flash(message, "success")
         return json_success(json.dumps(data))

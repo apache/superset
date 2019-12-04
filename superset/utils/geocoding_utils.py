@@ -50,10 +50,10 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         :param data: the addresses to be geocoded as a list of tuples
         :return: a dictionary containing the addresses and their long,lat values
         """
-        errors = []
-        geocoded_data = [()]
-        data_length = len(data)
-        counter = 0
+        errors: list = []
+        geocoded_data: list = []
+        data_length: int = len(data)
+        counter: int = 0
         self.progress["success_counter"] = 0
         self.progress["doubt_counter"] = 0
         self.progress["failed_counter"] = 0
@@ -79,7 +79,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                     else:
                         self.progress["failed_counter"] += 1
 
-                    geocoded_data.append(datum + tuple(center_coordinates))
+                    geocoded_data.append(datum.append(center_coordinates))
 
                 counter += 1
                 self.progress["progress"] = counter / data_length
