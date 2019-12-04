@@ -134,20 +134,22 @@ class Geocoder(BaseSupersetView):
 
         try:
             # TODO set not override in brace
+            table_dto = request.json.get("datasource", models.TableDto())
+            table_id = table_dto.get("id", "")
             if not override_if_exist and self._does_column_name_exist(
-                table_name.get("fullName"), lat_column
+                table_id, lat_column
             ):
                 raise ValueError(
                     "Column name {0} for latitude is already in use".format(lat_column)
                 )
             if not override_if_exist and self._does_column_name_exist(
-                table_name.get("fullName"), lon_column
+                table_id, lon_column
             ):
                 raise ValueError(
                     "Column name {0} for longitude is already in use".format(lon_column)
                 )
 
-            data = self._load_data_from_columns(table_name.get("fullName"), columns)
+            data = self._load_data_from_columns(table_id, columns)
 
         except ValueError as e:
             return json_error_response(e.args[0], status=400)
@@ -183,18 +185,19 @@ class Geocoder(BaseSupersetView):
         flash(message, "success")
         return json_success(json.dumps(data))
 
-    def _does_column_name_exist(self, table_name: str, column_name: str):
+    def _does_column_name_exist(self, id: int, column_name: str):
         """
         Check if column name already exists in table
         :param table_name: The table name of table to check
         :param column_name: The name of column to check
         :return true if column name exists in table
         """
-        columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
-        column_names = [column["name"] for column in columns]
+        table = self._get_table(id)
+        if table and table.columns:
+            column_names = [column.column_name for column in table.columns]
         return column_name in column_names
 
-    def _load_data_from_columns(self, table_name: str, columns: list):
+    def _load_data_from_columns(self, id: int, columns: list):
         """
         Get data from columns form table
         :param table_name: The table name from table from which select
@@ -204,16 +207,29 @@ class Geocoder(BaseSupersetView):
         """
         try:
             # TODO SQL Injection Check
-            selected_columns = ", ".join(filter(None, columns))
-            sql = "SELECT " + selected_columns + " FROM %s" % table_name
-            result = db.session.execute(sql)
-            # result = db.engine.connect().execute(sql)
+            table = self._get_table(id)
+            column_list = self._create_column_list(columns)
+            sql = "SELECT " + column_list + " FROM \"%s\"" % table.table_name
+            database = (db.session.query(models.Database).filter_by(id=table.database_id).first())
+            result = database.get_sqla_engine().connect().execute(sql)
             return [row for row in result]
         except Exception as e:
             raise SqlSelectException(
                 "An error occured while getting address data from columns "
-                + selected_columns
+                + column_list
             )
+
+    def _get_table(selfs, id: int):
+        return (
+            db.session.query(SqlaTable).filter_by(id=id).first()
+        )
+
+    def _create_column_list(self, columns):
+        column_list = []
+        for column in columns:
+            if column:
+                column_list.append('"' + column + '"')
+        return ", ".join(filter(None, column_list))
 
     def _geocode(self, data: list, dev=False):
         """
