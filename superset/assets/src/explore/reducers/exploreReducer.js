@@ -37,8 +37,8 @@ export default function exploreReducer(state = {}, action) {
     },
     [actions.SET_DATASOURCE]() {
       const newFormData = {...state.form_data};
-      if (action.datasource.type != state.datasource.type) {
-        if (action.datasource.type == "table") {
+      if (action.datasource.type !== state.datasource.type) {
+        if (action.datasource.type === "table") {
           newFormData.granularity_sqla = action.datasource.granularity_sqla;
           newFormData.time_grain_sqla = action.datasource.time_grain_sqla;
           delete newFormData.druid_time_origin;
