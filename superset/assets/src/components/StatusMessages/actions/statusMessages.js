@@ -16,12 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
 
-import statusMessageReducer from 'src/components/StatusMessages/reducers/statusMessages';
-import geocodingReducer from './geocoding';
+export const ADD_STATUS_MESSAGE = 'ADD_STATUS_MESSAGE';
+export const REMOVE_STATUS_MESSAGE = 'REMOVE_STATUS_MESSAGE';
 
-export default combineReducers({
-  geocoding: geocodingReducer,
-  statusMessages: statusMessageReducer,
-});
+export const STATUS_TYPE = {
+  INFO: 0,
+  WARNING: 1,
+  ERROR: 2,
+};
+
+export function addStatusMessage(message, statusType) {
+  return dispatch => dispatch({ type: ADD_STATUS_MESSAGE, status: { message, statusType } });
+}
+
+export function removeStatusMessage(status) {
+  return dispatch => dispatch({ type: REMOVE_STATUS_MESSAGE, status });
+}

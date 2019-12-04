@@ -16,12 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
+import { addToArr, removeFromArr } from 'src/reduxUtils';
+import * as actions from '../actions/statusMessages';
 
-import statusMessageReducer from 'src/components/StatusMessages/reducers/statusMessages';
-import geocodingReducer from './geocoding';
+export default function statusMessageReducer(state = {}, action) {
+  if (action.type === actions.ADD_STATUS_MESSAGE) {
+    const statusMessages = state.statusMessages ? state.statusMessages.slice() : [];
+    const newState = Object.assign({}, state, { statusMessages });
+    return addToArr(newState, 'statusMessages', action.status);
+  }
+  if (action.type === actions.REMOVE_STATUS_MESSAGE) {
+    return removeFromArr(state, 'statusMessages', action.status);
+  }
 
-export default combineReducers({
-  geocoding: geocodingReducer,
-  statusMessages: statusMessageReducer,
-});
+  return state;
+}
