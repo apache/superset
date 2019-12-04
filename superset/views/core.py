@@ -90,6 +90,7 @@ from .base import (
     api,
     BaseSupersetView,
     check_ownership,
+    common_bootstrap_payload,
     CsvResponse,
     data_payload_response,
     DeleteMixin,
@@ -1285,7 +1286,7 @@ class Superset(BaseSupersetView):
             "standalone": standalone,
             "user_id": user_id,
             "forced_height": request.args.get("height"),
-            "common": self.common_bootstrap_payload(),
+            "common": common_bootstrap_payload(),
         }
         table_name = (
             datasource.table_name
@@ -2222,7 +2223,7 @@ class Superset(BaseSupersetView):
             "user_id": g.user.get_id(),
             "dashboard_data": dashboard_data,
             "datasources": {ds.uid: ds.data for ds in datasources},
-            "common": self.common_bootstrap_payload(),
+            "common": common_bootstrap_payload(),
             "editMode": edit_mode,
             "urlParams": url_params,
         }
@@ -3025,7 +3026,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             "user": bootstrap_user_data(g.user),
-            "common": self.common_bootstrap_payload(),
+            "common": common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -3051,7 +3052,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             "user": bootstrap_user_data(user, include_perms=True),
-            "common": self.common_bootstrap_payload(),
+            "common": common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -3092,6 +3093,7 @@ class Superset(BaseSupersetView):
                 for database in db.session.query(models.Database).all()
             }
             # return all user queries associated with existing SQL editors
+            print(tab_state_ids)
             user_queries = (
                 db.session.query(Query)
                 .filter_by(user_id=g.user.get_id())
@@ -3105,7 +3107,7 @@ class Superset(BaseSupersetView):
 
         return {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
-            "common": self.common_bootstrap_payload(),
+            "common": common_bootstrap_payload(),
             "tab_state_ids": tabs_state,
             "active_tab": active_tab.to_dict() if active_tab else None,
             "databases": databases,

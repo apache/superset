@@ -988,7 +988,7 @@ class CoreTests(SupersetTestCase):
 
         app.config["SQLLAB_BACKEND_PERSISTENCE"] = True
         payload = views.Superset._get_sqllab_payload()
-        self.assertEqual(payload, {})
+        self.assertEqual(payload["queries"], {1, 2})
 
 
 if __name__ == "__main__":
