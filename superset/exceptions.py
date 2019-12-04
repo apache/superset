@@ -60,6 +60,18 @@ class DatabaseCreationException(SupersetException):
     status = 400
 
 
+class DatabaseDeletionException(SupersetException):
+    status = 500
+
+
+class SchemaNotAllowedCsvUpload(SupersetException):
+    status = 400
+
+
+class NameNotAllowed(SupersetException):
+    status = 400
+
+
 class TableCreationException(SupersetException):
     status = 400
 

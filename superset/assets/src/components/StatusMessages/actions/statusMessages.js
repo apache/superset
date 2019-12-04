@@ -16,18 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as actions from '../actions/csvToDatabase';
 
-export default function csvToDatabaseReducer(state = {}, action) {
-  if (action.type === actions.UPLOAD_CSV_SUCCESS) {
-    return Object.assign({}, state, {
-      uploadStatus: { message: action.message, timestamp: Date.now() },
-    });
-  }
-  if (action.type === actions.UPLOAD_CSV_FAILURE) {
-    return Object.assign({}, state, {
-      uploadStatus: { message: action.message, timestamp: Date.now() },
-    });
-  }
-  return state;
+export const ADD_STATUS_MESSAGE = 'ADD_STATUS_MESSAGE';
+export const REMOVE_STATUS_MESSAGE = 'REMOVE_STATUS_MESSAGE';
+
+export const STATUS_TYPE = {
+  INFO: 0,
+  WARNING: 1,
+  ERROR: 2,
+};
+
+export function addStatusMessage(message, statusType) {
+  return dispatch => dispatch({ type: ADD_STATUS_MESSAGE, status: { message, statusType } });
+}
+
+export function removeStatusMessage(status) {
+  return dispatch => dispatch({ type: REMOVE_STATUS_MESSAGE, status });
 }

@@ -18,8 +18,8 @@
  */
 import { combineReducers } from 'redux';
 
-import csvToDatabaseReducer from './csvToDatabase';
+import statusMessageReducer from 'src/components/StatusMessages/reducers/statusMessages';
 
 export default combineReducers({
-  uploadStatus: csvToDatabaseReducer,
+  statusMessages: statusMessageReducer,
 });

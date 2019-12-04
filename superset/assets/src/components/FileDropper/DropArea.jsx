@@ -75,7 +75,6 @@ export default class DropArea extends React.PureComponent {
           onDragExit={this.unsetHover}
           onMouseOut={this.unsetHover}
         >
-          <i className="fa fa-upload" />
           <div className="filedropper-title">{text || t('Drag & Drop')}</div>
           {(showButton === undefined || showButton) && (
             <>
@@ -90,12 +89,12 @@ export default class DropArea extends React.PureComponent {
               </Button>
             </>
           )}
+          {supportsDragAndDrop() && showFileSelected ? (
+            <div className="filedropper-file">{t('File')}: {fileName || t('No file chosen')}</div>
+          ) : (
+            <></>
+          )}
         </div>
-        {supportsDragAndDrop() && showFileSelected ? (
-          <div>{t('File')}: {fileName || t('No file chosen')}</div>
-        ) : (
-          <></>
-        )}
       </div>
     );
   }
