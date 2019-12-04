@@ -17,14 +17,14 @@
 """Change table schema description to long text
 
 Revision ID: 89115a40e8ea
-Revises: db4b49eb0782
+Revises: 5afa9079866a
 Create Date: 2019-12-03 13:50:24.746867
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "89115a40e8ea"
-down_revision = "db4b49eb0782"
+down_revision = "5afa9079866a"
 
 import sqlalchemy as sa
 from alembic import op
