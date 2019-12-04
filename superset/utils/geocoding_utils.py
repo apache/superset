@@ -53,7 +53,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         :return: a dictionary containing the addresses and their long,lat values
         """
         if not self.conf["MAPTILER_API_KEY"]:
-            raise NoAPIKeySuppliedException
+            raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
         errors: list = []
         geocoded_data: list = []
         data_length: int = len(data)
