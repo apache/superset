@@ -2137,10 +2137,6 @@ export const controls = {
     provideFormDataToProps: true,
   },
 
-  filters: {
-    type: 'FilterPanel',
-  },
-
   slice_id: {
     type: 'HiddenControl',
     label: t('Chart ID'),
