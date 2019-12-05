@@ -21,6 +21,7 @@ import { hot } from 'react-hot-loader';
 import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
+import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
@@ -45,10 +46,14 @@ const store = createStore(
 
 const App = () => (
   <Provider store={store}>
-    <>
+    <Router>
       <Menu data={menu} />
-      <Welcome user={user} />
-    </>
+      <Switch>
+        <Route path="/superset/welcome">
+          <Welcome user={user} />
+        </Route>
+      </Switch>
+    </Router>
   </Provider>
 );
 
