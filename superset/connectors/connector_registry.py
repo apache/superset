@@ -15,10 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections import OrderedDict
-from typing import Dict, List, Optional, Set, Type
+from typing import Dict, List, Optional, Set, Type, TYPE_CHECKING
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, subqueryload
+
+if TYPE_CHECKING:
+    # pylint: disable=unused-import
+    from superset.models.core import Database
+    from superset.connectors.base.models import BaseDatasource
 
 
 class ConnectorRegistry(object):
