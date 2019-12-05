@@ -3065,18 +3065,18 @@ class Superset(BaseSupersetView):
         )
 
     @staticmethod
-    def _get_sqllab_payload() -> Dict[str, Any]:
+    def _get_sqllab_payload(user_id: int) -> Dict[str, Any]:
         # send list of tab state ids
         tabs_state = (
             db.session.query(TabState.id, TabState.label)
-            .filter_by(user_id=g.user.get_id())
+            .filter_by(user_id=user_id)
             .all()
         )
         tab_state_ids = [tab_state[0] for tab_state in tabs_state]
         # return first active tab, or fallback to another one if no tab is active
         active_tab = (
             db.session.query(TabState)
-            .filter_by(user_id=g.user.get_id())
+            .filter_by(user_id=user_id)
             .order_by(TabState.active.desc())
             .first()
         )
@@ -3093,10 +3093,9 @@ class Superset(BaseSupersetView):
                 for database in db.session.query(models.Database).all()
             }
             # return all user queries associated with existing SQL editors
-            print(tab_state_ids)
             user_queries = (
                 db.session.query(Query)
-                .filter_by(user_id=g.user.get_id())
+                .filter_by(user_id=user_id)
                 .filter(Query.sql_editor_id.in_(tab_state_ids))
                 .all()
             )
@@ -3118,8 +3117,7 @@ class Superset(BaseSupersetView):
     @expose("/sqllab")
     def sqllab(self):
         """SQL Editor"""
-
-        payload = self._get_sqllab_payload()
+        payload = self._get_sqllab_payload(g.user.get_id())
         bootstrap_data = json.dumps(
             payload, default=utils.pessimistic_json_iso_dttm_ser
         )
