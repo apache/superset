@@ -14,6 +14,7 @@
 *.log
 *.map
 *.min.js
+.*.swp
 
 babel.config.js
 build/
