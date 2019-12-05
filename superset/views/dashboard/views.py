@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
+
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
