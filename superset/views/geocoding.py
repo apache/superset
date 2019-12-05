@@ -262,10 +262,10 @@ class Geocoder(BaseSupersetView):
             transaction.commit()
         except Exception as e:
             transaction.rollback()
-            # TODO remove this workaround
-            """raise SqlAddColumnException(
-                "An error occured while creating new columns for latitude and longitude"
-            )"""
+            raise SqlAddColumnException(
+                "An error occured while creating new columns for latitude and longitude",
+                e,
+            )
 
     def _add_column(
         self,
