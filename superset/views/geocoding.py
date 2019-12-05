@@ -121,11 +121,15 @@ class Geocoder(BaseSupersetView):
                  or an error message if somethings went wrong
         """
         table_name = request.json.get("datasource", "")
-        columns = [
-            request.json.get("streetColumn"),
-            request.json.get("cityColumn"),
-            request.json.get("countryColumn"),
-        ]
+        columns = []
+
+        if request.json.get("streetColumn"):
+            columns.append(request.json.get("streetColumn"))
+        if request.json.get("cityColumn"):
+            columns.append(request.json.get("cityColumn"))
+        if request.json.get("countryColumn"):
+            columns.append(request.json.get("countryColumn"))
+
         lat_column = request.json.get("latitudeColumnName", "lat")
         lon_column = request.json.get("longitudeColumnName", "lon")
         override_if_exist = request.json.get("overwriteIfExists", False)
@@ -196,6 +200,8 @@ class Geocoder(BaseSupersetView):
             return json_error_response(e.args[0], status=500)
         except Exception as e:
             return json_error_response(e.args[0], status=500)
+
+        db.session.commit()
         progress = self.geocoder_util.progress
         message = (
             f"Geocoded values, success: {progress['success_counter']}, doubt: {progress['doubt_counter']}, "
@@ -281,8 +287,7 @@ class Geocoder(BaseSupersetView):
         except Exception as e:
             transaction.rollback()
             raise SqlAddColumnException(
-                "An error occured while creating new columns for latitude and longitude",
-                e,
+                "An error occured while creating new columns for latitude and longitude"
             )
 
     def _add_column(
