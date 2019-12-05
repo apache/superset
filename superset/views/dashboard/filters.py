@@ -19,11 +19,10 @@ from sqlalchemy import and_, or_
 
 import superset.models.core as models
 from superset import db, security_manager
+from superset.views.base import BaseFilter
 
-from ..base import SupersetFilter
 
-
-class DashboardFilter(SupersetFilter):
+class DashboardFilter(BaseFilter):
     """
     Filter dashboards with the following criteria:
         1. If user has Admin role don't filter
