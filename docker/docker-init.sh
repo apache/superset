@@ -15,26 +15,47 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-set -ex
+set -e
+
+STEP_CNT=4
+
+echo_step() {
+cat <<EOF
+
+######################################################################
+
+
+Init Step ${1}/${STEP_CNT} [${2}] -- ${3}
+
+
+######################################################################
+
+EOF
+}
 
 # Create an admin user
-echo "Setting up admin user..."
+echo_step "1" "Starting" "Setting up admin user"
 flask fab create-admin \
               --username admin \
               --firstname Superset \
               --lastname Admin \
               --email admin@superset.com \
               --password admin
+echo_step "1" "Complete" "Setting up admin user"
 
 # Initialize the database
-echo "Migrating the DB..."
+echo_step "2" "Starting" "Applying DB migrations"
 superset db upgrade
+echo_step "2" "Complete" "Applying DB migrations"
 
 if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     # Load some data to play with
+    echo_step "3" "Starting" "Loading examples"
     superset load_examples
+    echo_step "3" "Complete" "Loading examples"
 fi
 
 # Create default roles and permissions
-echo "Setting up roles and perms..."
+echo_step "4" "Starting" "Setting up roles and perms"
 superset init
+echo_step "4" "Complete" "Setting up roles and perms"
