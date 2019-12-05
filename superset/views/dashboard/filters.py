@@ -26,11 +26,10 @@ from ..base import get_user_roles
 
 class DashboardFilter(BaseFilter):
     """
-    Filter dashboards with the following criteria:
-        1. If user has Admin role don't filter
-        3. Those which the user owns
-        4. Those which the user has favorited
-        5. Those which have been published (if they have access to at least one slice)
+    List dashboards with the following criteria:
+        1. Those which the user owns
+        2. Those which the user has favorited
+        3. Those which have been published (if they have access to at least one slice)
 
     If the user is an admin show them all dashboards.
     This means they do not get curation but can still sort by "published"
@@ -47,15 +46,20 @@ class DashboardFilter(BaseFilter):
         if "admin" in user_roles:
             return query
 
-        datasource_perms = self.get_view_menus("datasource_access")
+        datasource_perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
         all_datasource_access = security_manager.all_datasource_access()
         published_dash_query = (
             db.session.query(Dash.id)
             .join(Dash.slices)
             .filter(
                 and_(
-                    Dash.published == True,
-                    or_(Slice.perm.in_(datasource_perms), all_datasource_access),
+                    Dash.published == True,  # noqa
+                    or_(
+                        Slice.perm.in_(datasource_perms),
+                        Slice.schema_perm.in_(schema_perms),
+                        all_datasource_access,
+                    ),
                 )
             )
         )
