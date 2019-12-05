@@ -248,7 +248,7 @@ class Geocoder(BaseSupersetView):
                 + column_list
             )
 
-    def _get_table(selfs, id: int):
+    def _get_table(self, id: int):
         return db.session.query(SqlaTable).filter_by(id=id).first()
 
     def _create_column_list(self, columns):
@@ -331,7 +331,7 @@ class Geocoder(BaseSupersetView):
         lat_column: str,
         lon_column: str,
         geo_columns: list,
-        data: list,
+        data: tuple,
     ):
         """
         Insert geocoded coordinates in table
