@@ -120,7 +120,8 @@ class Geocoder(BaseSupersetView):
         :return: geocoded data as list of tuples with success, doubt and failed counters as dict bundled in a list
                  or an error message if somethings went wrong
         """
-        table_name = request.json.get("datasource", "")
+        request_data = request.json
+        table_name = request_data.get("datasource", "")
         columns = []
 
         if request.json.get("streetColumn"):
@@ -130,56 +131,15 @@ class Geocoder(BaseSupersetView):
         if request.json.get("countryColumn"):
             columns.append(request.json.get("countryColumn"))
 
-        lat_column = request.json.get("latitudeColumnName", "lat")
-        lon_column = request.json.get("longitudeColumnName", "lon")
-        override_if_exist = request.json.get("overwriteIfExists", False)
+        lat_column = request_data.get("latitudeColumnName", "lat")
+        lon_column = request_data.get("longitudeColumnName", "lon")
         save_on_stop_geocoding = request.json.get("saveOnErrorOrInterrupt", True)
         data = [()]
 
         try:
-            table_dto = request.json.get("datasource", models.TableDto())
-            table_id = table_dto.get("id", "")
-            lat_exists = self._does_column_name_exist(table_id, lat_column)
-            lon_exists = self._does_column_name_exist(table_id, lon_column)
-            # TODO handle removing the columns in case of failure, problem with which columns existed beforehand
-            if override_if_exist:
-                if lat_exists:
-                    if lon_exists:
-                        pass
-                    else:
-                        self._add_lat_lon_columns(
-                            table_name.get("fullName"), lon_column=lon_column
-                        )
-                        # only add lon column
-                else:
-                    if lon_exists:
-                        self._add_lat_lon_columns(
-                            table_name.get("fullName"), lat_column=lat_column
-                        )
-                        # only add lat column
-                    else:
-                        self._add_lat_lon_columns(
-                            table_name.get("fullName"), lat_column, lon_column
-                        )
-
-            else:
-                if self._does_column_name_exist(table_id, lat_column):
-                    raise ValueError(
-                        "Column name {0} for latitude is already in use".format(
-                            lat_column
-                        )
-                    )
-                if self._does_column_name_exist(table_id, lon_column):
-                    raise ValueError(
-                        "Column name {0} for longitude is already in use".format(
-                            lon_column
-                        )
-                    )
-                self._add_lat_lon_columns(
-                    table_name.get("fullName"), lat_column, lon_column
-                )
-
-            data = self._load_data_from_columns(table_id, columns)
+            table_dto = request_data.get("datasource", models.TableDto())
+            self._check_and_create_columns(request_data)
+            data = self._load_data_from_columns(table_dto.get("id", ""), columns)
 
         except ValueError as e:
             return json_error_response(e.args[0], status=400)
@@ -193,7 +153,7 @@ class Geocoder(BaseSupersetView):
         except Exception as e:
             if not save_on_stop_geocoding:
                 return json_error_response(e.args[0])
-        # TODO use save on stop here
+        # TODO use save on stop here -> or do we always save on interrupt?
         try:
             self._insert_geocoded_data(
                 table_name.get("fullName"), lat_column, lon_column, columns, data[0]
@@ -213,6 +173,50 @@ class Geocoder(BaseSupersetView):
         )
         flash(message, "success")
         return json_success(json.dumps(data))
+
+    def _check_and_create_columns(self, request_data):
+        # TODO code duplication, alternative would be to send all those variables as param, but that's also a code-smell
+        #  if I'm not mistaken
+        lat_column = request_data.get("latitudeColumnName", "lat")
+        lon_column = request_data.get("longitudeColumnName", "lon")
+        override_if_exist = request.json.get("overwriteIfExists", False)
+        table_dto = request_data.get("datasource", models.TableDto())
+        table_name = request_data.get("datasource", "")
+        table_id = table_dto.get("id", "")
+        lat_exists = self._does_column_name_exist(table_id, lat_column)
+        lon_exists = self._does_column_name_exist(table_id, lon_column)
+        # TODO handle removing the columns in case of failure,
+        #  problem with which columns existed beforehand -> save in var?
+        if override_if_exist:
+            if lat_exists:
+                if lon_exists:
+                    pass
+                else:
+                    self._add_lat_lon_columns(
+                        table_name.get("fullName"), lon_column=lon_column
+                    )
+            else:
+                if lon_exists:
+                    self._add_lat_lon_columns(
+                        table_name.get("fullName"), lat_column=lat_column
+                    )
+                else:
+                    self._add_lat_lon_columns(
+                        table_name.get("fullName"), lat_column, lon_column
+                    )
+
+        else:
+            if self._does_column_name_exist(table_id, lat_column):
+                raise ValueError(
+                    "Column name {0} for latitude is already in use".format(lat_column)
+                )
+            if self._does_column_name_exist(table_id, lon_column):
+                raise ValueError(
+                    "Column name {0} for longitude is already in use".format(lon_column)
+                )
+            self._add_lat_lon_columns(
+                table_name.get("fullName"), lat_column, lon_column
+            )
 
     def _does_column_name_exist(self, id: int, column_name: str):
         """
