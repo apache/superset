@@ -30,10 +30,10 @@ RUN mkdir /app \
         && rm -rf /var/lib/apt/lists/*
 
 # First, we just wanna install requirements, which will allow us to utilize the cache
-# in order to only build iff requirements change
-COPY ./requirements.txt ./docker/requirements-extra.txt ./app/
+# in order to only build if and only if requirements change
+COPY ./requirements.txt /app/
 RUN cd /app \
-        && pip install -r requirements.txt -r requirements-extra.txt
+        && pip install --no-cache -r requirements.txt
 
 
 ######################################################################
@@ -59,7 +59,7 @@ RUN cd /app/superset/assets \
 # Final lean image...
 ######################################################################
 ARG PY_VER=3.6.9
-FROM python:${PY_VER}
+FROM python:${PY_VER} AS lean
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
@@ -101,3 +101,15 @@ HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
 EXPOSE ${SUPERSET_PORT}
 
 ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
+
+######################################################################
+# Dev image...
+######################################################################
+FROM lean AS dev
+
+COPY ./requirements-dev.txt ./docker/requirements-extra.txt /app/
+
+USER root
+RUN cd /app \
+    && pip install --no-cache -r requirements-dev.txt -r requirements-extra.txt
+USER superset
