@@ -21,7 +21,10 @@ import PropTypes from 'prop-types';
 import { ListGroup, ListGroupItem } from 'react-bootstrap';
 import shortid from 'shortid';
 import {
-  SortableContainer, SortableHandle, SortableElement, arrayMove,
+  SortableContainer,
+  SortableHandle,
+  SortableElement,
+  arrayMove,
 } from 'react-sortable-hoc';
 
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
@@ -38,9 +41,7 @@ const propTypes = {
   itemGenerator: PropTypes.func,
   keyAccessor: PropTypes.func,
   onChange: PropTypes.func,
-  value: PropTypes.oneOfType([
-    PropTypes.array,
-  ]),
+  value: PropTypes.oneOfType([PropTypes.array]),
   isFloat: PropTypes.bool,
   isInt: PropTypes.bool,
   controlName: PropTypes.string.isRequired,
@@ -59,7 +60,8 @@ const defaultProps = {
 const SortableListGroupItem = SortableElement(ListGroupItem);
 const SortableListGroup = SortableContainer(ListGroup);
 const SortableDragger = SortableHandle(() => (
-  <i className="fa fa-bars text-primary" style={{ cursor: 'ns-resize' }} />));
+  <i className="fa fa-bars text-primary" style={{ cursor: 'ns-resize' }} />
+));
 
 export default class CollectionControl extends React.Component {
   constructor(props) {
@@ -115,7 +117,8 @@ export default class CollectionControl extends React.Component {
                 onClick={this.removeItem.bind(this, i)}
               />
             </div>
-          </SortableListGroupItem>))}
+          </SortableListGroupItem>
+        ))}
       </SortableListGroup>
     );
   }

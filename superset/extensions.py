@@ -16,8 +16,13 @@
 # under the License.
 import json
 import os
+import random
+import time
+import uuid
+from datetime import datetime, timedelta
 
 import celery
+from dateutil.relativedelta import relativedelta
 from flask_appbuilder import AppBuilder, SQLA
 from flask_migrate import Migrate
 from flask_talisman import Talisman
@@ -27,9 +32,29 @@ from superset.utils.cache_manager import CacheManager
 from superset.utils.feature_flag_manager import FeatureFlagManager
 
 
+class JinjaContextManager:
+    def __init__(self) -> None:
+        self._base_context = {
+            "datetime": datetime,
+            "random": random,
+            "relativedelta": relativedelta,
+            "time": time,
+            "timedelta": timedelta,
+            "uuid": uuid,
+        }
+
+    def init_app(self, app):
+        self._base_context = self._base_context.update(
+            app.config["JINJA_CONTEXT_ADDONS"]
+        )
+
+    @property
+    def base_context(self):
+        return self._base_context
+
+
 class ResultsBackendManager:
     def __init__(self) -> None:
-        super().__init__()
         self._results_backend = None
         self._use_msgpack = False
 
@@ -48,7 +73,6 @@ class ResultsBackendManager:
 
 class UIManifestProcessor:
     def __init__(self, app_dir: str) -> None:
-        super().__init__()
         self.app = None
         self.manifest: dict = {}
         self.manifest_file = f"{app_dir}/static/assets/dist/manifest.json"
@@ -106,6 +130,7 @@ db = SQLA()
 _event_logger: dict = {}
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
 feature_flag_manager = FeatureFlagManager()
+jinja_context_manager = JinjaContextManager()
 manifest_processor = UIManifestProcessor(APP_DIR)
 migrate = Migrate()
 results_backend_manager = ResultsBackendManager()

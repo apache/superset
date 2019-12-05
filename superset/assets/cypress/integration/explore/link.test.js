@@ -35,12 +35,17 @@ describe('Test explore links', () => {
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('button#query').click();
-    cy.get('span').contains('View query').parent().click();
+    cy.get('span')
+      .contains('View query')
+      .parent()
+      .click();
     cy.wait('@postJson').then(() => {
       cy.get('code');
     });
     cy.get('.modal-header').within(() => {
-      cy.get('button.close').first().click({ force: true });
+      cy.get('button.close')
+        .first()
+        .click({ force: true });
     });
   });
 
@@ -57,8 +62,9 @@ describe('Test explore links', () => {
 
     cy.wait(100);
 
-    cy.get('#shorturl-popover [data-test="short-url"]').invoke('text')
-      .then((text) => {
+    cy.get('#shorturl-popover [data-test="short-url"]')
+      .invoke('text')
+      .then(text => {
         cy.visit(text);
       });
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
@@ -85,7 +91,7 @@ describe('Test explore links', () => {
 
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
-    cy.url().then((url) => {
+    cy.url().then(url => {
       cy.get('button[data-target="#save_modal"]').click();
       cy.get('.modal-content').within(() => {
         cy.get('input[name=new_slice_name]').type(newChartName);
@@ -111,9 +117,11 @@ describe('Test explore links', () => {
       cy.get('button#btn_modal_save').click();
     });
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
-    cy.request(`/chart/api/read?_flt_3_slice_name=${chartName}`).then((response) => {
-      cy.request('DELETE', `/chart/api/delete/${response.body.pks[0]}`);
-    });
+    cy.request(`/chart/api/read?_flt_3_slice_name=${chartName}`).then(
+      response => {
+        cy.request('DELETE', `/chart/api/delete/${response.body.pks[0]}`);
+      },
+    );
   });
 
   it('Test chart save as and add to new dashboard', () => {
@@ -129,7 +137,9 @@ describe('Test explore links', () => {
       cy.get('button#btn_modal_save').click();
     });
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
-    cy.request(`/dashboard/api/read?_flt_3_dashboard_title=${dashboardTitle}`).then((response) => {
+    cy.request(
+      `/dashboard/api/read?_flt_3_dashboard_title=${dashboardTitle}`,
+    ).then(response => {
       expect(response.body.pks[0]).not.equals(null);
     });
   });
@@ -144,18 +154,23 @@ describe('Test explore links', () => {
     cy.get('.modal-content').within(() => {
       cy.get('input[name=new_slice_name]').type(chartName);
       cy.get('input[data-test=add-to-existing-dashboard]').check();
-      cy.get('.select.save-modal-selector').click().within(() => {
-        cy.get('input').type(dashboardTitle, { force: true });
-        cy.get('.select-option.is-focused')
-          .trigger('mousedown');
-      });
+      cy.get('.select.save-modal-selector')
+        .click()
+        .within(() => {
+          cy.get('input').type(dashboardTitle, { force: true });
+          cy.get('.select-option.is-focused').trigger('mousedown');
+        });
       cy.get('button#btn_modal_save').click();
     });
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
-    cy.request(`/chart/api/read?_flt_3_slice_name=${chartName}`).then((response) => {
-      cy.request('DELETE', `/chart/api/delete/${response.body.pks[0]}`);
-    });
-    cy.request(`/dashboard/api/read?_flt_3_dashboard_title=${dashboardTitle}`).then((response) => {
+    cy.request(`/chart/api/read?_flt_3_slice_name=${chartName}`).then(
+      response => {
+        cy.request('DELETE', `/chart/api/delete/${response.body.pks[0]}`);
+      },
+    );
+    cy.request(
+      `/dashboard/api/read?_flt_3_dashboard_title=${dashboardTitle}`,
+    ).then(response => {
       cy.request('DELETE', `/dashboard/api/delete/${response.body.pks[0]}`);
     });
   });

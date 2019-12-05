@@ -26,6 +26,7 @@ from superset.extensions import (
     db,
     event_logger,
     feature_flag_manager,
+    jinja_context_manager,
     manifest_processor,
     results_backend_manager,
     security_manager,
@@ -44,6 +45,7 @@ conf = LocalProxy(lambda: current_app.config)
 get_feature_flags = feature_flag_manager.get_feature_flags
 get_css_manifest_files = manifest_processor.get_css_manifest_files
 is_feature_enabled = feature_flag_manager.is_feature_enabled
+jinja_base_context = jinja_context_manager.base_context
 results_backend = LocalProxy(lambda: results_backend_manager.results_backend)
 results_backend_use_msgpack = LocalProxy(
     lambda: results_backend_manager.should_use_msgpack

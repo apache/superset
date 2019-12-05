@@ -29,7 +29,7 @@ export default function setupClient() {
     csrfToken,
   })
     .init()
-    .catch((error) => {
+    .catch(error => {
       console.warn('Error initializing SupersetClient', error);
     });
 }

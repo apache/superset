@@ -31,7 +31,7 @@
         color: @almost-black;
         border: none;
         padding: 12px 0 14px 0;
-        font-size: 15px;
+        font-size: @font-size-m;
         margin-right: 0;
       }
 
@@ -71,7 +71,7 @@
 
       & .fa-plus {
         color: @gray-dark;
-        font-size: 14px;
+        font-size: @font-size-m;
         margin-top: 3px;
       }
 
@@ -90,7 +90,11 @@
       height: 3px;
       width: 100%;
       bottom: 0;
-      background: linear-gradient(to right, @indicator-color, shade(@indicator-color, @colorstop-two));
+      background: linear-gradient(
+        to right,
+        @indicator-color,
+        shade(@indicator-color, @colorstop-two)
+      );
     }
   }
 

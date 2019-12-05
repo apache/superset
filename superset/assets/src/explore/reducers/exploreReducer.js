@@ -17,9 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import {
-  getControlsState,
-} from '../store';
+import { getControlsState } from '../store';
 import { getControlState, getFormDataFromControls } from '../controlUtils';
 import * as actions from '../actions/exploreActions';
 
@@ -38,27 +36,45 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_DATASOURCE]() {
-      return {
+      const newFormData = { ...state.form_data };
+      if (action.datasource.type !== state.datasource.type) {
+        if (action.datasource.type === 'table') {
+          newFormData.granularity_sqla = action.datasource.granularity_sqla;
+          newFormData.time_grain_sqla = action.datasource.time_grain_sqla;
+          delete newFormData.druid_time_origin;
+          delete newFormData.granularity;
+        } else {
+          newFormData.druid_time_origin = action.datasource.druid_time_origin;
+          newFormData.granularity = action.datasource.granularity;
+          delete newFormData.granularity_sqla;
+          delete newFormData.time_grain_sqla;
+        }
+      }
+      const newState = {
         ...state,
         datasource: action.datasource,
+        datasource_id: action.datasource.id,
+        datasource_type: action.datasource.type,
+      };
+      return {
+        ...newState,
+        form_data: newFormData,
+        controls: getControlsState(newState, newFormData),
       };
     },
     [actions.FETCH_DATASOURCES_STARTED]() {
-
       return {
         ...state,
         isDatasourcesLoading: true,
       };
     },
     [actions.FETCH_DATASOURCES_SUCCEEDED]() {
-
       return {
         ...state,
         isDatasourcesLoading: false,
       };
     },
     [actions.FETCH_DATASOURCES_FAILED]() {
-
       return {
         ...state,
         isDatasourcesLoading: false,
@@ -115,7 +131,9 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.UPDATE_CHART_TITLE]() {
-      const updatedSlice = Object.assign({}, state.slice, { slice_name: action.slice_name });
+      const updatedSlice = Object.assign({}, state.slice, {
+        slice_name: action.slice_name,
+      });
       return {
         ...state,
         slice: updatedSlice,
@@ -124,7 +142,10 @@ export default function exploreReducer(state = {}, action) {
     [actions.RESET_FIELDS]() {
       return {
         ...state,
-        controls: getControlsState(state, getFormDataFromControls(state.controls)),
+        controls: getControlsState(
+          state,
+          getFormDataFromControls(state.controls),
+        ),
       };
     },
     [actions.CREATE_NEW_SLICE]() {

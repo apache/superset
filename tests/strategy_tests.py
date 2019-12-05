@@ -29,7 +29,7 @@ from superset.tasks.cache import (
 
 from .base_tests import SupersetTestCase
 
-URL_PREFIX = "0.0.0.0:8081"
+URL_PREFIX = "http://0.0.0.0:8081"
 
 
 class CacheWarmUpTests(SupersetTestCase):

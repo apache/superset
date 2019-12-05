@@ -53,13 +53,16 @@ export default {
     all_columns_y: {
       validators: [nonEmpty],
     },
-    normalized: t('Whether to apply a normal distribution based on rank on the color scale'),
+    normalized: t(
+      'Whether to apply a normal distribution based on rank on the color scale',
+    ),
     y_axis_bounds: {
       label: t('Value bounds'),
       renderTrigger: true,
       description: t(
         'Hard value bounds applied for color coding. Is only relevant ' +
-        'and applied when the normalization is applied against the whole heatmap.'),
+          'and applied when the normalization is applied against the whole heatmap.',
+      ),
     },
     y_axis_format: {
       label: t('Value Format'),

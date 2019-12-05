@@ -38,12 +38,13 @@ export default class Favorites extends React.PureComponent {
     };
   }
   renderSliceTable() {
-    const mutator = data => data.map(slice => ({
-      slice: <a href={slice.url}>{slice.title}</a>,
-      creator: <a href={slice.creator_url}>{slice.creator}</a>,
-      favorited: moment.utc(slice.dttm).fromNow(),
-      _favorited: slice.dttm,
-    }));
+    const mutator = data =>
+      data.map(slice => ({
+        slice: <a href={slice.url}>{slice.title}</a>,
+        creator: <a href={slice.creator_url}>{slice.creator}</a>,
+        favorited: moment.utc(slice.dttm).fromNow(),
+        _favorited: slice.dttm,
+      }));
     return (
       <TableLoader
         dataEndpoint={`/superset/fave_slices/${this.props.user.userId}/`}
@@ -56,11 +57,12 @@ export default class Favorites extends React.PureComponent {
     );
   }
   renderDashboardTable() {
-    const mutator = data => data.map(dash => ({
-      dashboard: <a href={dash.url}>{dash.title}</a>,
-      creator: <a href={dash.creator_url}>{dash.creator}</a>,
-      favorited: moment.utc(dash.dttm).fromNow(),
-    }));
+    const mutator = data =>
+      data.map(dash => ({
+        dashboard: <a href={dash.url}>{dash.title}</a>,
+        creator: <a href={dash.creator_url}>{dash.creator}</a>,
+        favorited: moment.utc(dash.dttm).fromNow(),
+      }));
     return (
       <TableLoader
         className="table table-condensed"

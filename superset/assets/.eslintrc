@@ -17,7 +17,7 @@
  * under the License.
  */
 {
-  "extends": "airbnb",
+  "extends": ["airbnb", "prettier"],
   "parser": "babel-eslint",
   "parserOptions": {
     "ecmaFeatures": {
@@ -27,7 +27,7 @@
   "env": {
     "browser": true
   },
-  "plugins": ["react"],
+  "plugins": ["prettier", "react"],
   "rules": {
     "camelcase": [
       "error",
@@ -77,7 +77,8 @@
     "react/no-unused-prop-types": 0,
     "react/require-default-props": 0,
     "react/jsx-fragments": 1,
-    "react/prop-types": 0
+    "react/prop-types": 0,
+    "prettier/prettier": "error"
   },
   "settings": {
     "import/resolver": "webpack",

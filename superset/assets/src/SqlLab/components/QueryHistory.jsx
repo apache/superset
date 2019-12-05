@@ -29,13 +29,19 @@ const propTypes = {
   displayLimit: PropTypes.number.isRequired,
 };
 
-const QueryHistory = (props) => {
+const QueryHistory = props => {
   if (props.queries.length > 0) {
     return (
       <QueryTable
         columns={[
-          'state', 'started', 'duration', 'progress',
-          'rows', 'sql', 'output', 'actions',
+          'state',
+          'started',
+          'duration',
+          'progress',
+          'rows',
+          'sql',
+          'output',
+          'actions',
         ]}
         queries={props.queries}
         actions={props.actions}
@@ -43,11 +49,7 @@ const QueryHistory = (props) => {
       />
     );
   }
-  return (
-    <Alert bsStyle="info">
-      {t('No query history yet...')}
-    </Alert>
-  );
+  return <Alert bsStyle="info">{t('No query history yet...')}</Alert>;
 };
 QueryHistory.propTypes = propTypes;
 

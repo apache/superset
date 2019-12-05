@@ -209,7 +209,7 @@ class DruidFuncTestCase(SupersetTestCase):
         self.assertFalse(res.filter["filter"]["lowerStrict"])
         self.assertEqual("A", res.filter["filter"]["dimension"])
         self.assertEqual("h", res.filter["filter"]["lower"])
-        self.assertFalse(res.filter["filter"]["alphaNumeric"])
+        self.assertEqual("lexicographic", res.filter["filter"]["ordering"])
         filtr["op"] = ">"
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertTrue(res.filter["filter"]["lowerStrict"])
@@ -220,6 +220,35 @@ class DruidFuncTestCase(SupersetTestCase):
         filtr["op"] = "<"
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertTrue(res.filter["filter"]["upperStrict"])
+        filtr["val"] = 1
+        res = DruidDatasource.get_filters([filtr], ["A"], column_dict)
+        self.assertEqual("numeric", res.filter["filter"]["ordering"])
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
+    def test_get_filters_is_null_filter(self):
+        filtr = {"col": "A", "op": "IS NULL"}
+        col = DruidColumn(column_name="A")
+        column_dict = {"A": col}
+        res = DruidDatasource.get_filters([filtr], [], column_dict)
+        self.assertEqual("selector", res.filter["filter"]["type"])
+        self.assertEqual("", res.filter["filter"]["value"])
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
+    def test_get_filters_is_not_null_filter(self):
+        filtr = {"col": "A", "op": "IS NOT NULL"}
+        col = DruidColumn(column_name="A")
+        column_dict = {"A": col}
+        res = DruidDatasource.get_filters([filtr], [], column_dict)
+        self.assertEqual("not", res.filter["filter"]["type"])
+        self.assertIn("field", res.filter["filter"])
+        self.assertEqual(
+            "selector", res.filter["filter"]["field"].filter["filter"]["type"]
+        )
+        self.assertEqual("", res.filter["filter"]["field"].filter["filter"]["value"])
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"

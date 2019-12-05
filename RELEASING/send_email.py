@@ -123,9 +123,7 @@ class BaseParameters(object):
     help="Your Apache email this will be used for SMTP From",
 )
 @click.option(
-    "--apache_username",
-    prompt="Apache username",
-    help="Your LDAP Apache username",
+    "--apache_username", prompt="Apache username", help="Your LDAP Apache username"
 )
 @click.option(
     "--apache_password",
@@ -196,7 +194,9 @@ def vote_pmc(base_parameters, receiver_email):
     prompt="A List of people with -1 vote (ex: John)",
 )
 @click.pass_obj
-def result_pmc(base_parameters, receiver_email, vote_bindings, vote_nonbindings, vote_negatives):
+def result_pmc(
+    base_parameters, receiver_email, vote_bindings, vote_nonbindings, vote_negatives
+):
     template_file = "email_templates/result_pmc.j2"
     base_parameters.template_arguments["receiver_email"] = receiver_email
     base_parameters.template_arguments["vote_bindings"] = string_comma_to_list(
@@ -257,10 +257,39 @@ def vote_ipmc(base_parameters, receiver_email, voting_thread, vote_mentors):
     type=str,
     prompt="The receiver email (To:)",
 )
+@click.option(
+    "--vote_bindings",
+    default="",
+    type=str,
+    prompt="A List of people with +1 binding vote (ex: Alan,Justin)",
+)
+@click.option(
+    "--vote_nonbindings",
+    default="",
+    type=str,
+    prompt="A List of people with +1 non binding vote (ex: Ville)",
+)
+@click.option(
+    "--vote_negatives",
+    default="",
+    type=str,
+    prompt="A List of people with -1 vote (ex: John)",
+)
 @click.pass_obj
-def result_ipmc(base_parameters, receiver_email):
+def result_ipmc(
+    base_parameters, receiver_email, vote_bindings, vote_nonbindings, vote_negatives
+):
     template_file = "email_templates/result_ipmc.j2"
     base_parameters.template_arguments["receiver_email"] = receiver_email
+    base_parameters.template_arguments["vote_bindings"] = string_comma_to_list(
+        vote_bindings
+    )
+    base_parameters.template_arguments["vote_nonbindings"] = string_comma_to_list(
+        vote_nonbindings
+    )
+    base_parameters.template_arguments["vote_negatives"] = string_comma_to_list(
+        vote_negatives
+    )
     message = render_template(template_file, **base_parameters.template_arguments)
     inter_send_email(
         base_parameters.username,

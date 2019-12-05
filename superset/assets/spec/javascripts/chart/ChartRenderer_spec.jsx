@@ -16,12 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as React from 'react';
+import React from 'react';
+import { shallow } from 'enzyme';
+import { SuperChart } from '@superset-ui/chart';
 
-export default function FilterPanel() {
-  return (
-    <div>
-      test filter
-    </div>
-  );
-}
+import ChartRenderer from '../../../src/chart/ChartRenderer';
+
+describe('ChartRenderer', () => {
+  it('should render SuperChart', () => {
+    const wrapper = shallow(<ChartRenderer refreshOverlayVisible={false} />);
+    expect(wrapper.find(SuperChart)).toHaveLength(1);
+  });
+
+  it('should not render SuperChart when refreshOverlayVisible is true', () => {
+    const wrapper = shallow(<ChartRenderer refreshOverlayVisible />);
+    expect(wrapper.find(SuperChart)).toHaveLength(0);
+  });
+});

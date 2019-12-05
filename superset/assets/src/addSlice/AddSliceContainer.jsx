@@ -25,10 +25,12 @@ import { t } from '@superset-ui/translation';
 import VizTypeControl from '../explore/components/controls/VizTypeControl';
 
 const propTypes = {
-  datasources: PropTypes.arrayOf(PropTypes.shape({
-    label: PropTypes.string.isRequired,
-    value: PropTypes.string.isRequired,
-  })).isRequired,
+  datasources: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      value: PropTypes.string.isRequired,
+    }),
+  ).isRequired,
 };
 
 const styleSelectWidth = { width: 600 };
@@ -50,7 +52,8 @@ export default class AddSliceContainer extends React.PureComponent {
       JSON.stringify({
         viz_type: this.state.visType,
         datasource: this.state.datasourceValue,
-      }));
+      }),
+    );
     return `/superset/explore/?form_data=${formData}`;
   }
 
@@ -96,9 +99,12 @@ export default class AddSliceContainer extends React.PureComponent {
             <p className="text-muted">
               {t(
                 'If the datasource you are looking for is not ' +
-                'available in the list, ' +
-                'follow the instructions on the how to add it on the ')}
-              <a href="https://superset.apache.org/tutorial.html">{t('Superset tutorial')}</a>
+                  'available in the list, ' +
+                  'follow the instructions on the how to add it on the ',
+              )}
+              <a href="https://superset.apache.org/tutorial.html">
+                {t('Superset tutorial')}
+              </a>
             </p>
           </div>
           <br />
@@ -119,7 +125,8 @@ export default class AddSliceContainer extends React.PureComponent {
           >
             {t('Create new chart')}
           </Button>
-          <br /><br />
+          <br />
+          <br />
         </Panel>
       </div>
     );

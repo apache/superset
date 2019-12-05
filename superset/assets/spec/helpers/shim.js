@@ -36,7 +36,7 @@ global.document = global.jsdom('<!doctype html><html><body></body></html>');
 global.window = document.defaultView;
 global.HTMLElement = window.HTMLElement;
 
-Object.keys(document.defaultView).forEach((property) => {
+Object.keys(document.defaultView).forEach(property => {
   if (typeof global[property] === 'undefined') {
     exposedProperties.push(property);
     global[property] = document.defaultView[property];

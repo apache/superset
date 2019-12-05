@@ -57,15 +57,6 @@
         contentType: "application/json; charset=utf-8"
       }).done(function(data) {
           alert("Seems OK!");
-          if ($('#tables').length == 0)
-            $('body div.container').append('<div id="tables"></div>');
-          div = $('#tables')
-          div.html('Tables:<br>');
-          $.each(data, function(i, d){
-            var id = 'tbl_' + d;
-            div.append('<span id="' + id + '" style="margin: 0px 10px 10px 0px;" class="btn btn-default">' + d + '</span>')
-            $('#' + id).click(function(){window.location = '/tablemodelview/add';})
-          });
       }).fail(function(error) {
           var respJSON = error.responseJSON;
           var errorMsg = error.responseText;

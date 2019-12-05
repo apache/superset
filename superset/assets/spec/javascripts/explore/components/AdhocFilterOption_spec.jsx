@@ -22,7 +22,10 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Label, OverlayTrigger } from 'react-bootstrap';
 
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/explore/AdhocFilter';
+import AdhocFilter, {
+  EXPRESSION_TYPES,
+  CLAUSES,
+} from '../../../../src/explore/AdhocFilter';
 import AdhocFilterOption from '../../../../src/explore/components/AdhocFilterOption';
 
 const simpleAdhocFilter = new AdhocFilter({
