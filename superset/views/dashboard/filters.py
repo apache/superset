@@ -21,6 +21,8 @@ import superset.models.core as models
 from superset import db, security_manager
 from superset.views.base import BaseFilter
 
+from ..base import get_user_roles
+
 
 class DashboardFilter(BaseFilter):
     """
@@ -41,7 +43,7 @@ class DashboardFilter(BaseFilter):
         Slice = models.Slice
         Favorites = models.FavStar
 
-        user_roles = [role.name.lower() for role in list(self.get_user_roles())]
+        user_roles = [role.name.lower() for role in list(get_user_roles())]
         if "admin" in user_roles:
             return query
 
