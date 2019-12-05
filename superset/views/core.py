@@ -14,12 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import logging
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import cast, List, Optional, Union
 from urllib import parse
 
@@ -102,7 +100,6 @@ from .base import (
     json_success,
     SupersetModelView,
 )
-from .database import api as database_api, views as in_views
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
@@ -159,7 +156,7 @@ def is_owner(obj, user):
 
 
 def check_datasource_perms(
-    self, datasource_type: str = None, datasource_id: int = None
+    self, datasource_type: str = None, datasource_id: int = None # pylint: disable=unused-argument
 ) -> None:
     """
     Check if user can access a cached response from explore_json.
@@ -191,7 +188,7 @@ def check_datasource_perms(
     security_manager.assert_viz_permission(viz_obj)
 
 
-def check_slice_perms(self, slice_id):
+def check_slice_perms(self, slice_id): # pylint: disable=unused-argument
     """
     Check if user can access a cached response from slice_json.
 
@@ -210,6 +207,168 @@ def check_slice_perms(self, slice_id):
 
     security_manager.assert_viz_permission(viz_obj)
 
+def results_exec(key: str):
+    """Serves a key off of the results backend
+
+    It is possible to pass the `rows` query argument to limit the number
+    of rows returned.
+    """
+    if not results_backend:
+        return json_error_response("Results backend isn't configured")
+
+    read_from_results_backend_start = now_as_float()
+    blob = results_backend.get(key)
+    stats_logger.timing(
+        "sqllab.query.results_backend_read",
+        now_as_float() - read_from_results_backend_start,
+    )
+    if not blob:
+        return json_error_response(
+            "Data could not be retrieved. " "You may want to re-run the query.",
+            status=410,
+        )
+
+    query = db.session.query(Query).filter_by(results_key=key).one_or_none()
+    if query is None:
+        return json_error_response(
+            "Data could not be retrieved. You may want to re-run the query.",
+            status=404,
+        )
+
+    rejected_tables = security_manager.rejected_tables(
+        query.sql, query.database, query.schema
+    )
+    if rejected_tables:
+        return json_error_response(
+            security_manager.get_table_access_error_msg(rejected_tables), status=403
+        )
+
+    payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
+    obj: dict = _deserialize_results_payload(
+        payload, query, cast(bool, results_backend_use_msgpack)
+    )
+
+    if "rows" in request.args:
+        try:
+            rows = int(request.args["rows"])
+        except ValueError:
+            return json_error_response("Invalid `rows` argument", status=400)
+        obj = apply_display_max_row_limit(obj, rows)
+
+    return json_success(
+        json.dumps(obj, default=utils.json_iso_dttm_ser, ignore_nan=True)
+    )
+
+def save_slice(slc):
+    session = db.session()
+    msg = _("Chart [{}] has been saved").format(slc.slice_name)
+    session.add(slc)
+    session.commit()
+    flash(msg, "info")
+
+def overwrite_slice(slc):
+    session = db.session()
+    session.merge(slc)
+    session.commit()
+    msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
+    flash(msg, "info")
+
+def save_or_overwrite_slice( # pylint: disable=too-many-arguments,too-many-locals
+    args,
+    slc,
+    slice_add_perm,
+    slice_overwrite_perm,
+    slice_download_perm,
+    datasource_id,
+    datasource_type,
+    datasource_name,
+):
+    """Save or overwrite a slice"""
+    slice_name = args.get("slice_name")
+    act = args.get("action")
+    form_data = get_form_data()[0]
+
+    if act == "saveas":
+        if "slice_id" in form_data:
+            form_data.pop("slice_id")  # don't save old slice_id
+        slc = models.Slice(owners=[g.user] if g.user else [])
+
+    slc.params = json.dumps(form_data, indent=2, sort_keys=True)
+    slc.datasource_name = datasource_name
+    slc.viz_type = form_data["viz_type"]
+    slc.datasource_type = datasource_type
+    slc.datasource_id = datasource_id
+    slc.slice_name = slice_name
+
+    if act == "saveas" and slice_add_perm:
+        save_slice(slc)
+    elif act == "overwrite" and slice_overwrite_perm:
+        overwrite_slice(slc)
+
+    # Adding slice to a dashboard if requested
+    dash = None
+    if request.args.get("add_to_dash") == "existing":
+        dash = (
+            db.session.query(models.Dashboard)
+            .filter_by(id=int(request.args.get("save_to_dashboard_id")))
+            .one()
+        )
+
+        # check edit dashboard permissions
+        dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
+        if not dash_overwrite_perm:
+            return json_error_response(
+                _("You don't have the rights to ")
+                + _("alter this ")
+                + _("dashboard"),
+                status=400,
+            )
+
+        flash(
+            _("Chart [{}] was added to dashboard [{}]").format(
+                slc.slice_name, dash.dashboard_title
+            ),
+            "info",
+        )
+    elif request.args.get("add_to_dash") == "new":
+        # check create dashboard permissions
+        dash_add_perm = security_manager.can_access("can_add", "DashboardModelView")
+        if not dash_add_perm:
+            return json_error_response(
+                _("You don't have the rights to ")
+                + _("create a ")
+                + _("dashboard"),
+                status=400,
+            )
+
+        dash = models.Dashboard(
+            dashboard_title=request.args.get("new_dashboard_name"),
+            owners=[g.user] if g.user else [],
+        )
+        flash(
+            _(
+                "Dashboard [{}] just got created and chart [{}] was added " "to it"
+            ).format(dash.dashboard_title, slc.slice_name),
+            "info",
+        )
+
+    if dash and slc not in dash.slices:
+        dash.slices.append(slc)
+        db.session.commit()
+
+    response = {
+        "can_add": slice_add_perm,
+        "can_download": slice_download_perm,
+        "can_overwrite": is_owner(slc, g.user),
+        "form_data": slc.form_data,
+        "slice": slc.data,
+        "dashboard_id": dash.id if dash else None,
+    }
+
+    if request.args.get("goto_dash") == "true":
+        response.update({"dashboard": dash.url})
+
+    return json_success(json.dumps(response))
 
 def _deserialize_results_payload(
     payload: Union[bytes, str], query, use_msgpack: Optional[bool] = False
@@ -243,8 +402,8 @@ def _deserialize_results_payload(
             return json.loads(payload)  # type: ignore
 
 
-class SliceFilter(BaseFilter):
-    def apply(self, query, func):  # noqa
+class SliceFilter(BaseFilter): # pylint: disable=too-few-public-methods
+    def apply(self, query, value):  # pylint: disable=unused-argument
         if security_manager.all_datasource_access():
             return query
         perms = security_manager.user_view_menu_names("datasource_access")
@@ -254,7 +413,7 @@ class SliceFilter(BaseFilter):
         )
 
 
-class DashboardFilter(BaseFilter):
+class DashboardFilter(BaseFilter): # pylint: disable=too-few-public-methods
     """
     List dashboards with the following criteria:
         1. Those which the user owns
@@ -266,12 +425,7 @@ class DashboardFilter(BaseFilter):
     if they wish to see those dashboards which are published first
     """
 
-    def apply(self, query, func):
-        Dash = models.Dashboard
-        User = ab_models.User
-        Slice = models.Slice
-        Favorites = models.FavStar
-
+    def apply(self, query, value): # pylint: disable=unused-argument,no-self-use
         user_roles = [role.name.lower() for role in list(get_user_roles())]
         if "admin" in user_roles:
             return query
@@ -280,37 +434,37 @@ class DashboardFilter(BaseFilter):
         schema_perms = security_manager.user_view_menu_names("schema_access")
         all_datasource_access = security_manager.all_datasource_access()
         published_dash_query = (
-            db.session.query(Dash.id)
-            .join(Dash.slices)
+            db.session.query(models.Dashboard.id)
+            .join(models.Dashboard.slices)
             .filter(
                 and_(
-                    Dash.published == True,  # noqa
+                    models.Dashboard.published is True,  # noqa
                     or_(
-                        Slice.perm.in_(datasource_perms),
-                        Slice.schema_perm.in_(schema_perms),
+                        models.Slice.perm.in_(datasource_perms),
+                        models.Slice.schema_perm.in_(schema_perms),
                         all_datasource_access,
                     ),
                 )
             )
         )
 
-        users_favorite_dash_query = db.session.query(Favorites.obj_id).filter(
+        users_favorite_dash_query = db.session.query(models.FavStar.obj_id).filter(
             and_(
-                Favorites.user_id == User.get_user_id(),
-                Favorites.class_name == "Dashboard",
+                models.FavStar.user_id == ab_models.User.get_user_id(),
+                models.FavStar.class_name == "Dashboard",
             )
         )
         owner_ids_query = (
-            db.session.query(Dash.id)
-            .join(Dash.owners)
-            .filter(User.id == User.get_user_id())
+            db.session.query(models.Dashboard.id)
+            .join(models.Dashboard.owners)
+            .filter(ab_models.User.id == ab_models.User.get_user_id())
         )
 
         query = query.filter(
             or_(
-                Dash.id.in_(owner_ids_query),
-                Dash.id.in_(published_dash_query),
-                Dash.id.in_(users_favorite_dash_query),
+                models.Dashboard.id.in_(owner_ids_query),
+                models.Dashboard.id.in_(published_dash_query),
+                models.Dashboard.id.in_(users_favorite_dash_query),
             )
         )
 
@@ -319,7 +473,7 @@ class DashboardFilter(BaseFilter):
 
 if config["ENABLE_ACCESS_REQUEST"]:
 
-    class AccessRequestsModelView(SupersetModelView, DeleteMixin):
+    class AccessRequestsModelView(SupersetModelView, DeleteMixin): # pylint: disable=too-many-ancestors,too-few-public-methods
         datamodel = SQLAInterface(DAR)
         list_columns = [
             "username",
@@ -349,7 +503,7 @@ if config["ENABLE_ACCESS_REQUEST"]:
     )
 
 
-class SliceModelView(SupersetModelView, DeleteMixin):
+class SliceModelView(SupersetModelView, DeleteMixin): # pylint: disable=too-many-ancestors
     route_base = "/chart"
     datamodel = SQLAInterface(models.Slice)
 
@@ -416,15 +570,15 @@ class SliceModelView(SupersetModelView, DeleteMixin):
 
     edit_form_query_rel_fields = add_form_query_rel_fields
 
-    def pre_add(self, obj):
-        utils.validate_json(obj.params)
+    def pre_add(self, item): # pylint: disable=no-self-use
+        utils.validate_json(item.params)
 
-    def pre_update(self, obj):
-        utils.validate_json(obj.params)
-        check_ownership(obj)
+    def pre_update(self, item): # pylint: disable=no-self-use
+        utils.validate_json(item.params)
+        check_ownership(item)
 
-    def pre_delete(self, obj):
-        check_ownership(obj)
+    def pre_delete(self, item): # pylint: disable=no-self-use
+        check_ownership(item)
 
     @expose("/add", methods=["GET", "POST"])
     @has_access
@@ -451,7 +605,7 @@ appbuilder.add_view(
 )
 
 
-class SliceAsync(SliceModelView):
+class SliceAsync(SliceModelView): # pylint: disable=too-many-ancestors
     route_base = "/sliceasync"
     list_columns = [
         "id",
@@ -469,7 +623,7 @@ class SliceAsync(SliceModelView):
 appbuilder.add_view_no_menu(SliceAsync)
 
 
-class SliceAddView(SliceModelView):
+class SliceAddView(SliceModelView): # pylint: disable=too-many-ancestors
     route_base = "/sliceaddview"
     list_columns = [
         "id",
@@ -494,7 +648,7 @@ class SliceAddView(SliceModelView):
 appbuilder.add_view_no_menu(SliceAddView)
 
 
-class DashboardModelView(SupersetModelView, DeleteMixin):
+class DashboardModelView(SupersetModelView, DeleteMixin): # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(models.Dashboard)
 
@@ -558,29 +712,29 @@ class DashboardModelView(SupersetModelView, DeleteMixin):
         "table_names": _("Underlying Tables"),
     }
 
-    def pre_add(self, obj):
-        obj.slug = obj.slug or None
-        if obj.slug:
-            obj.slug = obj.slug.strip()
-            obj.slug = obj.slug.replace(" ", "-")
-            obj.slug = re.sub(r"[^\w\-]+", "", obj.slug)
-        if g.user not in obj.owners:
-            obj.owners.append(g.user)
-        utils.validate_json(obj.json_metadata)
-        utils.validate_json(obj.position_json)
-        owners = [o for o in obj.owners]
-        for slc in obj.slices:
+    def pre_add(self, item): # pylint: disable=no-self-use
+        item.slug = item.slug or None
+        if item.slug:
+            item.slug = item.slug.strip()
+            item.slug = item.slug.replace(" ", "-")
+            item.slug = re.sub(r"[^\w\-]+", "", item.slug)
+        if g.user not in item.owners:
+            item.owners.append(g.user)
+        utils.validate_json(item.json_metadata)
+        utils.validate_json(item.position_json)
+        owners = [o for o in item.owners]
+        for slc in item.slices:
             slc.owners = list(set(owners) | set(slc.owners))
 
-    def pre_update(self, obj):
-        check_ownership(obj)
-        self.pre_add(obj)
+    def pre_update(self, item):
+        check_ownership(item)
+        self.pre_add(item)
 
-    def pre_delete(self, obj):
-        check_ownership(obj)
+    def pre_delete(self, item): # pylint: disable=no-self-use
+        check_ownership(item)
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
-    def mulexport(self, items):
+    def mulexport(self, items): # pylint: disable=no-self-use
         if not isinstance(items, list):
             items = [items]
         ids = "".join("&id={}".format(d.id) for d in items)
@@ -612,7 +766,7 @@ appbuilder.add_view(
 )
 
 
-class DashboardModelViewAsync(DashboardModelView):
+class DashboardModelViewAsync(DashboardModelView): # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
     list_columns = [
         "id",
@@ -635,7 +789,7 @@ class DashboardModelViewAsync(DashboardModelView):
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
 
 
-class DashboardAddView(DashboardModelView):
+class DashboardAddView(DashboardModelView): # pylint: disable=too-many-ancestors
     route_base = "/dashboardaddview"
     list_columns = [
         "id",
@@ -678,26 +832,26 @@ class KV(BaseSupersetView):
     @event_logger.log_this
     @has_access_api
     @expose("/store/", methods=["POST"])
-    def store(self):
+    def store(self): # pylint: disable=no-self-use
         try:
             value = request.form.get("data")
             obj = models.KeyValue(value=value)
             db.session.add(obj)
             db.session.commit()
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-except
             return json_error_response(e)
         return Response(json.dumps({"id": obj.id}), status=200)
 
     @event_logger.log_this
     @has_access_api
     @expose("/<key_id>/", methods=["GET"])
-    def get_value(self, key_id):
+    def get_value(self, key_id): # pylint: disable=no-self-use
         kv = None
         try:
             kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()
             if not kv:
                 return Response(status=404, content_type="text/plain")
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-except
             return json_error_response(e)
         return Response(kv.value, status=200, content_type="text/plain")
 
@@ -705,29 +859,28 @@ class KV(BaseSupersetView):
 appbuilder.add_view_no_menu(KV)
 
 
-class R(BaseSupersetView):
+class R(BaseSupersetView): # pylint: disable=invalid-name
 
     """used for short urls"""
 
     @event_logger.log_this
     @expose("/<url_id>")
-    def index(self, url_id):
+    def index(self, url_id): # pylint: disable=no-self-use
         url = db.session.query(models.Url).filter_by(id=url_id).first()
         if url and url.url:
             explore_url = "//superset/explore/?"
             if url.url.startswith(explore_url):
                 explore_url += f"r={url_id}"
                 return redirect(explore_url[1:])
-            else:
-                return redirect(url.url[1:])
-        else:
-            flash("URL to nowhere...", "danger")
-            return redirect("/")
+            return redirect(url.url[1:])
+
+        flash("URL to nowhere...", "danger")
+        return redirect("/")
 
     @event_logger.log_this
     @has_access_api
     @expose("/shortner/", methods=["POST"])
-    def shortner(self):
+    def shortner(self): # pylint: disable=no-self-use
         url = request.form.get("data")
         obj = models.Url(url=url)
         db.session.add(obj)
@@ -758,7 +911,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/override_role_permissions/", methods=["POST"])
-    def override_role_permissions(self):
+    def override_role_permissions(self): # pylint: disable=too-many-locals
         """Updates the role with the give datasource permissions.
 
           Permissions not in the request will be revoked. This endpoint should
@@ -828,13 +981,13 @@ class Superset(BaseSupersetView):
             )
             datasources.add(datasource)
 
-        has_access = all(
+        does_have_access = all(
             (
                 datasource and security_manager.datasource_access(datasource)
                 for datasource in datasources
             )
         )
-        if has_access:
+        if does_have_access:
             return redirect("/superset/dashboard/{}".format(dashboard_id))
 
         if request.args.get("action") == "go":
@@ -856,15 +1009,17 @@ class Superset(BaseSupersetView):
     @event_logger.log_this
     @has_access
     @expose("/approve")
-    def approve(self):
+    def approve(self): # pylint: disable=too-many-locals,no-self-use
         def clean_fulfilled_requests(session):
-            for r in session.query(DAR).all():
+            for datasource_access_request in session.query(DAR).all():
                 datasource = ConnectorRegistry.get_datasource(
-                    r.datasource_type, r.datasource_id, session
+                    datasource_access_request.datasource_type,
+                    datasource_access_request.datasource_id,
+                    session
                 )
                 if not datasource or security_manager.datasource_access(datasource):
                     # datasource does not exist anymore
-                    session.delete(r)
+                    session.delete(datasource_access_request)
             session.commit()
 
         datasource_type = request.args.get("datasource_type")
@@ -951,12 +1106,12 @@ class Superset(BaseSupersetView):
         else:
             flash(__("You have no permission to approve this request"), "danger")
             return redirect("/accessrequestsmodelview/list/")
-        for r in requests:
-            session.delete(r)
+        for req in requests:
+            session.delete(req)
         session.commit()
         return redirect("/accessrequestsmodelview/list/")
 
-    def get_viz(
+    def get_viz( # pylint: disable=too-many-arguments,no-self-use
         self,
         slice_id=None,
         form_data=None,
@@ -967,20 +1122,20 @@ class Superset(BaseSupersetView):
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
             return slc.get_viz()
-        else:
-            viz_type = form_data.get("viz_type", "table")
-            datasource = ConnectorRegistry.get_datasource(
-                datasource_type, datasource_id, db.session
-            )
-            viz_obj = viz.viz_types[viz_type](
-                datasource, form_data=form_data, force=force
-            )
-            return viz_obj
+
+        viz_type = form_data.get("viz_type", "table")
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type, datasource_id, db.session
+        )
+        viz_obj = viz.viz_types[viz_type](
+            datasource, form_data=form_data, force=force
+        )
+        return viz_obj
 
     @has_access
     @expose("/slice/<slice_id>/")
-    def slice(self, slice_id):
-        form_data, slc = get_form_data(slice_id, use_slice_data=True)
+    def slice(self, slice_id): # pylint: disable=no-self-use
+        form_data, slc = get_form_data(slice_id, use_slice_data=True) # pylint: disable=unused-variable
         if not slc:
             abort(404)
         endpoint = "/superset/explore/?form_data={}".format(
@@ -997,7 +1152,7 @@ class Superset(BaseSupersetView):
             query_obj = viz_obj.query_obj()
             if query_obj:
                 query = viz_obj.datasource.get_query_str(query_obj)
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-except
             logging.exception(e)
             return json_error_response(e)
 
@@ -1016,7 +1171,7 @@ class Superset(BaseSupersetView):
     def get_samples(self, viz_obj):
         return self.json_response({"data": viz_obj.get_samples()})
 
-    def generate_json(
+    def generate_json( # pylint: disable=too-many-arguments
         self, viz_obj, csv=False, query=False, results=False, samples=False
     ):
         if csv:
@@ -1060,7 +1215,7 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/annotation_json/<layer_id>")
-    def annotation_json(self, layer_id):
+    def annotation_json(self, layer_id): # pylint: disable=no-self-use
         form_data = get_form_data()[0]
         form_data["layer_id"] = layer_id
         form_data["filters"] = [{"col": "layer_id", "op": "==", "val": layer_id}]
@@ -1136,7 +1291,7 @@ class Superset(BaseSupersetView):
                     ),
                     "danger",
                 )
-            except Exception as e:
+            except Exception as e: # pylint: disable=broad-except
                 logging.exception(e)
                 flash(
                     _(
@@ -1151,7 +1306,7 @@ class Superset(BaseSupersetView):
     @event_logger.log_this
     @has_access
     @expose("/explorev2/<datasource_type>/<datasource_id>/")
-    def explorev2(self, datasource_type, datasource_id):
+    def explorev2(self, datasource_type, datasource_id): # pylint: disable=no-self-use
         """Deprecated endpoint, here for backward compatibility of urls"""
         return redirect(
             url_for(
@@ -1166,7 +1321,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
-    def explore(self, datasource_type=None, datasource_id=None):
+    def explore(self, datasource_type=None, datasource_id=None): # pylint: disable=too-many-locals,too-many-return-statements
         user_id = g.user.get_id() if g.user else None
         form_data, slc = get_form_data(use_slice_data=True)
 
@@ -1251,22 +1406,22 @@ class Superset(BaseSupersetView):
             utils.merge_request_params(form_data, request.args)
 
         # handle save or overwrite
-        action = request.args.get("action")
+        act = request.args.get("action")
 
-        if action == "overwrite" and not slice_overwrite_perm:
+        if act == "overwrite" and not slice_overwrite_perm:
             return json_error_response(
                 _("You don't have the rights to ") + _("alter this ") + _("chart"),
                 status=400,
             )
 
-        if action == "saveas" and not slice_add_perm:
+        if act == "saveas" and not slice_add_perm:
             return json_error_response(
                 _("You don't have the rights to ") + _("create a ") + _("chart"),
                 status=400,
             )
 
-        if action in ("saveas", "overwrite"):
-            return self.save_or_overwrite_slice(
+        if act in ("saveas", "overwrite"):
+            return save_or_overwrite_slice(
                 request.args,
                 slc,
                 slice_add_perm,
@@ -1317,7 +1472,7 @@ class Superset(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @expose("/filter/<datasource_type>/<datasource_id>/<column>/")
-    def filter(self, datasource_type, datasource_id, column):
+    def filter(self, datasource_type, datasource_id, column): # pylint: disable=no-self-use
         """
         Endpoint to retrieve values for specified column.
 
@@ -1339,122 +1494,12 @@ class Superset(BaseSupersetView):
         )
         return json_success(payload)
 
-    def save_or_overwrite_slice(
-        self,
-        args,
-        slc,
-        slice_add_perm,
-        slice_overwrite_perm,
-        slice_download_perm,
-        datasource_id,
-        datasource_type,
-        datasource_name,
-    ):
-        """Save or overwrite a slice"""
-        slice_name = args.get("slice_name")
-        action = args.get("action")
-        form_data = get_form_data()[0]
 
-        if action in ("saveas"):
-            if "slice_id" in form_data:
-                form_data.pop("slice_id")  # don't save old slice_id
-            slc = models.Slice(owners=[g.user] if g.user else [])
-
-        slc.params = json.dumps(form_data, indent=2, sort_keys=True)
-        slc.datasource_name = datasource_name
-        slc.viz_type = form_data["viz_type"]
-        slc.datasource_type = datasource_type
-        slc.datasource_id = datasource_id
-        slc.slice_name = slice_name
-
-        if action in ("saveas") and slice_add_perm:
-            self.save_slice(slc)
-        elif action == "overwrite" and slice_overwrite_perm:
-            self.overwrite_slice(slc)
-
-        # Adding slice to a dashboard if requested
-        dash = None
-        if request.args.get("add_to_dash") == "existing":
-            dash = (
-                db.session.query(models.Dashboard)
-                .filter_by(id=int(request.args.get("save_to_dashboard_id")))
-                .one()
-            )
-
-            # check edit dashboard permissions
-            dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
-            if not dash_overwrite_perm:
-                return json_error_response(
-                    _("You don't have the rights to ")
-                    + _("alter this ")
-                    + _("dashboard"),
-                    status=400,
-                )
-
-            flash(
-                _("Chart [{}] was added to dashboard [{}]").format(
-                    slc.slice_name, dash.dashboard_title
-                ),
-                "info",
-            )
-        elif request.args.get("add_to_dash") == "new":
-            # check create dashboard permissions
-            dash_add_perm = security_manager.can_access("can_add", "DashboardModelView")
-            if not dash_add_perm:
-                return json_error_response(
-                    _("You don't have the rights to ")
-                    + _("create a ")
-                    + _("dashboard"),
-                    status=400,
-                )
-
-            dash = models.Dashboard(
-                dashboard_title=request.args.get("new_dashboard_name"),
-                owners=[g.user] if g.user else [],
-            )
-            flash(
-                _(
-                    "Dashboard [{}] just got created and chart [{}] was added " "to it"
-                ).format(dash.dashboard_title, slc.slice_name),
-                "info",
-            )
-
-        if dash and slc not in dash.slices:
-            dash.slices.append(slc)
-            db.session.commit()
-
-        response = {
-            "can_add": slice_add_perm,
-            "can_download": slice_download_perm,
-            "can_overwrite": is_owner(slc, g.user),
-            "form_data": slc.form_data,
-            "slice": slc.data,
-            "dashboard_id": dash.id if dash else None,
-        }
-
-        if request.args.get("goto_dash") == "true":
-            response.update({"dashboard": dash.url})
-
-        return json_success(json.dumps(response))
-
-    def save_slice(self, slc):
-        session = db.session()
-        msg = _("Chart [{}] has been saved").format(slc.slice_name)
-        session.add(slc)
-        session.commit()
-        flash(msg, "info")
-
-    def overwrite_slice(self, slc):
-        session = db.session()
-        session.merge(slc)
-        session.commit()
-        msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
-        flash(msg, "info")
 
     @api
     @has_access_api
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=["GET"])
-    def checkbox(self, model_view, id_, attr, value):
+    def checkbox(self, model_view, id_, attr, value): # pylint: disable=no-self-use
         """endpoint for checking/unchecking any boolean in a sqla model"""
         modelview_to_model = {
             "{}ColumnInlineView".format(name.capitalize()): source.column_class
@@ -1475,7 +1520,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/schemas/<db_id>/")
     @expose("/schemas/<db_id>/<force_refresh>/")
-    def schemas(self, db_id, force_refresh="false"):
+    def schemas(self, db_id, force_refresh="false"): # pylint: disable=no-self-use
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == "true"
         database = db.session.query(models.Database).filter_by(id=db_id).first()
@@ -1495,7 +1540,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/tables/<db_id>/<schema>/<substr>/")
     @expose("/tables/<db_id>/<schema>/<substr>/<force_refresh>/")
-    def tables(self, db_id, schema, substr, force_refresh="false"):
+    def tables(self, db_id, schema, substr, force_refresh="false"): # pylint: disable=too-many-locals,no-self-use
         """Endpoint to fetch the list of tables for given database"""
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == "true"
@@ -1649,7 +1694,7 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps({"status": "SUCCESS"}))
 
     @staticmethod
-    def _set_dash_metadata(dashboard, data):
+    def _set_dash_metadata(dashboard, data): # pylint: disable=too-many-locals,too-many-branches
         positions = data["positions"]
         # find slices in the position data
         slice_ids = []
@@ -1664,8 +1709,11 @@ class Superset(BaseSupersetView):
                     pass
 
         session = db.session()
-        Slice = models.Slice
-        current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        current_slices = session.query(
+                models.Slice
+            ).filter(
+                models.Slice.id.in_(slice_ids)
+            ).all()
 
         dashboard.slices = current_slices
 
@@ -1719,14 +1767,13 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/add_slices/<dashboard_id>/", methods=["POST"])
-    def add_slices(self, dashboard_id):
+    def add_slices(self, dashboard_id): # pylint: disable=no-self-use
         """Add and save slices to a dashboard"""
         data = json.loads(request.form.get("data"))
         session = db.session()
-        Slice = models.Slice
         dash = session.query(models.Dashboard).filter_by(id=dashboard_id).first()
         check_ownership(dash, raise_if_false=True)
-        new_slices = session.query(Slice).filter(Slice.id.in_(data["slice_ids"]))
+        new_slices = session.query(models.Slice).filter(models.Slice.id.in_(data["slice_ids"]))
         dash.slices += new_slices
         session.merge(dash)
         session.commit()
@@ -1736,15 +1783,17 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/testconn", methods=["POST", "GET"])
-    def testconn(self):
+    def testconn(self): # pylint: disable=no-self-use
         """Tests a sqla connection"""
         try:
             db_name = request.json.get("name")
             uri = request.json.get("uri")
 
-            # if the database already exists in the database, only its safe (password-masked) URI
+            # if the database already exists in the database,
+            # only its safe (password-masked) URI
             # would be shown in the UI and would be passed in the form data.
-            # so if the database already exists and the form was submitted with the safe URI,
+            # so if the database already exists and the
+            # form was submitted with the safe URI,
             # we assume we should retrieve the decrypted URI to test the connection.
             if db_name:
                 existing_database = (
@@ -1757,7 +1806,8 @@ class Superset(BaseSupersetView):
 
             # this is the database instance that will be tested
             database = models.Database(
-                # extras is sent as json, but required to be a string in the Database model
+                # extras is sent as json, but required to
+                # be a string in the Database model
                 extra=json.dumps(request.json.get("extras", {})),
                 impersonate_user=request.json.get("impersonate_user"),
                 encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
@@ -1770,7 +1820,7 @@ class Superset(BaseSupersetView):
             with closing(engine.connect()) as conn:
                 conn.scalar(select([1]))
                 return json_success('"OK"')
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-except
             logging.exception(e)
             return json_error_response(
                 "Connection failed!\n\n" "The error message returned was:\n{}".format(e)
@@ -1779,26 +1829,24 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/recent_activity/<user_id>/", methods=["GET"])
-    def recent_activity(self, user_id):
+    def recent_activity(self, user_id): # pylint: disable=no-self-use
         """Recent activity (actions) for a given user"""
-        M = models
-
         if request.args.get("limit"):
             limit = int(request.args.get("limit"))
         else:
             limit = 1000
 
         qry = (
-            db.session.query(M.Log, M.Dashboard, M.Slice)
-            .outerjoin(M.Dashboard, M.Dashboard.id == M.Log.dashboard_id)
-            .outerjoin(M.Slice, M.Slice.id == M.Log.slice_id)
+            db.session.query(models.Log, models.Dashboard, models.Slice)
+            .outerjoin(models.Dashboard, models.Dashboard.id == models.Log.dashboard_id)
+            .outerjoin(models.Slice, models.Slice.id == models.Log.slice_id)
             .filter(
                 and_(
-                    ~M.Log.action.in_(("queries", "shortner", "sql_json")),
-                    M.Log.user_id == user_id,
+                    ~models.Log.action.in_(("queries", "shortner", "sql_json")),
+                    models.Log.user_id == user_id,
                 )
             )
-            .order_by(M.Log.dttm.desc())
+            .order_by(models.Log.dttm.desc())
             .limit(limit)
         )
         payload = []
@@ -1833,7 +1881,7 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/available_domains/", methods=["GET"])
-    def available_domains(self):
+    def available_domains(self): # pylint: disable=no-self-use
         """
         Returns the list of available Superset Webserver domains (if any)
         defined in config. This enables charts embedded in other apps to
@@ -1854,7 +1902,7 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/fave_dashboards/<user_id>/", methods=["GET"])
-    def fave_dashboards(self, user_id):
+    def fave_dashboards(self, user_id): # pylint: disable=no-self-use
         qry = (
             db.session.query(models.Dashboard, models.FavStar.dttm)
             .join(
@@ -1886,12 +1934,11 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/created_dashboards/<user_id>/", methods=["GET"])
-    def created_dashboards(self, user_id):
-        Dash = models.Dashboard
+    def created_dashboards(self, user_id): # pylint: disable=no-self-use
         qry = (
-            db.session.query(Dash)
-            .filter(or_(Dash.created_by_fk == user_id, Dash.changed_by_fk == user_id))
-            .order_by(Dash.changed_on.desc())
+            db.session.query(models.Dashboard)
+            .filter(or_(models.Dashboard.created_by_fk == user_id, models.Dashboard.changed_by_fk == user_id))
+            .order_by(models.Dashboard.changed_on.desc())
         )
         payload = [
             {
@@ -2351,7 +2398,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
     @event_logger.log_this
-    def table(self, database_id, table_name, schema):
+    def table(self, database_id, table_name, schema): # pylint: disable=no-self-use
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
@@ -2415,7 +2462,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/extra_table_metadata/<database_id>/<table_name>/<schema>/")
     @event_logger.log_this
-    def extra_table_metadata(self, database_id, table_name, schema):
+    def extra_table_metadata(self, database_id, table_name, schema): # pylint: disable=no-self-use
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
@@ -2426,7 +2473,7 @@ class Superset(BaseSupersetView):
     @expose("/select_star/<database_id>/<table_name>")
     @expose("/select_star/<database_id>/<table_name>/<schema>")
     @event_logger.log_this
-    def select_star(self, database_id, table_name, schema=None):
+    def select_star(self, database_id, table_name, schema=None): # pylint: disable=no-self-use
         mydb = db.session.query(models.Database).filter_by(id=database_id).first()
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
@@ -2438,7 +2485,7 @@ class Superset(BaseSupersetView):
     @expose("/estimate_query_cost/<database_id>/", methods=["POST"])
     @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])
     @event_logger.log_this
-    def estimate_query_cost(self, database_id: int, schema: str = None) -> Response:
+    def estimate_query_cost(self, database_id: int, schema: str = None) -> Response: # pylint: disable=no-self-use
         mydb = db.session.query(models.Database).filter_by(id=database_id).one_or_none()
 
         sql = json.loads(request.form.get("sql", '""'))
@@ -2457,7 +2504,7 @@ class Superset(BaseSupersetView):
         except SupersetTimeoutException as e:
             logging.exception(e)
             return json_error_response(timeout_msg)
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-except
             return json_error_response(str(e))
 
         spec = mydb.db_engine_spec
@@ -2478,7 +2525,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/cached_key/<key>/")
     @event_logger.log_this
-    def cached_key(self, key):
+    def cached_key(self, key): # pylint: disable=no-self-use
         """Returns a key from the cache"""
         resp = cache.get(key)
         if resp:
@@ -2488,7 +2535,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/cache_key_exist/<key>/")
     @event_logger.log_this
-    def cache_key_exist(self, key):
+    def cache_key_exist(self, key): # pylint: disable=no-self-use
         """Returns if a key from cache exist"""
         key_exist = True if cache.get(key) else False
         status = 200 if key_exist else 404
@@ -2498,59 +2545,8 @@ class Superset(BaseSupersetView):
     @expose("/results/<key>/")
     @event_logger.log_this
     def results(self, key):
-        return self.results_exec(key)
+        return results_exec(key)
 
-    def results_exec(self, key: str):
-        """Serves a key off of the results backend
-
-        It is possible to pass the `rows` query argument to limit the number
-        of rows returned.
-        """
-        if not results_backend:
-            return json_error_response("Results backend isn't configured")
-
-        read_from_results_backend_start = now_as_float()
-        blob = results_backend.get(key)
-        stats_logger.timing(
-            "sqllab.query.results_backend_read",
-            now_as_float() - read_from_results_backend_start,
-        )
-        if not blob:
-            return json_error_response(
-                "Data could not be retrieved. " "You may want to re-run the query.",
-                status=410,
-            )
-
-        query = db.session.query(Query).filter_by(results_key=key).one_or_none()
-        if query is None:
-            return json_error_response(
-                "Data could not be retrieved. You may want to re-run the query.",
-                status=404,
-            )
-
-        rejected_tables = security_manager.rejected_tables(
-            query.sql, query.database, query.schema
-        )
-        if rejected_tables:
-            return json_error_response(
-                security_manager.get_table_access_error_msg(rejected_tables), status=403
-            )
-
-        payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
-        obj: dict = _deserialize_results_payload(
-            payload, query, cast(bool, results_backend_use_msgpack)
-        )
-
-        if "rows" in request.args:
-            try:
-                rows = int(request.args["rows"])
-            except ValueError:
-                return json_error_response("Invalid `rows` argument", status=400)
-            obj = apply_display_max_row_limit(obj, rows)
-
-        return json_success(
-            json.dumps(obj, default=utils.json_iso_dttm_ser, ignore_nan=True)
-        )
 
     @has_access_api
     @expose("/stop_query/", methods=["POST"])
@@ -2573,7 +2569,8 @@ class Superset(BaseSupersetView):
             QueryStatus.TIMED_OUT,
         ]:
             logging.error(
-                f"Query with client_id {client_id} could not be stopped: query already complete"
+                "Query with client_id %d could not be stopped: query already complete",
+                client_id
             )
             return self.json_response("OK")
         query.status = QueryStatus.STOPPED
@@ -2584,7 +2581,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/validate_sql_json/", methods=["POST", "GET"])
     @event_logger.log_this
-    def validate_sql_json(self):
+    def validate_sql_json(self): # pylint: disable=too-many-locals
         """Validates that arbitrary sql is acceptable for the given database.
         Returns a list of error/warning annotations as json.
         """
@@ -2593,7 +2590,7 @@ class Superset(BaseSupersetView):
         schema = request.form.get("schema") or None
         template_params = json.loads(request.form.get("templateParams") or "{}")
 
-        if len(template_params) > 0:
+        if template_params:
             # TODO: factor the Database object out of template rendering
             #       or provide it as mydb so we can render template params
             #       without having to also persist a Query ORM object.
@@ -3175,7 +3172,7 @@ class Superset(BaseSupersetView):
 appbuilder.add_view_no_menu(Superset)
 
 
-class CssTemplateModelView(SupersetModelView, DeleteMixin):
+class CssTemplateModelView(SupersetModelView, DeleteMixin): # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.CssTemplate)
 
     list_title = _("CSS Templates")
@@ -3189,7 +3186,7 @@ class CssTemplateModelView(SupersetModelView, DeleteMixin):
     label_columns = {"template_name": _("Template Name")}
 
 
-class CssTemplateAsyncModelView(CssTemplateModelView):
+class CssTemplateAsyncModelView(CssTemplateModelView): # pylint: disable=too-many-ancestors
     list_columns = ["template_name", "css"]
 
 
@@ -3265,13 +3262,13 @@ class RegexConverter(BaseConverter):
 app.url_map.converters["regex"] = RegexConverter
 
 
-@app.route('/<regex("panoramix\/.*"):url>')
-def panoramix(url):
+@app.route('/<regex("panoramix\/.*"):url>') # pylint: disable=anomalous-backslash-in-string
+def panoramix(url): # pylint: disable=unused-argument
     return redirect(request.full_path.replace("panoramix", "superset"))
 
 
-@app.route('/<regex("caravel\/.*"):url>')
-def caravel(url):
+@app.route('/<regex("caravel\/.*"):url>') # pylint: disable=anomalous-backslash-in-string
+def caravel(_):
     return redirect(request.full_path.replace("caravel", "superset"))
 
 
