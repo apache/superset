@@ -55,19 +55,19 @@ class DashboardApiTests(SupersetTestCase):
         db.session.commit()
         return dashboard
 
-    def get_user_id(self, username: str) -> int:
+    def get_user(self, username: str) -> "User":
         user = (
             db.session.query(security_manager.user_model)
             .filter_by(username=username)
             .one_or_none()
         )
-        return user.id
+        return user
 
     def test_delete_dashboard(self):
         """
             Dashboard API: Test delete
         """
-        admin_id = self.get_user_id("admin")
+        admin_id = self.get_user("admin").id
         dashboard_id = self.insert_dashboard("title", "slug1", [admin_id]).id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -90,7 +90,7 @@ class DashboardApiTests(SupersetTestCase):
         """
             Dashboard API: Test admin delete not owned
         """
-        gamma_id = self.get_user_id("gamma")
+        gamma_id = self.get_user("gamma").id
         dashboard_id = self.insert_dashboard("title", "slug1", [gamma_id]).id
 
         self.login(username="admin")
@@ -102,18 +102,27 @@ class DashboardApiTests(SupersetTestCase):
 
     def test_delete_dashboard_not_owned(self):
         """
-            Dashboard API: Test delete not owned
+            Dashboard API: Test delete try not owned
         """
-        # TODO
-        # Create 2 alpha users
-        # Create dashboard with alpha_1
-        # alpha_2 tries to delete that dashboard
+        user_alpha1 = self.create_user(
+            "alpha1", "password", "Alpha", email="alpha1@superset.org"
+        )
+        user_alpha2 = self.create_user(
+            "alpha2", "password", "Alpha", email="alpha2@superset.org"
+        )
+        dashboard = self.insert_dashboard("title", "slug1", [user_alpha1.id])
+        self.login(username="alpha2", password="password")
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 404)
+        db.session.delete(dashboard)
+        db.session.commit()
 
     def test_create_dashboard(self):
         """
             Dashboard API: Test create dashboard
         """
-        admin_id = self.get_user_id("admin")
+        admin_id = self.get_user("admin").id
         dashboard_data = {
             "dashboard_title": "title1",
             "slug": "slug1",
@@ -132,21 +141,134 @@ class DashboardApiTests(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    def test_create_dashboard_validations(self):
+    def test_create_simple_dashboard(self):
         """
-            Dashboard API: Test create validations
+            Dashboard API: Test create simple dashboard
         """
-        admin_id = self.get_user_id("admin")
-        dashboard_data = {
-            "dashboard_title": "",
-            "slug": "slug1",
-            "owners": [admin_id],
-            "position_json": '{"a": "A"}',
-            "css": "css",
-            "json_metadata": '{"b": "B"}',
-            "published": True,
-        }
+        dashboard_data = {"dashboard_title": "title1"}
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/"
+        rv = self.client.post(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 201)
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(models.Dashboard).get(data.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_create_dashboard_empty(self):
+        """
+            Dashboard API: Test create empty
+        """
+        dashboard_data = {}
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/"
+        rv = self.client.post(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 201)
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(models.Dashboard).get(data.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+        dashboard_data = {"dashboard_title": ""}
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/"
+        rv = self.client.post(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 201)
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(models.Dashboard).get(data.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_create_dashboard_validate_slug(self):
+        """
+            Dashboard API: Test create validate slug
+        """
+        admin_id = self.get_user("admin").id
+        dashboard = self.insert_dashboard("title1", "slug1", [admin_id])
+        dashboard_data = {"dashboard_title": "title2", "slug": "slug1"}
         self.login(username="admin")
         uri = f"api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": {"slug": ["Must be unique"]}}
+        self.assertEqual(response, expected_response)
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_create_dashboard_validate_owners(self):
+        """
+            Dashboard API: Test create validate owners
+        """
+        dashboard_data = {"dashboard_title": "title1", "owners": [1000]}
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/"
+        rv = self.client.post(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": {"owners": {"0": ["User 1000 does not exist"]}}}
+        self.assertEqual(response, expected_response)
+
+    def test_create_dashboard_validate_json(self):
+        """
+            Dashboard API: Test create validate json
+        """
+        dashboard_data = {"dashboard_title": "title1", "position_json": '{"A:"a"}'}
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/"
+        rv = self.client.post(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 422)
+
+        dashboard_data = {"dashboard_title": "title1", "json_metadata": '{"A:"a"}'}
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/"
+        rv = self.client.post(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 422)
+
+    def test_update_dashboard(self):
+        """
+            Dashboard API: Test update
+        """
+        admin_id = self.get_user("admin").id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin_id]).id
+        dashboard_data = {
+            "dashboard_title": "title1_changed",
+            "slug": "slug1_changed",
+            "owners": [admin_id],
+            "position_json": '{"b": "B"}',
+            "css": "css_changed",
+            "json_metadata": '{"a": "A"}',
+            "published": False,
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(models.Dashboard).get(dashboard_id)
+        self.assertEqual(model.dashboard_title, "title1_changed")
+        self.assertEqual(model.slug, "slug1_changed")
+        self.assertEqual(model.position_json, '{"b": "B"}')
+        self.assertEqual(model.css, "css_changed")
+        self.assertEqual(model.json_metadata, '{"a": "A"}')
+        self.assertEqual(model.published, False)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_new_owner(self):
+        """
+            Dashboard API: Test update set new owner to current user
+        """
+        gamma_id = self.get_user("gamma").id
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard("title1", "slug1", [gamma_id]).id
+        dashboard_data = {"dashboard_title": "title1_changed"}
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(models.Dashboard).get(dashboard_id)
+        self.assertIn(admin, model.owners)
+        for slc in model.slices:
+            self.assertIn(admin, slc.owners)
+        db.session.delete(model)
+        db.session.commit()

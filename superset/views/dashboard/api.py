@@ -41,27 +41,40 @@ def validate_json(value):
 
 
 def validate_slug_uniqueness(value):
-    item = (
-        current_app.appbuilder.get_session.query(models.Dashboard)
-        .filter_by(slug=value)
-        .one_or_none()
-    )
-    if item:
-        raise ValidationError("Must be unique")
+    # slug is not required but must be unique
+    if value:
+        item = (
+            current_app.appbuilder.get_session.query(models.Dashboard)
+            .filter_by(slug=value)
+            .one_or_none()
+        )
+        if item:
+            raise ValidationError("Must be unique")
 
 
 def validate_owners(value):
-    current_app.appbuilder.get_session.query(current_app.appbuilder.sm.user_model).get(
-        value
-    )
-    if not value:
+    owner = current_app.appbuilder.get_session.query(
+        current_app.appbuilder.sm.user_model
+    ).get(value)
+    if not owner:
         raise ValidationError(f"User {value} does not exist")
 
 
-class DashboardPostSchema(Schema):
-    dashboard_title = fields.String(required=True, validate=Length(1, 500))
+class BaseDashboardSchema(Schema):
+    @pre_load
+    def pre_load(self, data):
+        data["slug"] = data.get("slug")
+        data["owners"] = data.get("owners", [])
+        if data["slug"]:
+            data["slug"] = data["slug"].strip()
+            data["slug"] = data["slug"].replace(" ", "-")
+            data["slug"] = re.sub(r"[^\w\-]+", "", data["slug"])
+
+
+class DashboardPostSchema(BaseDashboardSchema):
+    dashboard_title = fields.String(allow_none=True, validate=Length(0, 500))
     slug = fields.String(
-        required=True, validate=[Length(1, 255), validate_slug_uniqueness]
+        allow_none=True, validate=[Length(1, 255), validate_slug_uniqueness]
     )
     owners = fields.List(fields.Integer(validate=validate_owners))
     position_json = fields.String(validate=validate_json)
@@ -82,29 +95,15 @@ class DashboardPostSchema(Schema):
             new_data["owners"].append(user)
         return models.Dashboard(**new_data)
 
-    @pre_load
-    def pre_load(self, data):
-        data["slug"] = data.get("slug")
-        data["owners"] = data.get("owners", [])
-        if data["slug"]:
-            data["slug"] = data["slug"].strip()
-            data["slug"] = data["slug"].replace(" ", "-")
-            data["slug"] = re.sub(r"[^\w\-]+", "", data["slug"])
 
-
-class DashboardPutSchema(Schema):
+class DashboardPutSchema(BaseDashboardSchema):
     dashboard_title = fields.String(validate=Length(0, 500))
-    slug = fields.String(validate=Length(0, 255))
+    slug = fields.String(allow_none=True, validate=Length(1, 255))
     owners = fields.List(fields.Integer(validate=validate_owners))
     position_json = fields.String(validate=validate_json)
     css = fields.String()
     json_metadata = fields.String(validate=validate_json)
     published = fields.Boolean()
-
-    @post_load
-    def post_load(self, data):
-        print(f"POST LOAD")
-        return data
 
 
 class DashboardRestApi(DashboardMixin, ModelRestApi):
@@ -113,7 +112,7 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
     resource_name = "dashboard"
     allow_browser_login = True
 
-    class_permission_name = "DatabaseAsync"
+    class_permission_name = "DashboardRestApi"
     method_permission_name = {
         "get_list": "list",
         "get": "show",
@@ -242,7 +241,7 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
         if changed_item.errors:
             return self.response_422(message=changed_item.errors)
         try:
-            self.merge_item(item, changed_item.data)
+            self.update_dashboard(item, changed_item.data)
             current_app.appbuilder.get_session.commit()
             return self.response(
                 200,
@@ -251,7 +250,10 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
 
-    def merge_item(self, item, data):
+    def update_dashboard(self, item, data):
+        # Always add current user has an updated dashboard owner
+        if "owners" not in data and g.user not in item.owners:
+            item.owners.append(g.user)
         for field in data:
             if field == "owners":
                 new_owners = list()
@@ -265,6 +267,8 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
                     item.owners = new_owners
             else:
                 setattr(item, field, data.get(field))
+        for slc in item.slices:
+            slc.owners = list(set(item.owners) | set(slc.owners))
 
 
 appbuilder.add_api(DashboardRestApi)
