@@ -66,7 +66,7 @@ def _try_json_readversion(filepath):
         return None
 
 
-def _try_json_readsha(filepath, length):
+def _try_json_readsha(filepath, length): # pylint: disable=unused-argument
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("GIT_SHA")

@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
+from typing import List  # pylint: disable=unused-import
+
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from wtforms import Field
 
 
 class CommaSeparatedListField(Field):
     widget = BS3TextFieldWidget()
-    data = []
+    data = []  # type: List[str]
 
     def _value(self):
         if self.data:
