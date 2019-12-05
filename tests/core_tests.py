@@ -984,6 +984,9 @@ class CoreTests(SupersetTestCase):
             self.assertTrue(html in data)
 
     def test_sqllab_backend_persistence_payload(self):
+        sqllab_backend_persistence = app.config.get("SQLLAB_BACKEND_PERSISTENCE")
+        app.config["SQLLAB_BACKEND_PERSISTENCE"] = True
+
         self.login("admin")
 
         # create a tab
@@ -1018,12 +1021,12 @@ class CoreTests(SupersetTestCase):
             raise_on_error=True,
         )
 
-        app.config["SQLLAB_BACKEND_PERSISTENCE"] = True
-        payload = views.Superset._get_sqllab_payload(user_id=1)
-
         # we should have only 1 query returned, since the second one is not
         # associated with any tabs
+        payload = views.Superset._get_sqllab_payload(user_id=1)
         self.assertEqual(len(payload["queries"]), 1)
+
+        app.config["SQLLAB_BACKEND_PERSISTENCE"] = sqllab_backend_persistence
 
 
 if __name__ == "__main__":
