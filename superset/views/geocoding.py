@@ -145,6 +145,7 @@ class Geocoder(BaseSupersetView):
             return json_error_response(e.args[0], status=400)
         except SqlSelectException as e:
             return json_error_response(e.args[0], status=500)
+        # TODO do we need this broad except clause? if yes we can remove the previous one
         except Exception as e:
             return json_error_response(e.args[0], status=500)
 
@@ -158,10 +159,9 @@ class Geocoder(BaseSupersetView):
             self._insert_geocoded_data(
                 table_name.get("fullName"), lat_column, lon_column, columns, data[0]
             )
-        except SqlAddColumnException as e:
+        except (SqlAddColumnException, SqlUpdateException) as e:
             return json_error_response(e.args[0], status=500)
-        except SqlUpdateException as e:
-            return json_error_response(e.args[0], status=500)
+        # TODO is this needed? if we have this we could remove the previous statement
         except Exception as e:
             return json_error_response(e.args[0], status=500)
 
@@ -356,7 +356,7 @@ class Geocoder(BaseSupersetView):
                 where = "WHERE " + where_clause % (tuple(row[:number_of_columns]))
                 connection.execute(text(update + where))
             transaction.commit()
-        except Exception as e:
+        except Exception:
             transaction.rollback()
             raise SqlUpdateException(
                 "An error occured while inserting geocoded addresses"
