@@ -22,6 +22,7 @@ from typing import Union
 from unittest.mock import Mock
 
 import pandas as pd
+from flask_appbuilder.security.models import User
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 
@@ -52,7 +53,7 @@ class SupersetTestCase(TestCase):
         first_name: str = "admin",
         last_name: str = "user",
         email: str = "admin@fab.org",
-    ) -> Union["User", bool]:
+    ) -> Union[User, bool]:
         role_admin = security_manager.find_role(role_name)
         return security_manager.add_user(
             username, first_name, last_name, email, role_admin, password

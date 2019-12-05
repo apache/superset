@@ -431,7 +431,7 @@ appbuilder.add_view_no_menu(SliceAddView)
 from .dashboard import (
     api as dashboard_api,
     views as dash_views,
-)  # pylint: disable=import-error # isort:skip
+)  # isort:skip
 
 
 @talisman(force_https=False)
