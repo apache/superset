@@ -454,14 +454,16 @@ function nvd3Vis(element, props) {
     }
 
     if (canShowBrush && onBrushEnd !== NOOP) {
-      chart.focus.dispatch.on('brush', event => {
-        const timeRange = stringifyTimeRange(event.extent);
-        if (timeRange) {
-          event.brush.on('brushend', () => {
-            onBrushEnd(timeRange);
-          });
-        }
-      });
+      if (chart.focus) {
+        chart.focus.dispatch.on('brush', event => {
+          const timeRange = stringifyTimeRange(event.extent);
+          if (timeRange) {
+            event.brush.on('brushend', () => {
+              onBrushEnd(timeRange);
+            });
+          }
+        });
+      }
     }
 
     if (chart.xAxis && chart.xAxis.staggerLabels) {
@@ -970,22 +972,24 @@ function nvd3Vis(element, props) {
               }
 
               // update annotation positions on brush event
-              chart.focus.dispatch.on('onBrush.event-annotation', () => {
-                annotations
-                  .selectAll('line')
-                  .data(records)
-                  .attr({
-                    x1: d => xScale(new Date(d[e.timeColumn])),
-                    y1: 0,
-                    x2: d => xScale(new Date(d[e.timeColumn])),
-                    y2: annotationHeight,
-                    opacity: d => {
-                      const x = xScale(new Date(d[e.timeColumn]));
+              if (chart.focus) {
+                chart.focus.dispatch.on('onBrush.event-annotation', () => {
+                  annotations
+                    .selectAll('line')
+                    .data(records)
+                    .attr({
+                      x1: d => xScale(new Date(d[e.timeColumn])),
+                      y1: 0,
+                      x2: d => xScale(new Date(d[e.timeColumn])),
+                      y2: annotationHeight,
+                      opacity: d => {
+                        const x = xScale(new Date(d[e.timeColumn]));
 
-                      return x > 0 && x < chartWidth ? 1 : 0;
-                    },
-                  });
-              });
+                        return x > 0 && x < chartWidth ? 1 : 0;
+                      },
+                    });
+                });
+              }
             });
 
           // Interval annotations
@@ -1059,20 +1063,22 @@ function nvd3Vis(element, props) {
               }
 
               // update annotation positions on brush event
-              chart.focus.dispatch.on('onBrush.interval-annotation', () => {
-                annotations
-                  .selectAll('rect')
-                  .data(records)
-                  .attr({
-                    x: d => xScale(new Date(d[e.timeColumn])),
-                    width: d => {
-                      const x1 = xScale(new Date(d[e.timeColumn]));
-                      const x2 = xScale(new Date(d[e.intervalEndColumn]));
+              if (chart.focus) {
+                chart.focus.dispatch.on('onBrush.interval-annotation', () => {
+                  annotations
+                    .selectAll('rect')
+                    .data(records)
+                    .attr({
+                      x: d => xScale(new Date(d[e.timeColumn])),
+                      width: d => {
+                        const x1 = xScale(new Date(d[e.timeColumn]));
+                        const x2 = xScale(new Date(d[e.intervalEndColumn]));
 
-                      return x2 - x1;
-                    },
-                  });
-              });
+                        return x2 - x1;
+                      },
+                    });
+                });
+              }
             });
         }
 
