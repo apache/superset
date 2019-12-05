@@ -14,12 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import re
-
-from flask import g
 from flask_babel import lazy_gettext as _
-
-from superset.utils import core as utils
 
 from ..base import check_ownership
 from .filters import DashboardFilter
@@ -86,24 +81,6 @@ class DashboardMixin:
         "json_metadata": _("JSON Metadata"),
         "table_names": _("Underlying Tables"),
     }
-
-    def pre_add(self, obj):
-        obj.slug = obj.slug or None
-        if obj.slug:
-            obj.slug = obj.slug.strip()
-            obj.slug = obj.slug.replace(" ", "-")
-            obj.slug = re.sub(r"[^\w\-]+", "", obj.slug)
-        if g.user not in obj.owners:
-            obj.owners.append(g.user)
-        utils.validate_json(obj.json_metadata)
-        utils.validate_json(obj.position_json)
-        owners = [o for o in obj.owners]
-        for slc in obj.slices:
-            slc.owners = list(set(owners) | set(slc.owners))
-
-    def pre_update(self, obj):
-        check_ownership(obj)
-        self.pre_add(obj)
 
     def pre_delete(self, obj):
         check_ownership(obj)

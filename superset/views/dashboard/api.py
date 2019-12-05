@@ -97,8 +97,8 @@ class DashboardPostSchema(BaseDashboardSchema):
 
 
 class DashboardPutSchema(BaseDashboardSchema):
-    dashboard_title = fields.String(validate=Length(0, 500))
-    slug = fields.String(allow_none=True, validate=Length(1, 255))
+    dashboard_title = fields.String(allow_none=True, validate=Length(0, 500))
+    slug = fields.String(allow_none=True, validate=Length(0, 255))
     owners = fields.List(fields.Integer(validate=validate_owners))
     position_json = fields.String(validate=validate_json)
     css = fields.String()
@@ -121,7 +121,7 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
         "delete": "delete",
         "info": "list",
     }
-
+    exclude_route_methods = ("info",)
     show_columns = [
         "dashboard_title",
         "slug",

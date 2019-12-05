@@ -23,9 +23,11 @@ from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
 from superset import appbuilder, db, event_logger
+from superset.utils import core as utils
 
 from ..base import (
     BaseSupersetView,
+    check_ownership,
     DeleteMixin,
     generate_download_headers,
     SupersetModelView,
@@ -58,6 +60,24 @@ class DashboardModelView(DashboardMixin, SupersetModelView, DeleteMixin):
         return self.render_template(
             "superset/export_dashboards.html", dashboards_url="/dashboard/list"
         )
+
+    def pre_add(self, obj):
+        obj.slug = obj.slug or None
+        if obj.slug:
+            obj.slug = obj.slug.strip()
+            obj.slug = obj.slug.replace(" ", "-")
+            obj.slug = re.sub(r"[^\w\-]+", "", obj.slug)
+        if g.user not in obj.owners:
+            obj.owners.append(g.user)
+        utils.validate_json(obj.json_metadata)
+        utils.validate_json(obj.position_json)
+        owners = [o for o in obj.owners]
+        for slc in obj.slices:
+            slc.owners = list(set(owners) | set(slc.owners))
+
+    def pre_update(self, obj):
+        check_ownership(obj)
+        self.pre_add(obj)
 
 
 appbuilder.add_view(

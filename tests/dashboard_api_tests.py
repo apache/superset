@@ -179,20 +179,47 @@ class DashboardApiTests(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
+    def test_create_dashboard_validate_title(self):
+        """
+            Dashboard API: Test create dashboard validate title
+        """
+        dashboard_data = {"dashboard_title": "a" * 600}
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/"
+        rv = self.client.post(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "message": {"dashboard_title": ["Length must be between 0 and 500."]}
+        }
+        self.assertEqual(response, expected_response)
+
     def test_create_dashboard_validate_slug(self):
         """
             Dashboard API: Test create validate slug
         """
         admin_id = self.get_user("admin").id
         dashboard = self.insert_dashboard("title1", "slug1", [admin_id])
-        dashboard_data = {"dashboard_title": "title2", "slug": "slug1"}
         self.login(username="admin")
+
+        # Check for slug uniqueness
+        dashboard_data = {"dashboard_title": "title2", "slug": "slug1"}
         uri = f"api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"message": {"slug": ["Must be unique"]}}
         self.assertEqual(response, expected_response)
+
+        # Check for slug max size
+        dashboard_data = {"dashboard_title": "title2", "slug": "a" * 256}
+        uri = f"api/v1/dashboard/"
+        rv = self.client.post(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": {"slug": ["Length must be between 1 and 255."]}}
+        self.assertEqual(response, expected_response)
+
         db.session.delete(dashboard)
         db.session.commit()
 
@@ -270,5 +297,22 @@ class DashboardApiTests(SupersetTestCase):
         self.assertIn(admin, model.owners)
         for slc in model.slices:
             self.assertIn(admin, slc.owners)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_slug_formatting(self):
+        """
+            Dashboard API: Test update slug formatting
+        """
+        admin_id = self.get_user("admin").id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin_id]).id
+        dashboard_data = {"dashboard_title": "title1_changed", "slug": "slug1 changed"}
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(models.Dashboard).get(dashboard_id)
+        self.assertEqual(model.dashboard_title, "title1_changed")
+        self.assertEqual(model.slug, "slug1-changed")
         db.session.delete(model)
         db.session.commit()
