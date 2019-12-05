@@ -133,20 +133,42 @@ class Geocoder(BaseSupersetView):
         data = [()]
 
         try:
-            # TODO set not override in brace
             table_dto = request.json.get("datasource", models.TableDto())
             table_id = table_dto.get("id", "")
-            if (not override_if_exist) and self._does_column_name_exist(
-                table_id, lat_column
-            ):
-                raise ValueError(
-                    "Column name {0} for latitude is already in use".format(lat_column)
-                )
-            if (not override_if_exist) and self._does_column_name_exist(
-                table_id, lon_column
-            ):
-                raise ValueError(
-                    "Column name {0} for longitude is already in use".format(lon_column)
+            lat_exists = self._does_column_name_exist(table_id, lat_column)
+            lon_exists = self._does_column_name_exist(table_id, lon_column)
+            # TODO handle removing the columns in case of failure, problem with which columns existed beforehand
+            if override_if_exist:
+                if lat_exists:
+                    if lon_exists:
+                        pass
+                    else:
+                        pass
+                        # only add lon column
+                else:
+                    if lon_exists:
+                        pass
+                        # only add lat column
+                    else:
+                        self._add_lat_lon_columns(
+                            table_name.get("fullName"), lat_column, lon_column
+                        )
+
+            else:
+                if self._does_column_name_exist(table_id, lat_column):
+                    raise ValueError(
+                        "Column name {0} for latitude is already in use".format(
+                            lat_column
+                        )
+                    )
+                if self._does_column_name_exist(table_id, lon_column):
+                    raise ValueError(
+                        "Column name {0} for longitude is already in use".format(
+                            lon_column
+                        )
+                    )
+                self._add_lat_lon_columns(
+                    table_name.get("fullName"), lat_column, lon_column
                 )
 
             data = self._load_data_from_columns(table_id, columns)
@@ -165,10 +187,6 @@ class Geocoder(BaseSupersetView):
                 return json_error_response(e.args[0])
 
         try:
-            if not override_if_exist:
-                self._add_lat_lon_columns(
-                    table_name.get("fullName"), lat_column, lon_column
-                )
             self._insert_geocoded_data(
                 table_name.get("fullName"), lat_column, lon_column, columns, data[0]
             )
