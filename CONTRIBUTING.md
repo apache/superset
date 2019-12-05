@@ -809,6 +809,8 @@ Here's an example as a Github PR with comments that describe what the
 different sections of the code do:
 https://github.com/apache/incubator-superset/pull/3013
 
+To run Superset using visualization plugins from your local machine, run `npm run plugin-devmode-on`. This will use `npm link` to connect the Superset frontend to your local copy of [superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins). This command uses the environment variable `SUPERSET_UI_PLUGINS_PATH` to determine the path, defaulting to `../superset-ui-plugins`. Run `npm run plugin-devmode-off` to undo the linking.
+
 ### Adding a DB migration
 
 1. Alter the model you want to change. This example will add a `Column` Annotations model.
