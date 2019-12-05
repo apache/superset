@@ -136,13 +136,13 @@ class Geocoder(BaseSupersetView):
             # TODO set not override in brace
             table_dto = request.json.get("datasource", models.TableDto())
             table_id = table_dto.get("id", "")
-            if not override_if_exist and self._does_column_name_exist(
+            if (not override_if_exist) and self._does_column_name_exist(
                 table_id, lat_column
             ):
                 raise ValueError(
                     "Column name {0} for latitude is already in use".format(lat_column)
                 )
-            if not override_if_exist and self._does_column_name_exist(
+            if (not override_if_exist) and self._does_column_name_exist(
                 table_id, lon_column
             ):
                 raise ValueError(
@@ -165,9 +165,10 @@ class Geocoder(BaseSupersetView):
                 return json_error_response(e.args[0])
 
         try:
-            self._add_lat_lon_columns(
-                table_name.get("fullName"), lat_column, lon_column
-            )
+            if not override_if_exist:
+                self._add_lat_lon_columns(
+                    table_name.get("fullName"), lat_column, lon_column
+                )
             self._insert_geocoded_data(
                 table_name.get("fullName"), lat_column, lon_column, columns, data[0]
             )
@@ -209,8 +210,12 @@ class Geocoder(BaseSupersetView):
             # TODO SQL Injection Check
             table = self._get_table(id)
             column_list = self._create_column_list(columns)
-            sql = "SELECT " + column_list + " FROM \"%s\"" % table.table_name
-            database = (db.session.query(models.Database).filter_by(id=table.database_id).first())
+            sql = "SELECT " + column_list + ' FROM "%s"' % table.table_name
+            database = (
+                db.session.query(models.Database)
+                .filter_by(id=table.database_id)
+                .first()
+            )
             result = database.get_sqla_engine().connect().execute(sql)
             return [row for row in result]
         except Exception as e:
@@ -220,9 +225,7 @@ class Geocoder(BaseSupersetView):
             )
 
     def _get_table(selfs, id: int):
-        return (
-            db.session.query(SqlaTable).filter_by(id=id).first()
-        )
+        return db.session.query(SqlaTable).filter_by(id=id).first()
 
     def _create_column_list(self, columns):
         column_list = []
