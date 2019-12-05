@@ -86,6 +86,8 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                     datum.append(str(center_coordinates[0]))
                     datum.append(str(center_coordinates[1]))
                     geocoded_data.append(datum)
+                else:
+                    self.progress["failed_counter"] += 1
 
                 counter += 1
                 self.progress["progress"] = counter / data_length
