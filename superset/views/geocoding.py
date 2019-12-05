@@ -147,11 +147,15 @@ class Geocoder(BaseSupersetView):
                     if lon_exists:
                         pass
                     else:
-                        self.add_col(table_name.get("fullName"), lon_column, Float())
+                        self._add_lat_lon_columns(
+                            table_name.get("fullName"), lon_column=lon_column
+                        )
                         # only add lon column
                 else:
                     if lon_exists:
-                        self.add_col(table_name.get("fullName"), lat_column, Float())
+                        self._add_lat_lon_columns(
+                            table_name.get("fullName"), lat_column=lat_column
+                        )
                         # only add lat column
                     else:
                         self._add_lat_lon_columns(
@@ -189,7 +193,7 @@ class Geocoder(BaseSupersetView):
         except Exception as e:
             if not save_on_stop_geocoding:
                 return json_error_response(e.args[0])
-
+        # TODO use save on stop here
         try:
             self._insert_geocoded_data(
                 table_name.get("fullName"), lat_column, lon_column, columns, data[0]
@@ -219,8 +223,8 @@ class Geocoder(BaseSupersetView):
         """
         table = self._get_table(id)
         if table and table.columns:
-            column_names = [column.column_name for column in table.columns]
-        return column_name in column_names
+            column_names = [column.column_name.lower() for column in table.columns]
+        return column_name.lower() in column_names
 
     def _load_data_from_columns(self, id: int, columns: list):
         """
@@ -270,7 +274,9 @@ class Geocoder(BaseSupersetView):
         else:
             return self.geocoder_util.geocode("MapTiler", data)
 
-    def _add_lat_lon_columns(self, table_name: str, lat_column: str, lon_column: str):
+    def _add_lat_lon_columns(
+        self, table_name: str, lat_column: str = None, lon_column: str = None
+    ):
         """
         Add new longitude and latitude columns to table
         :param table_name: The table name of table to insert columns
@@ -281,8 +287,10 @@ class Geocoder(BaseSupersetView):
         connection = db.engine.connect()
         transaction = connection.begin()
         try:
-            self._add_column(connection, table_name, lat_column, Float())
-            self._add_column(connection, table_name, lon_column, Float())
+            if lat_column:
+                self._add_column(connection, table_name, lat_column, Float())
+            if lon_column:
+                self._add_column(connection, table_name, lon_column, Float())
             transaction.commit()
         except Exception as e:
             transaction.rollback()
@@ -309,21 +317,6 @@ class Geocoder(BaseSupersetView):
         type = column.type.compile(db.engine.dialect)
         sql = text("ALTER TABLE %s ADD %s %s" % (table_name, name, type))
         connection.execute(sql)
-
-    def add_col(self, table_name: str, column_name: str, column_type: str):
-        """
-        Add new column to table
-        :param connection: The connection to work with
-        :param table_name: The name of table to add a new column
-        :param column_name: The name of latitude column
-        :param column_type: The name of longitude column
-        """
-        column = Column(column_name, column_type)
-        name = column.compile(column_name, dialect=db.engine.dialect)
-        type = column.type.compile(db.engine.dialect)
-        sql = text("ALTER TABLE %s ADD %s %s" % (table_name, name, type))
-        db.session.execute(sql)
-        db.session.commit
 
     def _insert_geocoded_data(
         self,
