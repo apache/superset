@@ -147,11 +147,11 @@ class Geocoder(BaseSupersetView):
                     if lon_exists:
                         pass
                     else:
-                        pass
+                        self.add_col(table_name.get("fullName"), lon_column, Float())
                         # only add lon column
                 else:
                     if lon_exists:
-                        pass
+                        self.add_col(table_name.get("fullName"), lat_column, Float())
                         # only add lat column
                     else:
                         self._add_lat_lon_columns(
@@ -309,6 +309,21 @@ class Geocoder(BaseSupersetView):
         type = column.type.compile(db.engine.dialect)
         sql = text("ALTER TABLE %s ADD %s %s" % (table_name, name, type))
         connection.execute(sql)
+
+    def add_col(self, table_name: str, column_name: str, column_type: str):
+        """
+        Add new column to table
+        :param connection: The connection to work with
+        :param table_name: The name of table to add a new column
+        :param column_name: The name of latitude column
+        :param column_type: The name of longitude column
+        """
+        column = Column(column_name, column_type)
+        name = column.compile(column_name, dialect=db.engine.dialect)
+        type = column.type.compile(db.engine.dialect)
+        sql = text("ALTER TABLE %s ADD %s %s" % (table_name, name, type))
+        db.session.execute(sql)
+        db.session.commit
 
     def _insert_geocoded_data(
         self,
