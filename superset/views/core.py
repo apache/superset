@@ -99,8 +99,8 @@ from .base import (
     json_success,
     SupersetModelView,
 )
+from .dashboard import api as dashboard_api, views as dash_views
 from .dashboard.filters import DashboardFilter
-from .dashboard.views import DashboardModelView
 from .database import api as database_api, views as in_views
 from .utils import (
     apply_display_max_row_limit,
@@ -431,7 +431,7 @@ appbuilder.add_view_no_menu(SliceAddView)
 
 
 appbuilder.add_view(
-    DashboardModelView,
+    dash_views.DashboardModelView,
     "Dashboards",
     label=__("Dashboards"),
     icon="fa-dashboard",

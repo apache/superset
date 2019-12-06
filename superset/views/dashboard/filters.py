@@ -37,10 +37,10 @@ class DashboardFilter(BaseFilter):
     """
 
     def apply(self, query, func):
-        Dash = models.Dashboard
-        User = ab_models.User
-        Slice = models.Slice
-        Favorites = models.FavStar
+        dash = models.Dashboard
+        user = ab_models.User
+        slice = models.Slice
+        favorites = models.FavStar
 
         user_roles = [role.name.lower() for role in list(get_user_roles())]
         if "admin" in user_roles:
@@ -50,37 +50,37 @@ class DashboardFilter(BaseFilter):
         schema_perms = security_manager.user_view_menu_names("schema_access")
         all_datasource_access = security_manager.all_datasource_access()
         published_dash_query = (
-            db.session.query(Dash.id)
-            .join(Dash.slices)
+            db.session.query(dash.id)
+            .join(dash.slices)
             .filter(
                 and_(
-                    Dash.published == True,  # noqa
+                    dash.published == True,  # pylint: disable=singleton-comparison
                     or_(
-                        Slice.perm.in_(datasource_perms),
-                        Slice.schema_perm.in_(schema_perms),
+                        slice.perm.in_(datasource_perms),
+                        slice.schema_perm.in_(schema_perms),
                         all_datasource_access,
                     ),
                 )
             )
         )
 
-        users_favorite_dash_query = db.session.query(Favorites.obj_id).filter(
+        users_favorite_dash_query = db.session.query(favorites.obj_id).filter(
             and_(
-                Favorites.user_id == User.get_user_id(),
-                Favorites.class_name == "Dashboard",
+                favorites.user_id == user.get_user_id(),
+                favorites.class_name == "Dashboard",
             )
         )
         owner_ids_query = (
-            db.session.query(Dash.id)
-            .join(Dash.owners)
-            .filter(User.id == User.get_user_id())
+            db.session.query(dash.id)
+            .join(dash.owners)
+            .filter(user.id == user.get_user_id())
         )
 
         query = query.filter(
             or_(
-                Dash.id.in_(owner_ids_query),
-                Dash.id.in_(published_dash_query),
-                Dash.id.in_(users_favorite_dash_query),
+                dash.id.in_(owner_ids_query),
+                dash.id.in_(published_dash_query),
+                dash.id.in_(users_favorite_dash_query),
             )
         )
 
