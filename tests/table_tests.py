@@ -19,6 +19,7 @@ import pandas as pd
 
 from datetime import datetime
 from superset.table import dedup, SupersetTable
+from superset.dataframe import df_to_dict
 from superset.db_engine_specs import BaseEngineSpec
 
 from .base_tests import SupersetTestCase
@@ -127,6 +128,21 @@ class SupersetTableTestCase(SupersetTestCase):
         cursor_descr = [("user_id", "bigint", None, None, None, None, True)]
         table = SupersetTable(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(table.columns[0]["type"], "BIGINT")
+
+    def test_nullable_bool(self):
+        data = [(None,), (True,), (None,), (None,), (None,), (None,)]
+        cursor_descr = [("is_test", "bool", None, None, None, None, True)]
+        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(table.columns[0]["type"], "BOOL")
+        df = table.to_pandas_df()
+        self.assertEqual(df_to_dict(df), [
+            {"is_test": None},
+            {"is_test": True},
+            {"is_test": None},
+            {"is_test": None},
+            {"is_test": None},
+            {"is_test": None},
+        ])
 
     def test_empty_datetime(self):
         data = [(None,)]
