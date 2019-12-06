@@ -74,22 +74,27 @@ if (isDevMode) {
   );
 
   // now check which packages in node_modules are symlinks
-  const linkedDirs = fs.readdirSync('./node_modules/@superset-ui', { withFileTypes: true })
-    .filter(entity =>
-      entity.isSymbolicLink() && pluginNameSet.has(`@superset-ui/${entity.name}`),
+  const linkedDirs = fs
+    .readdirSync('./node_modules/@superset-ui', { withFileTypes: true })
+    .filter(
+      entity =>
+        entity.isSymbolicLink() &&
+        pluginNameSet.has(`@superset-ui/${entity.name}`),
     );
 
   if (linkedDirs.length) {
     console.log('Aliasing imports for local development:');
 
     // add an alias to the /src directory of those packages
-    linkedDirs.forEach((entity) => {
-        const packageName = '@superset-ui/' + entity.name;
-        aliases[packageName] = packageName + '/src';
-        console.log(packageName);
-      });
+    linkedDirs.forEach(entity => {
+      const packageName = '@superset-ui/' + entity.name;
+      aliases[packageName] = packageName + '/src';
+      console.log(packageName);
+    });
 
-    console.log('To disable import aliasing for local development, run `npm run plugin-devmode-off`');
+    console.log(
+      'To disable import aliasing for local development, run `npm run plugin-devmode-off`',
+    );
   }
 } else {
   output.filename = '[name].[chunkhash].entry.js';

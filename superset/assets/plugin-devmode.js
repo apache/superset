@@ -24,8 +24,8 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const PLUGINS_REPO =
-  process.env.SUPERSET_UI_PLUGINS_PATH
-  || path.resolve('../../../superset-ui-plugins');
+  process.env.SUPERSET_UI_PLUGINS_PATH ||
+  path.resolve('../../../superset-ui-plugins');
 
 const PACKAGES_ROOT = path.join(PLUGINS_REPO, 'packages');
 
