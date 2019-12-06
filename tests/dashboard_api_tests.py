@@ -18,6 +18,8 @@
 import json
 from typing import List
 
+from flask_appbuilder.security.sqla import models as ab_models
+
 from superset import db, security_manager
 from superset.models import core as models
 
@@ -55,7 +57,7 @@ class DashboardApiTests(SupersetTestCase):
         db.session.commit()
         return dashboard
 
-    def get_user(self, username: str) -> "User":
+    def get_user(self, username: str) -> ab_models.User:
         user = (
             db.session.query(security_manager.user_model)
             .filter_by(username=username)

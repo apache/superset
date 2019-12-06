@@ -82,16 +82,6 @@ class DashboardModelView(DashboardMixin, SupersetModelView, DeleteMixin):
         self.pre_add(obj)
 
 
-appbuilder.add_view(
-    DashboardModelView,
-    "Dashboards",
-    label=__("Dashboards"),
-    icon="fa-dashboard",
-    category="",
-    category_icon="",
-)
-
-
 class Dashboard(BaseSupersetView):
     """The base views for Superset!"""
 

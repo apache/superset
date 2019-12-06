@@ -100,6 +100,7 @@ from .base import (
     SupersetModelView,
 )
 from .dashboard.filters import DashboardFilter
+from .dashboard.views import DashboardModelView
 from .database import api as database_api, views as in_views
 from .utils import (
     apply_display_max_row_limit,
@@ -428,10 +429,15 @@ class SliceAddView(SliceModelView):
 
 appbuilder.add_view_no_menu(SliceAddView)
 
-from .dashboard import (
-    api as dashboard_api,
-    views as dash_views,
-)  # isort:skip
+
+appbuilder.add_view(
+    DashboardModelView,
+    "Dashboards",
+    label=__("Dashboards"),
+    icon="fa-dashboard",
+    category="",
+    category_icon="",
+)
 
 
 @talisman(force_https=False)
