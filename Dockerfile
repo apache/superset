@@ -15,6 +15,9 @@
 # limitations under the License.
 #
 
+######################################################################
+# PY stage that simply does a pip install on our requirements
+######################################################################
 ARG PY_VER=3.6.9
 FROM python:${PY_VER} AS superset-py
 
@@ -26,26 +29,37 @@ RUN mkdir /app \
             libpq-dev \
         && rm -rf /var/lib/apt/lists/*
 
-COPY ./requirements.txt ./docker/requirements-extra.txt ./setup.py ./MANIFEST.in ./README.md ./app/
-COPY superset /app/superset
-
+# First, we just wanna install requirements, which will allow us to utilize the cache
+# in order to only build if and only if requirements change
+COPY ./requirements.txt /app/
 RUN cd /app \
-        && pip install -r requirements.txt -r requirements-extra.txt \
-        && pip install -e .
+        && pip install --no-cache -r requirements.txt
 
 
+######################################################################
+# Node stage to deal with static asset construction
+######################################################################
 FROM node:10-jessie AS superset-node
 
-COPY ./superset/assets /app/superset/assets
-
+# NPM ci first, as to NOT invalidate previous steps except for when package.json changes
+RUN mkdir -p /app/superset/assets
+COPY ./superset/assets/package* /app/superset/assets/
 RUN cd /app/superset/assets \
-        && npm ci \
+        && npm ci
+
+# Next, copy in the rest and let webpack do its thing
+COPY ./superset/assets /app/superset/assets
+# This is BY FAR the most expensive step (thanks Terser!)
+RUN cd /app/superset/assets \
         && npm run build \
         && rm -rf node_modules
 
+
+######################################################################
 # Final lean image...
+######################################################################
 ARG PY_VER=3.6.9
-FROM python:${PY_VER}
+FROM python:${PY_VER} AS lean
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
@@ -57,7 +71,6 @@ ENV LANG=C.UTF-8 \
 
 RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash superset \
         && mkdir -p ${SUPERSET_HOME} ${PYTHONPATH} \
-        && chown -R superset:superset /app \
         && apt-get update -y \
         && apt-get install -y --no-install-recommends \
             build-essential \
@@ -65,13 +78,17 @@ RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash supers
             libpq-dev \
         && rm -rf /var/lib/apt/lists/*
 
-COPY --from=superset-py --chown=superset:superset /app/superset /app/superset
 COPY --from=superset-py /usr/local/lib/python3.6/site-packages/ /usr/local/lib/python3.6/site-packages/
 # Copying site-packages doesn't move the CLIs, so let's copy them one by one
-COPY --from=superset-py /usr/local/bin/superset /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
-COPY --from=superset-py /app/apache_superset.egg-info /app/apache_superset.egg-info
-
+COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
 COPY --from=superset-node /app/superset/assets /app/superset/assets
+
+## Lastly, let's install superset itself
+COPY superset /app/superset
+COPY setup.py MANIFEST.in README.md /app/
+RUN cd /app \
+        && chown -R superset:superset * \
+        && pip install -e .
 
 COPY ./docker/docker-entrypoint.sh /usr/bin/
 
@@ -84,3 +101,15 @@ HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
 EXPOSE ${SUPERSET_PORT}
 
 ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
+
+######################################################################
+# Dev image...
+######################################################################
+FROM lean AS dev
+
+COPY ./requirements-dev.txt ./docker/requirements-extra.txt /app/
+
+USER root
+RUN cd /app \
+    && pip install --no-cache -r requirements-dev.txt -r requirements-extra.txt
+USER superset
