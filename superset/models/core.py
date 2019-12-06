@@ -22,7 +22,7 @@ import textwrap
 from contextlib import closing
 from copy import copy, deepcopy
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
 from urllib import parse
 
 import numpy
@@ -65,6 +65,10 @@ from superset.models.user_attributes import UserAttribute
 from superset.utils import cache as cache_util, core as utils
 from superset.viz import BaseViz, viz_types
 
+if TYPE_CHECKING:
+    from superset.connectors.base.models import (  # pylint: disable=unused-import
+        BaseDatasource,
+    )
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -687,9 +691,9 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         return dashboard_to_import.id  # type: ignore
 
     @classmethod
-    def export_dashboards(
+    def export_dashboards(  # pylint: disable=too-many-locals
         cls, dashboard_ids: List
-    ) -> str:  # pylint: disable=too-many-locals
+    ) -> str:
         copied_dashboards = []
         datasource_ids = set()
         for dashboard_id in dashboard_ids:
@@ -770,9 +774,9 @@ class Database(
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
-    allow_multi_schema_metadata_fetch = Column(
+    allow_multi_schema_metadata_fetch = Column(  # pylint: disable=invalid-name
         Boolean, default=False
-    )  # pylint: disable=invalid-name
+    )
     extra = Column(
         Text,
         default=textwrap.dedent(
@@ -879,8 +883,8 @@ class Database(
 
     @classmethod
     def get_password_masked_url(
-        cls, url: URL
-    ) -> URL:  # pylint: disable=redefined-outer-name
+        cls, url: URL  # pylint: disable=redefined-outer-name
+    ) -> URL:
         url_copy = deepcopy(url)
         if url_copy.password is not None:
             url_copy.password = PASSWORD_MASK
@@ -896,8 +900,8 @@ class Database(
 
     def get_effective_user(
         self,
-        url: URL,
-        user_name: Optional[str] = None,  # pylint: disable=redefined-outer-name
+        url: URL,  # pylint: disable=redefined-outer-name
+        user_name: Optional[str] = None,
     ) -> Optional[str]:
         """
         Get the effective user, especially during impersonation.
@@ -1025,8 +1029,8 @@ class Database(
         sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
 
         if (
-            engine.dialect.identifier_preparer._double_percents
-        ):  # pylint: disable=protected-access
+            engine.dialect.identifier_preparer._double_percents  # pylint: disable=protected-access
+        ):
             sql = sql.replace("%%", "%")
 
         return sql
@@ -1246,9 +1250,9 @@ class Database(
     ) -> List[Dict[str, Any]]:
         return self.inspector.get_foreign_keys(table_name, schema)
 
-    def get_schema_access_for_csv_upload(
+    def get_schema_access_for_csv_upload(  # pylint: disable=invalid-name
         self
-    ) -> List[str]:  # pylint: disable=invalid-name
+    ) -> List[str]:
         return self.get_extra().get("schemas_allowed_for_csv_upload", [])
 
     @property
