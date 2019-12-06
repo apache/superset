@@ -983,10 +983,12 @@ class CoreTests(SupersetTestCase):
             data = self.get_resp(url)
             self.assertTrue(html in data)
 
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": True},
+        clear=True,
+    )
     def test_sqllab_backend_persistence_payload(self):
-        sqllab_backend_persistence = app.config.get("SQLLAB_BACKEND_PERSISTENCE")
-        app.config["SQLLAB_BACKEND_PERSISTENCE"] = True
-
         username = "admin"
         self.login(username)
         user_id = security_manager.find_user(username).id
@@ -1027,8 +1029,6 @@ class CoreTests(SupersetTestCase):
         # associated with any tabs
         payload = views.Superset._get_sqllab_payload(user_id=user_id)
         self.assertEqual(len(payload["queries"]), 1)
-
-        app.config["SQLLAB_BACKEND_PERSISTENCE"] = sqllab_backend_persistence
 
 
 if __name__ == "__main__":
