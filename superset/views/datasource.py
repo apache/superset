@@ -20,7 +20,6 @@ from collections import Counter
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
-from sqlalchemy.exc import IntegrityError
 
 from superset import appbuilder, db
 from superset.connectors.connector_registry import ConnectorRegistry
