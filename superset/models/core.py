@@ -430,7 +430,9 @@ dashboard_user = Table(
 )
 
 
-class Dashboard(Model, AuditMixinNullable, ImportMixin): # pylint: disable=too-many-instance-attributes
+class Dashboard(  # pylint: disable=too-many-instance-attributes
+    Model, AuditMixinNullable, ImportMixin
+):
 
     """The dashboard object!"""
 
