@@ -987,7 +987,9 @@ class CoreTests(SupersetTestCase):
         sqllab_backend_persistence = app.config.get("SQLLAB_BACKEND_PERSISTENCE")
         app.config["SQLLAB_BACKEND_PERSISTENCE"] = True
 
-        self.login("admin")
+        username = "admin"
+        self.login(username)
+        user_id = security_manager.find_user(username).id
 
         # create a tab
         data = {
@@ -1009,7 +1011,7 @@ class CoreTests(SupersetTestCase):
         self.run_sql(
             "SELECT name FROM birth_names",
             "client_id_1",
-            user_name="admin",
+            user_name=username,
             raise_on_error=True,
             sql_editor_id=tab_state_id,
         )
@@ -1017,13 +1019,13 @@ class CoreTests(SupersetTestCase):
         self.run_sql(
             "SELECT name FROM birth_names",
             "client_id_2",
-            user_name="admin",
+            user_name=username,
             raise_on_error=True,
         )
 
         # we should have only 1 query returned, since the second one is not
         # associated with any tabs
-        payload = views.Superset._get_sqllab_payload(user_id=1)
+        payload = views.Superset._get_sqllab_payload(user_id=user_id)
         self.assertEqual(len(payload["queries"]), 1)
 
         app.config["SQLLAB_BACKEND_PERSISTENCE"] = sqllab_backend_persistence
