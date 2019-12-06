@@ -20,7 +20,7 @@ from flask import current_app, g, request
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from marshmallow import fields, post_load, pre_load, Schema, ValidationError
+from marshmallow import fields, post_load, pre_load, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -28,6 +28,7 @@ import superset.models.core as models
 from superset import appbuilder
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
+from superset.views.base import BaseSupersetSchema
 
 from .mixin import DashboardMixin
 
@@ -59,7 +60,7 @@ def validate_owners(value):
         raise ValidationError(f"User {value} does not exist")
 
 
-class BaseDashboardSchema(Schema):
+class BaseDashboardSchema(BaseSupersetSchema):
     @pre_load
     def pre_load(self, data):  # pylint: disable=no-self-use
         data["slug"] = data.get("slug")
@@ -103,6 +104,27 @@ class DashboardPutSchema(BaseDashboardSchema):
     css = fields.String()
     json_metadata = fields.String(validate=validate_json)
     published = fields.Boolean()
+
+    @post_load
+    def post_load(self, data):  # pylint: disable=no-self-use
+        if "owners" not in data and g.user not in self.instance.owners:
+            self.instance.owners.append(g.user)
+        for field in data:
+            if field == "owners":
+                new_owners = list()
+                if g.user.id not in data["owners"]:
+                    data["owners"].append(g.user.id)
+                for owner_id in data["owners"]:
+                    user = current_app.appbuilder.get_session.query(
+                        current_app.appbuilder.sm.user_model
+                    ).get(owner_id)
+                    new_owners.append(user)
+                    self.instance.owners = new_owners
+            else:
+                setattr(self.instance, field, data.get(field))
+        for slc in self.instance.slices:
+            slc.owners = list(set(self.instance.owners) | set(slc.owners))
+        return self.instance
 
 
 class DashboardRestApi(DashboardMixin, ModelRestApi):
@@ -236,39 +258,18 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
         if not item:
             return self.response_404()
 
-        changed_item = self.edit_model_schema.load(request.json)
-        if changed_item.errors:
-            return self.response_422(message=changed_item.errors)
+        item = self.edit_model_schema.load(request.json, instance=item)
+
+        if item.errors:
+            return self.response_422(message=item.errors)
         try:
-            self.update_dashboard(item, changed_item.data)
-            current_app.appbuilder.get_session.commit()
+            self.datamodel.edit(item.data, raise_exception=True)
             return self.response(
                 200,
                 **{"result": self.edit_model_schema.dump(item.data, many=False).data},
             )
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
-
-    @staticmethod
-    def update_dashboard(item, data):
-        # Always add current user has an updated dashboard owner
-        if "owners" not in data and g.user not in item.owners:
-            item.owners.append(g.user)
-        for field in data:
-            if field == "owners":
-                new_owners = list()
-                if g.user.id not in data["owners"]:
-                    data["owners"].append(g.user.id)
-                for owner_id in data["owners"]:
-                    user = current_app.appbuilder.get_session.query(
-                        current_app.appbuilder.sm.user_model
-                    ).get(owner_id)
-                    new_owners.append(user)
-                    item.owners = new_owners
-            else:
-                setattr(item, field, data.get(field))
-        for slc in item.slices:
-            slc.owners = list(set(item.owners) | set(slc.owners))
 
 
 appbuilder.add_api(DashboardRestApi)
