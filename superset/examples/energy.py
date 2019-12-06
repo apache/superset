@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
-# pylint: disable=C,R,W
 import textwrap
 
 import pandas as pd
