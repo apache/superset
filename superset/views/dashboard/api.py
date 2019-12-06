@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import re
 
 from flask import current_app, g, request
@@ -62,7 +61,7 @@ def validate_owners(value):
 
 class BaseDashboardSchema(Schema):
     @pre_load
-    def pre_load(self, data):
+    def pre_load(self, data):  # pylint: disable=no-self-use
         data["slug"] = data.get("slug")
         data["owners"] = data.get("owners", [])
         if data["slug"]:
@@ -83,7 +82,7 @@ class DashboardPostSchema(BaseDashboardSchema):
     published = fields.Boolean()
 
     @post_load
-    def post_load(self, data):
+    def post_load(self, data):  # pylint: disable=no-self-use
         new_data = dict.copy(data)
         new_data["owners"] = list()
         if g.user.id not in data["owners"]:
@@ -250,7 +249,8 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
 
-    def update_dashboard(self, item, data):
+    @staticmethod
+    def update_dashboard(item, data):
         # Always add current user has an updated dashboard owner
         if "owners" not in data and g.user not in item.owners:
             item.owners.append(g.user)

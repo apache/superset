@@ -37,12 +37,15 @@ from ..base import (
 from .mixin import DashboardMixin
 
 
-class DashboardModelView(DashboardMixin, SupersetModelView, DeleteMixin):
+class DashboardModelView(
+    DashboardMixin, SupersetModelView, DeleteMixin
+):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(models.Dashboard)
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
-    def mulexport(self, items):
+    @staticmethod
+    def mulexport(items):
         if not isinstance(items, list):
             items = [items]
         ids = "".join("&id={}".format(d.id) for d in items)
@@ -63,23 +66,23 @@ class DashboardModelView(DashboardMixin, SupersetModelView, DeleteMixin):
             "superset/export_dashboards.html", dashboards_url="/dashboard/list"
         )
 
-    def pre_add(self, obj):
-        obj.slug = obj.slug or None
-        if obj.slug:
-            obj.slug = obj.slug.strip()
-            obj.slug = obj.slug.replace(" ", "-")
-            obj.slug = re.sub(r"[^\w\-]+", "", obj.slug)
-        if g.user not in obj.owners:
-            obj.owners.append(g.user)
-        utils.validate_json(obj.json_metadata)
-        utils.validate_json(obj.position_json)
-        owners = [o for o in obj.owners]
-        for slc in obj.slices:
+    def pre_add(self, item):
+        item.slug = item.slug or None
+        if item.slug:
+            item.slug = item.slug.strip()
+            item.slug = item.slug.replace(" ", "-")
+            item.slug = re.sub(r"[^\w\-]+", "", item.slug)
+        if g.user not in item.owners:
+            item.owners.append(g.user)
+        utils.validate_json(item.json_metadata)
+        utils.validate_json(item.position_json)
+        owners = [o for o in item.owners]
+        for slc in item.slices:
             slc.owners = list(set(owners) | set(slc.owners))
 
-    def pre_update(self, obj):
-        check_ownership(obj)
-        self.pre_add(obj)
+    def pre_update(self, item):
+        check_ownership(item)
+        self.pre_add(item)
 
 
 class Dashboard(BaseSupersetView):
@@ -100,7 +103,7 @@ class Dashboard(BaseSupersetView):
 appbuilder.add_view_no_menu(Dashboard)
 
 
-class DashboardModelViewAsync(DashboardModelView):
+class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
     list_columns = [
         "id",
@@ -123,7 +126,7 @@ class DashboardModelViewAsync(DashboardModelView):
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
 
 
-class DashboardAddView(DashboardModelView):
+class DashboardAddView(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardaddview"
     list_columns = [
         "id",

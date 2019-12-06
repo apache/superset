@@ -24,7 +24,7 @@ from superset.views.base import BaseFilter
 from ..base import get_user_roles
 
 
-class DashboardFilter(BaseFilter):
+class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     List dashboards with the following criteria:
         1. Those which the user owns
@@ -36,11 +36,11 @@ class DashboardFilter(BaseFilter):
     if they wish to see those dashboards which are published first
     """
 
-    def apply(self, query, func):
-        dash = models.Dashboard
-        user = ab_models.User
-        slice = models.Slice
-        favorites = models.FavStar
+    def apply(self, query, value):
+        dash_cls = models.Dashboard
+        user_cls = ab_models.User
+        slice_cls = models.Slice
+        favorites_cls = models.FavStar
 
         user_roles = [role.name.lower() for role in list(get_user_roles())]
         if "admin" in user_roles:
@@ -50,37 +50,37 @@ class DashboardFilter(BaseFilter):
         schema_perms = security_manager.user_view_menu_names("schema_access")
         all_datasource_access = security_manager.all_datasource_access()
         published_dash_query = (
-            db.session.query(dash.id)
-            .join(dash.slices)
+            db.session.query(dash_cls.id)
+            .join(dash_cls.slices)
             .filter(
                 and_(
-                    dash.published == True,  # pylint: disable=singleton-comparison
+                    dash_cls.published == True,  # pylint: disable=singleton-comparison
                     or_(
-                        slice.perm.in_(datasource_perms),
-                        slice.schema_perm.in_(schema_perms),
+                        slice_cls.perm.in_(datasource_perms),
+                        slice_cls.schema_perm.in_(schema_perms),
                         all_datasource_access,
                     ),
                 )
             )
         )
 
-        users_favorite_dash_query = db.session.query(favorites.obj_id).filter(
+        users_favorite_dash_query = db.session.query(favorites_cls.obj_id).filter(
             and_(
-                favorites.user_id == user.get_user_id(),
-                favorites.class_name == "Dashboard",
+                favorites_cls.user_id == user_cls.get_user_id(),
+                favorites_cls.class_name == "Dashboard",
             )
         )
         owner_ids_query = (
-            db.session.query(dash.id)
-            .join(dash.owners)
-            .filter(user.id == user.get_user_id())
+            db.session.query(dash_cls.id)
+            .join(dash_cls.owners)
+            .filter(user_cls.id == user_cls.get_user_id())
         )
 
         query = query.filter(
             or_(
-                dash.id.in_(owner_ids_query),
-                dash.id.in_(published_dash_query),
-                dash.id.in_(users_favorite_dash_query),
+                dash_cls.id.in_(owner_ids_query),
+                dash_cls.id.in_(published_dash_query),
+                dash_cls.id.in_(users_favorite_dash_query),
             )
         )
 
