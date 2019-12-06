@@ -65,6 +65,18 @@ def validate_owners(value):
 
 
 class BaseDashboardSchema(BaseSupersetSchema):
+    @staticmethod
+    def set_owners(instance, owners):
+        owner_objs = list()
+        if g.user.id not in owners:
+            owners.append(g.user.id)
+        for owner_id in owners:
+            user = current_app.appbuilder.get_session.query(
+                current_app.appbuilder.sm.user_model
+            ).get(owner_id)
+            owner_objs.append(user)
+        instance.owners = owner_objs
+
     @pre_load
     def pre_load(self, data):  # pylint: disable=no-self-use
         data["slug"] = data.get("slug")
@@ -87,17 +99,15 @@ class DashboardPostSchema(BaseDashboardSchema):
     published = fields.Boolean()
 
     @post_load
-    def post_load(self, data):  # pylint: disable=no-self-use
-        new_data = dict.copy(data)
-        new_data["owners"] = list()
-        if g.user.id not in data["owners"]:
-            data["owners"].append(g.user.id)
-        for owner_id in data["owners"]:
-            user = current_app.appbuilder.get_session.query(
-                current_app.appbuilder.sm.user_model
-            ).get(owner_id)
-            new_data["owners"].append(user)
-        return models.Dashboard(**new_data)
+    def make_object(self, data):  # pylint: disable=no-self-use
+        instance = models.Dashboard()
+        self.set_owners(instance, data["owners"])
+        for field in data:
+            if field == "owners":
+                self.set_owners(instance, data["owners"])
+            else:
+                setattr(instance, field, data.get(field))
+        return instance
 
 
 class DashboardPutSchema(BaseDashboardSchema):
@@ -110,20 +120,12 @@ class DashboardPutSchema(BaseDashboardSchema):
     published = fields.Boolean()
 
     @post_load
-    def post_load(self, data):  # pylint: disable=no-self-use
+    def make_object(self, data):  # pylint: disable=no-self-use
         if "owners" not in data and g.user not in self.instance.owners:
             self.instance.owners.append(g.user)
         for field in data:
             if field == "owners":
-                new_owners = list()
-                if g.user.id not in data["owners"]:
-                    data["owners"].append(g.user.id)
-                for owner_id in data["owners"]:
-                    user = current_app.appbuilder.get_session.query(
-                        current_app.appbuilder.sm.user_model
-                    ).get(owner_id)
-                    new_owners.append(user)
-                    self.instance.owners = new_owners
+                self.set_owners(self.instance, data["owners"])
             else:
                 setattr(self.instance, field, data.get(field))
         for slc in self.instance.slices:
