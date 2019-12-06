@@ -20,7 +20,7 @@ from ..base import check_ownership
 from .filters import DashboardFilter
 
 
-class DashboardMixin:
+class DashboardMixin:  # pylint: disable=too-few-public-methods
 
     list_title = _("Dashboards")
     show_title = _("Show Dashboard")
@@ -82,5 +82,5 @@ class DashboardMixin:
         "table_names": _("Underlying Tables"),
     }
 
-    def pre_delete(self, obj):
+    def pre_delete(self, obj):  # pylint: disable=no-self-use
         check_ownership(obj)
