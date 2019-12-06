@@ -100,6 +100,11 @@ from .base import (
     json_success,
     SupersetModelView,
 )
+
+# The database views import is required so that we can append
+# more links to to the same menu item, even though it's not
+# referenced directly in this file.
+from .database import views as in_views  # pylint: disable=unused-import
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
