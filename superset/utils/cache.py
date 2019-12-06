@@ -14,16 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
-from typing import Optional
-
-from flask import Flask, request
-from flask_caching import Cache
+from flask import request
 
 from superset.extensions import cache_manager
 
 
-def view_cache_key(*unused_args, **unused_kwargs) -> str:
+def view_cache_key(*_, **__) -> str:
     args_hash = hash(frozenset(request.args.items()))
     return "view/{}/{}".format(request.path, args_hash)
 
