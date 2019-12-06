@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """The main config file for Superset
 
 All configuration in this file can be overridden by providing a superset_config
@@ -63,23 +62,24 @@ def _try_json_readversion(filepath):
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("version")
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         return None
 
 
-def _try_json_readsha(filepath, length):
+def _try_json_readsha(filepath, length):  # pylint: disable=unused-argument
     try:
         with open(filepath, "r") as f:
-            return json.load(f).get("GIT_SHA")[:length]
-    except Exception:
+            return json.load(f).get("GIT_SHA")
+    except Exception:  # pylint: disable=broad-except
         return None
 
 
-# Depending on the context in which this config is loaded, the version_info.json file
-# may or may not be available, as it is generated on install via setup.py. In the event
-# that we're actually running Superset, we will have already installed, therefore it WILL
-# exist. When unit tests are running, however, it WILL NOT exist, so we fall
-# back to reading package.json
+# Depending on the context in which this config is loaded, the
+# version_info.json file may or may not be available, as it is
+# generated on install via setup.py. In the event that we're
+# actually running Superset, we will have already installed,
+# therefore it WILL exist. When unit tests are running, however,
+# it WILL NOT exist, so we fall back to reading package.json
 VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversion(
     PACKAGE_JSON_FILE
 )
@@ -110,7 +110,9 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
 # Your App secret key
-SECRET_KEY = "\2\1thisismyscretkey\1\2\e\y\y\h"
+SECRET_KEY = (
+    "\2\1thisismyscretkey\1\2\e\y\y\h"  # pylint: disable=anomalous-backslash-in-string
+)
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
@@ -436,7 +438,7 @@ WARNING_MSG = None
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
 
 
-class CeleryConfig(object):
+class CeleryConfig(object):  # pylint: disable=too-few-public-methods
     BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
     CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
     CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"
@@ -460,7 +462,7 @@ class CeleryConfig(object):
     }
 
 
-CELERY_CONFIG = CeleryConfig
+CELERY_CONFIG = CeleryConfig  # pylint: disable=invalid-name
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None
@@ -728,7 +730,11 @@ SQLALCHEMY_EXAMPLES_URI = None
 SIP_15_ENABLED = False
 SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
 SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
-SIP_15_TOAST_MESSAGE = 'Action Required: Preview then save your chart using the new time range endpoints <a target="_blank" href="{url}" class="alert-link">here</a>.'
+SIP_15_TOAST_MESSAGE = (
+    "Action Required: Preview then save your chart using the"
+    'new time range endpoints <a target="_blank" href="{url}"'
+    'class="alert-link">here</a>.'
+)
 
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
@@ -749,7 +755,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
         raise
 elif importlib.util.find_spec("superset_config"):
     try:
-        from superset_config import *  # pylint: disable=import-error
+        from superset_config import *  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config  # pylint: disable=import-error
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
