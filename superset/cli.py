@@ -221,13 +221,13 @@ def import_dashboards(path, recursive, username):
         files.extend(pth.rglob("*.json"))
     if username is not None:
         g.user = security_manager.find_user(username=username)
-    for _file in files:
+    for file_ in files:
         logging.info("Importing dashboard from file %s", _file)
         try:
-            with _file.open() as data_stream:
+            with file_.open() as data_stream:
                 dashboard_import_export.import_dashboards(db.session, data_stream)
         except Exception as e:  # pylint: disable=broad-except
-            logging.error("Error when importing dashboard from file %s", _file)
+            logging.error("Error when importing dashboard from file %s", file_)
             logging.error(e)
 
 
@@ -281,25 +281,25 @@ def import_datasources(path, sync, recursive):
     from superset.utils import dict_import_export
 
     sync_array = sync.split(",")
-    pth = Path(path)
+    path_object = Path(path)
     files = []
-    if pth.is_file():
-        files.append(pth)
-    elif pth.exists() and not recursive:
-        files.extend(pth.glob("*.yaml"))
-        files.extend(pth.glob("*.yml"))
-    elif pth.exists() and recursive:
-        files.extend(pth.rglob("*.yaml"))
-        files.extend(pth.rglob("*.yml"))
-    for _file in files:
+    if path_object.is_file():
+        files.append(path_object)
+    elif path_object.exists() and not recursive:
+        files.extend(path_object.glob("*.yaml"))
+        files.extend(path_object.glob("*.yml"))
+    elif path_object.exists() and recursive:
+        files.extend(path_object.rglob("*.yaml"))
+        files.extend(path_object.rglob("*.yml"))
+    for file_ in files:
         logging.info("Importing datasources from file %s", _file)
         try:
-            with _file.open() as data_stream:
+            with file_.open() as data_stream:
                 dict_import_export.import_from_dict(
                     db.session, yaml.safe_load(data_stream), sync=sync_array
                 )
         except Exception as e:  # pylint: disable=broad-except
-            logging.error("Error when importing datasources from file %s", _file)
+            logging.error("Error when importing datasources from file %s", file_)
             logging.error(e)
 
 
