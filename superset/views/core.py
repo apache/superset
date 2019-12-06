@@ -45,7 +45,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, Integer, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
@@ -3096,7 +3096,7 @@ class Superset(BaseSupersetView):
             user_queries = (
                 db.session.query(Query)
                 .filter_by(user_id=user_id)
-                .filter(Query.sql_editor_id.in_(tab_state_ids))
+                .filter(Query.sql_editor_id.cast(Integer).in_(tab_state_ids))
                 .all()
             )
             queries = {
