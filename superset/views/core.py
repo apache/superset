@@ -2638,11 +2638,11 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             msg = _(
-                f"{validator.name} was unable to check your query.\nPlease "
-                "make sure that any services it depends on are available\n"
+                f"{validator.name} was unable to check your query.\n"
+                "Please recheck your query.\n"
                 f"Exception: {e}"
             )
-            return json_error_response(f"{msg}")
+            return json_error_response(f"{msg}", status=400)
 
     def _sql_json_async(
         self, session: Session, rendered_query: str, query: Query, expand_data: bool
