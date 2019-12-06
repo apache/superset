@@ -53,9 +53,13 @@ def validate_slug_uniqueness(value):
 
 
 def validate_owners(value):
-    owner = current_app.appbuilder.get_session.query(
-        current_app.appbuilder.sm.user_model.id
-    ).filter_by(id=value).one_or_none()
+    owner = (
+        current_app.appbuilder.get_session.query(
+            current_app.appbuilder.sm.user_model.id
+        )
+        .filter_by(id=value)
+        .one_or_none()
+    )
     if not owner:
         raise ValidationError(f"User {value} does not exist")
 
