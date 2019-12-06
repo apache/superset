@@ -27,6 +27,8 @@ from superset.legacy import update_time_range
 from superset.utils import core as utils
 
 from .base import api, BaseSupersetView, handle_api_exception
+from .dashboard import api as dashboard_api
+from .database import api as database_api
 
 
 class Api(BaseSupersetView):

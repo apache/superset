@@ -44,7 +44,7 @@ def validate_slug_uniqueness(value):
     # slug is not required but must be unique
     if value:
         item = (
-            current_app.appbuilder.get_session.query(models.Dashboard)
+            current_app.appbuilder.get_session.query(models.Dashboard.id)
             .filter_by(slug=value)
             .one_or_none()
         )
@@ -54,8 +54,8 @@ def validate_slug_uniqueness(value):
 
 def validate_owners(value):
     owner = current_app.appbuilder.get_session.query(
-        current_app.appbuilder.sm.user_model
-    ).get(value)
+        current_app.appbuilder.sm.user_model.id
+    ).filter_by(id=value).one_or_none()
     if not owner:
         raise ValidationError(f"User {value} does not exist")
 

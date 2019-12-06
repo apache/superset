@@ -99,9 +99,9 @@ from .base import (
     json_success,
     SupersetModelView,
 )
-from .dashboard import api as dashboard_api, views as dash_views
+from .dashboard import views as dash_views
 from .dashboard.filters import DashboardFilter
-from .database import api as database_api, views as in_views
+from .database import views as in_views
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
