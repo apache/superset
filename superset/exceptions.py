@@ -52,35 +52,57 @@ class SpatialException(SupersetException):
     pass
 
 
-class DatabaseNotFound(SupersetException):
+class CsvException(SupersetException):
+    def __init__(self, msg, orig_e):
+        super(CsvException, self).__init__(msg)
+        self.orig = orig_e
+
+
+class ConversionException(CsvException):
     status = 400
 
 
-class DatabaseCreationException(SupersetException):
+class DatabaseAlreadyExist(CsvException):
     status = 400
 
 
-class DatabaseDeletionException(SupersetException):
+class DatabaseNotFound(CsvException):
+    status = 400
+
+
+class DatabaseCreationException(CsvException):
+    status = 400
+
+
+class DatabaseDeletionException(CsvException):
     status = 500
 
 
-class SchemaNotAllowedCsvUpload(SupersetException):
+class FileSaveException(CsvException):
+    status = 500
+
+
+class NameNotAllowed(CsvException):
     status = 400
 
 
-class NameNotAllowed(SupersetException):
+class NoPasswordSuppliedException(CsvException):
     status = 400
 
 
-class TableCreationException(SupersetException):
+class NoUsernameSuppliedException(CsvException):
     status = 400
 
 
-class NoPasswordSuppliedException(SupersetException):
+class SchemaException(CsvException):
     status = 400
 
 
-class NoUsernameSuppliedException(SupersetException):
+class SchemaNotAllowedCsvUpload(CsvException):
+    status = 400
+
+
+class TableCreationException(CsvException):
     status = 400
 
 
