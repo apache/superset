@@ -353,7 +353,7 @@ pip install -r requirements-dev.txt
 pip install -e .
 
 # Create an admin user in your metadata database
-flask fab create-admin
+superset fab create-admin
 
 # Initialize the database
 superset db upgrade
