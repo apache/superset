@@ -26,12 +26,15 @@ import superset.models.core as models
 from superset import conf, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
+    DatabaseAlreadyExistException,
     DatabaseCreationException,
+    DatabaseFileAlreadyExistsException,
+    NameNotAllowedException,
     NoPasswordSuppliedException,
     NoUsernameSuppliedException,
+    SchemaNotAllowedCsvUploadException,
     TableCreationException,
-    SchemaNotAllowedCsvUploadException, DatabaseFileAlreadyExistsException, NameNotAllowedException,
-    DatabaseAlreadyExistException)
+)
 from superset.utils import core as utils
 from superset.views.csv_import import CsvImporter
 
