@@ -20,7 +20,8 @@
 export default () => {
   describe('CSV importer for a new database', () => {
 
-    const databaseName = 'new_database';
+    const sqliteDatabaseName = 'new_sqlite_database';
+    const postgresDatabaseName = 'new_postgres_database';
 
     beforeEach(() => {
       cy.login();
@@ -29,15 +30,21 @@ export default () => {
 
       cy.route('/tablemodelview/list').as('finish_import');
 
-      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + databaseName, { timeout: 30000 });
+      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + sqliteDatabaseName, { timeout: 30000 });
+      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + postgresDatabaseName, { timeout: 30000 });
     });
 
-    it('test import in new database', () => {
+    afterEach(() => {
+      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + sqliteDatabaseName, { timeout: 30000 });
+      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + postgresDatabaseName, { timeout: 30000 });
+    });
+
+    it('test import in new SQLite database', () => {
 
       cy.get('#tableName')
         .clear({ force: true })
         .type(
-        'MyCsvTableForNew',
+        'MyCsvTableForNewSQlite',
         { force: true },
       );
 
@@ -50,9 +57,13 @@ export default () => {
       cy.get('#databaseName')
         .clear({ force: true })
         .type(
-        databaseName,
+        sqliteDatabaseName,
         { force: true },
       );
+
+      cy.get('#databaseFlavor').then((elem) => {
+        elem.val('sqlite');
+      });
 
       cy.get('#delimiter')
         .clear({ force: true })
@@ -63,6 +74,47 @@ export default () => {
 
       cy.get('#tableExists').then((elem) => {
         elem.val('Fail');
+      });
+
+      cy.get('button').contains('Save').click();
+      cy.url({ timeout: 30000 }).should('include', '/tablemodelview/list');
+    });
+
+    it('test import in new PostgreSQL database', () => {
+
+      cy.get('#tableName')
+        .clear({ force: true })
+        .type(
+        'MyCsvTableForNewPG',
+        { force: true },
+      );
+
+      cy.upload_file('myCsv.csv', 'text/csv', 'aaa,bbb,ccc,\nddd,eee,fff,', '#file');
+
+      cy.get('#database').then((elem) => {
+        elem.val('-1');
+      });
+
+      cy.get('#databaseName')
+        .clear({ force: true })
+        .type(
+        postgresDatabaseName,
+        { force: true },
+      );
+
+      cy.get('#databaseFlavor').then((elem) => {
+        elem.val('postgres');
+      });
+
+      cy.get('#delimiter')
+        .clear({ force: true })
+        .type(
+        ',',
+        { force: true },
+      );
+
+      cy.get('#tableExists').then((elem) => {
+        elem.val('Replace');
       });
 
       cy.get('button').contains('Save').click();

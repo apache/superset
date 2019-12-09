@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+import logging
 import os
-from sqlite3 import OperationalError
+from distutils.util import strtobool
 
 import simplejson as json
 import sqlalchemy
@@ -27,23 +28,38 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from werkzeug.utils import secure_filename
 
 import superset.models.core as models
 from superset import app, appbuilder, conf, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
+    DatabaseAlreadyExistException,
     DatabaseCreationException,
+    DatabaseDeletionException,
+    DatabaseFileAlreadyExistsException,
+    FileSaveException,
+    GetDatabaseException,
+    NameNotAllowedException,
     NoPasswordSuppliedException,
     NoUsernameSuppliedException,
+    SchemaNotAllowedCsvUploadException,
     TableCreationException,
 )
 from superset.utils import core as utils
 
 from .base import api, BaseSupersetView, json_error_response, json_success
 
-config = app.config
-stats_logger = config["STATS_LOGGER"]
+STATS_LOGGER = app.config["STATS_LOGGER"]
+LOGGER = logging.getLogger(__name__)
+UPLOAD_FOLDER = app.config["UPLOAD_FOLDER"]
+BAD_REQUEST = 400
+NEW_DATABASE_ID = -1
+SQLALCHEMY_SQLITE_CONNECTION = "sqlite:///"
+SQLALCHEMY_POSTGRES_CONNECTION = "postgresql://"
+SQLITE = "sqlite"
+POSTGRES = "postgres"
 
 
 class CsvImporter(BaseSupersetView):
@@ -52,19 +68,15 @@ class CsvImporter(BaseSupersetView):
     @has_access
     @expose("/csvtodatabase")
     def csvtodatabase(self):
-        session = db.session()
-        Database = models.Database
-        databases = session.query(Database).filter_by(allow_csv_upload=True).all()
-        databases_json = [models.DatabaseDto(-1, "In a new database")]
-        for database in databases:
-            databases_json.append(models.DatabaseDto(database.id, database.name))
-
+        """ Create CSV-Form
+        :return: json or react html form with databases and common bootstrap
+        """
         bootstrap_data = {
-            "databases": databases_json,
+            "databases": self.allow_csv_upload_databases(),
             "common": self.common_bootstrap_payload(),
         }
 
-        if request.args.get("json") == "true":
+        if strtobool(request.args.get("json", "False")):
             return json_success(
                 json.dumps(bootstrap_data, default=lambda x: x.__dict__)
             )
@@ -76,6 +88,24 @@ class CsvImporter(BaseSupersetView):
             title="CSV to Database configuration",
             bootstrap_data=json.dumps(bootstrap_data, default=lambda x: x.__dict__),
         )
+
+    def allow_csv_upload_databases(self) -> list:
+        """ Get all databases which allow csv upload as database dto
+        :returns list of database dto
+        """
+        databases = (
+            db.session().query(models.Database).filter_by(allow_csv_upload=True).all()
+        )
+        databases_json = [models.DatabaseDto(NEW_DATABASE_ID, "In a new database", [])]
+        for database in databases:
+            databases_json.append(
+                models.DatabaseDto(
+                    database.id,
+                    database.name,
+                    json.loads(database.extra)["schemas_allowed_for_csv_upload"],
+                )
+            )
+        return databases_json
 
     @api
     @has_access_api
@@ -90,97 +120,120 @@ class CsvImporter(BaseSupersetView):
         form -- contains the properties for the table to be created
         file -- csv file to be imported
         """
-        form_data = request.form
-        csv_file = request.files["file"]
-        csv_filename = secure_filename(csv_file.filename)
-        if len(csv_filename) == 0:
-            return json_error_response("Filename is not allowed", status=400)
-        database_id = form_data["connectionId"]
-        # check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
+        # TODO check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
         # this beforehand
         try:
-            database_id = int(database_id)
-        except ValueError:
+            form_data = request.form
+            csv_file = request.files["file"]
+            csv_path = None
+            csv_filename = self._clean_filename(csv_file.filename, "CSV")
+            database = None
+            db_flavor = form_data.get("databaseFlavor") or None
+            database_id = self._convert_database_id(form_data.get("connectionId"))
+            table_name = form_data.get("tableName", "")
+            self._check_table_name(table_name)
+
+            if database_id != NEW_DATABASE_ID:
+                database = self._get_existing_database(
+                    database_id, form_data.get("schema") or None
+                )
+                db_name = database.database_name
+            else:
+                db_name = self._clean_filename(
+                    form_data.get("databaseName", ""), "database"
+                )
+                database = self._create_database(db_name, db_flavor)
+
+            table = self._create_table(table_name, database)
+
+            csv_path = self._check_and_save_csv(csv_file, csv_filename)
+            self._fill_table(form_data, table, csv_filename)
+        except (
+            NameNotAllowedException,
+            DatabaseFileAlreadyExistsException,
+            DatabaseAlreadyExistException,
+            SchemaNotAllowedCsvUploadException,
+            NoResultFound,
+            MultipleResultsFound,
+            GetDatabaseException,
+            FileSaveException,
+            NoUsernameSuppliedException,
+            NoPasswordSuppliedException,
+        ) as e:
+            LOGGER.exception(f"Failed to prepare CSV import {e.orig}")
+            STATS_LOGGER.incr("csv_upload_failed")
+            return json_error_response(e.args[0], status=BAD_REQUEST)
+        except (DatabaseCreationException, TableCreationException) as e:
+            LOGGER.exception(f"Failed to import CSV {e.orig}")
+            STATS_LOGGER.incr("csv_upload_failed")
+            if NEW_DATABASE_ID == database_id:
+                self._remove_database(database, db_flavor)
+            return json_error_response(e.args[0], status=BAD_REQUEST)
+        except DatabaseDeletionException as e:
+            LOGGER.exception(f"Failed to delete Database {e.orig}")
+            STATS_LOGGER.incr("csv_upload_failed")
+            return json_error_response(e.args[0])
+        except Exception as e:
+            LOGGER.exception(f"Unexpected error {e}")
+            STATS_LOGGER.incr("csv_upload_failed")
+            return json_error_response(e.args[0])
+        finally:
+            try:
+                if csv_path:
+                    os.remove(csv_path)
+            except OSError:
+                pass
+
+        STATS_LOGGER.incr("csv_upload_successful")
+        message = '"{} imported into database {}"'.format(table_name, db_name)
+        flash(message, "success")
+        return json_success(message)
+
+    def _clean_filename(self, filename: str, purpose: str) -> str:
+        """ Clean filename from disallowed characters
+        :param filename: the name of the file to clean
+        :param purpose: the purpose to give a clear error message
+        :return: filename with allowed characters
+        """
+        if not filename:
+            raise NameNotAllowedException(
+                "No filename received for {0}".format(purpose), None
+            )
+        cleaned_filename = secure_filename(filename)
+        if len(cleaned_filename) == 0:
+            raise NameNotAllowedException(
+                "Name {0} is not allowed for {1}".format(filename, purpose), None
+            )
+        return cleaned_filename
+
+    def _convert_database_id(self, database_id) -> int:
+        """ Convert database id from string to int
+        :param database_id: The database id to convert
+        :return: database id as integer
+        """
+        try:
+            return int(database_id)
+        except ValueError as e:
             message = _(
                 "Possible tampering detected, non-numeral character in database-id"
             )
-            return json_error_response(message, status=400)
+            raise DatabaseFileAlreadyExistsException(message, e)
 
-        try:
-            if database_id != -1:
-                schema = form_data["schema"] or None
-                database = self._get_existing_database(database_id, schema)
-                db_name = database.database_name
-            else:
-                if not form_data["databaseName"]:
-                    return json_error_response("No database name received", status=400)
-                db_name = form_data["databaseName"]
-                db_name = secure_filename(db_name)
-                if len(db_name) == 0:
-                    return json_error_response(
-                        "Database name is not allowed", status=400
-                    )
-                db_flavor = form_data["databaseFlavor"] or None
-                database = self._create_database(db_name, db_flavor)
-        except ValueError as e:
-            return json_error_response(e.args[0], status=400)
-        except DatabaseCreationException as e:
-            return json_error_response(e.args[0], status=400)
-        except NoUsernameSuppliedException as e:
-            return json_error_response(e.args[0], status=400)
-        except NoPasswordSuppliedException as e:
-            return json_error_response(e.args[0], status=400)
-        except Exception as e:
-            return json_error_response(e.args[0], status=500)
+    def _check_table_name(self, table_name: str) -> bool:
+        """ Check if table name is alredy in use
+        :param table_name: the name of the table to check
+        :return: False if table name is not in use or otherwise TableNameInUseException
+        """
+        if db.session.query(SqlaTable).filter_by(table_name=table_name).one_or_none():
+            message = _(
+                "Table name {0} already exists. Please choose another".format(
+                    table_name
+                )
+            )
+            raise NameNotAllowedException(message, None)
+        return False
 
-        try:
-            path = self._check_and_save_csv(csv_file, csv_filename)
-            self._create_table(form_data, database, csv_filename)
-        except Exception as e:
-            if isinstance(e, TableCreationException):
-                message = e.args[0]
-            try:
-                os.remove(os.getcwd() + "/" + db_name + ".db")
-            except OSError:
-                pass
-            try:
-                if database_id == -1:
-                    db.session.rollback()
-                    db.session.delete(database)
-                    db.session.commit()
-            except Exception:
-                pass
-            if hasattr(e, "orig"):
-                # pylint: disable=no-member
-                if isinstance(e.orig, IntegrityError):  # type: ignore
-                    message = "Table {0} could not be created".format(
-                        form_data["tableName"]
-                    )
-                # pylint: disable:no-member
-                elif isinstance(e.orig, OperationalError):  # type: ignore
-                    message = _(
-                        "Table {0} could not be created. This could be an issue with the schema, a connection "
-                        "issue, etc.".format(form_data["tableName"])
-                    )
-                else:
-                    message = str(e)
-            else:
-                message = str(e)
-            return json_error_response(message, status=400)
-        finally:
-            try:
-                os.remove(path)
-            except OSError:
-                pass
-
-        stats_logger.incr("successful_csv_upload")
-        message = "{} imported into database {}".format(form_data["tableName"], db_name)
-        flash(message, "success")
-        return json_success(
-            '"{} imported into database {}"'.format(form_data["tableName"], db_name)
-        )
-
-    def _create_database(self, db_name: str, db_flavor="sqlite"):
+    def _create_database(self, db_name: str, db_flavor=SQLITE) -> models.Database:
         """ Creates the Database itself as well as the Superset Connection to it
 
         Keyword arguments:
@@ -188,91 +241,115 @@ class CsvImporter(BaseSupersetView):
         db_flavor -- which database to use postgres or sqlite
 
         Raises:
-            ValueError: If a file with the database name already exists in the folder
+            DatabaseFileAlreadyExistsException: If a file with the database name already exists in the folder
             NoUserSuppliedException: If the user did not supply a username
             NoPasswordSuppliedException: If the user did not supply a password
-            Exception: If the Database could not be created
+            DatabaseCreationException: If the database could not be created
         """
-        if db_flavor == "postgres":
-            # TODO add possibility to use schema
 
-            postgres_user = conf["POSTGRES_USERNAME"]
-            postgres_password = conf["POSTGRES_PASSWORD"]
+        database = SQLAInterface(models.Database).obj()
+        database.database_name = db_name
+        database.allow_csv_upload = True
 
-            if not postgres_user:
-                raise NoUsernameSuppliedException("No username supplied for PostgreSQL")
-            if not postgres_password:
-                raise NoPasswordSuppliedException("No password supplied for PostgreSQL")
-            url = (
-                "postgresql://"
-                + postgres_user
-                + ":"
-                + postgres_password
-                + "@localhost/"
-                + db_name
-            )
-            engine = sqlalchemy.create_engine(url)
-            if not sqlalchemy_utils.database_exists(engine.url):
-                sqlalchemy_utils.create_database(engine.url)
-            else:
-                raise DatabaseCreationException(
-                    "The database {0} already exist".format(db_name)
-                )
-
-            try:
-                item = SQLAInterface(models.Database).obj()
-                item.database_name = db_name
-                item.sqlalchemy_uri = repr(engine.url)
-                item.password = postgres_password
-                item.allow_csv_upload = True
-                db.session.add(item)
-                db.session.commit()
-            except Exception as e:
-                stats_logger.incr("failed_csv_upload")
-                raise e
-
-            return item
+        if db_flavor == POSTGRES:
+            self._setup_postgres_database(db_name, database)
         else:
-            db_path = os.getcwd() + "/" + db_name + ".db"
-            if os.path.isfile(db_path):
-                message = "Database file for {0} already exists, please choose a different name".format(
-                    db_name
-                )
-                raise ValueError(message)
-            try:
-                item = SQLAInterface(models.Database).obj()
-                item.database_name = db_name
-                item.sqlalchemy_uri = "sqlite:///" + db_path
-                item.allow_csv_upload = True
-                # TODO check if SQL-injection is possible through add()
-                db.session.add(item)
-                db.session.commit()
-                return item
-            except Exception as e:
-                exception = e
-                if isinstance(e, IntegrityError):
-                    message = "Error when trying to create Database"
-                    exception = DatabaseCreationException(message)
-                try:
+            self._setup_sqlite(db_name, database)
+        try:
+            # TODO check if SQL-injection is possible through add()
+            db.session.add(database)
+            db.session.commit()
+            return database
+        except IntegrityError as e:
+            raise DatabaseCreationException("Error when trying to create Database", e)
+        except Exception as e:
+            self._remove_database(database, db_flavor)
+            raise DatabaseCreationException(e.args[0], e)
+
+    def _setup_postgres_database(self, db_name, database) -> None:
+        """ Setup PostgreSQL specific configuration on database
+        :param db_name: the database name of SQLite
+        :param database: the database object to configure
+        """
+        # TODO add possibility to use schema
+
+        postgres_user = conf["POSTGRES_USERNAME"]
+        if not postgres_user:
+            raise NoUsernameSuppliedException(
+                "No username supplied for PostgreSQL", None
+            )
+        postgres_password = conf["POSTGRES_PASSWORD"]
+        if not postgres_password:
+            raise NoPasswordSuppliedException(
+                "No password supplied for PostgreSQL", None
+            )
+
+        url = (
+            SQLALCHEMY_POSTGRES_CONNECTION
+            + postgres_user
+            + ":"
+            + postgres_password
+            + "@localhost/"
+            + db_name
+        )
+        enurl = (
+            "postgresql://"
+            + postgres_user
+            + ":"
+            + "XXXXXXXXXX"
+            + "@localhost/"
+            + db_name
+        )
+        engine = sqlalchemy.create_engine(url)
+        if not sqlalchemy_utils.database_exists(engine.url):
+            sqlalchemy_utils.create_database(engine.url)
+        else:
+            raise DatabaseCreationException(
+                "The database {0} already exists".format(db_name), None
+            )
+
+        database.sqlalchemy_uri = enurl
+        database.password = postgres_password
+
+    def _setup_sqlite(self, db_name, database) -> None:
+        """ Set SQlite specific configuration on database
+        :param db_name: the database name of SQLite
+        :param database: the database object to configure
+        """
+        db_path = os.getcwd() + "/" + db_name + ".db"
+        if os.path.isfile(db_path):
+            message = "Database file for {0} already exists, please choose a different name".format(
+                db_name
+            )
+            raise DatabaseAlreadyExistException(message, None)
+        database.sqlalchemy_uri = SQLALCHEMY_SQLITE_CONNECTION + db_path
+
+    def _remove_database(self, database, db_flavor=SQLITE):
+        """Remove database in an exception case
+        :param database: the database to remove
+        :param db_flavor: the kind of database
+        """
+        try:
+            if database:
+                if db_flavor == SQLITE:
+                    db_path = database.sqlalchemy_uri.replace(
+                        SQLALCHEMY_SQLITE_CONNECTION, ""
+                    )
                     if os.path.isfile(db_path):
                         os.remove(db_path)
-                    db.session.delete(item)
-                    db.session.commit()
-                except OSError:
-                    message = _(
-                        "Error when trying to create Database.The database file {0}.db could not be removed. "
-                        "Please contact your administrator to remove it manually".format(
-                            db_name
-                        )
-                    )
-                    exception = DatabaseCreationException(message)
-                    pass
-                except Exception:
-                    pass
-                stats_logger.incr("failed_csv_upload")
-                raise exception
+                db.session.rollback()
+                db.session.delete(database)
+                db.session.commit()
+        except Exception as e:
+            message = _(
+                "Error when trying to create database {0}.The database could not be removed. "
+                "Please contact your administrator to remove it manually".format(
+                    database.database_name
+                )
+            )
+            raise DatabaseDeletionException(message, e)
 
-    def _get_existing_database(self, database_id: int, schema):
+    def _get_existing_database(self, database_id: int, schema=None) -> models.Database:
         """Returns the database object for an existing database
 
         Keyword arguments:
@@ -280,28 +357,39 @@ class CsvImporter(BaseSupersetView):
         schema -- the schema to be used
 
         Raises:
-            ValueError: 1. If the schema is not allowed for csv upload
-                        2. If the database ID is not valid
-                        3. If there was a problem getting the schema
+            SchemaNotAllowedCsvUploadException: If the schema is not allowed for csv upload
+            GetDatabaseException:    1. If the database ID is not valid
+                                     2. If there was a problem getting the schema
+            NoResultFound: If no database found with id
+            MultipleResultsFound: If more than one database found with id
         """
         try:
             database = db.session.query(models.Database).filter_by(id=database_id).one()
-            if not self._is_schema_allowed(database, schema):
+            if not self._is_schema_allowed_for_csv_upload(database, schema):
                 message = _(
                     "Database {0} Schema {1} is not allowed for csv uploads. "
                     "Please contact your Superset administrator".format(
                         database.database_name, schema
                     )
                 )
-                raise ValueError(message)
+                raise SchemaNotAllowedCsvUploadException(message, None)
             return database
-        except ValueError as e:
-            message = _("No row was found for one")
-            raise ValueError(message)
+        except NoResultFound as e:
+            raise NoResultFound(
+                "No database was found with the id {}".format(database_id), e
+            )
+        except MultipleResultsFound as e:
+            raise MultipleResultsFound(
+                "Multiple databases were found with id {}".format(database_id), e
+            )
+        except SchemaNotAllowedCsvUploadException as e:
+            raise e
         except Exception as e:
-            raise ValueError(e.args[0])
+            raise GetDatabaseException(e.args[0], e)
 
-    def _is_schema_allowed(self, database: models.Database, schema: str) -> bool:
+    def _is_schema_allowed_for_csv_upload(
+        self, database: models.Database, schema: str
+    ) -> bool:
         """ Checks whether the specified schema is allowed for csv-uploads
 
         Keyword Arguments:
@@ -326,55 +414,64 @@ class CsvImporter(BaseSupersetView):
         csv_filename -- the filename to be sanitized which will be used
 
         Raises:
-            OSError: 1. If the upload folder does not exist
+            FileSaveException: 1. If the upload folder does not exist
                      2. If the csv-file could not be saved
         """
-        path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
+        path = os.path.join(UPLOAD_FOLDER, csv_filename)
         try:
-            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
+            utils.ensure_path_exists(UPLOAD_FOLDER)
             csv_file.save(path)
-        except Exception:
+        except Exception as e:
             os.remove(path)
-            raise OSError("Could not save CSV-file, does the upload folder exist?")
+            raise FileSaveException(
+                "Could not save CSV-file, does the upload folder exist?", e
+            )
         return path
 
-    def _create_table(
-        self, form_data: dict, database: models.Database, csv_filename: str
-    ) -> None:
-        """ Create the Table itself and fill it with the data from the csv file
+    def _create_table(self, table_name: str, database: models.Database) -> SqlaTable:
+        """ Create the Table itself
 
         Keyword arguments:
-        form_data -- the dictionary containing the properties for the Table to be created
+        table_name -- the name of the table to create
         database -- the database object which will be used
+
+        Raises:
+            TableCreationException:  1. If the Table object could not be created
+                                     2. If the Table could not be created in the database
+        """
+
+        try:
+            table = SqlaTable(table_name=table_name)
+            table.database = database
+            table.database_id = table.database.id
+            return table
+        except Exception as e:
+            raise TableCreationException(
+                "Table {0} could not be created.".format(table_name), e
+            )
+
+    def _fill_table(self, form_data: dict, table: SqlaTable, csv_filename: str) -> None:
+        """ Fill the table with the data from the csv file
+
+        Keyword arguments:
+        form_data -- the dictionary containing the properties for the table to be created
+        table -- the table object which will be used
         csv_filename -- the name of the csv-file to be imported
 
         Raises:
-            Exception:  1. If the Table object could not be created
-                        2. If the Table could not be created in the database
-                        3. If the data could not be inserted into the table
+            TableCreationException:  If the data could not be inserted into the table
         """
 
         try:
-            if (
-                db.session.query(SqlaTable)
-                .filter_by(table_name=form_data["tableName"])
-                .one_or_none()
-            ):
-                message = _(
-                    "Table name {0} already exists. Please choose another".format(
-                        form_data["tableName"]
-                    )
-                )
-                raise TableCreationException(message)
-
-            table = SqlaTable(table_name=form_data["tableName"])
-            table.database = database
-            table.database_id = table.database.id
             table.database.db_engine_spec.create_and_fill_table_from_csv(
-                form_data, table, csv_filename, database
+                form_data, table, csv_filename, table.database
             )
         except Exception as e:
-            raise e
+            raise TableCreationException(
+                "Table {0} could not be filled with CSV {1}. This could be an issue with the schema, a connection "
+                "issue, etc.".format(form_data.get("tableName"), csv_filename),
+                e,
+            )
 
 
 appbuilder.add_view_no_menu(CsvImporter)
