@@ -43,6 +43,8 @@ from .base_tests import SupersetTestCase
 NEW_DATABASE_ID = -1
 SQLITE = "sqlite"
 POSTGRESQL = "postgresql"
+POSTGRESQL_USERNAME = "POSTGRESQL_USERNAME"
+POSTGRESQL_PASSWORD = "POSTGRESQL_PASSWORD"
 
 
 class CsvUploadTests(SupersetTestCase):
@@ -157,8 +159,8 @@ class CsvUploadTests(SupersetTestCase):
         form_data = self.get_full_data(
             filename, NEW_DATABASE_ID, db_name, table_name, database_flavor=POSTGRESQL
         )
-        conf["POSTGRESQL_USERNAME"] = POSTGRESQL
-        conf["POSTGRESQL_USERNAME"] = POSTGRESQL
+        conf[POSTGRESQL_USERNAME] = POSTGRESQL
+        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
         try:
             response = self.get_resp(url, data=form_data)
             message = f"{table_name} imported into database {db_name}"
@@ -167,9 +169,9 @@ class CsvUploadTests(SupersetTestCase):
             os.remove(filename)
             url = (
                 "postgresql://"
-                + conf["POSTGRESQL_USERNAME"]
+                + conf[POSTGRESQL_USERNAME]
                 + ":"
-                + conf["POSTGRESQL_USERNAME"]
+                + conf[POSTGRESQL_PASSWORD]
                 + "@localhost/"
                 + db_name
             )
@@ -238,8 +240,8 @@ class CsvUploadTests(SupersetTestCase):
     def test_create_postgresql_database(self):
         db_name = "newPostgresqlDatabase"
         postgresql = "postgres"
-        conf["POSTGRESQL_USERNAME"] = POSTGRESQL
-        conf["POSTGRESQL_USERNAME"] = POSTGRESQL
+        conf[POSTGRESQL_USERNAME] = POSTGRESQL
+        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
         try:
             new_database = self.importer._create_database(db_name, postgresql)
             assert (
@@ -251,9 +253,9 @@ class CsvUploadTests(SupersetTestCase):
             db.session.commit()
             url = (
                 "postgresql://"
-                + conf["POSTGRESQL_USERNAME"]
+                + conf[POSTGRESQL_USERNAME]
                 + ":"
-                + conf["POSTGRESQL_USERNAME"]
+                + conf[POSTGRESQL_PASSWORD]
                 + "@localhost/"
                 + db_name
             )
@@ -271,16 +273,16 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_postgres_no_password_supplied(self):
         db_name = "postgres_no_pw"
-        conf["POSTGRESQL_USERNAME"] = POSTGRESQL
-        conf["POSTGRESQL_USERNAME"] = ""
+        conf[POSTGRESQL_USERNAME] = POSTGRESQL
+        conf[POSTGRESQL_PASSWORD] = ""
         error_message = "No password supplied for PostgreSQL"
         with self.assertRaisesRegex(NoPasswordSuppliedException, error_message):
             self.importer._setup_postgresql_database(db_name, None)
 
     def test_postgres_no_username_supplied(self):
         db_name = "postgres_no_pw"
-        conf["POSTGRESQL_USERNAME"] = ""
-        conf["POSTGRESQL_PASSWORD"] = POSTGRESQL
+        conf[POSTGRESQL_USERNAME] = ""
+        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
         error_message = "No username supplied for PostgreSQL"
         with self.assertRaisesRegex(NoUsernameSuppliedException, error_message):
             self.importer._setup_postgresql_database(db_name, None)
@@ -292,8 +294,8 @@ class CsvUploadTests(SupersetTestCase):
     )
     def test_postgres_already_exist(self):
         db_name = "postgres_already_exist"
-        conf["POSTGRESQL_USERNAME"] = POSTGRESQL
-        conf["POSTGRESQL_USERNAME"] = POSTGRESQL
+        conf[POSTGRESQL_USERNAME] = POSTGRESQL
+        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
         error_message = f"The database {db_name} already exists"
         try:
             self.importer._create_database(db_name, POSTGRESQL)
@@ -302,9 +304,9 @@ class CsvUploadTests(SupersetTestCase):
         finally:
             url = (
                 "postgresql://"
-                + conf["POSTGRESQL_USERNAME"]
+                + conf[POSTGRESQL_USERNAME]
                 + ":"
-                + conf["POSTGRESQL_USERNAME"]
+                + conf[POSTGRESQL_PASSWORD]
                 + "@localhost/"
                 + db_name
             )
