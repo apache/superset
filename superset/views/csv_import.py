@@ -149,7 +149,7 @@ class CsvImporter(BaseSupersetView):
             database = None
             db_flavor = form_data.get("databaseFlavor", SQLITE)
             database_id = self._convert_database_id(form_data.get("connectionId"))
-            table_name = self._clean_name(form_data.get("tableName", ""))
+            table_name = self._clean_name(form_data.get("tableName"), "CSV")
             self._check_table_name(table_name)
 
             if database_id != NEW_DATABASE_ID:
