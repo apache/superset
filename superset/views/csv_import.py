@@ -206,7 +206,7 @@ class CsvImporter(BaseSupersetView):
             )
         return cleaned_filename
 
-    def _convert_database_id(self, database_id) -> int:
+    def _convert_database_id(self, database_id: str) -> int:
         """ Convert database id from string to int
         :param database_id: The database id to convert
         :return: database id as integer
@@ -233,7 +233,7 @@ class CsvImporter(BaseSupersetView):
             raise NameNotAllowedException(message, None)
         return False
 
-    def _create_database(self, db_name: str, db_flavor=SQLITE) -> models.Database:
+    def _create_database(self, db_name: str, db_flavor: str = SQLITE) -> models.Database:
         """ Creates the Database itself as well as the Superset Connection to it
 
         Keyword arguments:
@@ -266,7 +266,7 @@ class CsvImporter(BaseSupersetView):
             self._remove_database(database, db_flavor)
             raise DatabaseCreationException(e.args[0], e)
 
-    def _setup_postgres_database(self, db_name, database) -> None:
+    def _setup_postgres_database(self, db_name: str, database: models.Database) -> None:
         """ Setup PostgreSQL specific configuration on database
         :param db_name: the database name of SQLite
         :param database: the database object to configure
@@ -311,7 +311,7 @@ class CsvImporter(BaseSupersetView):
         database.sqlalchemy_uri = enurl
         database.password = postgres_password
 
-    def _setup_sqlite(self, db_name, database) -> None:
+    def _setup_sqlite(self, db_name: str, database: models.Database) -> None:
         """ Set SQlite specific configuration on database
         :param db_name: the database name of SQLite
         :param database: the database object to configure
@@ -324,7 +324,7 @@ class CsvImporter(BaseSupersetView):
             raise DatabaseAlreadyExistException(message, None)
         database.sqlalchemy_uri = SQLALCHEMY_SQLITE_CONNECTION + db_path
 
-    def _remove_database(self, database, db_flavor=SQLITE):
+    def _remove_database(self, database: models.Database, db_flavor: str = SQLITE):
         """Remove database in an exception case
         :param database: the database to remove
         :param db_flavor: the kind of database
@@ -349,7 +349,7 @@ class CsvImporter(BaseSupersetView):
             )
             raise DatabaseDeletionException(message, e)
 
-    def _get_existing_database(self, database_id: int, schema=None) -> models.Database:
+    def _get_existing_database(self, database_id: int, schema: str = None) -> models.Database:
         """Returns the database object for an existing database
 
         Keyword arguments:
