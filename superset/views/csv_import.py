@@ -72,7 +72,7 @@ class CsvImporter(BaseSupersetView):
         :return: json or react html form with databases and common bootstrap
         """
         bootstrap_data = {
-            "databases": self.allow_csv_upload_databases(),
+            "databases": self._allow_csv_upload_databases(),
             "common": self.common_bootstrap_payload(),
         }
 
@@ -89,7 +89,7 @@ class CsvImporter(BaseSupersetView):
             bootstrap_data=json.dumps(bootstrap_data, default=lambda x: x.__dict__),
         )
 
-    def allow_csv_upload_databases(self) -> list:
+    def _allow_csv_upload_databases(self) -> list:
         """ Get all databases which allow csv upload as database dto
         :returns list of database dto
         """

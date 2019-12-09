@@ -179,7 +179,7 @@ class CsvUploadTests(SupersetTestCase):
     def test_allow_csv_upload_databases(self):
         db_id = self.get_existing_db_id()
         assert db_id in [
-            database.id for database in self.importer.allow_csv_upload_databases()
+            database.id for database in self.importer._allow_csv_upload_databases()
         ]
 
     def test_clean_filename(self):
