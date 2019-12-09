@@ -58,9 +58,9 @@ UPLOAD_FOLDER = app.config["UPLOAD_FOLDER"]
 BAD_REQUEST = 400
 NEW_DATABASE_ID = -1
 SQLALCHEMY_SQLITE_CONNECTION = "sqlite:///"
-SQLALCHEMY_POSTGRES_CONNECTION = "postgresql://"
+SQLALCHEMY_POSTGRESQL_CONNECTION = "postgresql://"
 SQLITE = "sqlite"
-POSTGRES = "postgres"
+POSTGRESQL = "postgresql"
 
 
 class CsvImporter(BaseSupersetView):
@@ -263,8 +263,8 @@ class CsvImporter(BaseSupersetView):
         database.database_name = db_name
         database.allow_csv_upload = True
 
-        if db_flavor == POSTGRES:
-            self._setup_postgres_database(db_name, database)
+        if db_flavor == POSTGRESQL:
+            self._setup_postgresql_database(db_name, database)
         else:
             self._setup_sqlite_database(db_name, database)
         try:
@@ -279,35 +279,35 @@ class CsvImporter(BaseSupersetView):
                 "An unknown error occurred trying to create the database.", e
             )
 
-    def _setup_postgres_database(self, db_name: str, database: Database) -> None:
+    def _setup_postgresql_database(self, db_name: str, database: Database) -> None:
         """ Setup PostgreSQL specific configuration on database
         :param db_name: the database name of SQLite
         :param database: the database object to configure
         """
         # TODO add possibility to use schema
 
-        postgres_user = conf["POSTGRES_USERNAME"]
-        if not postgres_user:
+        postgresql_user = conf["POSTGRESQL_USERNAME"]
+        if not postgresql_user:
             raise NoUsernameSuppliedException(
                 "No username supplied for PostgreSQL", None
             )
-        postgres_password = conf["POSTGRES_PASSWORD"]
-        if not postgres_password:
+        postgresql_password = conf["POSTGRESQL_PASSWORD"]
+        if not postgresql_password:
             raise NoPasswordSuppliedException(
                 "No password supplied for PostgreSQL", None
             )
 
         url = (
-            SQLALCHEMY_POSTGRES_CONNECTION
-            + postgres_user
-            + ":"
-            + postgres_password
-            + "@localhost/"
-            + db_name
+                SQLALCHEMY_POSTGRESQL_CONNECTION
+                + postgresql_user
+                + ":"
+                + postgresql_password
+                + "@localhost/"
+                + db_name
         )
         enurl = (
             "postgresql://"
-            + postgres_user
+            + postgresql_user
             + ":"
             + "XXXXXXXXXX"
             + "@localhost/"
@@ -322,7 +322,7 @@ class CsvImporter(BaseSupersetView):
             )
 
         database.sqlalchemy_uri = enurl
-        database.password = postgres_password
+        database.password = postgresql_password
 
     def _setup_sqlite_database(self, db_name: str, database: Database) -> None:
         """ Set SQlite specific configuration on database

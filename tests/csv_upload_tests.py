@@ -275,7 +275,7 @@ class CsvUploadTests(SupersetTestCase):
         conf["POSTGRES_PASSWORD"] = ""
         error_message = "No password supplied for PostgreSQL"
         with self.assertRaisesRegex(NoPasswordSuppliedException, error_message):
-            self.importer._setup_postgres_database(db_name, None)
+            self.importer._setup_postgresql_database(db_name, None)
 
     def test_postgres_no_username_supplied(self):
         db_name = "postgres_no_pw"
@@ -283,7 +283,7 @@ class CsvUploadTests(SupersetTestCase):
         conf["POSTGRES_PASSWORD"] = POSTGRES
         error_message = "No username supplied for PostgreSQL"
         with self.assertRaisesRegex(NoUsernameSuppliedException, error_message):
-            self.importer._setup_postgres_database(db_name, None)
+            self.importer._setup_postgresql_database(db_name, None)
 
     @unittest.skipIf(
         "mysql" in conf.get("SQLALCHEMY_DATABASE_URI", "")

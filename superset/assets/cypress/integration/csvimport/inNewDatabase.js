@@ -21,7 +21,7 @@ export default () => {
   describe('CSV importer for a new database', () => {
 
     const sqliteDatabaseName = 'new_sqlite_database';
-    const postgresDatabaseName = 'new_postgres_database';
+    const postgresqlDatabaseName = 'new_postgresql_database';
 
     beforeEach(() => {
       cy.login();
@@ -31,12 +31,12 @@ export default () => {
       cy.route('/tablemodelview/list').as('finish_import');
 
       cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + sqliteDatabaseName, { timeout: 30000 });
-      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + postgresDatabaseName, { timeout: 30000 });
+      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + postgresqlDatabaseName, { timeout: 30000 });
     });
 
     afterEach(() => {
       cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + sqliteDatabaseName, { timeout: 30000 });
-      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + postgresDatabaseName, { timeout: 30000 });
+      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + postgresqlDatabaseName, { timeout: 30000 });
     });
 
     it('test import in new SQLite database', () => {
@@ -98,12 +98,12 @@ export default () => {
       cy.get('#databaseName')
         .clear({ force: true })
         .type(
-        postgresDatabaseName,
+        postgresqlDatabaseName,
         { force: true },
       );
 
       cy.get('#databaseFlavor').then((elem) => {
-        elem.val('postgres');
+        elem.val('postgresql');
       });
 
       cy.get('#delimiter')
