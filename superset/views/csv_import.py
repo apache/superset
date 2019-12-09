@@ -298,12 +298,12 @@ class CsvImporter(BaseSupersetView):
             )
 
         url = (
-                SQLALCHEMY_POSTGRESQL_CONNECTION
-                + postgresql_user
-                + ":"
-                + postgresql_password
-                + "@localhost/"
-                + db_name
+            SQLALCHEMY_POSTGRESQL_CONNECTION
+            + postgresql_user
+            + ":"
+            + postgresql_password
+            + "@localhost/"
+            + db_name
         )
         enurl = (
             "postgresql://"
