@@ -93,31 +93,29 @@ class CsvImporter(BaseSupersetView):
         """ Get all databases which allow csv upload as database dto
         :returns list of database dto
         """
-        perms = []
+        user_permissions = []
         user = g.user
         for role in user.roles:
-            for permView in role.permissions:
-                # all_datasource_access / all_database_access
-                if "all_database_access" is permView.permission.name:
-                    perms.append(permView.permission.name)
+            for permission_view in role.permissions:
+                if "all_database_access" is permission_view.permission.name:
+                    user_permissions.append(permission_view.permission.name)
                     break
-                if "database_access" in permView.permission.name:
-                    perms.append(permView.view_menu.name)
-                else:
-                    print(permView.permission.name)
+                if "database_access" in permission_view.permission.name:
+                    user_permissions.append(permission_view.view_menu.name)
         databases = (
             db.session().query(models.Database).filter_by(allow_csv_upload=True).all()
         )
-        permDatabases = []
-        if not ("all_database_access") in perms:
-            for perm in perms:
+        permitted_databases = []
+        if "all_database_access" in user_permissions:
+            permitted_databases = databases
+        else:
+            for perm in user_permissions:
                 for database in databases:
                     if database.name in perm:
-                        permDatabases.append(database)
-        else:
-            permDatabases = databases
+                        permitted_databases.append(database)
+
         databases_json = [models.DatabaseDto(NEW_DATABASE_ID, "In a new database", [])]
-        for database in permDatabases:
+        for database in permitted_databases:
             databases_json.append(
                 models.DatabaseDto(
                     database.id,
