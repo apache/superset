@@ -176,7 +176,7 @@ class CsvImporter(BaseSupersetView):
         except Exception as e:
             LOGGER.exception(f"Unexpected error {e}")
             STATS_LOGGER.incr("csv_upload_failed")
-            return json_error_response(e.args[0])
+            return json_error_response('An unknown error occurred!')
         finally:
             try:
                 if csv_path:
@@ -263,7 +263,7 @@ class CsvImporter(BaseSupersetView):
             raise DatabaseCreationException("Error when trying to create Database", e)
         except Exception as e:
             self._remove_database(database, db_flavor)
-            raise DatabaseCreationException(e.args[0], e)
+            raise DatabaseCreationException('An unknown error occurred trying to create the database.', e)
 
     def _setup_postgres_database(self, db_name: str, database: Database) -> None:
         """ Setup PostgreSQL specific configuration on database
@@ -384,7 +384,7 @@ class CsvImporter(BaseSupersetView):
         except SchemaNotAllowedCsvUploadException as e:
             raise e
         except Exception as e:
-            raise GetDatabaseException(e.args[0], e)
+            raise GetDatabaseException('An unknown error occurred trying to get the database.', e)
 
     def _is_schema_allowed_for_csv_upload(
         self, database: Database, schema: str
