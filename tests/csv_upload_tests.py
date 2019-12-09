@@ -27,11 +27,11 @@ from superset import conf, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
     DatabaseCreationException,
-    NameNotAllowed,
     NoPasswordSuppliedException,
     NoUsernameSuppliedException,
     TableCreationException,
-)
+    SchemaNotAllowedCsvUploadException, DatabaseFileAlreadyExistsException, NameNotAllowedException,
+    DatabaseAlreadyExistException)
 from superset.utils import core as utils
 from superset.views.csv_import import CsvImporter
 
@@ -186,15 +186,15 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_clean_filename_None(self):
         purpose = "CSV"
-        error_message = "No name received for {0}".format(purpose)
-        with self.assertRaisesRegex(NameNotAllowed, error_message):
+        error_message = "No filename received for {0}".format(purpose)
+        with self.assertRaisesRegex(NameNotAllowedException, error_message):
             self.importer._clean_filename(None, purpose)
 
     def test_clean_filename_empty(self):
         filename = "#,'\""
         purpose = "CSV"
         error_message = "Name {0} is not allowed for {1}".format(filename, purpose)
-        with self.assertRaisesRegex(NameNotAllowed, error_message):
+        with self.assertRaisesRegex(NameNotAllowedException, error_message):
             self.importer._clean_filename(filename, purpose)
 
     def test_convert_database_id(self):
@@ -207,7 +207,7 @@ class CsvUploadTests(SupersetTestCase):
         error_message = (
             "Possible tampering detected, non-numeral character in database-id"
         )
-        with self.assertRaisesRegex(ValueError, error_message):
+        with self.assertRaisesRegex(DatabaseFileAlreadyExistsException, error_message):
             self.importer._convert_database_id(database_id)
 
     def test_check_table_name(self):
@@ -219,7 +219,7 @@ class CsvUploadTests(SupersetTestCase):
         error_message = "Table name {0} already exists. Please choose another".format(
             table_name
         )
-        with self.assertRaisesRegex(NameNotAllowed, error_message):
+        with self.assertRaisesRegex(NameNotAllowedException, error_message):
             self.importer._check_table_name(table_name)
 
     def test_create_sqlite_database(self):
@@ -238,7 +238,7 @@ class CsvUploadTests(SupersetTestCase):
     @unittest.skipIf(
         "mysql" in conf.get("SQLALCHEMY_DATABASE_URI", "")
         or SQLITE in conf.get("SQLALCHEMY_DATABASE_URI", ""),
-        "This test only run when a PostgreSQL database exist",
+        "This test only run when a PostgreSQL database exists",
     )
     def test_create_postgresql_database(self):
         db_name = "newPostgresqlDatabase"
@@ -293,7 +293,7 @@ class CsvUploadTests(SupersetTestCase):
     @unittest.skipIf(
         "mysql" in conf.get("SQLALCHEMY_DATABASE_URI", "")
         or SQLITE in conf.get("SQLALCHEMY_DATABASE_URI", ""),
-        "This test only run when a PostgreSQL database exist",
+        "This test only runs when a PostgreSQL database exists",
     )
     def test_postgres_already_exist(self):
         db_name = "postgres_already_exist"
@@ -325,14 +325,14 @@ class CsvUploadTests(SupersetTestCase):
             error_message = "Database file for {0} already exists, please choose a different name".format(
                 db_name
             )
-            with self.assertRaisesRegex(ValueError, error_message):
+            with self.assertRaisesRegex(DatabaseAlreadyExistException, error_message):
                 self.importer._setup_sqlite(db_name, None)
         finally:
             os.remove(db_path)
 
     def test_not_existing_database_id(self):
         database_id = 1337
-        error_message = "No database was found with id {0}".format(database_id)
+        error_message = "No database was found with the id {0}".format(database_id)
         with self.assertRaisesRegex(NoResultFound, error_message):
             self.importer._get_existing_database(database_id, None)
 
@@ -343,7 +343,7 @@ class CsvUploadTests(SupersetTestCase):
         error_message = "Database {0} Schema {1} is not allowed for csv uploads. Please contact your Superset administrator".format(
             example_db.database_name, "None"
         )
-        with self.assertRaisesRegex(ValueError, error_message):
+        with self.assertRaisesRegex(SchemaNotAllowedCsvUploadException, error_message):
             self.importer._get_existing_database(example_db.id, None)
 
     def test_check_and_save_csv(self):
