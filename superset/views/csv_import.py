@@ -106,7 +106,7 @@ class CsvImporter(BaseSupersetView):
                 if "database_access" in permission_view.permission.name:
                     user_permissions.append(permission_view.view_menu.name)
         databases = (
-            db.session().query(models.Database).filter_by(allow_csv_upload=True).all()
+            db.session().query(Database).filter_by(allow_csv_upload=True).all()
         )
         permitted_databases: list = []
         if "all_database_access" in user_permissions:
@@ -117,7 +117,7 @@ class CsvImporter(BaseSupersetView):
                     if database.name in perm:
                         permitted_databases.append(database)
 
-        databases_json = [models.DatabaseDto(NEW_DATABASE_ID, "In a new database", [])]
+        databases_json = [DatabaseDto(NEW_DATABASE_ID, "In a new database", [])]
         for database in permitted_databases:
             databases_json.append(
                 DatabaseDto(
