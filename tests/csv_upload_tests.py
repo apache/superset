@@ -329,7 +329,7 @@ class CsvUploadTests(SupersetTestCase):
                 db_name
             )
             with self.assertRaisesRegex(DatabaseAlreadyExistException, error_message):
-                self.importer._setup_sqlite(db_name, None)
+                self.importer._setup_sqlite_database(db_name, None)
         finally:
             os.remove(db_path)
 
