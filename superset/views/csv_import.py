@@ -22,7 +22,7 @@ from distutils.util import strtobool
 import simplejson as json
 import sqlalchemy
 import sqlalchemy_utils
-from flask import flash, request, Response
+from flask import flash, g, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -96,9 +96,29 @@ class CsvImporter(BaseSupersetView):
         """ Get all databases which allow csv upload as database dto
         :returns list of database dto
         """
-        databases = db.session().query(Database).filter_by(allow_csv_upload=True).all()
-        databases_json = [DatabaseDto(NEW_DATABASE_ID, "In a new database", [])]
-        for database in databases:
+        user_permissions: list = []
+        user = g.user
+        for role in user.roles:
+            for permission_view in role.permissions:
+                if "all_database_access" is permission_view.permission.name:
+                    user_permissions.append(permission_view.permission.name)
+                    break
+                if "database_access" in permission_view.permission.name:
+                    user_permissions.append(permission_view.view_menu.name)
+        databases = (
+            db.session().query(models.Database).filter_by(allow_csv_upload=True).all()
+        )
+        permitted_databases: list = []
+        if "all_database_access" in user_permissions:
+            permitted_databases = databases
+        else:
+            for perm in user_permissions:
+                for database in databases:
+                    if database.name in perm:
+                        permitted_databases.append(database)
+
+        databases_json = [models.DatabaseDto(NEW_DATABASE_ID, "In a new database", [])]
+        for database in permitted_databases:
             databases_json.append(
                 DatabaseDto(
                     database.id,
