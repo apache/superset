@@ -58,15 +58,15 @@ class CsvException(SupersetException):
         self.orig = orig_e
 
 
-class ConversionException(CsvException):
+class DatabaseFileAlreadyExistsException(CsvException):
     status = 400
 
 
-class DatabaseAlreadyExist(CsvException):
+class DatabaseAlreadyExistException(CsvException):
     status = 400
 
 
-class DatabaseNotFound(CsvException):
+class DatabaseNotFoundException(CsvException):
     status = 400
 
 
@@ -82,7 +82,7 @@ class FileSaveException(CsvException):
     status = 500
 
 
-class NameNotAllowed(CsvException):
+class NameNotAllowedException(CsvException):
     status = 400
 
 
@@ -94,11 +94,11 @@ class NoUsernameSuppliedException(CsvException):
     status = 400
 
 
-class SchemaException(CsvException):
+class GetDatabaseException(CsvException):
     status = 400
 
 
-class SchemaNotAllowedCsvUpload(CsvException):
+class SchemaNotAllowedCsvUploadException(CsvException):
     status = 400
 
 
