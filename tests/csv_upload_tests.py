@@ -294,7 +294,7 @@ class CsvUploadTests(SupersetTestCase):
         db_name = "postgres_already_exist"
         conf[POSTGRESQL_USERNAME] = POSTGRESQL
         conf[POSTGRESQL_PASSWORD] = POSTGRESQL
-        error_message = f"The database {db_name} already exists"
+        error_message = "Error when trying to create Database"
         try:
             self.importer._create_database(db_name, POSTGRESQL)
             with self.assertRaisesRegex(DatabaseCreationException, error_message):
