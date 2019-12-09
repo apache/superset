@@ -161,7 +161,7 @@ class CsvUploadTests(SupersetTestCase):
         conf["POSTGRES_PASSWORD"] = POSTGRES
         try:
             response = self.get_resp(url, data=form_data)
-            message = f"{table_name} imported into database {db_name}"
+            message = f'"{table_name}" imported into database "{db_name}"'
             assert message in response
         finally:
             os.remove(filename)

@@ -139,8 +139,6 @@ class CsvImporter(BaseSupersetView):
         form -- contains the properties for the table to be created
         file -- csv file to be imported
         """
-        # TODO check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
-        # this beforehand
         try:
             form_data = request.form
             csv_file = request.files["file"]
@@ -149,7 +147,7 @@ class CsvImporter(BaseSupersetView):
             database = None
             db_flavor = form_data.get("databaseFlavor", SQLITE)
             database_id = self._convert_database_id(form_data.get("connectionId"))
-            table_name = self._clean_name(form_data.get("tableName"), "CSV")
+            table_name = self._clean_name(form_data.get("tableName", ""), "CSV")
             self._check_table_name(table_name)
 
             if database_id != NEW_DATABASE_ID:
@@ -167,7 +165,18 @@ class CsvImporter(BaseSupersetView):
 
             csv_path = self._check_and_save_csv(csv_file, csv_filename)
             self._fill_table(form_data, table, csv_filename)
-        except (CsvException, NoResultFound, MultipleResultsFound) as e:
+        except (
+            NameNotAllowedException,
+            DatabaseFileAlreadyExistsException,
+            DatabaseAlreadyExistException,
+            SchemaNotAllowedCsvUploadException,
+            NoResultFound,
+            MultipleResultsFound,
+            GetDatabaseException,
+            FileSaveException,
+            NoUsernameSuppliedException,
+            NoPasswordSuppliedException,
+        ) as e:
             LOGGER.exception(f"Failed to prepare CSV import {e.orig}")
             STATS_LOGGER.incr("csv_upload_failed")
             return json_error_response(e.args[0], status=BAD_REQUEST)
@@ -212,7 +221,7 @@ class CsvImporter(BaseSupersetView):
             )
         return cleaned_name
 
-    def _convert_database_id(self, database_id: str) -> int:
+    def _convert_database_id(self, database_id) -> int:
         """ Convert database id from string to int
         :param database_id: The database id to convert
         :return: database id as integer
@@ -326,7 +335,7 @@ class CsvImporter(BaseSupersetView):
             raise DatabaseAlreadyExistException(message, None)
         database.sqlalchemy_uri = SQLALCHEMY_SQLITE_CONNECTION + db_path
 
-    def _remove_database(self, database: Database, db_flavor: str):
+    def _remove_database(self, database, db_flavor: str):
         """Remove database in an exception case
         :param database: the database to remove
         :param db_flavor: the kind of database
@@ -384,7 +393,7 @@ class CsvImporter(BaseSupersetView):
             )
 
     def _is_schema_allowed_for_csv_upload(
-        self, database: Database, schema: str
+        self, database: Database, schema: str = None
     ) -> bool:
         """ Checks whether the specified schema is allowed for csv-uploads
 
