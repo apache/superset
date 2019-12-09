@@ -35,6 +35,9 @@ export class GeocodingProgress extends React.Component {
   constructor(props) {
     super(props);
     this.getProgress = this.getProgress.bind(this);
+    this.getSuccessCounter = this.getSuccessCounter.bind(this);
+    this.getDoubtCounter = this.getDoubtCounter.bind(this);
+    this.getFailedCounter = this.getFailedCounter.bind(this);
     this.calculateProgress = this.calculateProgress.bind(this);
     this.interruptGeocoding = this.interruptGeocoding.bind(this);
   }
@@ -42,6 +45,27 @@ export class GeocodingProgress extends React.Component {
   getProgress() {
     if (this.props.geocoding && this.props.geocoding.progress) {
         return this.calculateProgress(this.props.geocoding.progress.progress);
+    }
+    return 0;
+  }
+
+  getSuccessCounter() {
+    if (this.props.geocoding && this.props.geocoding.progress) {
+      return this.props.geocoding.progress.success_counter;
+    }
+    return 0;
+  }
+
+  getDoubtCounter() {
+    if (this.props.geocoding && this.props.geocoding.progress) {
+      return this.props.geocoding.progress.doubt_counter;
+    }
+    return 0;
+  }
+
+  getFailedCounter() {
+    if (this.props.geocoding && this.props.geocoding.progress) {
+      return this.props.geocoding.progress.failed_counter;
     }
     return 0;
   }
@@ -65,6 +89,10 @@ export class GeocodingProgress extends React.Component {
           <div className="progressContainer">
             <p>{t('The geocoding is currently in progress, this may take a while!')}</p>
             <ProgressBar striped now={this.getProgress()} label={`${this.getProgress()} %`} />
+            <p className="success">Success: {this.getSuccessCounter()}</p>
+            <p className="doubt">Doubt: {this.getDoubtCounter()}</p>
+            <p className="failed">Failed: {this.getFailedCounter()}</p>
+            <p>{t('You can cancel the process by clicking on the Cancel button')}</p>
             <Button bsStyle="danger" onClick={this.interruptGeocoding}>
               {t('Stop Geocoding')} <i className="fa fa-ban" />
             </Button>

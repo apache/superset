@@ -3613,4 +3613,3 @@ msgstr "Bearbeitet am"
 #: superset/views/sql_lab.py:79
 msgid "Saved Queries"
 msgstr "Gespeicherte Abfragen"
-

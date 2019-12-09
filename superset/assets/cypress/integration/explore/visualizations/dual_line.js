@@ -68,4 +68,3 @@ export default () => describe('Dual Line', () => {
   });
 
 });
-
