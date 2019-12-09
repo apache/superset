@@ -95,33 +95,35 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
 
   const tables = [];
   if (activeTab) {
-    activeTab.table_schemas.forEach(tableSchema => {
-      const {
-        columns,
-        selectStar,
-        primaryKey,
-        foreignKeys,
-        indexes,
-        dataPreviewQueryId,
-      } = tableSchema.description;
-      const table = {
-        dbId: tableSchema.database_id,
-        queryEditorId: tableSchema.tab_state_id.toString(),
-        schema: tableSchema.schema,
-        name: tableSchema.table,
-        expanded: tableSchema.expanded,
-        id: tableSchema.id,
-        isMetadataLoading: false,
-        isExtraMetadataLoading: false,
-        dataPreviewQueryId,
-        columns,
-        selectStar,
-        primaryKey,
-        foreignKeys,
-        indexes,
-      };
-      tables.push(table);
-    });
+    activeTab.table_schemas
+      .filter(tableSchema => tableSchema.description !== null)
+      .forEach(tableSchema => {
+        const {
+          columns,
+          selectStar,
+          primaryKey,
+          foreignKeys,
+          indexes,
+          dataPreviewQueryId,
+        } = tableSchema.description;
+        const table = {
+          dbId: tableSchema.database_id,
+          queryEditorId: tableSchema.tab_state_id.toString(),
+          schema: tableSchema.schema,
+          name: tableSchema.table,
+          expanded: tableSchema.expanded,
+          id: tableSchema.id,
+          isMetadataLoading: false,
+          isExtraMetadataLoading: false,
+          dataPreviewQueryId,
+          columns,
+          selectStar,
+          primaryKey,
+          foreignKeys,
+          indexes,
+        };
+        tables.push(table);
+      });
   }
 
   const { databases, queries } = restBootstrapData;
