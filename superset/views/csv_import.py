@@ -93,7 +93,7 @@ class CsvImporter(BaseSupersetView):
         """ Get all databases which allow csv upload as database dto
         :returns list of database dto
         """
-        user_permissions = []
+        user_permissions: list = []
         user = g.user
         for role in user.roles:
             for permission_view in role.permissions:
@@ -105,7 +105,7 @@ class CsvImporter(BaseSupersetView):
         databases = (
             db.session().query(models.Database).filter_by(allow_csv_upload=True).all()
         )
-        permitted_databases = []
+        permitted_databases: list = []
         if "all_database_access" in user_permissions:
             permitted_databases = databases
         else:
