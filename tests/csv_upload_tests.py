@@ -138,7 +138,7 @@ class CsvUploadTests(SupersetTestCase):
                 filename, NEW_DATABASE_ID, db_name, table_name
             )
             response = self.get_resp(url, data=form_data)
-            message = "{0} imported into database {1}".format(table_name, db_name)
+            message = f"{table_name} imported into database {db_name}"
             assert message in response
         finally:
             os.remove(filename)
@@ -161,7 +161,7 @@ class CsvUploadTests(SupersetTestCase):
         conf["POSTGRES_PASSWORD"] = POSTGRES
         try:
             response = self.get_resp(url, data=form_data)
-            message = "{0} imported into database {1}".format(table_name, db_name)
+            message = f"{table_name} imported into database {db_name}"
             assert message in response
         finally:
             os.remove(filename)
@@ -189,14 +189,14 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_clean_filename_None(self):
         purpose = "CSV"
-        error_message = "No filename received for {0}".format(purpose)
+        error_message = f"No filename received for {purpose}"
         with self.assertRaisesRegex(NameNotAllowedException, error_message):
             self.importer._clean_name(None, purpose)
 
     def test_clean_filename_empty(self):
         filename = "#,'\""
         purpose = "CSV"
-        error_message = "Name {0} is not allowed for {1}".format(filename, purpose)
+        error_message = f"Name {filename} is not allowed for {purpose}"
         with self.assertRaisesRegex(NameNotAllowedException, error_message):
             self.importer._clean_name(filename, purpose)
 
@@ -219,9 +219,7 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_check_table_name_failed(self):
         table_name = db.session.query(SqlaTable).first().table_name
-        error_message = "Table name {0} already exists. Please choose another".format(
-            table_name
-        )
+        error_message = f"Table name {table_name} already exists. Please choose another"
         with self.assertRaisesRegex(NameNotAllowedException, error_message):
             self.importer._check_table_name(table_name)
 
@@ -302,7 +300,7 @@ class CsvUploadTests(SupersetTestCase):
         db_name = "postgres_already_exist"
         conf["POSTGRES_USERNAME"] = POSTGRES
         conf["POSTGRES_PASSWORD"] = POSTGRES
-        error_message = "The database {0} already exists".format(db_name)
+        error_message = f"The database {db_name} already exists"
         try:
             self.importer._create_database(db_name, POSTGRES)
             with self.assertRaisesRegex(DatabaseCreationException, error_message):
@@ -325,9 +323,7 @@ class CsvUploadTests(SupersetTestCase):
         try:
             existing_file = open(db_path, "w+")
             existing_file.close()
-            error_message = "Database file for {0} already exists, please choose a different name".format(
-                db_name
-            )
+            error_message = f"Database file for {db_name} already exists, please choose a different name"
             with self.assertRaisesRegex(DatabaseAlreadyExistException, error_message):
                 self.importer._setup_sqlite_database(db_name, None)
         finally:
@@ -335,7 +331,7 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_not_existing_database_id(self):
         database_id = 1337
-        error_message = "No database was found with the id {0}".format(database_id)
+        error_message = "Database was not found."
         with self.assertRaisesRegex(NoResultFound, error_message):
             self.importer._get_existing_database(database_id, None)
 
@@ -343,8 +339,9 @@ class CsvUploadTests(SupersetTestCase):
         example_db = utils.get_example_database()
         example_db.allow_csv_upload = False
         db.session.commit()
-        error_message = "Database {0} Schema {1} is not allowed for csv uploads. Please contact your Superset administrator".format(
-            example_db.database_name, "None"
+        error_message = (
+            f'Database {example_db.database_name} Schema {"None"} is not allowed for csv uploads. '
+            "Please contact your Superset administrator"
         )
         with self.assertRaisesRegex(SchemaNotAllowedCsvUploadException, error_message):
             self.importer._get_existing_database(example_db.id, None)
@@ -378,8 +375,8 @@ class CsvUploadTests(SupersetTestCase):
             )
 
             error_message = (
-                "Table {0} could not be filled with CSV {1}. This could be an issue with the schema, a connection "
-                "issue, etc.".format(table_name, filename)
+                f"Table {table_name} could not be filled with CSV {filename}. "
+                f"This could be an issue with the schema, a connection issue, etc."
             )
             with self.assertRaisesRegex(TableCreationException, error_message):
                 self.importer._fill_table(form_data, table, filename)

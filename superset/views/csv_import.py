@@ -105,9 +105,7 @@ class CsvImporter(BaseSupersetView):
                     break
                 if "database_access" in permission_view.permission.name:
                     user_permissions.append(permission_view.view_menu.name)
-        databases = (
-            db.session().query(Database).filter_by(allow_csv_upload=True).all()
-        )
+        databases = db.session().query(Database).filter_by(allow_csv_upload=True).all()
         permitted_databases: list = []
         if "all_database_access" in user_permissions:
             permitted_databases = databases
