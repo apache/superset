@@ -126,7 +126,7 @@ class CsvUploadTests(SupersetTestCase):
                 filename, self.get_existing_db_id(), table_name=table_name
             )
             response = self.get_resp(url, data=form_data)
-            assert "imported into database" in response
+            assert "OK" in response
         finally:
             os.remove(filename)
 
@@ -140,8 +140,7 @@ class CsvUploadTests(SupersetTestCase):
                 filename, NEW_DATABASE_ID, db_name, table_name
             )
             response = self.get_resp(url, data=form_data)
-            message = f"{table_name} imported into database {db_name}"
-            assert message in response
+            assert "OK" in response
         finally:
             os.remove(filename)
             os.remove(os.getcwd() + "/" + db_name + ".db")
@@ -163,8 +162,7 @@ class CsvUploadTests(SupersetTestCase):
         conf[POSTGRESQL_PASSWORD] = POSTGRESQL
         try:
             response = self.get_resp(url, data=form_data)
-            message = f"{table_name} imported into database {db_name}"
-            assert message in response
+            assert "OK" in response
         finally:
             os.remove(filename)
             url = (
