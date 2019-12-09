@@ -23,10 +23,12 @@ import { shallow } from 'enzyme';
 import Welcome from '../../../src/welcome/Welcome';
 
 describe('Welcome', () => {
-  let fetchMock;  // mock calls to /tagview/tags/suggestions/
+  let fetchMock; // mock calls to /tagview/tags/suggestions/
 
   beforeAll(() => {
-    fetchMock = jest.spyOn(window, 'fetch').mockImplementation(() => Promise.resolve({}));
+    fetchMock = jest
+      .spyOn(window, 'fetch')
+      .mockImplementation(() => Promise.resolve({}));
   });
 
   afterAll(() => {
@@ -35,9 +37,7 @@ describe('Welcome', () => {
 
   const mockedProps = {};
   it('is valid', () => {
-    expect(
-      React.isValidElement(<Welcome {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<Welcome {...mockedProps} />)).toBe(true);
   });
   it('renders 4 Tabs, 4 Panels, and 5 Row components', () => {
     const wrapper = shallow(<Welcome {...mockedProps} />);

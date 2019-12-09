@@ -31,9 +31,7 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const dashboardsEndpoint = 'glob:*/dashboardasync/api/read*';
-const mockDashboards = [
-  { id: 1, url: 'url', dashboard_title: 'title' },
-];
+const mockDashboards = [{ id: 1, url: 'url', dashboard_title: 'title' }];
 
 fetchMock.get(dashboardsEndpoint, { result: mockDashboards });
 
@@ -50,7 +48,7 @@ describe('DashboardTable', () => {
     expect(wrapper.find(Loading)).toHaveLength(1);
   });
 
-  it('fetches dashboards and renders a Table', (done) => {
+  it('fetches dashboards and renders a Table', done => {
     const wrapper = setup();
 
     setTimeout(() => {

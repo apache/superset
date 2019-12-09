@@ -29,7 +29,9 @@ export default function Checkbox({ checked, onChange, style }) {
   return (
     <span style={style}>
       <i
-        className={`fa fa-check ${checked ? 'text-primary' : 'text-transparent'}`}
+        className={`fa fa-check ${
+          checked ? 'text-primary' : 'text-transparent'
+        }`}
         onClick={() => {
           onChange(!checked);
         }}
@@ -39,6 +41,7 @@ export default function Checkbox({ checked, onChange, style }) {
           cursor: 'pointer',
         }}
       />
-    </span>);
+    </span>
+  );
 }
 Checkbox.propTypes = propTypes;

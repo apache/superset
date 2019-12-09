@@ -52,9 +52,9 @@ export default class TagsTable extends React.PureComponent {
     }
   }
   fetchResults(search) {
-    fetchObjects({ tags: search, types: null }, (data) => {
+    fetchObjects({ tags: search, types: null }, data => {
       const objects = { dashboard: [], chart: [], query: [] };
-      data.forEach((object) => {
+      data.forEach(object => {
         objects[object.type].push(object);
       });
       this.setState({ objects });

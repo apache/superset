@@ -37,7 +37,9 @@ describe('DisplayQueryButton', () => {
   };
 
   it('is valid', () => {
-    expect(React.isValidElement(<DisplayQueryButton {...defaultProps} />)).toBe(true);
+    expect(React.isValidElement(<DisplayQueryButton {...defaultProps} />)).toBe(
+      true,
+    );
   });
   it('renders a dropdown', () => {
     const wrapper = mount(<DisplayQueryButton {...defaultProps} />);

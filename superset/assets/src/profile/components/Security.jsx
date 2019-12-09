@@ -31,29 +31,37 @@ export default function Security({ user }) {
         <h4>
           {t('Roles')} <Badge>{Object.keys(user.roles).length}</Badge>
         </h4>
-        {Object.keys(user.roles).map(role => <Label key={role}>{role}</Label>)}
+        {Object.keys(user.roles).map(role => (
+          <Label key={role}>{role}</Label>
+        ))}
         <hr />
       </div>
       <div className="databases">
-        {user.permissions.database_access &&
+        {user.permissions.database_access && (
           <div>
             <h4>
-              {t('Databases')} <Badge>{user.permissions.database_access.length}</Badge>
+              {t('Databases')}{' '}
+              <Badge>{user.permissions.database_access.length}</Badge>
             </h4>
-            {user.permissions.database_access.map(role => <Label key={role}>{role}</Label>)}
+            {user.permissions.database_access.map(role => (
+              <Label key={role}>{role}</Label>
+            ))}
             <hr />
           </div>
-        }
+        )}
       </div>
       <div className="datasources">
-        {user.permissions.datasource_access &&
+        {user.permissions.datasource_access && (
           <div>
             <h4>
-              {t('Datasources')} <Badge>{user.permissions.datasource_access.length}</Badge>
+              {t('Datasources')}{' '}
+              <Badge>{user.permissions.datasource_access.length}</Badge>
             </h4>
-            {user.permissions.datasource_access.map(role => <Label key={role}>{role}</Label>)}
+            {user.permissions.datasource_access.map(role => (
+              <Label key={role}>{role}</Label>
+            ))}
           </div>
-        }
+        )}
       </div>
     </div>
   );

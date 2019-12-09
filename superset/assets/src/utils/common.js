@@ -21,6 +21,10 @@ import { SupersetClient } from '@superset-ui/connection';
 import URI from 'urijs';
 import getClientErrorObject from './getClientErrorObject';
 
+// ATTENTION: If you change any constants, make sure to also change constants.py
+
+export const NULL_STRING = '<NULL>';
+
 export function getParamFromQuery(query, param) {
   const vars = query.split('&');
   for (let i = 0; i < vars.length; i += 1) {
@@ -36,7 +40,7 @@ export function storeQuery(query) {
   return SupersetClient.post({
     endpoint: '/kv/store/',
     postPayload: { data: query },
-  }).then((response) => {
+  }).then(response => {
     const baseUrl = window.location.origin + window.location.pathname;
     const url = `${baseUrl}?id=${response.json.id}`;
     return url;
@@ -47,7 +51,7 @@ export function getParamsFromUrl() {
   const hash = window.location.search;
   const params = hash.split('?')[1].split('&');
   const newParams = {};
-  params.forEach((p) => {
+  params.forEach(p => {
     const value = p.split('=')[1].replace(/\+/g, ' ');
     const key = p.split('=')[0];
     newParams[key] = value;
@@ -64,8 +68,10 @@ export function getShortUrl(longUrl) {
   })
     .then(({ text }) => text)
     .catch(response =>
-      getClientErrorObject(response)
-        .then(({ error, statusText }) => Promise.reject(error || statusText)));
+      getClientErrorObject(response).then(({ error, statusText }) =>
+        Promise.reject(error || statusText),
+      ),
+    );
 }
 
 export function supersetURL(rootUrl, getParams = {}) {
@@ -76,7 +82,7 @@ export function supersetURL(rootUrl, getParams = {}) {
 
 export function optionLabel(opt) {
   if (opt === null) {
-    return '<NULL>';
+    return NULL_STRING;
   } else if (opt === '') {
     return '<empty string>';
   } else if (opt === true) {
@@ -91,7 +97,7 @@ export function optionLabel(opt) {
 
 export function optionValue(opt) {
   if (opt === null) {
-    return '<NULL>';
+    return NULL_STRING;
   }
   return opt;
 }

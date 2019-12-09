@@ -47,24 +47,30 @@ export default class ControlPanelSection extends React.Component {
   renderHeader() {
     const { label, description, hasErrors } = this.props;
     return (
-      label &&
+      label && (
         <div>
           <span>
-            <span onClick={this.toggleExpand.bind(this)}>{label}</span>
-            {' '}
-            {description && <InfoTooltipWithTrigger label={label} tooltip={description} />}
-            {hasErrors &&
+            <span onClick={this.toggleExpand.bind(this)}>{label}</span>{' '}
+            {description && (
+              <InfoTooltipWithTrigger label={label} tooltip={description} />
+            )}
+            {hasErrors && (
               <InfoTooltipWithTrigger
                 label="validation-errors"
                 bsStyle="danger"
                 tooltip="This section contains validation errors"
-              />}
+              />
+            )}
           </span>
           <i
-            className={`float-right fa-lg text-primary expander fa fa-angle-${this.state.expanded ? 'up' : 'down'}`}
+            className={`float-right fa-lg text-primary expander fa fa-angle-${
+              this.state.expanded ? 'up' : 'down'
+            }`}
             onClick={this.toggleExpand.bind(this)}
           />
-        </div>);
+        </div>
+      )
+    );
   }
 
   render() {

@@ -30,12 +30,7 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import CachedLabel from '../../components/CachedLabel';
 import ObjectTags from '../../components/ObjectTags';
-import {
-  addTag,
-  deleteTag,
-  fetchSuggestions,
-  fetchTags,
-} from '../../tags';
+import { addTag, deleteTag, fetchSuggestions, fetchTags } from '../../tags';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -80,8 +75,12 @@ class ExploreChartHeader extends React.PureComponent {
   }
 
   postChartFormData() {
-    this.props.actions.postChartFormData(this.props.form_data, true,
-      this.props.timeout, this.props.chart.id);
+    this.props.actions.postChartFormData(
+      this.props.form_data,
+      true,
+      this.props.timeout,
+      this.props.chart.id,
+    );
   }
 
   updateChartTitleOrSaveSlice(newTitle) {
@@ -90,19 +89,25 @@ class ExploreChartHeader extends React.PureComponent {
       slice_name: newTitle,
       action: isNewSlice ? 'saveas' : 'overwrite',
     };
-    this.props.actions.saveSlice(this.props.form_data, params)
-      .then((json) => {
-        const { data } = json;
-        if (isNewSlice) {
-          this.props.actions.updateChartId(data.slice.slice_id, 0);
-          this.props.actions.createNewSlice(
-            data.can_add, data.can_download, data.can_overwrite,
-            data.slice, data.form_data);
-          this.props.addHistory({ isReplace: true, title: `[chart] ${data.slice.slice_name}` });
-        } else {
-          this.props.actions.updateChartTitle(newTitle);
-        }
-      });
+    this.props.actions.saveSlice(this.props.form_data, params).then(json => {
+      const { data } = json;
+      if (isNewSlice) {
+        this.props.actions.updateChartId(data.slice.slice_id, 0);
+        this.props.actions.createNewSlice(
+          data.can_add,
+          data.can_download,
+          data.can_overwrite,
+          data.slice,
+          data.form_data,
+        );
+        this.props.addHistory({
+          isReplace: true,
+          title: `[chart] ${data.slice.slice_name}`,
+        });
+      } else {
+        this.props.actions.updateChartTitle(newTitle);
+      }
+    });
   }
 
   renderChartTitle() {
@@ -122,47 +127,47 @@ class ExploreChartHeader extends React.PureComponent {
       chartUpdateEndTime,
       chartUpdateStartTime,
       latestQueryFormData,
-      queryResponse } = this.props.chart;
-      const chartFinished = ['failed', 'rendered', 'success'].includes(this.props.chart.chartStatus);
+      queryResponse,
+    } = this.props.chart;
+    const chartFinished = ['failed', 'rendered', 'success'].includes(
+      this.props.chart.chartStatus,
+    );
     return (
-      <div
-        id="slice-header"
-        className="clearfix panel-title-large"
-      >
+      <div id="slice-header" className="clearfix panel-title-large">
         <EditableTitle
           title={this.renderChartTitle()}
           canEdit={!this.props.slice || this.props.can_overwrite}
           onSaveTitle={this.updateChartTitleOrSaveSlice.bind(this)}
         />
 
-        {this.props.slice &&
-        <span>
-          <FaveStar
-            itemId={this.props.slice.slice_id}
-            fetchFaveStar={this.props.actions.fetchFaveStar}
-            saveFaveStar={this.props.actions.saveFaveStar}
-            isStarred={this.props.isStarred}
-          />
+        {this.props.slice && (
+          <span>
+            <FaveStar
+              itemId={this.props.slice.slice_id}
+              fetchFaveStar={this.props.actions.fetchFaveStar}
+              saveFaveStar={this.props.actions.saveFaveStar}
+              isStarred={this.props.isStarred}
+            />
 
-          <TooltipWrapper
-            label="edit-desc"
-            tooltip={t('Edit chart properties')}
-          >
-            <a
-              className="edit-desc-icon"
-              href={`/chart/edit/${this.props.slice.slice_id}`}
+            <TooltipWrapper
+              label="edit-desc"
+              tooltip={t('Edit chart properties')}
             >
-              <i className="fa fa-edit" />
-            </a>
-          </TooltipWrapper>
-        </span>
-        }
-        {this.props.chart.sliceFormData &&
+              <a
+                className="edit-desc-icon"
+                href={`/chart/edit/${this.props.slice.slice_id}`}
+              >
+                <i className="fa fa-edit" />
+              </a>
+            </TooltipWrapper>
+          </span>
+        )}
+        {this.props.chart.sliceFormData && (
           <AlteredSliceTag
             origFormData={this.props.chart.sliceFormData}
             currentFormData={formData}
           />
-        }
+        )}
         <ObjectTags
           fetchTags={this.fetchTags}
           fetchSuggestions={this.fetchSuggestions}
@@ -171,16 +176,18 @@ class ExploreChartHeader extends React.PureComponent {
           editable={this.props.can_overwrite}
         />
         <div className="pull-right">
-          {chartFinished && queryResponse &&
+          {chartFinished && queryResponse && (
             <RowCountLabel
               rowcount={queryResponse.rowcount}
               limit={formData.row_limit}
-            />}
-          {chartFinished && queryResponse && queryResponse.is_cached &&
+            />
+          )}
+          {chartFinished && queryResponse && queryResponse.is_cached && (
             <CachedLabel
               onClick={this.postChartFormData.bind(this)}
               cachedTimestamp={queryResponse.cached_dttm}
-            />}
+            />
+          )}
           <Timer
             startTime={chartUpdateStartTime}
             endTime={chartUpdateEndTime}

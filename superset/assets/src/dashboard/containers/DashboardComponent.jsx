@@ -117,7 +117,4 @@ class DashboardComponent extends React.PureComponent {
 DashboardComponent.propTypes = propTypes;
 DashboardComponent.defaultProps = defaultProps;
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(DashboardComponent);
+export default connect(mapStateToProps, mapDispatchToProps)(DashboardComponent);

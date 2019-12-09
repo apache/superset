@@ -20,7 +20,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 import superset.models.core as models
 from superset import appbuilder
 
-from . import DatabaseFilter, DatabaseMixin, sqlalchemy_uri_validator
+from .mixins import DatabaseFilter, DatabaseMixin
+from .validators import sqlalchemy_uri_validator
 
 
 class DatabaseRestApi(DatabaseMixin, ModelRestApi):

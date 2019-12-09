@@ -24,20 +24,18 @@ import { defaultControls } from 'src/explore/store';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { ControlPanelsContainer } from 'src/explore/components/ControlPanelsContainer';
 import ControlPanelSection from 'src/explore/components/ControlPanelSection';
-import * as featureFlags from 'src/featureFlags';
 
 describe('ControlPanelsContainer', () => {
   let wrapper;
-  let scopedFilterOn = false;
-  const isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled')
-      .mockImplementation(() => scopedFilterOn);
 
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue('table', {
       controlPanelSections: [
         {
           label: t('GROUP BY'),
-          description: t('Use this section if you want a query that aggregates'),
+          description: t(
+            'Use this section if you want a query that aggregates',
+          ),
           expanded: true,
           controlSetRows: [
             ['groupby'],
@@ -60,9 +58,7 @@ describe('ControlPanelsContainer', () => {
         {
           label: t('Query'),
           expanded: true,
-          controlSetRows: [
-            ['adhoc_filters'],
-          ],
+          controlSetRows: [['adhoc_filters']],
         },
         {
           label: t('Options'),
@@ -80,7 +76,6 @@ describe('ControlPanelsContainer', () => {
 
   afterAll(() => {
     getChartControlPanelRegistry().remove('table');
-    isFeatureEnabledMock.mockRestore();
   });
 
   function getDefaultProps() {
@@ -98,11 +93,5 @@ describe('ControlPanelsContainer', () => {
   it('renders ControlPanelSections', () => {
     wrapper = shallow(<ControlPanelsContainer {...getDefaultProps()} />);
     expect(wrapper.find(ControlPanelSection)).toHaveLength(6);
-  });
-
-  it('renders filter panel when SCOPED_FILTER flag is on', () => {
-    scopedFilterOn = true;
-    wrapper = shallow(<ControlPanelsContainer {...getDefaultProps()} />);
-    expect(wrapper.find(ControlPanelSection)).toHaveLength(7);
   });
 });

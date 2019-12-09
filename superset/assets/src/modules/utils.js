@@ -54,9 +54,7 @@ export function formatSelectOptionsForRange(start, end) {
 }
 
 export function formatSelectOptions(options) {
-  return options.map(opt =>
-     [opt, opt.toString()],
-  );
+  return options.map(opt => [opt, opt.toString()]);
 }
 
 export function getDatasourceParameter(datasourceId, datasourceType) {
@@ -65,21 +63,23 @@ export function getDatasourceParameter(datasourceId, datasourceType) {
 
 export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
   chart.useInteractiveGuideline(true);
-  chart.interactiveLayer.tooltip.contentGenerator(function (d) {
+  chart.interactiveLayer.tooltip.contentGenerator(function(d) {
     const tooltipTitle = xAxisFormatter(d.value);
     let tooltip = '';
 
-    tooltip += "<table><thead><tr><td colspan='3'>"
-      + `<strong class='x-value'>${tooltipTitle}</strong>`
-      + '</td></tr></thead><tbody>';
+    tooltip +=
+      "<table><thead><tr><td colspan='3'>" +
+      `<strong class='x-value'>${tooltipTitle}</strong>` +
+      '</td></tr></thead><tbody>';
 
     d.series.forEach((series, i) => {
       const yAxisFormatter = yAxisFormatters[i];
       const value = yAxisFormatter(series.value);
-      tooltip += "<tr><td class='legend-color-guide'>"
-        + `<div style="background-color: ${series.color};"></div></td>`
-        + `<td class='key'>${series.key}</td>`
-        + `<td class='value'>${value}</td></tr>`;
+      tooltip +=
+        "<tr><td class='legend-color-guide'>" +
+        `<div style="background-color: ${series.color};"></div></td>` +
+        `<td class='key'>${series.key}</td>` +
+        `<td class='value'>${value}</td></tr>`;
     });
 
     tooltip += '</tbody></table>';
@@ -102,7 +102,10 @@ export function initJQueryAjax() {
   if (token) {
     $.ajaxSetup({
       beforeSend(xhr, settings) {
-        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+        if (
+          !/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) &&
+          !this.crossDomain
+        ) {
           xhr.setRequestHeader('X-CSRFToken', token);
         }
       },
@@ -124,14 +127,16 @@ export function getParam(name) {
   const formattedName = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
   const regex = new RegExp('[\\?&]' + formattedName + '=([^&#]*)');
   const results = regex.exec(location.search);
-  return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+  return results === null
+    ? ''
+    : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
 
 export function mainMetric(savedMetrics) {
   // Using 'count' as default metric if it exists, otherwise using whatever one shows up first
   let metric;
   if (savedMetrics && savedMetrics.length > 0) {
-    savedMetrics.forEach((m) => {
+    savedMetrics.forEach(m => {
       if (m.metric_name === 'count') {
         metric = 'count';
       }

@@ -18,7 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/dist/light';
+import SyntaxHighlighter, {
+  registerLanguage,
+} from 'react-syntax-highlighter/dist/light';
 import sql from 'react-syntax-highlighter/dist/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/styles/hljs/github';
 

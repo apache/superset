@@ -55,9 +55,7 @@ export default class Fieldset extends React.PureComponent {
     });
     return (
       <Form componentClass="fieldset" className="CRUD">
-        {title &&
-          <legend>{title}</legend>
-        }
+        {title && <legend>{title}</legend>}
         {recurseReactClone(this.props.children, Field, propExtender)}
       </Form>
     );

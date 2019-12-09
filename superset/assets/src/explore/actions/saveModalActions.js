@@ -61,7 +61,7 @@ export function removeSaveModalAlert() {
 }
 
 export function saveSlice(formData, requestParams) {
-  return (dispatch) => {
+  return dispatch => {
     const { url, payload } = getExploreUrlAndPayload({
       formData,
       endpointType: 'base',

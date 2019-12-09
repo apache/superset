@@ -53,7 +53,7 @@ describe('SaveModal', () => {
 
   const defaultProps = {
     onHide: () => ({}),
-    actions: bindActionCreators(saveModalActions, (arg) => {
+    actions: bindActionCreators(saveModalActions, arg => {
       if (typeof arg === 'function') {
         return arg(jest.fn);
       }
@@ -144,11 +144,11 @@ describe('SaveModal', () => {
         .stub(exploreUtils, 'getExploreUrlAndPayload')
         .callsFake(() => ({ url: 'mockURL', payload: defaultProps.form_data }));
 
-      sinon
-        .stub(defaultProps.actions, 'saveSlice')
-        .callsFake(() =>
-          Promise.resolve({ data: { dashboard: '/mock/', slice: { slice_url: '/mock/' } } }),
-        );
+      sinon.stub(defaultProps.actions, 'saveSlice').callsFake(() =>
+        Promise.resolve({
+          data: { dashboard: '/mock/', slice: { slice_url: '/mock/' } },
+        }),
+      );
     });
 
     afterEach(() => {
@@ -223,15 +223,14 @@ describe('SaveModal', () => {
       return actionThunk(dispatch);
     };
 
-    it('makes the fetch request', () => (
+    it('makes the fetch request', () =>
       makeRequest().then(() => {
         expect(fetchMock.calls(saveEndpoint)).toHaveLength(1);
 
         return Promise.resolve();
-      })
-    ));
+      }));
 
-    it('calls correct actions on success', () => (
+    it('calls correct actions on success', () =>
       makeRequest().then(() => {
         expect(dispatch.callCount).toBe(1);
         expect(dispatch.getCall(0).args[0].type).toBe(
@@ -239,17 +238,24 @@ describe('SaveModal', () => {
         );
 
         return Promise.resolve();
-      })
-    ));
+      }));
 
     it('calls correct actions on error', () => {
-      fetchMock.get(saveEndpoint, { throws: 'error' }, { overwriteRoutes: true });
+      fetchMock.get(
+        saveEndpoint,
+        { throws: 'error' },
+        { overwriteRoutes: true },
+      );
 
       return makeRequest().then(() => {
         expect(dispatch.callCount).toBe(1);
-        expect(dispatch.getCall(0).args[0].type).toBe(saveModalActions.FETCH_DASHBOARDS_FAILED);
+        expect(dispatch.getCall(0).args[0].type).toBe(
+          saveModalActions.FETCH_DASHBOARDS_FAILED,
+        );
 
-        fetchMock.get(saveEndpoint, mockDashboardData, { overwriteRoutes: true });
+        fetchMock.get(saveEndpoint, mockDashboardData, {
+          overwriteRoutes: true,
+        });
 
         return Promise.resolve();
       });

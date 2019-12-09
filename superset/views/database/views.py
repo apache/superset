@@ -14,40 +14,40 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import os
 
 from flask import flash, g, redirect
 from flask_appbuilder import SimpleFormView
-from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __, lazy_gettext as _
-from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app, appbuilder, db, security_manager
+from superset import app, appbuilder, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
-from . import DatabaseMixin, sqlalchemy_uri_validator
 from .forms import CsvToDatabaseForm
+from .mixins import DatabaseMixin
+from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
 
 config = app.config
 stats_logger = config["STATS_LOGGER"]
 
 
-def sqlalchemy_uri_form_validator(form: DynamicForm, field: StringField) -> None:
+def sqlalchemy_uri_form_validator(_, field: StringField) -> None:
     """
         Check if user has submitted a valid SQLAlchemy URI
     """
     sqlalchemy_uri_validator(field.data, exception=ValidationError)
 
 
-class DatabaseView(DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin):
+class DatabaseView(
+    DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Database)
 
     add_template = "superset/models/database/add.html"
@@ -102,7 +102,7 @@ class CsvToDatabaseView(SimpleFormView):
         database = form.con.data
         schema_name = form.schema.data or ""
 
-        if not self.is_schema_allowed(database, schema_name):
+        if not schema_allows_csv_upload(database, schema_name):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for csv uploads. Please contact your Superset Admin.",
@@ -147,7 +147,7 @@ class CsvToDatabaseView(SimpleFormView):
                 table.fetch_metadata()
                 db.session.add(table)
             db.session.commit()
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             db.session.rollback()
             try:
                 os.remove(path)
@@ -180,29 +180,18 @@ class CsvToDatabaseView(SimpleFormView):
         stats_logger.incr("successful_csv_upload")
         return redirect("/tablemodelview/list/")
 
-    def is_schema_allowed(self, database, schema):
-        if not database.allow_csv_upload:
-            return False
-        schemas = database.get_schema_access_for_csv_upload()
-        if schemas:
-            return schema in schemas
-        return (
-            security_manager.database_access(database)
-            or security_manager.all_datasource_access()
-        )
-
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
 
 
-class DatabaseTablesAsync(DatabaseView):
+class DatabaseTablesAsync(DatabaseView):  # pylint: disable=too-many-ancestors
     list_columns = ["id", "all_table_names_in_database", "all_schema_names"]
 
 
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
 
 
-class DatabaseAsync(DatabaseView):
+class DatabaseAsync(DatabaseView):  # pylint: disable=too-many-ancestors
     list_columns = [
         "id",
         "database_name",

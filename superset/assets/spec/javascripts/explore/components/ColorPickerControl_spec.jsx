@@ -21,14 +21,16 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 import { SketchPicker } from 'react-color';
-import { CategoricalScheme, getCategoricalSchemeRegistry } from '@superset-ui/color';
+import {
+  CategoricalScheme,
+  getCategoricalSchemeRegistry,
+} from '@superset-ui/color';
 
-import ColorPickerControl from
-  '../../../../src/explore/components/controls/ColorPickerControl';
+import ColorPickerControl from '../../../../src/explore/components/controls/ColorPickerControl';
 import ControlHeader from '../../../../src/explore/components/ControlHeader';
 
 const defaultProps = {
-  value: { },
+  value: {},
 };
 
 describe('ColorPickerControl', () => {
@@ -36,10 +38,13 @@ describe('ColorPickerControl', () => {
   let inst;
   beforeEach(() => {
     getCategoricalSchemeRegistry()
-      .registerValue('test', new CategoricalScheme({
-        id: 'test',
-        colors: ['red', 'green', 'blue'],
-      }))
+      .registerValue(
+        'test',
+        new CategoricalScheme({
+          id: 'test',
+          colors: ['red', 'green', 'blue'],
+        }),
+      )
       .setDefaultKey('test');
     wrapper = shallow(<ColorPickerControl {...defaultProps} />);
     inst = wrapper.instance();
