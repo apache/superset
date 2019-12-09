@@ -43,6 +43,7 @@ from .base_tests import SupersetTestCase
 NEW_DATABASE_ID = -1
 SQLITE = "sqlite"
 POSTGRESQL = "postgres"
+POSTGRESQLFLAVOR = "postgresql"
 POSTGRESQL_USERNAME = "POSTGRESQL_USERNAME"
 POSTGRESQL_PASSWORD = "POSTGRESQL_PASSWORD"
 
@@ -237,11 +238,10 @@ class CsvUploadTests(SupersetTestCase):
     )
     def test_create_postgresql_database(self):
         db_name = "newPostgresqlDatabase"
-        postgresql = "postgres"
         conf[POSTGRESQL_USERNAME] = POSTGRESQL
         conf[POSTGRESQL_PASSWORD] = POSTGRESQL
         try:
-            new_database = self.importer._create_database(db_name, postgresql)
+            new_database = self.importer._create_database(db_name, POSTGRESQLFLAVOR)
             assert (
                 new_database
                 == db.session.query(models.Database).filter_by(id=new_database.id).one()
@@ -294,11 +294,11 @@ class CsvUploadTests(SupersetTestCase):
         db_name = "postgres_already_exist"
         conf[POSTGRESQL_USERNAME] = POSTGRESQL
         conf[POSTGRESQL_PASSWORD] = POSTGRESQL
-        error_message = "Error when trying to create Database"
+        error_message = f"The database {db_name} already exists"
         try:
-            self.importer._create_database(db_name, POSTGRESQL)
+            self.importer._create_database(db_name, POSTGRESQLFLAVOR)
             with self.assertRaisesRegex(DatabaseCreationException, error_message):
-                self.importer._create_database(db_name, POSTGRESQL)
+                self.importer._create_database(db_name, POSTGRESQLFLAVOR)
         finally:
             url = (
                 "postgresql://"
