@@ -35,15 +35,15 @@ import superset.models.core as models
 from superset import app, appbuilder, conf, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
-    DatabaseFileAlreadyExistsException,
     DatabaseAlreadyExistException,
     DatabaseCreationException,
     DatabaseDeletionException,
+    DatabaseFileAlreadyExistsException,
     FileSaveException,
+    GetDatabaseException,
     NameNotAllowedException,
     NoPasswordSuppliedException,
     NoUsernameSuppliedException,
-    GetDatabaseException,
     SchemaNotAllowedCsvUploadException,
     TableCreationException,
 )
@@ -149,16 +149,16 @@ class CsvImporter(BaseSupersetView):
             csv_path = self._check_and_save_csv(csv_file, csv_filename)
             self._fill_table(form_data, table, csv_filename)
         except (
-                NameNotAllowedException,
-                DatabaseFileAlreadyExistsException,
-                DatabaseAlreadyExistException,
-                SchemaNotAllowedCsvUploadException,
-                NoResultFound,
-                MultipleResultsFound,
-                GetDatabaseException,
-                FileSaveException,
-                NoUsernameSuppliedException,
-                NoPasswordSuppliedException,
+            NameNotAllowedException,
+            DatabaseFileAlreadyExistsException,
+            DatabaseAlreadyExistException,
+            SchemaNotAllowedCsvUploadException,
+            NoResultFound,
+            MultipleResultsFound,
+            GetDatabaseException,
+            FileSaveException,
+            NoUsernameSuppliedException,
+            NoPasswordSuppliedException,
         ) as e:
             LOGGER.exception(f"Failed to prepare CSV import {e.orig}")
             STATS_LOGGER.incr("csv_upload_failed")
@@ -196,7 +196,9 @@ class CsvImporter(BaseSupersetView):
         :return: filename with allowed characters
         """
         if not filename:
-            raise NameNotAllowedException("No filename received for {0}".format(purpose), None)
+            raise NameNotAllowedException(
+                "No filename received for {0}".format(purpose), None
+            )
         cleaned_filename = secure_filename(filename)
         if len(cleaned_filename) == 0:
             raise NameNotAllowedException(
