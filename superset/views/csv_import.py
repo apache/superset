@@ -202,9 +202,9 @@ class CsvImporter(BaseSupersetView):
                 pass
 
         STATS_LOGGER.incr("csv_upload_successful")
-        message = f'"{table_name}" imported into database "{db_name}"'
+        message = f"{table_name} imported into database {db_name}"
         flash(message, "success")
-        return json_success(message)
+        return json_success('"OK"')
 
     def _clean_name(self, name: str, purpose: str) -> str:
         """ Clean filename from disallowed characters
