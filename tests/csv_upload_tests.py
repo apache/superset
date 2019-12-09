@@ -144,7 +144,7 @@ class CsvUploadTests(SupersetTestCase):
     @unittest.skipIf(
         "mysql" in conf.get("SQLALCHEMY_DATABASE_URI", "")
         or SQLITE in conf.get("SQLALCHEMY_DATABASE_URI", ""),
-        "This test only run when a PostgreSQL database exist",
+        "This test only runs when a PostgreSQL database exists",
     )
     def test_import_into_new_postgres(self):
         url = "/csvimporter/csvtodatabase/add"
@@ -159,7 +159,6 @@ class CsvUploadTests(SupersetTestCase):
         try:
             response = self.get_resp(url, data=form_data)
             message = "{0} imported into database {1}".format(table_name, db_name)
-            print(response)  # show error message in build
             assert message in response
         finally:
             os.remove(filename)
@@ -183,14 +182,13 @@ class CsvUploadTests(SupersetTestCase):
     def test_clean_filename(self):
         original_filename = "foo,+.bar"
         filename = self.importer._clean_filename(original_filename, "CSV")
-        print(filename)
         assert filename == "foo.bar"
         filename = self.importer._clean_filename(filename, "CSV")
         assert filename == "foo.bar"
 
     def test_clean_filename_None(self):
         purpose = "CSV"
-        error_message = "No name is received for {0}".format(purpose)
+        error_message = "No name received for {0}".format(purpose)
         with self.assertRaisesRegex(NameNotAllowed, error_message):
             self.importer._clean_filename(None, purpose)
 
@@ -303,7 +301,7 @@ class CsvUploadTests(SupersetTestCase):
         db_name = "postgres_already_exist"
         conf["POSTGRES_USERNAME"] = POSTGRES
         conf["POSTGRES_PASSWORD"] = POSTGRES
-        error_message = "The database {0} already exist".format(db_name)
+        error_message = "The database {0} already exists".format(db_name)
         try:
             self.importer._create_database(db_name, POSTGRES)
             with self.assertRaisesRegex(DatabaseCreationException, error_message):
