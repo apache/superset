@@ -42,7 +42,7 @@ from .base_tests import SupersetTestCase
 
 NEW_DATABASE_ID = -1
 SQLITE = "sqlite"
-POSTGRESQL = "postgresql"
+POSTGRESQL = "postgres"
 POSTGRESQL_USERNAME = "POSTGRESQL_USERNAME"
 POSTGRESQL_PASSWORD = "POSTGRESQL_PASSWORD"
 
