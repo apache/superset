@@ -61,7 +61,7 @@ export class CsvToDatabase extends React.PureComponent {
       ],
       databaseFlavorValues: [
           { label: t('SQLite'), value: 'sqlite' },
-          { label: t('PostgreSQL'), value: 'postgres' },
+          { label: t('PostgreSQL'), value: 'postgresql' },
       ],
       indexColumn: '',
       mangleDuplicateColumns: true,

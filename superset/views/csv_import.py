@@ -18,6 +18,7 @@
 import logging
 import os
 from distutils.util import strtobool
+from typing import Tuple
 
 import simplejson as json
 import sqlalchemy
@@ -147,8 +148,9 @@ class CsvImporter(BaseSupersetView):
             database = None
             db_flavor = form_data.get("databaseFlavor", SQLITE)
             database_id = self._convert_database_id(form_data.get("connectionId"))
-            table_name = self._clean_name(form_data.get("tableName", ""), "CSV")
-            self._check_table_name(table_name)
+            table_name = self._clean_name(form_data.get("tableName", ""), "Table")
+            fail_if_table_exists = form_data.get("ifTableExists", "Fail")
+            self._check_table_name(table_name, fail_if_table_exists)
 
             if database_id != NEW_DATABASE_ID:
                 database = self._get_existing_database(
@@ -159,7 +161,7 @@ class CsvImporter(BaseSupersetView):
                 db_name = self._clean_name(
                     form_data.get("databaseName", ""), "database"
                 )
-                database = self._create_database(db_name, db_flavor)
+                database, db_uri = self._create_database(db_name, db_flavor)
 
             table = self._create_table(table_name, database)
 
@@ -184,7 +186,7 @@ class CsvImporter(BaseSupersetView):
             LOGGER.exception(f"Failed to import CSV {e.orig}")
             STATS_LOGGER.incr("csv_upload_failed")
             if NEW_DATABASE_ID == database_id:
-                self._remove_database(database, db_flavor)
+                self._remove_database(database, db_uri, db_flavor)
             return json_error_response(e.args[0], status=BAD_REQUEST)
         except DatabaseDeletionException as e:
             LOGGER.exception(f"Failed to delete Database {e.orig}")
@@ -234,18 +236,24 @@ class CsvImporter(BaseSupersetView):
             )
             raise DatabaseFileAlreadyExistsException(message, e)
 
-    def _check_table_name(self, table_name: str) -> None:
+    def _check_table_name(self, table_name: str, fail_if_table_exists: str) -> None:
         """ Check if table name is alredy in use
         :param table_name: the name of the table to check
+        :param fail_if_table_exists: the process, if table already exist
         :return: False if table name is not in use or otherwise TableNameInUseException
         """
-        if db.session.query(SqlaTable).filter_by(table_name=table_name).one_or_none():
+        if (
+            fail_if_table_exists == "Fail"
+            and db.session.query(SqlaTable)
+            .filter_by(table_name=table_name)
+            .one_or_none()
+        ):
             message = _(
                 f"Table name {table_name} already exists. Please choose another"
             )
             raise NameNotAllowedException(message, None)
 
-    def _create_database(self, db_name: str, db_flavor: str) -> Database:
+    def _create_database(self, db_name: str, db_flavor: str) -> Tuple[Database, str]:
         """ Creates the Database itself as well as the Superset Connection to it
 
         Keyword arguments:
@@ -264,14 +272,14 @@ class CsvImporter(BaseSupersetView):
         database.allow_csv_upload = True
 
         if db_flavor == POSTGRESQL:
-            self._setup_postgresql_database(db_name, database)
+            url = self._setup_postgresql_database(db_name, database)
         else:
-            self._setup_sqlite_database(db_name, database)
+            url = self._setup_sqlite_database(db_name, database)
         try:
             # TODO check if SQL-injection is possible through add()
             db.session.add(database)
             db.session.commit()
-            return database
+            return database, url
         except IntegrityError as e:
             raise DatabaseCreationException("Error when trying to create Database", e)
         except Exception as e:
@@ -279,10 +287,11 @@ class CsvImporter(BaseSupersetView):
                 "An unknown error occurred trying to create the database.", e
             )
 
-    def _setup_postgresql_database(self, db_name: str, database: Database) -> None:
+    def _setup_postgresql_database(self, db_name: str, database: Database) -> str:
         """ Setup PostgreSQL specific configuration on database
         :param db_name: the database name of SQLite
         :param database: the database object to configure
+        :return PostgreSQL url
         """
         # TODO add possibility to use schema
 
@@ -323,31 +332,37 @@ class CsvImporter(BaseSupersetView):
 
         database.sqlalchemy_uri = enurl
         database.password = postgresql_password
+        return url
 
-    def _setup_sqlite_database(self, db_name: str, database: Database) -> None:
+    def _setup_sqlite_database(self, db_name: str, database: Database) -> str:
         """ Set SQlite specific configuration on database
         :param db_name: the database name of SQLite
         :param database: the database object to configure
+        :return SQLite db file path
         """
         db_path = os.getcwd() + "/" + db_name + ".db"
         if os.path.isfile(db_path):
             message = f"Database file for {db_name} already exists, please choose a different name"
             raise DatabaseAlreadyExistException(message, None)
         database.sqlalchemy_uri = SQLALCHEMY_SQLITE_CONNECTION + db_path
+        return db_path
 
-    def _remove_database(self, database, db_flavor: str):
+    def _remove_database(self, database, db_uri, db_flavor: str) -> None:
         """Remove database in an exception case
         :param database: the database to remove
+        :param db_uri: the uri of database (URL or file path)
         :param db_flavor: the kind of database
         """
         try:
-            if database:
+            if db_uri:
                 if db_flavor == SQLITE:
-                    db_path = database.sqlalchemy_uri.replace(
-                        SQLALCHEMY_SQLITE_CONNECTION, ""
-                    )
-                    if os.path.isfile(db_path):
-                        os.remove(db_path)
+                    if os.path.isfile(db_uri):
+                        os.remove(db_uri)
+                elif db_flavor == POSTGRESQL:
+                    if sqlalchemy_utils.database_exists(db_uri):
+                        sqlalchemy_utils.drop_database(db_uri)
+
+            if database:
                 db.session.rollback()
                 db.session.delete(database)
                 db.session.commit()
