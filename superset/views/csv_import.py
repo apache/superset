@@ -219,7 +219,7 @@ class CsvImporter(BaseSupersetView):
             )
             raise DatabaseFileAlreadyExistsException(message, e)
 
-    def _check_table_name(self, table_name: str) -> bool:
+    def _check_table_name(self, table_name: str) -> None:
         """ Check if table name is alredy in use
         :param table_name: the name of the table to check
         :return: False if table name is not in use or otherwise TableNameInUseException
@@ -231,7 +231,6 @@ class CsvImporter(BaseSupersetView):
                 )
             )
             raise NameNotAllowedException(message, None)
-        return False
 
     def _create_database(self, db_name: str, db_flavor: str) -> Database:
         """ Creates the Database itself as well as the Superset Connection to it
