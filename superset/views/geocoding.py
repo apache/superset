@@ -145,7 +145,6 @@ class Geocoder(BaseSupersetView):
             return json_error_response(e.args[0], status=400)
         except SqlSelectException as e:
             return json_error_response(e.args[0], status=500)
-        # TODO do we need this broad except clause? if yes we can remove the previous one
         except Exception as e:
             return json_error_response(e.args[0], status=500)
 
@@ -154,14 +153,12 @@ class Geocoder(BaseSupersetView):
         except Exception as e:
             if not save_on_stop_geocoding:
                 return json_error_response(e.args[0])
-        # TODO use save on stop here -> or do we always save on interrupt?
         try:
             self._insert_geocoded_data(
                 table_name.get("fullName"), lat_column, lon_column, columns, data[0]
             )
         except (SqlAddColumnException, SqlUpdateException) as e:
             return json_error_response(e.args[0], status=500)
-        # TODO is this needed? if we have this we could remove the previous statement
         except Exception as e:
             return json_error_response(e.args[0], status=500)
 
@@ -175,8 +172,6 @@ class Geocoder(BaseSupersetView):
         return json_success(json.dumps(data))
 
     def _check_and_create_columns(self, request_data):
-        # TODO code duplication, alternative would be to send all those variables as param, but that's also a code-smell
-        #  if I'm not mistaken
         lat_column = request_data.get("latitudeColumnName", "lat")
         lon_column = request_data.get("longitudeColumnName", "lon")
         override_if_exist = request.json.get("overwriteIfExists", False)
@@ -185,8 +180,6 @@ class Geocoder(BaseSupersetView):
         table_id = table_dto.get("id", "")
         lat_exists = self._does_column_name_exist(table_id, lat_column)
         lon_exists = self._does_column_name_exist(table_id, lon_column)
-        # TODO handle removing the columns in case of failure,
-        #  problem with which columns existed beforehand -> save in var?
         if override_if_exist:
             if lat_exists:
                 if lon_exists:
@@ -239,7 +232,6 @@ class Geocoder(BaseSupersetView):
         :raise SqlSelectException: When SELECT from given columns went wrong
         """
         try:
-            # TODO SQL Injection Check
             table = self._get_table(id)
             column_list = self._create_column_list(columns)
             sql = "SELECT " + column_list + ' FROM "%s"' % table.table_name
