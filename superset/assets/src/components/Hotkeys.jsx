@@ -22,11 +22,13 @@ import Mousetrap from 'mousetrap';
 import { OverlayTrigger, Popover } from 'react-bootstrap';
 
 const propTypes = {
-  hotkeys: PropTypes.arrayOf(PropTypes.shape({
-    key: PropTypes.string.isRequired,
-    descr: PropTypes.string.isRequired,
-    func: PropTypes.func,
-  })).isRequired,
+  hotkeys: PropTypes.arrayOf(
+    PropTypes.shape({
+      key: PropTypes.string.isRequired,
+      descr: PropTypes.string.isRequired,
+      func: PropTypes.func,
+    }),
+  ).isRequired,
   header: PropTypes.string,
   placement: PropTypes.string,
 };
@@ -37,7 +39,7 @@ const defaultProps = {
 
 export default class Hotkeys extends React.PureComponent {
   componentDidMount() {
-    this.props.hotkeys.forEach((keyConfig) => {
+    this.props.hotkeys.forEach(keyConfig => {
       if (keyConfig.func) {
         Mousetrap.bind([keyConfig.key], keyConfig.func);
       }
@@ -57,13 +59,16 @@ export default class Hotkeys extends React.PureComponent {
           <tbody>
             {hotkeys.map(({ key, descr }) => (
               <tr key={key}>
-                <td><code>{key}</code></td>
+                <td>
+                  <code>{key}</code>
+                </td>
                 <td>{descr}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </Popover>);
+      </Popover>
+    );
   }
   render() {
     return (

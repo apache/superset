@@ -121,7 +121,9 @@ export default class Welcome extends React.PureComponent {
           <Tab eventKey="recent" title={t('Recently Viewed')}>
             <Panel>
               <Row>
-                <Col md={8}><h2>{t('Recently Viewed')}</h2></Col>
+                <Col md={8}>
+                  <h2>{t('Recently Viewed')}</h2>
+                </Col>
               </Row>
               <hr />
               <RecentActivity user={this.props.user} />

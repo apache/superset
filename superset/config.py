@@ -67,10 +67,10 @@ def _try_json_readversion(filepath):
         return None
 
 
-def _try_json_readsha(filepath):
+def _try_json_readsha(filepath, length):
     try:
         with open(filepath, "r") as f:
-            return json.load(f).get("GIT_SHA")
+            return json.load(f).get("GIT_SHA")[:length]
     except Exception:
         return None
 
@@ -84,7 +84,8 @@ VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversi
     PACKAGE_JSON_FILE
 )
 
-VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE)
+VERSION_SHA_LENGTH = 8
+VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
@@ -93,6 +94,7 @@ FILTER_SELECT_ROW_LIMIT = 10000
 SUPERSET_WORKERS = 2  # deprecated
 SUPERSET_CELERY_WORKERS = 32  # deprecated
 
+SUPERSET_WEBSERVER_PROTOCOL = "http"
 SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"
 SUPERSET_WEBSERVER_PORT = 8088
 
@@ -103,7 +105,6 @@ SUPERSET_WEBSERVER_PORT = 8088
 SUPERSET_WEBSERVER_TIMEOUT = 60
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
-EMAIL_NOTIFICATIONS = False
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
@@ -162,6 +163,10 @@ APP_ICON_WIDTH = 126
 # Uncomment to specify where clicking the logo would take the user
 # e.g. setting it to '/welcome' would take the user to '/superset/welcome'
 LOGO_TARGET_PATH = None
+
+# Enables SWAGGER UI for superset openapi spec
+# ex: http://localhost:8080/swaggerview/v1
+FAB_API_SWAGGER_UI = True
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone

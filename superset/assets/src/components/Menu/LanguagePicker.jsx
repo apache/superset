@@ -40,7 +40,8 @@ export default function LanguagePicker({ locale, languages }) {
           <MenuItem key={langKey} href={languages[langKey].url}>
             {' '}
             <div className="f16">
-              <i className={`flag ${languages[langKey].flag}`} /> - {languages[langKey].name}
+              <i className={`flag ${languages[langKey].flag}`} /> -{' '}
+              {languages[langKey].name}
             </div>
           </MenuItem>
         ),

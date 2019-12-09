@@ -44,7 +44,8 @@ export default class CheckboxControl extends React.Component {
         onChange={this.onChange.bind(this)}
         style={checkboxStyle}
         checked={!!this.props.value}
-      />);
+      />
+    );
   }
   render() {
     if (this.props.label) {

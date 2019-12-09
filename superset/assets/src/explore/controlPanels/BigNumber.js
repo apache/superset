@@ -23,10 +23,7 @@ export default {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [
-        ['metric'],
-        ['adhoc_filters'],
-      ],
+      controlSetRows: [['metric'], ['adhoc_filters']],
     },
     {
       label: t('Options'),
@@ -53,6 +50,14 @@ export default {
     },
     header_font_size: {
       label: t('Big Number Font Size'),
+    },
+  },
+  sectionOverrides: {
+    druidTimeSeries: {
+      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
+    },
+    sqlaTimeSeries: {
+      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
     },
   },
 };

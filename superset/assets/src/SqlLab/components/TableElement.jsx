@@ -32,7 +32,7 @@ import Loading from '../../components/Loading';
 const propTypes = {
   table: PropTypes.object,
   actions: PropTypes.object,
-  timeout: PropTypes.number,  // used for tests
+  timeout: PropTypes.number, // used for tests
 };
 
 const defaultProps = {
@@ -119,7 +119,8 @@ class TableElement extends React.PureComponent {
           <div>
             <small>
               {t('latest partition:')} {latest}
-            </small> {partitionClipBoard}
+            </small>{' '}
+            {partitionClipBoard}
           </div>
         </Well>
       );
@@ -155,31 +156,31 @@ class TableElement extends React.PureComponent {
         <Link
           className={
             `fa fa-sort-${!this.state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
-            'pull-left sort-cols m-l-2'}
+            'pull-left sort-cols m-l-2'
+          }
           onClick={this.toggleSortColumns}
           tooltip={
-            !this.state.sortColumns ?
-            t('Sort columns alphabetically') :
-            t('Original table column order')}
+            !this.state.sortColumns
+              ? t('Sort columns alphabetically')
+              : t('Original table column order')
+          }
           href="#"
         />
-        {table.selectStar &&
+        {table.selectStar && (
           <CopyToClipboard
-            copyNode={
-              <a className="fa fa-clipboard pull-left m-l-2" />
-            }
+            copyNode={<a className="fa fa-clipboard pull-left m-l-2" />}
             text={table.selectStar}
             shouldShowText={false}
             tooltipText={t('Copy SELECT statement to the clipboard')}
           />
-        }
-        {table.view &&
+        )}
+        {table.view && (
           <ShowSQL
             sql={table.view}
             tooltipText={t('Show CREATE VIEW statement')}
             title={t('CREATE VIEW statement')}
           />
-        }
+        )}
         <Link
           className="fa fa-times table-remove pull-left m-l-2"
           onClick={this.removeTable}
@@ -197,32 +198,28 @@ class TableElement extends React.PureComponent {
           <a
             href="#"
             className="table-name"
-            onClick={(e) => { this.toggleTable(e); }}
+            onClick={e => {
+              this.toggleTable(e);
+            }}
           >
-            <strong>
-              {table.name}
-            </strong>
+            <strong>{table.name}</strong>
           </a>
         </div>
         <div className="pull-right">
-          {table.isMetadataLoading || table.isExtraMetadataLoading ?
-            <Loading
-              size={50}
-              position="normal"
-              className="margin-zero"
-            />
-            :
-            <Fade in={this.state.hovered}>
-              {this.renderControls()}
-            </Fade>
-          }
+          {table.isMetadataLoading || table.isExtraMetadataLoading ? (
+            <Loading size={50} position="normal" className="margin-zero" />
+          ) : (
+            <Fade in={this.state.hovered}>{this.renderControls()}</Fade>
+          )}
           <i
-            onClick={(e) => { this.toggleTable(e); }}
-            className={(
+            onClick={e => {
+              this.toggleTable(e);
+            }}
+            className={
               'text-primary pointer m-l-10 ' +
               'fa fa-lg ' +
               `fa-angle-${table.expanded ? 'up' : 'down'}`
-            )}
+            }
           />
         </div>
       </div>
@@ -247,16 +244,12 @@ class TableElement extends React.PureComponent {
       }
     }
     const metadata = (
-      <Collapse
-        in={table.expanded}
-        timeout={this.props.timeout}
-      >
+      <Collapse in={table.expanded} timeout={this.props.timeout}>
         <div>
           {this.renderWell()}
           <div className="table-columns m-t-5">
-            {cols && cols.map(col => (
-              <ColumnElement column={col} key={col.name} />
-            ))}
+            {cols &&
+              cols.map(col => <ColumnElement column={col} key={col.name} />)}
           </div>
         </div>
       </Collapse>
@@ -277,9 +270,7 @@ class TableElement extends React.PureComponent {
           onMouseLeave={() => this.setHover(false)}
         >
           {this.renderHeader()}
-          <div>
-            {this.renderBody()}
-          </div>
+          <div>{this.renderBody()}</div>
         </div>
       </Collapse>
     );

@@ -18,39 +18,41 @@
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
-export default () => describe('dashboard url params', () => {
-  const urlParams = { param1: '123', param2: 'abc' };
-  let sliceIds = [];
+export default () =>
+  describe('dashboard url params', () => {
+    const urlParams = { param1: '123', param2: 'abc' };
+    let sliceIds = [];
 
-  beforeEach(() => {
-    cy.server();
-    cy.login();
+    beforeEach(() => {
+      cy.server();
+      cy.login();
 
-    cy.visit(WORLD_HEALTH_DASHBOARD, { qs: urlParams });
+      cy.visit(WORLD_HEALTH_DASHBOARD, { qs: urlParams });
 
-    cy.get('#app').then((data) => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const dashboard = bootstrapData.dashboard_data;
-      sliceIds = dashboard.slices.map(slice => (slice.slice_id));
+      cy.get('#app').then(data => {
+        const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
+        const dashboard = bootstrapData.dashboard_data;
+        sliceIds = dashboard.slices.map(slice => slice.slice_id);
+      });
     });
-  });
 
-  it('should apply url params to slice requests', () => {
-    const aliases = [];
-    sliceIds
-      .forEach((id) => {
+    it('should apply url params to slice requests', () => {
+      const aliases = [];
+      sliceIds.forEach(id => {
         const alias = `getJson_${id}`;
         aliases.push(`@${alias}`);
-        cy.route('POST', `/superset/explore_json/?form_data={"slice_id":${id}}`).as(alias);
+        cy.route(
+          'POST',
+          `/superset/explore_json/?form_data={"slice_id":${id}}`,
+        ).as(alias);
       });
 
-    cy.wait(aliases).then((requests) => {
-      requests.forEach((xhr) => {
-        const requestFormData = xhr.request.body;
-        const requestParams = JSON.parse(requestFormData.get('form_data'));
-        expect(requestParams.url_params)
-          .deep.eq(urlParams);
+      cy.wait(aliases).then(requests => {
+        requests.forEach(xhr => {
+          const requestFormData = xhr.request.body;
+          const requestParams = JSON.parse(requestFormData.get('form_data'));
+          expect(requestParams.url_params).deep.eq(urlParams);
+        });
       });
     });
   });
-});

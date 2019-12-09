@@ -64,7 +64,9 @@ export default class ResultSet extends React.PureComponent {
       showExploreResultsButton: false,
       data: null,
     };
-    this.toggleExploreResultsButton = this.toggleExploreResultsButton.bind(this);
+    this.toggleExploreResultsButton = this.toggleExploreResultsButton.bind(
+      this,
+    );
   }
   componentDidMount() {
     // only do this the first time the component is rendered/mounted
@@ -72,17 +74,22 @@ export default class ResultSet extends React.PureComponent {
   }
   UNSAFE_componentWillReceiveProps(nextProps) {
     // when new results comes in, save them locally and clear in store
-    if (this.props.cache && (!nextProps.query.cached)
-      && nextProps.query.results
-      && nextProps.query.results.data
-      && nextProps.query.results.data.length > 0) {
+    if (
+      this.props.cache &&
+      !nextProps.query.cached &&
+      nextProps.query.results &&
+      nextProps.query.results.data &&
+      nextProps.query.results.data.length > 0
+    ) {
       this.setState(
         { data: nextProps.query.results.data },
         this.clearQueryResults(nextProps.query),
       );
     }
-    if (nextProps.query.resultsKey
-      && nextProps.query.resultsKey !== this.props.query.resultsKey) {
+    if (
+      nextProps.query.resultsKey &&
+      nextProps.query.resultsKey !== this.props.query.resultsKey
+    ) {
       this.fetchResults(nextProps.query);
     }
   }
@@ -100,7 +107,9 @@ export default class ResultSet extends React.PureComponent {
     this.props.actions.addQueryEditor(qe);
   }
   toggleExploreResultsButton() {
-    this.setState({ showExploreResultsButton: !this.state.showExploreResultsButton });
+    this.setState({
+      showExploreResultsButton: !this.state.showExploreResultsButton,
+    });
   }
   changeSearch(event) {
     this.setState({ searchText: event.target.value });
@@ -113,7 +122,10 @@ export default class ResultSet extends React.PureComponent {
   }
   reRunQueryIfSessionTimeoutErrorOnMount() {
     const { query } = this.props;
-    if (query.errorMessage && query.errorMessage.indexOf('session timed out') > 0) {
+    if (
+      query.errorMessage &&
+      query.errorMessage.indexOf('session timed out') > 0
+    ) {
       this.props.actions.runQuery(query, true);
     }
   }
@@ -128,16 +140,21 @@ export default class ResultSet extends React.PureComponent {
           <div className="clearfix">
             <div className="pull-left">
               <ButtonGroup>
-                {this.props.visualize &&
+                {this.props.visualize && (
                   <ExploreResultsButton
                     query={this.props.query}
                     database={this.props.database}
                     actions={this.props.actions}
-                  />}
-                {this.props.csv &&
-                  <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
+                  />
+                )}
+                {this.props.csv && (
+                  <Button
+                    bsSize="small"
+                    href={'/superset/csv/' + this.props.query.id}
+                  >
                     <i className="fa fa-file-text-o" /> {t('.CSV')}
-                  </Button>}
+                  </Button>
+                )}
 
                 <CopyToClipboard
                   text={prepareCopyToClipboardTabularData(data)}
@@ -151,7 +168,7 @@ export default class ResultSet extends React.PureComponent {
               </ButtonGroup>
             </div>
             <div className="pull-right">
-              {this.props.search &&
+              {this.props.search && (
                 <input
                   type="text"
                   onChange={this.changeSearch.bind(this)}
@@ -159,7 +176,7 @@ export default class ResultSet extends React.PureComponent {
                   className="form-control input-sm"
                   placeholder={t('Filter Results')}
                 />
-              }
+              )}
             </div>
           </div>
         </div>
@@ -169,8 +186,10 @@ export default class ResultSet extends React.PureComponent {
   }
   render() {
     const query = this.props.query;
-    const height = Math.max(0,
-      (this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height));
+    const height = Math.max(
+      0,
+      this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height,
+    );
     let sql;
 
     if (this.props.showSql) {
@@ -184,13 +203,14 @@ export default class ResultSet extends React.PureComponent {
         <Alert bsStyle="danger">
           {query.errorMessage}
           {query.link && <a href={query.link}> {t('(Request Access)')} </a>}
-        </Alert>);
+        </Alert>
+      );
     } else if (query.state === 'success' && query.ctas) {
       return (
         <div>
           <Alert bsStyle="info">
-            {t('Table')} [<strong>{query.tempTable}</strong>] {t('was ' +
-            'created')} &nbsp;
+            {t('Table')} [<strong>{query.tempTable}</strong>] {t('was created')}{' '}
+            &nbsp;
             <Button
               bsSize="small"
               className="m-r-5"
@@ -199,7 +219,8 @@ export default class ResultSet extends React.PureComponent {
               {t('Query in a new tab')}
             </Button>
           </Alert>
-        </div>);
+        </div>
+      );
     } else if (query.state === 'success' && query.results) {
       const results = query.results;
       let data;
@@ -226,7 +247,9 @@ export default class ResultSet extends React.PureComponent {
           </>
         );
       } else if (data && data.length === 0) {
-        return <Alert bsStyle="warning">{t('The query returned no data')}</Alert>;
+        return (
+          <Alert bsStyle="warning">{t('The query returned no data')}</Alert>
+        );
       }
     }
     if (query.cached || (query.state === 'success' && !query.results)) {
@@ -235,7 +258,10 @@ export default class ResultSet extends React.PureComponent {
           bsSize="sm"
           className="fetch"
           bsStyle="primary"
-          onClick={this.reFetchQueryResults.bind(this, { ...query, isDataPreview: true })}
+          onClick={this.reFetchQueryResults.bind(this, {
+            ...query,
+            isDataPreview: true,
+          })}
         >
           {t('Fetch data preview')}
         </Button>
@@ -249,34 +275,34 @@ export default class ResultSet extends React.PureComponent {
           striped
           now={query.progress}
           label={`${query.progress.toFixed(0)}%`}
-        />);
+        />
+      );
     }
     if (query.trackingUrl) {
       trackingUrl = (
         <Button
           bsSize="small"
-          onClick={() => { window.open(query.trackingUrl); }}
+          onClick={() => {
+            window.open(query.trackingUrl);
+          }}
         >
           {t('Track Job')}
         </Button>
       );
     }
-    const progressMsg = query && query.extra && query.extra.progress ? query.extra.progress : null;
+    const progressMsg =
+      query && query.extra && query.extra.progress
+        ? query.extra.progress
+        : null;
     return (
       <div style={LOADING_STYLES}>
-        <div>
-          {!progressBar && <Loading position="normal" />}
-        </div>
+        <div>{!progressBar && <Loading position="normal" />}</div>
         <QueryStateLabel query={query} />
         <div>
           {progressMsg && <Alert bsStyle="success">{progressMsg}</Alert>}
         </div>
-        <div>
-          {progressBar}
-        </div>
-        <div>
-          {trackingUrl}
-        </div>
+        <div>{progressBar}</div>
+        <div>{trackingUrl}</div>
       </div>
     );
   }

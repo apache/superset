@@ -203,8 +203,10 @@ export function handleComponentDrop(dropResult) {
     } else if (
       destination &&
       source &&
-      !// ensure it has moved
-      (destination.id === source.id && destination.index === source.index)
+      !(
+        // ensure it has moved
+        (destination.id === source.id && destination.index === source.index)
+      )
     ) {
       dispatch(moveComponent(dropResult));
     }

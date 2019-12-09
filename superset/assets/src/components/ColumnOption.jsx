@@ -31,7 +31,8 @@ const defaultProps = {
 };
 
 export default function ColumnOption({ column, showType }) {
-  const hasExpression = column.expression && column.expression !== column.column_name;
+  const hasExpression =
+    column.expression && column.expression !== column.column_name;
 
   let columnType = column.type;
   if (column.is_dttm) {
@@ -46,23 +47,24 @@ export default function ColumnOption({ column, showType }) {
       <span className="m-r-5 option-label">
         {column.verbose_name || column.column_name}
       </span>
-      {column.description &&
+      {column.description && (
         <InfoTooltipWithTrigger
           className="m-r-5 text-muted"
           icon="info"
           tooltip={column.description}
           label={`descr-${column.column_name}`}
         />
-      }
-      {hasExpression &&
+      )}
+      {hasExpression && (
         <InfoTooltipWithTrigger
           className="m-r-5 text-muted"
           icon="question-circle-o"
           tooltip={column.expression}
           label={`expr-${column.column_name}`}
         />
-      }
-    </span>);
+      )}
+    </span>
+  );
 }
 ColumnOption.propTypes = propTypes;
 ColumnOption.defaultProps = defaultProps;

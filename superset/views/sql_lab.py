@@ -30,15 +30,15 @@ from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.utils import core as utils
 
 from .base import (
+    BaseFilter,
     BaseSupersetView,
     DeleteMixin,
     json_success,
-    SupersetFilter,
     SupersetModelView,
 )
 
 
-class QueryFilter(SupersetFilter):
+class QueryFilter(BaseFilter):
     def apply(self, query: BaseQuery, func: Callable) -> BaseQuery:
         """
         Filter queries to only those owned by current user if

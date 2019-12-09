@@ -44,15 +44,16 @@ import Hotkeys from '../../components/Hotkeys';
 
 // Prolly need to move this to a global context
 const keymap = {
-    RUN: 'ctrl + r, ctrl + enter',
-    SAVE: 'ctrl + s',
+  RUN: 'ctrl + r, ctrl + enter',
+  SAVE: 'ctrl + s',
 };
 
-const getHotKeys = () => Object.keys(keymap).map(k => ({
-  name: k,
-  descr: keymap[k],
-  key: k,
-}));
+const getHotKeys = () =>
+  Object.keys(keymap).map(k => ({
+    name: k,
+    descr: keymap[k],
+    key: k,
+  }));
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -104,24 +105,33 @@ class ExploreViewContainer extends React.Component {
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
-    if (nextProps.controls.viz_type.value !== this.props.controls.viz_type.value) {
+    if (
+      nextProps.controls.viz_type.value !== this.props.controls.viz_type.value
+    ) {
       this.props.actions.resetControls();
     }
     if (
       nextProps.controls.datasource &&
       (this.props.controls.datasource == null ||
-        nextProps.controls.datasource.value !== this.props.controls.datasource.value)
+        nextProps.controls.datasource.value !==
+          this.props.controls.datasource.value)
     ) {
       fetchDatasourceMetadata(nextProps.form_data.datasource, true);
     }
 
-    const changedControlKeys = this.findChangedControlKeys(this.props.controls, nextProps.controls);
+    const changedControlKeys = this.findChangedControlKeys(
+      this.props.controls,
+      nextProps.controls,
+    );
     if (this.hasDisplayControlChanged(changedControlKeys, nextProps.controls)) {
       this.props.actions.updateQueryFormData(
         getFormDataFromControls(nextProps.controls),
         this.props.chart.id,
       );
-      this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.id);
+      this.props.actions.renderTriggered(
+        new Date().getTime(),
+        this.props.chart.id,
+      );
     }
     if (this.hasQueryControlChanged(changedControlKeys, nextProps.controls)) {
       this.props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
@@ -131,8 +141,13 @@ class ExploreViewContainer extends React.Component {
 
   /* eslint no-unused-vars: 0 */
   componentDidUpdate(prevProps, prevState) {
-    const changedControlKeys = this.findChangedControlKeys(prevProps.controls, this.props.controls);
-    if (this.hasDisplayControlChanged(changedControlKeys, this.props.controls)) {
+    const changedControlKeys = this.findChangedControlKeys(
+      prevProps.controls,
+      this.props.controls,
+    );
+    if (
+      this.hasDisplayControlChanged(changedControlKeys, this.props.controls)
+    ) {
       this.addHistory({});
     }
   }
@@ -179,18 +194,20 @@ class ExploreViewContainer extends React.Component {
         this.onQuery();
       } else if (isS) {
         if (this.props.slice) {
-            this.props.actions.saveSlice(this.props.form_data, {
+          this.props.actions
+            .saveSlice(this.props.form_data, {
               action: 'overwrite',
               slice_id: this.props.slice.slice_id,
               slice_name: this.props.slice.slice_name,
               add_to_dash: 'noSave',
               goto_dash: false,
-            }).then(({ data }) => {
+            })
+            .then(({ data }) => {
               window.location = data.slice.slice_url;
             });
-          }
         }
       }
+    }
   }
 
   findChangedControlKeys(prevControls, currentControls) {
@@ -207,12 +224,16 @@ class ExploreViewContainer extends React.Component {
 
   hasQueryControlChanged(changedControlKeys, currentControls) {
     return changedControlKeys.some(
-      key => !currentControls[key].renderTrigger && !currentControls[key].dontRefreshOnChange,
+      key =>
+        !currentControls[key].renderTrigger &&
+        !currentControls[key].dontRefreshOnChange,
     );
   }
 
   addHistory({ isReplace = false, title }) {
-    const { payload } = getExploreUrlAndPayload({ formData: this.props.form_data });
+    const { payload } = getExploreUrlAndPayload({
+      formData: this.props.form_data,
+    });
     const longUrl = getExploreLongUrl(this.props.form_data, null, false);
     try {
       if (isReplace) {
@@ -222,7 +243,12 @@ class ExploreViewContainer extends React.Component {
       }
     } catch (e) {
       // eslint-disable-next-line no-console
-      console.warn('Failed at altering browser history', payload, title, longUrl);
+      console.warn(
+        'Failed at altering browser history',
+        payload,
+        title,
+        longUrl,
+      );
     }
 
     // it seems some browsers don't support pushState title attribute
@@ -243,7 +269,11 @@ class ExploreViewContainer extends React.Component {
     if (formData && Object.keys(formData).length) {
       this.props.actions.setExploreControls(formData);
       this.props.actions.postChartFormData(
-        formData, false, this.props.timeout, this.props.chart.id);
+        formData,
+        false,
+        this.props.timeout,
+        this.props.chart.id,
+      );
     }
   }
 
@@ -265,7 +295,8 @@ class ExploreViewContainer extends React.Component {
       if (control.validationErrors && control.validationErrors.length > 0) {
         errors.push(
           <div key={controlName}>
-            {t('Control labeled ')}<strong>{` "${control.label}" `}</strong>
+            {t('Control labeled ')}
+            <strong>{` "${control.label}" `}</strong>
             {control.validationErrors.join('. ')}
           </div>,
         );
@@ -310,7 +341,13 @@ class ExploreViewContainer extends React.Component {
         )}
         <div className="row">
           <div className="col-sm-4">
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            >
               <QueryAndSaveBtns
                 canAdd="True"
                 onQuery={this.onQuery}
@@ -360,8 +397,12 @@ function mapStateToProps(state) {
     controls: explore.controls,
     can_overwrite: !!explore.can_overwrite,
     can_download: !!explore.can_download,
-    column_formats: explore.datasource ? explore.datasource.column_formats : null,
-    containerId: explore.slice ? `slice-container-${explore.slice.slice_id}` : 'slice-container',
+    column_formats: explore.datasource
+      ? explore.datasource.column_formats
+      : null,
+    containerId: explore.slice
+      ? `slice-container-${explore.slice.slice_id}`
+      : 'slice-container',
     isStarred: explore.isStarred,
     slice: explore.slice,
     triggerRender: explore.triggerRender,
@@ -377,7 +418,8 @@ function mapStateToProps(state) {
 }
 
 function mapDispatchToProps(dispatch) {
-  const actions = Object.assign({},
+  const actions = Object.assign(
+    {},
     exploreActions,
     saveModalActions,
     chartActions,
@@ -389,4 +431,7 @@ function mapDispatchToProps(dispatch) {
 }
 
 export { ExploreViewContainer };
-export default connect(mapStateToProps, mapDispatchToProps)(ExploreViewContainer);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(ExploreViewContainer);
