@@ -31,10 +31,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from werkzeug.utils import secure_filename
 
-import superset.models.core as models
 from superset import app, appbuilder, conf, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
+    CsvException,
     DatabaseAlreadyExistException,
     DatabaseCreationException,
     DatabaseDeletionException,
@@ -47,6 +47,7 @@ from superset.exceptions import (
     SchemaNotAllowedCsvUploadException,
     TableCreationException,
 )
+from superset.models.core import Database, DatabaseDto
 from superset.utils import core as utils
 
 from .base import api, BaseSupersetView, json_error_response, json_success
@@ -57,9 +58,9 @@ UPLOAD_FOLDER = app.config["UPLOAD_FOLDER"]
 BAD_REQUEST = 400
 NEW_DATABASE_ID = -1
 SQLALCHEMY_SQLITE_CONNECTION = "sqlite:///"
-SQLALCHEMY_POSTGRES_CONNECTION = "postgresql://"
+SQLALCHEMY_POSTGRESQL_CONNECTION = "postgresql://"
 SQLITE = "sqlite"
-POSTGRES = "postgres"
+POSTGRESQL = "postgresql"
 
 
 class CsvImporter(BaseSupersetView):
@@ -70,9 +71,11 @@ class CsvImporter(BaseSupersetView):
     def csvtodatabase(self):
         """ Create CSV-Form
         :return: json or react html form with databases and common bootstrap
+        ---
+
         """
         bootstrap_data = {
-            "databases": self.allow_csv_upload_databases(),
+            "databases": self._allow_csv_upload_databases(),
             "common": self.common_bootstrap_payload(),
         }
 
@@ -89,7 +92,7 @@ class CsvImporter(BaseSupersetView):
             bootstrap_data=json.dumps(bootstrap_data, default=lambda x: x.__dict__),
         )
 
-    def allow_csv_upload_databases(self) -> list:
+    def _allow_csv_upload_databases(self) -> list:
         """ Get all databases which allow csv upload as database dto
         :returns list of database dto
         """
@@ -102,9 +105,7 @@ class CsvImporter(BaseSupersetView):
                     break
                 if "database_access" in permission_view.permission.name:
                     user_permissions.append(permission_view.view_menu.name)
-        databases = (
-            db.session().query(models.Database).filter_by(allow_csv_upload=True).all()
-        )
+        databases = db.session().query(Database).filter_by(allow_csv_upload=True).all()
         permitted_databases: list = []
         if "all_database_access" in user_permissions:
             permitted_databases = databases
@@ -114,10 +115,10 @@ class CsvImporter(BaseSupersetView):
                     if database.name in perm:
                         permitted_databases.append(database)
 
-        databases_json = [models.DatabaseDto(NEW_DATABASE_ID, "In a new database", [])]
+        databases_json = [DatabaseDto(NEW_DATABASE_ID, "In a new database", [])]
         for database in permitted_databases:
             databases_json.append(
-                models.DatabaseDto(
+                DatabaseDto(
                     database.id,
                     database.name,
                     json.loads(database.extra)["schemas_allowed_for_csv_upload"],
@@ -138,17 +139,15 @@ class CsvImporter(BaseSupersetView):
         form -- contains the properties for the table to be created
         file -- csv file to be imported
         """
-        # TODO check for possible SQL-injection, filter_by does not sanitize the input therefore we have to check
-        # this beforehand
         try:
             form_data = request.form
             csv_file = request.files["file"]
             csv_path = None
-            csv_filename = self._clean_filename(csv_file.filename, "CSV")
+            csv_filename = self._clean_name(csv_file.filename, "CSV")
             database = None
-            db_flavor = form_data.get("databaseFlavor") or None
+            db_flavor = form_data.get("databaseFlavor", SQLITE)
             database_id = self._convert_database_id(form_data.get("connectionId"))
-            table_name = form_data.get("tableName", "")
+            table_name = self._clean_name(form_data.get("tableName", ""), "CSV")
             self._check_table_name(table_name)
 
             if database_id != NEW_DATABASE_ID:
@@ -157,7 +156,7 @@ class CsvImporter(BaseSupersetView):
                 )
                 db_name = database.database_name
             else:
-                db_name = self._clean_filename(
+                db_name = self._clean_name(
                     form_data.get("databaseName", ""), "database"
                 )
                 database = self._create_database(db_name, db_flavor)
@@ -194,7 +193,7 @@ class CsvImporter(BaseSupersetView):
         except Exception as e:
             LOGGER.exception(f"Unexpected error {e}")
             STATS_LOGGER.incr("csv_upload_failed")
-            return json_error_response(e.args[0])
+            return json_error_response("An unknown error occurred!")
         finally:
             try:
                 if csv_path:
@@ -203,26 +202,24 @@ class CsvImporter(BaseSupersetView):
                 pass
 
         STATS_LOGGER.incr("csv_upload_successful")
-        message = '"{} imported into database {}"'.format(table_name, db_name)
+        message = f"{table_name} imported into database {db_name}"
         flash(message, "success")
-        return json_success(message)
+        return json_success('"OK"')
 
-    def _clean_filename(self, filename: str, purpose: str) -> str:
+    def _clean_name(self, name: str, purpose: str) -> str:
         """ Clean filename from disallowed characters
-        :param filename: the name of the file to clean
+        :param name: the name of the file to clean
         :param purpose: the purpose to give a clear error message
         :return: filename with allowed characters
         """
-        if not filename:
+        if not name:
+            raise NameNotAllowedException(f"No filename received for {purpose}", None)
+        cleaned_name = secure_filename(name)
+        if len(cleaned_name) == 0:
             raise NameNotAllowedException(
-                "No filename received for {0}".format(purpose), None
+                f"Name {name} is not allowed for {purpose}", None
             )
-        cleaned_filename = secure_filename(filename)
-        if len(cleaned_filename) == 0:
-            raise NameNotAllowedException(
-                "Name {0} is not allowed for {1}".format(filename, purpose), None
-            )
-        return cleaned_filename
+        return cleaned_name
 
     def _convert_database_id(self, database_id) -> int:
         """ Convert database id from string to int
@@ -237,21 +234,18 @@ class CsvImporter(BaseSupersetView):
             )
             raise DatabaseFileAlreadyExistsException(message, e)
 
-    def _check_table_name(self, table_name: str) -> bool:
+    def _check_table_name(self, table_name: str) -> None:
         """ Check if table name is alredy in use
         :param table_name: the name of the table to check
         :return: False if table name is not in use or otherwise TableNameInUseException
         """
         if db.session.query(SqlaTable).filter_by(table_name=table_name).one_or_none():
             message = _(
-                "Table name {0} already exists. Please choose another".format(
-                    table_name
-                )
+                f"Table name {table_name} already exists. Please choose another"
             )
             raise NameNotAllowedException(message, None)
-        return False
 
-    def _create_database(self, db_name: str, db_flavor=SQLITE) -> models.Database:
+    def _create_database(self, db_name: str, db_flavor: str) -> Database:
         """ Creates the Database itself as well as the Superset Connection to it
 
         Keyword arguments:
@@ -265,14 +259,14 @@ class CsvImporter(BaseSupersetView):
             DatabaseCreationException: If the database could not be created
         """
 
-        database = SQLAInterface(models.Database).obj()
+        database = SQLAInterface(Database).obj()
         database.database_name = db_name
         database.allow_csv_upload = True
 
-        if db_flavor == POSTGRES:
-            self._setup_postgres_database(db_name, database)
+        if db_flavor == POSTGRESQL:
+            self._setup_postgresql_database(db_name, database)
         else:
-            self._setup_sqlite(db_name, database)
+            self._setup_sqlite_database(db_name, database)
         try:
             # TODO check if SQL-injection is possible through add()
             db.session.add(database)
@@ -281,38 +275,39 @@ class CsvImporter(BaseSupersetView):
         except IntegrityError as e:
             raise DatabaseCreationException("Error when trying to create Database", e)
         except Exception as e:
-            self._remove_database(database, db_flavor)
-            raise DatabaseCreationException(e.args[0], e)
+            raise DatabaseCreationException(
+                "An unknown error occurred trying to create the database.", e
+            )
 
-    def _setup_postgres_database(self, db_name, database) -> None:
+    def _setup_postgresql_database(self, db_name: str, database: Database) -> None:
         """ Setup PostgreSQL specific configuration on database
         :param db_name: the database name of SQLite
         :param database: the database object to configure
         """
         # TODO add possibility to use schema
 
-        postgres_user = conf["POSTGRES_USERNAME"]
-        if not postgres_user:
+        postgresql_user = conf["POSTGRESQL_USERNAME"]
+        if not postgresql_user:
             raise NoUsernameSuppliedException(
                 "No username supplied for PostgreSQL", None
             )
-        postgres_password = conf["POSTGRES_PASSWORD"]
-        if not postgres_password:
+        postgresql_password = conf["POSTGRESQL_PASSWORD"]
+        if not postgresql_password:
             raise NoPasswordSuppliedException(
                 "No password supplied for PostgreSQL", None
             )
 
         url = (
-            SQLALCHEMY_POSTGRES_CONNECTION
-            + postgres_user
+            SQLALCHEMY_POSTGRESQL_CONNECTION
+            + postgresql_user
             + ":"
-            + postgres_password
+            + postgresql_password
             + "@localhost/"
             + db_name
         )
         enurl = (
             "postgresql://"
-            + postgres_user
+            + postgresql_user
             + ":"
             + "XXXXXXXXXX"
             + "@localhost/"
@@ -323,26 +318,24 @@ class CsvImporter(BaseSupersetView):
             sqlalchemy_utils.create_database(engine.url)
         else:
             raise DatabaseCreationException(
-                "The database {0} already exists".format(db_name), None
+                f"The database {db_name} already exists", None
             )
 
         database.sqlalchemy_uri = enurl
-        database.password = postgres_password
+        database.password = postgresql_password
 
-    def _setup_sqlite(self, db_name, database) -> None:
+    def _setup_sqlite_database(self, db_name: str, database: Database) -> None:
         """ Set SQlite specific configuration on database
         :param db_name: the database name of SQLite
         :param database: the database object to configure
         """
         db_path = os.getcwd() + "/" + db_name + ".db"
         if os.path.isfile(db_path):
-            message = "Database file for {0} already exists, please choose a different name".format(
-                db_name
-            )
+            message = f"Database file for {db_name} already exists, please choose a different name"
             raise DatabaseAlreadyExistException(message, None)
         database.sqlalchemy_uri = SQLALCHEMY_SQLITE_CONNECTION + db_path
 
-    def _remove_database(self, database, db_flavor=SQLITE):
+    def _remove_database(self, database, db_flavor: str):
         """Remove database in an exception case
         :param database: the database to remove
         :param db_flavor: the kind of database
@@ -360,14 +353,12 @@ class CsvImporter(BaseSupersetView):
                 db.session.commit()
         except Exception as e:
             message = _(
-                "Error when trying to create database {0}.The database could not be removed. "
-                "Please contact your administrator to remove it manually".format(
-                    database.database_name
-                )
+                f"Error when trying to create database {database.database_name}.The database could not be removed. "
+                "Please contact your administrator to remove it manually."
             )
             raise DatabaseDeletionException(message, e)
 
-    def _get_existing_database(self, database_id: int, schema=None) -> models.Database:
+    def _get_existing_database(self, database_id: int, schema: str = None) -> Database:
         """Returns the database object for an existing database
 
         Keyword arguments:
@@ -382,31 +373,27 @@ class CsvImporter(BaseSupersetView):
             MultipleResultsFound: If more than one database found with id
         """
         try:
-            database = db.session.query(models.Database).filter_by(id=database_id).one()
+            database = db.session.query(Database).filter_by(id=database_id).one()
             if not self._is_schema_allowed_for_csv_upload(database, schema):
                 message = _(
-                    "Database {0} Schema {1} is not allowed for csv uploads. "
-                    "Please contact your Superset administrator".format(
-                        database.database_name, schema
-                    )
+                    f"Database {database.database_name} Schema {schema} is not allowed for csv uploads. "
+                    "Please contact your Superset administrator."
                 )
                 raise SchemaNotAllowedCsvUploadException(message, None)
             return database
         except NoResultFound as e:
-            raise NoResultFound(
-                "No database was found with the id {}".format(database_id), e
-            )
+            raise NoResultFound("Database was not found.", e)
         except MultipleResultsFound as e:
-            raise MultipleResultsFound(
-                "Multiple databases were found with id {}".format(database_id), e
-            )
+            raise MultipleResultsFound("Multiple databases were found.", e)
         except SchemaNotAllowedCsvUploadException as e:
             raise e
         except Exception as e:
-            raise GetDatabaseException(e.args[0], e)
+            raise GetDatabaseException(
+                "An unknown error occurred trying to get the database.", e
+            )
 
     def _is_schema_allowed_for_csv_upload(
-        self, database: models.Database, schema: str
+        self, database: Database, schema: str = None
     ) -> bool:
         """ Checks whether the specified schema is allowed for csv-uploads
 
@@ -446,7 +433,7 @@ class CsvImporter(BaseSupersetView):
             )
         return path
 
-    def _create_table(self, table_name: str, database: models.Database) -> SqlaTable:
+    def _create_table(self, table_name: str, database: Database) -> SqlaTable:
         """ Create the Table itself
 
         Keyword arguments:
@@ -464,9 +451,7 @@ class CsvImporter(BaseSupersetView):
             table.database_id = table.database.id
             return table
         except Exception as e:
-            raise TableCreationException(
-                "Table {0} could not be created.".format(table_name), e
-            )
+            raise TableCreationException(f"Table {table_name} could not be created.", e)
 
     def _fill_table(self, form_data: dict, table: SqlaTable, csv_filename: str) -> None:
         """ Fill the table with the data from the csv file
@@ -486,8 +471,8 @@ class CsvImporter(BaseSupersetView):
             )
         except Exception as e:
             raise TableCreationException(
-                "Table {0} could not be filled with CSV {1}. This could be an issue with the schema, a connection "
-                "issue, etc.".format(form_data.get("tableName"), csv_filename),
+                f"Table {form_data.get('tableName')} could not be filled with CSV {csv_filename}. "
+                "This could be an issue with the schema, a connection issue, etc.",
                 e,
             )
 

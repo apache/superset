@@ -42,7 +42,9 @@ from .base_tests import SupersetTestCase
 
 NEW_DATABASE_ID = -1
 SQLITE = "sqlite"
-POSTGRES = "postgres"
+POSTGRESQL = "postgresql"
+POSTGRESQL_USERNAME = "POSTGRESQL_USERNAME"
+POSTGRESQL_PASSWORD = "POSTGRESQL_PASSWORD"
 
 
 class CsvUploadTests(SupersetTestCase):
@@ -124,7 +126,7 @@ class CsvUploadTests(SupersetTestCase):
                 filename, self.get_existing_db_id(), table_name=table_name
             )
             response = self.get_resp(url, data=form_data)
-            assert "imported into database" in response
+            assert "OK" in response
         finally:
             os.remove(filename)
 
@@ -138,8 +140,7 @@ class CsvUploadTests(SupersetTestCase):
                 filename, NEW_DATABASE_ID, db_name, table_name
             )
             response = self.get_resp(url, data=form_data)
-            message = "{0} imported into database {1}".format(table_name, db_name)
-            assert message in response
+            assert "OK" in response
         finally:
             os.remove(filename)
             os.remove(os.getcwd() + "/" + db_name + ".db")
@@ -155,50 +156,43 @@ class CsvUploadTests(SupersetTestCase):
         db_name = "csv_into_new_postgres_db"
         table_name = "newlyimported_into_postgres"
         form_data = self.get_full_data(
-            filename, NEW_DATABASE_ID, db_name, table_name, database_flavor=POSTGRES
+            filename, NEW_DATABASE_ID, db_name, table_name, database_flavor=POSTGRESQL
         )
-        conf["POSTGRES_USERNAME"] = POSTGRES
-        conf["POSTGRES_PASSWORD"] = POSTGRES
+        conf[POSTGRESQL_USERNAME] = POSTGRESQL
+        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
         try:
             response = self.get_resp(url, data=form_data)
-            message = "{0} imported into database {1}".format(table_name, db_name)
-            assert message in response
+            assert "OK" in response
         finally:
             os.remove(filename)
             url = (
                 "postgresql://"
-                + conf["POSTGRES_USERNAME"]
+                + conf[POSTGRESQL_USERNAME]
                 + ":"
-                + conf["POSTGRES_PASSWORD"]
+                + conf[POSTGRESQL_PASSWORD]
                 + "@localhost/"
                 + db_name
             )
             if sqlalchemy_utils.database_exists(url):
                 sqlalchemy_utils.drop_database(url)
 
-    def test_allow_csv_upload_databases(self):
-        db_id = self.get_existing_db_id()
-        assert db_id in [
-            database.id for database in self.importer.allow_csv_upload_databases()
-        ]
-
     def test_clean_filename(self):
         original_filename = "foo,+.bar"
-        filename = self.importer._clean_filename(original_filename, "CSV")
+        filename = self.importer._clean_name(original_filename, "CSV")
         assert filename == "foo.bar"
 
     def test_clean_filename_None(self):
         purpose = "CSV"
-        error_message = "No filename received for {0}".format(purpose)
+        error_message = f"No filename received for {purpose}"
         with self.assertRaisesRegex(NameNotAllowedException, error_message):
-            self.importer._clean_filename(None, purpose)
+            self.importer._clean_name(None, purpose)
 
     def test_clean_filename_empty(self):
         filename = "#,'\""
         purpose = "CSV"
-        error_message = "Name {0} is not allowed for {1}".format(filename, purpose)
+        error_message = f"Name {filename} is not allowed for {purpose}"
         with self.assertRaisesRegex(NameNotAllowedException, error_message):
-            self.importer._clean_filename(filename, purpose)
+            self.importer._clean_name(filename, purpose)
 
     def test_convert_database_id(self):
         database_id = "1"
@@ -219,9 +213,7 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_check_table_name_failed(self):
         table_name = db.session.query(SqlaTable).first().table_name
-        error_message = "Table name {0} already exists. Please choose another".format(
-            table_name
-        )
+        error_message = f"Table name {table_name} already exists. Please choose another"
         with self.assertRaisesRegex(NameNotAllowedException, error_message):
             self.importer._check_table_name(table_name)
 
@@ -246,8 +238,8 @@ class CsvUploadTests(SupersetTestCase):
     def test_create_postgresql_database(self):
         db_name = "newPostgresqlDatabase"
         postgresql = "postgres"
-        conf["POSTGRES_USERNAME"] = POSTGRES
-        conf["POSTGRES_PASSWORD"] = POSTGRES
+        conf[POSTGRESQL_USERNAME] = POSTGRESQL
+        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
         try:
             new_database = self.importer._create_database(db_name, postgresql)
             assert (
@@ -259,9 +251,9 @@ class CsvUploadTests(SupersetTestCase):
             db.session.commit()
             url = (
                 "postgresql://"
-                + conf["POSTGRES_USERNAME"]
+                + conf[POSTGRESQL_USERNAME]
                 + ":"
-                + conf["POSTGRES_PASSWORD"]
+                + conf[POSTGRESQL_PASSWORD]
                 + "@localhost/"
                 + db_name
             )
@@ -279,19 +271,19 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_postgres_no_password_supplied(self):
         db_name = "postgres_no_pw"
-        conf["POSTGRES_USERNAME"] = POSTGRES
-        conf["POSTGRES_PASSWORD"] = ""
+        conf[POSTGRESQL_USERNAME] = POSTGRESQL
+        conf[POSTGRESQL_PASSWORD] = ""
         error_message = "No password supplied for PostgreSQL"
         with self.assertRaisesRegex(NoPasswordSuppliedException, error_message):
-            self.importer._setup_postgres_database(db_name, None)
+            self.importer._setup_postgresql_database(db_name, None)
 
     def test_postgres_no_username_supplied(self):
         db_name = "postgres_no_pw"
-        conf["POSTGRES_USERNAME"] = ""
-        conf["POSTGRES_PASSWORD"] = POSTGRES
+        conf[POSTGRESQL_USERNAME] = ""
+        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
         error_message = "No username supplied for PostgreSQL"
         with self.assertRaisesRegex(NoUsernameSuppliedException, error_message):
-            self.importer._setup_postgres_database(db_name, None)
+            self.importer._setup_postgresql_database(db_name, None)
 
     @unittest.skipIf(
         "mysql" in conf.get("SQLALCHEMY_DATABASE_URI", "")
@@ -300,19 +292,19 @@ class CsvUploadTests(SupersetTestCase):
     )
     def test_postgres_already_exist(self):
         db_name = "postgres_already_exist"
-        conf["POSTGRES_USERNAME"] = POSTGRES
-        conf["POSTGRES_PASSWORD"] = POSTGRES
-        error_message = "The database {0} already exists".format(db_name)
+        conf[POSTGRESQL_USERNAME] = POSTGRESQL
+        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
+        error_message = f"The database {db_name} already exists"
         try:
-            self.importer._create_database(db_name, POSTGRES)
+            self.importer._create_database(db_name, POSTGRESQL)
             with self.assertRaisesRegex(DatabaseCreationException, error_message):
-                self.importer._create_database(db_name, POSTGRES)
+                self.importer._create_database(db_name, POSTGRESQL)
         finally:
             url = (
                 "postgresql://"
-                + conf["POSTGRES_USERNAME"]
+                + conf[POSTGRESQL_USERNAME]
                 + ":"
-                + conf["POSTGRES_PASSWORD"]
+                + conf[POSTGRESQL_PASSWORD]
                 + "@localhost/"
                 + db_name
             )
@@ -325,17 +317,15 @@ class CsvUploadTests(SupersetTestCase):
         try:
             existing_file = open(db_path, "w+")
             existing_file.close()
-            error_message = "Database file for {0} already exists, please choose a different name".format(
-                db_name
-            )
+            error_message = f"Database file for {db_name} already exists, please choose a different name"
             with self.assertRaisesRegex(DatabaseAlreadyExistException, error_message):
-                self.importer._setup_sqlite(db_name, None)
+                self.importer._setup_sqlite_database(db_name, None)
         finally:
             os.remove(db_path)
 
     def test_not_existing_database_id(self):
         database_id = 1337
-        error_message = "No database was found with the id {0}".format(database_id)
+        error_message = "Database was not found."
         with self.assertRaisesRegex(NoResultFound, error_message):
             self.importer._get_existing_database(database_id, None)
 
@@ -343,8 +333,9 @@ class CsvUploadTests(SupersetTestCase):
         example_db = utils.get_example_database()
         example_db.allow_csv_upload = False
         db.session.commit()
-        error_message = "Database {0} Schema {1} is not allowed for csv uploads. Please contact your Superset administrator".format(
-            example_db.database_name, "None"
+        error_message = (
+            f'Database {example_db.database_name} Schema {"None"} is not allowed for csv uploads. '
+            "Please contact your Superset administrator"
         )
         with self.assertRaisesRegex(SchemaNotAllowedCsvUploadException, error_message):
             self.importer._get_existing_database(example_db.id, None)
@@ -378,8 +369,8 @@ class CsvUploadTests(SupersetTestCase):
             )
 
             error_message = (
-                "Table {0} could not be filled with CSV {1}. This could be an issue with the schema, a connection "
-                "issue, etc.".format(table_name, filename)
+                f"Table {table_name} could not be filled with CSV {filename}. "
+                f"This could be an issue with the schema, a connection issue, etc."
             )
             with self.assertRaisesRegex(TableCreationException, error_message):
                 self.importer._fill_table(form_data, table, filename)
