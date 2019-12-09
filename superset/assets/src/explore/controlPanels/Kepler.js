@@ -33,12 +33,8 @@ export default {
     {
       label: t('Advanced'),
       expanded: true,
-      controlSetRows: [
-        ['autozoom', 'readonly'],
-        ['config'],
-      ],
+      controlSetRows: [['autozoom', 'readonly'], ['config']],
     },
   ],
-  controlOverrides: {
-  },
+  controlOverrides: {},
 };

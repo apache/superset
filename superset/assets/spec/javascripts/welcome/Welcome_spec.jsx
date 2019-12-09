@@ -23,10 +23,12 @@ import { shallow } from 'enzyme';
 import Welcome from '../../../src/welcome/Welcome';
 
 describe('Welcome', () => {
-  let fetchMock;  // mock calls to /tagview/tags/suggestions/
+  let fetchMock; // mock calls to /tagview/tags/suggestions/
 
   beforeAll(() => {
-    fetchMock = jest.spyOn(window, 'fetch').mockImplementation(() => Promise.resolve({}));
+    fetchMock = jest
+      .spyOn(window, 'fetch')
+      .mockImplementation(() => Promise.resolve({}));
   });
 
   afterAll(() => {

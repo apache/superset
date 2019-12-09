@@ -35,16 +35,23 @@ const propTypes = {
 };
 
 const defaultProps = {
-  fetchTags: (callback) => { callback([]); },
-  fetchSuggestions: (callback) => { callback([]); },
-  deleteTag: (tag, callback) => { callback(); },
-  addTag: (tag, callback) => { callback(); },
+  fetchTags: callback => {
+    callback([]);
+  },
+  fetchSuggestions: callback => {
+    callback([]);
+  },
+  deleteTag: (tag, callback) => {
+    callback();
+  },
+  addTag: (tag, callback) => {
+    callback();
+  },
   editable: true,
   onChange: () => {},
 };
 
 export default class ObjectTags extends React.Component {
-
   constructor(props) {
     super(props);
     this.state = {
@@ -83,10 +90,7 @@ export default class ObjectTags extends React.Component {
         >
           {props.tag.name}
         </a>
-        <TooltipWrapper
-          label="remove"
-          tooltip={t('Click to remove tag')}
-        >
+        <TooltipWrapper label="remove" tooltip={t('Click to remove tag')}>
           <Glyphicon onClick={props.onDelete} glyph="remove" />
         </TooltipWrapper>
       </Label>

@@ -72,10 +72,7 @@ export default class MainPreset extends Preset {
   constructor() {
     super({
       name: 'Legacy charts',
-      presets: [
-        new DeckGLChartPreset(),
-        new KeplerChartPreset(),
-      ],
+      presets: [new DeckGLChartPreset(), new KeplerChartPreset()],
       plugins: [
         new AreaChartPlugin().configure({ key: 'area' }),
         new BarChartPlugin().configure({ key: 'bar' }),

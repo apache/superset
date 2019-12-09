@@ -54,7 +54,7 @@ export default class Welcome extends React.PureComponent {
     this.onTagSearchChange = this.onTagSearchChange.bind(this);
   }
   componentDidMount() {
-    fetchSuggestions({ includeTypes: false }, (suggestions) => {
+    fetchSuggestions({ includeTypes: false }, suggestions => {
       const tagSuggestions = [
         ...STANDARD_TAGS,
         ...suggestions.map(tag => tag.name),
@@ -64,7 +64,9 @@ export default class Welcome extends React.PureComponent {
   }
   onDashboardSearchChange(event) {
     const dashboardSearch = event.target.value;
-    this.setState({ dashboardSearch }, () => this.updateURL('search', dashboardSearch));
+    this.setState({ dashboardSearch }, () =>
+      this.updateURL('search', dashboardSearch),
+    );
   }
   onTagSearchChange(tags) {
     const tagSearch = tags.join(',');
@@ -92,7 +94,9 @@ export default class Welcome extends React.PureComponent {
           <Tab eventKey="tags" title={t('Tags')}>
             <Panel>
               <Row>
-                <Col md={8}><h2>{t('Tags')}</h2></Col>
+                <Col md={8}>
+                  <h2>{t('Tags')}</h2>
+                </Col>
               </Row>
               <Row>
                 <Col md={12}>
@@ -112,7 +116,9 @@ export default class Welcome extends React.PureComponent {
           <Tab eventKey="favorites" title={t('Favorites')}>
             <Panel>
               <Row>
-                <Col md={8}><h2>{t('Favorites')}</h2></Col>
+                <Col md={8}>
+                  <h2>{t('Favorites')}</h2>
+                </Col>
               </Row>
               <hr />
               <Favorites user={this.props.user} />
@@ -132,7 +138,9 @@ export default class Welcome extends React.PureComponent {
           <Tab eventKey="dashboards" title={t('Dashboards')}>
             <Panel>
               <Row>
-                <Col md={8}><h2>{t('Dashboards')}</h2></Col>
+                <Col md={8}>
+                  <h2>{t('Dashboards')}</h2>
+                </Col>
                 <Col md={4}>
                   <FormControl
                     type="text"

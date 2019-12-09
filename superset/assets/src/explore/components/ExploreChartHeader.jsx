@@ -30,12 +30,7 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import CachedLabel from '../../components/CachedLabel';
 import ObjectTags from '../../components/ObjectTags';
-import {
-  addTag,
-  deleteTag,
-  fetchSuggestions,
-  fetchTags,
-} from '../../tags';
+import { addTag, deleteTag, fetchSuggestions, fetchTags } from '../../tags';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
