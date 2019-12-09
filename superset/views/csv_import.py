@@ -182,7 +182,7 @@ class CsvImporter(BaseSupersetView):
         :return: filename with allowed characters
         """
         if not filename:
-            raise NameNotAllowed("No name is received for {0}".format(purpose))
+            raise NameNotAllowed("No name received for {0}".format(purpose))
         cleaned_filename = secure_filename(filename)
         if len(cleaned_filename) == 0:
             raise NameNotAllowed(

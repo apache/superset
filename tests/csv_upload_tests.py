@@ -183,8 +183,6 @@ class CsvUploadTests(SupersetTestCase):
         original_filename = "foo,+.bar"
         filename = self.importer._clean_filename(original_filename, "CSV")
         assert filename == "foo.bar"
-        filename = self.importer._clean_filename(filename, "CSV")
-        assert filename == "foo.bar"
 
     def test_clean_filename_None(self):
         purpose = "CSV"
