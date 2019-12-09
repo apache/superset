@@ -184,21 +184,21 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_clean_filename(self):
         original_filename = "foo,+.bar"
-        filename = self.importer._clean_filename(original_filename, "CSV")
+        filename = self.importer._clean_name(original_filename, "CSV")
         assert filename == "foo.bar"
 
     def test_clean_filename_None(self):
         purpose = "CSV"
         error_message = "No filename received for {0}".format(purpose)
         with self.assertRaisesRegex(NameNotAllowedException, error_message):
-            self.importer._clean_filename(None, purpose)
+            self.importer._clean_name(None, purpose)
 
     def test_clean_filename_empty(self):
         filename = "#,'\""
         purpose = "CSV"
         error_message = "Name {0} is not allowed for {1}".format(filename, purpose)
         with self.assertRaisesRegex(NameNotAllowedException, error_message):
-            self.importer._clean_filename(filename, purpose)
+            self.importer._clean_name(filename, purpose)
 
     def test_convert_database_id(self):
         database_id = "1"
