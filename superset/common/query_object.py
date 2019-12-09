@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import simplejson as json
 
-from superset import app, security_manager
+from superset import app
 from superset.utils import core as utils
 
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
@@ -130,7 +130,6 @@ class QueryObject:
             del cache_dict[k]
         if self.time_range:
             cache_dict["time_range"] = self.time_range
-        cache_dict["rls"] = security_manager.get_rls_ids(self.datasource)
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
 
