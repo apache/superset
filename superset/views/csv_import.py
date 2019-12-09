@@ -31,7 +31,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from werkzeug.utils import secure_filename
 
-import superset.models.core as models
+from superset.models.core import Database, DatabaseDto
 from superset import app, appbuilder, conf, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
@@ -94,12 +94,12 @@ class CsvImporter(BaseSupersetView):
         :returns list of database dto
         """
         databases = (
-            db.session().query(models.Database).filter_by(allow_csv_upload=True).all()
+            db.session().query(Database).filter_by(allow_csv_upload=True).all()
         )
-        databases_json = [models.DatabaseDto(NEW_DATABASE_ID, "In a new database", [])]
+        databases_json = [DatabaseDto(NEW_DATABASE_ID, "In a new database", [])]
         for database in databases:
             databases_json.append(
-                models.DatabaseDto(
+                DatabaseDto(
                     database.id,
                     database.name,
                     json.loads(database.extra)["schemas_allowed_for_csv_upload"],
@@ -233,7 +233,7 @@ class CsvImporter(BaseSupersetView):
             raise NameNotAllowedException(message, None)
         return False
 
-    def _create_database(self, db_name: str, db_flavor: str) -> models.Database:
+    def _create_database(self, db_name: str, db_flavor: str) -> Database:
         """ Creates the Database itself as well as the Superset Connection to it
 
         Keyword arguments:
@@ -247,7 +247,7 @@ class CsvImporter(BaseSupersetView):
             DatabaseCreationException: If the database could not be created
         """
 
-        database = SQLAInterface(models.Database).obj()
+        database = SQLAInterface(Database).obj()
         database.database_name = db_name
         database.allow_csv_upload = True
 
@@ -266,7 +266,7 @@ class CsvImporter(BaseSupersetView):
             self._remove_database(database, db_flavor)
             raise DatabaseCreationException(e.args[0], e)
 
-    def _setup_postgres_database(self, db_name: str, database: models.Database) -> None:
+    def _setup_postgres_database(self, db_name: str, database: Database) -> None:
         """ Setup PostgreSQL specific configuration on database
         :param db_name: the database name of SQLite
         :param database: the database object to configure
@@ -311,7 +311,7 @@ class CsvImporter(BaseSupersetView):
         database.sqlalchemy_uri = enurl
         database.password = postgres_password
 
-    def _setup_sqlite_database(self, db_name: str, database: models.Database) -> None:
+    def _setup_sqlite_database(self, db_name: str, database: Database) -> None:
         """ Set SQlite specific configuration on database
         :param db_name: the database name of SQLite
         :param database: the database object to configure
@@ -324,7 +324,7 @@ class CsvImporter(BaseSupersetView):
             raise DatabaseAlreadyExistException(message, None)
         database.sqlalchemy_uri = SQLALCHEMY_SQLITE_CONNECTION + db_path
 
-    def _remove_database(self, database: models.Database, db_flavor: str):
+    def _remove_database(self, database: Database, db_flavor: str):
         """Remove database in an exception case
         :param database: the database to remove
         :param db_flavor: the kind of database
@@ -349,7 +349,7 @@ class CsvImporter(BaseSupersetView):
             )
             raise DatabaseDeletionException(message, e)
 
-    def _get_existing_database(self, database_id: int, schema: str = None) -> models.Database:
+    def _get_existing_database(self, database_id: int, schema: str = None) -> Database:
         """Returns the database object for an existing database
 
         Keyword arguments:
@@ -364,7 +364,7 @@ class CsvImporter(BaseSupersetView):
             MultipleResultsFound: If more than one database found with id
         """
         try:
-            database = db.session.query(models.Database).filter_by(id=database_id).one()
+            database = db.session.query(Database).filter_by(id=database_id).one()
             if not self._is_schema_allowed_for_csv_upload(database, schema):
                 message = _(
                     "Database {0} Schema {1} is not allowed for csv uploads. "
@@ -388,7 +388,7 @@ class CsvImporter(BaseSupersetView):
             raise GetDatabaseException(e.args[0], e)
 
     def _is_schema_allowed_for_csv_upload(
-        self, database: models.Database, schema: str
+        self, database: Database, schema: str
     ) -> bool:
         """ Checks whether the specified schema is allowed for csv-uploads
 
@@ -428,7 +428,7 @@ class CsvImporter(BaseSupersetView):
             )
         return path
 
-    def _create_table(self, table_name: str, database: models.Database) -> SqlaTable:
+    def _create_table(self, table_name: str, database: Database) -> SqlaTable:
         """ Create the Table itself
 
         Keyword arguments:
