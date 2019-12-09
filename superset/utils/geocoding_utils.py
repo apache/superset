@@ -18,6 +18,7 @@ import json
 import time
 
 import requests
+from flask import flash
 from requests import HTTPError, RequestException, Timeout
 
 from superset.exceptions import NoAPIKeySuppliedException
@@ -58,6 +59,9 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         geocoded_data: list = []
         data_length: int = len(data)
         counter: int = 0
+        exceptions: int = 0
+        exception_exit = False
+        self.interruptflag = False
         self.progress["success_counter"] = 0
         self.progress["doubt_counter"] = 0
         self.progress["failed_counter"] = 0
@@ -67,9 +71,9 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         for datum in data:
             try:
                 if self.interruptflag:
-                    self.interruptflag = False
                     self.progress["progress"] = 0
                     self.progress["is_in_progress"] = False
+                    flash("successfully interrupted geocoding", "success")
                     return geocoded_data
                 datum = list(map(str, datum))
                 address = " ".join(datum)
@@ -91,33 +95,48 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
 
                 counter += 1
                 self.progress["progress"] = counter / data_length
+                exceptions = 0
             except ConnectionError as e:
+                exceptions += 1
                 errors.append("A network error occurred: {0}".format(e.args[0]))
             except HTTPError as e:
+                exceptions += 1
                 errors.append(
                     "The request for {0} returned a wrong HTTP answer: {1}".format(
                         address, e.args[0]
                     )
                 )
             except Timeout as e:
+                exceptions += 1
                 errors.append(
                     "The request for {0} ran into a time out: {1}".format(
                         address, e.args[0]
                     )
                 )
             except RequestException as e:
+                exceptions += 1
                 errors.append(
                     "While trying to geocode address {0}, "
                     "an error occurred: {1}".format(address, e.args[0])
                 )
-
-        self.progress["progress"] = 100
-        self.progress["is_in_progress"] = False
+            if counter == 0 and exceptions == 1:
+                message = f"Exception at the start of the geocoding process"
+                flash(message, "error")
+                exception_exit = True
+                break
+            if exceptions >= 2:
+                message = f"2 Consecutive Exceptions during geocoding process"
+                flash(message, "error")
+                exception_exit = True
+                break
         success_dict = {
             "success": self.progress["success_counter"],
             "doubt": self.progress["doubt_counter"],
             "failed": self.progress["failed_counter"],
         }
+        self.progress["progress"] = 100
+        self.progress["is_in_progress"] = False
+
         return [geocoded_data, success_dict]
 
     def _get_coordinates_from_address(self, address: str):
