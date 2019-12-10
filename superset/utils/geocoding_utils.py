@@ -32,6 +32,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
     interruptflag = False
     conf: dict = {}
     progress: dict = {}
+    exception_exit: bool = False
 
     def __init__(self, config):
         self.conf = config
@@ -57,44 +58,29 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
             raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
         errors: list = []
         geocoded_data: list = []
-        data_length: int = len(data)
         counter: int = 0
         exceptions: int = 0
-        exception_exit = False
-        self.interruptflag = False
-        self.progress["success_counter"] = 0
-        self.progress["doubt_counter"] = 0
-        self.progress["failed_counter"] = 0
-        self.progress["is_in_progress"] = True
-        self.progress["progress"] = 0
+        self._set_initialstates()
 
         for datum in data:
             try:
                 if self.interruptflag:
                     self.progress["progress"] = 0
                     self.progress["is_in_progress"] = False
-                    flash("successfully interrupted geocoding", "success")
-                    return geocoded_data
+                    message = "successfully interrupted geocoding"
+                    flash(message, "success")
+                    return [message, [geocoded_data, self._set_dict()]]
                 datum = list(map(str, datum))
                 address = " ".join(datum)
                 geocoded = self._get_coordinates_from_address(address)
                 if geocoded is not None:
-                    center_coordinates = geocoded[0]
-                    relevance = geocoded[1]
-                    if relevance > 0.8:
-                        self.progress["success_counter"] += 1
-                    elif relevance > 0.49:
-                        self.progress["doubt_counter"] += 1
-                    else:
-                        self.progress["failed_counter"] += 1
-                    datum.append(str(center_coordinates[0]))
-                    datum.append(str(center_coordinates[1]))
-                    geocoded_data.append(datum)
+                    datum = self._append_to_datum(datum, geocoded)
                 else:
                     self.progress["failed_counter"] += 1
 
                 counter += 1
-                self.progress["progress"] = counter / data_length
+                geocoded_data.append(datum)
+                self.progress["progress"] = counter / len(data)
                 exceptions = 0
             except ConnectionError as e:
                 exceptions += 1
@@ -122,22 +108,44 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
             if counter == 0 and exceptions == 1:
                 message = f"Exception at the start of the geocoding process"
                 flash(message, "error")
-                exception_exit = True
-                break
+                return [message, [geocoded_data, self._set_dict()]]
             if exceptions >= 2:
                 message = f"2 Consecutive Exceptions during geocoding process"
                 flash(message, "error")
-                exception_exit = True
-                break
+                return [message, [geocoded_data, self._set_dict()]]
+
+        self.progress["progress"] = 100
+        return ["", [geocoded_data, self._set_dict()]]
+
+    def _append_to_datum(self, datum: list, geocoded: list):
+        center_coordinates = geocoded[0]
+        relevance = geocoded[1]
+        if relevance > 0.8:
+            self.progress["success_counter"] += 1
+        elif relevance > 0.49:
+            self.progress["doubt_counter"] += 1
+        else:
+            self.progress["failed_counter"] += 1
+        datum.append(str(center_coordinates[0]))
+        datum.append(str(center_coordinates[1]))
+        return datum
+
+    def _set_initialstates(self):
+        self.interruptflag = False
+        self.progress["success_counter"] = 0
+        self.progress["doubt_counter"] = 0
+        self.progress["failed_counter"] = 0
+        self.progress["is_in_progress"] = True
+        self.progress["progress"] = 0
+
+    def _set_dict(self):
+        self.progress["is_in_progress"] = False
         success_dict = {
             "success": self.progress["success_counter"],
             "doubt": self.progress["doubt_counter"],
             "failed": self.progress["failed_counter"],
         }
-        self.progress["progress"] = 100
-        self.progress["is_in_progress"] = False
-
-        return [geocoded_data, success_dict]
+        return success_dict
 
     def _get_coordinates_from_address(self, address: str):
         base_url = "https://api.maptiler.com/geocoding/"

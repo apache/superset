@@ -150,18 +150,18 @@ class Geocoder(BaseSupersetView):
 
         try:
             data = self._geocode(data)
-            if self.geocoder_util.exception_exit:
-                if not save_on_stop_geocoding:
-                    return json_error_response(
-                        json.dumps("Encountered Exceptions when trying to geocode")
-                    )
+        # TODO There is no data returned here
         except Exception as e:
             if not save_on_stop_geocoding:
                 return json_error_response(e.args[0])
         if self.geocoder_util.interruptflag:
             if not save_on_stop_geocoding:
                 return json_success(json.dumps("geocoding interrupted"))
+        if data[0]:
+            if not save_on_stop_geocoding:
+                return json_error_response(e.args[0])
         try:
+            data = data[1]
             self._insert_geocoded_data(
                 table_name.get("fullName"), lat_column, lon_column, columns, data[0]
             )
