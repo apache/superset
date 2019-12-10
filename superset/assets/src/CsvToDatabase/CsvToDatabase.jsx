@@ -179,7 +179,7 @@ export class CsvToDatabase extends React.PureComponent {
       databaseFlavor: selectedConnection.value === -1 ? selectedDatabaseFlavor.value : '',
       schema: schema ? schema.value : '',
       delimiter,
-      ifTableExists: "Fail",
+      ifTableExists: 'Fail',
       headerRow,
       decimalCharacter,
       indexColumn,
