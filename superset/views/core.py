@@ -16,10 +16,12 @@
 # under the License.
 # pylint: disable=C,R,W
 import logging
+import os
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Union
+from sqlite3 import OperationalError
+from typing import List, Optional, Union  # noqa: F401
 from urllib import parse
 
 import backoff
@@ -45,10 +47,11 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_, select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
 from werkzeug.urls import Href
+from werkzeug.utils import secure_filename
 
 import superset.models.core as models
 from superset import (
@@ -69,14 +72,17 @@ from superset import (
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import AnnotationDatasource
+from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import (
-    DatabaseNotFound,
+    DatabaseCreationException,
+    DatabaseNotFoundException,
     SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
+    TableCreationException,
 )
 from superset.jinja_context import get_template_processor
+from superset.legacy import update_time_range
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
@@ -116,7 +122,6 @@ SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"
 stats_logger = config["STATS_LOGGER"]
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
-
 
 ALL_DATASOURCE_ACCESS_ERR = __(
     "This endpoint requires the `all_datasource_access` permission"
@@ -650,7 +655,6 @@ def ping():
 
 
 class KV(BaseSupersetView):
-
     """Used for storing and retrieving key value pairs"""
 
     @event_logger.log_this
@@ -682,7 +686,6 @@ appbuilder.add_view_no_menu(KV)
 
 
 class R(BaseSupersetView):
-
     """used for short urls"""
 
     @event_logger.log_this
@@ -1099,7 +1102,7 @@ class Superset(BaseSupersetView):
         if request.method == "POST" and f:
             try:
                 dashboard_import_export.import_dashboards(db.session, f.stream)
-            except DatabaseNotFound as e:
+            except DatabaseNotFoundException as e:
                 flash(
                     _(
                         "Cannot import dashboard: %(db_error)s.\n"
@@ -3030,8 +3033,8 @@ class Superset(BaseSupersetView):
             return json_error_response("No database is allowed for your csv upload")
 
         db_id = int(request.args.get("db_id"))
-        database = db.session.query(models.Database).filter_by(id=db_id).one()
         try:
+            database = db.session.query(models.Database).filter_by(id=db_id).one()
             schemas_allowed = database.get_schema_access_for_csv_upload()
             if (
                 security_manager.database_access(database)
@@ -3047,6 +3050,8 @@ class Superset(BaseSupersetView):
                 database, schemas_allowed, False
             )
             return self.json_response(schemas_allowed_processed)
+        except ValueError as e:
+            return json_error_response(e.args[0], status=400)
         except Exception:
             return json_error_response(
                 "Failed to fetch schemas allowed for csv upload in this database! "
@@ -3087,7 +3092,6 @@ appbuilder.add_view(
     category_icon="",
 )
 
-
 appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
 
 appbuilder.add_link(
@@ -3109,17 +3113,6 @@ appbuilder.add_link(
     category="SQL Lab",
     category_label=__("SQL Lab"),
 )
-
-appbuilder.add_link(
-    "Upload a CSV",
-    label=__("Upload a CSV"),
-    href="/csvtodatabaseview/form",
-    icon="fa-upload",
-    category="Sources",
-    category_label=__("Sources"),
-    category_icon="fa-wrench",
-)
-appbuilder.add_separator("Sources")
 
 
 @app.after_request
