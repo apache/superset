@@ -306,7 +306,7 @@ class CsvUploadTests(SupersetTestCase):
         error_message = f"The database {db_name} already exists"
         try:
             self.importer._create_database(db_name, POSTGRESQLFLAVOR)
-            with self.assertRaisesRegex(DatabaseCreationException, error_message):
+            with self.assertRaisesRegex(DatabaseAlreadyExistException, error_message):
                 self.importer._create_database(db_name, POSTGRESQLFLAVOR)
         finally:
             url = (
