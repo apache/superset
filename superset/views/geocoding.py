@@ -269,7 +269,8 @@ class Geocoder(BaseSupersetView):
         except Exception as e:
             raise SqlSelectException(
                 "An error occured while getting address data from columns "
-                + column_list, e
+                + column_list,
+                e,
             )
 
     def _get_table(self, id: int):
