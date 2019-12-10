@@ -382,7 +382,7 @@ class Geocoder(BaseSupersetView):
     def interrupt(self) -> Response:
         """ Used for interrupting the geocoding process """
         self.geocoder_util.interruptflag = True
-        return json_success("")
+        return json_success('"ok"')
 
 
 appbuilder.add_view_no_menu(Geocoder)
