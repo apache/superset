@@ -43,7 +43,7 @@ export default class AdhocFilterOption extends React.PureComponent {
     this.onPopoverResize = this.onPopoverResize.bind(this);
     this.onOverlayEntered = this.onOverlayEntered.bind(this);
     this.onOverlayExited = this.onOverlayExited.bind(this);
-    this.state = { overlayShown: !this.props.adhocFilter.fromFormData };
+    this.state = { overlayShown: false };
   }
 
   onPopoverResize() {
@@ -88,7 +88,6 @@ export default class AdhocFilterOption extends React.PureComponent {
         overlay={overlay}
         rootClose
         shouldUpdatePosition
-        defaultOverlayShown={!adhocFilter.fromFormData}
         onEntered={this.onOverlayEntered}
         onExited={this.onOverlayExited}
       >
