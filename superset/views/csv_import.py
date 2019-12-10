@@ -262,14 +262,17 @@ class CsvImporter(BaseSupersetView):
         database.database_name = db_name
         database.allow_csv_upload = True
 
-        if db_flavor == POSTGRESQL:
-            url = self._setup_postgresql_database(db_name, database)
-        else:
-            url = self._setup_sqlite_database(db_name, database)
         try:
+            if db_flavor == POSTGRESQL:
+                uri = self._setup_postgresql_database(db_name, database)
+            else:
+                uri = self._setup_sqlite_database(db_name, database)
+            # TODO check if SQL-injection is possible through add()
             db.session.add(database)
             db.session.commit()
-            return database, url
+            return database, uri
+        except DatabaseAlreadyExistException as e:
+            raise DatabaseAlreadyExistException(e.args[0], e)
         except IntegrityError as e:
             raise DatabaseCreationException("Error when trying to create Database", e)
         except Exception as e:
@@ -314,7 +317,7 @@ class CsvImporter(BaseSupersetView):
         if not sqlalchemy_utils.database_exists(engine.url):
             sqlalchemy_utils.create_database(engine.url)
         else:
-            raise DatabaseCreationException(
+            raise DatabaseAlreadyExistException(
                 f"The database {db_name} already exists", None
             )
 
