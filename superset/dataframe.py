@@ -16,13 +16,13 @@
 # under the License.
 """ Superset utilities for pandas.DataFrame.
 """
-from superset.utils.core import JS_MAX_INTEGER
 from typing import Dict
 import pandas as pd
 
+from superset.utils.core import JS_MAX_INTEGER
 
-def df_to_dict(df: pd.DataFrame) -> Dict:
-    data = df.to_dict(orient="records")
+def df_to_dict(dframe: pd.DataFrame) -> Dict:
+    data = dframe.to_dict(orient="records")
     # TODO: refactor this
     for d in data:
         for k, v in list(d.items()):

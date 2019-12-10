@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from pytz import _FixedOffset
 from typing import List, Optional, Tuple, TYPE_CHECKING
+from pytz import _FixedOffset
 
 from sqlalchemy.dialects.postgresql.base import PGInspector
 
