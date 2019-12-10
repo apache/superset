@@ -119,10 +119,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 # If we have a message but no error location, return the message and
                 # set the location as the beginning.
                 return SQLValidationAnnotation(
-                    message=message,
-                    line_number=1,
-                    start_column=1,
-                    end_column=1,
+                    message=message, line_number=1, start_column=1, end_column=1
                 )
 
             # pylint: disable=invalid-sequence-index
