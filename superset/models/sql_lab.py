@@ -194,9 +194,9 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     __tablename__ = "tab_state"
 
     # basic info
-    id = Column(
+    id = Column(  # pylint: disable=invalid-name
         Integer, primary_key=True, autoincrement=True
-    )  # pylint: disable=invalid-name
+    )
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     label = Column(String(256))
     active = Column(Boolean, default=False)
@@ -247,9 +247,9 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
 
     __tablename__ = "table_schema"
 
-    id = Column(
+    id = Column(  # pylint: disable=invalid-name
         Integer, primary_key=True, autoincrement=True
-    )  # pylint: disable=invalid-name
+    )
     tab_state_id = Column(Integer, ForeignKey("tab_state.id", ondelete="CASCADE"))
 
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
