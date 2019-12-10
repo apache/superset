@@ -270,15 +270,15 @@ class CsvImporter(BaseSupersetView):
         database.database_name = db_name
         database.allow_csv_upload = True
 
-        if db_flavor == POSTGRESQL:
-            url = self._setup_postgresql_database(db_name, database)
-        else:
-            url = self._setup_sqlite_database(db_name, database)
         try:
+            if db_flavor == POSTGRESQL:
+                uri = self._setup_postgresql_database(db_name, database)
+            else:
+                uri = self._setup_sqlite_database(db_name, database)
             # TODO check if SQL-injection is possible through add()
             db.session.add(database)
             db.session.commit()
-            return database, url
+            return database, uri
         except DatabaseAlreadyExistException as e:
             raise DatabaseAlreadyExistException(e.args[0], e)
         except IntegrityError as e:
