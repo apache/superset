@@ -24,6 +24,7 @@ import io
 import json
 import logging
 import os
+import pytz
 import random
 import re
 import string
@@ -699,7 +700,7 @@ class CoreTests(SupersetTestCase):
             os.remove(filename_2)
 
     def test_dataframe_timezone(self):
-        tz = psycopg2.tz.FixedOffsetTimezone(offset=60, name=None)
+        tz = pytz.FixedOffset(60)
         data = [
             (datetime.datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=tz),),
             (datetime.datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=tz),),

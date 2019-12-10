@@ -21,6 +21,7 @@ import logging
 import re
 import numpy as np
 import pyarrow as pa
+import pandas as pd
 
 
 def dedup(l, suffix="__", case_sensitive=True):
@@ -71,6 +72,14 @@ class SupersetTable(object):
                 pa.array(array[:, i])
                 for i, column in enumerate(column_names)
             ]
+
+        # workaround for bug converting `psycopg2.tz.FixedOffsetTimezone` tzinfo values.
+        # related: https://issues.apache.org/jira/browse/ARROW-5248
+        if data:
+            for i, column in enumerate(column_names):
+                if pa.types.is_temporal(data[i].type):
+                    series = pd.Series(array[:, i])
+                    data[i] = pa.Array.from_pandas(series)
         
         self.table = pa.Table.from_arrays(data, names=column_names)
         self._type_dict = {}
