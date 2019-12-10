@@ -279,6 +279,8 @@ class CsvImporter(BaseSupersetView):
             db.session.add(database)
             db.session.commit()
             return database, url
+        except DatabaseAlreadyExistException as e:
+            raise DatabaseAlreadyExistException(e.args[0], e)
         except IntegrityError as e:
             raise DatabaseCreationException("Error when trying to create Database", e)
         except Exception as e:
@@ -325,7 +327,7 @@ class CsvImporter(BaseSupersetView):
         if not sqlalchemy_utils.database_exists(engine.url):
             sqlalchemy_utils.create_database(engine.url)
         else:
-            raise DatabaseCreationException(
+            raise DatabaseAlreadyExistException(
                 f"The database {db_name} already exists", None
             )
 
