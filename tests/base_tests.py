@@ -193,6 +193,7 @@ class SupersetTestCase(TestCase):
         raise_on_error=False,
         query_limit=None,
         database_name="examples",
+        sql_editor_id=None,
     ):
         if user_name:
             self.logout()
@@ -207,6 +208,7 @@ class SupersetTestCase(TestCase):
                 select_as_create_as=False,
                 client_id=client_id,
                 queryLimit=query_limit,
+                sql_editor_id=sql_editor_id,
             ),
         )
         if raise_on_error and "error" in resp:
