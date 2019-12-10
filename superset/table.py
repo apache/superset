@@ -19,9 +19,10 @@
 """
 import logging
 import re
+
 import numpy as np
-import pyarrow as pa
 import pandas as pd
+import pyarrow as pa
 
 
 def dedup(l, suffix="__", case_sensitive=True):

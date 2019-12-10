@@ -18,8 +18,8 @@ import numpy as np
 import pandas as pd
 
 from superset.dataframe import df_to_dict
-from superset.table import SupersetTable
 from superset.db_engine_specs import BaseEngineSpec
+from superset.table import SupersetTable
 
 from .base_tests import SupersetTestCase
 
@@ -49,4 +49,3 @@ class SupersetDataFrameTestCase(SupersetTestCase):
                 {"a": 2, "b": 100, "c": "c2"},
             ],
         )
-

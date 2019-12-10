@@ -17,9 +17,11 @@
 """ Superset utilities for pandas.DataFrame.
 """
 from typing import Dict
+
 import pandas as pd
 
 from superset.utils.core import JS_MAX_INTEGER
+
 
 def df_to_dict(dframe: pd.DataFrame) -> Dict:
     data = dframe.to_dict(orient="records")

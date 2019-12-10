@@ -24,9 +24,9 @@ import prison
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.dataframe import df_to_dict
-from superset.table import SupersetTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
+from superset.table import SupersetTable
 from superset.utils.core import datetime_to_epoch, get_example_database
 
 from .base_tests import SupersetTestCase

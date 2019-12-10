@@ -14,13 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 
-from datetime import datetime
-from superset.table import dedup, SupersetTable
 from superset.dataframe import df_to_dict
 from superset.db_engine_specs import BaseEngineSpec
+from superset.table import dedup, SupersetTable
 
 from .base_tests import SupersetTestCase
 

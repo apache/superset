@@ -16,8 +16,8 @@
 # under the License.
 from datetime import datetime
 from typing import List, Optional, Tuple, TYPE_CHECKING
-from pytz import _FixedOffset
 
+from pytz import _FixedOffset  # type: ignore
 from sqlalchemy.dialects.postgresql.base import PGInspector
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
