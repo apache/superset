@@ -150,6 +150,11 @@ class Geocoder(BaseSupersetView):
 
         try:
             data = self._geocode(data)
+            if self.geocoder_util.exception_exit:
+                if not save_on_stop_geocoding:
+                    return json_error_response(
+                        json.dumps("Encountered Exceptions when trying to geocode")
+                    )
         except Exception as e:
             if not save_on_stop_geocoding:
                 return json_error_response(e.args[0])
