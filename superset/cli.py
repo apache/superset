@@ -15,7 +15,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import logging
 from datetime import datetime
 from subprocess import Popen
@@ -41,7 +40,7 @@ def superset():
     """This is a management script for the Superset application."""
 
     @app.shell_context_processor
-    def make_shell_context():
+    def make_shell_context():  # pylint: disable=unused-variable
         return dict(app=app, db=db)
 
 
@@ -179,7 +178,7 @@ def refresh_druid(datasource, merge):
     for cluster in session.query(DruidCluster).all():
         try:
             cluster.refresh_datasources(datasource_name=datasource, merge_flag=merge)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             print("Error while processing cluster '{}'\n{}".format(cluster, str(e)))
             logging.exception(e)
         cluster.metadata_last_refreshed = datetime.now()
@@ -212,23 +211,23 @@ def import_dashboards(path, recursive, username):
     """Import dashboards from JSON"""
     from superset.utils import dashboard_import_export
 
-    p = Path(path)
+    path_object = Path(path)
     files = []
-    if p.is_file():
-        files.append(p)
-    elif p.exists() and not recursive:
-        files.extend(p.glob("*.json"))
-    elif p.exists() and recursive:
-        files.extend(p.rglob("*.json"))
+    if path_object.is_file():
+        files.append(path_object)
+    elif path_object.exists() and not recursive:
+        files.extend(path_object.glob("*.json"))
+    elif path_object.exists() and recursive:
+        files.extend(path_object.rglob("*.json"))
     if username is not None:
         g.user = security_manager.find_user(username=username)
-    for f in files:
-        logging.info("Importing dashboard from file %s", f)
+    for file_ in files:
+        logging.info("Importing dashboard from file %s", file_)
         try:
-            with f.open() as data_stream:
+            with file_.open() as data_stream:
                 dashboard_import_export.import_dashboards(db.session, data_stream)
-        except Exception as e:
-            logging.error("Error when importing dashboard from file %s", f)
+        except Exception as e:  # pylint: disable=broad-except
+            logging.error("Error when importing dashboard from file %s", file_)
             logging.error(e)
 
 
@@ -282,25 +281,25 @@ def import_datasources(path, sync, recursive):
     from superset.utils import dict_import_export
 
     sync_array = sync.split(",")
-    p = Path(path)
+    path_object = Path(path)
     files = []
-    if p.is_file():
-        files.append(p)
-    elif p.exists() and not recursive:
-        files.extend(p.glob("*.yaml"))
-        files.extend(p.glob("*.yml"))
-    elif p.exists() and recursive:
-        files.extend(p.rglob("*.yaml"))
-        files.extend(p.rglob("*.yml"))
-    for f in files:
-        logging.info("Importing datasources from file %s", f)
+    if path_object.is_file():
+        files.append(path_object)
+    elif path_object.exists() and not recursive:
+        files.extend(path_object.glob("*.yaml"))
+        files.extend(path_object.glob("*.yml"))
+    elif path_object.exists() and recursive:
+        files.extend(path_object.rglob("*.yaml"))
+        files.extend(path_object.rglob("*.yml"))
+    for file_ in files:
+        logging.info("Importing datasources from file %s", file_)
         try:
-            with f.open() as data_stream:
+            with file_.open() as data_stream:
                 dict_import_export.import_from_dict(
                     db.session, yaml.safe_load(data_stream), sync=sync_array
                 )
-        except Exception as e:
-            logging.error("Error when importing datasources from file %s", f)
+        except Exception as e:  # pylint: disable=broad-except
+            logging.error("Error when importing datasources from file %s", file_)
             logging.error(e)
 
 
@@ -379,7 +378,7 @@ def update_datasources_cache():
                 database.get_all_view_names_in_database(
                     force=True, cache=True, cache_timeout=24 * 60 * 60
                 )
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
                 print("{}".format(str(e)))
 
 
@@ -401,8 +400,8 @@ def worker(workers):
             CELERYD_CONCURRENCY=app.config["SUPERSET_CELERY_WORKERS"]
         )
 
-    worker = celery_app.Worker(optimization="fair")
-    worker.start()
+    local_worker = celery_app.Worker(optimization="fair")
+    local_worker.start()
 
 
 @superset.command()
@@ -418,10 +417,10 @@ def flower(port, address):
 
     Celery Flower is a UI to monitor the Celery operation on a given
     broker"""
-    BROKER_URL = celery_app.conf.BROKER_URL
+    broker_url = celery_app.conf.BROKER_URL
     cmd = (
         "celery flower "
-        f"--broker={BROKER_URL} "
+        f"--broker={broker_url} "
         f"--port={port} "
         f"--address={address} "
     )
