@@ -21,9 +21,6 @@ from datetime import datetime
 from sys import getsizeof
 from typing import Optional, Tuple, Union
 
-# pylint and isort disagree on the correct import order.
-# Let's have isort win.
-# pylint: disable=ungrouped-imports
 import backoff
 import msgpack
 import pyarrow as pa
