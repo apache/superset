@@ -603,32 +603,34 @@ export function loadQueryEditor(queryEditor) {
 }
 
 export function setTables(tableSchemas) {
-  const tables = tableSchemas.map(tableSchema => {
-    const {
-      columns,
-      selectStar,
-      primaryKey,
-      foreignKeys,
-      indexes,
-      dataPreviewQueryId,
-    } = tableSchema.description;
-    return {
-      dbId: tableSchema.database_id,
-      queryEditorId: tableSchema.tab_state_id.toString(),
-      schema: tableSchema.schema,
-      name: tableSchema.table,
-      expanded: tableSchema.expanded,
-      id: tableSchema.id,
-      dataPreviewQueryId,
-      columns,
-      selectStar,
-      primaryKey,
-      foreignKeys,
-      indexes,
-      isMetadataLoading: false,
-      isExtraMetadataLoading: false,
-    };
-  });
+  const tables = tableSchemas
+    .filter(tableSchema => tableSchema.description !== null)
+    .map(tableSchema => {
+      const {
+        columns,
+        selectStar,
+        primaryKey,
+        foreignKeys,
+        indexes,
+        dataPreviewQueryId,
+      } = tableSchema.description;
+      return {
+        dbId: tableSchema.database_id,
+        queryEditorId: tableSchema.tab_state_id.toString(),
+        schema: tableSchema.schema,
+        name: tableSchema.table,
+        expanded: tableSchema.expanded,
+        id: tableSchema.id,
+        dataPreviewQueryId,
+        columns,
+        selectStar,
+        primaryKey,
+        foreignKeys,
+        indexes,
+        isMetadataLoading: false,
+        isExtraMetadataLoading: false,
+      };
+    });
   return { type: SET_TABLES, tables };
 }
 

@@ -207,7 +207,7 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: isDevMode,
             },
           },
         ],
@@ -220,13 +220,13 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: isDevMode,
             },
           },
           {
             loader: 'less-loader',
             options: {
-              sourceMap: true,
+              sourceMap: isDevMode,
             },
           },
         ],

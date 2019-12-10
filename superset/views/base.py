@@ -31,6 +31,7 @@ from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
+from sqlalchemy import or_
 from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
 
@@ -169,64 +170,66 @@ class BaseSupersetView(BaseView):
             mimetype="application/json",
         )
 
-    def menu_data(self):
-        menu = appbuilder.menu.get_data()
-        root_path = "#"
-        logo_target_path = ""
-        if not g.user.is_anonymous:
-            try:
-                logo_target_path = (
-                    appbuilder.app.config.get("LOGO_TARGET_PATH")
-                    or f"/profile/{g.user.username}/"
-                )
-            # when user object has no username
-            except NameError as e:
-                logging.exception(e)
 
-            if logo_target_path.startswith("/"):
-                root_path = f"/superset{logo_target_path}"
-            else:
-                root_path = logo_target_path
+def menu_data():
+    menu = appbuilder.menu.get_data()
+    root_path = "#"
+    logo_target_path = ""
+    if not g.user.is_anonymous:
+        try:
+            logo_target_path = (
+                appbuilder.app.config.get("LOGO_TARGET_PATH")
+                or f"/profile/{g.user.username}/"
+            )
+        # when user object has no username
+        except NameError as e:
+            logging.exception(e)
 
-        languages = {}
-        for lang in appbuilder.languages:
-            languages[lang] = {
-                **appbuilder.languages[lang],
-                "url": appbuilder.get_url_for_locale(lang),
-            }
-        return {
-            "menu": menu,
-            "brand": {
-                "path": root_path,
-                "icon": appbuilder.app_icon,
-                "alt": appbuilder.app_name,
-            },
-            "navbar_right": {
-                "bug_report_url": appbuilder.app.config.get("BUG_REPORT_URL"),
-                "documentation_url": appbuilder.app.config.get("DOCUMENTATION_URL"),
-                "languages": languages,
-                "show_language_picker": len(languages.keys()) > 1,
-                "user_is_anonymous": g.user.is_anonymous,
-                "user_info_url": appbuilder.get_url_for_userinfo,
-                "user_logout_url": appbuilder.get_url_for_logout,
-                "user_login_url": appbuilder.get_url_for_login,
-                "locale": session.get("locale", "en"),
-            },
+        if logo_target_path.startswith("/"):
+            root_path = f"/superset{logo_target_path}"
+        else:
+            root_path = logo_target_path
+
+    languages = {}
+    for lang in appbuilder.languages:
+        languages[lang] = {
+            **appbuilder.languages[lang],
+            "url": appbuilder.get_url_for_locale(lang),
         }
+    return {
+        "menu": menu,
+        "brand": {
+            "path": root_path,
+            "icon": appbuilder.app_icon,
+            "alt": appbuilder.app_name,
+        },
+        "navbar_right": {
+            "bug_report_url": appbuilder.app.config.get("BUG_REPORT_URL"),
+            "documentation_url": appbuilder.app.config.get("DOCUMENTATION_URL"),
+            "languages": languages,
+            "show_language_picker": len(languages.keys()) > 1,
+            "user_is_anonymous": g.user.is_anonymous,
+            "user_info_url": appbuilder.get_url_for_userinfo,
+            "user_logout_url": appbuilder.get_url_for_logout,
+            "user_login_url": appbuilder.get_url_for_login,
+            "locale": session.get("locale", "en"),
+        },
+    }
 
-    def common_bootstrap_payload(self):
-        """Common data always sent to the client"""
-        messages = get_flashed_messages(with_categories=True)
-        locale = str(get_locale())
 
-        return {
-            "flash_messages": messages,
-            "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
-            "locale": locale,
-            "language_pack": get_language_pack(locale),
-            "feature_flags": get_feature_flags(),
-            "menu_data": self.menu_data(),
-        }
+def common_bootstrap_payload():
+    """Common data always sent to the client"""
+    messages = get_flashed_messages(with_categories=True)
+    locale = str(get_locale())
+
+    return {
+        "flash_messages": messages,
+        "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
+        "locale": locale,
+        "language_pack": get_language_pack(locale),
+        "feature_flags": get_feature_flags(),
+        "menu_data": menu_data(),
+    }
 
 
 class SupersetListWidget(ListWidget):
@@ -302,18 +305,6 @@ class DeleteMixin(object):
                 .all()
             )
 
-            schema_view_menu = None
-            if hasattr(item, "schema_perm"):
-                schema_view_menu = security_manager.find_view_menu(item.schema_perm)
-
-                pvs.extend(
-                    security_manager.get_session.query(
-                        security_manager.permissionview_model
-                    )
-                    .filter_by(view_menu=schema_view_menu)
-                    .all()
-                )
-
             if self.datamodel.delete(item):
                 self.post_delete(item)
 
@@ -322,9 +313,6 @@ class DeleteMixin(object):
 
                 if view_menu:
                     security_manager.get_session.delete(view_menu)
-
-                if schema_view_menu:
-                    security_manager.get_session.delete(schema_view_menu)
 
                 security_manager.get_session.commit()
 
@@ -348,53 +336,18 @@ class DeleteMixin(object):
         return redirect(self.get_redirect())
 
 
-class SupersetFilter(BaseFilter):
-
-    """Add utility function to make BaseFilter easy and fast
-
-    These utility function exist in the SecurityManager, but would do
-    a database round trip at every check. Here we cache the role objects
-    to be able to make multiple checks but query the db only once
-    """
-
-    def get_user_roles(self):
-        return get_user_roles()
-
-    def get_all_permissions(self):
-        """Returns a set of tuples with the perm name and view menu name"""
-        perms = set()
-        for role in self.get_user_roles():
-            for perm_view in role.permissions:
-                t = (perm_view.permission.name, perm_view.view_menu.name)
-                perms.add(t)
-        return perms
-
-    def has_role(self, role_name_or_list):
-        """Whether the user has this role name"""
-        if not isinstance(role_name_or_list, list):
-            role_name_or_list = [role_name_or_list]
-        return any([r.name in role_name_or_list for r in self.get_user_roles()])
-
-    def has_perm(self, permission_name, view_menu_name):
-        """Whether the user has this perm"""
-        return (permission_name, view_menu_name) in self.get_all_permissions()
-
-    def get_view_menus(self, permission_name):
-        """Returns the details of view_menus for a perm name"""
-        vm = set()
-        for perm_name, vm_name in self.get_all_permissions():
-            if perm_name == permission_name:
-                vm.add(vm_name)
-        return vm
-
-
-class DatasourceFilter(SupersetFilter):
-    def apply(self, query, func):
+class DatasourceFilter(BaseFilter):
+    def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
             return query
-        perms = self.get_view_menus("datasource_access")
-        # TODO(bogdan): add `schema_access` support here
-        return query.filter(self.model.perm.in_(perms))
+        datasource_perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
+        return query.filter(
+            or_(
+                self.model.perm.in_(datasource_perms),
+                self.model.schema_perm.in_(schema_perms),
+            )
+        )
 
 
 class CsvResponse(Response):

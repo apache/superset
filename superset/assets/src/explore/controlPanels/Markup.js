@@ -26,4 +26,12 @@ export default {
       controlSetRows: [['markup_type'], ['code']],
     },
   ],
+  sectionOverrides: {
+    druidTimeSeries: {
+      controlSetRows: [],
+    },
+    sqlaTimeSeries: {
+      controlSetRows: [],
+    },
+  },
 };

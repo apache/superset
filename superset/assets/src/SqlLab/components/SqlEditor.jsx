@@ -324,6 +324,7 @@ class SqlEditor extends React.PureComponent {
     );
     return (
       <Split
+        expandToMin
         className="queryPane"
         sizes={[this.state.northPercent, this.state.southPercent]}
         elementStyle={this.elementStyle}

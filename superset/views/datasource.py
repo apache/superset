@@ -16,16 +16,18 @@
 # under the License.
 # pylint: disable=C,R,W
 import json
+from collections import Counter
 
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
+from sqlalchemy.exc import IntegrityError
 
 from superset import appbuilder, db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.core import Database
 
-from .base import BaseSupersetView, json_error_response
+from .base import api, BaseSupersetView, handle_api_exception, json_error_response
 
 
 class Datasource(BaseSupersetView):
@@ -33,6 +35,8 @@ class Datasource(BaseSupersetView):
 
     @expose("/save/", methods=["POST"])
     @has_access_api
+    @api
+    @handle_api_exception
     def save(self):
         datasource = json.loads(request.form.get("data"))
         datasource_id = datasource.get("id")
@@ -47,13 +51,29 @@ class Datasource(BaseSupersetView):
                 .filter(orm_datasource.owner_class.id.in_(datasource["owners"]))
                 .all()
             )
+
+        duplicates = [
+            name
+            for name, count in Counter(
+                [col["column_name"] for col in datasource["columns"]]
+            ).items()
+            if count > 1
+        ]
+        if duplicates:
+            return json_error_response(
+                f"Duplicate column name(s): {','.join(duplicates)}", status="409"
+            )
+
         orm_datasource.update_from_object(datasource)
         data = orm_datasource.data
         db.session.commit()
+
         return self.json_response(data)
 
     @expose("/get/<datasource_type>/<datasource_id>/")
     @has_access_api
+    @api
+    @handle_api_exception
     def get(self, datasource_type, datasource_id):
         orm_datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session
@@ -68,6 +88,8 @@ class Datasource(BaseSupersetView):
 
     @expose("/external_metadata/<datasource_type>/<datasource_id>/")
     @has_access_api
+    @api
+    @handle_api_exception
     def external_metadata(self, datasource_type=None, datasource_id=None):
         """Gets column info from the source system"""
         if datasource_type == "druid":

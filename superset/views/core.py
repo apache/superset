@@ -20,7 +20,7 @@ import re
 from contextlib import closing
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import cast, List, Optional, Union
+from typing import Any, cast, Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
@@ -45,7 +45,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, Integer, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
@@ -89,8 +89,10 @@ from superset.utils.decorators import etag_cache, stats_timing
 
 from .base import (
     api,
+    BaseFilter,
     BaseSupersetView,
     check_ownership,
+    common_bootstrap_payload,
     CsvResponse,
     data_payload_response,
     DeleteMixin,
@@ -100,7 +102,6 @@ from .base import (
     handle_api_exception,
     json_error_response,
     json_success,
-    SupersetFilter,
     SupersetModelView,
 )
 from .database import api as database_api, views as in_views
@@ -244,16 +245,18 @@ def _deserialize_results_payload(
             return json.loads(payload)  # type: ignore
 
 
-class SliceFilter(SupersetFilter):
-    def apply(self, query, func):
+class SliceFilter(BaseFilter):
+    def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
             return query
-        perms = self.get_view_menus("datasource_access")
-        # TODO(bogdan): add `schema_access` support here
-        return query.filter(self.model.perm.in_(perms))
+        perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
+        return query.filter(
+            or_(self.model.perm.in_(perms), self.model.schema_perm.in_(schema_perms))
+        )
 
 
-class DashboardFilter(SupersetFilter):
+class DashboardFilter(BaseFilter):
     """
     List dashboards with the following criteria:
         1. Those which the user owns
@@ -271,19 +274,24 @@ class DashboardFilter(SupersetFilter):
         Slice = models.Slice
         Favorites = models.FavStar
 
-        user_roles = [role.name.lower() for role in list(self.get_user_roles())]
+        user_roles = [role.name.lower() for role in list(get_user_roles())]
         if "admin" in user_roles:
             return query
 
-        datasource_perms = self.get_view_menus("datasource_access")
+        datasource_perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
         all_datasource_access = security_manager.all_datasource_access()
         published_dash_query = (
             db.session.query(Dash.id)
             .join(Dash.slices)
             .filter(
                 and_(
-                    Dash.published == True,
-                    or_(Slice.perm.in_(datasource_perms), all_datasource_access),
+                    Dash.published == True,  # noqa
+                    or_(
+                        Slice.perm.in_(datasource_perms),
+                        Slice.schema_perm.in_(schema_perms),
+                        all_datasource_access,
+                    ),
                 )
             )
         )
@@ -1286,7 +1294,7 @@ class Superset(BaseSupersetView):
             "standalone": standalone,
             "user_id": user_id,
             "forced_height": request.args.get("height"),
-            "common": self.common_bootstrap_payload(),
+            "common": common_bootstrap_payload(),
         }
         table_name = (
             datasource.table_name
@@ -2223,7 +2231,7 @@ class Superset(BaseSupersetView):
             "user_id": g.user.get_id(),
             "dashboard_data": dashboard_data,
             "datasources": {ds.uid: ds.data for ds in datasources},
-            "common": self.common_bootstrap_payload(),
+            "common": common_bootstrap_payload(),
             "editMode": edit_mode,
             "urlParams": url_params,
         }
@@ -3026,7 +3034,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             "user": bootstrap_user_data(g.user),
-            "common": self.common_bootstrap_payload(),
+            "common": common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -3052,7 +3060,7 @@ class Superset(BaseSupersetView):
 
         payload = {
             "user": bootstrap_user_data(user, include_perms=True),
-            "common": self.common_bootstrap_payload(),
+            "common": common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -3064,27 +3072,25 @@ class Superset(BaseSupersetView):
             ),
         )
 
-    @has_access
-    @expose("/sqllab")
-    def sqllab(self):
-        """SQL Editor"""
-
+    @staticmethod
+    def _get_sqllab_payload(user_id: int) -> Dict[str, Any]:
         # send list of tab state ids
-        tab_state_ids = (
+        tabs_state = (
             db.session.query(TabState.id, TabState.label)
-            .filter_by(user_id=g.user.get_id())
+            .filter_by(user_id=user_id)
             .all()
         )
+        tab_state_ids = [tab_state[0] for tab_state in tabs_state]
         # return first active tab, or fallback to another one if no tab is active
         active_tab = (
             db.session.query(TabState)
-            .filter_by(user_id=g.user.get_id())
+            .filter_by(user_id=user_id)
             .order_by(TabState.active.desc())
             .first()
         )
 
-        databases = {}
-        queries = {}
+        databases: Dict[int, Any] = {}
+        queries: Dict[str, Any] = {}
 
         # These are unnecessary if sqllab backend persistence is disabled
         if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
@@ -3094,26 +3100,38 @@ class Superset(BaseSupersetView):
                 }
                 for database in db.session.query(models.Database).all()
             }
+            # return all user queries associated with existing SQL editors
             user_queries = (
-                db.session.query(Query).filter_by(user_id=g.user.get_id()).all()
+                db.session.query(Query)
+                .filter_by(user_id=user_id)
+                .filter(Query.sql_editor_id.cast(Integer).in_(tab_state_ids))
+                .all()
             )
             queries = {
                 query.client_id: {k: v for k, v in query.to_dict().items()}
                 for query in user_queries
             }
 
-        d = {
+        return {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
-            "common": self.common_bootstrap_payload(),
-            "tab_state_ids": tab_state_ids,
+            "common": common_bootstrap_payload(),
+            "tab_state_ids": tabs_state,
             "active_tab": active_tab.to_dict() if active_tab else None,
             "databases": databases,
             "queries": queries,
         }
+
+    @has_access
+    @expose("/sqllab")
+    def sqllab(self):
+        """SQL Editor"""
+        payload = self._get_sqllab_payload(g.user.get_id())
+        bootstrap_data = json.dumps(
+            payload, default=utils.pessimistic_json_iso_dttm_ser
+        )
+
         return self.render_template(
-            "superset/basic.html",
-            entry="sqllab",
-            bootstrap_data=json.dumps(d, default=utils.pessimistic_json_iso_dttm_ser),
+            "superset/basic.html", entry="sqllab", bootstrap_data=bootstrap_data
         )
 
     @api
