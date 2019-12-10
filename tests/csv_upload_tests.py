@@ -210,19 +210,26 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_check_table_name(self):
         table_name = "myNewTableName"
-        assert not self.importer._check_table_name(table_name)
+        fail_if_table_exists = "Fail"
+        assert not self.importer._check_table_name(table_name, fail_if_table_exists)
 
-    def test_check_table_name_failed(self):
+    def test_check_table_name_fail(self):
         table_name = db.session.query(SqlaTable).first().table_name
+        fail_if_table_exists = "Fail"
         error_message = f"Table name {table_name} already exists. Please choose another"
         with self.assertRaisesRegex(NameNotAllowedException, error_message):
-            self.importer._check_table_name(table_name)
+            self.importer._check_table_name(table_name, fail_if_table_exists)
+
+    def test_check_table_name_replace(self):
+        table_name = db.session.query(SqlaTable).first().table_name
+        fail_if_table_exists = "Append"
+        assert not self.importer._check_table_name(table_name, fail_if_table_exists)
 
     def test_create_sqlite_database(self):
         db_name = "newSqlite"
         sqlite = "sqlite"
         try:
-            new_database = self.importer._create_database(db_name, sqlite)
+            (new_database, uri) = self.importer._create_database(db_name, sqlite)
             assert (
                 new_database
                 == db.session.query(models.Database).filter_by(id=new_database.id).one()
@@ -241,7 +248,9 @@ class CsvUploadTests(SupersetTestCase):
         conf[POSTGRESQL_USERNAME] = POSTGRESQL
         conf[POSTGRESQL_PASSWORD] = POSTGRESQL
         try:
-            new_database = self.importer._create_database(db_name, POSTGRESQLFLAVOR)
+            (new_database, uri) = self.importer._create_database(
+                db_name, POSTGRESQLFLAVOR
+            )
             assert (
                 new_database
                 == db.session.query(models.Database).filter_by(id=new_database.id).one()
