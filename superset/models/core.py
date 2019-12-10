@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+# pylint: disable=line-too-long,unused-argument,ungrouped-imports
 """A collection of ORM sqlalchemy models for Superset"""
 import json
 import logging
@@ -66,8 +66,9 @@ from superset.utils import cache as cache_util, core as utils
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
-
+    from superset.connectors.base.models import (  # pylint: disable=unused-import
+        BaseDatasource,
+    )
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -76,6 +77,7 @@ log_query = config["QUERY_LOGGER"]
 metadata = Model.metadata  # pylint: disable=no-member
 
 PASSWORD_MASK = "X" * 10
+DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
 
 def set_related_perm(mapper, connection, target):
@@ -93,8 +95,8 @@ def copy_dashboard(mapper, connection, target):
     if dashboard_id is None:
         return
 
-    Session = sessionmaker(autoflush=False)
-    session = Session(bind=connection)
+    session_class = sessionmaker(autoflush=False)
+    session = session_class(bind=connection)
     new_user = session.query(User).filter_by(id=target.id).first()
 
     # copy template dashboard to user
@@ -126,16 +128,16 @@ class Url(Model, AuditMixinNullable):
     """Used for the short url feature"""
 
     __tablename__ = "url"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     url = Column(Text)
 
 
-class KeyValue(Model):
+class KeyValue(Model):  # pylint: disable=too-few-public-methods
 
     """Used for any type of key-value store"""
 
     __tablename__ = "keyvalue"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     value = Column(Text, nullable=False)
 
 
@@ -144,7 +146,7 @@ class CssTemplate(Model, AuditMixinNullable):
     """CSS templates for dashboards"""
 
     __tablename__ = "css_templates"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     template_name = Column(String(250))
     css = Column(Text, default="")
 
@@ -158,12 +160,14 @@ slice_user = Table(
 )
 
 
-class Slice(Model, AuditMixinNullable, ImportMixin):
+class Slice(
+    Model, AuditMixinNullable, ImportMixin
+):  # pylint: disable=too-many-public-methods
 
     """A slice is essentially a report or a view on data"""
 
     __tablename__ = "slices"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     slice_name = Column(String(250))
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))
@@ -175,6 +179,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
     owners = relationship(security_manager.user_model, secondary=slice_user)
+    token = ""
 
     export_fields = [
         "slice_name",
@@ -208,6 +213,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             cache_timeout=self.cache_timeout,
         )
 
+    # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
     @utils.memoized
     def get_datasource(self) -> Optional["BaseDatasource"]:
@@ -230,6 +236,8 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         datasource = self.datasource
         return datasource.url if datasource else None
 
+    # pylint: enable=using-constant-test
+
     @property  # type: ignore
     @utils.memoized
     def viz(self) -> BaseViz:
@@ -249,7 +257,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         try:
             d = self.viz.data
             self.token = d.get("token")  # type: ignore
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
             d["error"] = str(e)
         return {
@@ -275,7 +283,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         form_data: Dict[str, Any] = {}
         try:
             form_data = json.loads(self.params)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             logging.error("Malformed json in slice's params")
             logging.exception(e)
         form_data.update(
@@ -322,9 +330,8 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def slice_link(self) -> Markup:
-        url = self.slice_url
         name = escape(self.chart)
-        return Markup(f'<a href="{url}">{name}</a>')
+        return Markup(f'<a href="{self.url}">{name}</a>')
 
     def get_viz(self, force: bool = False) -> BaseViz:
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
@@ -392,7 +399,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             session.flush()
             return slc_to_override.id
         session.add(slc_to_import)
-        logging.info("Final slice: {}".format(slc_to_import.to_json()))
+        logging.info("Final slice: %s", str(slc_to_import.to_json()))
         session.flush()
         return slc_to_import.id
 
@@ -423,12 +430,14 @@ dashboard_user = Table(
 )
 
 
-class Dashboard(Model, AuditMixinNullable, ImportMixin):
+class Dashboard(  # pylint: disable=too-many-instance-attributes
+    Model, AuditMixinNullable, ImportMixin
+):
 
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     dashboard_title = Column(String(500))
     position_json = Column(utils.MediumText())
     description = Column(Text)
@@ -470,7 +479,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                         return "/superset/dashboard/{}/?preselect_filters={}".format(
                             self.slug or self.id, filters
                         )
-                except Exception:
+                except Exception:  # pylint: disable=broad-except
                     pass
         return f"/superset/dashboard/{self.slug or self.id}/"
 
@@ -485,8 +494,8 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     @property
     def sqla_metadata(self) -> None:
         # pylint: disable=no-member
-        metadata = MetaData(bind=self.get_sqla_engine())
-        metadata.reflect()
+        meta = MetaData(bind=self.get_sqla_engine())
+        meta.reflect()
 
     def dashboard_link(self) -> Markup:
         title = escape(self.dashboard_title or "<empty>")
@@ -523,7 +532,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         return {}
 
     @classmethod
-    def import_obj(
+    def import_obj(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         cls, dashboard_to_import: "Dashboard", import_time: Optional[int] = None
     ) -> int:
         """Imports the dashboard from the object to the database.
@@ -579,10 +588,10 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             dashboard.position_json = json.dumps(position_data)
 
         logging.info(
-            "Started import of the dashboard: {}".format(dashboard_to_import.to_json())
+            "Started import of the dashboard: %s", dashboard_to_import.to_json()
         )
         session = db.session
-        logging.info("Dashboard has {} slices".format(len(dashboard_to_import.slices)))
+        logging.info("Dashboard has %d slices", len(dashboard_to_import.slices))
         # copy slices object as Slice.import_slice will mutate the slice
         # and will remove the existing dashboard - slice association
         slices = copy(dashboard_to_import.slices)
@@ -599,9 +608,9 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         }
         for slc in slices:
             logging.info(
-                "Importing slice {} from the dashboard: {}".format(
-                    slc.to_json(), dashboard_to_import.dashboard_title
-                )
+                "Importing slice %s from the dashboard: %s",
+                slc.to_json(),
+                dashboard_to_import.dashboard_title,
             )
             remote_slc = remote_id_slice_map.get(slc.id)
             new_slc_id = Slice.import_obj(slc, remote_slc, import_time=import_time)
@@ -677,14 +686,16 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             existing_dashboard.slices = new_slices
             session.flush()
             return existing_dashboard.id
-        else:
-            dashboard_to_import.slices = new_slices
-            session.add(dashboard_to_import)
-            session.flush()
-            return dashboard_to_import.id  # type: ignore
+
+        dashboard_to_import.slices = new_slices
+        session.add(dashboard_to_import)
+        session.flush()
+        return dashboard_to_import.id  # type: ignore
 
     @classmethod
-    def export_dashboards(cls, dashboard_ids: List) -> str:
+    def export_dashboards(  # pylint: disable=too-many-locals
+        cls, dashboard_ids: List
+    ) -> str:
         copied_dashboards = []
         datasource_ids = set()
         for dashboard_id in dashboard_ids:
@@ -741,7 +752,9 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         )
 
 
-class Database(Model, AuditMixinNullable, ImportMixin):
+class Database(
+    Model, AuditMixinNullable, ImportMixin
+):  # pylint: disable=too-many-public-methods
 
     """An ORM object that stores Database related information"""
 
@@ -749,7 +762,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     type = "table"
     __table_args__ = (UniqueConstraint("database_name"),)
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
     database_name = Column(String(250), unique=True, nullable=False)
@@ -763,7 +776,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
-    allow_multi_schema_metadata_fetch = Column(Boolean, default=False)
+    allow_multi_schema_metadata_fetch = Column(  # pylint: disable=invalid-name
+        Boolean, default=False
+    )
     extra = Column(
         Text,
         default=textwrap.dedent(
@@ -836,8 +851,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def backend(self) -> str:
-        url = make_url(self.sqlalchemy_uri_decrypted)
-        return url.get_backend_name()
+        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
+        return sqlalchemy_url.get_backend_name()
 
     @property
     def metadata_cache_timeout(self) -> Dict[str, Any]:
@@ -864,12 +879,14 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_extra().get("default_schemas", [])
 
     @classmethod
-    def get_password_masked_url_from_uri(cls, uri: str):
-        url = make_url(uri)
-        return cls.get_password_masked_url(url)
+    def get_password_masked_url_from_uri(cls, uri: str):  # pylint: disable=invalid-name
+        sqlalchemy_url = make_url(uri)
+        return cls.get_password_masked_url(sqlalchemy_url)
 
     @classmethod
-    def get_password_masked_url(cls, url: URL) -> URL:
+    def get_password_masked_url(
+        cls, url: URL  # pylint: disable=redefined-outer-name
+    ) -> URL:
         url_copy = deepcopy(url)
         if url_copy.password is not None:
             url_copy.password = PASSWORD_MASK
@@ -884,7 +901,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         self.sqlalchemy_uri = str(conn)  # hides the password
 
     def get_effective_user(
-        self, url: URL, user_name: Optional[str] = None
+        self,
+        url: URL,  # pylint: disable=redefined-outer-name
+        user_name: Optional[str] = None,
     ) -> Optional[str]:
         """
         Get the effective user, especially during impersonation.
@@ -914,18 +933,18 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         source: Optional[int] = None,
     ) -> Engine:
         extra = self.get_extra()
-        url = make_url(self.sqlalchemy_uri_decrypted)
-        url = self.db_engine_spec.adjust_database_uri(url, schema)
-        effective_username = self.get_effective_user(url, user_name)
+        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
+        sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
+        effective_username = self.get_effective_user(sqlalchemy_url, user_name)
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
         # configuration parameter instead.
         self.db_engine_spec.modify_url_for_impersonation(
-            url, self.impersonate_user, effective_username
+            sqlalchemy_url, self.impersonate_user, effective_username
         )
 
-        masked_url = self.get_password_masked_url(url)
-        logging.info("Database.get_sqla_engine(). Masked URL: {0}".format(masked_url))
+        masked_url = self.get_password_masked_url(sqlalchemy_url)
+        logging.info("Database.get_sqla_engine(). Masked URL: %s", str(masked_url))
 
         params = extra.get("engine_params", {})
         if nullpool:
@@ -935,7 +954,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         configuration: Dict[str, Any] = {}
         configuration.update(
             self.db_engine_spec.get_configuration_for_impersonation(
-                str(url), self.impersonate_user, effective_username
+                str(sqlalchemy_url), self.impersonate_user, effective_username
             )
         )
         if configuration:
@@ -945,12 +964,11 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
         params.update(self.get_encrypted_extra())
 
-        DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
         if DB_CONNECTION_MUTATOR:
-            url, params = DB_CONNECTION_MUTATOR(
-                url, params, effective_username, security_manager, source
+            sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
+                sqlalchemy_url, params, effective_username, security_manager, source
             )
-        return create_engine(url, **params)
+        return create_engine(sqlalchemy_url, **params)
 
     def get_reserved_words(self) -> Set[str]:
         return self.get_dialect().preparer.reserved_words
@@ -958,7 +976,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def get_quoter(self):
         return self.get_dialect().identifier_preparer.quote
 
-    def get_df(
+    def get_df(  # pylint: disable=too-many-locals
         self, sql: str, schema: str, mutator: Optional[Callable] = None
     ) -> pd.DataFrame:
         sqls = [str(s).strip(" ;") for s in sqlparse.parse(sql)]
@@ -982,9 +1000,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
-                for sql in sqls[:-1]:
-                    _log_query(sql)
-                    self.db_engine_spec.execute(cursor, sql)
+                for sql_ in sqls[:-1]:
+                    _log_query(sql_)
+                    self.db_engine_spec.execute(cursor, sql_)
                     cursor.fetchall()
 
                 _log_query(sqls[-1])
@@ -1012,12 +1030,14 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
         sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
 
-        if engine.dialect.identifier_preparer._double_percents:
+        if (
+            engine.dialect.identifier_preparer._double_percents  # pylint: disable=protected-access
+        ):
             sql = sql.replace("%%", "%")
 
         return sql
 
-    def select_star(
+    def select_star(  # pylint: disable=too-many-arguments
         self,
         table_name: str,
         sql: Optional[str] = None,
@@ -1109,7 +1129,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             return [
                 utils.DatasourceName(table=table, schema=schema) for table in tables
             ]
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
 
     @cache_util.memoized_func(
@@ -1139,7 +1159,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 database=self, inspector=self.inspector, schema=schema
             )
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
 
     @cache_util.memoized_func(
@@ -1232,7 +1252,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     ) -> List[Dict[str, Any]]:
         return self.inspector.get_foreign_keys(table_name, schema)
 
-    def get_schema_access_for_csv_upload(self) -> List[str]:
+    def get_schema_access_for_csv_upload(  # pylint: disable=invalid-name
+        self
+    ) -> List[str]:
         return self.get_extra().get("schemas_allowed_for_csv_upload", [])
 
     @property
@@ -1269,13 +1291,13 @@ sqla.event.listen(Database, "after_insert", security_manager.set_perm)
 sqla.event.listen(Database, "after_update", security_manager.set_perm)
 
 
-class Log(Model):
+class Log(Model):  # pylint: disable=too-few-public-methods
 
     """ORM object used to log Superset actions to the database"""
 
     __tablename__ = "logs"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     action = Column(String(512))
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     dashboard_id = Column(Integer)
@@ -1289,10 +1311,10 @@ class Log(Model):
     referrer = Column(String(1024))
 
 
-class FavStar(Model):
+class FavStar(Model):  # pylint: disable=too-few-public-methods
     __tablename__ = "favstar"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     class_name = Column(String(50))
     obj_id = Column(Integer)
@@ -1303,7 +1325,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     """ORM model for the access requests for datasources and dbs."""
 
     __tablename__ = "access_request"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
 
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))
@@ -1337,33 +1359,33 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         action_list = ""
         perm = self.datasource.perm  # pylint: disable=no-member
         pv = security_manager.find_permission_view_menu("datasource_access", perm)
-        for r in pv.role:
-            if r.name in self.ROLES_BLACKLIST:
+        for role in pv.role:
+            if role.name in self.ROLES_BLACKLIST:
                 continue
             # pylint: disable=no-member
-            url = (
+            href = (
                 f"/superset/approve?datasource_type={self.datasource_type}&"
                 f"datasource_id={self.datasource_id}&"
-                f"created_by={self.created_by.username}&role_to_grant={r.name}"
+                f"created_by={self.created_by.username}&role_to_grant={role.name}"
             )
-            href = '<a href="{}">Grant {} Role</a>'.format(url, r.name)
-            action_list = action_list + "<li>" + href + "</li>"
+            link = '<a href="{}">Grant {} Role</a>'.format(href, role.name)
+            action_list = action_list + "<li>" + link + "</li>"
         return "<ul>" + action_list + "</ul>"
 
     @property
     def user_roles(self) -> str:
         action_list = ""
-        for r in self.created_by.roles:  # pylint: disable=no-member
+        for role in self.created_by.roles:  # pylint: disable=no-member
             # pylint: disable=no-member
-            url = (
+            href = (
                 f"/superset/approve?datasource_type={self.datasource_type}&"
                 f"datasource_id={self.datasource_id}&"
-                f"created_by={self.created_by.username}&role_to_extend={r.name}"
+                f"created_by={self.created_by.username}&role_to_extend={role.name}"
             )
-            href = '<a href="{}">Extend {} Role</a>'.format(url, r.name)
-            if r.name in self.ROLES_BLACKLIST:
-                href = "{} Role".format(r.name)
-            action_list = action_list + "<li>" + href + "</li>"
+            link = '<a href="{}">Extend {} Role</a>'.format(href, role.name)
+            if role.name in self.ROLES_BLACKLIST:
+                link = "{} Role".format(role.name)
+            action_list = action_list + "<li>" + link + "</li>"
         return "<ul>" + action_list + "</ul>"
 
 
