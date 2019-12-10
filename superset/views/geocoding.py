@@ -134,7 +134,6 @@ class Geocoder(BaseSupersetView):
         lat_column = request_data.get("latitudeColumnName", "lat")
         lon_column = request_data.get("longitudeColumnName", "lon")
         save_on_stop_geocoding = request.json.get("saveOnErrorOrInterrupt", True)
-        data = [()]
 
         try:
             table_dto = request_data.get("datasource", models.TableDto())
@@ -159,7 +158,7 @@ class Geocoder(BaseSupersetView):
                 return json_success(json.dumps("geocoding interrupted"))
         if data[0]:
             if not save_on_stop_geocoding:
-                return json_error_response(e.args[0])
+                return json_error_response(json.dumps(data[0]))
         try:
             data = data[1]
             if not data[0]:
