@@ -90,6 +90,11 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             # invalid error, and restructure that error as an annotation we can
             # return up.
 
+            # If the first element in the DatabaseError is not a dictionary, but
+            # is a string, return that message.
+            if db_error.args and isinstance(db_error.args[0], str):
+                raise PrestoSQLValidationError(db_error.args[0]) from db_error
+
             # Confirm the first element in the DatabaseError constructor is a
             # dictionary with error information. This is currently provided by
             # the pyhive client, but may break if their interface changes when
@@ -107,12 +112,16 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                     "The pyhive presto client did not report an error message"
                 ) from db_error
             if "errorLocation" not in error_args:
-                raise PrestoSQLValidationError(
-                    "The pyhive presto client did not report an error location"
-                ) from db_error
+                # Pylint is confused about the type of error_args, despite the hints
+                # and checks above.
+                # pylint: disable=invalid-sequence-index
+                message = error_args["message"] + "\n(Error location unknown)"
+                # If we have a message but no error location, return the message and
+                # set the location as the beginning.
+                return SQLValidationAnnotation(
+                    message=message, line_number=1, start_column=1, end_column=1
+                )
 
-            # Pylint is confused about the type of error_args, despite the hints
-            # and checks above.
             # pylint: disable=invalid-sequence-index
             message = error_args["message"]
             err_loc = error_args["errorLocation"]
