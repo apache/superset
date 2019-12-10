@@ -21,6 +21,8 @@ import time
 import requests
 from requests import HTTPError, RequestException, Timeout
 
+from superset.exceptions import NoAPIKeySuppliedException
+
 
 class GeocoderUtil:  # pylint: disable=too-few-public-methods
     """
@@ -52,10 +54,15 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         :param data: the addresses to be geocoded as a list of tuples
         :return: a dictionary containing the addresses and their long,lat values
         """
-        geocoded_data = [()]
-        data_length = len(data)
-        counter = 0
+        
+        if not self.conf["MAPTILER_API_KEY"]:
+            raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
+        geocoded_data: list = []
+        data_length: int = len(data)
+        counter: int = 0
         self.progress["success_counter"] = 0
+        self.progress["doubt_counter"] = 0
+        self.progress["failed_counter"] = 0
         self.progress["is_in_progress"] = True
         self.progress["progress"] = 0
 
@@ -66,12 +73,24 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                     self.progress["progress"] = 0
                     self.progress["is_in_progress"] = False
                     return geocoded_data
+                datum = list(map(str, datum))
                 address = " ".join(datum)
                 geocoded = self._get_coordinates_from_address(address)
                 if geocoded is not None:
-                    geocoded_data.append(datum + tuple(geocoded))
+                    center_coordinates = geocoded[0]
+                    relevance = geocoded[1]
+                    if relevance > 0.8:
+                        self.progress["success_counter"] += 1
+                    elif relevance > 0.49:
+                        self.progress["doubt_counter"] += 1
+                    else:
+                        self.progress["failed_counter"] += 1
+                    datum.append(str(center_coordinates[0]))
+                    datum.append(str(center_coordinates[1]))
+                    geocoded_data.append(datum)
+                else:
+                    self.progress["failed_counter"] += 1
 
-                    self.progress["success_counter"] += 1
                 counter += 1
                 self.progress["progress"] = counter / data_length
             except ConnectionError as e:
@@ -95,9 +114,12 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
 
         self.progress["progress"] = 100
         self.progress["is_in_progress"] = False
-        # TODO also return amount of geocoded values or store in
-        #  class-variable and errors
-        return geocoded_data
+        success_dict = {
+            "success": self.progress["success_counter"],
+            "doubt": self.progress["doubt_counter"],
+            "failed": self.progress["failed_counter"],
+        }
+        return [geocoded_data, success_dict]
 
     def _get_coordinates_from_address(self, address: str):
         base_url = "https://api.maptiler.com/geocoding/"
@@ -105,16 +127,14 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
             base_url + address + ".json?key=" + self.conf["MAPTILER_API_KEY"]
         )
         decoded_data = json.loads(response.content.decode())
-        # TODO make use of relevance
         features = decoded_data["features"]
         if features:
-            coordinates = features[0]
-            # TODO check if it is possible, that there is no center attribute
-            #  -> get API doc from mr. Keller
-            return coordinates["center"] or None
+            feature = features[0]
+            center = feature["center"]
+            relevance = feature["relevance"]
+            return [center, relevance] or None
         return None
 
-    # TODO remove it in mocking class
     def _geocode_testing(self) -> dict:
         counter = 0
         datalen = 10

@@ -4967,4 +4967,3 @@ msgstr ""
 #: superset/views/sql_lab.py:86
 msgid "Saved Queries"
 msgstr ""
-

@@ -19,7 +19,19 @@
  .progressContainer {
     margin: 15px;
   }
-  
+
 .spacer {
     padding: 10px;
+}
+
+.success {
+  color: #2a7b38;
+}
+
+.doubt {
+  color: #ca9601;
+}
+
+.failed {
+  color: #c60201;
 }

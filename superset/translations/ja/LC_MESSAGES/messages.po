@@ -3636,4 +3636,3 @@ msgstr "変更日"
 #: superset/views/sql_lab.py:79
 msgid "Saved Queries"
 msgstr "保存されたクエリ"
-

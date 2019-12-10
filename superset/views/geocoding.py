@@ -19,7 +19,7 @@
 import logging
 
 import simplejson as json
-from flask import request, Response
+from flask import flash, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
@@ -123,35 +123,29 @@ class Geocoder(BaseSupersetView):
     def geocode(self) -> Response:
         """
         Geocode addresses in given columns from given table
-        :return: geocoded data as list of tuples or an error message if somethings went wrong
+        :return: geocoded data as list of tuples with success, doubt and failed counters as dict bundled in a list
+                 or an error message if somethings went wrong
         """
-        table_name = request.json.get("datasource", "")
-        columns = [
-            request.json.get("streetColumn"),
-            request.json.get("cityColumn"),
-            request.json.get("countryColumn"),
-        ]
-        lat_column = request.json.get("latitudeColumnName", "lat")
-        lon_column = request.json.get("longitudeColumnName", "lon")
-        override_if_exist = request.json.get("overwriteIfExists", False)
+        request_data = request.json
+        table_name = request_data.get("datasource", "")
+        columns = []
+
+        if request.json.get("streetColumn"):
+            columns.append(request.json.get("streetColumn"))
+        if request.json.get("cityColumn"):
+            columns.append(request.json.get("cityColumn"))
+        if request.json.get("countryColumn"):
+            columns.append(request.json.get("countryColumn"))
+
+        lat_column = request_data.get("latitudeColumnName", "lat")
+        lon_column = request_data.get("longitudeColumnName", "lon")
         save_on_stop_geocoding = request.json.get("saveOnErrorOrInterrupt", True)
         data = [()]
 
         try:
-            if not override_if_exist and self._does_column_name_exist(
-                table_name.get("fullName"), lat_column
-            ):
-                raise ValueError(
-                    "Column name {0} for latitude is already in use".format(lat_column)
-                )
-            if not override_if_exist and self._does_column_name_exist(
-                table_name.get("fullName"), lon_column
-            ):
-                raise ValueError(
-                    "Column name {0} for longitude is already in use".format(lon_column)
-                )
-
-            data = self._load_data_from_columns(table_name, columns)
+            table_dto = request_data.get("datasource", models.TableDto())
+            self._check_and_create_columns(request_data)
+            data = self._load_data_from_columns(table_dto.get("id", ""), columns)
         except ValueError as e:
             self.logger.exception(f"ValueError when querying for lat/lon columns {e}")
             self.stats_logger.incr("geocoding_failed")
@@ -174,11 +168,9 @@ class Geocoder(BaseSupersetView):
             if not save_on_stop_geocoding:
                 self.stats_logger.incr("geocoding_failed")
                 return json_error_response(e.args[0])
-
         try:
-            self._add_lat_lon_columns(table_name, lat_column, lon_column)
             self._insert_geocoded_data(
-                table_name, lat_column, lon_column, columns, data
+                table_name.get("fullName"), lat_column, lon_column, columns, data[0]
             )
         except (SqlAddColumnException, SqlUpdateException) as e:
             self.logger.exception(
@@ -192,21 +184,70 @@ class Geocoder(BaseSupersetView):
             )
             self.stats_logger.incr("geocoding_failed")
             return json_error_response(e.args[0], status=500)
+
+        db.session.commit()
+        progress = self.geocoder_util.progress
+        message = (
+            f"Geocoded values, success: {progress['success_counter']}, doubt: {progress['doubt_counter']}, "
+            f"fail: {progress['failed_counter']}"
+        )
+        flash(message, "success")
         self.stats_logger.incr("succesful_geocoding")
         return json_success(json.dumps(data))
 
-    def _does_column_name_exist(self, table_name: str, column_name: str):
+    def _check_and_create_columns(self, request_data):
+        lat_column = request_data.get("latitudeColumnName", "lat")
+        lon_column = request_data.get("longitudeColumnName", "lon")
+        override_if_exist = request.json.get("overwriteIfExists", False)
+        table_dto = request_data.get("datasource", models.TableDto())
+        table_name = request_data.get("datasource", "")
+        table_id = table_dto.get("id", "")
+        lat_exists = self._does_column_name_exist(table_id, lat_column)
+        lon_exists = self._does_column_name_exist(table_id, lon_column)
+        if override_if_exist:
+            if lat_exists:
+                if lon_exists:
+                    pass
+                else:
+                    self._add_lat_lon_columns(
+                        table_name.get("fullName"), lon_column=lon_column
+                    )
+            else:
+                if lon_exists:
+                    self._add_lat_lon_columns(
+                        table_name.get("fullName"), lat_column=lat_column
+                    )
+                else:
+                    self._add_lat_lon_columns(
+                        table_name.get("fullName"), lat_column, lon_column
+                    )
+
+        else:
+            if self._does_column_name_exist(table_id, lat_column):
+                raise ValueError(
+                    "Column name {0} for latitude is already in use".format(lat_column)
+                )
+            if self._does_column_name_exist(table_id, lon_column):
+                raise ValueError(
+                    "Column name {0} for longitude is already in use".format(lon_column)
+                )
+            self._add_lat_lon_columns(
+                table_name.get("fullName"), lat_column, lon_column
+            )
+
+    def _does_column_name_exist(self, id: int, column_name: str):
         """
         Check if column name already exists in table
         :param table_name: The table name of table to check
         :param column_name: The name of column to check
         :return true if column name exists in table
         """
-        columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
-        column_names = [column["name"] for column in columns]
-        return column_name in column_names
+        table = self._get_table(id)
+        if table and table.columns:
+            column_names = [column.column_name.lower() for column in table.columns]
+        return column_name.lower() in column_names
 
-    def _load_data_from_columns(self, table_name: str, columns: list):
+    def _load_data_from_columns(self, id: int, columns: list):
         """
         Get data from columns form table
         :param table_name: The table name from table from which select
@@ -215,17 +256,31 @@ class Geocoder(BaseSupersetView):
         :raise SqlSelectException: When SELECT from given columns went wrong
         """
         try:
-            # TODO SQL Injection Check
-            selected_columns = ", ".join(filter(None, columns))
-            sql = "SELECT " + selected_columns + "FROM %s" % table_name
-            result = db.engine.connect().execute(sql)
+            table = self._get_table(id)
+            column_list = self._create_column_list(columns)
+            sql = "SELECT " + column_list + ' FROM "%s"' % table.table_name
+            database = (
+                db.session.query(models.Database)
+                .filter_by(id=table.database_id)
+                .first()
+            )
+            result = database.get_sqla_engine().connect().execute(sql)
             return [row for row in result]
         except Exception as e:
             raise SqlSelectException(
                 "An error occured while getting address data from columns "
-                + selected_columns,
-                e,
+                + column_list, e
             )
+
+    def _get_table(self, id: int):
+        return db.session.query(SqlaTable).filter_by(id=id).first()
+
+    def _create_column_list(self, columns):
+        column_list = []
+        for column in columns:
+            if column:
+                column_list.append('"' + column + '"')
+        return ", ".join(filter(None, column_list))
 
     def _geocode(self, data: list, dev=False):
         """
@@ -234,13 +289,14 @@ class Geocoder(BaseSupersetView):
         :param dev: Whether to Mock the geocoding process for testing purposes
         :return: a list of tuples containing the data and the corresponding long, lat values
         """
-        # TODO replace mock-method with mock-geocoder
         if dev:
             return self.geocoder_util.geocode("", data)
         else:
             return self.geocoder_util.geocode("MapTiler", data)
 
-    def _add_lat_lon_columns(self, table_name: str, lat_column: str, lon_column: str):
+    def _add_lat_lon_columns(
+        self, table_name: str, lat_column: str = None, lon_column: str = None
+    ):
         """
         Add new longitude and latitude columns to table
         :param table_name: The table name of table to insert columns
@@ -251,8 +307,10 @@ class Geocoder(BaseSupersetView):
         connection = db.engine.connect()
         transaction = connection.begin()
         try:
-            self._add_column(connection, table_name, lat_column, Float())
-            self._add_column(connection, table_name, lon_column, Float())
+            if lat_column:
+                self._add_column(connection, table_name, lat_column, Float())
+            if lon_column:
+                self._add_column(connection, table_name, lon_column, Float())
             transaction.commit()
         except Exception as e:
             transaction.rollback()
@@ -287,7 +345,7 @@ class Geocoder(BaseSupersetView):
         lat_column: str,
         lon_column: str,
         geo_columns: list,
-        data: list,
+        data: tuple,
     ):
         """
         Insert geocoded coordinates in table
@@ -312,7 +370,7 @@ class Geocoder(BaseSupersetView):
                     lon_column,
                     row[number_of_columns + 1],
                 )
-                where = "WHERE " + where_clause % (row[:number_of_columns])
+                where = "WHERE " + where_clause % (tuple(row[:number_of_columns]))
                 connection.execute(text(update + where))
             transaction.commit()
         except Exception as e:

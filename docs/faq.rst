@@ -314,4 +314,3 @@ and should be able to things that are typical in basic SQL:
 - apply filters (==, !=, >, <, >=, <=, IN, ...)
 - apply HAVING-type filters
 - be schema-aware, expose columns and types
-

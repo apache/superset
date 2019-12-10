@@ -6461,4 +6461,3 @@ msgstr "Query salvate"
 
 #~ msgid "Slice"
 #~ msgstr "Slice"
-
