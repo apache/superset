@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import time
 
 from flask import flash
@@ -28,10 +29,10 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
     The GeoCoder object holds the logic for geocoding given data
     """
 
+    logger = logging.getLogger(__name__)
     interruptflag = False
     conf: dict = {}
     progress: dict = {}
-    exception_exit: bool = False
 
     def __init__(self, config):
         self.conf = config
@@ -55,7 +56,6 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         """
         if not self.conf["MAPTILER_API_KEY"]:
             raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
-        errors: list = []
         geocoded_data: list = []
         counter: int = 0
         exceptions: int = 0
@@ -84,26 +84,25 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                 exceptions = 0
             except ConnectionError as e:
                 exceptions += 1
-                errors.append("A network error occurred: {0}".format(e.args[0]))
+               self.logger.exception(
+                    f"Geocoding ConnectionError for address: {address} "
+                    f"exception-message: {e}"
+                )
             except HTTPError as e:
                 exceptions += 1
-                errors.append(
-                    "The request for {0} returned a wrong HTTP answer: {1}".format(
-                        address, e.args[0]
-                    )
+                self.logger.exception(
+                    f"Geocoding HTTPError for address: {address} exception-message: {e}"
                 )
             except Timeout as e:
                 exceptions += 1
-                errors.append(
-                    "The request for {0} ran into a time out: {1}".format(
-                        address, e.args[0]
-                    )
+                self.logger.exception(
+                    f"Geocoding Timeout for address: {address} exception-message: {e}"
                 )
             except RequestException as e:
                 exceptions += 1
-                errors.append(
-                    "While trying to geocode address {0}, "
-                    "an error occurred: {1}".format(address, e.args[0])
+                self.logger.exception(
+                    f"Geocoding RequestException for address: {address} "
+                    f"exception-message: {e}"
                 )
             if counter == 0 and exceptions == 1:
                 message = f"Exception at the start of the geocoding process"

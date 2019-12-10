@@ -16,6 +16,8 @@
 # under the License.
 # pylint: disable=C,R,W
 
+import logging
+
 import simplejson as json
 from flask import flash, request, Response
 from flask_appbuilder import expose
@@ -42,6 +44,8 @@ class Geocoder(BaseSupersetView):
 
     # Variables for geocoding
     geocoder_util = GeocoderUtil(conf)
+    stats_logger = conf["STATS_LOGGER"]
+    logger = logging.getLogger(__name__)
 
     @has_access
     @expose("/geocoding")
@@ -107,7 +111,9 @@ class Geocoder(BaseSupersetView):
                 column_names = [column.column_name for column in table.columns]
             else:
                 return json_error_response(error_message, status=400)
-        except:
+        except Exception as e:
+            self.logger.exception(f"Failed getting columns {e}")
+            self.stats_logger.incr(error_message)
             return json_error_response(error_message, status=400)
         return json.dumps(column_names)
 
@@ -139,19 +145,28 @@ class Geocoder(BaseSupersetView):
             table_dto = request_data.get("datasource", models.TableDto())
             self._check_and_create_columns(request_data)
             data = self._load_data_from_columns(table_dto.get("id", ""), columns)
-
         except ValueError as e:
+            self.logger.exception(f"ValueError when querying for lat/lon columns {e}")
+            self.stats_logger.incr("geocoding_failed")
             return json_error_response(e.args[0], status=400)
         except SqlSelectException as e:
+            self.logger.exception(
+                f"SqlSelectException when preparing for geocoding {e.orig}"
+            )
+            self.stats_logger.incr("geocoding_failed")
             return json_error_response(e.args[0], status=500)
         except Exception as e:
+            self.logger.exception(f"Exception when preparing for geocoding {e}")
+            self.stats_logger.incr("geocoding_failed")
             return json_error_response(e.args[0], status=500)
 
         try:
             data = self._geocode(data)
         # TODO There is no data returned here
         except Exception as e:
+            self.logger.exception(f"Exception when geocoding data {e}")
             if not save_on_stop_geocoding:
+                self.stats_logger.incr("geocoding_failed")
                 return json_error_response(e.args[0])
         if self.geocoder_util.interruptflag:
             if not save_on_stop_geocoding:
@@ -167,8 +182,16 @@ class Geocoder(BaseSupersetView):
                 table_name.get("fullName"), lat_column, lon_column, columns, data[0]
             )
         except (SqlAddColumnException, SqlUpdateException) as e:
+            self.logger.exception(
+                f"Failed to add columns/ data after geocoding {e.orig}"
+            )
+            self.stats_logger.incr("geocoding_failed")
             return json_error_response(e.args[0], status=500)
         except Exception as e:
+            self.logger.exception(
+                f"Exception when adding columns/ data after geocoding {e}"
+            )
+            self.stats_logger.incr("geocoding_failed")
             return json_error_response(e.args[0], status=500)
 
         db.session.commit()
@@ -178,6 +201,7 @@ class Geocoder(BaseSupersetView):
             f"fail: {progress['failed_counter']}"
         )
         flash(message, "success")
+        self.stats_logger.incr("succesful_geocoding")
         return json_success(json.dumps(data))
 
     def _check_and_create_columns(self, request_data):
@@ -254,7 +278,8 @@ class Geocoder(BaseSupersetView):
         except Exception as e:
             raise SqlSelectException(
                 "An error occured while getting address data from columns "
-                + column_list
+                + column_list,
+                e,
             )
 
     def _get_table(self, id: int):
@@ -300,7 +325,8 @@ class Geocoder(BaseSupersetView):
         except Exception as e:
             transaction.rollback()
             raise SqlAddColumnException(
-                "An error occured while creating new columns for latitude and longitude"
+                "An error occured while creating new columns for latitude and longitude",
+                e,
             )
 
     def _add_column(
@@ -357,10 +383,10 @@ class Geocoder(BaseSupersetView):
                 where = "WHERE " + where_clause % (tuple(row[:number_of_columns]))
                 connection.execute(text(update + where))
             transaction.commit()
-        except Exception:
+        except Exception as e:
             transaction.rollback()
             raise SqlUpdateException(
-                "An error occured while inserting geocoded addresses"
+                "An error occured while inserting geocoded addresses", e
             )
 
     @api
