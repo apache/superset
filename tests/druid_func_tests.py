@@ -29,6 +29,7 @@ try:
         MapLookupExtraction,
         RegexExtraction,
         RegisteredLookupExtraction,
+        TimeFormatExtraction,
     )
     import pydruid.utils.postaggregator as postaggs
 except ImportError:
@@ -139,6 +140,33 @@ class DruidFuncTestCase(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
+    def test_get_filters_extraction_fn_time_format(self):
+        filters = [{"col": "dayOfMonth", "val": ["1", "20"], "op": "in"}]
+        dimension_spec = {
+            "type": "extraction",
+            "dimension": "__time",
+            "outputName": "dayOfMonth",
+            "extractionFn": {
+                "type": "timeFormat",
+                "format": "d",
+                "timeZone": "Asia/Kolkata",
+                "locale": "en",
+            },
+        }
+        spec_json = json.dumps(dimension_spec)
+        col = DruidColumn(column_name="dayOfMonth", dimension_spec_json=spec_json)
+        column_dict = {"dayOfMonth": col}
+        f = DruidDatasource.get_filters(filters, [], column_dict)
+        assert isinstance(f.extraction_function, TimeFormatExtraction)
+        dim_ext_fn = dimension_spec["extractionFn"]
+        self.assertEqual(dim_ext_fn["type"], f.extraction_function.extraction_type)
+        self.assertEqual(dim_ext_fn["format"], f.extraction_function._format)
+        self.assertEqual(dim_ext_fn["timeZone"], f.extraction_function._time_zone)
+        self.assertEqual(dim_ext_fn["locale"], f.extraction_function._locale)
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_ignores_invalid_filter_objects(self):
         filtr = {"col": "col1", "op": "=="}
         filters = [filtr]
@@ -209,7 +237,7 @@ class DruidFuncTestCase(SupersetTestCase):
         self.assertFalse(res.filter["filter"]["lowerStrict"])
         self.assertEqual("A", res.filter["filter"]["dimension"])
         self.assertEqual("h", res.filter["filter"]["lower"])
-        self.assertFalse(res.filter["filter"]["alphaNumeric"])
+        self.assertEqual("lexicographic", res.filter["filter"]["ordering"])
         filtr["op"] = ">"
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertTrue(res.filter["filter"]["lowerStrict"])
@@ -220,6 +248,9 @@ class DruidFuncTestCase(SupersetTestCase):
         filtr["op"] = "<"
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertTrue(res.filter["filter"]["upperStrict"])
+        filtr["val"] = 1
+        res = DruidDatasource.get_filters([filtr], ["A"], column_dict)
+        self.assertEqual("numeric", res.filter["filter"]["ordering"])
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"

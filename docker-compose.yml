@@ -17,6 +17,7 @@
 x-superset-build: &superset-build
   context: ./
   dockerfile: Dockerfile
+  target: dev
 x-superset-depends-on: &superset-depends-on
   - postgres
   - redis
@@ -25,6 +26,7 @@ x-superset-volumes: &superset-volumes
   - ./docker/docker-init.sh:/app/docker-init.sh
   - ./docker/pythonpath_dev:/app/pythonpath
   - ./superset:/app/superset
+  - superset_home:/app/superset_home
 
 version: "3.7"
 services:
@@ -78,6 +80,8 @@ services:
     volumes: *superset-volumes
 
 volumes:
+  superset_home:
+    external: false
   postgres:
     external: false
   redis:

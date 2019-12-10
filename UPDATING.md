@@ -23,11 +23,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [8732](https://github.com/apache/incubator-superset/pull/8732): Swagger user interface is now enabled by default. 
+A new permission `show on SwaggerView` is created by `superset init` and given to the `Admin` Role. To disable the UI,
+set `FAB_API_SWAGGER_UI = False` on config.
+
 * [8721](https://github.com/apache/incubator-superset/pull/8721): When using the cache
 warmup Celery task you should now specify the `SUPERSET_WEBSERVER_PROTOCOL` variable
 in your configuration (probably either "http" or "https"). This defaults to "http".
-
-## 0.35.0
 
 * [8512](https://github.com/apache/incubator-superset/pull/8512): `DRUID_IS_ACTIVE` now
 defaults to False. To enable Druid-API-based functionality, override the
@@ -35,6 +37,12 @@ defaults to False. To enable Druid-API-based functionality, override the
 
 * [8450](https://github.com/apache/incubator-superset/pull/8450): The time range picker
 now uses UTC for the tooltips and default placeholder timestamps (sans timezone).
+
+* [8418](https://github.com/apache/incubator-superset/pull/8418): FLASK_APP / Worker App
+have changed. FLASK_APP should be updated to `superset.app:create_app()` and Celery Workers
+should be started with `--app=superset.tasks.celery_app:app`
+
+## 0.35.0
 
 * [8370](https://github.com/apache/incubator-superset/pull/8370): Deprecates
   the `HTTP_HEADERS` variable in favor of `DEFAULT_HTTP_HEADERS` and

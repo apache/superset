@@ -1263,7 +1263,7 @@ export const controls = {
       'The URL, this control is templated, so you can integrate ' +
         '{{ width }} and/or {{ height }} in your URL string.',
     ),
-    default: 'https://www.youtube.com/embed/AdSZJzb-aX8',
+    default: '',
   },
 
   x_axis_label: {
@@ -2135,10 +2135,6 @@ export const controls = {
       datasource: state.datasource,
     }),
     provideFormDataToProps: true,
-  },
-
-  filters: {
-    type: 'FilterPanel',
   },
 
   slice_id: {

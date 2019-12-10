@@ -890,6 +890,12 @@ class PrestoEngineSpec(BaseEngineSpec):
         (['ds'], ('2018-01-01',))
         """
         indexes = database.get_indexes(table_name, schema)
+        if not indexes:
+            raise SupersetTemplateException(
+                f"Error getting partition for {schema}.{table_name}. "
+                "Verify that this table has a partition."
+            )
+
         if len(indexes[0]["column_names"]) < 1:
             raise SupersetTemplateException(
                 "The table should have one partitioned field"

@@ -25,4 +25,12 @@ export default {
       controlSetRows: [['url']],
     },
   ],
+  sectionOverrides: {
+    druidTimeSeries: {
+      controlSetRows: [],
+    },
+    sqlaTimeSeries: {
+      controlSetRows: [],
+    },
+  },
 };

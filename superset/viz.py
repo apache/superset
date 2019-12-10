@@ -47,6 +47,7 @@ from markdown import markdown
 from pandas.tseries.frequencies import to_offset
 
 from superset import app, cache, get_css_manifest_files
+from superset.constants import NULL_STRING
 from superset.exceptions import NullValueException, SpatialException
 from superset.utils import core as utils
 from superset.utils.core import (
@@ -1543,10 +1544,15 @@ class DistributionBarViz(DistributionPieViz):
     def get_data(self, df):
         fd = self.form_data
         metrics = self.metric_labels
+        columns = fd.get("columns") or []
+
+        # pandas will throw away nulls when grouping/pivoting,
+        # so we substitute NULL_STRING for any nulls in the necessary columns
+        filled_cols = self.groupby + columns
+        df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         row = df.groupby(self.groupby).sum()[metrics[0]].copy()
         row.sort_values(ascending=False, inplace=True)
-        columns = fd.get("columns") or []
         pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
         if fd.get("contribution"):
             pt = pt.T
@@ -1826,19 +1832,21 @@ class FilterBoxViz(BaseViz):
             col = flt.get("column")
             metric = flt.get("metric")
             df = self.dataframes.get(col)
-            if metric:
-                df = df.sort_values(
-                    utils.get_metric_name(metric), ascending=flt.get("asc")
-                )
-                d[col] = [
-                    {"id": row[0], "text": row[0], "metric": row[1]}
-                    for row in df.itertuples(index=False)
-                ]
-            else:
-                df = df.sort_values(col, ascending=flt.get("asc"))
-                d[col] = [
-                    {"id": row[0], "text": row[0]} for row in df.itertuples(index=False)
-                ]
+            if df is not None:
+                if metric:
+                    df = df.sort_values(
+                        utils.get_metric_name(metric), ascending=flt.get("asc")
+                    )
+                    d[col] = [
+                        {"id": row[0], "text": row[0], "metric": row[1]}
+                        for row in df.itertuples(index=False)
+                    ]
+                else:
+                    df = df.sort_values(col, ascending=flt.get("asc"))
+                    d[col] = [
+                        {"id": row[0], "text": row[0]}
+                        for row in df.itertuples(index=False)
+                    ]
         return d
 
 
