@@ -75,11 +75,12 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                 geocoded = self._get_coordinates_from_address(address)
                 if geocoded is not None:
                     datum = self._append_to_datum(datum, geocoded)
+                    geocoded_data.append(datum)
                 else:
                     self.progress["failed_counter"] += 1
 
                 counter += 1
-                geocoded_data.append(datum)
+
                 self.progress["progress"] = counter / len(data)
                 exceptions = 0
             except ConnectionError as e:

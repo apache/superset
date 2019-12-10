@@ -162,6 +162,8 @@ class Geocoder(BaseSupersetView):
                 return json_error_response(e.args[0])
         try:
             data = data[1]
+            if not data[0]:
+                return json_error_response(json.dumps("No geocoded values received"))
             self._insert_geocoded_data(
                 table_name.get("fullName"), lat_column, lon_column, columns, data[0]
             )
