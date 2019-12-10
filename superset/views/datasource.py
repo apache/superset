@@ -98,8 +98,8 @@ class Datasource(BaseSupersetView):
             database = (
                 db.session.query(Database).filter_by(id=request.args.get("db_id")).one()
             )
-            table = ConnectorRegistry.sources["table"]
-            datasource = table(
+            table_class = ConnectorRegistry.sources["table"]
+            datasource = table_class(
                 database=database,
                 table_name=request.args.get("table_name"),
                 schema=request.args.get("schema") or None,
