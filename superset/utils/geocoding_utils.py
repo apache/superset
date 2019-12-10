@@ -17,9 +17,8 @@
 import json
 import time
 
-import requests
 from flask import flash
-from requests import HTTPError, RequestException, Timeout
+from requests import get, HTTPError, RequestException, Timeout
 
 from superset.exceptions import NoAPIKeySuppliedException
 
@@ -150,7 +149,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
 
     def _get_coordinates_from_address(self, address: str):
         base_url = "https://api.maptiler.com/geocoding/"
-        response = requests.get(
+        response = get(
             base_url + address + ".json?key=" + self.conf["MAPTILER_API_KEY"]
         )
         decoded_data = json.loads(response.content.decode())
