@@ -16,29 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import FormHelpText from './FormHelpText';
-import Checkbox from './Checkbox';
+import React from 'react';
+import { mount } from 'enzyme';
+import sinon from 'sinon';
+import FileDropper from 'src/components/FileDropper/FileDropper';
 
-const propTypes = {
-  checked: PropTypes.bool,
-  onChange: PropTypes.func,
-  required: PropTypes.bool,
-  helpText: PropTypes.string,
-};
-
-export default class FormCheckbox extends PureComponent {
-  render() {
-    const { checked, onChange, required, helpText } = this.props;
-    const help = helpText && <FormHelpText helpText={helpText} />;
-    return (
-      <>
-        <Checkbox checked={checked} required={required} onChange={onChange} />
-        {help}
-      </>
-    );
-  }
-}
-
-FormCheckbox.propTypes = propTypes;
+describe('FileDropper', () => {
+  const mockedChildren = (<div className="child">Child content</div>);
+  const handleFileChange = sinon.spy();
+  let wrapper;
+  beforeEach(() => {
+    wrapper = mount(<FileDropper onFileSelected={handleFileChange} >{mockedChildren}</FileDropper>);
+  });
+  it('renders children', () => {
+    expect(wrapper.find('.child')).toHaveLength(1);
+  });
+  it('renders a file input field', () => {
+    expect(wrapper.find('#file')).toHaveLength(1);
+  });
+});

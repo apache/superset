@@ -37,6 +37,13 @@ jobs:
         - pip install tox
     - language: python
       python: 3.6
+      env: TOXENV=cypress-csvimport
+      services:
+        - redis-server
+      before_install:
+        - nvm install 10.14.2
+    - language: python
+      python: 3.6
       env: TOXENV=cypress-dashboard
       services:
         - redis-server

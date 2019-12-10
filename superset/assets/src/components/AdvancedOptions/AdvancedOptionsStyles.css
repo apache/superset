@@ -16,29 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import FormHelpText from './FormHelpText';
-import Checkbox from './Checkbox';
-
-const propTypes = {
-  checked: PropTypes.bool,
-  onChange: PropTypes.func,
-  required: PropTypes.bool,
-  helpText: PropTypes.string,
-};
-
-export default class FormCheckbox extends PureComponent {
-  render() {
-    const { checked, onChange, required, helpText } = this.props;
-    const help = helpText && <FormHelpText helpText={helpText} />;
-    return (
-      <>
-        <Checkbox checked={checked} required={required} onChange={onChange} />
-        {help}
-      </>
-    );
-  }
+.title {
+    text-align: left;
+    border-bottom: 1px solid #b3b3b3;
+    line-height: 0.1em;
+    margin: 10px 0 20px;
 }
-
-FormCheckbox.propTypes = propTypes;
+.title span {
+    background: #fff;
+    font-weight: bold;
+    padding: 0 10px 0 0;
+    cursor: pointer;
+}
+.title span:before {
+   font-family: FontAwesome;
+   display: inline-block;
+   padding-right: 6px;
+   vertical-align: middle;
+   color: #b3b3b3;
+   content: "\f078";
+}
+.closeTitle span:before {
+   content: "\f077";
+}
+.openTitle span:before {
+   content: "\f078";
+}
+.hide {
+    display: none;
+}

@@ -18,27 +18,40 @@
  */
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import FormHelpText from './FormHelpText';
-import Checkbox from './Checkbox';
+import { t } from '@superset-ui/translation';
+import './AdvancedOptionsStyles.css';
 
 const propTypes = {
-  checked: PropTypes.bool,
-  onChange: PropTypes.func,
-  required: PropTypes.bool,
-  helpText: PropTypes.string,
+    children: PropTypes.node,
 };
 
-export default class FormCheckbox extends PureComponent {
-  render() {
-    const { checked, onChange, required, helpText } = this.props;
-    const help = helpText && <FormHelpText helpText={helpText} />;
-    return (
-      <>
-        <Checkbox checked={checked} required={required} onChange={onChange} />
-        {help}
-      </>
-    );
-  }
+export default class AdvancedOptions extends PureComponent {
+    constructor(props) {
+        super(props);
+        this.state = {
+            hide: true,
+        };
+        this.handleChildren = this.handleChildren.bind(this);
+    }
+
+    handleChildren() {
+        const currentState = this.state.hide;
+        this.setState({ hide: !currentState });
+    }
+
+
+    render() {
+        return (
+          <div>
+            <div className={'title ' + (this.state.hide ? 'openTitle' : 'closeTitle')} onClick={this.handleChildren}>
+              <span>{t('Advanced Options')}</span>
+            </div>
+            <div className={this.state.hide ? 'hide' : null}>
+              {this.props.children}
+            </div>
+          </div>
+        );
+    }
 }
 
-FormCheckbox.propTypes = propTypes;
+AdvancedOptions.propTypes = propTypes;

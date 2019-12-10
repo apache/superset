@@ -16,29 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import FormHelpText from './FormHelpText';
-import Checkbox from './Checkbox';
+import { SupersetClient } from '@superset-ui/connection';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { addStatusMessage, STATUS_TYPE } from 'src/components/StatusMessages/actions/statusMessages';
 
-const propTypes = {
-  checked: PropTypes.bool,
-  onChange: PropTypes.func,
-  required: PropTypes.bool,
-  helpText: PropTypes.string,
-};
-
-export default class FormCheckbox extends PureComponent {
-  render() {
-    const { checked, onChange, required, helpText } = this.props;
-    const help = helpText && <FormHelpText helpText={helpText} />;
-    return (
-      <>
-        <Checkbox checked={checked} required={required} onChange={onChange} />
-        {help}
-      </>
-    );
-  }
+export function uploadCsv(data) {
+  return dispatch =>
+    SupersetClient.post({
+      endpoint: '/csvimporter/csvtodatabase/add',
+      postPayload: { ...data },
+      stringify: false,
+    })
+      .then(() => {
+        window.open('/tablemodelview/list/', '_self');
+      })
+      .catch((response) => {
+        getClientErrorObject(response).then((error) => {
+          dispatch(addStatusMessage(error.error, STATUS_TYPE.ERROR));
+        });
+      });
 }
-
-FormCheckbox.propTypes = propTypes;
