@@ -61,7 +61,6 @@ export class GeocodingForm extends React.Component {
         { label: 'Append', value: 'append' },
       ],
       saveOnErrorOrInterrupt: true,
-      partialGeocoding: false,
       validation,
     };
     this.getDatasources = this.getDatasources.bind(this);
