@@ -170,64 +170,66 @@ class BaseSupersetView(BaseView):
             mimetype="application/json",
         )
 
-    def menu_data(self):
-        menu = appbuilder.menu.get_data()
-        root_path = "#"
-        logo_target_path = ""
-        if not g.user.is_anonymous:
-            try:
-                logo_target_path = (
-                    appbuilder.app.config.get("LOGO_TARGET_PATH")
-                    or f"/profile/{g.user.username}/"
-                )
-            # when user object has no username
-            except NameError as e:
-                logging.exception(e)
 
-            if logo_target_path.startswith("/"):
-                root_path = f"/superset{logo_target_path}"
-            else:
-                root_path = logo_target_path
+def menu_data():
+    menu = appbuilder.menu.get_data()
+    root_path = "#"
+    logo_target_path = ""
+    if not g.user.is_anonymous:
+        try:
+            logo_target_path = (
+                appbuilder.app.config.get("LOGO_TARGET_PATH")
+                or f"/profile/{g.user.username}/"
+            )
+        # when user object has no username
+        except NameError as e:
+            logging.exception(e)
 
-        languages = {}
-        for lang in appbuilder.languages:
-            languages[lang] = {
-                **appbuilder.languages[lang],
-                "url": appbuilder.get_url_for_locale(lang),
-            }
-        return {
-            "menu": menu,
-            "brand": {
-                "path": root_path,
-                "icon": appbuilder.app_icon,
-                "alt": appbuilder.app_name,
-            },
-            "navbar_right": {
-                "bug_report_url": appbuilder.app.config.get("BUG_REPORT_URL"),
-                "documentation_url": appbuilder.app.config.get("DOCUMENTATION_URL"),
-                "languages": languages,
-                "show_language_picker": len(languages.keys()) > 1,
-                "user_is_anonymous": g.user.is_anonymous,
-                "user_info_url": appbuilder.get_url_for_userinfo,
-                "user_logout_url": appbuilder.get_url_for_logout,
-                "user_login_url": appbuilder.get_url_for_login,
-                "locale": session.get("locale", "en"),
-            },
+        if logo_target_path.startswith("/"):
+            root_path = f"/superset{logo_target_path}"
+        else:
+            root_path = logo_target_path
+
+    languages = {}
+    for lang in appbuilder.languages:
+        languages[lang] = {
+            **appbuilder.languages[lang],
+            "url": appbuilder.get_url_for_locale(lang),
         }
+    return {
+        "menu": menu,
+        "brand": {
+            "path": root_path,
+            "icon": appbuilder.app_icon,
+            "alt": appbuilder.app_name,
+        },
+        "navbar_right": {
+            "bug_report_url": appbuilder.app.config.get("BUG_REPORT_URL"),
+            "documentation_url": appbuilder.app.config.get("DOCUMENTATION_URL"),
+            "languages": languages,
+            "show_language_picker": len(languages.keys()) > 1,
+            "user_is_anonymous": g.user.is_anonymous,
+            "user_info_url": appbuilder.get_url_for_userinfo,
+            "user_logout_url": appbuilder.get_url_for_logout,
+            "user_login_url": appbuilder.get_url_for_login,
+            "locale": session.get("locale", "en"),
+        },
+    }
 
-    def common_bootstrap_payload(self):
-        """Common data always sent to the client"""
-        messages = get_flashed_messages(with_categories=True)
-        locale = str(get_locale())
 
-        return {
-            "flash_messages": messages,
-            "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
-            "locale": locale,
-            "language_pack": get_language_pack(locale),
-            "feature_flags": get_feature_flags(),
-            "menu_data": self.menu_data(),
-        }
+def common_bootstrap_payload():
+    """Common data always sent to the client"""
+    messages = get_flashed_messages(with_categories=True)
+    locale = str(get_locale())
+
+    return {
+        "flash_messages": messages,
+        "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
+        "locale": locale,
+        "language_pack": get_language_pack(locale),
+        "feature_flags": get_feature_flags(),
+        "menu_data": menu_data(),
+    }
 
 
 class SupersetListWidget(ListWidget):
