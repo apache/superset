@@ -195,7 +195,7 @@ class CsvImporter(BaseSupersetView):
         except Exception as e:
             LOGGER.exception(f"Unexpected error {e}")
             STATS_LOGGER.incr("csv_upload_failed")
-            return json_error_response("An unknown error occurred!")
+            return json_error_response('"An unknown error occurred!"')
         finally:
             try:
                 if csv_path:
@@ -204,8 +204,7 @@ class CsvImporter(BaseSupersetView):
                 pass
 
         STATS_LOGGER.incr("csv_upload_successful")
-        message = f"{table_name} imported into database {db_name}"
-        flash(message, "success")
+        flash(f"{table_name} imported into database {db_name}", "success")
         return json_success('"OK"')
 
     def _clean_name(self, name: str, purpose: str) -> str:
