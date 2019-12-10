@@ -87,11 +87,12 @@ class Lyft(Superset):
     @event_logger.log_this
     @expose("/queries/<last_updated_ms>")
     def queries(self, last_updated_ms):
+        last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
         try:
             self.authorize()
         except (UserDontExistException, SupersetException) as e:
             return json_error_response("{}".format(e))
-        return self.queries_exec(last_updated_ms)
+        return self.queries_exec(last_updated_ms_int)
 
     @event_logger.log_this
     @expose("/results/<key>")
