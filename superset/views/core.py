@@ -71,7 +71,7 @@ from superset import (
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource
 from superset.exceptions import (
-    DatabaseNotFound,
+    DatabaseNotFoundException,
     SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
@@ -1096,7 +1096,7 @@ class Superset(BaseSupersetView):
         if request.method == "POST" and f:
             try:
                 dashboard_import_export.import_dashboards(db.session, f.stream)
-            except DatabaseNotFound as e:
+            except DatabaseNotFoundException as e:
                 flash(
                     _(
                         "Cannot import dashboard: %(db_error)s.\n"

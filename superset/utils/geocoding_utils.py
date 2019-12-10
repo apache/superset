@@ -52,7 +52,6 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         :param data: the addresses to be geocoded as a list of tuples
         :return: a dictionary containing the addresses and their long,lat values
         """
-        errors = []
         geocoded_data = [()]
         data_length = len(data)
         counter = 0
@@ -80,33 +79,18 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                     f"Geocoding ConnectionError for address: {address} "
                     f"exception-message: {e}"
                 )
-                errors.append("A network error occurred: {0}".format(e.args[0]))
             except HTTPError as e:
                 self.logger.exception(
                     f"Geocoding HTTPError for address: {address} exception-message: {e}"
-                )
-                errors.append(
-                    "The request for {0} returned a wrong HTTP answer: {1}".format(
-                        address, e.args[0]
-                    )
                 )
             except Timeout as e:
                 self.logger.exception(
                     f"Geocoding Timeout for address: {address} exception-message: {e}"
                 )
-                errors.append(
-                    "The request for {0} ran into a time out: {1}".format(
-                        address, e.args[0]
-                    )
-                )
             except RequestException as e:
                 self.logger.exception(
                     f"Geocoding RequestException for address: {address} "
                     f"exception-message: {e}"
-                )
-                errors.append(
-                    "While trying to geocode address {0}, "
-                    "an error occurred: {1}".format(address, e.args[0])
                 )
 
         self.progress["progress"] = 100
