@@ -52,11 +52,19 @@ class SpatialException(SupersetException):
     pass
 
 
-class DatabaseNotFound(SupersetException):
+class DatabaseNotFoundException(SupersetException):
+    def __init__(self, msg, orig_e):
+        super(DatabaseNotFoundException, self).__init__(msg)
+        self.orig = orig_e
+
     status = 400
 
 
 class SqlException(SupersetException):
+    def __init__(self, msg, orig_e):
+        super(SqlException, self).__init__(msg)
+        self.orig = orig_e
+
     status = 500
 
 
