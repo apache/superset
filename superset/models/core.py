@@ -128,7 +128,7 @@ class Url(Model, AuditMixinNullable):
     """Used for the short url feature"""
 
     __tablename__ = "url"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     url = Column(Text)
 
 
@@ -137,7 +137,7 @@ class KeyValue(Model):  # pylint: disable=too-few-public-methods
     """Used for any type of key-value store"""
 
     __tablename__ = "keyvalue"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     value = Column(Text, nullable=False)
 
 
@@ -146,7 +146,7 @@ class CssTemplate(Model, AuditMixinNullable):
     """CSS templates for dashboards"""
 
     __tablename__ = "css_templates"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     template_name = Column(String(250))
     css = Column(Text, default="")
 
@@ -167,7 +167,7 @@ class Slice(
     """A slice is essentially a report or a view on data"""
 
     __tablename__ = "slices"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     slice_name = Column(String(250))
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))
@@ -437,7 +437,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     dashboard_title = Column(String(500))
     position_json = Column(utils.MediumText())
     description = Column(Text)
@@ -762,7 +762,7 @@ class Database(
     type = "table"
     __table_args__ = (UniqueConstraint("database_name"),)
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
     database_name = Column(String(250), unique=True, nullable=False)
@@ -1297,7 +1297,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
 
     __tablename__ = "logs"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     action = Column(String(512))
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     dashboard_id = Column(Integer)
@@ -1314,7 +1314,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
 class FavStar(Model):  # pylint: disable=too-few-public-methods
     __tablename__ = "favstar"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     class_name = Column(String(50))
     obj_id = Column(Integer)
@@ -1325,7 +1325,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     """ORM model for the access requests for datasources and dbs."""
 
     __tablename__ = "access_request"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
 
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))
