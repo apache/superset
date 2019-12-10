@@ -46,6 +46,7 @@ if TYPE_CHECKING:
 QueryStatus = utils.QueryStatus
 config = app.config
 
+
 def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
     """
     Get the children of a complex Presto type (row or array).

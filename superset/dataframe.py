@@ -20,6 +20,7 @@ from superset.utils.core import JS_MAX_INTEGER
 from typing import Dict
 import pandas as pd
 
+
 def df_to_dict(df: pd.DataFrame) -> Dict:
     data = df.to_dict(orient="records")
     # TODO: refactor this

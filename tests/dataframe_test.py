@@ -33,10 +33,7 @@ class SupersetDataFrameTestCase(SupersetTestCase):
 
         self.assertEqual(
             df_to_dict(df),
-            [
-                {"a": "a1", "b": "b1", "c": "c1"},
-                {"a": "a2", "b": "b2", "c": "c2"},
-            ],
+            [{"a": "a1", "b": "b1", "c": "c1"}, {"a": "a2", "b": "b2", "c": "c2"}],
         )
 
     def test_js_max_int(self):

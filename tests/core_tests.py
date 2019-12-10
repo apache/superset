@@ -721,7 +721,9 @@ class CoreTests(SupersetTestCase):
             (1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000)),
             (2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000)),
         ]
-        table = SupersetTable(list(data), [["col1"], ["col2"], ["col3"]], MssqlEngineSpec)
+        table = SupersetTable(
+            list(data), [["col1"], ["col2"], ["col3"]], MssqlEngineSpec
+        )
         df = table.to_pandas_df()
         data = dataframe.df_to_dict(df)
         self.assertEqual(len(data), 2)

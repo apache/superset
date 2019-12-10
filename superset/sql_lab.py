@@ -384,7 +384,10 @@ def execute_sql_statements(
     query.end_time = now_as_float()
 
     data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
-        result_table, db_engine_spec, store_results and results_backend_use_msgpack, expand_data
+        result_table,
+        db_engine_spec,
+        store_results and results_backend_use_msgpack,
+        expand_data,
     )
 
     # TODO: data should be saved separately from metadata (likely in Parquet)

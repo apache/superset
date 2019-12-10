@@ -68,10 +68,7 @@ class SupersetTable(object):
         # put data in a 2D array so we can efficiently access each column;
         array = np.array(data, dtype="object")
         if array.size > 0:
-            data = [
-                pa.array(array[:, i])
-                for i, column in enumerate(column_names)
-            ]
+            data = [pa.array(array[:, i]) for i, column in enumerate(column_names)]
 
         # workaround for bug converting `psycopg2.tz.FixedOffsetTimezone` tzinfo values.
         # related: https://issues.apache.org/jira/browse/ARROW-5248
@@ -80,7 +77,7 @@ class SupersetTable(object):
                 if pa.types.is_temporal(data[i].type):
                     series = pd.Series(array[:, i])
                     data[i] = pa.Array.from_pandas(series)
-        
+
         self.table = pa.Table.from_arrays(data, names=column_names)
         self._type_dict = {}
         try:
@@ -99,7 +96,7 @@ class SupersetTable(object):
 
     @staticmethod
     def is_date(db_type_str):
-        return db_type_str in ('DATETIME', 'TIMESTAMP')
+        return db_type_str in ("DATETIME", "TIMESTAMP")
 
     @classmethod
     def is_id(cls, column_name):
@@ -120,15 +117,15 @@ class SupersetTable(object):
     @staticmethod
     def convert_pa_dtype(pa_dtype: pa.DataType):
         if pa.types.is_boolean(pa_dtype):
-            return 'BOOL'
+            return "BOOL"
         if pa.types.is_integer(pa_dtype):
-            return 'INT'
+            return "INT"
         if pa.types.is_floating(pa_dtype):
-            return 'FLOAT'
+            return "FLOAT"
         if pa.types.is_string(pa_dtype):
-            return 'STRING'
+            return "STRING"
         if pa.types.is_temporal(pa_dtype):
-            return 'DATETIME'
+            return "DATETIME"
         return None
 
     def to_pandas_df(self):

@@ -62,49 +62,25 @@ class SupersetTableTestCase(SupersetTestCase):
             table.columns,
             [
                 {"is_date": False, "type": "STRING", "name": "a"},
-                {
-                    "is_date": False,
-                    "type": "INT",
-                    "name": "b",
-                },
+                {"is_date": False, "type": "INT", "name": "b"},
             ],
         )
 
     def test_get_columns_type_inference(self):
         data = [
             (1.2, 1, "foo", datetime(2018, 10, 19, 23, 39, 16, 660000), True),
-            (3.14, 2, "bar", datetime(2019, 10, 19, 23, 39, 16, 660000), False)
+            (3.14, 2, "bar", datetime(2019, 10, 19, 23, 39, 16, 660000), False),
         ]
         cursor_descr = (("a", None), ("b", None), ("c", None), ("d", None), ("e", None))
         table = SupersetTable(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(
             table.columns,
             [
-                {
-                    "is_date": False,
-                    "type": "FLOAT",
-                    "name": "a",
-                },
-                {
-                    "is_date": False,
-                    "type": "INT",
-                    "name": "b",
-                },
-                {
-                    "is_date": False,
-                    "type": "STRING",
-                    "name": "c",
-                },
-                {
-                    "is_date": True,
-                    "type": "DATETIME",
-                    "name": "d",
-                },
-                {
-                    "is_date": False,
-                    "type": "BOOL",
-                    "name": "e",
-                },
+                {"is_date": False, "type": "FLOAT", "name": "a"},
+                {"is_date": False, "type": "INT", "name": "b"},
+                {"is_date": False, "type": "STRING", "name": "c"},
+                {"is_date": True, "type": "DATETIME", "name": "d"},
+                {"is_date": False, "type": "BOOL", "name": "e"},
             ],
         )
 
@@ -135,14 +111,17 @@ class SupersetTableTestCase(SupersetTestCase):
         table = SupersetTable(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(table.columns[0]["type"], "BOOL")
         df = table.to_pandas_df()
-        self.assertEqual(df_to_dict(df), [
-            {"is_test": None},
-            {"is_test": True},
-            {"is_test": None},
-            {"is_test": None},
-            {"is_test": None},
-            {"is_test": None},
-        ])
+        self.assertEqual(
+            df_to_dict(df),
+            [
+                {"is_test": None},
+                {"is_test": True},
+                {"is_test": None},
+                {"is_test": None},
+                {"is_test": None},
+                {"is_test": None},
+            ],
+        )
 
     def test_empty_datetime(self):
         data = [(None,)]

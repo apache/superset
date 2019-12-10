@@ -299,16 +299,8 @@ class SqlLabTests(SupersetTestCase):
             "datasourceName": f"test_viz_flow_table_{random()}",
             "schema": "superset",
             "columns": [
-                {
-                    "is_date": False,
-                    "type": "STRING",
-                    "name": f"viz_type_{random()}",
-                },
-                {
-                    "is_date": False,
-                    "type": "OBJECT",
-                    "name": f"ccount_{random()}",
-                },
+                {"is_date": False, "type": "STRING", "name": f"viz_type_{random()}"},
+                {"is_date": False, "type": "OBJECT", "name": f"ccount_{random()}"},
             ],
             "sql": """\
                 SELECT *
