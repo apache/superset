@@ -210,20 +210,13 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_check_table_name(self):
         table_name = "myNewTableName"
-        fail_if_table_exists = "Fail"
-        assert not self.importer._check_table_name(table_name, fail_if_table_exists)
+        assert not self.importer._check_table_name(table_name)
 
-    def test_check_table_name_fail(self):
+    def test_check_table_name_failed(self):
         table_name = db.session.query(SqlaTable).first().table_name
-        fail_if_table_exists = "Fail"
         error_message = f"Table name {table_name} already exists. Please choose another"
         with self.assertRaisesRegex(NameNotAllowedException, error_message):
-            self.importer._check_table_name(table_name, fail_if_table_exists)
-
-    def test_check_table_name_replace(self):
-        table_name = db.session.query(SqlaTable).first().table_name
-        fail_if_table_exists = "Append"
-        assert not self.importer._check_table_name(table_name, fail_if_table_exists)
+            self.importer._check_table_name(table_name)
 
     def test_create_sqlite_database(self):
         db_name = "newSqlite"
