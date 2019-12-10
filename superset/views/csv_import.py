@@ -149,8 +149,7 @@ class CsvImporter(BaseSupersetView):
             db_flavor = form_data.get("databaseFlavor", SQLITE)
             database_id = self._convert_database_id(form_data.get("connectionId"))
             table_name = self._clean_name(form_data.get("tableName", ""), "Table")
-            fail_if_table_exists = form_data.get("ifTableExists", "Fail")
-            self._check_table_name(table_name, fail_if_table_exists)
+            self._check_table_name(table_name)
 
             if database_id != NEW_DATABASE_ID:
                 database = self._get_existing_database(
@@ -235,18 +234,12 @@ class CsvImporter(BaseSupersetView):
             )
             raise DatabaseFileAlreadyExistsException(message, e)
 
-    def _check_table_name(self, table_name: str, fail_if_table_exists: str) -> None:
+    def _check_table_name(self, table_name: str) -> None:
         """ Check if table name is alredy in use
         :param table_name: the name of the table to check
-        :param fail_if_table_exists: the process, if table already exist
         :return: False if table name is not in use or otherwise TableNameInUseException
         """
-        if (
-            fail_if_table_exists == "Fail"
-            and db.session.query(SqlaTable)
-            .filter_by(table_name=table_name)
-            .one_or_none()
-        ):
+        if db.session.query(SqlaTable).filter_by(table_name=table_name).one_or_none():
             message = _(
                 f"Table name {table_name} already exists. Please choose another"
             )
@@ -265,7 +258,6 @@ class CsvImporter(BaseSupersetView):
             NoPasswordSuppliedException: If the user did not supply a password
             DatabaseCreationException: If the database could not be created
         """
-
         database = SQLAInterface(Database).obj()
         database.database_name = db_name
         database.allow_csv_upload = True
@@ -294,8 +286,6 @@ class CsvImporter(BaseSupersetView):
         :param database: the database object to configure
         :return PostgreSQL url
         """
-        # TODO add possibility to use schema
-
         postgresql_user = conf["POSTGRESQL_USERNAME"]
         if not postgresql_user:
             raise NoUsernameSuppliedException(
@@ -460,7 +450,6 @@ class CsvImporter(BaseSupersetView):
             TableCreationException:  1. If the Table object could not be created
                                      2. If the Table could not be created in the database
         """
-
         try:
             table = SqlaTable(table_name=table_name)
             table.database = database
@@ -480,7 +469,6 @@ class CsvImporter(BaseSupersetView):
         Raises:
             TableCreationException:  If the data could not be inserted into the table
         """
-
         try:
             table.database.db_engine_spec.create_and_fill_table_from_csv(
                 form_data, table, csv_filename, table.database

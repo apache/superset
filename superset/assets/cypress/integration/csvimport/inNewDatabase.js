@@ -72,10 +72,6 @@ export default () => {
         { force: true },
       );
 
-      cy.get('#tableExists').then((elem) => {
-        elem.val('Fail');
-      });
-
       cy.get('button').contains('Save').click();
       cy.url({ timeout: 30000 }).should('include', '/tablemodelview/list');
     });
@@ -112,10 +108,6 @@ export default () => {
         ',',
         { force: true },
       );
-
-      cy.get('#tableExists').then((elem) => {
-        elem.val('Replace');
-      });
 
       cy.get('button').contains('Save').click();
       cy.url({ timeout: 30000 }).should('include', '/tablemodelview/list');
