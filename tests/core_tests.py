@@ -983,6 +983,53 @@ class CoreTests(SupersetTestCase):
             data = self.get_resp(url)
             self.assertTrue(html in data)
 
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": True},
+        clear=True,
+    )
+    def test_sqllab_backend_persistence_payload(self):
+        username = "admin"
+        self.login(username)
+        user_id = security_manager.find_user(username).id
+
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 1",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+
+        # run a query in the created tab
+        self.run_sql(
+            "SELECT name FROM birth_names",
+            "client_id_1",
+            user_name=username,
+            raise_on_error=True,
+            sql_editor_id=tab_state_id,
+        )
+        # run an orphan query (no tab)
+        self.run_sql(
+            "SELECT name FROM birth_names",
+            "client_id_2",
+            user_name=username,
+            raise_on_error=True,
+        )
+
+        # we should have only 1 query returned, since the second one is not
+        # associated with any tabs
+        payload = views.Superset._get_sqllab_payload(user_id=user_id)
+        self.assertEqual(len(payload["queries"]), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

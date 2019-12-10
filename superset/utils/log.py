@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import functools
 import inspect
 import json
@@ -64,7 +63,7 @@ class AbstractEventLogger(ABC):
             try:
                 explode_by = d.get("explode")
                 records = json.loads(d.get(explode_by))
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 records = [d]
 
             referrer = request.referrer[:1000] if request.referrer else None
@@ -89,8 +88,9 @@ class AbstractEventLogger(ABC):
 
 def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
     """
-    This function implements the deprecation of assignment of class objects to EVENT_LOGGER
-    configuration, and validates type of configured loggers.
+    This function implements the deprecation of assignment
+    of class objects to EVENT_LOGGER configuration, and validates
+    type of configured loggers.
 
     The motivation for this method is to gracefully deprecate the ability to configure
     EVENT_LOGGER with a class type, in favor of preconfigured instances which may have
@@ -105,10 +105,12 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
         logging.warning(
             textwrap.dedent(
                 """
-                In superset private config, EVENT_LOGGER has been assigned a class object. In order to
-                accomodate pre-configured instances without a default constructor, assignment of a class
-                is deprecated and may no longer work at some point in the future. Please assign an object
-                instance of a type that implements superset.utils.log.AbstractEventLogger.
+                In superset private config, EVENT_LOGGER has been assigned a class
+                object. In order to accomodate pre-configured instances without a
+                default constructor, assignment of a class is deprecated and may no
+                longer work at some point in the future. Please assign an object
+                instance of a type that implements
+                superset.utils.log.AbstractEventLogger.
                 """
             )
         )
@@ -119,7 +121,8 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
     # Verify that we have a valid logger impl
     if not isinstance(result, AbstractEventLogger):
         raise TypeError(
-            "EVENT_LOGGER must be configured with a concrete instance of superset.utils.log.AbstractEventLogger."
+            "EVENT_LOGGER must be configured with a concrete instance"
+            "of superset.utils.log.AbstractEventLogger."
         )
 
     logging.info(f"Configured event logger of type {type(result)}")
@@ -127,7 +130,7 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
 
 
 class DBEventLogger(AbstractEventLogger):
-    def log(self, user_id, action, *args, **kwargs):
+    def log(self, user_id, action, *args, **kwargs):  # pylint: disable=too-many-locals
         from superset.models.core import Log
 
         records = kwargs.get("records", list())
@@ -140,7 +143,7 @@ class DBEventLogger(AbstractEventLogger):
         for record in records:
             try:
                 json_string = json.dumps(record)
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 json_string = None
             log = Log(
                 action=action,

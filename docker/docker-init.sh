@@ -35,7 +35,7 @@ EOF
 
 # Create an admin user
 echo_step "1" "Starting" "Setting up admin user"
-flask fab create-admin \
+superset fab create-admin \
               --username admin \
               --firstname Superset \
               --lastname Admin \
