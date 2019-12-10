@@ -102,7 +102,7 @@ class SupersetSecurityManager(SecurityManager):
         "ResetPasswordView",
         "RoleModelView",
         "Security",
-        "Geocode Addresses"
+        "Geocode Addresses",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {"Upload a CSV"}
