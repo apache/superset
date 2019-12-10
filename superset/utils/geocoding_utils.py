@@ -77,14 +77,13 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                     geocoded_data.append(datum)
                 else:
                     self.progress["failed_counter"] += 1
-
                 counter += 1
 
                 self.progress["progress"] = counter / len(data)
                 exceptions = 0
             except ConnectionError as e:
                 exceptions += 1
-               self.logger.exception(
+                self.logger.exception(
                     f"Geocoding ConnectionError for address: {address} "
                     f"exception-message: {e}"
                 )
