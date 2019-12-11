@@ -43,6 +43,7 @@ from superset.exceptions import (
     FileSaveException,
     GetDatabaseException,
     NameNotAllowedException,
+    NoHostNameSuppliedException,
     NoPasswordSuppliedException,
     NoUsernameSuppliedException,
     SchemaNotAllowedCsvUploadException,
@@ -296,13 +297,26 @@ class CsvImporter(BaseSupersetView):
             raise NoPasswordSuppliedException(
                 "No password supplied for PostgreSQL", None
             )
+        postgresql_host = conf["POSTGRESQL_HOST"]
+        if not postgresql_host:
+            raise NoHostNameSuppliedException(
+                "No username supplied for PostgreSQL", None
+            )
+        postgresql_port = conf["POSTGRESQL_PORT"]
+
+        if postgresql_port:
+            postgresql_server = postgresql_host + ":" + postgresql_port
+        else:
+            postgresql_server = postgresql_host
 
         url = (
             SQLALCHEMY_POSTGRESQL_CONNECTION
             + postgresql_user
             + ":"
             + postgresql_password
-            + "@localhost/"
+            + "@"
+            + postgresql_server
+            + "/"
             + db_name
         )
         enurl = (
@@ -310,7 +324,9 @@ class CsvImporter(BaseSupersetView):
             + postgresql_user
             + ":"
             + "XXXXXXXXXX"
-            + "@localhost/"
+            + "@l"
+            + postgresql_server
+            + "/"
             + db_name
         )
         engine = sqlalchemy.create_engine(url)
