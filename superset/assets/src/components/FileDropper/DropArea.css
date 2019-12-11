@@ -16,29 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import FormHelpText from './FormHelpText';
-import Checkbox from './Checkbox';
 
-const propTypes = {
-  checked: PropTypes.bool,
-  onChange: PropTypes.func,
-  required: PropTypes.bool,
-  helpText: PropTypes.string,
-};
-
-export default class FormCheckbox extends PureComponent {
-  render() {
-    const { checked, onChange, required, helpText } = this.props;
-    const help = helpText && <FormHelpText helpText={helpText} />;
-    return (
-      <>
-        <Checkbox checked={checked} required={required} onChange={onChange} />
-        {help}
-      </>
-    );
-  }
+.filedropper-container {
+  width: 100%;
+  min-width: 200px;
+  min-height: 50px;
+  flex-direction: column;
+  align-items: center;
+  border: dashed 1px black;
+  border-radius: 6px;
+  border-color: #ccc;
+  padding: 10px;
+  font-size: 14px;
 }
 
-FormCheckbox.propTypes = propTypes;
+.is-visible {
+  display: flex;
+}
+
+.is-not-visible {
+  display: none;
+}
+
+.filedropper-background {
+  background-color: #f4f4f4;
+}
+
+.filedropper-background-hover {
+  background-color: #fafafa;
+}
+
+.filedropper-title {
+  font-weight: 700;
+  opacity: 0.5;
+}
+
+.filedropper-separatortext {
+  font-weight: 700;
+  opacity: 0.4;
+}
+
+.filedropper-file {
+  font-weight: 700;
+  opacity: 0.5;
+  margin-top: 5px;
+}

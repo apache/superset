@@ -16,29 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import FormHelpText from './FormHelpText';
-import Checkbox from './Checkbox';
 
-const propTypes = {
-  checked: PropTypes.bool,
-  onChange: PropTypes.func,
-  required: PropTypes.bool,
-  helpText: PropTypes.string,
+export default () => {
+  describe('CSV importer advanced options', () => {
+    beforeEach(() => {
+      cy.login();
+      cy.server();
+      cy.visit('/csvimporter/csvtodatabase');
+    });
+
+    it('test advanced options', () => {
+
+      cy.get('.title').should('have.class', 'openTitle');
+      cy.get('.title').click();
+      cy.get('.title', { timeout: 10000 }).should('have.class', 'closeTitle');
+
+    });
+
+  });
 };
-
-export default class FormCheckbox extends PureComponent {
-  render() {
-    const { checked, onChange, required, helpText } = this.props;
-    const help = helpText && <FormHelpText helpText={helpText} />;
-    return (
-      <>
-        <Checkbox checked={checked} required={required} onChange={onChange} />
-        {help}
-      </>
-    );
-  }
-}
-
-FormCheckbox.propTypes = propTypes;

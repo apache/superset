@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -14,17 +15,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (
-    annotations,
-    api,
-    base,
-    core,
-    csv_import,
-    dashboard,
-    datasource,
-    geocoding,
-    schedules,
-    sql_lab,
-    tags,
-)
-from .log import api as log_api, views
+import os
+import sys
+
+from superset import conf
+
+if __name__ == "__main__":
+    db_name = sys.argv[1]
+    path = conf["BASE_DIR"]
+    db_path = os.path.abspath(os.path.join(os.getcwd(), path + db_name + ".db"))
+    if os.path.isfile(db_path):
+        os.remove(db_path)

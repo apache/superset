@@ -410,7 +410,6 @@ class SqlLabTests(SupersetTestCase):
             "page_size": -1,
         }
         url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
-        self.assertEqual(
-            {"examples", "fake_db_100"},
-            {r.get("database_name") for r in self.get_json_resp(url)["result"]},
-        )
+        dblist = {r.get("database_name") for r in self.get_json_resp(url)["result"]}
+        mylist = {"examples", "fake_db_100"}
+        assert set(mylist).issubset(dblist)

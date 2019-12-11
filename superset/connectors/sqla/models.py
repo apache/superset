@@ -1102,13 +1102,13 @@ class SqlaTable(Model, BaseDatasource):
                     .filter_by(database_name=table.params_dict["database_name"])
                     .one()
                 )
-            except NoResultFound:
+            except NoResultFound as e:
                 raise DatabaseNotFoundException(
                     _(
                         "Database '%(name)s' is not found",
                         name=table.params_dict["database_name"],
                     ),
-                    None,
+                    e,
                 )
 
         return import_datasource.import_datasource(

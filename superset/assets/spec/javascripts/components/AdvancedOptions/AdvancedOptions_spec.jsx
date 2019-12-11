@@ -16,29 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import FormHelpText from './FormHelpText';
-import Checkbox from './Checkbox';
+import React from 'react';
+import { mount } from 'enzyme';
+import AdvancedOptions from 'src/components/AdvancedOptions/AdvancedOptions';
 
-const propTypes = {
-  checked: PropTypes.bool,
-  onChange: PropTypes.func,
-  required: PropTypes.bool,
-  helpText: PropTypes.string,
-};
-
-export default class FormCheckbox extends PureComponent {
-  render() {
-    const { checked, onChange, required, helpText } = this.props;
-    const help = helpText && <FormHelpText helpText={helpText} />;
-    return (
-      <>
-        <Checkbox checked={checked} required={required} onChange={onChange} />
-        {help}
-      </>
-    );
-  }
-}
-
-FormCheckbox.propTypes = propTypes;
+describe('AdvancedOptions', () => {
+  const mockedChildren = (<div className="child">Child content</div>);
+  let wrapper;
+  beforeEach(() => {
+    wrapper = mount(<AdvancedOptions>{mockedChildren}</AdvancedOptions>);
+  });
+  it('renders children', () => {
+    expect(wrapper.find('.child')).toHaveLength(1);
+  });
+  it('hides children when minimized', () => {
+    expect(wrapper.state().hide).toBe(true);
+  });
+  it('displays children when not minimized', () => {
+    wrapper.find('.openTitle').simulate('click');
+    expect(wrapper.state().hide).toBe(false);
+  });
+});
