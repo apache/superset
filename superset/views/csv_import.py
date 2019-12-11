@@ -492,5 +492,3 @@ appbuilder.add_link(
     category_label=__("Sources"),
     category_icon="fa-wrench",
 )
-
-appbuilder.add_separator("Sources")
