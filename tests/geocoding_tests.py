@@ -74,27 +74,3 @@ class GeocodingTests(SupersetTestCase):
 
         message = "No columns found for table with name {0}".format(tableDto.name)
         assert message in response
-
-    # def test_add_lat_lon_columns(self):
-    #     table = db.session.query(SqlaTable).first()
-    #     database = db.session.query(Database).filter_by(id=table.database_id).first()
-    #     database.allow_dml = True
-    #     db.session.commit()
-    #
-    #     table_name = table.table_name
-    #     lat_column_name = "lat"
-    #     lon_column_name = "lon"
-    #
-    #     columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
-    #     number_of_columns_before = len(columns)
-    #
-    #     geocoding.Geocoder()._add_lat_lon_columns(
-    #         table_name, lat_column_name, lon_column_name
-    #     )
-    #
-    #     columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
-    #     number_of_columns_after = len(columns)
-    #     assert number_of_columns_after == number_of_columns_before + 2
-    #     column_names = [column["name"] for column in columns]
-    #     assert lon_column_name in column_names
-    #     assert lat_column_name in column_names

@@ -402,7 +402,8 @@ class Geocoder(BaseSupersetView):
         """
         where_clause = "='%s' AND ".join(filter(None, geo_columns)) + "='%s'"
         number_of_columns = len(geo_columns)
-
+        if connection.engine.name == "sqlite":
+            schema = "main"
         transaction = connection.begin()
         try:
             table_name = f'"{schema}"."{table_name}"'
