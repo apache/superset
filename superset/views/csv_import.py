@@ -275,7 +275,6 @@ class CsvImporter(BaseSupersetView):
                 uri = self._setup_postgresql_database(db_name, database)
             else:
                 uri = self._setup_sqlite_database(db_name, database)
-            # TODO check if SQL-injection is possible through add()
             db.session.add(database)
             db.session.commit()
             return database, uri
