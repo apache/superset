@@ -101,9 +101,6 @@ from .base import (
     json_success,
     SupersetModelView,
 )
-# The database views import is required so that we can append
-# more links to to the same menu item, even though it's not
-# referenced directly in this file.
 from .database import (  # pylint: disable=unused-import
     api as database_api,
     views as in_views,
