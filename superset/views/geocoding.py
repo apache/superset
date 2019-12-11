@@ -146,7 +146,6 @@ class Geocoder(BaseSupersetView):
         try:
             table_dto = request_data.get("datasource", models.TableDto())
             self._check_and_create_columns(request_data)
-            db.session.commit()
             data = self._load_data_from_columns(table_dto.get("id", ""), columns)
         except ValueError as e:
             self.logger.exception(f"ValueError when querying for lat/lon columns {e}")
@@ -304,6 +303,7 @@ class Geocoder(BaseSupersetView):
         finally:
             transaction.close()
             connection.close()
+            db.session.commit()
 
     def _add_column(
         self,
@@ -331,12 +331,7 @@ class Geocoder(BaseSupersetView):
         )
 
     def _insert_geocoded_data(
-        self,
-        table_id: int,
-        lat_column: str,
-        lon_column: str,
-        geo_columns: list,
-        data,
+        self, table_id: int, lat_column: str, lon_column: str, geo_columns: list, data
     ):
         """
         Insert geocoded coordinates in table
@@ -373,6 +368,7 @@ class Geocoder(BaseSupersetView):
         finally:
             transaction.close()
             connection.close()
+            db.session.commit()
 
     @api
     @has_access_api

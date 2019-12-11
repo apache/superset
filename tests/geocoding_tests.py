@@ -35,8 +35,8 @@ from .base_tests import SupersetTestCase
 
 
 class GeocodingTests(SupersetTestCase):
-    test_database: Database
-    sqla_departments: SqlaTable
+    test_database = None
+    sqla_departments = None
 
     def __init__(self, *args, **kwargs):
         super(GeocodingTests, self).__init__(*args, **kwargs)
