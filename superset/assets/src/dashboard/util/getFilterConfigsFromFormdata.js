@@ -33,7 +33,7 @@ export default function getFilterConfigsFromFormdata(form_data = {}) {
     ({ columns, labels }, config) => {
       const updatedColumns = {
         ...columns,
-        [config.column]: config.vals,
+        [config.column]: config.vals || config.defaultValue,
       };
       const updatedLabels = {
         ...labels,
