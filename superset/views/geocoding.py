@@ -298,6 +298,7 @@ class Geocoder(BaseSupersetView):
                 e,
             )
 
+    # Is this method truly needed, it's a oneliner?
     def _get_table_by_id(self, table_id: int) -> SqlaTable:
         """
         Get a SqlaTable object from the session and return it
@@ -306,11 +307,12 @@ class Geocoder(BaseSupersetView):
         """
         return db.session.query(SqlaTable).filter_by(id=table_id).first()
 
+    # Is this method truly needed?
     def _create_column_list(self, columns):
         column_list = []
         for column in columns:
             if column:
-                column_list.append('"' + column + '"')
+                column_list.append(f'"{column}"')
         return ", ".join(filter(None, column_list))
 
     def _geocode(self, data: list, geocode_api: str, dev=False):
