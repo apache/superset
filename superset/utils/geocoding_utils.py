@@ -39,7 +39,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
 
     def geocode(self, geocoder: str, data: list):
         try:
-            if geocoder == "MapTiler":
+            if geocoder == "maptiler":
                 return self._geocode_maptiler(data)
             return self._geocode_testing()
         finally:

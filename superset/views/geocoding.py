@@ -162,7 +162,7 @@ class Geocoder(BaseSupersetView):
             return json_error_response(e.args[0], status=500)
 
         try:
-            data = self._geocode(data)
+            data = self._geocode(data, "maptiler")
         except NoAPIKeySuppliedException:
             message = f"No Key was supplied for specified Geocoding API"
             self.logger.exception(message)
@@ -327,7 +327,7 @@ class Geocoder(BaseSupersetView):
         if dev:
             return self.geocoder_util.geocode("", data)
         else:
-            return self.geocoder_util.geocode("MapTiler", data)
+            return self.geocoder_util.geocode(geocode_api, data)
 
     def _check_API_Key(self, geocode_api: str):
         if "maptiler" in geocode_api:
