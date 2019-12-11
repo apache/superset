@@ -145,4 +145,4 @@ class GeocoderUtilMock(GeocoderUtil):  # pylint: disable=too-few-public-methods
 
     def _get_coordinates_from_address(self, address):
         time.sleep(2)
-        return [self.geocoded_data.get(address), 0.8]
+        return [self.geocoded_data.get(address), 0.81]

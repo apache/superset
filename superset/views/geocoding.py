@@ -194,7 +194,7 @@ class Geocoder(BaseSupersetView):
         )
         flash(message, "success")
         self.stats_logger.incr("succesful_geocoding")
-        return json_success(json.dumps(data))
+        return json_success('"OK"')
 
     def _check_and_create_columns(self, request_data):
         lat_column = request_data.get("latitudeColumnName", "lat")

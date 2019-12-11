@@ -278,19 +278,11 @@ class GeocodingTests(SupersetTestCase):
         }
 
     def test_geocode(self):
-        expected_coordinates = GeocoderUtilMock(conf).geocoded_data.values()
         url = "/geocoder/geocoding/geocode"
 
-        # geocoded_data = self.get_resp(url, json_=self._geocode_post())
-        #
-        # for coordinates in expected_coordinates:
-        #     assert str(coordinates[0]) in geocoded_data
-        #     assert str(coordinates[1]) in geocoded_data
-        #
-        # geocoded_list = json.loads(geocoded_data)
-        # assert 5 == len(geocoded_list)
-        # for address in geocoded_list:
-        #     assert 5 == len(address)
+        response = self.get_resp(url, json_=self._geocode_post())
+        assert "OK" in response
+
 
     def test_progress(self):
         geocode_url = "/geocoder/geocoding/geocode"
