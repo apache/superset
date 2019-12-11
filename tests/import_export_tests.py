@@ -22,12 +22,12 @@ import unittest
 from flask import g
 from sqlalchemy.orm.session import make_transient
 
+import decode_dashboards from superset.utils.dashboard_import_export
 from tests.test_app import app
 from superset import db, security_manager
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models import core as models
-from superset.utils import core as utils
 
 from .base_tests import SupersetTestCase
 
@@ -229,7 +229,8 @@ class ImportExportTests(SupersetTestCase):
         )
         resp = self.client.get(export_dash_url)
         exported_dashboards = json.loads(
-            resp.data.decode("utf-8"), object_hook=utils.decode_dashboards
+            resp.data.decode("utf-8"),
+            object_hook=decode_dashboards,
         )["dashboards"]
 
         birth_dash = self.get_dash_by_slug("births")
@@ -239,12 +240,13 @@ class ImportExportTests(SupersetTestCase):
             birth_dash.id,
             json.loads(
                 exported_dashboards[0].json_metadata,
-                object_hook=utils.decode_dashboards,
+                object_hook=decode_dashboards,
             )["remote_id"],
         )
 
         exported_tables = json.loads(
-            resp.data.decode("utf-8"), object_hook=utils.decode_dashboards
+            resp.data.decode("utf-8"),
+            object_hook=decode_dashboards,
         )["datasources"]
         self.assertEqual(1, len(exported_tables))
         self.assert_table_equals(
@@ -260,7 +262,8 @@ class ImportExportTests(SupersetTestCase):
         )
         resp = self.client.get(export_dash_url)
         resp_data = json.loads(
-            resp.data.decode("utf-8"), object_hook=utils.decode_dashboards
+            resp.data.decode("utf-8"),
+            object_hook=decode_dashboards,
         )
         exported_dashboards = sorted(
             resp_data.get("dashboards"), key=lambda d: d.dashboard_title

@@ -39,7 +39,6 @@ from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Tuple, Union
 from urllib.parse import unquote_plus
 
 import bleach
-import celery
 import markdown as md
 import numpy
 import pandas as pd
@@ -47,10 +46,9 @@ import parsedatetime
 import sqlalchemy as sa
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
-from flask import current_app, flash, Flask, g, Markup, render_template
+from flask import current_app, flash, g, Markup, render_template
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
-from flask_caching import Cache
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.sql.type_api import Variant
@@ -250,30 +248,6 @@ def parse_human_datetime(s):
 
 def dttm_from_timetuple(d: struct_time) -> datetime:
     return datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
-
-
-def decode_dashboards(o):
-    """
-    Function to be passed into json.loads obj_hook parameter
-    Recreates the dashboard object from a json representation.
-    """
-    import superset.models.core as models
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-
-    if "__Dashboard__" in o:
-        return models.Dashboard(**o["__Dashboard__"])
-    elif "__Slice__" in o:
-        return models.Slice(**o["__Slice__"])
-    elif "__TableColumn__" in o:
-        return TableColumn(**o["__TableColumn__"])
-    elif "__SqlaTable__" in o:
-        return SqlaTable(**o["__SqlaTable__"])
-    elif "__SqlMetric__" in o:
-        return SqlMetric(**o["__SqlMetric__"])
-    elif "__datetime__" in o:
-        return datetime.strptime(o["__datetime__"], "%Y-%m-%dT%H:%M:%S")
-    else:
-        return o
 
 
 class DashboardEncoder(json.JSONEncoder):
