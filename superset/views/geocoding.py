@@ -331,7 +331,7 @@ class Geocoder(BaseSupersetView):
 
     def _check_API_Key(self, geocode_api: str):
         if "maptiler" in geocode_api:
-            if not self.conf["MAPTILER_API_KEY"]:
+            if not conf["MAPTILER_API_KEY"]:
                 raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
 
     def _add_lat_lon_columns(

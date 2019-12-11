@@ -21,8 +21,6 @@ import time
 from flask import flash
 from requests import get, HTTPError, RequestException, Timeout
 
-from superset.exceptions import NoAPIKeySuppliedException
-
 
 class GeocoderUtil:  # pylint: disable=too-few-public-methods
     """
@@ -100,7 +98,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                     f"Geocoding RequestException for address: {address} "
                     f"exception-message: {e}"
                 )
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
                 exceptions += 1
                 self.logger.exception(
                     f"Unknown exception for address: {address} "
