@@ -185,8 +185,6 @@ class Geocoder(BaseSupersetView):
             table = db.session.query(SqlaTable).filter_by(id=table_id).first()
             database = table.database
             connection = database.get_sqla_engine().connect()
-            if "sqlite" in connection.engine.name:
-                table_dto["schema"] = "main"
             self._insert_geocoded_data(
                 table_name.get("fullName"),
                 lat_column,
@@ -220,7 +218,6 @@ class Geocoder(BaseSupersetView):
         return json_success(json.dumps(geocoded_values))
 
     def _check_and_create_columns(self, request_data):
-        # schema is set to None, set to main for sqlite
         lat_column = request_data.get("latitudeColumnName", "lat")
         lon_column = request_data.get("longitudeColumnName", "lon")
         override_if_exist = request.json.get("overwriteIfExists", False)
@@ -228,8 +225,6 @@ class Geocoder(BaseSupersetView):
         table_name = request_data.get("datasource", "")
         table_id = table_dto.get("id", "")
         table = self._get_table_by_id(table_id)
-        if "sqlite" in table.database.db_engine_spec.engine:
-            table_dto["schema"] = "main"
         lat_exists = self._does_column_name_exist(table_id, lat_column)
         lon_exists = self._does_column_name_exist(table_id, lon_column)
         if override_if_exist:
@@ -287,7 +282,11 @@ class Geocoder(BaseSupersetView):
             column_list = self._create_column_list(columns)
             table = self._get_table_by_id(table_dto.get("id"))
             database = table.database
-            table_name = f'"{table_dto.get("schema")}"."{table_dto.get("name")}"'
+            schema = table_dto.get("schema")
+            if schema:
+                table_name = f'"{schema}"."{table_dto.get("name")}"'
+            else:
+                table_name = f'"{table_dto.get("name")}"'
 
             sql = f"SELECT {column_list} FROM {table_name}"
 
@@ -300,7 +299,6 @@ class Geocoder(BaseSupersetView):
                 e,
             )
 
-    # Is this method truly needed, it's a oneliner?
     def _get_table_by_id(self, table_id: int) -> SqlaTable:
         """
         Get a SqlaTable object from the session and return it
@@ -309,7 +307,6 @@ class Geocoder(BaseSupersetView):
         """
         return db.session.query(SqlaTable).filter_by(id=table_id).first()
 
-    # Is this method truly needed?
     def _create_column_list(self, columns):
         column_list = []
         for column in columns:
@@ -351,12 +348,10 @@ class Geocoder(BaseSupersetView):
         """
         table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
         database = table.database
-        # can we get schema from table/database object?
+
         connection = database.get_sqla_engine().connect()
         transaction = connection.begin()
         try:
-            # Is this still needed?
-            table_name = table_name.lower()
 
             if lat_column:
                 self._add_column(connection, table_dto, lat_column, Float())
@@ -387,7 +382,12 @@ class Geocoder(BaseSupersetView):
         column = Column(column_name, column_type)
         name = column.compile(column_name, dialect=db.engine.dialect)
         column_type = column.type.compile(db.engine.dialect)
-        sql = f'ALTER TABLE "{table_dto.get("schema")}"."{table_dto.get("name")}" ADD {name} {column_type}'
+        schema = table_dto.get("schema")
+        if schema:
+            table_name = f'"{schema}"."{table_dto.get("name")}"'
+        else:
+            table_name = f'"{table_dto.get("name")}"'
+        sql = f"ALTER TABLE {table_name} ADD {name} {column_type}"
         connection.execute(sql)
         table = self._get_table_by_id(table_dto.get("id"))
         table.columns.append(TableColumn(column_name=column_name, type=column_type))
@@ -413,11 +413,12 @@ class Geocoder(BaseSupersetView):
         """
         where_clause = "='%s' AND ".join(filter(None, geo_columns)) + "='%s'"
         number_of_columns = len(geo_columns)
-        if connection.engine.name == "sqlite":
-            schema = "main"
         transaction = connection.begin()
         try:
-            table_name = f'"{schema}"."{table_name}"'
+            if schema:
+                table_name = f'"{schema}"."{table_name}"'
+            else:
+                table_name = f'"{table_name}"'
             for row in data:
                 update = "UPDATE %s SET %s=%s, %s=%s " % (
                     table_name,
