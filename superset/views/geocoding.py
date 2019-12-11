@@ -162,7 +162,6 @@ class Geocoder(BaseSupersetView):
 
         try:
             data = self._geocode(data)
-        # TODO There is no data returned here
         except Exception as e:
             self.logger.exception(f"Exception when geocoding data {e}")
             if not save_on_stop_geocoding:
@@ -171,18 +170,19 @@ class Geocoder(BaseSupersetView):
         if self.geocoder_util.interruptflag:
             if not save_on_stop_geocoding:
                 return json_success(json.dumps("geocoding interrupted"))
+        # If there was an error, data[0] will be a message, otherwise it will be an empty string meaning we can proceed
         if data[0]:
             if not save_on_stop_geocoding:
                 return json_error_response(json.dumps(data[0]))
         try:
-            # TODO make this generic only for testing
-            schema = "main"
             data = data[1]
+            # It is possible that no exception occured but no geocoded values are returned check for this
             if not data[0]:
                 return json_error_response(json.dumps("No geocoded values received"))
             table_dto = request_data.get("datasource", models.TableDto())
-            id = table_dto.get("id", "")
-            table = db.session.query(SqlaTable).filter_by(id=id).first()
+            table_id = table_dto.get("id", "")
+            schema = table_dto.get("schema", "")
+            table = db.session.query(SqlaTable).filter_by(id=table_id).first()
             database = (
                 db.session.query(models.Database)
                 .filter_by(id=table.database_id)
@@ -226,7 +226,6 @@ class Geocoder(BaseSupersetView):
         lon_column = request_data.get("longitudeColumnName", "lon")
         override_if_exist = request.json.get("overwriteIfExists", False)
         table_dto = request_data.get("datasource", models.TableDto())
-        # TODO change to more appropriate name
         table_name = request_data.get("datasource", "")
         table_id = table_dto.get("id", "")
         lat_exists = self._does_column_name_exist(table_id, lat_column)
@@ -269,8 +268,6 @@ class Geocoder(BaseSupersetView):
         :param column_name: The name of column to check
         :return true if column name exists in table
         """
-        # TODO fix with schema
-        # workaround select column_name from table see if fails
         table = self._get_table(id)
         if table and table.columns:
             column_names = [column.column_name.lower() for column in table.columns]
@@ -296,7 +293,6 @@ class Geocoder(BaseSupersetView):
                 table_name = '"main"."' + table.table_name + '"'
 
             sql = f"SELECT {column_list} FROM {table_name}"
-            # sql = "SELECT " + column_list + ' FROM %s' % table_name
 
             result = database.get_sqla_engine().connect().execute(sql)
             return [row for row in result]
@@ -344,15 +340,9 @@ class Geocoder(BaseSupersetView):
         :raise SqlAddColumnException: When add column-SQL went wrong
         """
         table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
-        database = (
-            db.session.query(models.Database).filter_by(id=table.database_id).first()
-        )
-        engine = db.engine
+        database = table.database
         connection = database.get_sqla_engine().connect()
-        # connection = database.db_engine_spec.connect()
         transaction = connection.begin()
-        # connection = db.engine.connect()
-        # transaction = connection.begin()
         try:
             table_name = table_name.lower()
 
