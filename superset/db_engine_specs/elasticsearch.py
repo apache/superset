@@ -14,14 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from datetime import datetime
 from typing import Dict, Optional
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
-class ElasticSearchEngineSpec(BaseEngineSpec):
+class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "elasticsearch"
     time_groupby_inline = True
     time_secondary_columns = True

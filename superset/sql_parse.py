@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import logging
 from typing import List, Optional, Set
 
@@ -29,6 +28,27 @@ PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT J
 CTE_PREFIX = "CTE__"
 
 
+def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
+    """
+    Extract limit clause from SQL statement.
+
+    :param statement: SQL statement
+    :return: Limit extracted from query, None if no limit present in statement
+    """
+    idx, _ = statement.token_next_by(m=(Keyword, "LIMIT"))
+    if idx is not None:
+        _, token = statement.token_next(idx=idx)
+        if token:
+            if isinstance(token, IdentifierList):
+                # In case of "LIMIT <offset>, <limit>", find comma and extract
+                # first succeeding non-whitespace token
+                idx, _ = token.token_next_by(m=(sqlparse.tokens.Punctuation, ","))
+                _, token = token.token_next(idx=idx)
+            if token and token.ttype == sqlparse.tokens.Literal.Number.Integer:
+                return int(token.value)
+    return None
+
+
 class ParsedQuery(object):
     def __init__(self, sql_statement):
         self.sql: str = sql_statement
@@ -36,11 +56,11 @@ class ParsedQuery(object):
         self._alias_names: Set[str] = set()
         self._limit: Optional[int] = None
 
-        logging.info("Parsing with sqlparse statement {}".format(self.sql))
+        logging.info("Parsing with sqlparse statement %s", self.sql)
         self._parsed = sqlparse.parse(self.stripped())
         for statement in self._parsed:
             self.__extract_from_token(statement)
-            self._limit = self._extract_limit_from_query(statement)
+            self._limit = _extract_limit_from_query(statement)
         self._table_names = self._table_names - self._alias_names
 
     @property
@@ -146,7 +166,7 @@ class ParsedQuery(object):
         exec_sql += f"CREATE TABLE {table_name} AS \n{sql}"
         return exec_sql
 
-    def __extract_from_token(self, token: Token):
+    def __extract_from_token(self, token: Token):  # pylint: disable=too-many-branches
         """
         Populate self._table_names from token
 
@@ -176,33 +196,13 @@ class ParsedQuery(object):
                 if isinstance(item, Identifier):
                     self.__process_tokenlist(item)
                 elif isinstance(item, IdentifierList):
-                    for token in item.get_identifiers():
-                        if isinstance(token, TokenList):
-                            self.__process_tokenlist(token)
+                    for token2 in item.get_identifiers():
+                        if isinstance(token2, TokenList):
+                            self.__process_tokenlist(token2)
             elif isinstance(item, IdentifierList):
-                for token in item.tokens:
-                    if not self.__is_identifier(token):
+                for token2 in item.tokens:
+                    if not self.__is_identifier(token2):
                         self.__extract_from_token(item)
-
-    def _extract_limit_from_query(self, statement: TokenList) -> Optional[int]:
-        """
-        Extract limit clause from SQL statement.
-
-        :param statement: SQL statement
-        :return: Limit extracted from query, None if no limit present in statement
-        """
-        idx, _ = statement.token_next_by(m=(Keyword, "LIMIT"))
-        if idx is not None:
-            _, token = statement.token_next(idx=idx)
-            if token:
-                if isinstance(token, IdentifierList):
-                    # In case of "LIMIT <offset>, <limit>", find comma and extract
-                    # first succeeding non-whitespace token
-                    idx, _ = token.token_next_by(m=(sqlparse.tokens.Punctuation, ","))
-                    _, token = token.token_next(idx=idx)
-                if token and token.ttype == sqlparse.tokens.Literal.Number.Integer:
-                    return int(token.value)
-        return None
 
     def get_query_with_new_limit(self, new_limit: int) -> str:
         """
