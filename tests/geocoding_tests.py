@@ -55,7 +55,10 @@ class GeocodingTests(SupersetTestCase):
 
             params = {"remote_id": 100, "database_name": self.test_database.name}
             self.sqla_departments = SqlaTable(
-                id=100, table_name="Departments", schema="public", params=json.dumps(params)
+                id=100,
+                table_name="Departments",
+                schema="public",
+                params=json.dumps(params),
             )
             self.sqla_departments.columns.append(
                 TableColumn(column_name="department_id", type="INTEGER")
@@ -256,7 +259,7 @@ class GeocodingTests(SupersetTestCase):
         )
 
         result = db.engine.execute(
-            f"SELECT street, city, country, {lat_column_name}, {lon_column_name} FROM \"{table_name}\""
+            f'SELECT street, city, country, {lat_column_name}, {lon_column_name} FROM "{table_name}"'
         )
         for row in result:
             assert row in data
