@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from collections import OrderedDict
 from typing import Dict, List, Optional, Set, Type, TYPE_CHECKING
 
@@ -22,6 +21,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session, subqueryload
 
 if TYPE_CHECKING:
+    # pylint: disable=unused-import
     from superset.models.core import Database
     from superset.connectors.base.models import BaseDatasource
 
@@ -61,7 +61,7 @@ class ConnectorRegistry(object):
         return datasources
 
     @classmethod
-    def get_datasource_by_name(
+    def get_datasource_by_name(  # pylint: disable=too-many-arguments
         cls,
         session: Session,
         datasource_type: str,
@@ -75,7 +75,7 @@ class ConnectorRegistry(object):
         )
 
     @classmethod
-    def query_datasources_by_permissions(
+    def query_datasources_by_permissions(  # pylint: disable=invalid-name
         cls,
         session: Session,
         database: "Database",

@@ -39,7 +39,7 @@ export default class AdhocMetricOption extends React.PureComponent {
     this.onOverlayEntered = this.onOverlayEntered.bind(this);
     this.onOverlayExited = this.onOverlayExited.bind(this);
     this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.state = { overlayShown: !this.props.adhocMetric.fromFormData };
+    this.state = { overlayShown: false };
   }
 
   onPopoverResize() {
@@ -47,7 +47,7 @@ export default class AdhocMetricOption extends React.PureComponent {
   }
 
   onOverlayEntered() {
-    this.setState({ overlayShown: true });
+    this.setState({ overlayShown: false });
   }
 
   onOverlayExited() {
