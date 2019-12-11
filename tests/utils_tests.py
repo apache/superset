@@ -27,7 +27,7 @@ from sqlalchemy.exc import ArgumentError
 
 from superset import app, db, security_manager
 from superset.exceptions import SupersetException
-from superset.models.core import Database
+from superset.models.database import Database
 from superset.utils.cache_manager import CacheManager
 from superset.utils.core import (
     base_json_conv,

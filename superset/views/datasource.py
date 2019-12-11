@@ -23,7 +23,7 @@ from flask_appbuilder.security.decorators import has_access_api
 
 from superset import appbuilder, db
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.models.core import Database
+from superset.models.database import Database
 
 from .base import api, BaseSupersetView, handle_api_exception, json_error_response
 

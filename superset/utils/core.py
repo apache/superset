@@ -911,14 +911,12 @@ def user_label(user: User) -> Optional[str]:
 
 def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
     from superset import db
-    from superset.models import core as models
+    from superset.models.database import Database
 
-    database = (
-        db.session.query(models.Database).filter_by(database_name=database_name).first()
-    )
+    database = db.session.query(Database).filter_by(database_name=database_name).first()
     if not database:
         logging.info(f"Creating database reference for {database_name}")
-        database = models.Database(database_name=database_name, *args, **kwargs)
+        database = Database(database_name=database_name, *args, **kwargs)
         db.session.add(database)
 
     database.set_sqlalchemy_uri(sqlalchemy_uri)

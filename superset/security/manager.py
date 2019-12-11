@@ -46,7 +46,7 @@ from superset.utils.core import DatasourceName
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
-    from superset.models.core import Database
+    from superset.models.database import Database
     from superset.viz import BaseViz
 
 
@@ -552,7 +552,7 @@ class SupersetSecurityManager(SecurityManager):
 
         from superset import db
         from superset.connectors.base.models import BaseMetric
-        from superset.models import core as models
+        from superset.models.database import Database
 
         logging.info("Fetching a set of all perms to lookup which ones are missing")
         all_pvs = set()
@@ -572,7 +572,7 @@ class SupersetSecurityManager(SecurityManager):
             merge_pv("schema_access", datasource.get_schema_perm())
 
         logging.info("Creating missing database permissions.")
-        databases = db.session.query(models.Database).all()
+        databases = db.session.query(Database).all()
         for database in databases:
             merge_pv("database_access", database.perm)
 

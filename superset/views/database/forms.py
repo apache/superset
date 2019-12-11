@@ -25,7 +25,7 @@ from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 from superset import app, db, security_manager
 from superset.forms import CommaSeparatedListField, filter_not_empty_values
-from superset.models import core as models
+from superset.models.database import Database
 
 config = app.config
 
@@ -35,7 +35,7 @@ class CsvToDatabaseForm(DynamicForm):
     def csv_allowed_dbs():  # type: ignore
         csv_allowed_dbs = []
         csv_enabled_dbs = (
-            db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
+            db.session.query(Database).filter_by(allow_csv_upload=True).all()
         )
         for csv_enabled_db in csv_enabled_dbs:
             if CsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):

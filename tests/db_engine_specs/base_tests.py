@@ -17,7 +17,7 @@
 from datetime import datetime
 
 from superset.db_engine_specs.mysql import MySQLEngineSpec
-from superset.models.core import Database
+from superset.models.database import Database
 from tests.base_tests import SupersetTestCase
 
 

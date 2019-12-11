@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session, subqueryload
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
-    from superset.models.core import Database
+    from superset.models.database import Database
     from superset.connectors.base.models import BaseDatasource
 
 

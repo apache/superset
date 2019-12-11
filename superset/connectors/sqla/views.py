@@ -31,6 +31,7 @@ from wtforms.validators import Regexp
 
 from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
+from superset.models.database import Database
 from superset.utils import core as utils
 from superset.views.base import (
     DatasourceFilter,
@@ -334,7 +335,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     edit_form_extra_fields = {
         "database": QuerySelectField(
             "Database",
-            query_factory=lambda: db.session().query(models.Database),
+            query_factory=lambda: db.session().query(Database),
             widget=Select2Widget(extra_classes="readonly"),
         )
     }

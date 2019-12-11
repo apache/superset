@@ -24,9 +24,9 @@ from werkzeug.utils import secure_filename
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
-import superset.models.core as models
 from superset import app, appbuilder, db
 from superset.connectors.sqla.models import SqlaTable
+from superset.models.database import Database
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
@@ -48,7 +48,7 @@ def sqlalchemy_uri_form_validator(_, field: StringField) -> None:
 class DatabaseView(
     DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin
 ):  # pylint: disable=too-many-ancestors
-    datamodel = SQLAInterface(models.Database)
+    datamodel = SQLAInterface(Database)
 
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"
@@ -122,9 +122,7 @@ class CsvToDatabaseView(SimpleFormView):
             table_name = form.name.data
 
             con = form.data.get("con")
-            database = (
-                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
-            )
+            database = db.session.query(Database).filter_by(id=con.data.get("id")).one()
             database.db_engine_spec.create_table_from_csv(form, database)
 
             table = (

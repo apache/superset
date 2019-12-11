@@ -26,6 +26,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid.models import DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
+from superset.models.database import Database
 
 from .base_tests import SupersetTestCase
 
@@ -283,7 +284,7 @@ class RequestAccessTests(SupersetTestCase):
         create_access_request(session, "table", "energy_usage", TEST_ROLE_2, "gamma2")
         ds_1_id = access_request1.datasource_id
         # gamma gets granted database access
-        database = session.query(models.Database).first()
+        database = session.query(Database).first()
 
         security_manager.add_permission_view_menu("database_access", database.perm)
         ds_perm_view = security_manager.find_permission_view_menu(
