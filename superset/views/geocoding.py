@@ -81,11 +81,13 @@ class Geocoder(BaseSupersetView):
         for database in (
             db.session.query(models.Database).filter_by(allow_dml=True).all()
         ):
-            all_tables = db.session.query(SqlaTable).filter_by(database_id=database.id).all()
-            permitted_tables = security_manager.get_datasources_accessible_by_user(database, all_tables)
-            for table in (
-                permitted_tables
-            ):
+            all_tables = (
+                db.session.query(SqlaTable).filter_by(database_id=database.id).all()
+            )
+            permitted_tables = security_manager.get_datasources_accessible_by_user(
+                database, all_tables
+            )
+            for table in permitted_tables:
                 tables.append(
                     models.TableDto(
                         table.id, table.table_name, table.schema, table.database_id
