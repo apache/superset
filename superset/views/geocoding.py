@@ -323,7 +323,7 @@ class Geocoder(BaseSupersetView):
         column = Column(column_name, column_type)
         name = column.compile(column_name, dialect=db.engine.dialect)
         type = column.type.compile(db.engine.dialect)
-        sql = text("ALTER TABLE %s ADD %s %s" % (table_name, name, type))
+        sql = text("ALTER TABLE \"%s\" ADD %s %s" % (table_name, name, type))
         connection.execute(sql)
 
         self._get_table(table_id).columns.append(
@@ -350,7 +350,7 @@ class Geocoder(BaseSupersetView):
         transaction = connection.begin()
         try:
             for row in data:
-                update = "UPDATE %s SET %s=%s, %s=%s " % (
+                update = "UPDATE \"%s\" SET %s=%s, %s=%s " % (
                     table.table_name,
                     lat_column,
                     row[number_of_columns],
