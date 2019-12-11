@@ -14,14 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import json
 from collections import Counter
 
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
-from sqlalchemy.exc import IntegrityError
 
 from superset import appbuilder, db
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -100,8 +98,8 @@ class Datasource(BaseSupersetView):
             database = (
                 db.session.query(Database).filter_by(id=request.args.get("db_id")).one()
             )
-            Table = ConnectorRegistry.sources["table"]
-            datasource = Table(
+            table_class = ConnectorRegistry.sources["table"]
+            datasource = table_class(
                 database=database,
                 table_name=request.args.get("table_name"),
                 schema=request.args.get("schema") or None,
