@@ -181,13 +181,15 @@ class Geocoder(BaseSupersetView):
                 return json_error_response(json.dumps("No geocoded values received"))
             table_dto = request_data.get("datasource", models.TableDto())
             table_id = table_dto.get("id", "")
-            schema = table_dto.get("schema", "")
             table = db.session.query(SqlaTable).filter_by(id=table_id).first()
             database = (
                 db.session.query(models.Database)
                 .filter_by(id=table.database_id)
                 .first()
             )
+            if "sqlite" in database.engine.name:
+                table_dto["schema"] = "main"
+
             connection = database.get_sqla_engine().connect()
             self._insert_geocoded_data(
                 table_name.get("fullName"),
@@ -195,7 +197,7 @@ class Geocoder(BaseSupersetView):
                 lon_column,
                 columns,
                 data[0],
-                schema,
+                table_dto.get("schema"),
                 connection,
             )
         except (SqlAddColumnException, SqlUpdateException) as e:
