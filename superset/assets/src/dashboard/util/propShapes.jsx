@@ -87,6 +87,7 @@ export const dashboardFilterPropShape = PropTypes.shape({
   chartId: PropTypes.number.isRequired,
   componentId: PropTypes.string.isRequired,
   filterName: PropTypes.string.isRequired,
+  datasourceId: PropTypes.string.isRequired,
   directPathToFilter: PropTypes.arrayOf(PropTypes.string).isRequired,
   isDateFilter: PropTypes.bool.isRequired,
   isInstantFilter: PropTypes.bool.isRequired,
