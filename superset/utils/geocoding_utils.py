@@ -42,8 +42,6 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
             if geocoder == "MapTiler":
                 return self._geocode_maptiler(data)
             return self._geocode_testing()
-        except Exception as e:
-            raise e
         finally:
             self.progress["progress"] = 0
             self.progress["is_in_progress"] = False
@@ -54,8 +52,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         :param data: the addresses to be geocoded as a list of tuples
         :return: a dictionary containing the addresses and their long,lat values
         """
-        if not self.conf["MAPTILER_API_KEY"]:
-            raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
+
         geocoded_data: list = []
         counter: int = 0
         exceptions: int = 0
@@ -102,6 +99,12 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
                 self.logger.exception(
                     f"Geocoding RequestException for address: {address} "
                     f"exception-message: {e}"
+                )
+            except Exception as e:
+                exceptions += 1
+                self.logger.exception(
+                    f"Unknown exception for address: {address} "
+                    f"exception message: {e}"
                 )
             if counter == 0 and exceptions == 1:
                 message = f"Exception at the start of the geocoding process"
