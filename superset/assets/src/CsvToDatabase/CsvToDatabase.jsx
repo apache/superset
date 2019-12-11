@@ -226,7 +226,7 @@ export class CsvToDatabase extends React.PureComponent {
                           required
                           value={this.state.tableName}
                           onChange={this.setUserInput}
-                          helpText={t('Name of the table to be created from csv data.')}
+                          helpText={t('Name of the table to be created from csv data (may already be in use).')}
                         />
                       </td>
                     </tr>
@@ -285,7 +285,7 @@ export class CsvToDatabase extends React.PureComponent {
                           required={this.state.selectedConnection.value === -1}
                           value={this.state.databaseName}
                           onChange={this.setUserInput}
-                          helpText={t('Name of the database file to be created.')}
+                          helpText={t('Name of the database to be created (may already be in use).')}
                         />
                       </td>
                     </tr>
@@ -354,7 +354,7 @@ export class CsvToDatabase extends React.PureComponent {
                             placeholder={t('Header Row')}
                             value={this.state.headerRow}
                             onChange={this.setUserInput}
-                            helpText={t('Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.')}
+                            helpText={t('Row containing the headers to use as column names (0 is first line of data).')}
                           />
                         </td>
                       </tr>

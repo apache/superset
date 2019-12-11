@@ -161,6 +161,7 @@ class CsvImporter(BaseSupersetView):
                 db_name = self._clean_name(
                     form_data.get("databaseName", ""), "database"
                 )
+                self._check_database_name(db_name)
                 database, db_uri = self._create_database(db_name, db_flavor)
 
             table = self._create_table(table_name, database)
@@ -246,6 +247,13 @@ class CsvImporter(BaseSupersetView):
             )
             raise NameNotAllowedException(message, None)
 
+    def _check_database_name(self, db_name: str) -> None:
+        if db.session.query(Database).filter_by(database_name=db_name).one_or_none():
+            message = _(
+                f"Database name {db_name} already exists. Please choose another"
+            )
+            raise NameNotAllowedException(message, None)
+
     def _create_database(self, db_name: str, db_flavor: str) -> Tuple[Database, str]:
         """ Creates the Database itself as well as the Superset Connection to it
 
@@ -268,7 +276,6 @@ class CsvImporter(BaseSupersetView):
                 uri = self._setup_postgresql_database(db_name, database)
             else:
                 uri = self._setup_sqlite_database(db_name, database)
-            # TODO check if SQL-injection is possible through add()
             db.session.add(database)
             db.session.commit()
             return database, uri
