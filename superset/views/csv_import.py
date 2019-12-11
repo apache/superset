@@ -324,7 +324,7 @@ class CsvImporter(BaseSupersetView):
             + postgresql_user
             + ":"
             + "XXXXXXXXXX"
-            + "@l"
+            + "@"
             + postgresql_server
             + "/"
             + db_name
