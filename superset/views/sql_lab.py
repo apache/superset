@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from typing import Callable
 
 import simplejson as json
@@ -38,8 +37,8 @@ from .base import (
 )
 
 
-class QueryFilter(BaseFilter):
-    def apply(self, query: BaseQuery, func: Callable) -> BaseQuery:
+class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    def apply(self, query: BaseQuery, value: Callable) -> BaseQuery:
         """
         Filter queries to only those owned by current user if
         can_only_access_owned_queries permission is set.
@@ -82,7 +81,9 @@ appbuilder.add_view(
 )
 
 
-class SavedQueryView(SupersetModelView, DeleteMixin):
+class SavedQueryView(
+    SupersetModelView, DeleteMixin
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SavedQuery)
 
     list_title = _("List Saved Query")
@@ -126,11 +127,11 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
 
     show_template = "superset/models/savedquery/show.html"
 
-    def pre_add(self, obj):
-        obj.user = g.user
+    def pre_add(self, item):
+        item.user = g.user
 
-    def pre_update(self, obj):
-        self.pre_add(obj)
+    def pre_update(self, item):
+        self.pre_add(item)
 
     @has_access
     @expose("show/<pk>")
@@ -151,7 +152,7 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
         )
 
 
-class SavedQueryViewApi(SavedQueryView):
+class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
     list_columns = [
         "id",
         "label",
@@ -176,13 +177,14 @@ appbuilder.add_view_no_menu(SavedQueryViewApi)
 appbuilder.add_view_no_menu(SavedQueryView)
 
 
-class TabStateView(BaseSupersetView):
-    def _get_owner_id(self, tab_state_id):
-        return db.session.query(TabState.user_id).filter_by(id=tab_state_id).scalar()
+def _get_owner_id(tab_state_id):
+    return db.session.query(TabState.user_id).filter_by(id=tab_state_id).scalar()
 
+
+class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("/", methods=["POST"])
-    def post(self):
+    def post(self):  # pylint: disable=no-self-use
         query_editor = json.loads(request.form["queryEditor"])
         tab_state = TabState(
             user_id=g.user.get_id(),
@@ -204,8 +206,8 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("/<int:tab_state_id>", methods=["DELETE"])
-    def delete(self, tab_state_id):
-        if self._get_owner_id(tab_state_id) != int(g.user.get_id()):
+    def delete(self, tab_state_id):  # pylint: disable=no-self-use
+        if _get_owner_id(tab_state_id) != int(g.user.get_id()):
             return Response(status=403)
 
         db.session.query(TabState).filter(TabState.id == tab_state_id).delete(
@@ -219,8 +221,8 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("/<int:tab_state_id>", methods=["GET"])
-    def get(self, tab_state_id):
-        if self._get_owner_id(tab_state_id) != int(g.user.get_id()):
+    def get(self, tab_state_id):  # pylint: disable=no-self-use
+        if _get_owner_id(tab_state_id) != int(g.user.get_id()):
             return Response(status=403)
 
         tab_state = db.session.query(TabState).filter_by(id=tab_state_id).first()
@@ -232,8 +234,8 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("<int:tab_state_id>/activate", methods=["POST"])
-    def activate(self, tab_state_id):
-        owner_id = self._get_owner_id(tab_state_id)
+    def activate(self, tab_state_id):  # pylint: disable=no-self-use
+        owner_id = _get_owner_id(tab_state_id)
         if owner_id is None:
             return Response(status=404)
         if owner_id != int(g.user.get_id()):
@@ -249,8 +251,8 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("<int:tab_state_id>", methods=["PUT"])
-    def put(self, tab_state_id):
-        if self._get_owner_id(tab_state_id) != int(g.user.get_id()):
+    def put(self, tab_state_id):  # pylint: disable=no-self-use
+        if _get_owner_id(tab_state_id) != int(g.user.get_id()):
             return Response(status=403)
 
         fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
@@ -260,8 +262,8 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("<int:tab_state_id>/migrate_query", methods=["POST"])
-    def migrate_query(self, tab_state_id):
-        if self._get_owner_id(tab_state_id) != int(g.user.get_id()):
+    def migrate_query(self, tab_state_id):  # pylint: disable=no-self-use
+        if _get_owner_id(tab_state_id) != int(g.user.get_id()):
             return Response(status=403)
 
         client_id = json.loads(request.form["queryId"])
@@ -273,7 +275,7 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("<int:tab_state_id>/query/<client_id>", methods=["DELETE"])
-    def delete_query(self, tab_state_id, client_id):
+    def delete_query(self, tab_state_id, client_id):  # pylint: disable=no-self-use
         db.session.query(Query).filter_by(
             client_id=client_id, user_id=g.user.get_id(), sql_editor_id=tab_state_id
         ).delete(synchronize_session=False)
@@ -284,7 +286,7 @@ class TabStateView(BaseSupersetView):
 class TableSchemaView(BaseSupersetView):
     @has_access_api
     @expose("/", methods=["POST"])
-    def post(self):
+    def post(self):  # pylint: disable=no-self-use
         table = json.loads(request.form["table"])
 
         # delete any existing table schema
@@ -309,7 +311,7 @@ class TableSchemaView(BaseSupersetView):
 
     @has_access_api
     @expose("/<int:table_schema_id>", methods=["DELETE"])
-    def delete(self, table_schema_id):
+    def delete(self, table_schema_id):  # pylint: disable=no-self-use
         db.session.query(TableSchema).filter(TableSchema.id == table_schema_id).delete(
             synchronize_session=False
         )
@@ -318,7 +320,7 @@ class TableSchemaView(BaseSupersetView):
 
     @has_access_api
     @expose("/<int:table_schema_id>/expanded", methods=["POST"])
-    def expanded(self, table_schema_id):
+    def expanded(self, table_schema_id):  # pylint: disable=no-self-use
         payload = json.loads(request.form["expanded"])
         (
             db.session.query(TableSchema)
@@ -344,7 +346,7 @@ class SqlLab(BaseSupersetView):
 
     @expose("/my_queries/")
     @has_access
-    def my_queries(self):
+    def my_queries(self):  # pylint: disable=no-self-use
         """Assigns a list of found users to the given role."""
         return redirect("/savedqueryview/list/?_flt_0_user={}".format(g.user.id))
 
