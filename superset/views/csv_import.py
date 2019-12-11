@@ -246,7 +246,7 @@ class CsvImporter(BaseSupersetView):
             )
             raise NameNotAllowedException(message, None)
 
-    def _check_database_name(selfself, db_name: str) -> None:
+    def _check_database_name(self, db_name: str) -> None:
         if db.session.query(Database).filter_by(database_name=db_name).one_or_none():
             message = _(
                 f"Database name {db_name} already exists. Please choose another"
