@@ -98,25 +98,3 @@ class GeocodingTests(SupersetTestCase):
     #     column_names = [column["name"] for column in columns]
     #     assert lon_column_name in column_names
     #     assert lat_column_name in column_names
-
-    def test_insert_geocoded_data(self):
-        table_name = "birth_names"
-
-        selected_columns = ["name", "gender"]
-        data = [
-            ("Aaron", "boy", 1, "2.2"),
-            ("Amy", "girl", 3, "4.4"),
-            ("Barbara", "girl", 5, "6.6"),
-            ("Bradley", "boy", 7, "8.8"),
-        ]
-        first_column_name = "num"
-        second_column_name = "state"
-
-        geocoding.Geocoder()._insert_geocoded_data(
-            table_name, first_column_name, second_column_name, selected_columns, data
-        )
-        result = db.engine.execute(
-            "SELECT name, gender, num, state FROM birth_names WHERE name IN ('Aaron', 'Amy', 'Barbara', 'Bradley')"
-        )
-        for row in result:
-            assert row in data
