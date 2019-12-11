@@ -163,11 +163,10 @@ class Geocoder(BaseSupersetView):
 
         try:
             data = self._geocode(data, "maptiler")
-        except NoAPIKeySuppliedException:
-            message = f"No Key was supplied for specified Geocoding API"
-            self.logger.exception(message)
+        except NoAPIKeySuppliedException as e:
+            self.logger.exception(e.args[0])
             self.stats_logger.incr("geocoding_failed")
-            return json_error_response(message)
+            return json_error_response(e.args[0])
         if self.geocoder_util.interruptflag:
             if not save_on_stop_geocoding:
                 return json_success(json.dumps("geocoding interrupted"))
@@ -323,13 +322,13 @@ class Geocoder(BaseSupersetView):
         :param dev: Whether to Mock the geocoding process for testing purposes
         :return: a list of tuples containing the data and the corresponding long, lat values
         """
-        self._check_API_Key(geocode_api)
+        self._check_api_key(geocode_api)
         if dev:
             return self.geocoder_util.geocode("", data)
         else:
             return self.geocoder_util.geocode(geocode_api, data)
 
-    def _check_API_Key(self, geocode_api: str):
+    def _check_api_key(self, geocode_api: str):
         if "maptiler" in geocode_api:
             if not conf["MAPTILER_API_KEY"]:
                 raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
