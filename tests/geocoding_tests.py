@@ -15,108 +15,325 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for geocoding"""
+import threading
+import time
 
+import pandas as pd
+import simplejson as json
+from sqlalchemy import Integer, String, Float
 from sqlalchemy.engine import reflection
-from sqlalchemy_utils import table_name
 
 import superset.models.core as models
-from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset import conf, db
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.exceptions import TableNotFoundException
 from superset.models.core import Database
-from superset.views import core, geocoding
+from superset.utils.geocoding_utils import GeocoderUtilMock
+from superset.views.geocoding import Geocoder
 
 from .base_tests import SupersetTestCase
 
 
 class GeocodingTests(SupersetTestCase):
-    superset = core.Superset()
+    test_database: Database = None
+    sqla_departments: SqlaTable = None
 
     def __init__(self, *args, **kwargs):
         super(GeocodingTests, self).__init__(*args, **kwargs)
 
     def setUp(self):
         self.login()
+        Geocoder.geocoder_util = GeocoderUtilMock(conf)
+        self.create_table_in_view()
 
-    def tearDown(self):
+    def create_table_in_view(self):
+        if not self.test_database or not self.test_database.has_table_by_name("Departments"):
+            self.test_database = db.session.query(Database).first()
+            self.test_database.allow_dml = True
+
+            params = {"remote_id": 100, "database_name": self.test_database.name}
+            self.sqla_departments = SqlaTable(
+                id=100, table_name="Departments", params=json.dumps(params)
+            )
+            self.sqla_departments.columns.append(
+                TableColumn(column_name="department_id", type="INTEGER")
+            )
+            self.sqla_departments.columns.append(
+                TableColumn(column_name="name", type="STRING")
+            )
+            self.sqla_departments.columns.append(
+                TableColumn(column_name="street", type="STRING")
+            )
+            self.sqla_departments.columns.append(
+                TableColumn(column_name="city", type="STRING")
+            )
+            self.sqla_departments.columns.append(
+                TableColumn(column_name="country", type="STRING")
+            )
+            self.sqla_departments.columns.append(
+                TableColumn(column_name="lat", type="FLOAT")
+            )
+            self.sqla_departments.columns.append(
+                TableColumn(column_name="lon", type="FLOAT")
+            )
+            self.sqla_departments.database = self.test_database
+            self.sqla_departments.database_id = self.sqla_departments.database.id
+            db.session.add(self.sqla_departments)
+            db.session.commit()
+
+            data = {
+                "department_id": [1, 2, 3, 4, 5],
+                "name": [
+                    "Logistics",
+                    "Marketing",
+                    "Facility Management",
+                    "Personal",
+                    "Finances",
+                ],
+                "street": [
+                    "Oberseestrasse 10",
+                    "Grossmünsterplatz",
+                    "Uetliberg",
+                    "Zürichbergstrasse 221",
+                    "Bahnhofstrasse",
+                ],
+                "city": ["Rapperswil", "Zürich", "Zürich", "Zürich", "Zürich"],
+                "country": [
+                    "Switzerland",
+                    "Switzerland",
+                    "Switzerland",
+                    "Switzerland",
+                    "Switzerland",
+                ],
+                "lat": [None, None, None, None, None],
+                "lon": [None, None, None, None, None],
+            }
+            df = pd.DataFrame(data=data)
+            df.to_sql(
+                self.sqla_departments.table_name,
+                self.test_database.get_sqla_engine(),
+                if_exists="replace",
+                chunksize=500,
+                dtype={
+                    "department_id": Integer,
+                    "name": String(60),
+                    "street": String(60),
+                    "city": String(60),
+                    "country": String(60),
+                    "lat": Float,
+                    "lon": Float,
+                },
+                index=False,
+            )
+
+    def doCleanups(self):
         self.logout()
+        if self.test_database and self.sqla_departments:
+            db.session.delete(self.sqla_departments)
+            self.test_database.allow_dml = False
+            db.session.commit()
 
     def test_menu_entry_geocode_exist(self):
         url = "/dashboard/list/"
         dashboard_page = self.get_resp(url)
         assert "Geocode Addresses" in dashboard_page
 
-    def test_geocode_adresses_view_load(self):
+    def test_geocode_addresses_view_load(self):
         url = "/geocoder/geocoding"
         form_get = self.get_resp(url)
         assert "Geocode Addresses" in form_get
 
+    def test_get_editable_tables(self):
+        table_name = self.sqla_departments.table_name
+
+        table_names = [table.name for table in Geocoder()._get_editable_tables()]
+        assert table_name in table_names
+
     def test_get_columns(self):
         url = "/geocoder/geocoding/columns"
-
-        table = db.session.query(SqlaTable).first()
-        tableDto = models.TableDto(
-            table.id, table.table_name, table.schema, table.database_id
+        table_dto = models.TableDto(
+            self.sqla_departments.id,
+            self.sqla_departments.table_name,
+            self.sqla_departments.schema,
+            self.sqla_departments.database_id,
         )
+        data = {"table": table_dto.to_json()}
+
         columns = reflection.Inspector.from_engine(db.engine).get_columns(
-            table.table_name
+            self.sqla_departments.table_name
         )
 
-        data = {"table": tableDto.to_json()}
         response = self.get_resp(url, json_=data)
         assert columns[0].get("name") in response
 
     def test_get_invalid_columns(self):
         url = "/geocoder/geocoding/columns"
-        tableDto = models.TableDto(10001, "no_table")
+        table_dto = models.TableDto(10001, "no_table")
+        data = {"table": table_dto.to_json()}
 
-        data = {"table": tableDto.to_json()}
         response = self.get_resp(url, json_=data)
 
-        message = "No columns found for table with name {0}".format(tableDto.name)
-        assert message in response
+        error_message = f"No columns found for table with name {table_dto.name}"
+        assert error_message in response
 
-    # def test_add_lat_lon_columns(self):
-    #     table = db.session.query(SqlaTable).first()
-    #     database = db.session.query(Database).filter_by(id=table.database_id).first()
-    #     database.allow_dml = True
-    #     db.session.commit()
-    #
-    #     table_name = table.table_name
-    #     lat_column_name = "lat"
-    #     lon_column_name = "lon"
-    #
-    #     columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
-    #     number_of_columns_before = len(columns)
-    #
-    #     geocoding.Geocoder()._add_lat_lon_columns(
-    #         table_name, lat_column_name, lon_column_name
-    #     )
-    #
-    #     columns = reflection.Inspector.from_engine(db.engine).get_columns(table_name)
-    #     number_of_columns_after = len(columns)
-    #     assert number_of_columns_after == number_of_columns_before + 2
-    #     column_names = [column["name"] for column in columns]
-    #     assert lon_column_name in column_names
-    #     assert lat_column_name in column_names
+    def test_does_valid_column_name_exist(self):
+        table_id = self.sqla_departments.id
+        columns = reflection.Inspector.from_engine(db.engine).get_columns(
+            self.sqla_departments.table_name
+        )
+        column_name = columns[0].get("name")
+
+        response = Geocoder()._does_column_name_exist(table_id, column_name)
+        assert True is response
+
+    def test_does_column_name_not_exist(self):
+        table_id = self.sqla_departments.id
+        column_name = "no_column"
+
+        response = Geocoder()._does_column_name_exist(table_id, column_name)
+        assert False is response
+
+    def test_does_table_not_exist(self):
+        table_id = -1
+        column_name = "no_column"
+
+        error_message = f"Table with ID {table_id} does not exists"
+        with self.assertRaisesRegex(TableNotFoundException, error_message):
+            Geocoder()._does_column_name_exist(table_id, column_name)
+
+    def test_load_data_from_all_columns(self):
+        table_id = self.sqla_departments.id
+        geo_columns = ["street", "city", "country"]
+
+        data = Geocoder()._load_data_from_columns(table_id, geo_columns)
+        assert 5 == len(data)
+        assert ("Oberseestrasse 10", "Rapperswil", "Switzerland") in data
+
+    def test_load_data_from_columns_with_none(self):
+        table_id = self.sqla_departments.id
+        geo_columns = ["street", None, "country"]
+
+        data = Geocoder()._load_data_from_columns(table_id, geo_columns)
+        assert 5 == len(data)
+        assert ("Oberseestrasse 10", "Switzerland") in data
+
+    def test_add_lat_lon_columns(self):
+        table_id = self.sqla_departments.id
+        lat_column_name = "latitude"
+        lon_column_name = "longitude"
+
+        columns = self.sqla_departments.columns
+        number_of_columns_before = len(columns)
+
+        Geocoder()._add_lat_lon_columns(table_id, lat_column_name, lon_column_name)
+
+        columns = self.sqla_departments.columns
+        number_of_columns_after = len(columns)
+
+        assert number_of_columns_after == number_of_columns_before + 2
+        column_names = [column.column_name for column in columns]
+        assert lon_column_name in column_names
+        assert lat_column_name in column_names
 
     def test_insert_geocoded_data(self):
-        table_name = "birth_names"
-
-        selected_columns = ["name", "gender"]
+        lat_column_name = "lat"
+        lon_column_name = "lon"
+        table_name = self.sqla_departments.name
+        table_id = self.sqla_departments.id
+        geo_columns = ["street", "city", "country"]
         data = [
-            ("Aaron", "boy", 1, "2.2"),
-            ("Amy", "girl", 3, "4.4"),
-            ("Barbara", "girl", 5, "6.6"),
-            ("Bradley", "boy", 7, "8.8"),
+            ("Oberseestrasse 10", "Rapperswil", "Switzerland", 47.224, 8.8181),
+            ("Grossmünsterplatz", "Zürich", "Switzerland", 47.370, 8.544),
+            ("Uetliberg", "Zürich", "Switzerland", 47.353, 8.492),
+            ("Zürichbergstrasse 221", "Zürich", "Switzerland", 47.387, 8.574),
+            ("Bahnhofstrasse", "Zürich", "Switzerland", 47.372, 8.539),
         ]
-        first_column_name = "num"
-        second_column_name = "state"
 
-        geocoding.Geocoder()._insert_geocoded_data(
-            table_name, first_column_name, second_column_name, selected_columns, data
+        Geocoder()._insert_geocoded_data(
+            table_id, lat_column_name, lon_column_name, geo_columns, data
         )
+
         result = db.engine.execute(
-            "SELECT name, gender, num, state FROM birth_names WHERE name IN ('Aaron', 'Amy', 'Barbara', 'Bradley')"
+            f"SELECT street, city, country, {lat_column_name}, {lon_column_name} FROM {table_name}"
         )
         for row in result:
             assert row in data
+
+    def _geocode_post(self):
+        table_dto = models.TableDto(
+            self.sqla_departments.id,
+            self.sqla_departments.table_name,
+            self.sqla_departments.schema,
+            self.sqla_departments.database_id,
+        )
+        return {
+            "datasource": table_dto.to_json(),
+            "streetColumn": "street",
+            "cityColumn": "city",
+            "countryColumn": "country",
+            "latitudeColumnName": "lat",
+            "longitudeColumnName": "long",
+            "overwriteIfExists": True,
+            "saveOnErrorOrInterrupt": True,
+        }
+
+    def test_geocode(self):
+        expected_coordinates = GeocoderUtilMock(conf).geocoded_data.values()
+        url = "/geocoder/geocoding/geocode"
+
+        # geocoded_data = self.get_resp(url, json_=self._geocode_post())
+        #
+        # for coordinates in expected_coordinates:
+        #     assert str(coordinates[0]) in geocoded_data
+        #     assert str(coordinates[1]) in geocoded_data
+        #
+        # geocoded_list = json.loads(geocoded_data)
+        # assert 5 == len(geocoded_list)
+        # for address in geocoded_list:
+        #     assert 5 == len(address)
+
+    def test_progress(self):
+        geocode_url = "/geocoder/geocoding/geocode"
+        progress_url = "/geocoder/geocoding/progress"
+
+        geocode = threading.Thread(
+            target=self.get_resp,
+            args=(geocode_url, None, True, True, self._geocode_post()),
+        )
+        geocode.start()
+        time.sleep(
+            4
+        )  # Wait to be sure geocode has geocoded some data, but not all (5 addresses * 2 sec)
+
+        progress = json.loads(self.get_resp(progress_url))
+        assert 0 < progress.get("progress", 0)
+        assert progress.get("is_in_progress", False)
+        assert 0 < progress.get("success_counter", 0)
+
+        geocode.join()
+
+    def test_interrupt(self):
+        geocode_url = "/geocoder/geocoding/geocode"
+        interrupt_url = "/geocoder/geocoding/interrupt"
+        progress_url = "/geocoder/geocoding/progress"
+
+        geocode = threading.Thread(
+            target=self.get_resp,
+            args=(geocode_url, None, True, True, self._geocode_post()),
+        )
+        geocode.start()
+        time.sleep(
+            4
+        )  # Wait to be sure geocode has geocoded some data, but not all (5 addresses * 2 sec)
+
+        interrupt = self.get_resp(interrupt_url, json_=json.dumps("{}"))
+        assert "" == interrupt
+
+        time.sleep(4)  # Wait to be sure geocode has geocoded another data
+
+        progress = json.loads(self.get_resp(progress_url))
+        assert 5 >= progress.get("success_counter", 0)
+        assert 0 == progress.get("progress", 5)
+        assert not progress.get("is_in_progress", True)
+
+        geocode.join()
