@@ -145,7 +145,7 @@ class Geocoder(BaseSupersetView):
         try:
             table_dto = request_data.get("datasource", models.TableDto())
             self._check_and_create_columns(request_data)
-            data = self._load_data_from_columns(table_dto.get("id", ""), columns)
+            table_data = self._load_data_from_columns(table_dto.get("id", ""), columns)
         except ValueError as e:
             self.logger.exception(f"ValueError when querying for lat/lon columns {e}")
             self.stats_logger.incr("geocoding_failed")
@@ -162,7 +162,7 @@ class Geocoder(BaseSupersetView):
             return json_error_response(e.args[0], status=500)
 
         try:
-            data = self._geocode(data, "maptiler")
+            geocoded_values_with_message = self._geocode(table_data, "maptiler")
         except NoAPIKeySuppliedException as e:
             self.logger.exception(e.args[0])
             self.stats_logger.incr("geocoding_failed")
@@ -171,13 +171,13 @@ class Geocoder(BaseSupersetView):
             if not save_on_stop_geocoding:
                 return json_success(json.dumps("geocoding interrupted"))
         # If there was an error, data[0] will be a message, otherwise it will be an empty string meaning we can proceed
-        if data[0]:
+        if geocoded_values_with_message[0]:
             if not save_on_stop_geocoding:
-                return json_error_response(json.dumps(data[0]))
+                return json_error_response(json.dumps(geocoded_values_with_message[0]))
         try:
-            data = data[1]
+            geocoded_values = geocoded_values_with_message[1]
             # It is possible that no exception occured but no geocoded values are returned check for this
-            if not data[0]:
+            if len(geocoded_values[0]) == 0:
                 return json_error_response(json.dumps("No geocoded values received"))
             table_dto = request_data.get("datasource", models.TableDto())
             table_id = table_dto.get("id", "")
@@ -196,7 +196,7 @@ class Geocoder(BaseSupersetView):
                 lat_column,
                 lon_column,
                 columns,
-                data[0],
+                geocoded_values[0],
                 table_dto.get("schema"),
                 connection,
             )
@@ -221,7 +221,7 @@ class Geocoder(BaseSupersetView):
         )
         flash(message, "success")
         self.stats_logger.incr("succesful_geocoding")
-        return json_success(json.dumps(data))
+        return json_success(json.dumps(geocoded_data))
 
     def _check_and_create_columns(self, request_data):
         lat_column = request_data.get("latitudeColumnName", "lat")
