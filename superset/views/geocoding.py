@@ -283,13 +283,9 @@ class Geocoder(BaseSupersetView):
         try:
             column_list = self._create_column_list(columns)
             table = self._get_table_by_id(id)
-            database = (
-                db.session.query(models.Database)
-                .filter_by(id=table.database_id)
-                .first()
-            )
+            database = table.database
             if "sqlite" in database.db_engine_spec.engine:
-                table_name = '"main"."' + table.table_name + '"'
+                table_name = f'"main"."{table.table_name}'
 
             sql = f"SELECT {column_list} FROM {table_name}"
 
