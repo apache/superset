@@ -163,7 +163,7 @@ class FilterBox extends React.Component {
 
   renderDateFilter() {
     const { showDateFilter, chartId } = this.props;
-    const label = t(TIME_FILTER_LABELS.time_range);
+    const label = TIME_FILTER_LABELS.time_range;
     if (showDateFilter) {
       return (
         <div className="row space-1">
