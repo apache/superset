@@ -30,6 +30,7 @@ import superset.models.core as models
 from superset import appbuilder, conf, db
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.exceptions import (
+    NoAPIKeySuppliedException,
     SqlAddColumnException,
     SqlSelectException,
     SqlUpdateException,
@@ -161,12 +162,12 @@ class Geocoder(BaseSupersetView):
             return json_error_response(e.args[0], status=500)
 
         try:
-            data = self._geocode(data)
-        except Exception as e:
-            self.logger.exception(f"Exception when geocoding data {e}")
-            if not save_on_stop_geocoding:
-                self.stats_logger.incr("geocoding_failed")
-                return json_error_response(e.args[0])
+            data = self._geocode(data, "maptiler")
+        except NoAPIKeySuppliedException:
+            message = f"No Key was supplied for specified Geocoding API"
+            self.logger.exception(message)
+            self.stats_logger.incr("geocoding_failed")
+            return json_error_response(message)
         if self.geocoder_util.interruptflag:
             if not save_on_stop_geocoding:
                 return json_success(json.dumps("geocoding interrupted"))
@@ -181,13 +182,15 @@ class Geocoder(BaseSupersetView):
                 return json_error_response(json.dumps("No geocoded values received"))
             table_dto = request_data.get("datasource", models.TableDto())
             table_id = table_dto.get("id", "")
-            schema = table_dto.get("schema", "")
             table = db.session.query(SqlaTable).filter_by(id=table_id).first()
             database = (
                 db.session.query(models.Database)
                 .filter_by(id=table.database_id)
                 .first()
             )
+            if "sqlite" in database.db_engine_spec.engine:
+                table_dto["schema"] = "main"
+
             connection = database.get_sqla_engine().connect()
             self._insert_geocoded_data(
                 table_name.get("fullName"),
@@ -195,7 +198,7 @@ class Geocoder(BaseSupersetView):
                 lon_column,
                 columns,
                 data[0],
-                schema,
+                table_dto.get("schema"),
                 connection,
             )
         except (SqlAddColumnException, SqlUpdateException) as e:
@@ -313,17 +316,23 @@ class Geocoder(BaseSupersetView):
                 column_list.append('"' + column + '"')
         return ", ".join(filter(None, column_list))
 
-    def _geocode(self, data: list, dev=False):
+    def _geocode(self, data: list, geocode_api: str, dev=False):
         """
         Internal method which starts the geocoding
         :param data: the data to be geocoded as a list of tuples
         :param dev: Whether to Mock the geocoding process for testing purposes
         :return: a list of tuples containing the data and the corresponding long, lat values
         """
+        self._check_API_Key(geocode_api)
         if dev:
             return self.geocoder_util.geocode("", data)
         else:
-            return self.geocoder_util.geocode("MapTiler", data)
+            return self.geocoder_util.geocode(geocode_api, data)
+
+    def _check_API_Key(self, geocode_api: str):
+        if "maptiler" in geocode_api:
+            if not conf["MAPTILER_API_KEY"]:
+                raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
 
     def _add_lat_lon_columns(
         self,
