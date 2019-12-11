@@ -94,6 +94,10 @@ class NoUsernameSuppliedException(CsvException):
     status = 400
 
 
+class NoHostNameSuppliedException(CsvException):
+    status = 400
+
+
 class GetDatabaseException(CsvException):
     status = 400
 

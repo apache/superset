@@ -46,6 +46,7 @@ POSTGRESQL = "postgres"
 POSTGRESQLFLAVOR = "postgresql"
 POSTGRESQL_USERNAME = "POSTGRESQL_USERNAME"
 POSTGRESQL_PASSWORD = "POSTGRESQL_PASSWORD"
+POSTGRESQL_HOST = "POSTGRESQL_HOST"
 
 
 class CsvUploadTests(SupersetTestCase):
@@ -161,6 +162,7 @@ class CsvUploadTests(SupersetTestCase):
         )
         conf[POSTGRESQL_USERNAME] = POSTGRESQL
         conf[POSTGRESQL_PASSWORD] = POSTGRESQL
+        conf[POSTGRESQL_HOST] = "localhost"
         try:
             response = self.get_resp(url, data=form_data)
             assert "OK" in response
@@ -240,6 +242,7 @@ class CsvUploadTests(SupersetTestCase):
         db_name = "newPostgresqlDatabase"
         conf[POSTGRESQL_USERNAME] = POSTGRESQL
         conf[POSTGRESQL_PASSWORD] = POSTGRESQL
+        conf[POSTGRESQL_HOST] = "localhost"
         try:
             (new_database, uri) = self.importer._create_database(
                 db_name, POSTGRESQLFLAVOR
@@ -296,6 +299,7 @@ class CsvUploadTests(SupersetTestCase):
         db_name = "postgres_already_exist"
         conf[POSTGRESQL_USERNAME] = POSTGRESQL
         conf[POSTGRESQL_PASSWORD] = POSTGRESQL
+        conf[POSTGRESQL_HOST] = "localhost"
         error_message = f"The database {db_name} already exists"
         try:
             self.importer._create_database(db_name, POSTGRESQLFLAVOR)
