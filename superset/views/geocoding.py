@@ -27,7 +27,7 @@ from sqlalchemy import Column, Float, text
 from sqlalchemy.engine import Connection, reflection
 
 import superset.models.core as models
-from superset import appbuilder, conf, db
+from superset import appbuilder, conf, db, SupersetSecurityManager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
     SqlAddColumnException,
@@ -81,14 +81,19 @@ class Geocoder(BaseSupersetView):
         for database in (
             db.session.query(models.Database).filter_by(allow_dml=True).all()
         ):
+            all_tables = db.session.query(SqlaTable).filter_by(database_id=database.id).all()
+            security_manager = SupersetSecurityManager()
+            permitted_tables = security_manager.get_datasources_accessible_by_user(database, all_tables)
             for table in (
-                db.session.query(SqlaTable).filter_by(database_id=database.id).all()
+                all_tables
             ):
-                tables.append(
-                    models.TableDto(
-                        table.id, table.table_name, table.schema, table.database_id
+                if table.table_name in permitted_tables:
+                    tables.append(
+                        models.TableDto(
+                            table.id, table.table_name, table.schema, table.database_id
+                        )
                     )
-                )
+
         return tables
 
     @api
