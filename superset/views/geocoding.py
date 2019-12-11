@@ -27,8 +27,8 @@ from sqlalchemy import Column, Float, text
 from sqlalchemy.engine import Connection, reflection
 
 import superset.models.core as models
-from superset import appbuilder, conf, db, SupersetSecurityManager, security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset import appbuilder, conf, db, security_manager
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.exceptions import (
     SqlAddColumnException,
     SqlSelectException,
@@ -143,7 +143,6 @@ class Geocoder(BaseSupersetView):
         lat_column = request_data.get("latitudeColumnName", "lat")
         lon_column = request_data.get("longitudeColumnName", "lon")
         save_on_stop_geocoding = request.json.get("saveOnErrorOrInterrupt", True)
-        data = [()]
 
         try:
             table_dto = request_data.get("datasource", models.TableDto())
@@ -171,9 +170,36 @@ class Geocoder(BaseSupersetView):
             if not save_on_stop_geocoding:
                 self.stats_logger.incr("geocoding_failed")
                 return json_error_response(e.args[0])
+        if self.geocoder_util.interruptflag:
+            if not save_on_stop_geocoding:
+                return json_success(json.dumps("geocoding interrupted"))
+        # If there was an error, data[0] will be a message, otherwise it will be an empty string meaning we can proceed
+        if data[0]:
+            if not save_on_stop_geocoding:
+                return json_error_response(json.dumps(data[0]))
         try:
+            data = data[1]
+            # It is possible that no exception occured but no geocoded values are returned check for this
+            if not data[0]:
+                return json_error_response(json.dumps("No geocoded values received"))
+            table_dto = request_data.get("datasource", models.TableDto())
+            table_id = table_dto.get("id", "")
+            schema = table_dto.get("schema", "")
+            table = db.session.query(SqlaTable).filter_by(id=table_id).first()
+            database = (
+                db.session.query(models.Database)
+                .filter_by(id=table.database_id)
+                .first()
+            )
+            connection = database.get_sqla_engine().connect()
             self._insert_geocoded_data(
-                table_name.get("fullName"), lat_column, lon_column, columns, data[0]
+                table_name.get("fullName"),
+                lat_column,
+                lon_column,
+                columns,
+                data[0],
+                schema,
+                connection,
             )
         except (SqlAddColumnException, SqlUpdateException) as e:
             self.logger.exception(
@@ -213,16 +239,16 @@ class Geocoder(BaseSupersetView):
                     pass
                 else:
                     self._add_lat_lon_columns(
-                        table_name.get("fullName"), lon_column=lon_column
+                        table_name.get("fullName"), table_id, lon_column=lon_column
                     )
             else:
                 if lon_exists:
                     self._add_lat_lon_columns(
-                        table_name.get("fullName"), lat_column=lat_column
+                        table_name.get("fullName"), table_id, lat_column=lat_column
                     )
                 else:
                     self._add_lat_lon_columns(
-                        table_name.get("fullName"), lat_column, lon_column
+                        table_name.get("fullName"), table_id, lat_column, lon_column
                     )
 
         else:
@@ -235,7 +261,7 @@ class Geocoder(BaseSupersetView):
                     "Column name {0} for longitude is already in use".format(lon_column)
                 )
             self._add_lat_lon_columns(
-                table_name.get("fullName"), lat_column, lon_column
+                table_name.get("fullName"), table_id, lat_column, lon_column
             )
 
     def _does_column_name_exist(self, id: int, column_name: str):
@@ -259,14 +285,18 @@ class Geocoder(BaseSupersetView):
         :raise SqlSelectException: When SELECT from given columns went wrong
         """
         try:
-            table = self._get_table(id)
             column_list = self._create_column_list(columns)
-            sql = "SELECT " + column_list + ' FROM "%s"' % table.table_name
+            table = self._get_table(id)
             database = (
                 db.session.query(models.Database)
                 .filter_by(id=table.database_id)
                 .first()
             )
+            if "sqlite" in database.db_engine_spec.engine:
+                table_name = '"main"."' + table.table_name + '"'
+
+            sql = f"SELECT {column_list} FROM {table_name}"
+
             result = database.get_sqla_engine().connect().execute(sql)
             return [row for row in result]
         except Exception as e:
@@ -299,7 +329,11 @@ class Geocoder(BaseSupersetView):
             return self.geocoder_util.geocode("MapTiler", data)
 
     def _add_lat_lon_columns(
-        self, table_name: str, lat_column: str = None, lon_column: str = None
+        self,
+        table_name: str,
+        table_id: int,
+        lat_column: str = None,
+        lon_column: str = None,
     ):
         """
         Add new longitude and latitude columns to table
@@ -308,13 +342,17 @@ class Geocoder(BaseSupersetView):
         :param lon_column: The name of longitude column
         :raise SqlAddColumnException: When add column-SQL went wrong
         """
-        connection = db.engine.connect()
+        table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
+        database = table.database
+        connection = database.get_sqla_engine().connect()
         transaction = connection.begin()
         try:
+            table_name = table_name.lower()
+
             if lat_column:
-                self._add_column(connection, table_name, lat_column, Float())
+                self._add_column(connection, table_name, lat_column, Float(), table_id)
             if lon_column:
-                self._add_column(connection, table_name, lon_column, Float())
+                self._add_column(connection, table_name, lon_column, Float(), table_id)
             transaction.commit()
         except Exception as e:
             transaction.rollback()
@@ -329,6 +367,7 @@ class Geocoder(BaseSupersetView):
         table_name: str,
         column_name: str,
         column_type: str,
+        table_id: int,
     ):
         """
         Add new column to table
@@ -340,8 +379,10 @@ class Geocoder(BaseSupersetView):
         column = Column(column_name, column_type)
         name = column.compile(column_name, dialect=db.engine.dialect)
         type = column.type.compile(db.engine.dialect)
-        sql = text("ALTER TABLE %s ADD %s %s" % (table_name, name, type))
+        sql = text('ALTER TABLE "main"."%s" ADD %s %s' % (table_name, name, type))
         connection.execute(sql)
+        table = self._get_table(table_id)
+        table.columns.append(TableColumn(column_name=column_name, type=type))
 
     def _insert_geocoded_data(
         self,
@@ -350,6 +391,8 @@ class Geocoder(BaseSupersetView):
         lon_column: str,
         geo_columns: list,
         data: tuple,
+        schema: str,
+        connection=None,
     ):
         """
         Insert geocoded coordinates in table
@@ -362,10 +405,11 @@ class Geocoder(BaseSupersetView):
         """
         where_clause = "='%s' AND ".join(filter(None, geo_columns)) + "='%s'"
         number_of_columns = len(geo_columns)
-
-        connection = db.engine.connect()
+        if connection.engine.name == "sqlite":
+            schema = "main"
         transaction = connection.begin()
         try:
+            table_name = f'"{schema}"."{table_name}"'
             for row in data:
                 update = "UPDATE %s SET %s=%s, %s=%s " % (
                     table_name,
@@ -401,7 +445,7 @@ class Geocoder(BaseSupersetView):
     def interrupt(self) -> Response:
         """ Used for interrupting the geocoding process """
         self.geocoder_util.interruptflag = True
-        return json_success("")
+        return json_success('"ok"')
 
 
 appbuilder.add_view_no_menu(Geocoder)
