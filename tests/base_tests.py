@@ -228,6 +228,7 @@ class SupersetTestCase(TestCase):
             cls=models.Database,
             criteria={"database_name": database_name},
             session=db.session,
+            sqlalchemy_uri="sqlite://test",
             id=db_id,
             extra=extra,
         )
