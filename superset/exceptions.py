@@ -67,8 +67,10 @@ class SqlException(SupersetException):
 
     status = 500
 
+
 class TableNotFoundException(SupersetException):
     status = 400
+
 
 class SqlSelectException(SqlException):
     status = 500

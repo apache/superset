@@ -134,6 +134,7 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
             return [center, relevance] or None
         return None
 
+
 class GeocoderUtilMock(GeocoderUtil):  # pylint: disable=too-few-public-methods
     geocoded_data = {
         "Oberseestrasse 10 Rapperswil Switzerland": [47.224, 8.8181],

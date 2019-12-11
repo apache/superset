@@ -20,7 +20,7 @@ import time
 
 import pandas as pd
 import simplejson as json
-from sqlalchemy import Integer, String, Float
+from sqlalchemy import Float, Integer, String
 from sqlalchemy.engine import reflection
 
 import superset.models.core as models
@@ -35,8 +35,8 @@ from .base_tests import SupersetTestCase
 
 
 class GeocodingTests(SupersetTestCase):
-    test_database: Database = None
-    sqla_departments: SqlaTable = None
+    test_database: Database
+    sqla_departments: SqlaTable
 
     def __init__(self, *args, **kwargs):
         super(GeocodingTests, self).__init__(*args, **kwargs)
@@ -47,7 +47,9 @@ class GeocodingTests(SupersetTestCase):
         self.create_table_in_view()
 
     def create_table_in_view(self):
-        if not self.test_database or not self.test_database.has_table_by_name("Departments"):
+        if not self.test_database or not self.test_database.has_table_by_name(
+            "Departments"
+        ):
             self.test_database = db.session.query(Database).first()
             self.test_database.allow_dml = True
 
@@ -282,7 +284,6 @@ class GeocodingTests(SupersetTestCase):
 
         response = self.get_resp(url, json_=self._geocode_post())
         assert "OK" in response
-
 
     def test_progress(self):
         geocode_url = "/geocoder/geocoding/geocode"

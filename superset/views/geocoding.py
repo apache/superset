@@ -33,7 +33,8 @@ from superset.exceptions import (
     SqlAddColumnException,
     SqlSelectException,
     SqlUpdateException,
-    TableNotFoundException)
+    TableNotFoundException,
+)
 from superset.utils.geocoding_utils import GeocoderUtil
 
 from .base import api, BaseSupersetView, json_error_response, json_success
@@ -209,18 +210,12 @@ class Geocoder(BaseSupersetView):
                 if lon_exists:
                     pass
                 else:
-                    self._add_lat_lon_columns(
-                        table_id, lon_column=lon_column
-                    )
+                    self._add_lat_lon_columns(table_id, lon_column=lon_column)
             else:
                 if lon_exists:
-                    self._add_lat_lon_columns(
-                        table_id, lat_column=lat_column
-                    )
+                    self._add_lat_lon_columns(table_id, lat_column=lat_column)
                 else:
-                    self._add_lat_lon_columns(
-                        table_id, lat_column, lon_column
-                    )
+                    self._add_lat_lon_columns(table_id, lat_column, lon_column)
 
         else:
             if self._does_column_name_exist(table_id, lat_column):
@@ -231,9 +226,7 @@ class Geocoder(BaseSupersetView):
                 raise ValueError(
                     "Column name {0} for longitude is already in use".format(lon_column)
                 )
-            self._add_lat_lon_columns(
-                table_id, lat_column, lon_column
-            )
+            self._add_lat_lon_columns(table_id, lat_column, lon_column)
 
     def _does_column_name_exist(self, id: int, column_name: str):
         """
@@ -294,9 +287,13 @@ class Geocoder(BaseSupersetView):
         transaction = connection.begin()
         try:
             if lat_column:
-                self._add_column(connection, table.table_name, table_id, lat_column, Float())
+                self._add_column(
+                    connection, table.table_name, table_id, lat_column, Float()
+                )
             if lon_column:
-                self._add_column(connection, table.table_name, table_id, lon_column, Float())
+                self._add_column(
+                    connection, table.table_name, table_id, lon_column, Float()
+                )
             transaction.commit()
         except Exception as e:
             transaction.rollback()
@@ -329,7 +326,9 @@ class Geocoder(BaseSupersetView):
         sql = text("ALTER TABLE %s ADD %s %s" % (table_name, name, type))
         connection.execute(sql)
 
-        self._get_table(table_id).columns.append(TableColumn(column_name=column_name, type=type))
+        self._get_table(table_id).columns.append(
+            TableColumn(column_name=column_name, type=type)
+        )
 
     def _insert_geocoded_data(
         self,
@@ -337,7 +336,7 @@ class Geocoder(BaseSupersetView):
         lat_column: str,
         lon_column: str,
         geo_columns: list,
-        data: list,
+        data,
     ):
         """
         Insert geocoded coordinates in table
