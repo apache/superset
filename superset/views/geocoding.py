@@ -270,7 +270,7 @@ class Geocoder(BaseSupersetView):
             column_names = [column.column_name.lower() for column in table.columns]
         return column_name.lower() in column_names
 
-    def _load_data_from_columns(self, table_dto: models.TableDto, columns: list):
+    def _load_data_from_columns(self, table_dto: dict, columns: list):
         """
         Get data from columns form table
         :param table_name: The table name from table from which select
@@ -280,7 +280,8 @@ class Geocoder(BaseSupersetView):
         """
         try:
             column_list = self._create_column_list(columns)
-            table = self._get_table_by_id(table_dto.get("id"))
+            table_id = table_dto.get("id", "")
+            table = self._get_table_by_id(table_id)
             database = table.database
             schema = table_dto.get("schema")
             if schema:
@@ -335,7 +336,7 @@ class Geocoder(BaseSupersetView):
     def _add_lat_lon_columns(
         self,
         table_name: str,
-        table_dto: models.TableDto,
+        table_dto: dict,
         lat_column: str = None,
         lon_column: str = None,
     ):
@@ -368,7 +369,7 @@ class Geocoder(BaseSupersetView):
     def _add_column(
         self,
         connection: Connection,
-        table_dto: models.TableDto,
+        table_dto: dict,
         column_name: str,
         column_type: str,
     ):
@@ -389,7 +390,8 @@ class Geocoder(BaseSupersetView):
             table_name = f'"{table_dto.get("name")}"'
         sql = f"ALTER TABLE {table_name} ADD {name} {column_type}"
         connection.execute(sql)
-        table = self._get_table_by_id(table_dto.get("id"))
+        table_id = table_dto.get("id", "")
+        table = self._get_table_by_id(table_id)
         table.columns.append(TableColumn(column_name=column_name, type=column_type))
 
     def _insert_geocoded_data(
@@ -420,13 +422,11 @@ class Geocoder(BaseSupersetView):
             else:
                 table_name = f'"{table_name}"'
             for row in data:
-                update = "UPDATE %s SET %s=%s, %s=%s " % (
-                    table_name,
-                    lat_column,
-                    row[number_of_columns],
-                    lon_column,
-                    row[number_of_columns + 1],
+                update = (
+                    f"UPDATE {table_name} SET {lat_column} = {row[number_of_columns]},"
+                    f" {lon_column} = {row[number_of_columns + 1]} "
                 )
+
                 where = "WHERE " + where_clause % (tuple(row[:number_of_columns]))
                 connection.execute(text(update + where))
             transaction.commit()
