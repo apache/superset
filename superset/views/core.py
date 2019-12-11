@@ -105,7 +105,10 @@ from .base import (
 # The database views import is required so that we can append
 # more links to to the same menu item, even though it's not
 # referenced directly in this file.
-from .database import views as in_views  # pylint: disable=unused-import
+from .database import (  # pylint: disable=unused-import
+    api as database_api,
+    views as in_views,
+)
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
@@ -647,12 +650,13 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         all_datasource_access = security_manager.all_datasource_access()
+        # pylint: disable=singleton-comparison
         published_dash_query = (
             db.session.query(models.Dashboard.id)
             .join(models.Dashboard.slices)
             .filter(
                 and_(
-                    models.Dashboard.published is True,  # noqa
+                    models.Dashboard.published == True,
                     or_(
                         models.Slice.perm.in_(datasource_perms),
                         models.Slice.schema_perm.in_(schema_perms),
@@ -661,7 +665,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 )
             )
         )
-
+        # pylint: enable=singleton-comparison
         users_favorite_dash_query = db.session.query(models.FavStar.obj_id).filter(
             and_(
                 models.FavStar.user_id == ab_models.User.get_user_id(),
