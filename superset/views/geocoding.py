@@ -128,6 +128,7 @@ class Geocoder(BaseSupersetView):
                  or an error message if somethings went wrong
         """
         request_data = request.json
+        # is this needed or replaced with table_dto?
         table_name = request_data.get("datasource", "")
         columns = []
 
@@ -182,11 +183,7 @@ class Geocoder(BaseSupersetView):
             table_dto = request_data.get("datasource", models.TableDto())
             table_id = table_dto.get("id", "")
             table = db.session.query(SqlaTable).filter_by(id=table_id).first()
-            database = (
-                db.session.query(models.Database)
-                .filter_by(id=table.database_id)
-                .first()
-            )
+            database = table.database
             if "sqlite" in database.db_engine_spec.engine:
                 table_dto["schema"] = "main"
 
@@ -263,14 +260,14 @@ class Geocoder(BaseSupersetView):
                 table_name.get("fullName"), table_id, lat_column, lon_column
             )
 
-    def _does_column_name_exist(self, id: int, column_name: str):
+    def _does_column_name_exist(self, table_id: int, column_name: str):
         """
         Check if column name already exists in table
         :param table_name: The table name of table to check
         :param column_name: The name of column to check
         :return true if column name exists in table
         """
-        table = self._get_table(id)
+        table = self._get_table_by_id(table_id)
         if table and table.columns:
             column_names = [column.column_name.lower() for column in table.columns]
         return column_name.lower() in column_names
@@ -285,7 +282,7 @@ class Geocoder(BaseSupersetView):
         """
         try:
             column_list = self._create_column_list(columns)
-            table = self._get_table(id)
+            table = self._get_table_by_id(id)
             database = (
                 db.session.query(models.Database)
                 .filter_by(id=table.database_id)
@@ -305,8 +302,13 @@ class Geocoder(BaseSupersetView):
                 e,
             )
 
-    def _get_table(self, id: int):
-        return db.session.query(SqlaTable).filter_by(id=id).first()
+    def _get_table_by_id(self, table_id: int) -> SqlaTable:
+        """
+        Get a SqlaTable object from the session and return it
+        :param table_id: The ID of the table to get
+        :return: The SqlaTable object with the corresponding ID
+        """
+        return db.session.query(SqlaTable).filter_by(id=table_id).first()
 
     def _create_column_list(self, columns):
         column_list = []
@@ -386,7 +388,7 @@ class Geocoder(BaseSupersetView):
         type = column.type.compile(db.engine.dialect)
         sql = text('ALTER TABLE "main"."%s" ADD %s %s' % (table_name, name, type))
         connection.execute(sql)
-        table = self._get_table(table_id)
+        table = self._get_table_by_id(table_id)
         table.columns.append(TableColumn(column_name=column_name, type=type))
 
     def _insert_geocoded_data(
