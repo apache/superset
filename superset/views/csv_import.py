@@ -299,9 +299,7 @@ class CsvImporter(BaseSupersetView):
             )
         postgresql_host = conf["POSTGRESQL_HOST"]
         if not postgresql_host:
-            raise NoHostNameSuppliedException(
-                "No host supplied for PostgreSQL", None
-            )
+            raise NoHostNameSuppliedException("No host supplied for PostgreSQL", None)
         postgresql_port = conf["POSTGRESQL_PORT"]
 
         if postgresql_port:
