@@ -24,12 +24,13 @@ import pandas as pd
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 
+import superset.models.database
 from tests.test_app import app  # isort:skip
 from superset import db, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
-from superset.models.core import Database
+from superset.models.database import Database
 from superset.utils.core import get_example_database
 
 FAKE_DB_NAME = "fake_db_100"
@@ -225,7 +226,7 @@ class SupersetTestCase(TestCase):
         }"""
 
         return self.get_or_create(
-            cls=models.Database,
+            cls=superset.models.database.Database,
             criteria={"database_name": database_name},
             session=db.session,
             sqlalchemy_uri="sqlite://test",

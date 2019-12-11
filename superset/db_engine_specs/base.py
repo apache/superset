@@ -39,9 +39,10 @@ from werkzeug.utils import secure_filename
 from superset import app, sql_parse
 from superset.utils import core as utils
 
+# pylint: disable=unused-import
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.models.database import Database
 
 
 class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods

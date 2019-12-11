@@ -20,6 +20,7 @@ import json
 import unittest
 from unittest import mock
 
+import superset.models.database
 from tests.test_app import app  # isort:skip
 from superset import db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -283,7 +284,7 @@ class RequestAccessTests(SupersetTestCase):
         create_access_request(session, "table", "energy_usage", TEST_ROLE_2, "gamma2")
         ds_1_id = access_request1.datasource_id
         # gamma gets granted database access
-        database = session.query(models.Database).first()
+        database = session.query(superset.models.database.Database).first()
 
         security_manager.add_permission_view_menu("database_access", database.perm)
         ds_perm_view = security_manager.find_permission_view_menu(

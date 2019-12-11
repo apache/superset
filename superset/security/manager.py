@@ -38,6 +38,7 @@ from sqlalchemy import or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.mapper import Mapper
 
+import superset.models.database
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetSecurityException
@@ -46,7 +47,7 @@ from superset.utils.core import DatasourceName
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
-    from superset.models.core import Database
+    from superset.models.database import Database
     from superset.viz import BaseViz
 
 
@@ -572,7 +573,7 @@ class SupersetSecurityManager(SecurityManager):
             merge_pv("schema_access", datasource.get_schema_perm())
 
         logging.info("Creating missing database permissions.")
-        databases = db.session.query(models.Database).all()
+        databases = db.session.query(superset.models.database.Database).all()
         for database in databases:
             merge_pv("database_access", database.perm)
 

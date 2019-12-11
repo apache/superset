@@ -17,7 +17,7 @@
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-import superset.models.core as models
+from superset.models.database import Database
 from superset import appbuilder
 
 from .mixins import DatabaseFilter, DatabaseMixin
@@ -25,7 +25,7 @@ from .validators import sqlalchemy_uri_validator
 
 
 class DatabaseRestApi(DatabaseMixin, ModelRestApi):
-    datamodel = SQLAInterface(models.Database)
+    datamodel = SQLAInterface(Database)
 
     class_permission_name = "DatabaseAsync"
     method_permission_name = {

@@ -18,7 +18,7 @@
 import logging
 
 from superset.connectors.druid.models import DruidCluster
-from superset.models.core import Database
+from superset.models.database import Database
 
 DATABASES_KEY = "databases"
 DRUID_CLUSTERS_KEY = "druid_clusters"

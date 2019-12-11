@@ -52,6 +52,7 @@ from werkzeug.routing import BaseConverter
 from werkzeug.urls import Href
 
 import superset.models.core as models
+import superset.models.database
 from superset import (
     app,
     appbuilder,
@@ -1479,7 +1480,11 @@ class Superset(BaseSupersetView):
     def schemas(self, db_id, force_refresh="false"):
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == "true"
-        database = db.session.query(models.Database).filter_by(id=db_id).first()
+        database = (
+            db.session.query(superset.models.database.Database)
+            .filter_by(id=db_id)
+            .first()
+        )
         if database:
             schemas = database.get_all_schema_names(
                 cache=database.schema_cache_enabled,
@@ -1502,7 +1507,11 @@ class Superset(BaseSupersetView):
         force_refresh = force_refresh.lower() == "true"
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         substr = utils.parse_js_uri_path_item(substr, eval_undefined=True)
-        database = db.session.query(models.Database).filter_by(id=db_id).one()
+        database = (
+            db.session.query(superset.models.database.Database)
+            .filter_by(id=db_id)
+            .one()
+        )
 
         if schema:
             tables = (
@@ -1749,7 +1758,7 @@ class Superset(BaseSupersetView):
             # we assume we should retrieve the decrypted URI to test the connection.
             if db_name:
                 existing_database = (
-                    db.session.query(models.Database)
+                    db.session.query(superset.models.database.Database)
                     .filter_by(database_name=db_name)
                     .first()
                 )
@@ -1757,7 +1766,7 @@ class Superset(BaseSupersetView):
                     uri = existing_database.sqlalchemy_uri_decrypted
 
             # this is the database instance that will be tested
-            database = models.Database(
+            database = superset.models.database.Database(
                 # extras is sent as json, but required to be a string in the Database model
                 extra=json.dumps(request.json.get("extras", {})),
                 impersonate_user=request.json.get("impersonate_user"),
@@ -2043,9 +2052,9 @@ class Superset(BaseSupersetView):
             SqlaTable = ConnectorRegistry.sources["table"]
             table = (
                 session.query(SqlaTable)
-                .join(models.Database)
+                .join(superset.models.database.Database)
                 .filter(
-                    models.Database.database_name == db_name
+                    superset.models.database.Database.database_name == db_name
                     or SqlaTable.table_name == table_name
                 )
             ).first()
@@ -2355,7 +2364,11 @@ class Superset(BaseSupersetView):
     def table(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        mydb = (
+            db.session.query(superset.models.database.Database)
+            .filter_by(id=database_id)
+            .one()
+        )
         payload_columns = []
         indexes = []
         primary_key = []
@@ -2419,7 +2432,11 @@ class Superset(BaseSupersetView):
     def extra_table_metadata(self, database_id, table_name, schema):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        mydb = (
+            db.session.query(superset.models.database.Database)
+            .filter_by(id=database_id)
+            .one()
+        )
         payload = mydb.db_engine_spec.extra_table_metadata(mydb, table_name, schema)
         return json_success(json.dumps(payload))
 
@@ -2428,7 +2445,11 @@ class Superset(BaseSupersetView):
     @expose("/select_star/<database_id>/<table_name>/<schema>")
     @event_logger.log_this
     def select_star(self, database_id, table_name, schema=None):
-        mydb = db.session.query(models.Database).filter_by(id=database_id).first()
+        mydb = (
+            db.session.query(superset.models.database.Database)
+            .filter_by(id=database_id)
+            .first()
+        )
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
         return json_success(
@@ -2440,7 +2461,11 @@ class Superset(BaseSupersetView):
     @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])
     @event_logger.log_this
     def estimate_query_cost(self, database_id: int, schema: str = None) -> Response:
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one_or_none()
+        mydb = (
+            db.session.query(superset.models.database.Database)
+            .filter_by(id=database_id)
+            .one_or_none()
+        )
 
         sql = json.loads(request.form.get("sql", '""'))
         template_params = json.loads(request.form.get("templateParams") or "{}")
@@ -2603,7 +2628,11 @@ class Superset(BaseSupersetView):
             )
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).one_or_none()
+        mydb = (
+            session.query(superset.models.database.Database)
+            .filter_by(id=database_id)
+            .one_or_none()
+        )
         if not mydb:
             return json_error_response(
                 "Database with id {} is missing.".format(database_id), status=400
@@ -2774,7 +2803,11 @@ class Superset(BaseSupersetView):
         status: str = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).one_or_none()
+        mydb = (
+            session.query(superset.models.database.Database)
+            .filter_by(id=database_id)
+            .one_or_none()
+        )
         if not mydb:
             return json_error_response(f"Database with id {database_id} is missing.")
 
@@ -3101,7 +3134,9 @@ class Superset(BaseSupersetView):
                 database.id: {
                     k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
                 }
-                for database in db.session.query(models.Database).all()
+                for database in db.session.query(
+                    superset.models.database.Database
+                ).all()
             }
             # return all user queries associated with existing SQL editors
             user_queries = (
@@ -3162,7 +3197,11 @@ class Superset(BaseSupersetView):
             return json_error_response("No database is allowed for your csv upload")
 
         db_id = int(request.args.get("db_id"))
-        database = db.session.query(models.Database).filter_by(id=db_id).one()
+        database = (
+            db.session.query(superset.models.database.Database)
+            .filter_by(id=db_id)
+            .one()
+        )
         try:
             schemas_allowed = database.get_schema_access_for_csv_upload()
             if (

@@ -22,9 +22,10 @@ from sqlalchemy.engine.reflection import Inspector
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
+# pylint: disable=unused-import
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.models.database import Database
 
 
 class SqliteEngineSpec(BaseEngineSpec):

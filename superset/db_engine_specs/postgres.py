@@ -21,9 +21,10 @@ from sqlalchemy.dialects.postgresql.base import PGInspector
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
+# pylint: disable=unused-import
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.models.database import Database
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):

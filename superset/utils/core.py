@@ -56,6 +56,7 @@ from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator
 
+import superset.models.database
 from superset.exceptions import SupersetException, SupersetTimeoutException
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
@@ -939,11 +940,15 @@ def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
     from superset.models import core as models
 
     database = (
-        db.session.query(models.Database).filter_by(database_name=database_name).first()
+        db.session.query(superset.models.database.Database)
+        .filter_by(database_name=database_name)
+        .first()
     )
     if not database:
         logging.info(f"Creating database reference for {database_name}")
-        database = models.Database(database_name=database_name, *args, **kwargs)
+        database = superset.models.database.Database(
+            database_name=database_name, *args, **kwargs
+        )
         db.session.add(database)
 
     database.set_sqlalchemy_uri(sqlalchemy_uri)

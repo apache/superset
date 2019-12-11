@@ -366,7 +366,7 @@ def export_datasource_schema(back_references):
 @with_appcontext
 def update_datasources_cache():
     """Refresh sqllab datasources cache"""
-    from superset.models.core import Database
+    from superset.models.database import Database
 
     for database in db.session.query(Database).all():
         if database.allow_multi_schema_metadata_fetch:

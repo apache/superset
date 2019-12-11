@@ -29,6 +29,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
 
+import superset.models.database
 from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
 from superset.utils import core as utils
@@ -334,7 +335,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     edit_form_extra_fields = {
         "database": QuerySelectField(
             "Database",
-            query_factory=lambda: db.session().query(models.Database),
+            query_factory=lambda: db.session().query(superset.models.database.Database),
             widget=Select2Widget(extra_classes="readonly"),
         )
     }

@@ -39,9 +39,10 @@ from superset.models.sql_types.presto_sql_types import type_map as presto_type_m
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 
+# pylint: disable=unused-import
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.models.database import Database
 
 QueryStatus = utils.QueryStatus
 config = app.config
