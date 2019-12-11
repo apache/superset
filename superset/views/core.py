@@ -18,7 +18,6 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import Any, cast, Dict, List, Optional, Union
 from urllib import parse
 
@@ -2829,7 +2828,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @expose("/validate_sql_json/", methods=["POST", "GET"])
     @event_logger.log_this
-    def validate_sql_json(self):  # pylint: disable=too-many-locals,no-self-use
+    def validate_sql_json(
+        self
+    ):  # pylint: disable=too-many-locals,no-self-use,too-many-return-statements
         """Validates that arbitrary sql is acceptable for the given database.
         Returns a list of error/warning annotations as json.
         """
@@ -2890,8 +2891,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # Return as a 400 if the database error message says we got a 4xx error
             if re.search(r"([\W]|^)4\d{2}([\W]|$)", str(e)):
                 return json_error_response(f"{msg}", status=400)
-            else:
-                return json_error_response(f"{msg}")
+
+            return json_error_response(f"{msg}")
 
     @has_access_api
     @expose("/sql_json/", methods=["POST"])
