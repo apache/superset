@@ -79,8 +79,8 @@ class TaggedObject(Model, AuditMixinNullable):
 
     tag = relationship("Tag", backref="objects")
 
-    object_id_index = Index('object_id', unique=False)
-    __table_args__ = (Index('ix_tagged_object_object_id', object_id, unique=False),)
+    object_id_index = Index("object_id", unique=False)
+    __table_args__ = (Index("ix_tagged_object_object_id", object_id, unique=False),)
 
 
 def get_tag(name, session, type_):

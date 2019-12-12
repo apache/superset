@@ -23,8 +23,8 @@ Create Date: 2019-12-03 13:26:12.237543
 """
 
 # revision identifiers, used by Alembic.
-revision = '9c49cfecf0de'
-down_revision = '817e1c9b09d0'
+revision = "9c49cfecf0de"
+down_revision = "817e1c9b09d0"
 
 import sqlalchemy as sa
 from alembic import op
@@ -32,15 +32,13 @@ from sqlalchemy.dialects import postgresql
 
 
 def upgrade():
-    op.alter_column('annotation', 'layer_id',
-               existing_type=sa.INTEGER(),
-               nullable=False)
-    op.create_foreign_key(None, 'datasources', 'ab_user', ['changed_by_fk'], ['id'])
+    op.alter_column(
+        "annotation", "layer_id", existing_type=sa.INTEGER(), nullable=False
+    )
+    op.create_foreign_key(None, "datasources", "ab_user", ["changed_by_fk"], ["id"])
     # ### end Alembic commands ###
 
 
 def downgrade():
-    op.drop_constraint(None, 'datasources', type_='foreignkey')
-    op.alter_column('annotation', 'layer_id',
-               existing_type=sa.INTEGER(),
-               nullable=True)
+    op.drop_constraint(None, "datasources", type_="foreignkey")
+    op.alter_column("annotation", "layer_id", existing_type=sa.INTEGER(), nullable=True)

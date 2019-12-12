@@ -207,7 +207,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     database = relationship("Database", foreign_keys=[database_id])
     schema = Column(String(256))
 
-    tab_state_id_index = Index('id', unique=True)
+    tab_state_id_index = Index("id", unique=True)
 
     __table_args__ = (sqla.Index("ix_tab_state_id", id, unique=True),)
 
@@ -266,7 +266,7 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
     description = Column(Text)
 
     expanded = Column(Boolean, default=False)
-    
+
     __table_args__ = (sqla.Index("ix_table_schema_id", id, unique=True),)
 
     def to_dict(self):
