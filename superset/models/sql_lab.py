@@ -28,11 +28,11 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
     Text,
-    Index,
 )
 from sqlalchemy.orm import backref, relationship
 

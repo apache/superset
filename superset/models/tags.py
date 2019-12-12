@@ -20,7 +20,7 @@ import enum
 from typing import Optional
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Index
+from sqlalchemy import Column, Enum, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
