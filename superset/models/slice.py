@@ -274,13 +274,14 @@ class Slice(
         slc_to_import = slc_to_import.copy()
         slc_to_import.reset_ownership()
         params = slc_to_import.params_dict
-        slc_to_import.datasource_id = ConnectorRegistry.get_datasource_by_name(
+        datasource = ConnectorRegistry.get_datasource_by_name(
             session,
             slc_to_import.datasource_type,
             params["datasource_name"],
             params["schema"],
             params["database_name"],
-        ).id
+        )
+        slc_to_import.datasource_id = datasource.id if datasource else None
         if slc_to_override:
             slc_to_override.override(slc_to_import)
             session.flush()
