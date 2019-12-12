@@ -26,7 +26,9 @@ from sqlalchemy import and_, func
 
 from superset import app, db
 from superset.extensions import celery_app
-from superset.models.core import Dashboard, Log, Slice
+from superset.models.core import Log
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.models.tags import Tag, TaggedObject
 from superset.utils.core import parse_human_datetime
 
