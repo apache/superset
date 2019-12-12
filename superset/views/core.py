@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 import logging
+import re
 from contextlib import closing
 from datetime import datetime, timedelta
 from enum import Enum
