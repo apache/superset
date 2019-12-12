@@ -108,11 +108,11 @@ class BaseGeocoder(object):
                     f"exception message: {e}"
                 )
             if counter == 0 and exceptions == 1:
-                message = f"Exception at the start of the geocoding process"
+                message = f"First request to geocoding API returned an Error, aborting"
                 flash(message, "error")
                 return [message, [geocoded_data, self._set_dict()]]
             if exceptions >= 2:
-                message = f"2 Consecutive Exceptions during geocoding process"
+                message = f"Geocoding API returned 2 errors in a row, aborting"
                 flash(message, "error")
                 return [message, [geocoded_data, self._set_dict()]]
 
