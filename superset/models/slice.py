@@ -16,7 +16,7 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
@@ -32,6 +32,10 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import ChartUpdater
 from superset.utils import core as utils
 from superset.viz import BaseViz, viz_types
+
+if TYPE_CHECKING:
+    # pylint: disable=unused-import
+    from superset.connectors.base.models import BaseDatasource
 
 metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(
@@ -270,7 +274,7 @@ class Slice(
         slc_to_import = slc_to_import.copy()
         slc_to_import.reset_ownership()
         params = slc_to_import.params_dict
-        slc_to_import.datasource_id = ConnectorRegistry.get_datasource_by_name(  # type: ignore
+        slc_to_import.datasource_id = ConnectorRegistry.get_datasource_by_name(
             session,
             slc_to_import.datasource_type,
             params["datasource_name"],
@@ -292,6 +296,7 @@ class Slice(
 
 
 def set_related_perm(mapper, connection, target):
+    # pylint: disable=unused-argument
     src_class = target.cls_model
     id_ = target.datasource_id
     if id_:

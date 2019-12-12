@@ -17,7 +17,7 @@
 import json
 import logging
 from copy import copy
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
@@ -44,11 +44,16 @@ from superset.models.tags import DashboardUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import core as utils
 
+if TYPE_CHECKING:
+    # pylint: disable=unused-import
+    from superset.connectors.base.models import BaseDatasource
+
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
 
 
 def copy_dashboard(mapper, connection, target):
+    # pylint: disable=unused-argument
     dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return

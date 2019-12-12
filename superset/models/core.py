@@ -54,7 +54,7 @@ from sqlalchemy_utils import EncryptedType
 from superset import app, db, db_engine_specs, is_feature_enabled, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.db_engine_specs.base import TimeGrain
-from superset.models.dashboard import copy_dashboard, Dashboard
+from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import DashboardUpdater, FavStarUpdater
 from superset.utils import cache as cache_util, core as utils
