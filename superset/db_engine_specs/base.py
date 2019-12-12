@@ -336,7 +336,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
             parsed_query = sql_parse.ParsedQuery(sql)
-            sql = parsed_query.get_query_with_new_limit(limit)
+            sql = parsed_query.set_or_update_query_limit(limit)
         return sql
 
     @classmethod
@@ -351,7 +351,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return parsed_query.limit
 
     @classmethod
-    def get_query_with_new_limit(cls, sql: str, limit: int) -> str:
+    def set_or_update_query_limit(cls, sql: str, limit: int) -> str:
         """
         Create a query based on original query but with new limit clause
 
@@ -360,7 +360,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: Query with new limit
         """
         parsed_query = sql_parse.ParsedQuery(sql)
-        return parsed_query.get_query_with_new_limit(limit)
+        return parsed_query.set_or_update_query_limit(limit)
 
     @staticmethod
     def csv_to_df(**kwargs: Any) -> pd.DataFrame:
@@ -654,7 +654,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if schema:
             full_table_name = quote(schema) + "." + quote(table_name)
         else:
-            full_table_name = quote(table_name)
+            full_table_name = ".".join([quote(t) for t in table_name.split(".")])
 
         qry = select(fields).select_from(text(full_table_name))
 

@@ -19,7 +19,7 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
-from typing import Any, cast, Dict, List, Optional, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
@@ -73,6 +73,7 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
@@ -241,6 +242,17 @@ def _deserialize_results_payload(
             "sqllab.query.results_backend_json_deserialize", stats_logger
         ):
             return json.loads(payload)  # type: ignore
+
+
+def get_cta_schema_name(
+    database: Database, user: ab_models.User, schema: str, sql: str
+) -> Optional[str]:
+    func = config.get(
+        "SQLLAB_CTA_SCHEMA_NAME_FUNC"
+    )  # type: Optional[Callable[[Database, ab_models.User, str, str], str]]
+    if not func:
+        return None
+    return func(database, user, schema, sql)
 
 
 class AccessRequestsModelView(SupersetModelView, DeleteMixin):
@@ -2337,6 +2349,13 @@ class Superset(BaseSupersetView):
         # Set tmp_table_name for CTA
         if select_as_cta and mydb.force_ctas_schema:
             tmp_table_name = f"{mydb.force_ctas_schema}.{tmp_table_name}"
+        elif select_as_cta:
+            dest_schema_name = get_cta_schema_name(mydb, g.user, schema, sql)
+            tmp_table_name = (
+                f"{dest_schema_name}.{tmp_table_name}"
+                if dest_schema_name
+                else tmp_table_name
+            )
 
         # Save current query
         query = Query(
@@ -2389,9 +2408,11 @@ class Superset(BaseSupersetView):
                 f"Query {query_id}: Template rendering failed: {error_msg}"
             )
 
-        # set LIMIT after template processing
-        limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
-        query.limit = min(lim for lim in limits if lim is not None)
+        # Limit is not appliced to the CTA queries if SQLLAB_CTA_NO_LIMIT flag is set to True.
+        if not (config.get("SQLLAB_CTA_NO_LIMIT") and select_as_cta):
+            # set LIMIT after template processing
+            limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
+            query.limit = min(lim for lim in limits if lim is not None)
 
         # Flag for whether or not to expand data
         # (feature that will expand Presto row objects and arrays)

@@ -205,10 +205,12 @@ class ParsedQuery:
                     if not self.__is_identifier(token2):
                         self.__extract_from_token(item)
 
-    def get_query_with_new_limit(self, new_limit: int) -> str:
-        """
-        returns the query with the specified limit.
-        Does not change the underlying query
+    def set_or_update_query_limit(self, new_limit: int) -> str:
+        """Returns the query with the specified limit.
+
+        Does not change the underlying query if user did not apply the limit,
+        otherwise replaces the limit with the lower value between existing limit
+        in the query and new_limit.
 
         :param new_limit: Limit to be incorporated into returned query
         :return: The original query with new limit
@@ -223,7 +225,10 @@ class ParsedQuery:
                 limit_pos = pos
                 break
         _, limit = statement.token_next(idx=limit_pos)
-        if limit.ttype == sqlparse.tokens.Literal.Number.Integer:
+        # Override the limit only when it exceeds the configured value.
+        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and new_limit < int(
+            limit.value
+        ):
             limit.value = new_limit
         elif limit.is_group:
             limit.value = f"{next(limit.get_identifiers())}, {new_limit}"

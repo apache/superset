@@ -17,14 +17,20 @@
 # isort:skip_file
 """Unit tests for Superset Celery worker"""
 import datetime
+import io
 import json
+import logging
 import subprocess
 import time
 import unittest
 import unittest.mock as mock
 
 import flask
+import sqlalchemy
+from contextlib2 import contextmanager
 from flask import current_app
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
 from tests.test_app import app
 from superset import db, sql_lab
@@ -42,7 +48,6 @@ CELERY_SLEEP_TIME = 5
 
 
 class UtilityFunctionTests(SupersetTestCase):
-
     # TODO(bkyryliuk): support more cases in CTA function.
     def test_create_table_as(self):
         q = ParsedQuery("SELECT * FROM outer_space;")
@@ -106,6 +111,11 @@ class CeleryTestCase(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
         with app.app_context():
+            main_db = get_example_database()
+            # sqlite supports attaching schemas only for the single connection. It doesn't work with our celery setup.
+            # https://www.sqlite.org/inmemorydb.html
+            if main_db.backend != "sqlite":
+                db.session.execute("CREATE SCHEMA IF NOT EXISTS sqllab_test_db")
 
             class CeleryConfig(object):
                 BROKER_URL = app.config["CELERY_CONFIG"].BROKER_URL
@@ -124,6 +134,11 @@ class CeleryTestCase(SupersetTestCase):
 
     @classmethod
     def tearDownClass(cls):
+        with app.app_context():
+            main_db = get_example_database()
+            if main_db.backend != "sqlite":
+                db.session.execute("DROP SCHEMA sqllab_test_db")
+
         subprocess.call(
             "ps auxww | grep 'celeryd' | awk '{print $2}' | xargs kill -9", shell=True
         )
@@ -159,7 +174,6 @@ class CeleryTestCase(SupersetTestCase):
 
     def test_run_sync_query_cta(self):
         main_db = get_example_database()
-        backend = main_db.backend
         db_id = main_db.id
         tmp_table_name = "tmp_async_22"
         self.drop_table_if_exists(tmp_table_name, main_db)
@@ -172,11 +186,12 @@ class CeleryTestCase(SupersetTestCase):
         query2 = self.get_query_by_id(result["query"]["serverId"])
 
         # Check the data in the tmp table.
-        if backend != "postgresql":
-            # TODO This test won't work in Postgres
-            results = self.run_sql(db_id, query2.select_sql, "sdf2134")
-            self.assertEqual(results["status"], "success")
-            self.assertGreater(len(results["data"]), 0)
+        results = self.run_sql(db_id, query2.select_sql, "sdf2134")
+        self.assertEqual(results["status"], "success")
+        self.assertGreater(len(results["data"]), 0)
+
+        # cleanup tmp table
+        self.drop_table_if_exists(tmp_table_name, get_example_database())
 
     def test_run_sync_query_cta_no_data(self):
         main_db = get_example_database()
@@ -199,15 +214,92 @@ class CeleryTestCase(SupersetTestCase):
             db.session.flush()
         return self.run_sql(db_id, sql)
 
-    def test_run_async_query(self):
+    @mock.patch(
+        "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: "sqllab_test_db"
+    )
+    def test_run_sync_query_cta_config(self):
+        main_db = get_example_database()
+        db_id = main_db.id
+        if main_db.backend == "sqlite":
+            # sqlite doesn't support schemas
+            return
+        tmp_table_name = "tmp_async_22"
+        self.drop_table_if_exists(f"sqllab_test_db.{tmp_table_name}", main_db)
+        name = "James"
+        sql_where = f"SELECT name FROM birth_names WHERE name='{name}' LIMIT 1"
+        result = self.run_sql(
+            db_id, sql_where, "cid2", tmp_table=tmp_table_name, cta=True
+        )
+
+        self.assertEqual(QueryStatus.SUCCESS, result["query"]["state"])
+        self.assertEqual([], result["data"])
+        self.assertEqual([], result["columns"])
+        query = self.get_query_by_id(result["query"]["serverId"])
+
+        self.assertEqual(
+            "CREATE TABLE sqllab_test_db.tmp_async_22 AS \n"
+            "SELECT name FROM birth_names "
+            "WHERE name='James' "
+            "LIMIT 1",
+            query.executed_sql,
+        )
+        time.sleep(2)
+        results = self.run_sql(db_id, query.select_sql)
+        self.assertEqual(results["status"], "success")
+        self.assertEquals(len(results["data"]), 1)
+
+        self.drop_table_if_exists(
+            f"sqllab_test_db.{tmp_table_name}", get_example_database()
+        )
+
+    @mock.patch(
+        "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: "sqllab_test_db"
+    )
+    def test_run_async_query_cta_config(self):
+        main_db = get_example_database()
+        db_id = main_db.id
+        if main_db.backend == "sqlite":
+            # sqlite doesn't support schemas
+            return
+        self.drop_table_if_exists("sqllab_test_db.sqllab_test_table_async_1", main_db)
+        sql_where = "SELECT name FROM birth_names WHERE name='James' LIMIT 10"
+        result = self.run_sql(
+            db_id,
+            sql_where,
+            "cid3",
+            async_=True,
+            tmp_table="sqllab_test_table_async_1",
+            cta=True,
+        )
+        db.session.close()
+        time.sleep(CELERY_SLEEP_TIME)
+
+        query = self.get_query_by_id(result["query"]["serverId"])
+        self.assertEqual(QueryStatus.SUCCESS, query.status)
+        self.assertTrue(
+            "FROM sqllab_test_db.sqllab_test_table_async_1" in query.select_sql
+        )
+        self.assertEqual(
+            "CREATE TABLE sqllab_test_db.sqllab_test_table_async_1 AS \n"
+            "SELECT name FROM birth_names "
+            "WHERE name='James' "
+            "LIMIT 10",
+            query.executed_sql,
+        )
+        self.drop_table_if_exists(
+            "sqllab_test_db.sqllab_test_table_async_1", get_example_database()
+        )
+
+    def test_run_async_cta_query(self):
         main_db = get_example_database()
         db_id = main_db.id
 
-        self.drop_table_if_exists("tmp_async_1", main_db)
+        self.drop_table_if_exists("tmp_async_4", main_db)
+        time.sleep(CELERY_SLEEP_TIME)
 
         sql_where = "SELECT name FROM birth_names WHERE name='James' LIMIT 10"
         result = self.run_sql(
-            db_id, sql_where, "4", async_=True, tmp_table="tmp_async_1", cta=True
+            db_id, sql_where, "cid4", async_=True, tmp_table="tmp_async_4", cta=True
         )
         db.session.close()
         assert result["query"]["state"] in (
@@ -221,9 +313,9 @@ class CeleryTestCase(SupersetTestCase):
         query = self.get_query_by_id(result["query"]["serverId"])
         self.assertEqual(QueryStatus.SUCCESS, query.status)
 
-        self.assertTrue("FROM tmp_async_1" in query.select_sql)
+        self.assertTrue("FROM tmp_async_4" in query.select_sql)
         self.assertEqual(
-            "CREATE TABLE tmp_async_1 AS \n"
+            "CREATE TABLE tmp_async_4 AS \n"
             "SELECT name FROM birth_names "
             "WHERE name='James' "
             "LIMIT 10",
@@ -234,7 +326,7 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)
 
-    def test_run_async_query_with_lower_limit(self):
+    def test_run_async_cta_query_with_lower_limit(self):
         main_db = get_example_database()
         db_id = main_db.id
         tmp_table = "tmp_async_2"
@@ -255,14 +347,14 @@ class CeleryTestCase(SupersetTestCase):
 
         query = self.get_query_by_id(result["query"]["serverId"])
         self.assertEqual(QueryStatus.SUCCESS, query.status)
-        self.assertTrue(f"FROM {tmp_table}" in query.select_sql)
+        self.assertIn(f"FROM {tmp_table}", query.select_sql)
         self.assertEqual(
             f"CREATE TABLE {tmp_table} AS \n" "SELECT name FROM birth_names LIMIT 1",
             query.executed_sql,
         )
         self.assertEqual(sql_where, query.sql)
         self.assertEqual(0, query.rows)
-        self.assertEqual(1, query.limit)
+        self.assertEqual(None, query.limit)
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)
 
