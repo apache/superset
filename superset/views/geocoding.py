@@ -167,6 +167,9 @@ class Geocoder(BaseSupersetView):
             self.stats_logger.incr("geocoding_failed")
             return json_error_response(e.args[0], status=500)
 
+        return json_success(
+            json.dumps(f"successfully created columns {lat_column} and {lon_column}")
+        )
         try:
             geocoder = MapTilerGeocoder(conf)
             geocoded_values_with_message = self._geocode(
