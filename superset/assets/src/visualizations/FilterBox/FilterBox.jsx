@@ -31,6 +31,7 @@ import OnPasteSelect from '../../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
 import { getDashboardFilterKey } from '../../dashboard/util/getDashboardFilterKey';
 import { getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
+import { TIME_FILTER_LABELS } from '../../explore/constants';
 import FilterBadgeIcon from '../../components/FilterBadgeIcon';
 
 import './FilterBox.less';
@@ -46,9 +47,6 @@ export const TIME_FILTER_MAP = {
 
 // a shortcut to a map key, used by many components
 export const TIME_RANGE = TIME_FILTER_MAP.time_range;
-export const FILTER_LABELS = {
-  [TIME_RANGE]: 'Time range',
-};
 
 const propTypes = {
   chartId: PropTypes.number.isRequired,
@@ -165,7 +163,7 @@ class FilterBox extends React.Component {
 
   renderDateFilter() {
     const { showDateFilter, chartId } = this.props;
-    const label = t(FILTER_LABELS[TIME_RANGE]);
+    const label = TIME_FILTER_LABELS.time_range;
     if (showDateFilter) {
       return (
         <div className="row space-1">

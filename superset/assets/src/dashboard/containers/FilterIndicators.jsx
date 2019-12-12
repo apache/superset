@@ -23,13 +23,14 @@ import FilterIndicatorsContainer from '../components/FilterIndicatorsContainer';
 import { setDirectPathToChild } from '../actions/dashboardState';
 
 function mapStateToProps(
-  { dashboardState, dashboardFilters, dashboardLayout, charts },
+  { datasources, dashboardState, dashboardFilters, dashboardLayout, charts },
   ownProps,
 ) {
   const chartId = ownProps.chartId;
   const chartStatus = (charts[chartId] || {}).chartStatus;
 
   return {
+    datasources,
     dashboardFilters,
     chartId,
     chartStatus,
