@@ -93,27 +93,11 @@ class BaseGeocoder(object):
 
                 self.progress["progress"] = counter / len(data)
                 exceptions = 0
-            except ConnectionError as e:
+
+            except (ConnectionError, HTTPError, Timeout, RequestException) as e:
                 exceptions += 1
                 self.logger.exception(
-                    f"Geocoding ConnectionError for address: {address} "
-                    f"exception-message: {e}"
-                )
-            except HTTPError as e:
-                exceptions += 1
-                self.logger.exception(
-                    f"Geocoding HTTPError for address: {address} exception-message: {e}"
-                )
-            except Timeout as e:
-                exceptions += 1
-                self.logger.exception(
-                    f"Geocoding Timeout for address: {address} exception-message: {e}"
-                )
-            except RequestException as e:
-                exceptions += 1
-                self.logger.exception(
-                    f"Geocoding RequestException for address: {address} "
-                    f"exception-message: {e}"
+                    f"Geocoding API returned an exception for address: {address}, message; {e}"
                 )
             except Exception as e:  # pylint: disable=broad-except
                 exceptions += 1
