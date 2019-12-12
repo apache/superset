@@ -20,8 +20,8 @@ import logging
 import time
 from datetime import datetime
 
-from superset.models.core import Dashboard, Slice
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.models.core import Dashboard, Slice
 
 
 def decode_dashboards(o):
