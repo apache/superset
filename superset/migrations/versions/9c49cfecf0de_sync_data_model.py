@@ -32,13 +32,14 @@ from sqlalchemy.dialects import postgresql
 
 
 def upgrade():
-    op.alter_column(
-        "annotation", "layer_id", existing_type=sa.INTEGER(), nullable=False
-    )
-    op.create_foreign_key(None, "datasources", "ab_user", ["changed_by_fk"], ["id"])
-    # ### end Alembic commands ###
+    with op.batch_alter_table("annotation") as batch_op:
+        batch_op.alter_column("layer_id", existing_type=sa.INTEGER(), nullable=False)
+
+    with op.batch_alter_table("datasources"):
+        op.create_foreign_key(None, "datasources", "ab_user", ["changed_by_fk"], ["id"])
 
 
 def downgrade():
     op.drop_constraint(None, "datasources", type_="foreignkey")
-    op.alter_column("annotation", "layer_id", existing_type=sa.INTEGER(), nullable=True)
+    with op.batch_alter_table("annotation") as batch_op:
+        op.alter_column("layer_id", existing_type=sa.INTEGER(), nullable=True)
