@@ -73,7 +73,7 @@ class BaseGeocoder(object):
         exceptions: int = 0
         self._set_initialstates()
 
-        for datum in data:
+        for dataentry in data:
             try:
                 if self.interruptflag:
                     self.progress["progress"] = 0
@@ -81,12 +81,12 @@ class BaseGeocoder(object):
                     message = "successfully interrupted geocoding"
                     flash(message, "success")
                     return [message, [geocoded_data, self._set_dict()]]
-                datum = list(map(str, datum))
-                address = " ".join(datum)
+                dataentry = list(map(str, dataentry))
+                address = " ".join(dataentry)
                 geocoded = self._get_coordinates_from_address(address)
                 if geocoded is not None:
-                    datum = self._append_cords_to_dataentry(datum, geocoded)
-                    geocoded_data.append(datum)
+                    dataentry = self._append_cords_to_dataentry(dataentry, geocoded)
+                    geocoded_data.append(dataentry)
                 else:
                     self.progress["failed_counter"] += 1
                 counter += 1
@@ -99,6 +99,8 @@ class BaseGeocoder(object):
                 self.logger.exception(
                     f"Geocoding API returned an exception for address: {address}, message; {e}"
                 )
+            # this catch-all is needed so that we can always return the data geocoded so far in order to save it
+            # if the user set this flag
             except Exception as e:  # pylint: disable=broad-except
                 exceptions += 1
                 self.logger.exception(
@@ -117,7 +119,7 @@ class BaseGeocoder(object):
         self.progress["progress"] = 100
         return ["", [geocoded_data, self._set_dict()]]
 
-    def _get_coordinates_from_address(self):
+    def _get_coordinates_from_address(self, address: str):
         raise NotImplementedError
 
     def check_api_key(self):
