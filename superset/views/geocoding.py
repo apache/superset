@@ -134,7 +134,6 @@ class Geocoder(BaseSupersetView):
         """
         request_data = request.json
         # is this needed or replaced with table_dto?
-        table_name = request_data.get("datasource", "")
         columns = []
 
         if request.json.get("streetColumn"):
@@ -167,9 +166,6 @@ class Geocoder(BaseSupersetView):
             self.stats_logger.incr("geocoding_failed")
             return json_error_response(e.args[0], status=500)
 
-        return json_success(
-            json.dumps(f"successfully created columns {lat_column} and {lon_column}")
-        )
         try:
             geocoder = MapTilerGeocoder(conf)
             geocoded_values_with_message = self._geocode(
@@ -197,7 +193,7 @@ class Geocoder(BaseSupersetView):
             database = table.database
             connection = database.get_sqla_engine().connect()
             self._insert_geocoded_data(
-                table_name.get("fullName"),
+                table_dto.get("fullName"),
                 lat_column,
                 lon_column,
                 columns,
