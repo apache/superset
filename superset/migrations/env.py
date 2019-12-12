@@ -56,7 +56,9 @@ IGNORED_TABLES = [
 ]
 
 
-def include_object(object_, name, type_, reflected, compare_to):
+def include_object(
+    object_, name, type_, reflected, compare_to
+):  # pylint: disable=unused-argument
     if type_ == "table":
         return name not in IGNORED_TABLES
     return True
