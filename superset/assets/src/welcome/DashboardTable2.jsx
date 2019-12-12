@@ -75,7 +75,6 @@ class DashboardTable extends React.PureComponent {
       opr: filters[fk].filterId,
       value: filters[fk].filterValue,
     }));
-
     const queryParams = JSON.stringify({
       order_column: sortBy[0].id,
       order_direction: sortBy[0].desc ? 'desc' : 'asc',
@@ -83,6 +82,7 @@ class DashboardTable extends React.PureComponent {
       page_size: pageSize,
       ...(filterExps.length ? { filters: filterExps } : {}),
     });
+
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
