@@ -14,8 +14,7 @@ from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 from superset.views.base import json_error_response, json_success
-from superset.views.core import config, QueryStatus
-from superset.views.utils import apply_display_max_row_limit
+from superset.views.utils import apply_display_max_row_limit, QueryStatus
 
 
 def _sql_json_async(
@@ -71,7 +70,7 @@ def _sql_json_sync(rendered_query: str, query: Query, expand_data: bool) -> str:
     :return: String JSON response
     """
     try:
-        timeout = config["SQLLAB_TIMEOUT"]
+        timeout = app.config["SQLLAB_TIMEOUT"]
         timeout_msg = f"The query exceeded the {timeout} seconds timeout."
         store_results = (
             is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE") and not query.select_as_cta

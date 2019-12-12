@@ -94,12 +94,16 @@ from .base import (
     SupersetModelView,
 )
 from .core_helpers import (
-    deserialize_results_payload,
     check_datasource_perms,
     check_slice_perms,
+    deserialize_results_payload,
     is_owner,
     queries_exec,
     results_exec,
+)
+from .database import (  # pylint: disable=unused-import
+    api as database_api,
+    views as in_views,
 )
 from .slice_helpers import save_or_overwrite_slice, SliceFilter
 from .sql_json_helpers import sql_json_exec

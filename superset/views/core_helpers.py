@@ -9,6 +9,7 @@ from flask import g, request
 from flask_babel import gettext as __
 
 from superset import (
+    app,
     dataframe,
     db,
     results_backend,
@@ -21,13 +22,14 @@ from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
 from superset.views.base import json_error_response, json_success
-from superset.views.core import stats_logger
 from superset.views.utils import (
     apply_display_max_row_limit,
     get_datasource_info,
     get_form_data,
     get_viz,
 )
+
+stats_logger = app.config["STATS_LOGGER"]
 
 
 def get_database_access_error_msg(database_name):
