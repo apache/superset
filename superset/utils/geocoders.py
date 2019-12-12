@@ -41,7 +41,7 @@ class BaseGeocoder(object):
     def geocode(self, data: list):
         raise NotImplementedError
 
-    def _append_to_datum(self, datum: list, geocoded: list):
+    def _append_cords_to_dataentry(self, datum: list, geocoded: list):
         raise NotImplementedError
 
     def _set_initialstates(self):
@@ -171,7 +171,7 @@ class MapTilerGeocoder(BaseGeocoder):
         if not self.conf["MAPTILER_API_KEY"]:
             raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
 
-    def _append_to_datum(self, datum: list, geocoded: list):
+    def _append_cords_to_dataentry(self, datum: list, geocoded: list):
         center_coordinates = geocoded[0]
         relevance = geocoded[1]
         if relevance > 0.8:
