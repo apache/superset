@@ -232,8 +232,8 @@ class Geocoder(BaseSupersetView):
         table_name = request_data.get("datasource", "")
         table_id = table_dto.get("id", "")
         table = self._get_table_by_id(table_id)
-        lat_exists = self._does_column_name_exist(table_id, lat_column)
-        lon_exists = self._does_column_name_exist(table_id, lon_column)
+        lat_exists = self._does_column_name_exist(table, lat_column)
+        lon_exists = self._does_column_name_exist(table, lon_column)
         if override_if_exist:
             if lat_exists:
                 if lon_exists:
@@ -265,14 +265,13 @@ class Geocoder(BaseSupersetView):
                 table_name.get("fullName"), table_dto, lat_column, lon_column
             )
 
-    def _does_column_name_exist(self, table_id: int, column_name: str):
+    def _does_column_name_exist(self, table: SqlaTable, column_name: str):
         """
         Check if column name already exists in table
         :param table_name: The table name of table to check
         :param column_name: The name of column to check
         :return true if column name exists in table
         """
-        table = self._get_table_by_id(table_id)
         if table and table.columns:
             column_names = [column.column_name.lower() for column in table.columns]
         return column_name.lower() in column_names
