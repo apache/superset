@@ -364,7 +364,9 @@ class BaseSupersetSchema(Schema):
         self.instance = None
         super().__init__(**kwargs)
 
-    def load(self, data, many=None, partial=None, instance: Model = None, **kwargs):
+    def load(
+        self, data, many=None, partial=None, instance: Model = None, **kwargs
+    ):  # pylint: disable=arguments-differ
         self.instance = instance
         return super().load(data, many=many, partial=partial, **kwargs)
 
