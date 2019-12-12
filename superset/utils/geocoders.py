@@ -42,17 +42,7 @@ class BaseGeocoder(object):
         raise NotImplementedError
 
     def _append_to_datum(self, datum: list, geocoded: list):
-        center_coordinates = geocoded[0]
-        relevance = geocoded[1]
-        if relevance > 0.8:
-            self.progress["success_counter"] += 1
-        elif relevance > 0.49:
-            self.progress["doubt_counter"] += 1
-        else:
-            self.progress["failed_counter"] += 1
-        datum.append(str(center_coordinates[0]))
-        datum.append(str(center_coordinates[1]))
-        return datum
+        raise NotImplementedError
 
     def _set_initialstates(self):
         self.interruptflag = False
@@ -180,3 +170,16 @@ class MapTilerGeocoder(BaseGeocoder):
     def check_api_key(self):
         if not self.conf["MAPTILER_API_KEY"]:
             raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
+
+    def _append_to_datum(self, datum: list, geocoded: list):
+        center_coordinates = geocoded[0]
+        relevance = geocoded[1]
+        if relevance > 0.8:
+            self.progress["success_counter"] += 1
+        elif relevance > 0.49:
+            self.progress["doubt_counter"] += 1
+        else:
+            self.progress["failed_counter"] += 1
+        datum.append(str(center_coordinates[0]))
+        datum.append(str(center_coordinates[1]))
+        return datum

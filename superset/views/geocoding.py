@@ -36,7 +36,6 @@ from superset.exceptions import (
     SqlUpdateException,
 )
 from superset.utils.geocoders import BaseGeocoder, MapTilerGeocoder
-from superset.utils.geocoding_utils import GeocoderUtil
 
 from .base import api, BaseSupersetView, json_error_response, json_success
 
