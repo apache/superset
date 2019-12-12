@@ -85,7 +85,7 @@ class BaseGeocoder(object):
                 address = " ".join(datum)
                 geocoded = self._get_coordinates_from_address(address)
                 if geocoded is not None:
-                    datum = self._append_to_datum(datum, geocoded)
+                    datum = self._append_cords_to_dataentry(datum, geocoded)
                     geocoded_data.append(datum)
                 else:
                     self.progress["failed_counter"] += 1
