@@ -35,6 +35,7 @@ from superset.exceptions import (
     SqlSelectException,
     SqlUpdateException,
 )
+from superset.utils.geocoders import BaseGeocoder, MapTilerGeocoder
 from superset.utils.geocoding_utils import GeocoderUtil
 
 from .base import api, BaseSupersetView, json_error_response, json_success
@@ -44,7 +45,7 @@ class Geocoder(BaseSupersetView):
     """Geocoding methods and API!"""
 
     # Variables for geocoding
-    geocoder_util = GeocoderUtil(conf)
+    geocoder = BaseGeocoder(conf)
     stats_logger = conf["STATS_LOGGER"]
     logger = logging.getLogger(__name__)
 
@@ -168,12 +169,15 @@ class Geocoder(BaseSupersetView):
             return json_error_response(e.args[0], status=500)
 
         try:
-            geocoded_values_with_message = self._geocode(table_data, "maptiler")
+            geocoder = MapTilerGeocoder(conf)
+            geocoded_values_with_message = self._geocode(
+                table_data, "maptiler", geocoder
+            )
         except NoAPIKeySuppliedException as e:
             self.logger.exception(e.args[0])
             self.stats_logger.incr("geocoding_failed")
             return json_error_response(e.args[0])
-        if self.geocoder_util.interruptflag:
+        if self.geocoder.interruptflag:
             if not save_on_stop_geocoding:
                 return json_success(json.dumps("geocoding interrupted"))
         # If there was an error, data[0] will be a message, otherwise it will be an empty string meaning we can proceed
@@ -213,7 +217,7 @@ class Geocoder(BaseSupersetView):
             return json_error_response(e.args[0], status=500)
 
         db.session.commit()
-        progress = self.geocoder_util.progress
+        progress = self.geocoder.progress
         message = (
             f"Geocoded values, success: {progress['success_counter']}, doubt: {progress['doubt_counter']}, "
             f"fail: {progress['failed_counter']}"
@@ -320,23 +324,15 @@ class Geocoder(BaseSupersetView):
                 column_list.append(f'"{column}"')
         return ", ".join(filter(None, column_list))
 
-    def _geocode(self, data: list, geocode_api: str, dev=False):
+    def _geocode(self, data: list, geocode_api: str, geocoder, dev=False):
         """
         Internal method which starts the geocoding
         :param data: the data to be geocoded as a list of tuples
         :param dev: Whether to Mock the geocoding process for testing purposes
         :return: a list of tuples containing the data and the corresponding long, lat values
         """
-        self._check_api_key(geocode_api)
-        if dev:
-            return self.geocoder_util.geocode("", data)
-        else:
-            return self.geocoder_util.geocode(geocode_api, data)
-
-    def _check_api_key(self, geocode_api: str):
-        if "maptiler" in geocode_api:
-            if not conf["MAPTILER_API_KEY"]:
-                raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
+        geocoder.check_api_key()
+        return geocoder.geocode(data)
 
     def _add_lat_lon_columns(
         self,
@@ -450,7 +446,7 @@ class Geocoder(BaseSupersetView):
         :return: GeoCoding Object
         """
         return json_success(
-            json.dumps(self.geocoder_util.progress, default=lambda x: x.__dict__)
+            json.dumps(self.geocoder.progress, default=lambda x: x.__dict__)
         )
 
     @api
@@ -458,7 +454,7 @@ class Geocoder(BaseSupersetView):
     @expose("/geocoding/interrupt", methods=["POST"])
     def interrupt(self) -> Response:
         """ Used for interrupting the geocoding process """
-        self.geocoder_util.interruptflag = True
+        self.geocoder.interruptflag = True
         return json_success('"ok"')
 
 
