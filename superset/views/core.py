@@ -17,14 +17,12 @@
 import logging
 import re
 from contextlib import closing
-from datetime import datetime, timedelta
-from typing import Any, cast, Dict, List, Optional, Union
+from datetime import datetime
+from typing import Any, Dict, List
 from urllib import parse
 
 import backoff
-import msgpack
 import pandas as pd
-import pyarrow as pa
 import simplejson as json
 from flask import (
     abort,
@@ -44,8 +42,6 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, Integer, or_, select
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm.session import Session
 from werkzeug.routing import BaseConverter
 from werkzeug.urls import Href
 
@@ -55,7 +51,6 @@ from superset import (
     appbuilder,
     cache,
     conf,
-    dataframe,
     db,
     event_logger,
     get_feature_flags,
@@ -63,7 +58,6 @@ from superset import (
     results_backend,
     results_backend_use_msgpack,
     security_manager,
-    sql_lab,
     talisman,
     viz,
 )
@@ -72,7 +66,6 @@ from superset.connectors.sqla.models import AnnotationDatasource
 from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,
-    SupersetSecurityException,
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
@@ -81,8 +74,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
-from superset.utils.dates import now_as_float
-from superset.utils.decorators import etag_cache, stats_timing
+from superset.utils.decorators import etag_cache
 
 from .base import (
     api,
@@ -101,17 +93,17 @@ from .base import (
     json_success,
     SupersetModelView,
 )
-from .database import (  # pylint: disable=unused-import
-    api as database_api,
-    views as in_views,
+from .core_helpers import (
+    deserialize_results_payload,
+    check_datasource_perms,
+    check_slice_perms,
+    is_owner,
+    queries_exec,
+    results_exec,
 )
-from .utils import (
-    apply_display_max_row_limit,
-    bootstrap_user_data,
-    get_datasource_info,
-    get_form_data,
-    get_viz,
-)
+from .slice_helpers import save_or_overwrite_slice, SliceFilter
+from .sql_json_helpers import sql_json_exec
+from .utils import bootstrap_user_data, get_datasource_info, get_form_data, get_viz
 
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config["CACHE_DEFAULT_TIMEOUT"]
@@ -145,485 +137,6 @@ USER_MISSING_ERR = __("The user seems to have been deleted")
 FORM_DATA_KEY_BLACKLIST: List[str] = []
 if not config["ENABLE_JAVASCRIPT_CONTROLS"]:
     FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
-
-
-def get_database_access_error_msg(database_name):
-    return __(
-        "This view requires the database %(name)s or "
-        "`all_datasource_access` permission",
-        name=database_name,
-    )
-
-
-def is_owner(obj, user):
-    """ Check if user is owner of the slice """
-    return obj and user in obj.owners
-
-
-def check_datasource_perms(
-    self,  # pylint: disable=unused-argument
-    datasource_type: str = None,
-    datasource_id: int = None,
-) -> None:
-    """
-    Check if user can access a cached response from explore_json.
-
-    This function takes `self` since it must have the same signature as the
-    the decorated method.
-
-    :param datasource_type: The datasource type, i.e., 'druid' or 'table'
-    :param datasource_id: The datasource ID
-    :raises SupersetSecurityException: If the user cannot access the resource
-    """
-
-    form_data = get_form_data()[0]
-
-    try:
-        datasource_id, datasource_type = get_datasource_info(
-            datasource_id, datasource_type, form_data
-        )
-    except SupersetException as e:
-        raise SupersetSecurityException(str(e))
-
-    viz_obj = get_viz(
-        datasource_type=datasource_type,
-        datasource_id=datasource_id,
-        form_data=form_data,
-        force=False,
-    )
-
-    security_manager.assert_viz_permission(viz_obj)
-
-
-def check_slice_perms(self, slice_id):  # pylint: disable=unused-argument
-    """
-    Check if user can access a cached response from slice_json.
-
-    This function takes `self` since it must have the same signature as the
-    the decorated method.
-    """
-
-    form_data, slc = get_form_data(slice_id, use_slice_data=True)
-
-    viz_obj = get_viz(
-        datasource_type=slc.datasource.type,
-        datasource_id=slc.datasource.id,
-        form_data=form_data,
-        force=False,
-    )
-
-    security_manager.assert_viz_permission(viz_obj)
-
-
-def _sql_json_async(
-    session: Session, rendered_query: str, query: Query, expand_data: bool
-) -> str:
-    """
-        Send SQL JSON query to celery workers
-
-    :param session: SQLAlchemy session object
-    :param rendered_query: the rendered query to perform by workers
-    :param query: The query (SQLAlchemy) object
-    :return: String JSON response
-    """
-    logging.info(f"Query {query.id}: Running query on a Celery worker")
-    # Ignore the celery future object and the request may time out.
-    try:
-        sql_lab.get_sql_results.delay(
-            query.id,
-            rendered_query,
-            return_results=False,
-            store_results=not query.select_as_cta,
-            user_name=g.user.username if g.user else None,
-            start_time=now_as_float(),
-            expand_data=expand_data,
-        )
-    except Exception as e:  # pylint: disable=broad-except
-        logging.exception(f"Query {query.id}: {e}")
-        msg = _(
-            "Failed to start remote query on a worker. "
-            "Tell your administrator to verify the availability of "
-            "the message queue."
-        )
-        query.status = QueryStatus.FAILED
-        query.error_message = msg
-        session.commit()
-        return json_error_response("{}".format(msg))
-    resp = json_success(
-        json.dumps(
-            {"query": query.to_dict()}, default=utils.json_int_dttm_ser, ignore_nan=True
-        ),
-        status=202,
-    )
-    session.commit()
-    return resp
-
-
-def _sql_json_sync(rendered_query: str, query: Query, expand_data: bool) -> str:
-    """
-        Execute SQL query (sql json)
-
-    :param rendered_query: The rendered query (included templates)
-    :param query: The query SQL (SQLAlchemy) object
-    :return: String JSON response
-    """
-    try:
-        timeout = config["SQLLAB_TIMEOUT"]
-        timeout_msg = f"The query exceeded the {timeout} seconds timeout."
-        store_results = (
-            is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE") and not query.select_as_cta
-        )
-        with utils.timeout(seconds=timeout, error_message=timeout_msg):
-            # pylint: disable=no-value-for-parameter
-            data = sql_lab.get_sql_results(
-                query.id,
-                rendered_query,
-                return_results=True,
-                store_results=store_results,
-                user_name=g.user.username if g.user else None,
-                expand_data=expand_data,
-            )
-
-        payload = json.dumps(
-            apply_display_max_row_limit(data),
-            default=utils.pessimistic_json_iso_dttm_ser,
-            ignore_nan=True,
-            encoding=None,
-        )
-    except Exception as e:  # pylint: disable=broad-except
-        logging.exception(f"Query {query.id}: {e}")
-        return json_error_response(f"{{e}}")
-    if data.get("status") == QueryStatus.FAILED:
-        return json_error_response(payload=data)
-    return json_success(payload)
-
-
-def sql_json_exec(
-    query_params: dict
-):  # pylint: disable=too-many-locals,too-many-statements
-    """Runs arbitrary sql and returns data as json"""
-    # Collect Values
-    database_id: int = cast(int, query_params.get("database_id"))
-    schema: str = cast(str, query_params.get("schema"))
-    sql: str = cast(str, query_params.get("sql"))
-    try:
-        template_params: dict = json.loads(query_params.get("templateParams") or "{}")
-    except json.JSONDecodeError:
-        logging.warning(
-            f"Invalid template parameter {query_params.get('templateParams')}"
-            " specified. Defaulting to empty dict"
-        )
-        template_params = {}
-    limit: int = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
-    async_flag: bool = cast(bool, query_params.get("runAsync"))
-    if limit < 0:
-        logging.warning(f"Invalid limit of {limit} specified. Defaulting to max limit.")
-        limit = 0
-    select_as_cta: bool = cast(bool, query_params.get("select_as_cta"))
-    tmp_table_name: str = cast(str, query_params.get("tmp_table_name"))
-    client_id: str = cast(str, query_params.get("client_id") or utils.shortid()[:10])
-    sql_editor_id: str = cast(str, query_params.get("sql_editor_id"))
-    tab_name: str = cast(str, query_params.get("tab"))
-    status: str = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
-
-    session = db.session()
-    mydb = session.query(models.Database).filter_by(id=database_id).one_or_none()
-    if not mydb:
-        return json_error_response(f"Database with id {database_id} is missing.")
-
-    # Set tmp_table_name for CTA
-    if select_as_cta and mydb.force_ctas_schema:
-        tmp_table_name = f"{mydb.force_ctas_schema}.{tmp_table_name}"
-
-    # Save current query
-    query = Query(
-        database_id=database_id,
-        sql=sql,
-        schema=schema,
-        select_as_cta=select_as_cta,
-        start_time=now_as_float(),
-        tab_name=tab_name,
-        status=status,
-        sql_editor_id=sql_editor_id,
-        tmp_table_name=tmp_table_name,
-        user_id=g.user.get_id() if g.user else None,
-        client_id=client_id,
-    )
-    try:
-        session.add(query)
-        session.flush()
-        query_id = query.id
-        session.commit()  # shouldn't be necessary
-    except SQLAlchemyError as e:
-        logging.error(f"Errors saving query details {e}")
-        session.rollback()
-        raise Exception(_("Query record was not created as expected."))
-    if not query_id:
-        raise Exception(_("Query record was not created as expected."))
-
-    logging.info(f"Triggering query_id: {query_id}")
-
-    rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
-    if rejected_tables:
-        query.status = QueryStatus.FAILED
-        session.commit()
-        return json_error_response(
-            security_manager.get_table_access_error_msg(rejected_tables),
-            link=security_manager.get_table_access_link(rejected_tables),
-            status=403,
-        )
-
-    try:
-        template_processor = get_template_processor(
-            database=query.database, query=query
-        )
-        rendered_query = template_processor.process_template(
-            query.sql, **template_params
-        )
-    except Exception as e:  # pylint: disable=broad-except
-        error_msg = utils.error_msg_from_exception(e)
-        return json_error_response(
-            f"Query {query_id}: Template rendering failed: {error_msg}"
-        )
-
-    # set LIMIT after template processing
-    limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
-    query.limit = min(lim for lim in limits if lim is not None)
-
-    # Flag for whether or not to expand data
-    # (feature that will expand Presto row objects and arrays)
-    expand_data: bool = cast(
-        bool,
-        is_feature_enabled("PRESTO_EXPAND_DATA") and query_params.get("expand_data"),
-    )
-
-    # Async request.
-    if async_flag:
-        return _sql_json_async(session, rendered_query, query, expand_data)
-    # Sync request.
-    return _sql_json_sync(rendered_query, query, expand_data)
-
-
-def results_exec(key: str):
-    """Serves a key off of the results backend
-
-    It is possible to pass the `rows` query argument to limit the number
-    of rows returned.
-    """
-    if not results_backend:
-        return json_error_response("Results backend isn't configured")
-
-    read_from_results_backend_start = now_as_float()
-    blob = results_backend.get(key)
-    stats_logger.timing(
-        "sqllab.query.results_backend_read",
-        now_as_float() - read_from_results_backend_start,
-    )
-    if not blob:
-        return json_error_response(
-            "Data could not be retrieved. " "You may want to re-run the query.",
-            status=410,
-        )
-
-    query = db.session.query(Query).filter_by(results_key=key).one_or_none()
-    if query is None:
-        return json_error_response(
-            "Data could not be retrieved. You may want to re-run the query.", status=404
-        )
-
-    rejected_tables = security_manager.rejected_tables(
-        query.sql, query.database, query.schema
-    )
-    if rejected_tables:
-        return json_error_response(
-            security_manager.get_table_access_error_msg(rejected_tables), status=403
-        )
-
-    payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
-    obj: dict = _deserialize_results_payload(
-        payload, query, cast(bool, results_backend_use_msgpack)
-    )
-
-    if "rows" in request.args:
-        try:
-            rows = int(request.args["rows"])
-        except ValueError:
-            return json_error_response("Invalid `rows` argument", status=400)
-        obj = apply_display_max_row_limit(obj, rows)
-
-    return json_success(
-        json.dumps(obj, default=utils.json_iso_dttm_ser, ignore_nan=True)
-    )
-
-
-def save_slice(slc):
-    session = db.session()
-    msg = _("Chart [{}] has been saved").format(slc.slice_name)
-    session.add(slc)
-    session.commit()
-    flash(msg, "info")
-
-
-def overwrite_slice(slc):
-    session = db.session()
-    session.merge(slc)
-    session.commit()
-    msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
-    flash(msg, "info")
-
-
-def save_or_overwrite_slice(  # pylint: disable=too-many-arguments,too-many-locals
-    args,
-    slc,
-    slice_add_perm,
-    slice_overwrite_perm,
-    slice_download_perm,
-    datasource_id,
-    datasource_type,
-    datasource_name,
-):
-    """Save or overwrite a slice"""
-    slice_name = args.get("slice_name")
-    act = args.get("action")
-    form_data = get_form_data()[0]
-
-    if act == "saveas":
-        if "slice_id" in form_data:
-            form_data.pop("slice_id")  # don't save old slice_id
-        slc = models.Slice(owners=[g.user] if g.user else [])
-
-    slc.params = json.dumps(form_data, indent=2, sort_keys=True)
-    slc.datasource_name = datasource_name
-    slc.viz_type = form_data["viz_type"]
-    slc.datasource_type = datasource_type
-    slc.datasource_id = datasource_id
-    slc.slice_name = slice_name
-
-    if act == "saveas" and slice_add_perm:
-        save_slice(slc)
-    elif act == "overwrite" and slice_overwrite_perm:
-        overwrite_slice(slc)
-
-    # Adding slice to a dashboard if requested
-    dash = None
-    if request.args.get("add_to_dash") == "existing":
-        dash = (
-            db.session.query(models.Dashboard)
-            .filter_by(id=int(request.args.get("save_to_dashboard_id")))
-            .one()
-        )
-
-        # check edit dashboard permissions
-        dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
-        if not dash_overwrite_perm:
-            return json_error_response(
-                _("You don't have the rights to ") + _("alter this ") + _("dashboard"),
-                status=400,
-            )
-
-        flash(
-            _("Chart [{}] was added to dashboard [{}]").format(
-                slc.slice_name, dash.dashboard_title
-            ),
-            "info",
-        )
-    elif request.args.get("add_to_dash") == "new":
-        # check create dashboard permissions
-        dash_add_perm = security_manager.can_access("can_add", "DashboardModelView")
-        if not dash_add_perm:
-            return json_error_response(
-                _("You don't have the rights to ") + _("create a ") + _("dashboard"),
-                status=400,
-            )
-
-        dash = models.Dashboard(
-            dashboard_title=request.args.get("new_dashboard_name"),
-            owners=[g.user] if g.user else [],
-        )
-        flash(
-            _(
-                "Dashboard [{}] just got created and chart [{}] was added " "to it"
-            ).format(dash.dashboard_title, slc.slice_name),
-            "info",
-        )
-
-    if dash and slc not in dash.slices:
-        dash.slices.append(slc)
-        db.session.commit()
-
-    response = {
-        "can_add": slice_add_perm,
-        "can_download": slice_download_perm,
-        "can_overwrite": is_owner(slc, g.user),
-        "form_data": slc.form_data,
-        "slice": slc.data,
-        "dashboard_id": dash.id if dash else None,
-    }
-
-    if request.args.get("goto_dash") == "true":
-        response.update({"dashboard": dash.url})
-
-    return json_success(json.dumps(response))
-
-
-def queries_exec(last_updated_ms_int: int):
-    stats_logger.incr("queries")
-    if not g.user.get_id():
-        return json_error_response("Please login to access the queries.", status=403)
-
-    # UTC date time, same that is stored in the DB.
-    last_updated_dt = utils.EPOCH + timedelta(seconds=last_updated_ms_int / 1000)
-
-    sql_queries = (
-        db.session.query(Query)
-        .filter(Query.user_id == g.user.get_id(), Query.changed_on >= last_updated_dt)
-        .all()
-    )
-    dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
-    return json_success(json.dumps(dict_queries, default=utils.json_int_dttm_ser))
-
-
-def _deserialize_results_payload(
-    payload: Union[bytes, str], query, use_msgpack: Optional[bool] = False
-) -> dict:
-    logging.debug(f"Deserializing from msgpack: {use_msgpack}")
-    if use_msgpack:
-        with stats_timing(
-            "sqllab.query.results_backend_msgpack_deserialize", stats_logger
-        ):
-            ds_payload = msgpack.loads(payload, raw=False)
-
-        with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
-            df = pa.deserialize(ds_payload["data"])
-
-        # TODO: optimize this, perhaps via df.to_dict, then traversing
-        ds_payload["data"] = dataframe.SupersetDataFrame.format_data(df) or []
-
-        db_engine_spec = query.database.db_engine_spec
-        all_columns, data, expanded_columns = db_engine_spec.expand_data(
-            ds_payload["selected_columns"], ds_payload["data"]
-        )
-        ds_payload.update(
-            {"data": data, "columns": all_columns, "expanded_columns": expanded_columns}
-        )
-
-        return ds_payload
-    else:
-        with stats_timing(
-            "sqllab.query.results_backend_json_deserialize", stats_logger
-        ):
-            return json.loads(payload)  # type: ignore
-
-
-class SliceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    def apply(self, query, value):  # pylint: disable=unused-argument
-        if security_manager.all_datasource_access():
-            return query
-        perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        return query.filter(
-            or_(self.model.perm.in_(perms), self.model.schema_perm.in_(schema_perms))
-        )
 
 
 class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -2925,7 +2438,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             payload = utils.zlib_decompress(
                 blob, decode=not results_backend_use_msgpack
             )
-            obj = _deserialize_results_payload(
+            obj = deserialize_results_payload(
                 payload, query, results_backend_use_msgpack
             )
             columns = [c["name"] for c in obj["columns"]]
