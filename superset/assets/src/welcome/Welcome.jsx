@@ -18,7 +18,7 @@
  */
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Panel, Row, Col, Tabs, Tab, FormControl } from 'react-bootstrap';
+import { Panel, Row, Col, Tabs, Tab } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { useQueryParam, StringParam } from 'use-query-params';
 import RecentActivity from '../profile/components/RecentActivity';
@@ -36,9 +36,9 @@ export default function Welcome({ user }) {
   );
   const [tabKey, setTabKey] = useState(activeTab || 'all');
 
-  const changeTab = tabKey => {
-    setActiveTabQState(tabKey);
-    setTabKey(tabKey);
+  const changeTab = key => {
+    setActiveTabQState(key);
+    setTabKey(key);
   };
 
   return (

@@ -16,6 +16,7 @@
 # under the License.
 import json
 import re
+import json
 
 from flask import current_app, g, make_response, request
 from flask_appbuilder.api import expose, protect, rison, safe

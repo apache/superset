@@ -16,18 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
-import withToasts from '../messageToasts/enhancers/withToasts';
+import moment from 'moment';
 import ListView from 'src/components/ListView/ListView';
-
-const propTypes = {
-  addDangerToast: PropTypes.func.isRequired,
-};
+import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 class DashboardTable extends React.PureComponent {
+  static propTypes = {
+    addDangerToast: PropTypes.func.isRequired,
+  };
+
   state = {
     dashboards: [],
     dashboard_count: 0,
@@ -36,51 +37,52 @@ class DashboardTable extends React.PureComponent {
   columns = [
     {
       accessor: 'dashboard_title',
-      Header: 'Dashboard',
       id: 'dashboard_title',
+      Header: 'Dashboard',
       filterable: true,
       Cell: ({
         row: {
-          original: { dashboard_link },
+          original: { url, dashboard_title },
         },
-      }) => <span dangerouslySetInnerHTML={{ __html: dashboard_link }} />,
+      }) => <a href={url}>{dashboard_title}</a>,
     },
     {
-      accessor: 'changed_by_name',
-      Header: 'Creator',
+      accessor: 'changed_by_fk',
       id: 'changed_by_fk',
+      Header: 'Creator',
       Cell: ({
         row: {
-          original: { creator },
+          original: { changed_by_name, changed_by_url },
         },
-      }) => <span dangerouslySetInnerHTML={{ __html: creator }} />,
+      }) => <a href={changed_by_url}>{changed_by_name}</a>,
     },
     {
-      accessor: row => new Date(row.changed_on),
-      Header: 'Modified',
+      accessor: 'changed_on',
       id: 'changed_on',
+      Header: 'Modified',
       Cell: ({
         row: {
-          original: { modified },
+          original: { changed_on },
         },
-      }) => <span dangerouslySetInnerHTML={{ __html: modified }} />,
+      }) => <span className="no-wrap">{moment(changed_on).fromNow()}</span>,
     },
   ];
 
   fetchData = ({ pageIndex, pageSize, sortBy, filters }) => {
     this.setState({ loading: true });
     const filterExps = Object.keys(filters).map(
-      fk => `&_flt_${filters[fk].filterId}_${fk}=${filters[fk].filterValue}`,
+      fk =>
+        `(col:${fk},opr:${filters[fk].filterId},value:${filters[fk].filterValue})`,
     );
+    const queryParams = [
+      `order_column:${sortBy[0].id},order_direction:${
+        sortBy[0].desc ? 'desc' : 'asc'
+      }`,
+      `page:${pageIndex},page_size:${pageSize}`,
+      filterExps.length ? `filters:!(${filterExps.join(',')})` : 'filters:!()',
+    ].join(',');
     return SupersetClient.get({
-      endpoint: [
-        '/dashboardasync/api/read',
-        `?_oc_DashboardModelViewAsync=${
-          sortBy[0].id
-        }&_od_DashboardModelViewAsync=${sortBy[0].desc ? 'desc' : 'asc'}`,
-        `&_psize_DashboardModelViewAsync=${pageSize}&_page_DashboardModelViewAsync=${pageIndex}`,
-        ...filterExps,
-      ].join(''),
+      endpoint: `/api/v1/dashboard/?q=(${queryParams})`,
     })
       .then(({ json }) => {
         this.setState({ dashboards: json.result, dashboard_count: json.count });
@@ -104,11 +106,19 @@ class DashboardTable extends React.PureComponent {
         loading={this.state.loading}
         defaultSort={[{ id: 'changed_on', desc: true }]}
         filterable
+        filterTypes={[
+          { label: 'Starts With', value: 'sw' },
+          { label: 'Ends With', value: 'ew' },
+          { label: 'Contains', value: 'ct' },
+          { label: 'Equal To', value: 'eq' },
+          { label: 'Not Starts With', value: 'nsw' },
+          { label: 'Not Ends With', value: 'new' },
+          { label: 'Not Contains', value: 'nct' },
+          { label: 'Not Equal To', value: 'neq' },
+        ]}
       />
     );
   }
 }
-
-DashboardTable.propTypes = propTypes;
 
 export default withToasts(DashboardTable);

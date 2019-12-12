@@ -16,15 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
-import {
-  useQueryParams,
-  NumberParam,
-  StringParam,
-  JsonParam,
-} from 'use-query-params';
-// @ts-ignore
-import { useTable, useSortBy, usePagination, useFilters } from 'react-table';
+import React from 'react';
 import {
   Pagination,
   DropdownButton,
@@ -32,20 +24,19 @@ import {
   MenuItem,
   Row,
   Col,
+  Button,
   // @ts-ignore
 } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import {
   FetchDataConfig,
-  TableState,
   SortColumns,
-  FilterToggles,
+  FilterToggle,
+  FilterType,
 } from './types';
-import Loading from 'src/components/Loading';
-
-import './styles.less';
-
-const DEFAULT_PAGE_SIZE = 10;
+import { removeFromList, useListViewState, convertFilters } from './utils';
+import TableCollection from './TableCollection';
+import './ListViewStyles.less';
 
 interface Props {
   title: string;
@@ -56,147 +47,7 @@ interface Props {
   loading: boolean;
   defaultSort: SortColumns;
   filterable: boolean;
-}
-
-function FilterTrigger({
-  columns,
-  onFilter,
-}: {
-  columns: FilterToggles;
-  onFilter: (id: string) => any;
-}) {
-  return (
-    <div className="filter-dropdown">
-      <DropdownButton
-        bsSize="small"
-        bsStyle={'default'}
-        noCaret
-        title={
-          <>
-            <i className="fa fa-filter text-primary" />
-            {'  '}Filter List
-          </>
-        }
-        id={'filter-picker'}
-      >
-        {columns.map((col: typeof columns[0]) => (
-          <MenuItem key={col.id} eventKey={col} onSelect={onFilter}>
-            {col.Header}
-          </MenuItem>
-        ))}
-      </DropdownButton>
-    </div>
-  );
-}
-
-// removes element from a list, returns new list
-function removeFromList(list: Array<any>, index: number): Array<any> {
-  return list.filter((_, i) => index !== i);
-}
-
-// apply update to elements of object list, returns new list
-function updateInList(
-  list: Array<any>,
-  index: number,
-  update: any,
-): Array<any> {
-  const element = list.find((_, i) => index === i);
-
-  return [
-    ...list.slice(0, index),
-    { ...element, ...update },
-    ...list.slice(index + 1),
-  ];
-}
-
-// convert filters from UI objects to data objects
-function convertFilters(fts: FilterToggles) {
-  return fts.reduce((acc, elem) => {
-    acc[elem.id] = {
-      filterId: elem.filterId || 0,
-      filterValue: elem.filterValue,
-    };
-    return acc;
-  }, {});
-}
-
-function useListViewState({ fetchData, columns, data, count, defaultSort }) {
-  const [query, setQuery] = useQueryParams({
-    pageIndex: NumberParam,
-    sortColumn: StringParam,
-    sortOrder: StringParam,
-    filters: JsonParam,
-  });
-
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    rows,
-    prepareRow,
-    canPreviousPage,
-    canNextPage,
-    pageCount,
-    gotoPage,
-    setAllFilters,
-    state: { pageIndex, pageSize, sortBy, filters },
-  }: TableState = useTable(
-    {
-      columns,
-      data,
-      count,
-      initialState: {
-        pageIndex: query.pageIndex || 0,
-        pageSize: DEFAULT_PAGE_SIZE,
-        sortBy:
-          query.sortColumn && query.sortOrder
-            ? [{ id: query.sortColumn, desc: query.sortOrder === 'desc' }]
-            : defaultSort,
-        filters: convertFilters(query.filters || []),
-      },
-      manualSorting: true,
-      disableSortRemove: true,
-      manualPagination: true,
-      manualFilters: true,
-      pageCount: Math.ceil(count / DEFAULT_PAGE_SIZE),
-    },
-    useFilters,
-    useSortBy,
-    usePagination,
-  );
-
-  const [filterToggles, setFilterToggles] = useState<FilterToggles>(
-    query.filters || [],
-  );
-
-  useEffect(() => {
-    setQuery({
-      pageIndex,
-      sortColumn: sortBy[0].id,
-      sortOrder: sortBy[0].desc ? 'desc' : 'asc',
-      filters: filterToggles,
-    });
-
-    fetchData({ pageIndex, pageSize, sortBy, filters });
-  }, [fetchData, pageIndex, pageSize, sortBy, filters]);
-
-  return {
-    setFilterToggles,
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    rows,
-    prepareRow,
-    canPreviousPage,
-    canNextPage,
-    pageCount,
-    gotoPage,
-    setAllFilters,
-    state: { pageIndex, pageSize, sortBy, filters, filterToggles },
-    updateFilterToggle: (index: number, update: object) =>
-      setFilterToggles(updateInList(filterToggles, index, update)),
-    applyFilters: () => setAllFilters(convertFilters(filterToggles)),
-  };
+  filterTypes: FilterType[];
 }
 
 export default function ListView({
@@ -208,6 +59,7 @@ export default function ListView({
   loading,
   defaultSort,
   filterable,
+  filterTypes,
 }: Props) {
   const {
     getTableProps,
@@ -223,6 +75,7 @@ export default function ListView({
     setFilterToggles,
     updateFilterToggle,
     applyFilters,
+    filtersApplied,
     state: { pageIndex, pageSize, filterToggles },
   } = useListViewState({
     fetchData,
@@ -247,12 +100,38 @@ export default function ListView({
           </Col>
           {filterable && (
             <Col md={2}>
-              <FilterTrigger
-                columns={columns.filter(c => c.filterable)}
-                onFilter={toggle =>
-                  setFilterToggles([...filterToggles, toggle])
-                }
-              />
+              <div className="filter-dropdown">
+                <DropdownButton
+                  bsSize="small"
+                  bsStyle={'default'}
+                  noCaret
+                  title={
+                    <>
+                      <i className="fa fa-filter text-primary" />
+                      {'  '}Filter List
+                    </>
+                  }
+                  id={'filter-picker'}
+                >
+                  {columns
+                    .filter(c => c.filterable)
+                    .map(({ id, Header }) => ({
+                      id,
+                      Header,
+                    }))
+                    .map((filter: FilterToggle) => (
+                      <MenuItem
+                        key={filter.id}
+                        eventKey={filter}
+                        onSelect={(filter: FilterToggle) =>
+                          setFilterToggles([...filterToggles, filter])
+                        }
+                      >
+                        {filter.Header}
+                      </MenuItem>
+                    ))}
+                </DropdownButton>
+              </div>
             </Col>
           )}
         </Row>
@@ -260,12 +139,7 @@ export default function ListView({
         {filterToggles.map((ft, i) => (
           <div key={`${ft.Header}-${i}`}>
             <Row>
-              <Col md={1}>
-                <div role="button" onClick={() => removeFilterAndApply(i)}>
-                  <i className="fa fa-close text-primary" />
-                </div>
-              </Col>
-              <Col md={2}>
+              <Col className="text-center" md={2}>
                 <span>{ft.Header}</span>
               </Col>
               <Col md={2}>
@@ -278,20 +152,13 @@ export default function ListView({
                     updateFilterToggle(i, { filterId: e.currentTarget.value })
                   }
                 >
-                  {[
-                    'Starts With',
-                    'Ends With',
-                    'Contains',
-                    'Equal To',
-                    'Not Starts With',
-                    'Not Ends With',
-                    'Not Contains',
-                    'Not Equal To',
-                  ].map((label, i) => (
-                    <option key={label} value={i}>
-                      {label}
-                    </option>
-                  ))}
+                  {filterTypes.map(
+                    ({ label, value }: { label: string; value: any }) => (
+                      <option key={label} value={value}>
+                        {label}
+                      </option>
+                    ),
+                  )}
                 </FormControl>
               </Col>
               <Col md={1} />
@@ -308,6 +175,11 @@ export default function ListView({
                   }
                 />
               </Col>
+              <Col md={1}>
+                <div role="button" onClick={() => removeFilterAndApply(i)}>
+                  <i className="fa fa-close text-primary" />
+                </div>
+              </Col>
             </Row>
             <br />
           </div>
@@ -315,9 +187,17 @@ export default function ListView({
         {filterToggles.length > 0 && (
           <>
             <Row>
-              <Col md={4}>
+              <Col md={10} />
+              <Col md={2}>
                 {filterToggles.length > 0 && (
-                  <button onClick={applyFilters}>Apply</button>
+                  <Button
+                    disabled={filtersApplied ? true : false}
+                    bsStyle="primary"
+                    onClick={applyFilters}
+                    bsSize="small"
+                  >
+                    Apply
+                  </Button>
                 )}
               </Col>
             </Row>
@@ -357,55 +237,5 @@ export default function ListView({
         </span>
       </div>
     </>
-  );
-}
-
-function TableCollection({
-  getTableProps,
-  getTableBodyProps,
-  prepareRow,
-  headerGroups,
-  rows,
-  loading,
-}: any) {
-  if (loading) {
-    return <Loading />;
-  }
-  return (
-    <table {...getTableProps()} className="table">
-      <thead>
-        {headerGroups.map((headerGroup: any) => (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map((column: any) => (
-              <th {...column.getHeaderProps(column.getSortByToggleProps())}>
-                {column.render('Header')}
-                {'  '}
-                <i
-                  className={`text-primary fa fa-${
-                    column.isSorted
-                      ? column.isSortedDesc
-                        ? 'sort-down'
-                        : 'sort-up'
-                      : 'sort'
-                  }`}
-                />
-              </th>
-            ))}
-          </tr>
-        ))}
-      </thead>
-      <tbody {...getTableBodyProps()}>
-        {rows.map((row: any) => {
-          prepareRow(row);
-          return (
-            <tr {...row.getRowProps()}>
-              {row.cells.map((cell: any) => {
-                return <td {...cell.getCellProps()}>{cell.render('Cell')}</td>;
-              })}
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
   );
 }
