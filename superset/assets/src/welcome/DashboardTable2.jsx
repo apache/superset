@@ -70,19 +70,21 @@ class DashboardTable extends React.PureComponent {
 
   fetchData = ({ pageIndex, pageSize, sortBy, filters }) => {
     this.setState({ loading: true });
-    const filterExps = Object.keys(filters).map(
-      fk =>
-        `(col:${fk},opr:${filters[fk].filterId},value:${filters[fk].filterValue})`,
-    );
-    const queryParams = [
-      `order_column:${sortBy[0].id},order_direction:${
-        sortBy[0].desc ? 'desc' : 'asc'
-      }`,
-      `page:${pageIndex},page_size:${pageSize}`,
-      filterExps.length ? `filters:!(${filterExps.join(',')})` : 'filters:!()',
-    ].join(',');
+    const filterExps = Object.keys(filters).map(fk => ({
+      col: fk,
+      opr: filters[fk].filterId,
+      value: filters[fk].filterValue,
+    }));
+
+    const queryParams = JSON.stringify({
+      order_column: sortBy[0].id,
+      order_direction: sortBy[0].desc ? 'desc' : 'asc',
+      page: pageIndex,
+      page_size: pageSize,
+      ...(filterExps.length ? { filters: filterExps } : {}),
+    });
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/?q=(${queryParams})`,
+      endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
       .then(({ json }) => {
         this.setState({ dashboards: json.result, dashboard_count: json.count });
