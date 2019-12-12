@@ -35,7 +35,7 @@ class DashboardTable extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      dashboards: [],
+      dashboards: null,
     };
   }
 
@@ -55,7 +55,7 @@ class DashboardTable extends React.PureComponent {
   }
 
   render() {
-    if (this.state.dashboards.length > 0) {
+    if (this.state.dashboards !== null) {
       return (
         <Table
           className="table"
