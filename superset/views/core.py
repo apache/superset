@@ -2655,7 +2655,7 @@ class Superset(BaseSupersetView):
         rendered_query: str,
         query: Query,
         expand_data: bool,
-        log_params: dict,
+        log_params: Dict[str, Any],
     ) -> str:
         """
             Send SQL JSON query to celery workers
@@ -2706,7 +2706,7 @@ class Superset(BaseSupersetView):
         rendered_query: str,
         query: Query,
         expand_data: bool,
-        log_params: dict,
+        log_params: Dict[str, Any],
     ) -> str:
         """
             Execute SQL query (sql json)
@@ -2751,7 +2751,7 @@ class Superset(BaseSupersetView):
     @expose("/sql_json/", methods=["POST"])
     @event_logger.log_this
     def sql_json(self):
-        log_params = {"USER_AGENT": cast(str, request.headers.get("USER_AGENT"))}
+        log_params = {"USER_AGENT": cast(Optional[str], request.headers.get("USER_AGENT"))}
         return self.sql_json_exec(request.json, log_params)
 
     def sql_json_exec(self, query_params: dict, log_params: dict):
