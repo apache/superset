@@ -18,9 +18,33 @@
 import json
 import logging
 import time
+from datetime import datetime
 
-from superset.models.core import Dashboard
-from superset.utils.core import decode_dashboards
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.models.core import Dashboard, Slice
+
+
+def decode_dashboards(o):
+    """
+    Function to be passed into json.loads obj_hook parameter
+    Recreates the dashboard object from a json representation.
+    """
+    import superset.models.core as models
+
+    if "__Dashboard__" in o:
+        return Dashboard(**o["__Dashboard__"])
+    elif "__Slice__" in o:
+        return Slice(**o["__Slice__"])
+    elif "__TableColumn__" in o:
+        return TableColumn(**o["__TableColumn__"])
+    elif "__SqlaTable__" in o:
+        return SqlaTable(**o["__SqlaTable__"])
+    elif "__SqlMetric__" in o:
+        return SqlMetric(**o["__SqlMetric__"])
+    elif "__datetime__" in o:
+        return datetime.strptime(o["__datetime__"], "%Y-%m-%dT%H:%M:%S")
+    else:
+        return o
 
 
 def import_dashboards(session, data_stream, import_time=None):
