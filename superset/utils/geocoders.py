@@ -169,3 +169,8 @@ class MapTilerGeocoder(BaseGeocoder):
         datum.append(str(center_coordinates[0]))
         datum.append(str(center_coordinates[1]))
         return datum
+
+
+class TestingGeoCoder(BaseGeocoder):
+    def check_api_key(self):
+        pass

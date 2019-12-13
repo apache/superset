@@ -251,7 +251,6 @@ class Geocoder(BaseSupersetView):
                     self._add_lat_lon_columns(
                         table_name.get("fullName"), table_dto, lat_column, lon_column
                     )
-
         else:
             if lat_exists:
                 raise ValueError(
@@ -321,7 +320,7 @@ class Geocoder(BaseSupersetView):
                 column_list.append(f'"{column}"')
         return ", ".join(filter(None, column_list))
 
-    def _geocode(self, data: list, geocode_api: str, geocoder, dev=False):
+    def _geocode(self, data: list, geocoder, dev=False):
         """
         Internal method which starts the geocoding
         :param data: the data to be geocoded as a list of tuples
