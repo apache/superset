@@ -139,7 +139,7 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
     resource_name = "dashboard"
     allow_browser_login = True
 
-    class_permission_name = "Dashboard"
+    class_permission_name = "DashboardModelView"
     method_permission_name = {
         "get_list": "list",
         "get": "show",
