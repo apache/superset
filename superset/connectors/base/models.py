@@ -131,7 +131,7 @@ class BaseDatasource(
     def explore_url(self) -> str:
         if self.default_endpoint:
             return self.default_endpoint
-        return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
+        return f"/superset/explore/{self.type}/{self.id}/"
 
     @property
     def column_formats(self) -> Dict[str, Optional[str]]:
