@@ -18,10 +18,8 @@ import json
 import logging
 import time
 
-import requests
-from requests import HTTPError, RequestException, Timeout
-
-from superset.exceptions import NoAPIKeySuppliedException
+from flask import flash
+from requests import get, HTTPError, RequestException, Timeout
 
 
 class GeocoderUtil:  # pylint: disable=too-few-public-methods
@@ -39,11 +37,9 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
 
     def geocode(self, geocoder: str, data: list):
         try:
-            if geocoder == "MapTiler":
+            if geocoder == "maptiler":
                 return self._geocode_maptiler(data)
             return []
-        except Exception as e:
-            raise e
         finally:
             self.progress["progress"] = 0
             self.progress["is_in_progress"] = False
@@ -54,75 +50,105 @@ class GeocoderUtil:  # pylint: disable=too-few-public-methods
         :param data: the addresses to be geocoded as a list of tuples
         :return: a dictionary containing the addresses and their long,lat values
         """
-        if not self.conf["MAPTILER_API_KEY"]:
-            raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
+
         geocoded_data: list = []
-        data_length: int = len(data)
         counter: int = 0
+        exceptions: int = 0
+        self._set_initialstates()
+
+        for datum in data:
+            try:
+                if self.interruptflag:
+                    self.progress["progress"] = 0
+                    self.progress["is_in_progress"] = False
+                    message = "successfully interrupted geocoding"
+                    flash(message, "success")
+                    return [message, [geocoded_data, self._set_dict()]]
+                datum = list(map(str, datum))
+                address = " ".join(datum)
+                geocoded = self._get_coordinates_from_address(address)
+                if geocoded is not None:
+                    datum = self._append_to_datum(datum, geocoded)
+                    geocoded_data.append(datum)
+                else:
+                    self.progress["failed_counter"] += 1
+                counter += 1
+
+                self.progress["progress"] = counter / len(data)
+                exceptions = 0
+            except ConnectionError as e:
+                exceptions += 1
+                self.logger.exception(
+                    f"Geocoding ConnectionError for address: {address} "
+                    f"exception-message: {e}"
+                )
+            except HTTPError as e:
+                exceptions += 1
+                self.logger.exception(
+                    f"Geocoding HTTPError for address: {address} exception-message: {e}"
+                )
+            except Timeout as e:
+                exceptions += 1
+                self.logger.exception(
+                    f"Geocoding Timeout for address: {address} exception-message: {e}"
+                )
+            except RequestException as e:
+                exceptions += 1
+                self.logger.exception(
+                    f"Geocoding RequestException for address: {address} "
+                    f"exception-message: {e}"
+                )
+            except Exception as e:  # pylint: disable=broad-except
+                exceptions += 1
+                self.logger.exception(
+                    f"Unknown exception for address: {address} "
+                    f"exception message: {e}"
+                )
+            if counter == 0 and exceptions == 1:
+                message = f"Exception at the start of the geocoding process"
+                flash(message, "error")
+                return [message, [geocoded_data, self._set_dict()]]
+            if exceptions >= 2:
+                message = f"2 Consecutive Exceptions during geocoding process"
+                flash(message, "error")
+                return [message, [geocoded_data, self._set_dict()]]
+
+        self.progress["progress"] = 100
+        return ["", [geocoded_data, self._set_dict()]]
+
+    def _append_to_datum(self, datum: list, geocoded: list):
+        center_coordinates = geocoded[0]
+        relevance = geocoded[1]
+        if relevance > 0.8:
+            self.progress["success_counter"] += 1
+        elif relevance > 0.49:
+            self.progress["doubt_counter"] += 1
+        else:
+            self.progress["failed_counter"] += 1
+        datum.append(str(center_coordinates[0]))
+        datum.append(str(center_coordinates[1]))
+        return datum
+
+    def _set_initialstates(self):
+        self.interruptflag = False
         self.progress["success_counter"] = 0
         self.progress["doubt_counter"] = 0
         self.progress["failed_counter"] = 0
         self.progress["is_in_progress"] = True
         self.progress["progress"] = 0
 
-        for datum in data:
-            try:
-                if self.interruptflag:
-                    self.interruptflag = False
-                    self.progress["progress"] = 0
-                    self.progress["is_in_progress"] = False
-                    return geocoded_data
-                datum = list(map(str, datum))
-                address = " ".join(datum)
-                geocoded = self._get_coordinates_from_address(address)
-                if geocoded is not None:
-                    center_coordinates = geocoded[0]
-                    relevance = geocoded[1]
-                    if relevance > 0.8:
-                        self.progress["success_counter"] += 1
-                    elif relevance > 0.49:
-                        self.progress["doubt_counter"] += 1
-                    else:
-                        self.progress["failed_counter"] += 1
-                    datum.append(str(center_coordinates[0]))
-                    datum.append(str(center_coordinates[1]))
-                    geocoded_data.append(datum)
-                else:
-                    self.progress["failed_counter"] += 1
-
-                counter += 1
-                self.progress["progress"] = counter / data_length
-            except ConnectionError as e:
-                self.logger.exception(
-                    f"Geocoding ConnectionError for address: {address} "
-                    f"exception-message: {e}"
-                )
-            except HTTPError as e:
-                self.logger.exception(
-                    f"Geocoding HTTPError for address: {address} exception-message: {e}"
-                )
-            except Timeout as e:
-                self.logger.exception(
-                    f"Geocoding Timeout for address: {address} exception-message: {e}"
-                )
-            except RequestException as e:
-                self.logger.exception(
-                    f"Geocoding RequestException for address: {address} "
-                    f"exception-message: {e}"
-                )
-
-        self.progress["progress"] = 100
+    def _set_dict(self):
         self.progress["is_in_progress"] = False
         success_dict = {
             "success": self.progress["success_counter"],
             "doubt": self.progress["doubt_counter"],
             "failed": self.progress["failed_counter"],
         }
-        return [geocoded_data, success_dict]
+        return success_dict
 
     def _get_coordinates_from_address(self, address: str):
         base_url = "https://api.maptiler.com/geocoding/"
-        response = requests.get(
+        response = get(
             base_url + address + ".json?key=" + self.conf["MAPTILER_API_KEY"]
         )
         decoded_data = json.loads(response.content.decode())

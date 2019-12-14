@@ -1363,6 +1363,13 @@ if is_feature_enabled("TAGGING_SYSTEM"):
     sqla.event.listen(FavStar, "after_delete", FavStarUpdater.after_delete)
 
 
+class DatabaseDto:
+    def __init__(self, id, name, allowed_schemas):
+        self.id = id
+        self.name = name
+        self.allowed_schemas = allowed_schemas
+
+
 class TableDto:
     def __init__(self, id="", name="", schema="", database_id=""):
         self.id = id

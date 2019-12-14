@@ -102,6 +102,7 @@ class SupersetSecurityManager(SecurityManager):
         "ResetPasswordView",
         "RoleModelView",
         "Security",
+        "Geocode Addresses",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {"Upload a CSV"}
@@ -113,6 +114,12 @@ class SupersetSecurityManager(SecurityManager):
         "can_override_role_permissions",
         "can_approve",
         "can_update_role",
+        "can_geocoding",
+        "can_geocode",
+        "can_columns",
+        "can_progress",
+        "can_is_in_progress",
+        "can_interrupt",
     }
 
     READ_ONLY_PERMISSION = {"can_show", "can_list"}

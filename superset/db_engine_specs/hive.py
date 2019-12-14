@@ -98,7 +98,9 @@ class HiveEngineSpec(PrestoEngineSpec):
             return []
 
     @classmethod
-    def create_table_from_csv(cls, form, table):  # pylint: disable=too-many-locals
+    def create_and_fill_table_from_csv(
+        cls, form_data: dict, table, csv_filename: str, database
+    ):  # pylint: disable=too-many-locals
         """Uploads a csv file and creates a superset datasource in Hive."""
 
         def convert_to_hive_type(col_type):
@@ -119,8 +121,8 @@ class HiveEngineSpec(PrestoEngineSpec):
                 "No upload bucket specified. You can specify one in the config file."
             )
 
-        table_name = form.name.data
-        schema_name = form.schema.data
+        table_name = form_data.get("tableName", "")
+        schema_name = form_data.get("schema", "")
 
         if config["UPLOADED_CSV_HIVE_NAMESPACE"]:
             if "." in table_name or schema_name:
@@ -144,7 +146,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                 "{}.{}".format(schema_name, table_name) if schema_name else table_name
             )
 
-        filename = form.csv_file.data.filename
+        filename = csv_filename
 
         upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY"]
         upload_path = config["UPLOAD_FOLDER"] + secure_filename(filename)
@@ -174,8 +176,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'
             tblproperties ('skip.header.line.count'='1')"""
-        logging.info(form.con.data)
-        engine = create_engine(form.con.data.sqlalchemy_uri_decrypted)
+        logging.info(database)
+        engine = create_engine(database.sqlalchemy_uri_decrypted, echo=False)
         engine.execute(sql)
 
     @classmethod

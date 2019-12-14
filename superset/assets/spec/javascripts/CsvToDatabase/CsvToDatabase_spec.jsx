@@ -16,29 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import FormHelpText from './FormHelpText';
-import Checkbox from './Checkbox';
+import React from 'react';
+import { mount } from 'enzyme';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
+import CsvToDatabase from 'src/CsvToDatabase/CsvToDatabase';
 
-const propTypes = {
-  checked: PropTypes.bool,
-  onChange: PropTypes.func,
-  required: PropTypes.bool,
-  helpText: PropTypes.string,
-};
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
-export default class FormCheckbox extends PureComponent {
-  render() {
-    const { checked, onChange, required, helpText } = this.props;
-    const help = helpText && <FormHelpText helpText={helpText} />;
-    return (
-      <>
-        <Checkbox checked={checked} required={required} onChange={onChange} />
-        {help}
-      </>
-    );
-  }
+const databases = [{ id: -1, name: 'In a new database', allowed_schemas: [] }];
+
+function setup() {
+  return mount(<CsvToDatabase databases={databases} />, { context: { store } });
 }
 
-FormCheckbox.propTypes = propTypes;
+describe('CsvToDatabase', () => {
+  it('renders without crashing', () => {
+    const wrapper = setup();
+    expect(wrapper.find('.container')).toHaveLength(1);
+  });
+});
