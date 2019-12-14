@@ -19,13 +19,12 @@
 import logging
 
 import simplejson as json
-from babel.messages.frontend import update_catalog
 from flask import flash, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
-from sqlalchemy import Column, Float, select, text
-from sqlalchemy.engine import Connection, reflection
+from sqlalchemy import Column, Float, text
+from sqlalchemy.engine import Connection
 
 import superset.models.core as models
 from superset import appbuilder, conf, db
