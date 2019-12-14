@@ -18,7 +18,13 @@
  */
 import { useEffect, useState } from 'react';
 // @ts-ignore
-import { useTable, useFilters, useSortBy, usePagination } from 'react-table';
+import {
+  useTable,
+  useFilters,
+  useSortBy,
+  usePagination,
+  useRowState,
+} from 'react-table';
 import {
   useQueryParams,
   NumberParam,
@@ -26,9 +32,7 @@ import {
   JsonParam,
 } from 'use-query-params';
 
-import { TableState, FilterToggle } from './types';
-
-const DEFAULT_PAGE_SIZE = 10;
+import { TableState, FilterToggle, SortColumn, FetchDataConfig } from './types';
 
 // removes element from a list, returns new list
 export function removeFromList(list: Array<any>, index: number): Array<any> {
@@ -63,13 +67,23 @@ export function convertFilters(fts: FilterToggle[]) {
     }, {});
 }
 
+type UseListViewConfig = {
+  fetchData: (conf: FetchDataConfig) => any;
+  columns: any[];
+  data: any[];
+  count: number;
+  initialPageSize: number;
+  initialSort?: SortColumn[];
+};
+
 export function useListViewState({
   fetchData,
   columns,
   data,
   count,
-  defaultSort,
-}) {
+  initialPageSize,
+  initialSort = [],
+}: UseListViewConfig) {
   const [query, setQuery] = useQueryParams({
     pageIndex: NumberParam,
     sortColumn: StringParam,
@@ -96,22 +110,23 @@ export function useListViewState({
       count,
       initialState: {
         pageIndex: query.pageIndex || 0,
-        pageSize: DEFAULT_PAGE_SIZE,
+        pageSize: initialPageSize,
         sortBy:
           query.sortColumn && query.sortOrder
             ? [{ id: query.sortColumn, desc: query.sortOrder === 'desc' }]
-            : defaultSort,
+            : initialSort,
         filters: convertFilters(query.filters || []),
       },
       manualSorting: true,
       disableSortRemove: true,
       manualPagination: true,
       manualFilters: true,
-      pageCount: Math.ceil(count / DEFAULT_PAGE_SIZE),
+      pageCount: Math.ceil(count / initialPageSize),
     },
     useFilters,
     useSortBy,
     usePagination,
+    useRowState,
   );
 
   const [filterToggles, setFilterToggles] = useState<FilterToggle[]>(

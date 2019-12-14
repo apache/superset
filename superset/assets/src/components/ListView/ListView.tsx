@@ -28,38 +28,37 @@ import {
   // @ts-ignore
 } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-import {
-  FetchDataConfig,
-  SortColumns,
-  FilterToggle,
-  FilterType,
-} from './types';
+import { FetchDataConfig, SortColumn, FilterToggle, FilterType } from './types';
 import { removeFromList, useListViewState, convertFilters } from './utils';
 import TableCollection from './TableCollection';
 import './ListViewStyles.less';
 
 interface Props {
-  title: string;
-  columns: Array<any>;
-  data: Array<any>;
+  columns: any[];
+  data: any[];
   count: number;
+  pageSize: number;
   fetchData: (conf: FetchDataConfig) => any;
   loading: boolean;
-  defaultSort: SortColumns;
-  filterable: boolean;
-  filterTypes: FilterType[];
+  className: string;
+  title?: string;
+  initialSort?: SortColumn[];
+  filterable?: boolean;
+  filterTypes?: FilterType[];
 }
 
 export default function ListView({
-  title,
   columns,
   data,
   count,
+  pageSize: initialPageSize,
   fetchData,
   loading,
-  defaultSort,
-  filterable,
-  filterTypes,
+  initialSort,
+  className = '',
+  title = '',
+  filterable = false,
+  filterTypes = [],
 }: Props) {
   const {
     getTableProps,
@@ -82,7 +81,8 @@ export default function ListView({
     columns,
     data,
     count,
-    defaultSort,
+    initialPageSize,
+    initialSort,
   });
 
   const removeFilterAndApply = (index: number) => {
@@ -92,119 +92,124 @@ export default function ListView({
   };
 
   return (
-    <>
-      <div className="header">
-        <Row>
-          <Col md={10}>
-            <h2>{t(title)}</h2>
-          </Col>
-          {filterable && (
-            <Col md={2}>
-              <div className="filter-dropdown">
-                <DropdownButton
-                  bsSize="small"
-                  bsStyle={'default'}
-                  noCaret
-                  title={
-                    <>
-                      <i className="fa fa-filter text-primary" />
-                      {'  '}Filter List
-                    </>
-                  }
-                  id={'filter-picker'}
-                >
-                  {columns
-                    .filter(c => c.filterable)
-                    .map(({ id, Header }) => ({
-                      id,
-                      Header,
-                    }))
-                    .map((filter: FilterToggle) => (
-                      <MenuItem
-                        key={filter.id}
-                        eventKey={filter}
-                        onSelect={(filter: FilterToggle) =>
-                          setFilterToggles([...filterToggles, filter])
-                        }
-                      >
-                        {filter.Header}
-                      </MenuItem>
-                    ))}
-                </DropdownButton>
-              </div>
+    <div className={`superset-list-view ${className}`}>
+      {title && filterable && (
+        <div className="header">
+          <Row>
+            <Col md={10}>
+              <h2>{t(title)}</h2>
             </Col>
-          )}
-        </Row>
-        <hr />
-        {filterToggles.map((ft, i) => (
-          <div key={`${ft.Header}-${i}`}>
-            <Row>
-              <Col className="text-center" md={2}>
-                <span>{ft.Header}</span>
-              </Col>
+            {filterable && (
               <Col md={2}>
-                <FormControl
-                  componentClass="select"
-                  bsSize="small"
-                  value={ft.filterId || 0}
-                  placeholder="Starts With"
-                  onChange={(e: React.MouseEvent<HTMLInputElement>) =>
-                    updateFilterToggle(i, { filterId: e.currentTarget.value })
-                  }
-                >
-                  {filterTypes.map(
-                    ({ label, value }: { label: string; value: any }) => (
-                      <option key={label} value={value}>
-                        {label}
-                      </option>
-                    ),
-                  )}
-                </FormControl>
-              </Col>
-              <Col md={1} />
-              <Col md={4}>
-                <FormControl
-                  type="text"
-                  bsSize="small"
-                  placeholder={ft.Header}
-                  value={ft.filterValue || ''}
-                  onChange={(e: React.KeyboardEvent<HTMLInputElement>) =>
-                    updateFilterToggle(i, {
-                      filterValue: e.currentTarget.value,
-                    })
-                  }
-                />
-              </Col>
-              <Col md={1}>
-                <div role="button" onClick={() => removeFilterAndApply(i)}>
-                  <i className="fa fa-close text-primary" />
+                <div className="filter-dropdown">
+                  <DropdownButton
+                    bsSize="small"
+                    bsStyle={'default'}
+                    noCaret
+                    title={
+                      <>
+                        <i className="fa fa-filter text-primary" />
+                        {'  '}Filter List
+                      </>
+                    }
+                    id={'filter-picker'}
+                  >
+                    {columns
+                      .filter(c => c.filterable)
+                      .map(({ id, accessor, Header }) => ({
+                        id: id || accessor,
+                        Header,
+                      }))
+                      .map((filter: FilterToggle) => (
+                        <MenuItem
+                          key={filter.id}
+                          eventKey={filter}
+                          onSelect={(filter: FilterToggle) =>
+                            setFilterToggles([...filterToggles, filter])
+                          }
+                        >
+                          {filter.Header}
+                        </MenuItem>
+                      ))}
+                  </DropdownButton>
                 </div>
               </Col>
-            </Row>
-            <br />
-          </div>
-        ))}
-        {filterToggles.length > 0 && (
-          <>
-            <Row>
-              <Col md={10} />
-              <Col md={2}>
-                {filterToggles.length > 0 && (
-                  <Button
-                    disabled={filtersApplied ? true : false}
-                    bsStyle="primary"
-                    onClick={applyFilters}
+            )}
+          </Row>
+          <hr />
+          {filterToggles.map((ft, i) => (
+            <div key={`${ft.Header}-${i}`}>
+              <Row>
+                <Col className="text-center filter-column" md={2}>
+                  <span>{ft.Header}</span>
+                </Col>
+                <Col md={2}>
+                  <FormControl
+                    componentClass="select"
                     bsSize="small"
+                    value={ft.filterId || 0}
+                    placeholder="Starts With"
+                    onChange={(e: React.MouseEvent<HTMLInputElement>) =>
+                      updateFilterToggle(i, { filterId: e.currentTarget.value })
+                    }
                   >
-                    Apply
-                  </Button>
-                )}
-              </Col>
-            </Row>
-            <br />{' '}
-          </>
-        )}
-      </div>
+                    {filterTypes.map(
+                      ({ label, value }: { label: string; value: any }) => (
+                        <option key={label} value={value}>
+                          {label}
+                        </option>
+                      ),
+                    )}
+                  </FormControl>
+                </Col>
+                <Col md={1} />
+                <Col md={4}>
+                  <FormControl
+                    type="text"
+                    bsSize="small"
+                    value={ft.filterValue || ''}
+                    onChange={(e: React.KeyboardEvent<HTMLInputElement>) =>
+                      updateFilterToggle(i, {
+                        filterValue: e.currentTarget.value,
+                      })
+                    }
+                  />
+                </Col>
+                <Col md={1}>
+                  <div
+                    className="filter-close"
+                    role="button"
+                    onClick={() => removeFilterAndApply(i)}
+                  >
+                    <i className="fa fa-close text-primary" />
+                  </div>
+                </Col>
+              </Row>
+              <br />
+            </div>
+          ))}
+          {filterToggles.length > 0 && (
+            <>
+              <Row>
+                <Col md={10} />
+                <Col md={2}>
+                  {filterToggles.length > 0 && (
+                    <Button
+                      disabled={filtersApplied ? true : false}
+                      bsStyle="primary"
+                      onClick={applyFilters}
+                      bsSize="small"
+                    >
+                      Apply
+                    </Button>
+                  )}
+                </Col>
+              </Row>
+              <br />{' '}
+            </>
+          )}
+        </div>
+      )}
       <div className="body">
         <TableCollection
           getTableProps={getTableProps}
@@ -231,11 +236,12 @@ export default function ListView({
         <span className="pull-right">
           showing{' '}
           <strong>
-            {pageSize * pageIndex + 1}-{pageSize * pageIndex + rows.length}
+            {pageSize * pageIndex + (rows.length && 1)}-
+            {pageSize * pageIndex + rows.length}
           </strong>{' '}
           of <strong>{count}</strong>
         </span>
       </div>
-    </>
+    </div>
   );
 }

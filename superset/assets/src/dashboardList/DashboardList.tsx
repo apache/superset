@@ -21,8 +21,12 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import moment from 'moment';
+import { Panel, Button } from 'react-bootstrap';
 import ListView from 'src/components/ListView/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+
+import './DashboardList.less';
+const PAGE_SIZE = 25;
 
 class DashboardTable extends React.PureComponent {
   static propTypes = {
@@ -32,41 +36,76 @@ class DashboardTable extends React.PureComponent {
   state = {
     dashboards: [],
     dashboard_count: 0,
+    loading: false,
   };
 
   columns = [
     {
       accessor: 'dashboard_title',
-      id: 'dashboard_title',
+      // id: 'dashboard_title',
       Header: 'Dashboard',
       filterable: true,
+      sortable: true,
       Cell: ({
         row: {
           original: { url, dashboard_title },
         },
-      }) => <a href={url}>{dashboard_title}</a>,
+      }: any) => <a href={url}>{dashboard_title}</a>,
     },
     {
       accessor: 'changed_by_fk',
-      id: 'changed_by_fk',
+      // id: 'changed_by_fk',
       Header: 'Creator',
+      sortable: true,
       Cell: ({
         row: {
           original: { changed_by_name, changed_by_url },
         },
-      }) => <a href={changed_by_url}>{changed_by_name}</a>,
+      }: any) => <a href={changed_by_url}>{changed_by_name}</a>,
+    },
+    {
+      accessor: 'published',
+      // id: 'published',
+      Header: 'Published',
+      sortable: true,
+      Cell: ({
+        row: {
+          original: { published },
+        },
+      }: any) => (
+        <span className="no-wrap">{published ? 'True' : 'False'}</span>
+      ),
     },
     {
       accessor: 'changed_on',
-      id: 'changed_on',
+      // id: 'changed_on',
       Header: 'Modified',
+      sortable: true,
       Cell: ({
         row: {
           original: { changed_on },
         },
-      }) => <span className="no-wrap">{moment(changed_on).fromNow()}</span>,
+      }: any) => (
+        <span className="no-wrap">{moment(changed_on).fromNow()}</span>
+      ),
+    },
+    {
+      id: 'actions',
+      Header: 'Actions',
+      Cell: ({ row: { state } }: any) => (
+        <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
+          <span role="button" className="action-button">
+            <i className="fa fa-trash" />
+          </span>
+          <span role="button" className="action-button">
+            <i className="fa fa-pencil" />
+          </span>
+        </span>
+      ),
     },
   ];
+
+  initialSort = [{ id: 'changed_on', desc: true }];
 
   fetchData = ({ pageIndex, pageSize, sortBy, filters }) => {
     this.setState({ loading: true });
@@ -75,6 +114,7 @@ class DashboardTable extends React.PureComponent {
       opr: filters[fk].filterId,
       value: filters[fk].filterValue,
     }));
+
     const queryParams = JSON.stringify({
       order_column: sortBy[0].id,
       order_direction: sortBy[0].desc ? 'desc' : 'asc',
@@ -99,26 +139,32 @@ class DashboardTable extends React.PureComponent {
 
   render() {
     return (
-      <ListView
-        title={'Dashboards'}
-        columns={this.columns}
-        data={this.state.dashboards}
-        count={this.state.dashboard_count}
-        fetchData={this.fetchData}
-        loading={this.state.loading}
-        defaultSort={[{ id: 'changed_on', desc: true }]}
-        filterable
-        filterTypes={[
-          { label: 'Starts With', value: 'sw' },
-          { label: 'Ends With', value: 'ew' },
-          { label: 'Contains', value: 'ct' },
-          { label: 'Equal To', value: 'eq' },
-          { label: 'Not Starts With', value: 'nsw' },
-          { label: 'Not Ends With', value: 'new' },
-          { label: 'Not Contains', value: 'nct' },
-          { label: 'Not Equal To', value: 'neq' },
-        ]}
-      />
+      <div className="container welcome">
+        <Panel>
+          <ListView
+            className="dashboard-list-view"
+            title={'Dashboards'}
+            columns={this.columns}
+            data={this.state.dashboards}
+            count={this.state.dashboard_count}
+            pageSize={PAGE_SIZE}
+            fetchData={this.fetchData}
+            loading={this.state.loading}
+            initialSort={this.initialSort}
+            filterable
+            filterTypes={[
+              { label: 'Starts With', value: 'sw' },
+              { label: 'Ends With', value: 'ew' },
+              { label: 'Contains', value: 'ct' },
+              { label: 'Equal To', value: 'eq' },
+              { label: 'Not Starts With', value: 'nsw' },
+              { label: 'Not Ends With', value: 'new' },
+              { label: 'Not Contains', value: 'nct' },
+              { label: 'Not Equal To', value: 'neq' },
+            ]}
+          />
+        </Panel>
+      </div>
     );
   }
 }

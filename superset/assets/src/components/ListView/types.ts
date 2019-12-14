@@ -28,13 +28,13 @@ export type Filter = {
   filterValue: string;
 };
 
-type FilterMap = {
-  [columnId: string]: Filter;
-};
-
 export type FilterType = {
   label: string;
   value: any;
+};
+
+type FilterMap = {
+  [columnId: string]: Filter;
 };
 
 export type FetchDataConfig = {

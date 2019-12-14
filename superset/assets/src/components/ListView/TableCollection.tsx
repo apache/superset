@@ -1,5 +1,5 @@
 import React from 'react';
-import Loading from 'src/components/Loading';
+// import Loading from 'src/components/Loading';
 
 export default function TableCollection({
   getTableProps,
@@ -9,15 +9,15 @@ export default function TableCollection({
   rows,
   loading,
 }: any) {
-  if (loading) {
-    return (
-      <div style={{ height: '500px' }}>
-        <Loading />
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div style={{ height: `${(headerGroups.length + rows.length) * 40}px` }}>
+  //       <Loading />
+  //     </div>
+  //   );
+  // }
   return (
-    <table {...getTableProps()} className="table">
+    <table {...getTableProps()} className="table table-hover">
       <thead>
         {headerGroups.map((headerGroup: any) => (
           <tr {...headerGroup.getHeaderGroupProps()}>
@@ -25,15 +25,17 @@ export default function TableCollection({
               <th {...column.getHeaderProps(column.getSortByToggleProps())}>
                 {column.render('Header')}
                 {'  '}
-                <i
-                  className={`text-primary fa fa-${
-                    column.isSorted
-                      ? column.isSortedDesc
-                        ? 'sort-down'
-                        : 'sort-up'
-                      : 'sort'
-                  }`}
-                />
+                {column.sortable && (
+                  <i
+                    className={`text-primary fa fa-${
+                      column.isSorted
+                        ? column.isSortedDesc
+                          ? 'sort-down'
+                          : 'sort-up'
+                        : 'sort'
+                    }`}
+                  />
+                )}
               </th>
             ))}
           </tr>
@@ -42,10 +44,22 @@ export default function TableCollection({
       <tbody {...getTableBodyProps()}>
         {rows.map((row: any) => {
           prepareRow(row);
+          const loadingProps = loading ? { className: 'table-row-loader' } : {};
           return (
-            <tr {...row.getRowProps()}>
+            <tr
+              {...row.getRowProps()}
+              {...loadingProps}
+              onMouseEnter={() => row.setState({ hover: true })}
+              onMouseLeave={() => row.setState({ hover: false })}
+            >
               {row.cells.map((cell: any) => {
-                return <td {...cell.getCellProps()}>{cell.render('Cell')}</td>;
+                const columnCellProps = cell.column.cellProps || {};
+
+                return (
+                  <td {...cell.getCellProps()} {...columnCellProps}>
+                    <span>{cell.render('Cell')}</span>
+                  </td>
+                );
               })}
             </tr>
           );

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
+import json
 
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
@@ -26,6 +27,8 @@ from flask_babel import gettext as __, lazy_gettext as _
 import superset.models.core as models
 from superset import db, event_logger
 from superset.utils import core as utils
+
+from ..utils import bootstrap_user_data
 
 from ..base import (
     BaseSupersetView,
@@ -97,6 +100,20 @@ class Dashboard(BaseSupersetView):
         db.session.add(new_dashboard)
         db.session.commit()
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
+
+    @expose("/list/")
+    def list_all(self):
+        payload = {
+            "user": bootstrap_user_data(g.user),
+            "common": self.common_bootstrap_payload(),
+        }
+        return self.render_template(
+            "superset/welcome.html",
+            entry="welcome",
+            bootstrap_data=json.dumps(
+                payload, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+        )
 
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
