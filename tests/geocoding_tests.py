@@ -20,8 +20,9 @@ import time
 
 import pandas as pd
 import simplejson as json
-from sqlalchemy import Float, Integer, String
+from sqlalchemy import Float, Integer, MetaData, String
 from sqlalchemy.engine import reflection
+from sqlalchemy.ext.declarative import declarative_base
 
 import superset.models.core as models
 from superset import conf, db
@@ -47,18 +48,14 @@ class GeocodingTests(SupersetTestCase):
         self.create_table_in_view()
 
     def create_table_in_view(self):
-        if not self.test_database or not self.test_database.has_table_by_name(
-            "Departments"
-        ):
+        if not self.test_database:
             self.test_database = db.session.query(Database).first()
             self.test_database.allow_dml = True
-
-            params = {"remote_id": 100, "database_name": self.test_database.name}
+            db.session.commit()
+        if not self.test_database.has_table_by_name("Departments"):
+            params = {"remote_id": 1234, "database_name": self.test_database.name}
             self.sqla_departments = SqlaTable(
-                id=100,
-                table_name="Departments",
-                schema="public",
-                params=json.dumps(params),
+                id=1234, table_name="Departments", params=json.dumps(params)
             )
             self.sqla_departments.columns.append(
                 TableColumn(column_name="department_id", type="INTEGER")
@@ -137,6 +134,12 @@ class GeocodingTests(SupersetTestCase):
             db.session.delete(self.sqla_departments)
             self.test_database.allow_dml = False
             db.session.commit()
+
+            base = declarative_base()
+            metadata = MetaData(db.engine, reflect=True)
+            table = metadata.tables.get(self.sqla_departments.table_name)
+            if table is not None:
+                base.metadata.drop_all(db.engine, [table], checkfirst=True)
 
     def test_menu_entry_geocode_exist(self):
         url = "/dashboard/list/"
@@ -258,8 +261,9 @@ class GeocodingTests(SupersetTestCase):
             table_id, lat_column_name, lon_column_name, geo_columns, data
         )
 
+        quote = self.test_database.get_sqla_engine().dialect.identifier_preparer.quote
         result = db.engine.execute(
-            f'SELECT street, city, country, {lat_column_name}, {lon_column_name} FROM "{table_name}"'
+            f"SELECT street, city, country, {lat_column_name}, {lon_column_name} FROM {quote(table_name)}"
         )
         for row in result:
             assert row in data
@@ -277,7 +281,7 @@ class GeocodingTests(SupersetTestCase):
             "cityColumn": "city",
             "countryColumn": "country",
             "latitudeColumnName": "lat",
-            "longitudeColumnName": "long",
+            "longitudeColumnName": "lon",
             "overwriteIfExists": True,
             "saveOnErrorOrInterrupt": True,
         }

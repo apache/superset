@@ -19,11 +19,12 @@
 import logging
 
 import simplejson as json
+from babel.messages.frontend import update_catalog
 from flask import flash, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
-from sqlalchemy import Column, Float, text
+from sqlalchemy import Column, Float, select, text
 from sqlalchemy.engine import Connection, reflection
 
 import superset.models.core as models
@@ -196,6 +197,14 @@ class Geocoder(BaseSupersetView):
         self.stats_logger.incr("succesful_geocoding")
         return json_success('"OK"')
 
+    def _get_from_clause(self, table):
+        quote = table.database.get_sqla_engine().dialect.identifier_preparer.quote
+        if table.schema:
+            full_table_name = quote(table.schema) + "." + quote(table.table_name)
+        else:
+            full_table_name = quote(table.table_name)
+        return text(full_table_name)
+
     def _check_and_create_columns(self, request_data):
         lat_column = request_data.get("latitudeColumnName", "lat")
         lon_column = request_data.get("longitudeColumnName", "lon")
@@ -250,8 +259,14 @@ class Geocoder(BaseSupersetView):
         """
         try:
             table = self._get_table(id)
+            quote = table.database.get_sqla_engine().dialect.identifier_preparer.quote
+            if table.schema:
+                full_table_name = quote(table.schema) + "." + quote(table.table_name)
+            else:
+                full_table_name = quote(table.table_name)
+
             column_list = self._create_column_list(columns)
-            sql = "SELECT " + column_list + ' FROM "%s"' % table.table_name
+            sql = f"SELECT {column_list} FROM {full_table_name}"
             result = table.database.get_sqla_engine().connect().execute(sql)
             return [row for row in result]
         except Exception as e:
@@ -268,7 +283,7 @@ class Geocoder(BaseSupersetView):
         column_list = []
         for column in columns:
             if column:
-                column_list.append('"' + column + '"')
+                column_list.append(column)
         return ", ".join(filter(None, column_list))
 
     def _add_lat_lon_columns(
@@ -286,13 +301,9 @@ class Geocoder(BaseSupersetView):
         transaction = connection.begin()
         try:
             if lat_column:
-                self._add_column(
-                    connection, table.table_name, table_id, lat_column, Float()
-                )
+                self._add_column(connection, table, lat_column, Float())
             if lon_column:
-                self._add_column(
-                    connection, table.table_name, table_id, lon_column, Float()
-                )
+                self._add_column(connection, table, lon_column, Float())
             transaction.commit()
         except Exception as e:
             transaction.rollback()
@@ -308,8 +319,7 @@ class Geocoder(BaseSupersetView):
     def _add_column(
         self,
         connection: Connection,
-        table_name: str,
-        table_id: int,
+        table: SqlaTable,
         column_name: str,
         column_type: str,
     ):
@@ -323,12 +333,12 @@ class Geocoder(BaseSupersetView):
         column = Column(column_name, column_type)
         name = column.compile(column_name, dialect=db.engine.dialect)
         type = column.type.compile(db.engine.dialect)
-        sql = text('ALTER TABLE "%s" ADD %s %s' % (table_name, name, type))
+        sql = text(
+            "ALTER TABLE %s ADD %s %s" % (self._get_from_clause(table), name, type)
+        )
         connection.execute(sql)
 
-        self._get_table(table_id).columns.append(
-            TableColumn(column_name=column_name, type=type)
-        )
+        table.columns.append(TableColumn(column_name=column_name, type=type))
 
     def _insert_geocoded_data(
         self, table_id: int, lat_column: str, lon_column: str, geo_columns: list, data
@@ -350,15 +360,16 @@ class Geocoder(BaseSupersetView):
         transaction = connection.begin()
         try:
             for row in data:
-                update = 'UPDATE "%s" SET %s=%s, %s=%s ' % (
-                    table.table_name,
+                update = "UPDATE %s SET %s=%s, %s=%s " % (
+                    self._get_from_clause(table),
                     lat_column,
                     row[number_of_columns],
                     lon_column,
                     row[number_of_columns + 1],
                 )
                 where = "WHERE " + where_clause % (tuple(row[:number_of_columns]))
-                connection.execute(text(update + where))
+                sql = update + where
+                connection.execute(text(sql))
             transaction.commit()
         except Exception as e:
             transaction.rollback()
