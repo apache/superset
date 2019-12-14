@@ -25,7 +25,7 @@ from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declarative_base
 
 import superset.models.core as models
-from superset import conf, db
+from superset import appbuilder, conf, db, security_manager
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.exceptions import TableNotFoundException
 from superset.models.core import Database
@@ -151,12 +151,6 @@ class GeocodingTests(SupersetTestCase):
         form_get = self.get_resp(url)
         assert "Geocode Addresses" in form_get
 
-    def test_get_editable_tables(self):
-        table_name = self.sqla_departments.table_name
-
-        table_names = [table.name for table in Geocoder()._get_editable_tables()]
-        assert table_name in table_names
-
     def test_get_columns(self):
         url = "/geocoder/geocoding/columns"
         table_dto = models.TableDto(
@@ -226,14 +220,14 @@ class GeocodingTests(SupersetTestCase):
         assert ("Oberseestrasse 10", "Switzerland") in data
 
     def test_add_lat_lon_columns(self):
-        table_id = self.sqla_departments.id
+        table = self.sqla_departments
         lat_column_name = "latitude"
         lon_column_name = "longitude"
 
         columns = self.sqla_departments.columns
         number_of_columns_before = len(columns)
 
-        Geocoder()._add_lat_lon_columns(table_id, lat_column_name, lon_column_name)
+        Geocoder()._add_lat_lon_columns(table, lat_column_name, lon_column_name)
 
         columns = self.sqla_departments.columns
         number_of_columns_after = len(columns)
@@ -247,7 +241,7 @@ class GeocodingTests(SupersetTestCase):
         lat_column_name = "lat"
         lon_column_name = "lon"
         table_name = self.sqla_departments.table_name
-        table_id = self.sqla_departments.id
+        table = self.sqla_departments
         geo_columns = ["street", "city", "country"]
         data = [
             ("Oberseestrasse 10", "Rapperswil", "Switzerland", 47.224, 8.8181),
@@ -258,7 +252,7 @@ class GeocodingTests(SupersetTestCase):
         ]
 
         Geocoder()._insert_geocoded_data(
-            table_id, lat_column_name, lon_column_name, geo_columns, data
+            table, lat_column_name, lon_column_name, geo_columns, data
         )
 
         quote = self.test_database.get_sqla_engine().dialect.identifier_preparer.quote
@@ -327,7 +321,7 @@ class GeocodingTests(SupersetTestCase):
         )  # Wait to be sure geocode has geocoded some data, but not all (5 addresses * 2 sec)
 
         interrupt = self.get_resp(interrupt_url, json_=json.dumps("{}"))
-        assert "" == interrupt
+        assert '"ok"' == interrupt
 
         time.sleep(4)  # Wait to be sure geocode has geocoded another data
 
