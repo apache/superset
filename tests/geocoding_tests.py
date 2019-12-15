@@ -52,7 +52,7 @@ class GeocodingTests(SupersetTestCase):
             self.test_database = db.session.query(Database).first()
             self.test_database.allow_dml = True
             db.session.commit()
-        if not self.test_database.has_table_by_name("Departments"):
+        if not self.sqla_departments:
             params = {"remote_id": 1234, "database_name": self.test_database.name}
             self.sqla_departments = SqlaTable(
                 id=1234, table_name="Departments", params=json.dumps(params)
