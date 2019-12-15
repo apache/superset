@@ -48,11 +48,13 @@ class GeocodingTests(SupersetTestCase):
         self.create_table_in_view()
 
     def create_table_in_view(self):
+        engine = None
         if not self.test_database:
             self.test_database = db.session.query(Database).first()
             self.test_database.allow_dml = True
+            engine = self.test_database.get_sqla_engine()
             db.session.commit()
-        if not self.sqla_departments:
+        if not self.sqla_departments and self.test_database and engine:
             params = {"remote_id": 1234, "database_name": self.test_database.name}
             self.sqla_departments = SqlaTable(
                 id=1234, table_name="Departments", params=json.dumps(params)
@@ -113,7 +115,7 @@ class GeocodingTests(SupersetTestCase):
             df = pd.DataFrame(data=data)
             df.to_sql(
                 self.sqla_departments.table_name,
-                db.engine,
+                engine,
                 if_exists="replace",
                 chunksize=500,
                 dtype={
