@@ -48,87 +48,83 @@ class GeocodingTests(SupersetTestCase):
         self.create_table_in_view()
 
     def create_table_in_view(self):
-        engine = None
-        if not self.test_database:
-            self.test_database = db.session.query(Database).first()
-            self.test_database.allow_dml = True
-            engine = self.test_database.get_sqla_engine()
-            db.session.commit()
-        if not self.sqla_departments and self.test_database and engine:
-            params = {"remote_id": 1234, "database_name": self.test_database.name}
-            self.sqla_departments = SqlaTable(
-                id=1234, table_name="Departments", params=json.dumps(params)
-            )
-            self.sqla_departments.columns.append(
-                TableColumn(column_name="department_id", type="INTEGER")
-            )
-            self.sqla_departments.columns.append(
-                TableColumn(column_name="name", type="STRING")
-            )
-            self.sqla_departments.columns.append(
-                TableColumn(column_name="street", type="STRING")
-            )
-            self.sqla_departments.columns.append(
-                TableColumn(column_name="city", type="STRING")
-            )
-            self.sqla_departments.columns.append(
-                TableColumn(column_name="country", type="STRING")
-            )
-            self.sqla_departments.columns.append(
-                TableColumn(column_name="lat", type="FLOAT")
-            )
-            self.sqla_departments.columns.append(
-                TableColumn(column_name="lon", type="FLOAT")
-            )
-            self.sqla_departments.database = self.test_database
-            self.sqla_departments.database_id = self.sqla_departments.database.id
-            db.session.add(self.sqla_departments)
-            db.session.commit()
+        self.test_database = db.session.query(Database).first()
+        self.test_database.allow_dml = True
 
-            data = {
-                "department_id": [1, 2, 3, 4, 5],
-                "name": [
-                    "Logistics",
-                    "Marketing",
-                    "Facility Management",
-                    "Personal",
-                    "Finances",
-                ],
-                "street": [
-                    "Oberseestrasse 10",
-                    "Grossmünsterplatz",
-                    "Uetliberg",
-                    "Zürichbergstrasse 221",
-                    "Bahnhofstrasse",
-                ],
-                "city": ["Rapperswil", "Zürich", "Zürich", "Zürich", "Zürich"],
-                "country": [
-                    "Switzerland",
-                    "Switzerland",
-                    "Switzerland",
-                    "Switzerland",
-                    "Switzerland",
-                ],
-                "lat": [None, None, None, None, None],
-                "lon": [None, None, None, None, None],
-            }
-            df = pd.DataFrame(data=data)
-            df.to_sql(
-                self.sqla_departments.table_name,
-                engine,
-                if_exists="replace",
-                chunksize=500,
-                dtype={
-                    "department_id": Integer,
-                    "name": String(60),
-                    "street": String(60),
-                    "city": String(60),
-                    "country": String(60),
-                    "lat": Float,
-                    "lon": Float,
-                },
-                index=False,
-            )
+        params = {"remote_id": 1234, "database_name": self.test_database.name}
+        self.sqla_departments = SqlaTable(
+            id=1234, table_name="Departments", params=json.dumps(params)
+        )
+        self.sqla_departments.columns.append(
+            TableColumn(column_name="department_id", type="INTEGER")
+        )
+        self.sqla_departments.columns.append(
+            TableColumn(column_name="name", type="STRING")
+        )
+        self.sqla_departments.columns.append(
+            TableColumn(column_name="street", type="STRING")
+        )
+        self.sqla_departments.columns.append(
+            TableColumn(column_name="city", type="STRING")
+        )
+        self.sqla_departments.columns.append(
+            TableColumn(column_name="country", type="STRING")
+        )
+        self.sqla_departments.columns.append(
+            TableColumn(column_name="lat", type="FLOAT")
+        )
+        self.sqla_departments.columns.append(
+            TableColumn(column_name="lon", type="FLOAT")
+        )
+        self.sqla_departments.database = self.test_database
+        self.sqla_departments.database_id = self.sqla_departments.database.id
+        db.session.add(self.sqla_departments)
+        db.session.commit()
+
+        data = {
+            "department_id": [1, 2, 3, 4, 5],
+            "name": [
+                "Logistics",
+                "Marketing",
+                "Facility Management",
+                "Personal",
+                "Finances",
+            ],
+            "street": [
+                "Oberseestrasse 10",
+                "Grossmünsterplatz",
+                "Uetliberg",
+                "Zürichbergstrasse 221",
+                "Bahnhofstrasse",
+            ],
+            "city": ["Rapperswil", "Zürich", "Zürich", "Zürich", "Zürich"],
+            "country": [
+                "Switzerland",
+                "Switzerland",
+                "Switzerland",
+                "Switzerland",
+                "Switzerland",
+            ],
+            "lat": [None, None, None, None, None],
+            "lon": [None, None, None, None, None],
+        }
+        df = pd.DataFrame(data=data)
+        df.to_sql(
+            self.sqla_departments.table_name,
+            self.sqla_departments.database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            dtype={
+                "department_id": Integer,
+                "name": String(60),
+                "street": String(60),
+                "city": String(60),
+                "country": String(60),
+                "lat": Float,
+                "lon": Float,
+            },
+            index=False,
+        )
 
     def doCleanups(self):
         self.logout()
