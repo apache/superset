@@ -25,7 +25,7 @@ from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declarative_base
 
 import superset.models.core as models
-from superset import appbuilder, conf, db, security_manager
+from superset import conf, db
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.exceptions import TableNotFoundException
 from superset.models.core import Database

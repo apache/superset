@@ -146,11 +146,11 @@ class Geocoder(BaseSupersetView):
         lat_column = request_data.get("latitudeColumnName", "lat")
         lon_column = request_data.get("longitudeColumnName", "lon")
         save_on_stop_geocoding = request.json.get("saveOnErrorOrInterrupt", True)
-
+        table_dto = request_data.get("datasource", models.TableDto())
+        table_id = table_dto.get("id", "")
         try:
-            table_dto = request_data.get("datasource", models.TableDto())
             self._check_and_create_columns(request_data)
-            table_data = self._load_data_from_columns(table_dto.get("id", ""), columns)
+            table_data = self._load_data_from_columns(table_id, columns)
         except ValueError as e:
             self.logger.exception(f"ValueError when querying for lat/lon columns {e}")
             self.stats_logger.incr("geocoding_failed")
@@ -187,9 +187,7 @@ class Geocoder(BaseSupersetView):
             # It is possible that no exception occured but no geocoded values are returned check for this
             if len(geocoded_values[0]) == 0:
                 return json_error_response(json.dumps("No geocoded values received"))
-            table_dto = request_data.get("datasource", models.TableDto())
-            table_id = table_dto.get("id", "")
-            table = db.session.query(SqlaTable).filter_by(id=table_id).first()
+            table = self._get_table_by_id(table_id)
             self._insert_geocoded_data(
                 table, lat_column, lon_column, columns, geocoded_values[0]
             )
