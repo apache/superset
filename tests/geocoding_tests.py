@@ -43,6 +43,7 @@ class GeocodingTests(SupersetTestCase):
         super(GeocodingTests, self).__init__(*args, **kwargs)
 
     def setUp(self):
+        self.doCleanups()
         self.login()
         Geocoder.geocoder_util = GeocoderUtilMock(conf)
         self.create_table_in_view()
@@ -52,7 +53,7 @@ class GeocodingTests(SupersetTestCase):
             self.test_database = db.session.query(Database).first()
             self.test_database.allow_dml = True
             db.session.commit()
-        if not self.sqla_departments:
+        if self.test_database and not self.sqla_departments:
             params = {"remote_id": 1234, "database_name": self.test_database.name}
             self.sqla_departments = SqlaTable(
                 id=1234, table_name="Departments", params=json.dumps(params)
@@ -82,7 +83,7 @@ class GeocodingTests(SupersetTestCase):
             self.sqla_departments.database_id = self.sqla_departments.database.id
             db.session.add(self.sqla_departments)
             db.session.commit()
-
+        if self.test_database and self.sqla_departments:
             data = {
                 "department_id": [1, 2, 3, 4, 5],
                 "name": [
