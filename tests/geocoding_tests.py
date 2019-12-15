@@ -109,9 +109,18 @@ class GeocodingTests(SupersetTestCase):
             "lon": [None, None, None, None, None],
         }
         df = pd.DataFrame(data=data)
+
+        engine = None
+        try:
+            engine = self.sqla_departments.database.get_sqla_engine()
+        except Exception as e:
+            print(e)
+            pass
+        engine = self.sqla_departments.database.get_sqla_engine()
+
         df.to_sql(
             self.sqla_departments.table_name,
-            self.sqla_departments.database.get_sqla_engine(),
+            engine,
             if_exists="replace",
             chunksize=500,
             dtype={
