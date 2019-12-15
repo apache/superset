@@ -111,7 +111,7 @@ class GeocodingTests(SupersetTestCase):
         df = pd.DataFrame(data=data)
 
         database = db.session.query(Database).first()
-        if data:
+        if database:
             engine = database.get_sqla_engine()
             df.to_sql(
                 self.sqla_departments.table_name,
