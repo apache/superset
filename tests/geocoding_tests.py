@@ -110,6 +110,8 @@ class GeocodingTests(SupersetTestCase):
         }
         df = pd.DataFrame(data=data)
 
+        # because of caching problem with postgres load database a second time
+        # without this, the sqla engine throws an exception
         database = db.session.query(Database).first()
         if database:
             engine = database.get_sqla_engine()

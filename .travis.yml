@@ -74,15 +74,6 @@ jobs:
         - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
         - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
     - language: python
-      python: 3.6
-      env: TOXENV=py36-postgres
-      services:
-        - postgresql
-        - redis-server
-      before_script:
-        - psql -U postgres -c "CREATE DATABASE superset;"
-        - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
-    - language: python
       env: TOXENV=javascript
       before_install:
         - nvm install 10.14.2
@@ -100,6 +91,15 @@ jobs:
       env: TOXENV=py36-sqlite
       services:
         - redis-server
+    - language: python
+      python: 3.6
+      env: TOXENV=py36-postgres
+      services:
+        - postgresql
+        - redis-server
+      before_script:
+        - psql -U postgres -c "CREATE DATABASE superset;"
+        - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
     - language: python
       python: 3.6
       env: TOXENV=pylint
