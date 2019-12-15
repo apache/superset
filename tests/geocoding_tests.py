@@ -110,30 +110,25 @@ class GeocodingTests(SupersetTestCase):
         }
         df = pd.DataFrame(data=data)
 
-        engine = None
-        try:
-            engine = self.sqla_departments.database.get_sqla_engine()
-        except Exception as e:
-            print(e)
-            pass
-        engine = self.sqla_departments.database.get_sqla_engine()
-
-        df.to_sql(
-            self.sqla_departments.table_name,
-            engine,
-            if_exists="replace",
-            chunksize=500,
-            dtype={
-                "department_id": Integer,
-                "name": String(60),
-                "street": String(60),
-                "city": String(60),
-                "country": String(60),
-                "lat": Float,
-                "lon": Float,
-            },
-            index=False,
-        )
+        database = db.session.query(Database).first()
+        if data:
+            engine = database.get_sqla_engine()
+            df.to_sql(
+                self.sqla_departments.table_name,
+                engine,
+                if_exists="replace",
+                chunksize=500,
+                dtype={
+                    "department_id": Integer,
+                    "name": String(60),
+                    "street": String(60),
+                    "city": String(60),
+                    "country": String(60),
+                    "lat": Float,
+                    "lon": Float,
+                },
+                index=False,
+            )
 
     def doCleanups(self):
         self.logout()
