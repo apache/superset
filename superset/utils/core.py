@@ -562,7 +562,8 @@ def validate_json(obj):
     if obj:
         try:
             json.loads(obj)
-        except Exception:
+        except Exception as e:
+            logging.error(f"JSON is not valid {e}")
             raise SupersetException("JSON is not valid")
 
 
