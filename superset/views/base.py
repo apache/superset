@@ -23,13 +23,14 @@ from typing import Any, Dict, Optional
 import simplejson as json
 import yaml
 from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
-from flask_appbuilder import BaseView, ModelView
+from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
+from marshmallow import Schema
 from sqlalchemy import or_
 from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
@@ -350,6 +351,24 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 self.model.schema_perm.in_(schema_perms),
             )
         )
+
+
+class BaseSupersetSchema(Schema):
+    """
+    Extends Marshmallow schema so that we can pass a Model to load
+    (following marshamallow-sqlalchemy pattern). This is useful
+    to perform partial model merges on HTTP PUT
+    """
+
+    def __init__(self, **kwargs):
+        self.instance = None
+        super().__init__(**kwargs)
+
+    def load(
+        self, data, many=None, partial=None, instance: Model = None, **kwargs
+    ):  # pylint: disable=arguments-differ
+        self.instance = instance
+        return super().load(data, many=many, partial=partial, **kwargs)
 
 
 class CsvResponse(Response):  # pylint: disable=too-many-ancestors
