@@ -24,7 +24,7 @@ const propTypes = {
   name: PropTypes.string.isRequired,
   type: PropTypes.string.isRequired,
   placeholder: PropTypes.string,
-  value: PropTypes.any,
+  value: PropTypes.object,
   onChange: PropTypes.func,
   required: PropTypes.bool,
   helpText: PropTypes.string,

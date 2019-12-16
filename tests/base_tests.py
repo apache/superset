@@ -216,7 +216,6 @@ class SupersetTestCase(unittest.TestCase):
             "schemas_allowed_for_csv_upload":
             ["this_schema_is_allowed", "this_schema_is_allowed_too"]
         }"""
-
         return self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},

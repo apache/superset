@@ -62,6 +62,7 @@ export class GeocodingForm extends React.Component {
       ],
       saveOnErrorOrInterrupt: true,
       validation,
+      isLoading: false,
     };
     this.getDatasources = this.getDatasources.bind(this);
     this.getColumnList = this.getColumnList.bind(this);
@@ -127,12 +128,14 @@ export class GeocodingForm extends React.Component {
       overwriteIfExists,
       saveOnErrorOrInterrupt,
     } = this.state;
+    this.setState({ isLoading: true });
     if (!datasource) {
       this.setState({
         validation: {
           message: 'You need to select a datasource',
           timestamp: Date.now(),
         },
+        isLoading: false,
       });
     } else if (!streetColumn && !cityColumn && !countryColumn) {
       this.setState({
@@ -140,6 +143,7 @@ export class GeocodingForm extends React.Component {
           message: 'At least one column needs to be selected',
           timestamp: Date.now(),
         },
+        isLoading: false,
       });
     } else {
       this.props.actions.geocode({
@@ -152,7 +156,10 @@ export class GeocodingForm extends React.Component {
         overwriteIfExists: overwriteIfExists.value,
         saveOnErrorOrInterrupt,
       });
-      setTimeout(this.props.actions.geocodingProgress, 100);
+      setTimeout(() => {
+        this.props.actions.geocodingProgress();
+        this.setState({ isLoading: false });
+      }, 100);
     }
   }
 
@@ -331,8 +338,8 @@ export class GeocodingForm extends React.Component {
                 </table>
               </div>
               <div className="well well-sm">
-                <Button bsStyle="primary" onClick={this.handleSubmit}>
-                  {t('Geocode')} <i className="fa fa-globe" />
+                <Button bsStyle="primary" onClick={this.handleSubmit} disabled={this.state.isLoading} >
+                  {this.state.isLoading ? t('Sending...') : t('Geocode')} <i className="fa fa-globe" />
                 </Button>
                 <Button href="/back">
                   {t('Back')} <i className="fa fa-arrow-left" />
