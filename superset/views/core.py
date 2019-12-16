@@ -2439,7 +2439,12 @@ class Superset(BaseSupersetView):
                 return json_error_response(f"{msg}")
 
     def _sql_json_async(
-        self, session: Session, rendered_query: str, query: Query, expand_data: bool
+        self,
+        session: Session,
+        rendered_query: str,
+        query: Query,
+        expand_data: bool,
+        log_params: Dict[str, Any],
     ) -> str:
         """
             Send SQL JSON query to celery workers
@@ -2460,6 +2465,7 @@ class Superset(BaseSupersetView):
                 user_name=g.user.username if g.user else None,
                 start_time=now_as_float(),
                 expand_data=expand_data,
+                log_params=log_params,
             )
         except Exception as e:
             logging.exception(f"Query {query.id}: {e}")
@@ -2484,7 +2490,12 @@ class Superset(BaseSupersetView):
         return resp
 
     def _sql_json_sync(
-        self, session: Session, rendered_query: str, query: Query, expand_data: bool
+        self,
+        session: Session,
+        rendered_query: str,
+        query: Query,
+        expand_data: bool,
+        log_params: Dict[str, Any],
     ) -> str:
         """
             Execute SQL query (sql json)
@@ -2509,6 +2520,7 @@ class Superset(BaseSupersetView):
                     store_results=store_results,
                     user_name=g.user.username if g.user else None,
                     expand_data=expand_data,
+                    log_params=log_params,
                 )
 
             payload = json.dumps(
@@ -2528,9 +2540,12 @@ class Superset(BaseSupersetView):
     @expose("/sql_json/", methods=["POST"])
     @event_logger.log_this
     def sql_json(self):
-        return self.sql_json_exec(request.json)
+        log_params = {
+            "USER_AGENT": cast(Optional[str], request.headers.get("USER_AGENT"))
+        }
+        return self.sql_json_exec(request.json, log_params)
 
-    def sql_json_exec(self, query_params: dict):
+    def sql_json_exec(self, query_params: dict, log_params: dict):
         """Runs arbitrary sql and returns data as json"""
         # Collect Values
         database_id: int = cast(int, query_params.get("database_id"))
@@ -2636,9 +2651,13 @@ class Superset(BaseSupersetView):
 
         # Async request.
         if async_flag:
-            return self._sql_json_async(session, rendered_query, query, expand_data)
+            return self._sql_json_async(
+                session, rendered_query, query, expand_data, log_params
+            )
         # Sync request.
-        return self._sql_json_sync(session, rendered_query, query, expand_data)
+        return self._sql_json_sync(
+            session, rendered_query, query, expand_data, log_params
+        )
 
     @has_access
     @expose("/csv/<client_id>")
