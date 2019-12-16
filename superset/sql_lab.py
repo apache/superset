@@ -151,6 +151,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
     user_name=None,
     start_time=None,
     expand_data=False,
+    log_params=None,
 ):
     """Executes the sql query returns the results."""
     with session_scope(not ctask.request.called_directly) as session:
@@ -165,6 +166,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 session=session,
                 start_time=start_time,
                 expand_data=expand_data,
+                log_params=log_params,
             )
         except Exception as e:  # pylint: disable=broad-except
             logger.exception(f"Query {query_id}: {e}")
@@ -173,7 +175,8 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             return handle_query_error(str(e), query, session)
 
 
-def execute_sql_statement(sql_statement, query, user_name, session, cursor):
+# pylint: disable=too-many-arguments
+def execute_sql_statement(sql_statement, query, user_name, session, cursor, log_params):
     """Executes a single SQL statement"""
     database = query.database
     db_engine_spec = database.db_engine_spec
@@ -218,6 +221,7 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
                 user_name,
                 __name__,
                 security_manager,
+                log_params,
             )
         query.executed_sql = sql
         session.commit()
@@ -303,6 +307,7 @@ def execute_sql_statements(
     session=None,
     start_time=None,
     expand_data=False,
+    log_params=None,
 ):  # pylint: disable=too-many-arguments, too-many-locals, too-many-statements
     """Executes the sql query returns the results."""
     if store_results and start_time:
@@ -352,7 +357,7 @@ def execute_sql_statements(
                 session.commit()
                 try:
                     cdf = execute_sql_statement(
-                        statement, query, user_name, session, cursor
+                        statement, query, user_name, session, cursor, log_params
                     )
                 except Exception as e:  # pylint: disable=broad-except
                     msg = str(e)
