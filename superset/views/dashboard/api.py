@@ -35,11 +35,14 @@ from .mixin import DashboardMixin
 
 
 class DashboardJSONMetadataSchema(Schema):
-    timed_refresh_immune_slices = fields.List(fields.Dict())
+    timed_refresh_immune_slices = fields.List(fields.Integer())
     filter_scopes = fields.Dict()
     expanded_slices = fields.Dict()
     refresh_frequency = fields.Integer()
     default_filters = fields.Str()
+    filter_immune_slice_fields = fields.Dict()
+    stagger_refresh = fields.Boolean()
+    stagger_time = fields.Integer()
 
 
 def validate_json(value):

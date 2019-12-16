@@ -16,7 +16,6 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
-from ..base import check_ownership
 from .filters import DashboardFilter
 
 
