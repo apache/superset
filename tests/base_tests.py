@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import imp
 import json
+from typing import Union
 from unittest.mock import Mock
 
 import pandas as pd
@@ -42,6 +43,20 @@ class SupersetTestCase(TestCase):
 
     def create_app(self):
         return app
+
+    @staticmethod
+    def create_user(
+        username: str,
+        password: str,
+        role_name: str,
+        first_name: str = "admin",
+        last_name: str = "user",
+        email: str = "admin@fab.org",
+    ) -> Union[ab_models.User, bool]:
+        role_admin = security_manager.find_role(role_name)
+        return security_manager.add_user(
+            username, first_name, last_name, email, role_admin, password
+        )
 
     @classmethod
     def create_druid_test_objects(cls):
