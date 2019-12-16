@@ -26,7 +26,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 
 pandas_dtype_map = {
     "STRING": "object",
-    "BOOLEAN": "bool",
+    "BOOLEAN": "object",  # to support nullable bool
     "INTEGER": "Int64",
     "FLOAT": "float64",
     "TIMESTAMP": "datetime64[ns]",
