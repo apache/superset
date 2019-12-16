@@ -48,12 +48,12 @@ class BaseGeocoder(object):
     def _append_cords_to_data_entry(self, data_entry: list, geocoded: list):
         raise NotImplementedError
 
-    def _set_initial_states(self):
+    def _set_initial_states(self, in_progress=False):
         self.interruptflag = False
         self.progress["success_counter"] = 0
         self.progress["doubt_counter"] = 0
         self.progress["failed_counter"] = 0
-        self.progress["is_in_progress"] = True
+        self.progress["is_in_progress"] = in_progress
         self.progress["progress"] = 0
 
     def _set_result_precision_counters(self):
@@ -74,7 +74,7 @@ class BaseGeocoder(object):
         geocoded_data: list = []
         counter: int = 0
         exceptions: int = 0
-        self._set_initial_states()
+        self._set_initial_states(True)
 
         for data_entry in data:
             try:
