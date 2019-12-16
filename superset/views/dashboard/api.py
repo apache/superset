@@ -26,11 +26,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 import superset.models.core as models
 from superset import appbuilder
-from superset.exceptions import SupersetException
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.utils import core as utils
 from superset.views.base import BaseSupersetSchema
 
 from .mixin import DashboardMixin
+from ..base import check_ownership
 
 
 def validate_json(value):
@@ -210,10 +211,8 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
             self.datamodel.add(item.data, raise_exception=True)
             return self.response(
                 201,
-                **{
-                    "result": self.add_model_schema.dump(item.data, many=False).data,
-                    "id": self.datamodel.get_pk_value(item.data),
-                },
+                result=self.add_model_schema.dump(item.data, many=False).data,
+                id=item.data.id,
             )
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
@@ -265,14 +264,16 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
             return self.response_404()
 
         item = self.edit_model_schema.load(request.json, instance=item)
-
+        try:
+            check_ownership(item)
+        except SupersetSecurityException as e:
+            return self.response(401, message=e)
         if item.errors:
             return self.response_422(message=item.errors)
         try:
             self.datamodel.edit(item.data, raise_exception=True)
             return self.response(
-                200,
-                **{"result": self.edit_model_schema.dump(item.data, many=False).data},
+                200, result=self.edit_model_schema.dump(item.data, many=False).data
             )
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))

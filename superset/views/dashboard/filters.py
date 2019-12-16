@@ -14,10 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder.security.sqla import models as ab_models
 from sqlalchemy import and_, or_
 
-import superset.models.core as models
+from superset.models.core import Dashboard, FavStar, Slice
 from superset import db, security_manager
 from superset.views.base import BaseFilter
 
@@ -37,11 +36,6 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
 
     def apply(self, query, value):
-        dash_cls = models.Dashboard
-        user_cls = ab_models.User
-        slice_cls = models.Slice
-        favorites_cls = models.FavStar
-
         user_roles = [role.name.lower() for role in list(get_user_roles())]
         if "admin" in user_roles:
             return query
@@ -50,37 +44,40 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         schema_perms = security_manager.user_view_menu_names("schema_access")
         all_datasource_access = security_manager.all_datasource_access()
         published_dash_query = (
-            db.session.query(dash_cls.id)
-            .join(dash_cls.slices)
+            db.session.query(Dashboard.id)
+            .join(Dashboard.slices)
             .filter(
                 and_(
-                    dash_cls.published == True,  # pylint: disable=singleton-comparison
+                    Dashboard.published == True,  # pylint: disable=singleton-comparison
                     or_(
-                        slice_cls.perm.in_(datasource_perms),
-                        slice_cls.schema_perm.in_(schema_perms),
+                        Slice.perm.in_(datasource_perms),
+                        Slice.schema_perm.in_(schema_perms),
                         all_datasource_access,
                     ),
                 )
             )
         )
 
-        users_favorite_dash_query = db.session.query(favorites_cls.obj_id).filter(
+        users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
             and_(
-                favorites_cls.user_id == user_cls.get_user_id(),
-                favorites_cls.class_name == "Dashboard",
+                FavStar.user_id == security_manager.user_nodel.get_user_id(),
+                FavStar.class_name == "Dashboard",
             )
         )
         owner_ids_query = (
-            db.session.query(dash_cls.id)
-            .join(dash_cls.owners)
-            .filter(user_cls.id == user_cls.get_user_id())
+            db.session.query(Dashboard.id)
+            .join(Dashboard.owners)
+            .filter(
+                security_manager.user_nodel.id
+                == security_manager.user_nodel.get_user_id()
+            )
         )
 
         query = query.filter(
             or_(
-                dash_cls.id.in_(owner_ids_query),
-                dash_cls.id.in_(published_dash_query),
-                dash_cls.id.in_(users_favorite_dash_query),
+                Dashboard.id.in_(owner_ids_query),
+                Dashboard.id.in_(published_dash_query),
+                Dashboard.id.in_(users_favorite_dash_query),
             )
         )
 
