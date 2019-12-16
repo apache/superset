@@ -16,8 +16,8 @@
 # under the License.
 from sqlalchemy import and_, or_
 
-from superset.models.core import Dashboard, FavStar, Slice
 from superset import db, security_manager
+from superset.models.core import Dashboard, FavStar, Slice
 from superset.views.base import BaseFilter
 
 from ..base import get_user_roles
@@ -60,7 +60,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
         users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
             and_(
-                FavStar.user_id == security_manager.user_nodel.get_user_id(),
+                FavStar.user_id == security_manager.user_model.get_user_id(),
                 FavStar.class_name == "Dashboard",
             )
         )
@@ -68,8 +68,8 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             db.session.query(Dashboard.id)
             .join(Dashboard.owners)
             .filter(
-                security_manager.user_nodel.id
-                == security_manager.user_nodel.get_user_id()
+                security_manager.user_model.id
+                == security_manager.user_model.get_user_id()
             )
         )
 

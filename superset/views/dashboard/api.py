@@ -30,8 +30,8 @@ from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.utils import core as utils
 from superset.views.base import BaseSupersetSchema
 
-from .mixin import DashboardMixin
 from ..base import check_ownership
+from .mixin import DashboardMixin
 
 
 def validate_json(value):
