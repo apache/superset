@@ -14,24 +14,32 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import re
 
 from flask import current_app, g, request
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from marshmallow import fields, post_load, pre_load, ValidationError
+from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
 
 import superset.models.core as models
 from superset import appbuilder
-from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.exceptions import SupersetException
 from superset.utils import core as utils
 from superset.views.base import BaseSupersetSchema
 
-from ..base import check_ownership
 from .mixin import DashboardMixin
+
+
+class DashboardJSONMetadataSchema(Schema):
+    timed_refresh_immune_slices = fields.List(fields.Dict())
+    filter_scopes = fields.Dict()
+    expanded_slices = fields.Dict()
+    refresh_frequency = fields.Integer()
+    default_filters = fields.Str()
 
 
 def validate_json(value):
@@ -39,6 +47,20 @@ def validate_json(value):
         utils.validate_json(value)
     except SupersetException:
         raise ValidationError("JSON not valid")
+
+
+def validate_json_metadata(value):
+    if not value:
+        return
+    try:
+        value_obj = json.loads(value)
+    except json.decoder.JSONDecodeError:
+        raise ValidationError("JSON not valid")
+    errors = DashboardJSONMetadataSchema(strict=True).validate(
+        json.loads(value), partial=False
+    )
+    if errors:
+        return ValidationError(errors)
 
 
 def validate_slug_uniqueness(value):
@@ -96,7 +118,7 @@ class DashboardPostSchema(BaseDashboardSchema):
     owners = fields.List(fields.Integer(validate=validate_owners))
     position_json = fields.String(validate=validate_json)
     css = fields.String()
-    json_metadata = fields.String(validate=validate_json)
+    json_metadata = fields.String(validate=validate_json_metadata)
     published = fields.Boolean()
 
     @post_load
@@ -117,7 +139,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     owners = fields.List(fields.Integer(validate=validate_owners))
     position_json = fields.String(validate=validate_json)
     css = fields.String()
-    json_metadata = fields.String(validate=validate_json)
+    json_metadata = fields.String(validate=validate_json_metadata)
     published = fields.Boolean()
 
     @post_load
@@ -264,10 +286,6 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
             return self.response_404()
 
         item = self.edit_model_schema.load(request.json, instance=item)
-        try:
-            check_ownership(item)
-        except SupersetSecurityException as e:
-            return self.response(401, message=e)
         if item.errors:
             return self.response_422(message=item.errors)
         try:

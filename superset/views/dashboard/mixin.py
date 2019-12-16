@@ -81,6 +81,3 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "json_metadata": _("JSON Metadata"),
         "table_names": _("Underlying Tables"),
     }
-
-    def pre_delete(self, obj):  # pylint: disable=no-self-use
-        check_ownership(obj)

@@ -84,6 +84,9 @@ class DashboardModelView(
         check_ownership(item)
         self.pre_add(item)
 
+    def pre_delete(self, obj):  # pylint: disable=no-self-use
+        check_ownership(obj)
+
 
 class Dashboard(BaseSupersetView):
     """The base views for Superset!"""

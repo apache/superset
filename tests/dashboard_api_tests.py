@@ -118,6 +118,8 @@ class DashboardApiTests(SupersetTestCase):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 404)
         db.session.delete(dashboard)
+        db.session.delete(user_alpha1)
+        db.session.delete(user_alpha2)
         db.session.commit()
 
     def test_create_dashboard(self):
@@ -254,6 +256,15 @@ class DashboardApiTests(SupersetTestCase):
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
 
+        dashboard_data = {
+            "dashboard_title": "title1",
+            "json_metadata": '{"refresh_frequency": "A"}',
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/"
+        rv = self.client.post(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 422)
+
     def test_update_dashboard(self):
         """
             Dashboard API: Test update
@@ -317,4 +328,28 @@ class DashboardApiTests(SupersetTestCase):
         self.assertEqual(model.dashboard_title, "title1_changed")
         self.assertEqual(model.slug, "slug1-changed")
         db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_not_owned(self):
+        """
+            Dashboard API: Test update slug formatting
+        """
+        """
+            Dashboard API: Test delete try not owned
+        """
+        user_alpha1 = self.create_user(
+            "alpha1", "password", "Alpha", email="alpha1@superset.org"
+        )
+        user_alpha2 = self.create_user(
+            "alpha2", "password", "Alpha", email="alpha2@superset.org"
+        )
+        dashboard = self.insert_dashboard("title", "slug1", [user_alpha1.id])
+        self.login(username="alpha2", password="password")
+        dashboard_data = {"dashboard_title": "title1_changed", "slug": "slug1 changed"}
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 404)
+        db.session.delete(dashboard)
+        db.session.delete(user_alpha1)
+        db.session.delete(user_alpha2)
         db.session.commit()
