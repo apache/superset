@@ -137,7 +137,6 @@ class Geocoder(BaseSupersetView):
         columns = []
 
         self._set_geocoder(request_data.get("geocoder", ""))
-        self._set_geocoder("maptiler")
         if request_data.get("streetColumn"):
             columns.append(request.json.get("streetColumn"))
         if request_data.get("cityColumn"):

@@ -311,7 +311,7 @@ class GeocodingTests(SupersetTestCase):
             "countryColumn": "country",
             "latitudeColumnName": "lat",
             "longitudeColumnName": "lon",
-            "overwriteIfExists": True,
+            "overwriteIfExists": "replace",
             "saveOnErrorOrInterrupt": True,
         }
 
@@ -324,7 +324,6 @@ class GeocodingTests(SupersetTestCase):
     def test_progress(self):
         geocode_url = "/geocoder/geocoding/geocode"
         progress_url = "/geocoder/geocoding/progress"
-
         geocode = threading.Thread(
             target=self.get_resp,
             args=(geocode_url, None, True, True, self._geocode_post()),
@@ -333,7 +332,6 @@ class GeocodingTests(SupersetTestCase):
         time.sleep(
             4
         )  # Wait to be sure geocode has geocoded some data, but not all (5 addresses * 2 sec)
-
         progress = json.loads(self.get_resp(progress_url))
         assert 0 < progress.get("progress", 0)
         assert progress.get("is_in_progress") is True
