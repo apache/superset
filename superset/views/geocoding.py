@@ -36,7 +36,7 @@ from superset.exceptions import (
     SqlUpdateException,
     TableNotFoundException,
 )
-from superset.utils.geocoding_utils import GeocoderUtil
+from superset.utils.geocoders import BaseGeocoder, MapTilerGeocoder
 
 from .base import api, BaseSupersetView, json_error_response, json_success
 
@@ -45,7 +45,7 @@ class Geocoder(BaseSupersetView):
     """Geocoding methods and API!"""
 
     # Variables for geocoding
-    geocoder_util = GeocoderUtil(conf)
+    geocoder = BaseGeocoder(conf)
     stats_logger = conf["STATS_LOGGER"]
     logger = logging.getLogger(__name__)
 
@@ -146,66 +146,82 @@ class Geocoder(BaseSupersetView):
         lat_column = request_data.get("latitudeColumnName", "lat")
         lon_column = request_data.get("longitudeColumnName", "lon")
         save_on_stop_geocoding = request.json.get("saveOnErrorOrInterrupt", True)
-        table_dto = request_data.get("datasource", models.TableDto())
-        table_id = table_dto.get("id", "")
+        created_message = ""
         try:
-            self._check_and_create_columns(request_data)
-            table_data = self._load_data_from_columns(table_id, columns)
+            table_dto = request_data.get("datasource", models.TableDto())
+            column_message = self._check_and_create_columns(request_data)
+            db.session.commit()
+            created_message = f" but {column_message} please choose the overwrite option when trying again"
+            table_data = self._load_data_from_columns(table_dto, columns)
         except ValueError as e:
             self.logger.exception(f"ValueError when querying for lat/lon columns {e}")
             self.stats_logger.incr("geocoding_failed")
-            return json_error_response(e.args[0], status=400)
+            return json_error_response(f"{e.args[0]} {created_message}", status=400)
         except SqlSelectException as e:
             self.logger.exception(
                 f"SqlSelectException when preparing for geocoding {e.orig}"
             )
             self.stats_logger.incr("geocoding_failed")
-            return json_error_response(e.args[0], status=500)
+            return json_error_response(f"{e.args[0]} {created_message}", status=500)
         except Exception as e:
             self.logger.exception(f"Exception when preparing for geocoding {e}")
             self.stats_logger.incr("geocoding_failed")
-            return json_error_response(e.args[0], status=500)
+            return json_error_response(f"{e.args[0]} {created_message}", status=500)
 
         try:
-            self._check_api_key("maptiler")
-            geocoded_values_with_message = self.geocoder_util.geocode(
-                "maptiler", table_data
-            )
+            geocoder = MapTilerGeocoder(conf)
+            geocoded_values_with_message = self._geocode(table_data, geocoder)
         except NoAPIKeySuppliedException as e:
             self.logger.exception(e.args[0])
             self.stats_logger.incr("geocoding_failed")
-            return json_error_response(e.args[0])
-        if self.geocoder_util.interruptflag:
+            return json_error_response(f"{e.args[0]} {created_message}")
+        if self.geocoder.interruptflag:
             if not save_on_stop_geocoding:
-                return json_success(json.dumps("geocoding interrupted"))
+                return json_success(
+                    json.dumps(f"geocoding interrupted {created_message}")
+                )
         # If there was an error, data[0] will be a message, otherwise it will be an empty string meaning we can proceed
         if geocoded_values_with_message[0]:
             if not save_on_stop_geocoding:
-                return json_error_response(json.dumps(geocoded_values_with_message[0]))
+                return json_error_response(
+                    json.dumps(f"{geocoded_values_with_message[0]} {created_message}")
+                )
         try:
             geocoded_values = geocoded_values_with_message[1]
             # It is possible that no exception occured but no geocoded values are returned check for this
             if len(geocoded_values[0]) == 0:
-                return json_error_response(json.dumps("No geocoded values received"))
-            table = self._get_table_by_id(table_id)
+                return json_error_response(
+                    json.dumps(f"No geocoded values received{created_message}")
+                )
+            table_dto = request_data.get("datasource", models.TableDto())
+            table_id = table_dto.get("id", "")
+            table = db.session.query(SqlaTable).filter_by(id=table_id).first()
+            database = table.database
+            connection = database.get_sqla_engine().connect()
             self._insert_geocoded_data(
-                table, lat_column, lon_column, columns, geocoded_values[0]
+                table_dto.get("fullName"),
+                lat_column,
+                lon_column,
+                columns,
+                geocoded_values[0],
+                table_dto.get("schema"),
+                connection,
             )
         except (SqlAddColumnException, SqlUpdateException) as e:
             self.logger.exception(
                 f"Failed to add columns/ data after geocoding {e.orig}"
             )
             self.stats_logger.incr("geocoding_failed")
-            return json_error_response(e.args[0], status=500)
+            return json_error_response(f"{e.args[0]} {created_message}", status=500)
         except Exception as e:
             self.logger.exception(
                 f"Exception when adding columns/ data after geocoding {e}"
             )
             self.stats_logger.incr("geocoding_failed")
-            return json_error_response(e.args[0], status=500)
+            return json_error_response(f"{e.args[0]} {created_message}", status=500)
 
         db.session.commit()
-        progress = self.geocoder_util.progress
+        progress = self.geocoder.progress
         message = (
             f"Geocoded values, success: {progress['success_counter']}, doubt: {progress['doubt_counter']}, "
             f"fail: {progress['failed_counter']}"
@@ -229,19 +245,25 @@ class Geocoder(BaseSupersetView):
         table_dto = request_data.get("datasource", models.TableDto())
         table_id = table_dto.get("id", "")
         table = self._get_table_by_id(table_id)
-        lat_exists = self._does_column_name_exist(table_id, lat_column)
-        lon_exists = self._does_column_name_exist(table_id, lon_column)
+        lat_exists = self._does_column_name_exist(table, lat_column)
+        lon_exists = self._does_column_name_exist(table, lon_column)
+        column_created_message = ""
         if override_if_exist:
             if lat_exists:
                 if lon_exists:
                     pass
                 else:
                     self._add_lat_lon_columns(table, lon_column=lon_column)
+                    column_created_message = f"successfully created column {lon_column}"
             else:
                 if lon_exists:
                     self._add_lat_lon_columns(table, lat_column=lat_column)
+                    column_created_message = f"successfully created column {lat_column}"
                 else:
                     self._add_lat_lon_columns(table, lat_column, lon_column)
+                    column_created_message = (
+                        f"successfully created columns: {lat_column} and {lon_column}"
+                    )
         else:
             if lat_exists:
                 raise ValueError(
@@ -252,15 +274,19 @@ class Geocoder(BaseSupersetView):
                     "Column name {0} for longitude is already in use".format(lon_column)
                 )
             self._add_lat_lon_columns(table, lat_column, lon_column)
+            column_created_message = (
+                f"successfully created columns: {lat_column} and {lon_column}"
+            )
 
-    def _does_column_name_exist(self, table_id: int, column_name: str):
+        return column_created_message
+
+    def _does_column_name_exist(self, table: SqlaTable, column_name: str):
         """
         Check if column name already exists in table
         :param table_name: The table name of table to check
         :param column_name: The name of column to check
         :return true if column name exists in table
         """
-        table = self._get_table_by_id(table_id)
         if table and table.columns:
             column_names = [column.column_name.lower() for column in table.columns]
             return column_name.lower() in column_names
@@ -303,10 +329,15 @@ class Geocoder(BaseSupersetView):
                 column_list.append(column)
         return ", ".join(filter(None, column_list))
 
-    def _check_api_key(self, geocode_api: str):
-        if "maptiler" in geocode_api:
-            if not conf["MAPTILER_API_KEY"]:
-                raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
+    def _geocode(self, data: list, geocoder, dev=False):
+        """
+        Internal method which starts the geocoding
+        :param data: the data to be geocoded as a list of tuples
+        :param dev: Whether to Mock the geocoding process for testing purposes
+        :return: a list of tuples containing the data and the corresponding long, lat values
+        """
+        geocoder.check_api_key()
+        return geocoder.geocode(data)
 
     def _add_lat_lon_columns(
         self, table: SqlaTable, lat_column: str = None, lon_column: str = None
@@ -415,7 +446,7 @@ class Geocoder(BaseSupersetView):
         :return: GeoCoding Object
         """
         return json_success(
-            json.dumps(self.geocoder_util.progress, default=lambda x: x.__dict__)
+            json.dumps(self.geocoder.progress, default=lambda x: x.__dict__)
         )
 
     @api
@@ -423,7 +454,7 @@ class Geocoder(BaseSupersetView):
     @expose("/geocoding/interrupt", methods=["POST"])
     def interrupt(self) -> Response:
         """ Used for interrupting the geocoding process """
-        self.geocoder_util.interruptflag = True
+        self.geocoder.interruptflag = True
         return json_success('"ok"')
 
 
