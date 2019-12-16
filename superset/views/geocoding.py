@@ -36,7 +36,7 @@ from superset.exceptions import (
     SqlUpdateException,
     TableNotFoundException,
 )
-from superset.utils.geocoders import BaseGeocoder, MapTilerGeocoder
+from superset.utils.geocoders import BaseGeocoder, GoogleGeocoder, MapTilerGeocoder
 
 from .base import api, BaseSupersetView, json_error_response, json_success
 
@@ -360,6 +360,8 @@ class Geocoder(BaseSupersetView):
         if geocoder_name:
             if geocoder_name.lower() == "maptiler":
                 self.geocoder = MapTilerGeocoder(conf)
+            if geocoder_name.lower() == "google":
+                self.geocoder = GoogleGeocoder(conf)
 
     def _geocode(self, data: list, geocoder):
         """

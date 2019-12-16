@@ -46,7 +46,17 @@ class BaseGeocoder(object):
             self.progress["is_in_progress"] = False
 
     def _append_cords_to_data_entry(self, data_entry: list, geocoded: list):
-        raise NotImplementedError
+        coordinates = geocoded[0]
+        relevance = geocoded[1]
+        if relevance > 0.8:
+            self.progress["success_counter"] += 1
+        elif relevance > 0.49:
+            self.progress["doubt_counter"] += 1
+        else:
+            self.progress["failed_counter"] += 1
+        data_entry.append(str(coordinates[0]))
+        data_entry.append(str(coordinates[1]))
+        return data_entry
 
     def _set_initial_states(self, in_progress=False):
         self.interruptflag = False
@@ -149,22 +159,56 @@ class MapTilerGeocoder(BaseGeocoder):
             feature = features[0]
             center = feature["center"]
             relevance = feature["relevance"]
-            return [center, relevance] or None
+            if len(center) > 0:
+                return [
+                    [center[1], center[0]],
+                    relevance,
+                ]  # Make sure format is [lat, lon]
         return None
 
     def check_api_key(self):
         if not self.conf["MAPTILER_API_KEY"]:
             raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
 
-    def _append_cords_to_data_entry(self, data_entry: list, geocoded: list):
-        center_coordinates = geocoded[0]
-        relevance = geocoded[1]
-        if relevance > 0.8:
-            self.progress["success_counter"] += 1
-        elif relevance > 0.49:
-            self.progress["doubt_counter"] += 1
-        else:
-            self.progress["failed_counter"] += 1
-        data_entry.append(str(center_coordinates[0]))
-        data_entry.append(str(center_coordinates[1]))
-        return data_entry
+
+class GoogleGeocoder(BaseGeocoder):
+    """ The Google geocoder"""
+
+    def __init__(self, config: dict):
+        BaseGeocoder.__init__(self, config)
+
+    def _get_coordinates_from_address(self, address: str):
+        base_url = "https://maps.googleapis.com/maps/api/geocode/"
+        response = get(
+            base_url + "json?address=" + address + "&key=" + self.conf["GOOGLE_API_KEY"]
+        )
+        decoded_data = json.loads(response.content.decode())
+        results = decoded_data.get("results")
+        status = decoded_data.get("status")
+
+        if status == "OK" and results and results[0]:
+            geometry = results[0].get("geometry")
+            location_type = geometry.get("location_type")
+            relevance = 1.0
+            if (
+                location_type == "RANGE_INTERPOLATED"
+                or location_type == "APPROXIMATE"
+                or location_type == "GEOMETRIC_CENTER"
+            ):
+                relevance = 0.5
+            location = geometry.get("location")
+            lat = location.get("lat")
+            lon = location.get("lng")
+            return [[lat, lon], relevance] or None
+        elif (
+            status == "OVER_DAILY_LIMIT"
+            or status == "OVER_QUERY_LIMIT"
+            or status == "REQUEST_DENIED"
+            or status == "INVALID_REQUEST"
+        ):
+            raise RequestException(status)
+        return None
+
+    def check_api_key(self):
+        if not self.conf["GOOGLE_API_KEY"]:
+            raise NoAPIKeySuppliedException("No API Key for Google was supplied")
