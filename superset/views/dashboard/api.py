@@ -61,7 +61,7 @@ def validate_json_metadata(value):
         raise ValidationError("JSON not valid")
     errors = DashboardJSONMetadataSchema(strict=True).validate(value_obj, partial=False)
     if errors:
-        return ValidationError(errors)
+        raise ValidationError(errors)
 
 
 def validate_slug_uniqueness(value):
