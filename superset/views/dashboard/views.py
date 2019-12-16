@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import re
 import json
+import re
 
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
@@ -28,16 +28,15 @@ import superset.models.core as models
 from superset import db, event_logger
 from superset.utils import core as utils
 
-from ..utils import bootstrap_user_data
-
 from ..base import (
     BaseSupersetView,
     check_ownership,
+    common_bootstrap_payload,
     DeleteMixin,
     generate_download_headers,
     SupersetModelView,
-    common_bootstrap_payload,
 )
+from ..utils import bootstrap_user_data
 from .mixin import DashboardMixin
 
 
