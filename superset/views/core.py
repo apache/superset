@@ -559,6 +559,19 @@ class DashboardModelView(SupersetModelView, DeleteMixin):
         "table_names": _("Underlying Tables"),
     }
 
+
+    def add_dashboard_role(self,obj):
+        for slc in obj.slices:
+            datasource = ConnectorRegistry.get_datasource(slc.datasource_type, slc.datasource_id,db.session)
+            if datasource:
+                view_menu_name=datasource.perm
+                view_menu_perm = security_manager.find_permission_view_menu(permission_name='datasource_access',view_menu_name=view_menu_name)
+                if view_menu_perm and view_menu_perm.view_menu:
+                    for role in obj.can_access_roles:
+                        security_manager.add_permission_role(role, view_menu_perm)
+
+
+
     def pre_add(self, obj):
         obj.slug = obj.slug or None
         if obj.slug:
@@ -576,6 +589,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):
     def pre_update(self, obj):
         check_ownership(obj)
         self.pre_add(obj)
+        self.add_dashboard_role(obj)
 
     def pre_delete(self, obj):
         check_ownership(obj)
@@ -849,7 +863,7 @@ class Superset(BaseSupersetView):
             return redirect("/")
 
         return self.render_template(
-            "superset/request_access.html",
+            "/superset/request_access.html",
             datasources=datasources,
             datasource_names=", ".join([o.name for o in datasources]),
         )
@@ -1225,7 +1239,7 @@ class Superset(BaseSupersetView):
                 "danger",
             )
             return redirect(
-                "superset/request_access/?"
+                "/superset/request_access/?"
                 f"datasource_type={datasource_type}&"
                 f"datasource_id={datasource_id}&"
             )
@@ -2179,7 +2193,7 @@ class Superset(BaseSupersetView):
                         "danger",
                     )
                     return redirect(
-                        "superset/request_access/?" f"dashboard_id={dash.id}&"
+                        "/superset/request_access/?" f"dashboard_id={dash.id}&"
                     )
 
         dash_edit_perm = check_ownership(

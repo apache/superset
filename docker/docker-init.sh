@@ -45,6 +45,7 @@ echo_step "1" "Complete" "Setting up admin user"
 
 # Initialize the database
 echo_step "2" "Starting" "Applying DB migrations"
+superset db migrate 
 superset db upgrade
 echo_step "2" "Complete" "Applying DB migrations"
 

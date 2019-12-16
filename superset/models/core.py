@@ -428,6 +428,13 @@ dashboard_user = Table(
     Column("user_id", Integer, ForeignKey("ab_user.id")),
     Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
 )
+dashboard_role = Table(
+    "dashboard_role",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("role_id", Integer, ForeignKey("ab_role.id")),
+    Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
+)
 
 
 class Dashboard(  # pylint: disable=too-many-instance-attributes
@@ -446,6 +453,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     slug = Column(String(255), unique=True)
     slices = relationship("Slice", secondary=dashboard_slices, backref="dashboards")
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
+    can_access_roles = relationship(security_manager.role_model, secondary=dashboard_role)
     published = Column(Boolean, default=False)
 
     export_fields = [
