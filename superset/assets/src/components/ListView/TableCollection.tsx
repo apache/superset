@@ -1,5 +1,4 @@
 import React from 'react';
-// import Loading from 'src/components/Loading';
 
 export default function TableCollection({
   getTableProps,
@@ -9,13 +8,6 @@ export default function TableCollection({
   rows,
   loading,
 }: any) {
-  // if (loading) {
-  //   return (
-  //     <div style={{ height: `${(headerGroups.length + rows.length) * 40}px` }}>
-  //       <Loading />
-  //     </div>
-  //   );
-  // }
   return (
     <table {...getTableProps()} className="table table-hover">
       <thead>

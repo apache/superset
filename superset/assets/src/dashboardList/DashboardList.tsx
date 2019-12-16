@@ -21,22 +21,35 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import moment from 'moment';
-import { Panel, Button } from 'react-bootstrap';
+import { Panel, Modal, Button } from 'react-bootstrap';
 import ListView from 'src/components/ListView/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 import './DashboardList.less';
 const PAGE_SIZE = 25;
 
-class DashboardTable extends React.PureComponent {
+type Props = {
+  addDangerToast: (msg: string) => void;
+};
+
+type State = {
+  dashboards: any[];
+  dashboard_count: number;
+  loading: boolean;
+  showDeleteModal: boolean;
+  deleteCandidate: any;
+};
+class DashboardTable extends React.PureComponent<Props, State> {
   static propTypes = {
     addDangerToast: PropTypes.func.isRequired,
   };
 
-  state = {
+  state: State = {
     dashboards: [],
     dashboard_count: 0,
     loading: false,
+    showDeleteModal: false,
+    deleteCandidate: {},
   };
 
   columns = [
@@ -92,12 +105,20 @@ class DashboardTable extends React.PureComponent {
     {
       id: 'actions',
       Header: 'Actions',
-      Cell: ({ row: { state } }: any) => (
+      Cell: ({ row: { state, original } }: any) => (
         <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
-          <span role="button" className="action-button">
+          <span
+            role="button"
+            className="action-button"
+            onClick={() => this.handleDashboardDeleteConfirm(original)}
+          >
             <i className="fa fa-trash" />
           </span>
-          <span role="button" className="action-button">
+          <span
+            role="button"
+            className="action-button"
+            onClick={() => this.handleDashboardEdit(original)}
+          >
             <i className="fa fa-pencil" />
           </span>
         </span>
@@ -106,6 +127,42 @@ class DashboardTable extends React.PureComponent {
   ];
 
   initialSort = [{ id: 'changed_on', desc: true }];
+
+  handleDashboardEdit = ({ id }: { id: number }) => {
+    window.location.assign(`/dashboard/edit/${id}`);
+  };
+
+  handleDashboardDeleteConfirm = (dashboard: any) => {
+    this.setState({
+      deleteCandidate: dashboard,
+      showDeleteModal: true,
+    });
+  };
+
+  handleDashboardDelete = () => {
+    const { id, title } = this.state.deleteCandidate;
+    SupersetClient.delete({
+      endpoint: `/api/v1/dashboard/${id}`,
+    }).then(
+      resp => {
+        console.log(resp);
+        const dashboards = this.state.dashboards.filter(d => d.id !== id);
+        this.setState({
+          dashboards,
+          showDeleteModal: false,
+          deleteCandidate: {},
+        });
+      },
+      (err: any) => {
+        this.props.addDangerToast(t(`There was an issue deleting ${title}`));
+        this.setState({ showDeleteModal: false, deleteCandidate: {} });
+      },
+    );
+  };
+
+  toggleModal = () => {
+    this.setState({ showDeleteModal: !this.state.showDeleteModal });
+  };
 
   fetchData = ({ pageIndex, pageSize, sortBy, filters }) => {
     this.setState({ loading: true });
@@ -164,6 +221,20 @@ class DashboardTable extends React.PureComponent {
             ]}
           />
         </Panel>
+
+        <Modal show={this.state.showDeleteModal} onHide={this.toggleModal}>
+          <Modal.Header closeButton></Modal.Header>
+          <Modal.Body>
+            Are you sure you want to delete{' '}
+            {this.state.deleteCandidate.dashboard_title}?
+          </Modal.Body>
+          <Modal.Footer>
+            <Button onClick={this.toggleModal}>Cancel</Button>
+            <Button bsStyle="danger" onClick={this.handleDashboardDelete}>
+              OK
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </div>
     );
   }

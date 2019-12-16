@@ -129,7 +129,7 @@ class DashboardTable extends React.PureComponent {
 
   fetchDataDebounced = debounce(this.fetchData, 200);
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     if (prevProps.search !== this.props.search) {
       this.fetchDataDebounced({
         pageSize: PAGE_SIZE,
@@ -143,7 +143,6 @@ class DashboardTable extends React.PureComponent {
   render() {
     return (
       <ListView
-        // title={'Dashboards'}
         columns={this.columns}
         data={this.state.dashboards}
         count={this.state.dashboard_count}
@@ -151,18 +150,6 @@ class DashboardTable extends React.PureComponent {
         fetchData={this.fetchData}
         loading={this.state.loading}
         initialSort={this.initialSort}
-
-        // filterable
-        // filterTypes={[
-        //   { label: 'Starts With', value: 'sw' },
-        //   { label: 'Ends With', value: 'ew' },
-        //   { label: 'Contains', value: 'ct' },
-        //   { label: 'Equal To', value: 'eq' },
-        //   { label: 'Not Starts With', value: 'nsw' },
-        //   { label: 'Not Ends With', value: 'new' },
-        //   { label: 'Not Contains', value: 'nct' },
-        //   { label: 'Not Equal To', value: 'neq' },
-        // ]}
       />
     );
   }
