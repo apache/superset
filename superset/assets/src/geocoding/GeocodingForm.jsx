@@ -54,6 +54,7 @@ export class GeocodingForm extends React.Component {
       countryColumn: undefined,
       longitudeColumnName: 'lon',
       latitudeColumnName: 'lat',
+      geocoder: { label: 'Maptiler', value: 'maptiler' },
       overwriteIfExists: false,
       saveOnErrorOrInterrupt: true,
       validation,
@@ -61,6 +62,7 @@ export class GeocodingForm extends React.Component {
     };
     this.getDatasources = this.getDatasources.bind(this);
     this.getColumnList = this.getColumnList.bind(this);
+    this.getGeocoders = this.getGeocoders.bind(this);
     this.setDatasource = this.setDatasource.bind(this);
     this.setPropertyValue = this.setPropertyValue.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -87,6 +89,10 @@ export class GeocodingForm extends React.Component {
     return undefined;
   }
 
+  getGeocoders() {
+    return [{ label: 'Maptiler', value: 'maptiler' }, { label: 'Google', value: 'google' }];
+  }
+
   setDatasource(datasource) {
     if (datasource) {
       this.props.actions.getColumnsForTable(datasource.value);
@@ -110,6 +116,7 @@ export class GeocodingForm extends React.Component {
       streetColumn,
       cityColumn,
       countryColumn,
+      geocoder,
       longitudeColumnName,
       latitudeColumnName,
       overwriteIfExists,
@@ -135,6 +142,7 @@ export class GeocodingForm extends React.Component {
     } else {
       this.props.actions.geocode({
         datasource: datasource.value,
+        geocoder: geocoder.value,
         streetColumn: streetColumn ? streetColumn.value : undefined,
         cityColumn: cityColumn ? cityColumn.value : undefined,
         countryColumn: countryColumn ? countryColumn.value : undefined,
@@ -238,6 +246,22 @@ export class GeocodingForm extends React.Component {
                             'Name of the column where the country is stored.',
                           )}
                           disabled={!this.state.datasource}
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="col-lg-2">{t('Geocoding Service')}</td>
+                      <td>
+                        <FormSelect
+                          id={'geocoder'}
+                          options={this.getGeocoders()}
+                          onChange={value =>
+                            this.setPropertyValue('geocoder', value)
+                          }
+                          value={this.state.geocoder}
+                          helpText={t(
+                            'The geocoding service that should be used to geocode the addresses.',
+                          )}
                         />
                       </td>
                     </tr>
