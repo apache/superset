@@ -29,10 +29,40 @@ from superset import conf, db
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.exceptions import TableNotFoundException
 from superset.models.core import Database
-from superset.utils.geocoding_utils import GeocoderUtilMock
-from superset.views.geocoding import Geocoder
+from superset.utils.geocoders import BaseGeocoder
+from superset.views.geocoding import Geocoder as GeocoderApi
 
 from .base_tests import SupersetTestCase
+
+
+class GeocoderMock(BaseGeocoder):
+    geocoded_data = {
+        "Oberseestrasse 10 Rapperswil Switzerland": [47.224, 8.8181],
+        "Grossmünsterplatz Zürich Switzerland": [47.370, 8.544],
+        "Uetliberg Zürich Switzerland": [47.353, 8.492],
+        "Zürichbergstrasse 221 Zürich Switzerland": [47.387, 8.574],
+        "Bahnhofstrasse Zürich Switzerland": [47.372, 8.539],
+    }
+
+    def _get_coordinates_from_address(self, address: str):
+        time.sleep(2)
+        return [self.geocoded_data.get(address), 0.81]
+
+    def check_api_key(self):
+        pass
+
+    def _append_cords_to_data_entry(self, data_entry: list, geocoded: list):
+        center_coordinates = geocoded[0]
+        relevance = geocoded[1]
+        if relevance > 0.8:
+            self.progress["success_counter"] += 1
+        elif relevance > 0.49:
+            self.progress["doubt_counter"] += 1
+        else:
+            self.progress["failed_counter"] += 1
+        data_entry.append(str(center_coordinates[0]))
+        data_entry.append(str(center_coordinates[1]))
+        return data_entry
 
 
 class GeocodingTests(SupersetTestCase):
@@ -44,7 +74,7 @@ class GeocodingTests(SupersetTestCase):
 
     def setUp(self):
         self.login()
-        Geocoder.geocoder_util = GeocoderUtilMock(conf)
+        GeocoderApi.geocoder = GeocoderMock(conf)
         self.create_table_in_view()
 
     def create_table_in_view(self):
@@ -183,35 +213,36 @@ class GeocodingTests(SupersetTestCase):
         assert error_message in response
 
     def test_does_valid_column_name_exist(self):
-        table_id = self.sqla_departments.id
         columns = reflection.Inspector.from_engine(db.engine).get_columns(
             self.sqla_departments.table_name
         )
         column_name = columns[0].get("name")
 
-        response = Geocoder()._does_column_name_exist(table_id, column_name)
+        response = GeocoderApi()._does_column_name_exist(
+            self.sqla_departments, column_name
+        )
         assert True is response
 
     def test_does_column_name_not_exist(self):
-        table_id = self.sqla_departments.id
         column_name = "no_column"
 
-        response = Geocoder()._does_column_name_exist(table_id, column_name)
+        response = GeocoderApi()._does_column_name_exist(
+            self.sqla_departments, column_name
+        )
         assert False is response
 
     def test_does_table_not_exist(self):
         table_id = -1
-        column_name = "no_column"
 
         error_message = f"Table with ID {table_id} does not exists"
         with self.assertRaisesRegex(TableNotFoundException, error_message):
-            Geocoder()._does_column_name_exist(table_id, column_name)
+            GeocoderApi()._get_table_by_id(table_id)
 
     def test_load_data_from_all_columns(self):
         table_id = self.sqla_departments.id
         geo_columns = ["street", "city", "country"]
 
-        data = Geocoder()._load_data_from_columns(table_id, geo_columns)
+        data = GeocoderApi()._load_data_from_columns(table_id, geo_columns)
         assert 5 == len(data)
         assert ("Oberseestrasse 10", "Rapperswil", "Switzerland") in data
 
@@ -219,7 +250,7 @@ class GeocodingTests(SupersetTestCase):
         table_id = self.sqla_departments.id
         geo_columns = ["street", None, "country"]
 
-        data = Geocoder()._load_data_from_columns(table_id, geo_columns)
+        data = GeocoderApi()._load_data_from_columns(table_id, geo_columns)
         assert 5 == len(data)
         assert ("Oberseestrasse 10", "Switzerland") in data
 
@@ -231,7 +262,7 @@ class GeocodingTests(SupersetTestCase):
         columns = self.sqla_departments.columns
         number_of_columns_before = len(columns)
 
-        Geocoder()._add_lat_lon_columns(table, lat_column_name, lon_column_name)
+        GeocoderApi()._add_lat_lon_columns(table, lat_column_name, lon_column_name)
 
         columns = self.sqla_departments.columns
         number_of_columns_after = len(columns)
@@ -255,7 +286,7 @@ class GeocodingTests(SupersetTestCase):
             ("Bahnhofstrasse", "Zürich", "Switzerland", 47.372, 8.539),
         ]
 
-        Geocoder()._insert_geocoded_data(
+        GeocoderApi()._insert_geocoded_data(
             table, lat_column_name, lon_column_name, geo_columns, data
         )
 
@@ -305,7 +336,7 @@ class GeocodingTests(SupersetTestCase):
 
         progress = json.loads(self.get_resp(progress_url))
         assert 0 < progress.get("progress", 0)
-        assert progress.get("is_in_progress", False)
+        assert progress.get("is_in_progress") is True
         assert 0 < progress.get("success_counter", 0)
 
         geocode.join()
@@ -325,13 +356,13 @@ class GeocodingTests(SupersetTestCase):
         )  # Wait to be sure geocode has geocoded some data, but not all (5 addresses * 2 sec)
 
         interrupt = self.get_resp(interrupt_url, json_=json.dumps("{}"))
-        assert '"ok"' == interrupt
+        assert '"OK"' in interrupt
 
         time.sleep(4)  # Wait to be sure geocode has geocoded another data
 
         progress = json.loads(self.get_resp(progress_url))
         assert 5 >= progress.get("success_counter", 0)
         assert 0 == progress.get("progress", 5)
-        assert not progress.get("is_in_progress", True)
+        assert progress.get("is_in_progress", True) is False
 
         geocode.join()

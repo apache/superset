@@ -39,7 +39,11 @@ class BaseGeocoder(object):
         self._set_initial_states()
 
     def geocode(self, data: list):
-        raise NotImplementedError
+        try:
+            return self._geocode(data)
+        finally:
+            self.progress["progress"] = 0
+            self.progress["is_in_progress"] = False
 
     def _append_cords_to_data_entry(self, data_entry: list, geocoded: list):
         raise NotImplementedError
@@ -49,11 +53,10 @@ class BaseGeocoder(object):
         self.progress["success_counter"] = 0
         self.progress["doubt_counter"] = 0
         self.progress["failed_counter"] = 0
-        self.progress["is_in_progress"] = False
+        self.progress["is_in_progress"] = True
         self.progress["progress"] = 0
 
-    def _set_dict(self):
-        self.progress["is_in_progress"] = False
+    def _set_result_precision_counters(self):
         success_dict = {
             "success": self.progress["success_counter"],
             "doubt": self.progress["doubt_counter"],
@@ -80,7 +83,10 @@ class BaseGeocoder(object):
                     self.progress["is_in_progress"] = False
                     message = "successfully interrupted geocoding"
                     flash(message, "success")
-                    return [message, [geocoded_data, self._set_dict()]]
+                    return [
+                        message,
+                        [geocoded_data, self._set_result_precision_counters()],
+                    ]
                 data_entry = list(map(str, data_entry))
                 address = " ".join(data_entry)
                 geocoded = self._get_coordinates_from_address(address)
@@ -108,16 +114,16 @@ class BaseGeocoder(object):
                     f"exception message: {e}"
                 )
             if counter == 0 and exceptions == 1:
-                message = f"First request to geocoding API returned an Error, aborting"
+                message = "First request to geocoding API returned an Error, aborting"
                 flash(message, "error")
-                return [message, [geocoded_data, self._set_dict()]]
+                return [message, [geocoded_data, self._set_result_precision_counters()]]
             if exceptions >= 2:
-                message = f"Geocoding API returned 2 errors in a row, aborting"
+                message = "Geocoding API returned 2 errors in a row, aborting"
                 flash(message, "error")
-                return [message, [geocoded_data, self._set_dict()]]
+                return [message, [geocoded_data, self._set_result_precision_counters()]]
 
         self.progress["progress"] = 100
-        return ["", [geocoded_data, self._set_dict()]]
+        return ["", [geocoded_data, self._set_result_precision_counters()]]
 
     def _get_coordinates_from_address(self, address: str):
         raise NotImplementedError
@@ -146,13 +152,6 @@ class MapTilerGeocoder(BaseGeocoder):
             return [center, relevance] or None
         return None
 
-    def geocode(self, data: list):
-        try:
-            return self._geocode(data)
-        finally:
-            self.progress["progress"] = 0
-            self.progress["is_in_progress"] = False
-
     def check_api_key(self):
         if not self.conf["MAPTILER_API_KEY"]:
             raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
@@ -169,8 +168,3 @@ class MapTilerGeocoder(BaseGeocoder):
         data_entry.append(str(center_coordinates[0]))
         data_entry.append(str(center_coordinates[1]))
         return data_entry
-
-
-class TestingGeoCoder(BaseGeocoder):
-    def check_api_key(self):
-        pass
