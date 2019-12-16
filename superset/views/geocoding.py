@@ -157,7 +157,7 @@ class Geocoder(BaseSupersetView):
 
             if "append" in if_exists:
 
-                table_data = self._load_all_data_from_columns(
+                table_data = self._load_data_from_columns(
                     table_id, columns, lat_column, lon_column
                 )
             else:
@@ -312,30 +312,21 @@ class Geocoder(BaseSupersetView):
             column_list = self._create_column_list(columns, lat_column, lon_column)
             sql = f"SELECT {column_list} FROM {full_table_name}"
             result = table.database.get_sqla_engine().connect().execute(sql)
-            return [row for row in result]
+            if lat_column and lon_column:
+                resultset = []
+                column_count = len(columns)
+                for row in result:
+                    if not row[column_count] or not row[column_count + 1]:
+                        resultset.append(row[0:column_count])
+                return resultset
+            else:
+                return [row for row in result]
         except Exception as e:
             raise SqlSelectException(
                 "An error occured while getting address data from columns "
                 + column_list,
                 e,
             )
-
-    def _load_all_data_from_columns(
-        self, table_id: int, columns: list, lat_column: str, lon_column: str
-    ):
-        try:
-            table = self._get_table_by_id(table_id)
-            column_count = len(columns)
-
-            full_table_name = self._get_from_clause(table)
-            column_list = self._create_column_list(columns, lat_column, lon_column)
-            sql = f"SELECT {column_list} FROM {full_table_name}"
-            result = table.database.get_sqla_engine().connect().execute(sql)
-            resultset = []
-            for row in result:
-                if not row[column_count] and not row[column_count + 1]:
-                    resultset.append(row[0:column_count])
-            return resultset
 
         except Exception as e:
             raise SqlSelectException(
@@ -455,7 +446,10 @@ class Geocoder(BaseSupersetView):
         transaction = connection.begin()
         try:
             for row in data:
-                update = f"UPDATE {self._get_from_clause(table)} SET {lat_column}={row[number_of_columns]}, {lon_column}={row[number_of_columns + 1]} "
+                update = (
+                    f"UPDATE {self._get_from_clause(table)} SET {lat_column}={row[number_of_columns]}, "
+                    f"{lon_column}={row[number_of_columns + 1]} "
+                )
                 where = "WHERE " + where_clause % (tuple(row[:number_of_columns]))
                 connection.execute(text(update + where))
             transaction.commit()
