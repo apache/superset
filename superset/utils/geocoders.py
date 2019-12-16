@@ -58,12 +58,12 @@ class BaseGeocoder(object):
         data_entry.append(str(coordinates[1]))
         return data_entry
 
-    def _set_initial_states(self):
+    def _set_initial_states(self, in_progress=False):
         self.interruptflag = False
         self.progress["success_counter"] = 0
         self.progress["doubt_counter"] = 0
         self.progress["failed_counter"] = 0
-        self.progress["is_in_progress"] = False
+        self.progress["is_in_progress"] = in_progress
         self.progress["progress"] = 0
 
     def _set_result_precision_counters(self):
@@ -84,7 +84,7 @@ class BaseGeocoder(object):
         geocoded_data: list = []
         counter: int = 0
         exceptions: int = 0
-        self._set_initial_states()
+        self._set_initial_states(True)
 
         for data_entry in data:
             try:
