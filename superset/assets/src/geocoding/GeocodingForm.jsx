@@ -54,7 +54,12 @@ export class GeocodingForm extends React.Component {
       countryColumn: undefined,
       longitudeColumnName: 'lon',
       latitudeColumnName: 'lat',
-      overwriteIfExists: false,
+      overwriteIfExists: { label: 'Fail', value: 'fail' },
+      ifExistsValues: [
+        { label: 'Fail', value: 'fail' },
+        { label: 'Replace', value: 'replace' },
+        { label: 'Append', value: 'append' },
+      ],
       saveOnErrorOrInterrupt: true,
       validation,
       isLoading: false,
@@ -62,6 +67,7 @@ export class GeocodingForm extends React.Component {
     this.getDatasources = this.getDatasources.bind(this);
     this.getColumnList = this.getColumnList.bind(this);
     this.setDatasource = this.setDatasource.bind(this);
+    this.setIfExists = this.setIfExists.bind(this);
     this.setPropertyValue = this.setPropertyValue.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }
@@ -93,10 +99,17 @@ export class GeocodingForm extends React.Component {
     } else {
       this.props.actions.resetColumnsForTable();
     }
-    this.setState({ datasource,
+    this.setState({
+      datasource,
       streetColumn: undefined,
       cityColumn: undefined,
       countryColumn: undefined,
+    });
+  }
+
+  setIfExists(ifExists) {
+    this.setState({
+      overwriteIfExists: ifExists,
     });
   }
 
@@ -140,7 +153,7 @@ export class GeocodingForm extends React.Component {
         countryColumn: countryColumn ? countryColumn.value : undefined,
         longitudeColumnName,
         latitudeColumnName,
-        overwriteIfExists,
+        overwriteIfExists: overwriteIfExists.value,
         saveOnErrorOrInterrupt,
       });
       setTimeout(() => {
@@ -290,14 +303,15 @@ export class GeocodingForm extends React.Component {
                         {t('Overwrite latitude / longitude columns')}
                       </td>
                       <td>
-                        <FormCheckbox
-                          checked={this.state.overwriteIfExists}
-                          onChange={value =>
-                            this.setPropertyValue('overwriteIfExists', value)
-                          }
+                        <FormSelect
+                          id={'overwriteIfExists'}
+                          options={this.state.ifExistsValues}
+                          onChange={this.setIfExists}
+                          value={this.state.overwriteIfExists}
                           helpText={t(
-                            'Overwrite latitude / longitude columns if they already exist.',
+                            'If columns already exist: fail, replace existing values, append only new values',
                           )}
+                          clearable={false}
                         />
                       </td>
                     </tr>
