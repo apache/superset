@@ -36,6 +36,7 @@ from ..base import (
     DeleteMixin,
     generate_download_headers,
     SupersetModelView,
+    common_bootstrap_payload,
 )
 from .mixin import DashboardMixin
 
@@ -105,7 +106,7 @@ class Dashboard(BaseSupersetView):
     def list_all(self):
         payload = {
             "user": bootstrap_user_data(g.user),
-            "common": self.common_bootstrap_payload(),
+            "common": common_bootstrap_payload(),
         }
         return self.render_template(
             "superset/welcome.html",
