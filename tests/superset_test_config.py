@@ -40,7 +40,6 @@ def GET_FEATURE_FLAGS_FUNC(ff):
 
 
 TESTING = True
-SECRET_KEY = "thisismyscretkey"
 WTF_CSRF_ENABLED = False
 PUBLIC_ROLE_LIKE_GAMMA = True
 AUTH_ROLE_PUBLIC = "Public"
