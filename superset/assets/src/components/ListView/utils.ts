@@ -17,13 +17,13 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-// @ts-ignore
 import {
   useTable,
   useFilters,
   useSortBy,
   usePagination,
   useRowState,
+  // @ts-ignore
 } from 'react-table';
 import {
   useQueryParams,
