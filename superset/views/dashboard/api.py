@@ -56,9 +56,7 @@ def validate_json_metadata(value):
         value_obj = json.loads(value)
     except json.decoder.JSONDecodeError:
         raise ValidationError("JSON not valid")
-    errors = DashboardJSONMetadataSchema(strict=True).validate(
-        json.loads(value), partial=False
-    )
+    errors = DashboardJSONMetadataSchema(strict=True).validate(value_obj, partial=False)
     if errors:
         return ValidationError(errors)
 
