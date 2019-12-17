@@ -58,7 +58,7 @@ VERSION_INFO_FILE = os.path.join(PACKAGE_DIR, "version_info.json")
 PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets", "package.json")
 
 # Multiple favicons can be specified here. The "href" property
-# is mandatory, but "sizes," "type," and "rel" are optional. 
+# is mandatory, but "sizes," "type," and "rel" are optional.
 # For example:
 # {
 #     "href":path/to/image.png",
@@ -66,9 +66,8 @@ PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets", "package.json")
 #     "type": "image/png"
 #     "rel": "icon"
 # },
-FAVICONS = [
-    {"href":"/static/assets/images/favicon.png"},
-]
+FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
+
 
 def _try_json_readversion(filepath):
     try:
