@@ -208,6 +208,8 @@ def menu_data():
         "navbar_right": {
             "bug_report_url": appbuilder.app.config.get("BUG_REPORT_URL"),
             "documentation_url": appbuilder.app.config.get("DOCUMENTATION_URL"),
+            "version_string": appbuilder.app.config.get("VERSION_STRING"),
+            "version_sha": appbuilder.app.config.get("VERSION_SHA"),
             "languages": languages,
             "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": g.user.is_anonymous,
