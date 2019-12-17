@@ -23,7 +23,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.datastructures import FileStorage
 
 import superset.models.core as models
-from superset import conf, db
+from superset import db, app
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
     DatabaseAlreadyExistException,
@@ -48,6 +48,7 @@ POSTGRESQL_USERNAME = "POSTGRESQL_USERNAME"
 POSTGRESQL_PASSWORD = "POSTGRESQL_PASSWORD"
 POSTGRESQL_HOST = "POSTGRESQL_HOST"
 
+conf = app.config
 
 class CsvUploadTests(SupersetTestCase):
     importer = CsvImporter()
