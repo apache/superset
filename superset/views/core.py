@@ -375,7 +375,8 @@ class SliceModelView(SupersetModelView, DeleteMixin):
         return self.render_template(
             "superset/add_slice.html",
             bootstrap_data=json.dumps(
-                {"datasources": sorted(datasources, key=lambda d: d["label"])}
+                {"datasources": sorted(datasources, key=lambda d: d["label"]),
+                 "common": common_bootstrap_payload()}
             ),
         )
 
