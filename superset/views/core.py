@@ -40,7 +40,6 @@ from flask import (
     url_for,
 )
 from flask_appbuilder import expose
-from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
@@ -103,7 +102,9 @@ from .base import (
     json_success,
     SupersetModelView,
 )
-from .database import api as database_api, views as in_views
+from .dashboard import views as dash_views
+from .dashboard.filters import DashboardFilter
+from .database import views as in_views
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
@@ -261,69 +262,6 @@ class SliceFilter(BaseFilter):
         return query.filter(
             or_(self.model.perm.in_(perms), self.model.schema_perm.in_(schema_perms))
         )
-
-
-class DashboardFilter(BaseFilter):
-    """
-    List dashboards with the following criteria:
-        1. Those which the user owns
-        2. Those which the user has favorited
-        3. Those which have been published (if they have access to at least one slice)
-
-    If the user is an admin show them all dashboards.
-    This means they do not get curation but can still sort by "published"
-    if they wish to see those dashboards which are published first
-    """
-
-    def apply(self, query, func):
-        Dash = models.Dashboard
-        User = ab_models.User
-        Slice = models.Slice
-        Favorites = models.FavStar
-
-        user_roles = [role.name.lower() for role in list(get_user_roles())]
-        if "admin" in user_roles:
-            return query
-
-        datasource_perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        all_datasource_access = security_manager.all_datasource_access()
-        published_dash_query = (
-            db.session.query(Dash.id)
-            .join(Dash.slices)
-            .filter(
-                and_(
-                    Dash.published == True,  # noqa
-                    or_(
-                        Slice.perm.in_(datasource_perms),
-                        Slice.schema_perm.in_(schema_perms),
-                        all_datasource_access,
-                    ),
-                )
-            )
-        )
-
-        users_favorite_dash_query = db.session.query(Favorites.obj_id).filter(
-            and_(
-                Favorites.user_id == User.get_user_id(),
-                Favorites.class_name == "Dashboard",
-            )
-        )
-        owner_ids_query = (
-            db.session.query(Dash.id)
-            .join(Dash.owners)
-            .filter(User.id == User.get_user_id())
-        )
-
-        query = query.filter(
-            or_(
-                Dash.id.in_(owner_ids_query),
-                Dash.id.in_(published_dash_query),
-                Dash.id.in_(users_favorite_dash_query),
-            )
-        )
-
-        return query
 
 
 if config["ENABLE_ACCESS_REQUEST"]:
@@ -503,163 +441,14 @@ class SliceAddView(SliceModelView):
 appbuilder.add_view_no_menu(SliceAddView)
 
 
-class DashboardModelView(SupersetModelView, DeleteMixin):
-    route_base = "/dashboard"
-    datamodel = SQLAInterface(models.Dashboard)
-
-    list_title = _("Dashboards")
-    show_title = _("Show Dashboard")
-    add_title = _("Add Dashboard")
-    edit_title = _("Edit Dashboard")
-
-    list_columns = ["dashboard_link", "creator", "published", "modified"]
-    order_columns = ["modified", "published"]
-    edit_columns = [
-        "dashboard_title",
-        "slug",
-        "owners",
-        "position_json",
-        "css",
-        "json_metadata",
-        "published",
-    ]
-    show_columns = edit_columns + ["table_names", "charts"]
-    search_columns = ("dashboard_title", "slug", "owners", "published")
-    add_columns = edit_columns
-    base_order = ("changed_on", "desc")
-    description_columns = {
-        "position_json": _(
-            "This json object describes the positioning of the widgets in "
-            "the dashboard. It is dynamically generated when adjusting "
-            "the widgets size and positions by using drag & drop in "
-            "the dashboard view"
-        ),
-        "css": _(
-            "The CSS for individual dashboards can be altered here, or "
-            "in the dashboard view where changes are immediately "
-            "visible"
-        ),
-        "slug": _("To get a readable URL for your dashboard"),
-        "json_metadata": _(
-            "This JSON object is generated dynamically when clicking "
-            "the save or overwrite button in the dashboard view. It "
-            "is exposed here for reference and for power users who may "
-            "want to alter specific parameters."
-        ),
-        "owners": _("Owners is a list of users who can alter the dashboard."),
-        "published": _(
-            "Determines whether or not this dashboard is "
-            "visible in the list of all dashboards"
-        ),
-    }
-    base_filters = [["slice", DashboardFilter, lambda: []]]
-    label_columns = {
-        "dashboard_link": _("Dashboard"),
-        "dashboard_title": _("Title"),
-        "slug": _("Slug"),
-        "charts": _("Charts"),
-        "owners": _("Owners"),
-        "creator": _("Creator"),
-        "modified": _("Modified"),
-        "position_json": _("Position JSON"),
-        "css": _("CSS"),
-        "json_metadata": _("JSON Metadata"),
-        "table_names": _("Underlying Tables"),
-    }
-
-    def pre_add(self, obj):
-        obj.slug = obj.slug or None
-        if obj.slug:
-            obj.slug = obj.slug.strip()
-            obj.slug = obj.slug.replace(" ", "-")
-            obj.slug = re.sub(r"[^\w\-]+", "", obj.slug)
-        if g.user not in obj.owners:
-            obj.owners.append(g.user)
-        utils.validate_json(obj.json_metadata)
-        utils.validate_json(obj.position_json)
-        owners = [o for o in obj.owners]
-        for slc in obj.slices:
-            slc.owners = list(set(owners) | set(slc.owners))
-
-    def pre_update(self, obj):
-        check_ownership(obj)
-        self.pre_add(obj)
-
-    def pre_delete(self, obj):
-        check_ownership(obj)
-
-    @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
-    def mulexport(self, items):
-        if not isinstance(items, list):
-            items = [items]
-        ids = "".join("&id={}".format(d.id) for d in items)
-        return redirect("/dashboard/export_dashboards_form?{}".format(ids[1:]))
-
-    @event_logger.log_this
-    @has_access
-    @expose("/export_dashboards_form")
-    def download_dashboards(self):
-        if request.args.get("action") == "go":
-            ids = request.args.getlist("id")
-            return Response(
-                models.Dashboard.export_dashboards(ids),
-                headers=generate_download_headers("json"),
-                mimetype="application/text",
-            )
-        return self.render_template(
-            "superset/export_dashboards.html", dashboards_url="/dashboard/list"
-        )
-
-
 appbuilder.add_view(
-    DashboardModelView,
+    dash_views.DashboardModelView,
     "Dashboards",
     label=__("Dashboards"),
     icon="fa-dashboard",
     category="",
     category_icon="",
 )
-
-
-class DashboardModelViewAsync(DashboardModelView):
-    route_base = "/dashboardasync"
-    list_columns = [
-        "id",
-        "dashboard_link",
-        "creator",
-        "modified",
-        "dashboard_title",
-        "changed_on",
-        "url",
-        "changed_by_name",
-    ]
-    label_columns = {
-        "dashboard_link": _("Dashboard"),
-        "dashboard_title": _("Title"),
-        "creator": _("Creator"),
-        "modified": _("Modified"),
-    }
-
-
-appbuilder.add_view_no_menu(DashboardModelViewAsync)
-
-
-class DashboardAddView(DashboardModelView):
-    route_base = "/dashboardaddview"
-    list_columns = [
-        "id",
-        "dashboard_link",
-        "creator",
-        "modified",
-        "dashboard_title",
-        "changed_on",
-        "url",
-        "changed_by_name",
-    ]
-    show_columns = list(set(DashboardModelView.edit_columns + list_columns))
-
-
-appbuilder.add_view_no_menu(DashboardAddView)
 
 
 @talisman(force_https=False)
@@ -701,7 +490,6 @@ class KV(BaseSupersetView):
     @has_access_api
     @expose("/<key_id>/", methods=["GET"])
     def get_value(self, key_id):
-        kv = None
         try:
             kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()
             if not kv:
@@ -721,7 +509,7 @@ class R(BaseSupersetView):
     @event_logger.log_this
     @expose("/<url_id>")
     def index(self, url_id):
-        url = db.session.query(models.Url).filter_by(id=url_id).first()
+        url = db.session.query(models.Url).get(url_id)
         if url and url.url:
             explore_url = "//superset/explore/?"
             if url.url.startswith(explore_url):
@@ -1389,7 +1177,6 @@ class Superset(BaseSupersetView):
                 .filter_by(id=int(request.args.get("save_to_dashboard_id")))
                 .one()
             )
-
             # check edit dashboard permissions
             dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
             if not dash_overwrite_perm:
@@ -1470,7 +1257,7 @@ class Superset(BaseSupersetView):
             for name, source in ConnectorRegistry.sources.items()
         }
         model = modelview_to_model[model_view]
-        col = db.session.query(model).filter_by(id=id_).first()
+        col = db.session.query(model).get(id_)
         checked = value == "true"
         if col:
             setattr(col, attr, checked)
@@ -1487,7 +1274,7 @@ class Superset(BaseSupersetView):
     def schemas(self, db_id, force_refresh="false"):
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == "true"
-        database = db.session.query(models.Database).filter_by(id=db_id).first()
+        database = db.session.query(models.Database).get(db_id)
         if database:
             schemas = database.get_all_schema_names(
                 cache=database.schema_cache_enabled,
@@ -1601,9 +1388,7 @@ class Superset(BaseSupersetView):
         session = db.session()
         data = json.loads(request.form.get("data"))
         dash = models.Dashboard()
-        original_dash = (
-            session.query(models.Dashboard).filter_by(id=dashboard_id).first()
-        )
+        original_dash = session.query(models.Dashboard).get(dashboard_id)
 
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data["dashboard_title"]
@@ -1648,7 +1433,7 @@ class Superset(BaseSupersetView):
     def save_dash(self, dashboard_id):
         """Save a dashboard's metadata"""
         session = db.session()
-        dash = session.query(models.Dashboard).filter_by(id=dashboard_id).first()
+        dash = session.query(models.Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form.get("data"))
         self._set_dash_metadata(dash, data)
@@ -1732,8 +1517,8 @@ class Superset(BaseSupersetView):
         """Add and save slices to a dashboard"""
         data = json.loads(request.form.get("data"))
         session = db.session()
-        Slice = models.Slice
-        dash = session.query(models.Dashboard).filter_by(id=dashboard_id).first()
+        Slice = models.Slice  # noqa
+        dash = session.query(models.Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         new_slices = session.query(Slice).filter(Slice.id.in_(data["slice_ids"]))
         dash.slices += new_slices
@@ -1759,7 +1544,7 @@ class Superset(BaseSupersetView):
                 existing_database = (
                     db.session.query(models.Database)
                     .filter_by(database_name=db_name)
-                    .first()
+                    .one_or_none()
                 )
                 if existing_database and uri == existing_database.safe_sqlalchemy_uri():
                     uri = existing_database.sqlalchemy_uri_decrypted
@@ -2056,7 +1841,7 @@ class Superset(BaseSupersetView):
                     models.Database.database_name == db_name
                     or SqlaTable.table_name == table_name
                 )
-            ).first()
+            ).one_or_none()
             if not table:
                 return json_error_response(
                     __(
@@ -2304,7 +2089,9 @@ class Superset(BaseSupersetView):
             logging.error(err_msg)
             return json_error_response(err_msg)
         cluster = (
-            db.session.query(DruidCluster).filter_by(cluster_name=cluster_name).first()
+            db.session.query(DruidCluster)
+            .filter_by(cluster_name=cluster_name)
+            .one_or_none()
         )
         if not cluster:
             err_msg = __(
@@ -2327,10 +2114,15 @@ class Superset(BaseSupersetView):
         SqlaTable = ConnectorRegistry.sources["table"]
         data = json.loads(request.form.get("data"))
         table_name = data.get("datasourceName")
-        table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
+        database_id = data.get("dbId")
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, table_name=table_name)
+            .one_or_none()
+        )
         if not table:
             table = SqlaTable(table_name=table_name, owners=[g.user])
-        table.database_id = data.get("dbId")
+        table.database_id = database_id
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")
         table.is_sqllab_view = True
@@ -2436,7 +2228,7 @@ class Superset(BaseSupersetView):
     @expose("/select_star/<database_id>/<table_name>/<schema>")
     @event_logger.log_this
     def select_star(self, database_id, table_name, schema=None):
-        mydb = db.session.query(models.Database).filter_by(id=database_id).first()
+        mydb = db.session.query(models.Database).get(database_id)
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
         return json_success(
@@ -2448,7 +2240,7 @@ class Superset(BaseSupersetView):
     @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])
     @event_logger.log_this
     def estimate_query_cost(self, database_id: int, schema: str = None) -> Response:
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one_or_none()
+        mydb = db.session.query(models.Database).get(database_id)
 
         sql = json.loads(request.form.get("sql", '""'))
         template_params = json.loads(request.form.get("templateParams") or "{}")
@@ -2658,7 +2450,12 @@ class Superset(BaseSupersetView):
                 return json_error_response(f"{msg}")
 
     def _sql_json_async(
-        self, session: Session, rendered_query: str, query: Query, expand_data: bool
+        self,
+        session: Session,
+        rendered_query: str,
+        query: Query,
+        expand_data: bool,
+        log_params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
             Send SQL JSON query to celery workers
@@ -2679,6 +2476,7 @@ class Superset(BaseSupersetView):
                 user_name=g.user.username if g.user else None,
                 start_time=now_as_float(),
                 expand_data=expand_data,
+                log_params=log_params,
             )
         except Exception as e:
             logging.exception(f"Query {query.id}: {e}")
@@ -2703,7 +2501,12 @@ class Superset(BaseSupersetView):
         return resp
 
     def _sql_json_sync(
-        self, session: Session, rendered_query: str, query: Query, expand_data: bool
+        self,
+        session: Session,
+        rendered_query: str,
+        query: Query,
+        expand_data: bool,
+        log_params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
             Execute SQL query (sql json)
@@ -2728,6 +2531,7 @@ class Superset(BaseSupersetView):
                     store_results=store_results,
                     user_name=g.user.username if g.user else None,
                     expand_data=expand_data,
+                    log_params=log_params,
                 )
 
             payload = json.dumps(
@@ -2747,9 +2551,14 @@ class Superset(BaseSupersetView):
     @expose("/sql_json/", methods=["POST"])
     @event_logger.log_this
     def sql_json(self):
-        return self.sql_json_exec(request.json)
+        log_params = {
+            "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
+        }
+        return self.sql_json_exec(request.json, log_params)
 
-    def sql_json_exec(self, query_params: dict):
+    def sql_json_exec(
+        self, query_params: dict, log_params: Optional[Dict[str, Any]] = None
+    ):
         """Runs arbitrary sql and returns data as json"""
         # Collect Values
         database_id: int = cast(int, query_params.get("database_id"))
@@ -2782,7 +2591,7 @@ class Superset(BaseSupersetView):
         status: str = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).one_or_none()
+        mydb = session.query(models.Database).get(database_id)
         if not mydb:
             return json_error_response(f"Database with id {database_id} is missing.")
 
@@ -2855,9 +2664,13 @@ class Superset(BaseSupersetView):
 
         # Async request.
         if async_flag:
-            return self._sql_json_async(session, rendered_query, query, expand_data)
+            return self._sql_json_async(
+                session, rendered_query, query, expand_data, log_params
+            )
         # Sync request.
-        return self._sql_json_sync(session, rendered_query, query, expand_data)
+        return self._sql_json_sync(
+            session, rendered_query, query, expand_data, log_params
+        )
 
     @has_access
     @expose("/csv/<client_id>")

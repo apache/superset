@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import json
 from typing import Any, Dict, List, Optional, Type
 
@@ -29,7 +28,9 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.utils import core as utils
 
 
-class BaseDatasource(AuditMixinNullable, ImportMixin):
+class BaseDatasource(
+    AuditMixinNullable, ImportMixin
+):  # pylint: disable=too-many-public-methods
     """A common interface to objects that are queryable
     (tables and datasources)"""
 
@@ -53,7 +54,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     # ---------------------------------------------------------------
 
     # Columns
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     description = Column(Text)
     default_endpoint = Column(Text)
     is_featured = Column(Boolean, default=False)  # TODO deprecating
@@ -130,8 +131,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     def explore_url(self) -> str:
         if self.default_endpoint:
             return self.default_endpoint
-        else:
-            return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
+        return f"/superset/explore/{self.type}/{self.id}/"
 
     @property
     def column_formats(self) -> Dict[str, Optional[str]]:
@@ -167,10 +167,14 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         """Data representation of the datasource sent to the frontend"""
         order_by_choices = []
         # self.column_names return sorted column_names
-        for s in self.column_names:
-            s = str(s or "")
-            order_by_choices.append((json.dumps([s, True]), s + " [asc]"))
-            order_by_choices.append((json.dumps([s, False]), s + " [desc]"))
+        for column_name in self.column_names:
+            column_name = str(column_name or "")
+            order_by_choices.append(
+                (json.dumps([column_name, True]), column_name + " [asc]")
+            )
+            order_by_choices.append(
+                (json.dumps([column_name, False]), column_name + " [desc]")
+            )
 
         verbose_map = {"__timestamp": "Time"}
         verbose_map.update(
@@ -234,7 +238,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         if is_list_target and not isinstance(values, (tuple, list)):
             values = [values]
         elif not is_list_target and isinstance(values, (tuple, list)):
-            if len(values) > 0:
+            if values:
                 values = values[0]
             else:
                 values = None
@@ -276,7 +280,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
                 return col
         return None
 
-    def get_fk_many_from_list(self, object_list, fkmany, fkmany_class, key_attr):
+    @staticmethod
+    def get_fk_many_from_list(
+        object_list, fkmany, fkmany_class, key_attr
+    ):  # pylint: disable=too-many-locals
         """Update ORM one-to-many list from object list
 
         Used for syncing metrics and columns using the same code"""
@@ -335,7 +342,9 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             obj.get("columns"), self.columns, self.column_class, "column_name"
         )
 
-    def get_extra_cache_keys(self, query_obj: Dict) -> List[Any]:
+    def get_extra_cache_keys(  # pylint: disable=unused-argument,no-self-use
+        self, query_obj: Dict
+    ) -> List[Any]:
         """ If a datasource needs to provide additional keys for calculation of
         cache keys, those can be provided via this method
         """
@@ -347,7 +356,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
 
     __tablename__: Optional[str] = None  # {connector_name}_column
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     column_name = Column(String(255), nullable=False)
     verbose_name = Column(String(1024))
     is_active = Column(Boolean, default=True)
@@ -417,7 +426,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
 
     __tablename__: Optional[str] = None  # {connector_name}_metric
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     metric_name = Column(String(255), nullable=False)
     verbose_name = Column(String(1024))
     metric_type = Column(String(32))

@@ -36,6 +36,8 @@ const propTypes = {
     }).isRequired,
     navbar_right: PropTypes.shape({
       bug_report_url: PropTypes.string,
+      version_string: PropTypes.string,
+      version_sha: PropTypes.string,
       documentation_url: PropTypes.string,
       languages: PropTypes.object,
       show_language_picker: PropTypes.bool.isRequired,
@@ -91,6 +93,8 @@ export default function Menu({
             <UserMenu
               userInfoUrl={navbarRight.user_info_url}
               userLogoutUrl={navbarRight.user_logout_url}
+              versionString={navbarRight.version_string}
+              versionSha={navbarRight.version_sha}
             />
           )}
           {navbarRight.user_is_anonymous && (

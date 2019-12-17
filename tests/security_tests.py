@@ -316,7 +316,9 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_set_perm_database(self):
         session = db.session
-        database = Database(database_name="tmp_database")
+        database = Database(
+            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
+        )
         session.add(database)
 
         stored_db = (
@@ -346,7 +348,9 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_set_perm_slice(self):
         session = db.session
-        database = Database(database_name="tmp_database")
+        database = Database(
+            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
+        )
         table = SqlaTable(table_name="tmp_perm_table", database=database)
         session.add(database)
         session.add(table)
