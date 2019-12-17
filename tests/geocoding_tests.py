@@ -88,24 +88,14 @@ class GeocodingTests(SupersetTestCase):
         self.test_table.columns.append(
             TableColumn(column_name="department_id", type="INTEGER")
         )
-        self.test_table.columns.append(
-            TableColumn(column_name="name", type="STRING")
-        )
-        self.test_table.columns.append(
-            TableColumn(column_name="street", type="STRING")
-        )
-        self.test_table.columns.append(
-            TableColumn(column_name="city", type="STRING")
-        )
+        self.test_table.columns.append(TableColumn(column_name="name", type="STRING"))
+        self.test_table.columns.append(TableColumn(column_name="street", type="STRING"))
+        self.test_table.columns.append(TableColumn(column_name="city", type="STRING"))
         self.test_table.columns.append(
             TableColumn(column_name="country", type="STRING")
         )
-        self.test_table.columns.append(
-            TableColumn(column_name="lat", type="FLOAT")
-        )
-        self.test_table.columns.append(
-            TableColumn(column_name="lon", type="FLOAT")
-        )
+        self.test_table.columns.append(TableColumn(column_name="lat", type="FLOAT"))
+        self.test_table.columns.append(TableColumn(column_name="lon", type="FLOAT"))
         self.test_table.database = self.test_database
         self.test_table.database_id = self.test_table.database.id
         db.session.add(self.test_table)
@@ -218,17 +208,13 @@ class GeocodingTests(SupersetTestCase):
         )
         column_name = columns[0].get("name")
 
-        response = GeocoderApi()._does_column_name_exist(
-            self.test_table, column_name
-        )
+        response = GeocoderApi()._does_column_name_exist(self.test_table, column_name)
         assert True is response
 
     def test_does_column_name_not_exist(self):
         column_name = "no_column"
 
-        response = GeocoderApi()._does_column_name_exist(
-            self.test_table, column_name
-        )
+        response = GeocoderApi()._does_column_name_exist(self.test_table, column_name)
         assert False is response
 
     def test_does_table_not_exist(self):
@@ -311,7 +297,7 @@ class GeocodingTests(SupersetTestCase):
             "countryColumn": "country",
             "latitudeColumnName": "lat",
             "longitudeColumnName": "lon",
-            "overwriteIfExists": "replace",
+            "ifExists": "replace",
             "saveOnErrorOrInterrupt": True,
         }
 

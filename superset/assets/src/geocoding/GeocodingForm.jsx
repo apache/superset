@@ -56,7 +56,7 @@ export class GeocodingForm extends React.Component {
       longitudeColumnName: 'lon',
       latitudeColumnName: 'lat',
       geocoder: { label: 'Maptiler', value: 'maptiler' },
-      overwriteIfExists: { label: 'Fail', value: 'fail' },
+      ifExists: { label: 'Fail', value: 'fail' },
       ifExistsValues: [
         { label: 'Fail', value: 'fail' },
         { label: 'Replace', value: 'replace' },
@@ -120,7 +120,7 @@ export class GeocodingForm extends React.Component {
 
   setIfExists(ifExists) {
     this.setState({
-      overwriteIfExists: ifExists,
+      ifExists,
     });
   }
 
@@ -138,7 +138,7 @@ export class GeocodingForm extends React.Component {
       geocoder,
       longitudeColumnName,
       latitudeColumnName,
-      overwriteIfExists,
+      ifExists,
       saveOnErrorOrInterrupt,
     } = this.state;
     this.setState({ isLoading: true });
@@ -175,7 +175,7 @@ export class GeocodingForm extends React.Component {
           : undefined,
         longitudeColumnName,
         latitudeColumnName,
-        overwriteIfExists: overwriteIfExists.value,
+        ifExists: ifExists.value,
         saveOnErrorOrInterrupt,
       });
       setTimeout(() => {
@@ -365,10 +365,10 @@ export class GeocodingForm extends React.Component {
                       </td>
                       <td>
                         <FormSelect
-                          id={'overwriteIfExists'}
+                          id={'ifExists'}
                           options={this.state.ifExistsValues}
                           onChange={this.setIfExists}
-                          value={this.state.overwriteIfExists}
+                          value={this.state.ifExists}
                           helpText={t(
                             'If columns already exist: fail, replace existing values, append only new values',
                           )}

@@ -31,11 +31,12 @@ from superset import appbuilder, conf, db, security_manager
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.exceptions import (
     NoAPIKeySuppliedException,
+    NoColumnsException,
     SqlAddColumnException,
     SqlSelectException,
     SqlUpdateException,
     TableNotFoundException,
-    NoColumnsException)
+)
 from superset.utils.geocoders import BaseGeocoder, GoogleGeocoder, MapTilerGeocoder
 
 from .base import api, BaseSupersetView, json_error_response, json_success
@@ -145,7 +146,7 @@ class Geocoder(BaseSupersetView):
             columns.append(request.json.get("countryColumn"))
         if request_data.get("buildingNumberColumn"):
             columns.append(request_data.get("buildingNumberColumn"))
-        if_exists = request_data.get("overwriteIfExists")
+        if_exists = request_data.get("ifExists")
         lat_column = request_data.get("latitudeColumnName", "lat")
         lon_column = request_data.get("longitudeColumnName", "lon")
         save_on_stop_geocoding = request.json.get("saveOnErrorOrInterrupt", True)
@@ -154,10 +155,9 @@ class Geocoder(BaseSupersetView):
         message_suffix = ""
         try:
             column_message = self._check_and_create_columns(request_data)
-            message_suffix = f" but {column_message} please choose the overwrite option when trying again"
-
+            if column_message:
+                message_suffix = f" but {column_message} please choose the overwrite option when trying again"
             if "append" in if_exists:
-
                 table_data = self._load_data_from_columns(
                     table_id, columns, lat_column, lon_column
                 )
@@ -241,7 +241,7 @@ class Geocoder(BaseSupersetView):
     def _check_and_create_columns(self, request_data):
         lat_column = request_data.get("latitudeColumnName", "lat")
         lon_column = request_data.get("longitudeColumnName", "lon")
-        if_exists = request.json.get("overwriteIfExists", "fail")
+        if_exists = request.json.get("ifExists", "fail")
         if "fail" in if_exists:
             override_if_exist = False
         else:
@@ -271,11 +271,11 @@ class Geocoder(BaseSupersetView):
         else:
             if lat_exists:
                 raise ValueError(
-                    "Column name {0} for latitude is already in use".format(lat_column)
+                    f"Column name {lat_column} for latitude is already in use"
                 )
             if lon_exists:
                 raise ValueError(
-                    "Column name {0} for longitude is already in use".format(lon_column)
+                    f"Column name {lon_column} for longitude is already in use"
                 )
             self._add_lat_lon_columns(table, lat_column, lon_column)
             column_message_suffix = (
@@ -331,13 +331,6 @@ class Geocoder(BaseSupersetView):
                 e,
             )
 
-        except Exception as e:
-            raise SqlSelectException(
-                "An error occured while getting address data from columns "
-                + column_list,
-                e,
-            )
-
     def _get_table_by_id(self, table_id: int) -> SqlaTable:
         """
         Get a SqlaTable object from the session and return it
@@ -376,7 +369,9 @@ class Geocoder(BaseSupersetView):
         try:
             geocoder.check_api_key()
         except NotImplementedError:
-            return json_error_response("Geocoder is not implemented correctly, please contact your administrator.")
+            return json_error_response(
+                "Geocoder is not implemented correctly, please contact your administrator."
+            )
         return geocoder.geocode(data)
 
     def _add_lat_lon_columns(
@@ -448,17 +443,17 @@ class Geocoder(BaseSupersetView):
         :raise SqlUpdateException: When Update of given columns with given data went wrong
         """
         where_clause = "='%s' AND ".join(filter(None, geo_columns)) + "='%s'"
-        number_of_columns = len(geo_columns)
+        lat_column_index = len(geo_columns)
 
         connection = table.database.get_sqla_engine().connect()
         transaction = connection.begin()
         try:
             for row in data:
                 update = (
-                    f"UPDATE {self._get_from_clause(table)} SET {lat_column}={row[number_of_columns]}, "
-                    f"{lon_column}={row[number_of_columns + 1]} "
+                    f"UPDATE {self._get_from_clause(table)} SET {lat_column}={row[lat_column_index]}, "
+                    f"{lon_column}={row[lat_column_index + 1]} "
                 )
-                where = "WHERE " + where_clause % (tuple(row[:number_of_columns]))
+                where = "WHERE " + where_clause % (tuple(row[:lat_column_index]))
                 connection.execute(text(update + where))
             transaction.commit()
         except Exception as e:
