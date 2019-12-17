@@ -24,7 +24,7 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.database import Database
+    from superset.models.database import Database  # pylint: disable=unused-import
 
 
 class SqliteEngineSpec(BaseEngineSpec):

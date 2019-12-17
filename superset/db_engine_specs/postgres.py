@@ -23,7 +23,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.database import Database
+    from superset.models.database import Database  # pylint: disable=unused-import
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):

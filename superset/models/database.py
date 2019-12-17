@@ -21,6 +21,7 @@ from contextlib import closing
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 
+# pylint: disable=ungrouped-imports
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
@@ -58,9 +59,13 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.utils import cache as cache_util, core as utils
 
 
+def names_in_schema_memoizer_key(*args, **kwargs):
+    return f"db:{{}}:schema:{kwargs.get('schema')}:view_list"
+
+
 class Database(
     Model, AuditMixinNullable, ImportMixin
-):  # pylint: disable=too-many-public-methods
+):  # pylint: disable=too-many-public-methods,unused-argument
 
     """An ORM object that stores Database related information"""
 
@@ -407,7 +412,7 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "view")
 
     @cache_util.memoized_func(
-        key=lambda *args, **kwargs: f"db:{{}}:schema:{kwargs.get('schema')}:table_list",  # type: ignore
+        key=lambda *args, **kwargs: f"db:{{}}:schema:{kwargs.get('schema')}:table_list",
         attribute_in_key="id",
     )
     def get_all_table_names_in_schema(
@@ -437,11 +442,9 @@ class Database(
             ]
         except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
+        return []
 
-    @cache_util.memoized_func(
-        key=lambda *args, **kwargs: f"db:{{}}:schema:{kwargs.get('schema')}:view_list",  # type: ignore
-        attribute_in_key="id",
-    )
+    @cache_util.memoized_func(key=names_in_schema_memoizer_key, attribute_in_key="id")
     def get_all_view_names_in_schema(
         self,
         schema: str,
@@ -467,6 +470,7 @@ class Database(
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
         except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
+        return []
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: "db:{}:schema_list", attribute_in_key="id"
