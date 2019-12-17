@@ -1508,7 +1508,6 @@ class Superset(BaseSupersetView):
         """Add and save slices to a dashboard"""
         data = json.loads(request.form.get("data"))
         session = db.session()
-        Slice = models.Slice  # noqa
         dash = session.query(Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         new_slices = session.query(Slice).filter(Slice.id.in_(data["slice_ids"]))
