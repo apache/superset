@@ -51,7 +51,7 @@ IGNORED_TABLES = [
     "random_time_series",
     "unicode_test",
     "sf_population_polygons",
-    "multi_format_timeseries",
+    "multiformat_time_series",
     "flights",
 ]
 
