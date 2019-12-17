@@ -23,6 +23,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [8699](https://github.com/apache/incubator-superset/pull/8699): A `row_level_security_filters` table has been added, which is many-to-many with `tables` and `ab_roles`.  The applicable filters are added to the sqla query, and the RLS ids are added to the query cache keys. They can be accessed through the `Security` menu, or when editting a table.
+
 * [8732](https://github.com/apache/incubator-superset/pull/8732): Swagger user interface is now enabled by default. 
 A new permission `show on SwaggerView` is created by `superset init` and given to the `Admin` Role. To disable the UI,
 set `FAB_API_SWAGGER_UI = False` on config.
