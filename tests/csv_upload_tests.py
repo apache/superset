@@ -23,7 +23,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.datastructures import FileStorage
 
 import superset.models.core as models
-from superset import db, app
+from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
     DatabaseAlreadyExistException,
@@ -48,7 +48,6 @@ POSTGRESQL_USERNAME = "POSTGRESQL_USERNAME"
 POSTGRESQL_PASSWORD = "POSTGRESQL_PASSWORD"
 POSTGRESQL_HOST = "POSTGRESQL_HOST"
 
-conf = app.config
 
 class CsvUploadTests(SupersetTestCase):
     importer = CsvImporter()
@@ -149,8 +148,8 @@ class CsvUploadTests(SupersetTestCase):
             os.remove(os.getcwd() + "/" + db_name + ".db")
 
     @unittest.skipIf(
-        "mysql" in conf.get("SQLALCHEMY_DATABASE_URI", "")
-        or SQLITE in conf.get("SQLALCHEMY_DATABASE_URI", ""),
+        "mysql" in app.config["SQLALCHEMY_DATABASE_URI", ""]
+        or SQLITE in app.config["SQLALCHEMY_DATABASE_URI", ""],
         "This test only runs when a PostgreSQL database exists",
     )
     def test_import_into_new_postgres(self):
@@ -161,9 +160,9 @@ class CsvUploadTests(SupersetTestCase):
         form_data = self.get_full_data(
             filename, NEW_DATABASE_ID, db_name, table_name, database_flavor=POSTGRESQL
         )
-        conf[POSTGRESQL_USERNAME] = POSTGRESQL
-        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
-        conf[POSTGRESQL_HOST] = "localhost"
+        app.config[POSTGRESQL_USERNAME] = POSTGRESQL
+        app.config[POSTGRESQL_PASSWORD] = POSTGRESQL
+        app.config[POSTGRESQL_HOST] = "localhost"
         try:
             response = self.get_resp(url, data=form_data)
             assert "OK" in response
@@ -171,9 +170,9 @@ class CsvUploadTests(SupersetTestCase):
             os.remove(filename)
             url = (
                 "postgresql://"
-                + conf[POSTGRESQL_USERNAME]
+                + app.config[POSTGRESQL_USERNAME]
                 + ":"
-                + conf[POSTGRESQL_PASSWORD]
+                + app.config[POSTGRESQL_PASSWORD]
                 + "@localhost/"
                 + db_name
             )
@@ -235,15 +234,15 @@ class CsvUploadTests(SupersetTestCase):
             db.session.commit()
 
     @unittest.skipIf(
-        "mysql" in conf.get("SQLALCHEMY_DATABASE_URI", "")
-        or SQLITE in conf.get("SQLALCHEMY_DATABASE_URI", ""),
+        "mysql" in app.config["SQLALCHEMY_DATABASE_URI", ""]
+        or SQLITE in app.config["SQLALCHEMY_DATABASE_URI", ""],
         "This test only run when a PostgreSQL database exists",
     )
     def test_create_postgresql_database(self):
         db_name = "newPostgresqlDatabase"
-        conf[POSTGRESQL_USERNAME] = POSTGRESQL
-        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
-        conf[POSTGRESQL_HOST] = "localhost"
+        app.config[POSTGRESQL_USERNAME] = POSTGRESQL
+        app.config[POSTGRESQL_PASSWORD] = POSTGRESQL
+        app.config[POSTGRESQL_HOST] = "localhost"
         try:
             (new_database, uri) = self.importer._create_database(
                 db_name, POSTGRESQLFLAVOR
@@ -277,30 +276,30 @@ class CsvUploadTests(SupersetTestCase):
 
     def test_postgres_no_password_supplied(self):
         db_name = "postgres_no_pw"
-        conf[POSTGRESQL_USERNAME] = POSTGRESQL
-        conf[POSTGRESQL_PASSWORD] = ""
+        app.config[POSTGRESQL_USERNAME] = POSTGRESQL
+        app.config[POSTGRESQL_PASSWORD] = ""
         error_message = "No password supplied for PostgreSQL"
         with self.assertRaisesRegex(NoPasswordSuppliedException, error_message):
             self.importer._setup_postgresql_database(db_name, None)
 
     def test_postgres_no_username_supplied(self):
         db_name = "postgres_no_pw"
-        conf[POSTGRESQL_USERNAME] = ""
-        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
+        app.config[POSTGRESQL_USERNAME] = ""
+        app.config[POSTGRESQL_PASSWORD] = POSTGRESQL
         error_message = "No username supplied for PostgreSQL"
         with self.assertRaisesRegex(NoUsernameSuppliedException, error_message):
             self.importer._setup_postgresql_database(db_name, None)
 
     @unittest.skipIf(
-        "mysql" in conf.get("SQLALCHEMY_DATABASE_URI", "")
-        or SQLITE in conf.get("SQLALCHEMY_DATABASE_URI", ""),
+        "mysql" in app.config["SQLALCHEMY_DATABASE_URI", ""]
+        or SQLITE in app.config["SQLALCHEMY_DATABASE_URI", ""],
         "This test only runs when a PostgreSQL database exists",
     )
     def test_postgres_already_exist(self):
         db_name = "postgres_already_exist"
-        conf[POSTGRESQL_USERNAME] = POSTGRESQL
-        conf[POSTGRESQL_PASSWORD] = POSTGRESQL
-        conf[POSTGRESQL_HOST] = "localhost"
+        app.config[POSTGRESQL_USERNAME] = POSTGRESQL
+        app.config[POSTGRESQL_PASSWORD] = POSTGRESQL
+        app.config[POSTGRESQL_HOST] = "localhost"
         error_message = f"The database {db_name} already exists"
         try:
             self.importer._create_database(db_name, POSTGRESQLFLAVOR)
@@ -309,9 +308,9 @@ class CsvUploadTests(SupersetTestCase):
         finally:
             url = (
                 "postgresql://"
-                + conf[POSTGRESQL_USERNAME]
+                + app.config[POSTGRESQL_USERNAME]
                 + ":"
-                + conf[POSTGRESQL_PASSWORD]
+                + app.config[POSTGRESQL_PASSWORD]
                 + "@localhost/"
                 + db_name
             )

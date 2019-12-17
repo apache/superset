@@ -38,7 +38,7 @@ from sqlalchemy.types import TypeEngine
 from werkzeug.utils import secure_filename
 from wtforms_json import MultiDict
 
-from superset import app, db, sql_parse
+from superset import app, sql_parse
 from superset.utils import core as utils
 
 if TYPE_CHECKING:

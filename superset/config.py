@@ -119,7 +119,8 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
-# The PostgreSQL username, password, host and port used for inserting a csv into a new postgres database
+# The PostgreSQL username, password, host and port used for inserting a csv into a new
+# postgres database
 POSTGRESQL_USERNAME = os.environ.get("POSTGRESQL_USERNAME", "")
 POSTGRESQL_PASSWORD = os.environ.get("POSTGRESQL_PASSWORD", "")
 POSTGRESQL_HOST = os.environ.get("POSTGRESQL_HOST", "")
