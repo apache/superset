@@ -214,6 +214,7 @@ class CsvUploadTests(SupersetTestCase):
     def test_check_table_name(self):
         table_name = "myNewTableName"
         assert not self.importer._check_table_name(table_name, False)
+        assert not self.importer._check_table_name(table_name, True)
 
     def test_check_table_name_failed(self):
         table_name = db.session.query(SqlaTable).first().table_name
