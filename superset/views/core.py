@@ -2545,7 +2545,9 @@ class Superset(BaseSupersetView):
         }
         return self.sql_json_exec(request.json, log_params)
 
-    def sql_json_exec(self, query_params: dict, log_params: Optional[Dict[str, Any]] = None):
+    def sql_json_exec(
+        self, query_params: dict, log_params: Optional[Dict[str, Any]] = None
+    ):
         """Runs arbitrary sql and returns data as json"""
         # Collect Values
         database_id: int = cast(int, query_params.get("database_id"))
