@@ -31,9 +31,7 @@ export default function AggregateOption({ aggregate, showType }) {
   return (
     <div>
       {showType && <ColumnTypeLabel type="aggregate" />}
-      <span className="m-r-5 option-label">
-        {aggregate.aggregate_name}
-      </span>
+      <span className="m-r-5 option-label">{aggregate.aggregate_name}</span>
     </div>
   );
 }

@@ -14,14 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 
 
 class SupersetException(Exception):
     status = 500
-
-    def __init__(self, msg):
-        super(SupersetException, self).__init__(msg)
 
 
 class SupersetTimeoutException(SupersetException):

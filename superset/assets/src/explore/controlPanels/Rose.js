@@ -29,19 +29,22 @@ export default {
       controlSetRows: [
         ['color_scheme', 'label_colors'],
         ['number_format', 'date_time_format'],
-        ['rich_tooltip', {
-          name: 'rose_area_proportion',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Use Area Proportions'),
-            description: t(
-              'Check if the Rose Chart should use segment area instead of ' +
-              'segment radius for proportioning',
-            ),
-            default: false,
-            renderTrigger: true,
+        [
+          'rich_tooltip',
+          {
+            name: 'rose_area_proportion',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Use Area Proportions'),
+              description: t(
+                'Check if the Rose Chart should use segment area instead of ' +
+                  'segment radius for proportioning',
+              ),
+              default: false,
+              renderTrigger: true,
+            },
           },
-        }],
+        ],
       ],
     },
     NVD3TimeSeries[1],

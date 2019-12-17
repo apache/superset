@@ -15,17 +15,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import click
-from flask.cli import FlaskGroup
-
-from superset.cli import create_app
-
-
-@click.group(cls=FlaskGroup, create_app=create_app)
-def cli():
-    """This is a management script for the Superset application."""
-    pass
-
+from superset.cli import superset
 
 if __name__ == '__main__':
-    cli()
+    superset()

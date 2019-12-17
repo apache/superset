@@ -21,7 +21,7 @@
 // and that the response can be parsed as JSON. This is needed to read
 // the value of any fetch-based response.
 export default function readResponseBlob(blob) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const reader = new FileReader();
     reader.onload = () => resolve(JSON.parse(reader.result));
     reader.readAsText(blob);

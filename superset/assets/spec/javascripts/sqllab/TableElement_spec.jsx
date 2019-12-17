@@ -31,14 +31,10 @@ describe('TableElement', () => {
     timeout: 0,
   };
   it('renders', () => {
-    expect(
-      React.isValidElement(<TableElement />),
-    ).toBe(true);
+    expect(React.isValidElement(<TableElement />)).toBe(true);
   });
   it('renders with props', () => {
-    expect(
-      React.isValidElement(<TableElement {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<TableElement {...mockedProps} />)).toBe(true);
   });
   it('has 2 Link elements', () => {
     const wrapper = shallow(<TableElement {...mockedProps} />);
@@ -54,10 +50,20 @@ describe('TableElement', () => {
   it('sorts columns', () => {
     const wrapper = shallow(<TableElement {...mockedProps} />);
     expect(wrapper.state().sortColumns).toBe(false);
-    expect(wrapper.find(ColumnElement).first().props().column.name).toBe('id');
+    expect(
+      wrapper
+        .find(ColumnElement)
+        .first()
+        .props().column.name,
+    ).toBe('id');
     wrapper.find('.sort-cols').simulate('click');
     expect(wrapper.state().sortColumns).toBe(true);
-    expect(wrapper.find(ColumnElement).first().props().column.name).toBe('active');
+    expect(
+      wrapper
+        .find(ColumnElement)
+        .first()
+        .props().column.name,
+    ).toBe('active');
   });
   it('calls the collapseTable action', () => {
     const wrapper = mount(<TableElement {...mockedProps} />);

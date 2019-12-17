@@ -37,11 +37,13 @@ import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
   onChange: PropTypes.func.isRequired,
-  options: PropTypes.arrayOf(PropTypes.oneOfType([
-    columnType,
-    PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
-    adhocMetricType,
-  ])).isRequired,
+  options: PropTypes.arrayOf(
+    PropTypes.oneOfType([
+      columnType,
+      PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
+      adhocMetricType,
+    ]),
+  ).isRequired,
   height: PropTypes.number.isRequired,
 };
 
@@ -51,7 +53,9 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
   constructor(props) {
     super(props);
     this.onSqlExpressionChange = this.onSqlExpressionChange.bind(this);
-    this.onSqlExpressionClauseChange = this.onSqlExpressionClauseChange.bind(this);
+    this.onSqlExpressionClauseChange = this.onSqlExpressionClauseChange.bind(
+      this,
+    );
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
 
     this.selectProps = {
@@ -64,12 +68,19 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     };
 
     if (langTools) {
-      const words = sqlWords.concat(this.props.options.map((option) => {
-        if (option.column_name) {
-          return { name: option.column_name, value: option.column_name, score: 50, meta: 'option' };
-        }
-        return null;
-      }));
+      const words = sqlWords.concat(
+        this.props.options.map(option => {
+          if (option.column_name) {
+            return {
+              name: option.column_name,
+              value: option.column_name,
+              score: 50,
+              meta: 'option',
+            };
+          }
+          return null;
+        }),
+      );
       const completer = {
         getCompletions: (aceEditor, session, pos, prefix, callback) => {
           callback(null, words);
@@ -84,17 +95,21 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
   }
 
   onSqlExpressionClauseChange(clause) {
-    this.props.onChange(this.props.adhocFilter.duplicateWith({
-      clause: clause && clause.clause,
-      expressionType: EXPRESSION_TYPES.SQL,
-    }));
+    this.props.onChange(
+      this.props.adhocFilter.duplicateWith({
+        clause: clause && clause.clause,
+        expressionType: EXPRESSION_TYPES.SQL,
+      }),
+    );
   }
 
   onSqlExpressionChange(sqlExpression) {
-    this.props.onChange(this.props.adhocFilter.duplicateWith({
-      sqlExpression,
-      expressionType: EXPRESSION_TYPES.SQL,
-    }));
+    this.props.onChange(
+      this.props.adhocFilter.duplicateWith({
+        sqlExpression,
+        expressionType: EXPRESSION_TYPES.SQL,
+      }),
+    );
   }
 
   handleAceEditorRef(ref) {
@@ -125,7 +140,8 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             className="filter-edit-clause-dropdown"
           />
           <span className="filter-edit-clause-info">
-            <strong>Where</strong> filters by columns.<br />
+            <strong>Where</strong> filters by columns.
+            <br />
             <strong>Having</strong> filters by metrics.
           </span>
         </FormGroup>
@@ -134,7 +150,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             ref={this.handleAceEditorRef}
             mode="sql"
             theme="github"
-            height={(height - 100) + 'px'}
+            height={height - 100 + 'px'}
             onChange={this.onSqlExpressionChange}
             width="100%"
             showGutter={false}

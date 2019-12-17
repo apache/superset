@@ -21,6 +21,7 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 from superset import db, security_manager
+from tests.test_app import app
 
 from .base_tests import SupersetTestCase
 
@@ -297,6 +298,7 @@ class DruidTests(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
+    @unittest.skipUnless(app.config["DRUID_IS_ACTIVE"], "DRUID_IS_ACTIVE is false")
     def test_filter_druid_datasource(self):
         CLUSTER_NAME = "new_druid"
         cluster = self.get_or_create(

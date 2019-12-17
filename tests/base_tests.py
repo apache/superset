@@ -14,52 +14,72 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import imp
 import json
-import unittest
-from unittest.mock import Mock, patch
+from typing import Union
+from unittest.mock import Mock
 
 import pandas as pd
 from flask_appbuilder.security.sqla import models as ab_models
+from flask_testing import TestCase
 
-from superset import app, db, is_feature_enabled, security_manager
+from tests.test_app import app  # isort:skip
+from superset import db, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.core import Database
 from superset.utils.core import get_example_database
 
-BASE_DIR = app.config["BASE_DIR"]
+FAKE_DB_NAME = "fake_db_100"
 
 
-class SupersetTestCase(unittest.TestCase):
+class SupersetTestCase(TestCase):
     def __init__(self, *args, **kwargs):
         super(SupersetTestCase, self).__init__(*args, **kwargs)
-        self.client = app.test_client()
         self.maxDiff = None
+
+    def create_app(self):
+        return app
+
+    @staticmethod
+    def create_user(
+        username: str,
+        password: str,
+        role_name: str,
+        first_name: str = "admin",
+        last_name: str = "user",
+        email: str = "admin@fab.org",
+    ) -> Union[ab_models.User, bool]:
+        role_admin = security_manager.find_role(role_name)
+        return security_manager.add_user(
+            username, first_name, last_name, email, role_admin, password
+        )
 
     @classmethod
     def create_druid_test_objects(cls):
         # create druid cluster and druid datasources
-        session = db.session
-        cluster = (
-            session.query(DruidCluster).filter_by(cluster_name="druid_test").first()
-        )
-        if not cluster:
-            cluster = DruidCluster(cluster_name="druid_test")
-            session.add(cluster)
-            session.commit()
+        with app.app_context():
+            session = db.session
+            cluster = (
+                session.query(DruidCluster).filter_by(cluster_name="druid_test").first()
+            )
+            if not cluster:
+                cluster = DruidCluster(cluster_name="druid_test")
+                session.add(cluster)
+                session.commit()
 
-            druid_datasource1 = DruidDatasource(
-                datasource_name="druid_ds_1", cluster_name="druid_test"
-            )
-            session.add(druid_datasource1)
-            druid_datasource2 = DruidDatasource(
-                datasource_name="druid_ds_2", cluster_name="druid_test"
-            )
-            session.add(druid_datasource2)
-            session.commit()
+                druid_datasource1 = DruidDatasource(
+                    datasource_name="druid_ds_1", cluster_name="druid_test"
+                )
+                session.add(druid_datasource1)
+                druid_datasource2 = DruidDatasource(
+                    datasource_name="druid_ds_2", cluster_name="druid_test"
+                )
+                session.add(druid_datasource2)
+                session.commit()
 
     def get_table(self, table_id):
         return db.session.query(SqlaTable).filter_by(id=table_id).one()
@@ -188,6 +208,7 @@ class SupersetTestCase(unittest.TestCase):
         raise_on_error=False,
         query_limit=None,
         database_name="examples",
+        sql_editor_id=None,
     ):
         if user_name:
             self.logout()
@@ -202,6 +223,7 @@ class SupersetTestCase(unittest.TestCase):
                 select_as_create_as=False,
                 client_id=client_id,
                 queryLimit=query_limit,
+                sql_editor_id=sql_editor_id,
             ),
         )
         if raise_on_error and "error" in resp:
@@ -210,7 +232,7 @@ class SupersetTestCase(unittest.TestCase):
 
     def create_fake_db(self):
         self.login(username="admin")
-        database_name = "fake_db_100"
+        database_name = FAKE_DB_NAME
         db_id = 100
         extra = """{
             "schemas_allowed_for_csv_upload":
@@ -220,9 +242,19 @@ class SupersetTestCase(unittest.TestCase):
             cls=models.Database,
             criteria={"database_name": database_name},
             session=db.session,
+            sqlalchemy_uri="sqlite://test",
             id=db_id,
             extra=extra,
         )
+
+    def delete_fake_db(self):
+        database = (
+            db.session.query(Database)
+            .filter(Database.database_name == FAKE_DB_NAME)
+            .scalar()
+        )
+        if database:
+            db.session.delete(database)
 
     def validate_sql(
         self,
@@ -244,18 +276,6 @@ class SupersetTestCase(unittest.TestCase):
         if raise_on_error and "error" in resp:
             raise Exception("validate_sql failed")
         return resp
-
-    @patch.dict("superset._feature_flags", {"FOO": True}, clear=True)
-    def test_existing_feature_flags(self):
-        self.assertTrue(is_feature_enabled("FOO"))
-
-    @patch.dict("superset._feature_flags", {}, clear=True)
-    def test_nonexistent_feature_flags(self):
-        self.assertFalse(is_feature_enabled("FOO"))
-
-    def test_feature_flags(self):
-        self.assertEqual(is_feature_enabled("foo"), "bar")
-        self.assertEqual(is_feature_enabled("super"), "set")
 
     def get_dash_by_slug(self, dash_slug):
         sesh = db.session()

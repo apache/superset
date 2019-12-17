@@ -23,10 +23,10 @@ import { isEmpty } from 'lodash';
 import FilterIndicator from './FilterIndicator';
 import FilterIndicatorGroup from './FilterIndicatorGroup';
 import { FILTER_INDICATORS_DISPLAY_LENGTH } from '../util/constants';
-import {
-  getFilterColorKey,
-  getFilterColorMap,
-} from '../util/dashboardFiltersColorMap';
+import { getChartIdsInFilterScope } from '../util/activeDashboardFilters';
+import { getDashboardFilterKey } from '../util/getDashboardFilterKey';
+import { getFilterColorMap } from '../util/dashboardFiltersColorMap';
+import { TIME_FILTER_MAP } from '../../visualizations/FilterBox/FilterBox';
 
 const propTypes = {
   // from props
@@ -35,8 +35,7 @@ const propTypes = {
   chartStatus: PropTypes.string,
 
   // from redux
-  filterImmuneSlices: PropTypes.arrayOf(PropTypes.number).isRequired,
-  filterImmuneSliceFields: PropTypes.object.isRequired,
+  datasources: PropTypes.object.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
   filterFieldOnFocus: PropTypes.object.isRequired,
 };
@@ -44,6 +43,11 @@ const propTypes = {
 const defaultProps = {
   chartStatus: 'loading',
 };
+
+const TIME_GRANULARITY_FIELDS = [
+  TIME_FILTER_MAP.granularity,
+  TIME_FILTER_MAP.time_grain_sqla,
+];
 
 function sortByIndicatorLabel(indicator1, indicator2) {
   const s1 = (indicator1.label || indicator1.name).toLowerCase();
@@ -59,10 +63,9 @@ function sortByIndicatorLabel(indicator1, indicator2) {
 export default class FilterIndicatorsContainer extends React.PureComponent {
   getFilterIndicators() {
     const {
+      datasources = {},
       dashboardFilters,
       chartId: currentChartId,
-      filterImmuneSlices,
-      filterImmuneSliceFields,
       filterFieldOnFocus,
     } = this.props;
 
@@ -71,64 +74,77 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
     }
 
     const dashboardFiltersColorMap = getFilterColorMap();
-
     const sortIndicatorsByEmptiness = Object.values(dashboardFilters).reduce(
       (indicators, dashboardFilter) => {
         const {
           chartId,
           componentId,
+          datasourceId,
           directPathToFilter,
-          scope,
           isDateFilter,
           isInstantFilter,
           columns,
           labels,
+          scopes,
         } = dashboardFilter;
+        const datasource = datasources[datasourceId] || {};
 
-        // do not apply filter on filter_box itself
-        // do not apply filter on filterImmuneSlices list
-        if (
-          currentChartId !== chartId &&
-          !filterImmuneSlices.includes(currentChartId)
-        ) {
-          Object.keys(columns).forEach(name => {
-            const colorMapKey = getFilterColorKey(chartId, name);
-            const directPathToLabel = directPathToFilter.slice();
-            directPathToLabel.push(`LABEL-${name}`);
-            const indicator = {
-              chartId,
-              colorCode: dashboardFiltersColorMap[colorMapKey],
-              componentId,
-              directPathToFilter: directPathToLabel,
-              scope,
-              isDateFilter,
-              isInstantFilter,
-              name,
-              label: labels[name] || name,
-              values:
-                isEmpty(columns[name]) ||
-                (isDateFilter && columns[name] === 'No filter')
-                  ? []
-                  : [].concat(columns[name]),
-              isFilterFieldActive:
-                chartId === filterFieldOnFocus.chartId &&
-                name === filterFieldOnFocus.column,
-            };
+        if (currentChartId !== chartId) {
+          Object.keys(columns)
+            .filter(name =>
+              getChartIdsInFilterScope({ filterScope: scopes[name] }).includes(
+                currentChartId,
+              ),
+            )
+            .forEach(name => {
+              const colorMapKey = getDashboardFilterKey({
+                chartId,
+                column: name,
+              });
+              const indicator = {
+                chartId,
+                colorCode: dashboardFiltersColorMap[colorMapKey],
+                componentId,
+                directPathToFilter: directPathToFilter.concat(`LABEL-${name}`),
+                isDateFilter,
+                isInstantFilter,
+                name,
+                label: labels[name] || name,
+                values:
+                  isEmpty(columns[name]) ||
+                  (isDateFilter && columns[name] === 'No filter')
+                    ? []
+                    : [].concat(columns[name]),
+                isFilterFieldActive:
+                  chartId === filterFieldOnFocus.chartId &&
+                  name === filterFieldOnFocus.column,
+              };
 
-            // do not apply filter on fields in the filterImmuneSliceFields map
-            if (
-              filterImmuneSliceFields[currentChartId] &&
-              filterImmuneSliceFields[currentChartId].includes(name)
-            ) {
-              return;
-            }
+              // map time granularity value to datasource configure
+              if (isDateFilter && TIME_GRANULARITY_FIELDS.includes(name)) {
+                const timeGranularityConfig =
+                  (name === TIME_FILTER_MAP.time_grain_sqla
+                    ? datasource.time_grain_sqla
+                    : datasource.granularity) || [];
+                const timeGranularityDisplayMapping = timeGranularityConfig.reduce(
+                  (map, [key, value]) => ({
+                    ...map,
+                    [key]: value,
+                  }),
+                  {},
+                );
 
-            if (isEmpty(indicator.values)) {
-              indicators[1].push(indicator);
-            } else {
-              indicators[0].push(indicator);
-            }
-          });
+                indicator.values = indicator.values.map(
+                  value => timeGranularityDisplayMapping[value] || value,
+                );
+              }
+
+              if (isEmpty(indicator.values)) {
+                indicators[1].push(indicator);
+              } else {
+                indicators[0].push(indicator);
+              }
+            });
         }
 
         return indicators;

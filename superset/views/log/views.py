@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __
 
@@ -25,7 +24,7 @@ from superset.views.base import SupersetModelView
 from . import LogMixin
 
 
-class LogModelView(LogMixin, SupersetModelView):
+class LogModelView(LogMixin, SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Log)
 
 

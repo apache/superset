@@ -38,11 +38,12 @@ class CreatedContent extends React.PureComponent {
     };
   }
   renderSliceTable() {
-    const mutator = data => data.map(slice => ({
-      slice: <a href={slice.url}>{slice.title}</a>,
-      favorited: moment.utc(slice.dttm).fromNow(),
-      _favorited: slice.dttm,
-    }));
+    const mutator = data =>
+      data.map(slice => ({
+        slice: <a href={slice.url}>{slice.title}</a>,
+        favorited: moment.utc(slice.dttm).fromNow(),
+        _favorited: slice.dttm,
+      }));
     return (
       <TableLoader
         dataEndpoint={`/superset/created_slices/${this.props.user.userId}/`}
@@ -55,11 +56,12 @@ class CreatedContent extends React.PureComponent {
     );
   }
   renderDashboardTable() {
-    const mutator = data => data.map(dash => ({
-      dashboard: <a href={dash.url}>{dash.title}</a>,
-      favorited: moment.utc(dash.dttm).fromNow(),
-      _favorited: dash.dttm,
-    }));
+    const mutator = data =>
+      data.map(dash => ({
+        dashboard: <a href={dash.url}>{dash.title}</a>,
+        favorited: moment.utc(dash.dttm).fromNow(),
+        _favorited: dash.dttm,
+      }));
     return (
       <TableLoader
         className="table table-condensed"

@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import './Loading.css';
+import './Loading.less';
 
 const propTypes = {
   size: PropTypes.number,

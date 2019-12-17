@@ -31,19 +31,21 @@ describe('Error', () => {
       ...FORM_DATA_DEFAULTS,
       metrics: [NUM_METRIC],
       viz_type: 'line',
-      adhoc_filters: [{
-        expressionType: 'SIMPLE',
-        subject: 'state',
-        operator: 'in',
-        comparator: ['Fake State'],
-        clause: 'WHERE',
-        sqlExpression: null,
-        fromFormData: true,
-      }],
+      adhoc_filters: [
+        {
+          expressionType: 'SIMPLE',
+          subject: 'state',
+          operator: 'in',
+          comparator: ['Fake State'],
+          clause: 'WHERE',
+          sqlExpression: null,
+          fromFormData: true,
+        },
+      ],
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait('@getJson').then(async (xhr) => {
+    cy.wait('@getJson').then(async xhr => {
       expect(xhr.status).to.eq(400);
 
       const responseBody = await readResponseBlob(xhr.response.body);

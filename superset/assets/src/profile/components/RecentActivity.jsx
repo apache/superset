@@ -29,7 +29,7 @@ const propTypes = {
 export default class RecentActivity extends React.PureComponent {
   render() {
     const rowLimit = 50;
-    const mutator = function (data) {
+    const mutator = function(data) {
       return data
         .filter(row => row.action === 'dashboard' || row.action === 'explore')
         .map(row => ({

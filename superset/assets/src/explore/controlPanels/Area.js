@@ -63,4 +63,12 @@ export default {
       renderTrigger: false,
     },
   },
+  sectionOverrides: {
+    druidTimeSeries: {
+      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
+    },
+    sqlaTimeSeries: {
+      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
+    },
+  },
 };

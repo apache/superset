@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """Compatibility layer for different database engines
 
 This modules stores logic specific to different database engines. Things

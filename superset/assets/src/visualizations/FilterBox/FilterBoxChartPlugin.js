@@ -23,7 +23,8 @@ import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
   name: t('Filter Box'),
-  description: 'A multi filter, multi-choice filter box to make dashboards interactive',
+  description:
+    'A multi filter, multi-choice filter box to make dashboards interactive',
   thumbnail,
 });
 

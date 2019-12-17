@@ -35,7 +35,9 @@ export default () => {
       cy.get('.sql-toolbar .Select').should('have.length', 3);
 
       cy.get('.sql-toolbar .table-schema').should('not.exist');
-      cy.get('.SouthPane .tab-content .filterable-table-container').should('not.exist');
+      cy.get('.SouthPane .tab-content .filterable-table-container').should(
+        'not.exist',
+      );
 
       cy.get('.sql-toolbar .Select')
         .eq(0) // database select

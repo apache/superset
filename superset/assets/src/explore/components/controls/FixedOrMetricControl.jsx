@@ -54,8 +54,11 @@ export default class FixedOrMetricControl extends React.Component {
     this.setFixedValue = this.setFixedValue.bind(this);
     this.setMetric = this.setMetric.bind(this);
     this.toggle = this.toggle.bind(this);
-    const type = (props.value ? props.value.type : props.default.type) || controlTypes.fixed;
-    const value = (props.value ? props.value.value : props.default.value) || '100';
+    const type =
+      (props.value ? props.value.type : props.default.type) ||
+      controlTypes.fixed;
+    const value =
+      (props.value ? props.value.value : props.default.value) || '100';
     this.state = {
       type,
       fixedValue: type === controlTypes.fixed ? value : '',
@@ -65,8 +68,10 @@ export default class FixedOrMetricControl extends React.Component {
   onChange() {
     this.props.onChange({
       type: this.state.type,
-      value: this.state.type === controlTypes.fixed ?
-        this.state.fixedValue : this.state.metricValue,
+      value:
+        this.state.type === controlTypes.fixed
+          ? this.state.fixedValue
+          : this.state.metricValue,
     });
   }
   setType(type) {
@@ -89,54 +94,61 @@ export default class FixedOrMetricControl extends React.Component {
   render() {
     const value = this.props.value || this.props.default;
     const type = value.type || controlTypes.fixed;
-    const columns = this.props.datasource ? this.props.datasource.columns : null;
+    const columns = this.props.datasource
+      ? this.props.datasource.columns
+      : null;
     return (
       <div>
         <ControlHeader {...this.props} />
-        <Label
-          style={{ cursor: 'pointer' }}
-          onClick={this.toggle}
-        >
-          {this.state.type === controlTypes.fixed &&
+        <Label style={{ cursor: 'pointer' }} onClick={this.toggle}>
+          {this.state.type === controlTypes.fixed && (
             <span>{this.state.fixedValue}</span>
-          }
-          {this.state.type === controlTypes.metric &&
+          )}
+          {this.state.type === controlTypes.metric && (
             <span>
               <span style={{ fontWeight: 'normal' }}>metric: </span>
-              <strong>{this.state.metricValue ? this.state.metricValue.label : null }</strong>
+              <strong>
+                {this.state.metricValue ? this.state.metricValue.label : null}
+              </strong>
             </span>
-          }
+          )}
         </Label>
         <Panel
           className="panel-spreaded"
           collapsible
           expanded={this.state.expanded}
         >
-          <div
-            className="well"
-          >
+          <div className="well">
             <PopoverSection
               title="Fixed"
               isSelected={type === controlTypes.fixed}
-              onSelect={() => { this.setType(controlTypes.fixed); }}
+              onSelect={() => {
+                this.setType(controlTypes.fixed);
+              }}
             >
               <TextControl
                 isFloat
                 onChange={this.setFixedValue}
-                onFocus={() => { this.setType(controlTypes.fixed); }}
+                onFocus={() => {
+                  this.setType(controlTypes.fixed);
+                }}
                 value={this.state.fixedValue}
               />
             </PopoverSection>
             <PopoverSection
               title="Based on a metric"
               isSelected={type === controlTypes.metric}
-              onSelect={() => { this.setType(controlTypes.metric); }}
+              onSelect={() => {
+                this.setType(controlTypes.metric);
+              }}
             >
               <MetricsControl
                 name="metric"
                 columns={columns}
                 multi={false}
-                onFocus={() => { this.setType(controlTypes.metric); }}
+                onFocus={() => {
+                  this.setType(controlTypes.metric);
+                }}
                 onChange={this.setMetric}
                 value={this.state.metricValue}
               />

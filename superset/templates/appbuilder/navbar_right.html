@@ -19,6 +19,11 @@
 
 {% set bug_report_url = appbuilder.app.config['BUG_REPORT_URL'] %}
 {% set documentation_url = appbuilder.app.config['DOCUMENTATION_URL'] %}
+{% set documentation_text = appbuilder.app.config['DOCUMENTATION_TEXT'] %}
+{% set documentation_icon = appbuilder.app.config['DOCUMENTATION_ICON'] %}
+{% set version_string = appbuilder.app.config['VERSION_STRING'] %}
+{% set version_sha = appbuilder.app.config['VERSION_SHA'] %}
+
 {% set locale = session['locale'] %}
 {% if not locale %}
     {% set locale = 'en' %}
@@ -41,9 +46,18 @@
   <a
     tabindex="-1"
     href="{{ documentation_url }}"
-    title="Documentation"
+    title="{{ documentation_text }}"
+    target="_blank"
   >
+  {% if documentation_icon %}
+    <img
+      width="100%"
+      src="{{ documentation_icon }}"
+      alt="{{ documentation_text }}"
+    />
+  {% else %}
     <i class="fa fa-question"></i>&nbsp;
+  {% endif %}
   </a>
 </li>
 {% endif %}
@@ -52,6 +66,7 @@
   <a
     tabindex="-1"
     href="{{ bug_report_url }}"
+    target="_blank"
     title="Report a bug"
   >
     <i class="fa fa-bug"></i>&nbsp;
@@ -93,6 +108,16 @@
         <ul class="dropdown-menu">
             <li><a href="{{appbuilder.get_url_for_userinfo}}"><span class="fa fa-fw fa-user"></span>{{_("Profile")}}</a></li>
             <li><a href="{{appbuilder.get_url_for_logout}}"><span class="fa fa-fw fa-sign-out"></span>{{_("Logout")}}</a></li>
+            {% if version_string or version_sha %}
+              <li class="fineprint">
+                {% if version_string %}
+                  <div>Version: {{version_string}}</div>
+                {% endif %}
+                {% if version_sha %}
+                  <div>SHA: {{version_sha}}</div>
+                {% endif %}
+              </li>
+            {% endif %}
         </ul>
     </li>
 {% else %}

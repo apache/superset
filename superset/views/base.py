@@ -14,27 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import simplejson as json
 import yaml
-from flask import abort, flash, g, get_flashed_messages, redirect, Response
-from flask_appbuilder import BaseView, ModelView
+from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
+from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
+from marshmallow import Schema
+from sqlalchemy import or_
 from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
 
-from superset import conf, db, get_feature_flags, security_manager
+from superset import appbuilder, conf, db, get_feature_flags, security_manager
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
@@ -66,7 +67,9 @@ def get_error_msg():
 def json_error_response(msg=None, status=500, stacktrace=None, payload=None, link=None):
     if not payload:
         payload = {"error": "{}".format(msg)}
-        payload["stacktrace"] = utils.get_stacktrace()
+    if not stacktrace:
+        stacktrace = utils.get_stacktrace()
+    payload["stacktrace"] = stacktrace
     if link:
         payload["link"] = link
 
@@ -102,7 +105,7 @@ def api(f):
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
             return json_error_response(get_error_msg())
 
@@ -141,7 +144,7 @@ def handle_api_exception(f):
                 stacktrace=traceback.format_exc(),
                 status=e.code,
             )
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
             return json_error_response(
                 utils.error_msg_from_exception(e), stacktrace=utils.get_stacktrace()
@@ -162,27 +165,78 @@ def get_user_roles():
 
 
 class BaseSupersetView(BaseView):
-    def json_response(self, obj, status=200):
+    def json_response(self, obj, status=200):  # pylint: disable=no-self-use
         return Response(
             json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,
             mimetype="application/json",
         )
 
-    def common_bootstrap_payload(self):
-        """Common data always sent to the client"""
-        messages = get_flashed_messages(with_categories=True)
-        locale = str(get_locale())
-        return {
-            "flash_messages": messages,
-            "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
-            "locale": locale,
-            "language_pack": get_language_pack(locale),
-            "feature_flags": get_feature_flags(),
+
+def menu_data():
+    menu = appbuilder.menu.get_data()
+    root_path = "#"
+    logo_target_path = ""
+    if not g.user.is_anonymous:
+        try:
+            logo_target_path = (
+                appbuilder.app.config.get("LOGO_TARGET_PATH")
+                or f"/profile/{g.user.username}/"
+            )
+        # when user object has no username
+        except NameError as e:
+            logging.exception(e)
+
+        if logo_target_path.startswith("/"):
+            root_path = f"/superset{logo_target_path}"
+        else:
+            root_path = logo_target_path
+
+    languages = {}
+    for lang in appbuilder.languages:
+        languages[lang] = {
+            **appbuilder.languages[lang],
+            "url": appbuilder.get_url_for_locale(lang),
         }
+    return {
+        "menu": menu,
+        "brand": {
+            "path": root_path,
+            "icon": appbuilder.app_icon,
+            "alt": appbuilder.app_name,
+        },
+        "navbar_right": {
+            "bug_report_url": appbuilder.app.config.get("BUG_REPORT_URL"),
+            "documentation_url": appbuilder.app.config.get("DOCUMENTATION_URL"),
+            "version_string": appbuilder.app.config.get("VERSION_STRING"),
+            "version_sha": appbuilder.app.config.get("VERSION_SHA"),
+            "languages": languages,
+            "show_language_picker": len(languages.keys()) > 1,
+            "user_is_anonymous": g.user.is_anonymous,
+            "user_info_url": appbuilder.get_url_for_userinfo,
+            "user_logout_url": appbuilder.get_url_for_logout,
+            "user_login_url": appbuilder.get_url_for_login,
+            "locale": session.get("locale", "en"),
+        },
+    }
 
 
-class SupersetListWidget(ListWidget):
+def common_bootstrap_payload():
+    """Common data always sent to the client"""
+    messages = get_flashed_messages(with_categories=True)
+    locale = str(get_locale())
+
+    return {
+        "flash_messages": messages,
+        "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
+        "locale": locale,
+        "language_pack": get_language_pack(locale),
+        "feature_flags": get_feature_flags(),
+        "menu_data": menu_data(),
+    }
+
+
+class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
 
 
@@ -191,7 +245,7 @@ class SupersetModelView(ModelView):
     list_widget = SupersetListWidget
 
 
-class ListWidgetWithCheckboxes(ListWidget):
+class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-methods
     """An alternative to list view that renders Boolean fields as checkboxes
 
     Works in conjunction with the `checkbox` view."""
@@ -199,7 +253,7 @@ class ListWidgetWithCheckboxes(ListWidget):
     template = "superset/fab_overrides/list_with_checkboxes.html"
 
 
-def validate_json(form, field):
+def validate_json(_form, field):
     try:
         json.loads(field.data)
     except Exception as e:
@@ -207,13 +261,22 @@ def validate_json(form, field):
         raise Exception(_("json isn't valid"))
 
 
-class YamlExportMixin(object):
+class YamlExportMixin(object):  # pylint: disable=too-few-public-methods
+    """
+    Override this if you want a dict response instead, with a certain key.
+    Used on DatabaseView for cli compatibility
+    """
+
+    yaml_dict_key: Optional[str] = None
+
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(self, items):
         if not isinstance(items, list):
             items = [items]
 
         data = [t.export_to_dict() for t in items]
+        if self.yaml_dict_key:
+            data = {self.yaml_dict_key: data}
         return Response(
             yaml.safe_dump(data),
             headers=generate_download_headers("yaml"),
@@ -221,21 +284,21 @@ class YamlExportMixin(object):
         )
 
 
-class DeleteMixin(object):
-    def _delete(self, pk):
+class DeleteMixin(object):  # pylint: disable=too-few-public-methods
+    def _delete(self, primary_key):
         """
             Delete function logic, override to implement diferent logic
-            deletes the record with primary_key = pk
+            deletes the record with primary_key = primary_key
 
-            :param pk:
+            :param primary_key:
                 record primary key to delete
         """
-        item = self.datamodel.get(pk, self._base_filters)
+        item = self.datamodel.get(primary_key, self._base_filters)
         if not item:
             abort(404)
         try:
             self.pre_delete(item)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             flash(str(e), "danger")
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
@@ -247,18 +310,6 @@ class DeleteMixin(object):
                 .all()
             )
 
-            schema_view_menu = None
-            if hasattr(item, "schema_perm"):
-                schema_view_menu = security_manager.find_view_menu(item.schema_perm)
-
-                pvs.extend(
-                    security_manager.get_session.query(
-                        security_manager.permissionview_model
-                    )
-                    .filter_by(view_menu=schema_view_menu)
-                    .all()
-                )
-
             if self.datamodel.delete(item):
                 self.post_delete(item)
 
@@ -267,9 +318,6 @@ class DeleteMixin(object):
 
                 if view_menu:
                     security_manager.get_session.delete(view_menu)
-
-                if schema_view_menu:
-                    security_manager.get_session.delete(schema_view_menu)
 
                 security_manager.get_session.commit()
 
@@ -285,7 +333,7 @@ class DeleteMixin(object):
         for item in items:
             try:
                 self.pre_delete(item)
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
                 flash(str(e), "danger")
             else:
                 self._delete(item.id)
@@ -293,56 +341,39 @@ class DeleteMixin(object):
         return redirect(self.get_redirect())
 
 
-class SupersetFilter(BaseFilter):
-
-    """Add utility function to make BaseFilter easy and fast
-
-    These utility function exist in the SecurityManager, but would do
-    a database round trip at every check. Here we cache the role objects
-    to be able to make multiple checks but query the db only once
-    """
-
-    def get_user_roles(self):
-        return get_user_roles()
-
-    def get_all_permissions(self):
-        """Returns a set of tuples with the perm name and view menu name"""
-        perms = set()
-        for role in self.get_user_roles():
-            for perm_view in role.permissions:
-                t = (perm_view.permission.name, perm_view.view_menu.name)
-                perms.add(t)
-        return perms
-
-    def has_role(self, role_name_or_list):
-        """Whether the user has this role name"""
-        if not isinstance(role_name_or_list, list):
-            role_name_or_list = [role_name_or_list]
-        return any([r.name in role_name_or_list for r in self.get_user_roles()])
-
-    def has_perm(self, permission_name, view_menu_name):
-        """Whether the user has this perm"""
-        return (permission_name, view_menu_name) in self.get_all_permissions()
-
-    def get_view_menus(self, permission_name):
-        """Returns the details of view_menus for a perm name"""
-        vm = set()
-        for perm_name, vm_name in self.get_all_permissions():
-            if perm_name == permission_name:
-                vm.add(vm_name)
-        return vm
-
-
-class DatasourceFilter(SupersetFilter):
-    def apply(self, query, func):
+class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    def apply(self, query, value):
         if security_manager.all_datasource_access():
             return query
-        perms = self.get_view_menus("datasource_access")
-        # TODO(bogdan): add `schema_access` support here
-        return query.filter(self.model.perm.in_(perms))
+        datasource_perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
+        return query.filter(
+            or_(
+                self.model.perm.in_(datasource_perms),
+                self.model.schema_perm.in_(schema_perms),
+            )
+        )
 
 
-class CsvResponse(Response):
+class BaseSupersetSchema(Schema):
+    """
+    Extends Marshmallow schema so that we can pass a Model to load
+    (following marshamallow-sqlalchemy pattern). This is useful
+    to perform partial model merges on HTTP PUT
+    """
+
+    def __init__(self, **kwargs):
+        self.instance = None
+        super().__init__(**kwargs)
+
+    def load(
+        self, data, many=None, partial=None, instance: Model = None, **kwargs
+    ):  # pylint: disable=arguments-differ
+        self.instance = instance
+        return super().load(data, many=many, partial=partial, **kwargs)
+
+
+class CsvResponse(Response):  # pylint: disable=too-many-ancestors
     """
     Override Response to take into account csv encoding from config.py
     """
@@ -373,8 +404,8 @@ def check_ownership(obj, raise_if_false=True):
     roles = [r.name for r in get_user_roles()]
     if "Admin" in roles:
         return True
-    session = db.create_scoped_session()
-    orig_obj = session.query(obj.__class__).filter_by(id=obj.id).first()
+    scoped_session = db.create_scoped_session()
+    orig_obj = scoped_session.query(obj.__class__).filter_by(id=obj.id).first()
 
     # Making a list of owners that works across ORM models
     owners = []
@@ -396,7 +427,7 @@ def check_ownership(obj, raise_if_false=True):
 
 
 def bind_field(
-    self, form: DynamicForm, unbound_field: UnboundField, options: Dict[Any, Any]
+    _, form: DynamicForm, unbound_field: UnboundField, options: Dict[Any, Any]
 ) -> Field:
     """
     Customize how fields are bound by stripping all whitespace.

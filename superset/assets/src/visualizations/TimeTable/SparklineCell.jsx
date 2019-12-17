@@ -18,7 +18,14 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Sparkline, LineSeries, PointSeries, HorizontalReferenceLine, VerticalReferenceLine, WithTooltip } from '@data-ui/sparkline';
+import {
+  Sparkline,
+  LineSeries,
+  PointSeries,
+  HorizontalReferenceLine,
+  VerticalReferenceLine,
+  WithTooltip,
+} from '@data-ui/sparkline';
 import { formatNumber } from '@superset-ui/number-format';
 import { getTextDimension } from '@superset-ui/dimension';
 
@@ -41,7 +48,9 @@ const defaultProps = {
   numberFormat: undefined,
   yAxisBounds: [null, null],
   showYAxis: false,
-  renderTooltip() { return <div />; },
+  renderTooltip() {
+    return <div />;
+  },
 };
 
 const MARGIN = {
@@ -58,18 +67,25 @@ const tooltipProps = {
 };
 
 function getSparklineTextWidth(text) {
-  return getTextDimension({
-    text,
-    style: {
-      fontSize: '12px',
-      fontWeight: 200,
-      letterSpacing: 0.4,
-    },
-  }).width + 5;
+  return (
+    getTextDimension({
+      text,
+      style: {
+        fontSize: '12px',
+        fontWeight: 200,
+        letterSpacing: 0.4,
+      },
+    }).width + 5
+  );
 }
 
 function isValidBoundValue(value) {
-  return value !== null && value !== undefined && value !== '' && !Number.isNaN(value);
+  return (
+    value !== null &&
+    value !== undefined &&
+    value !== '' &&
+    !Number.isNaN(value)
+  );
 }
 
 class SparklineCell extends React.Component {
@@ -158,26 +174,23 @@ class SparklineCell extends React.Component {
             onMouseMove={onMouseMove}
             {...yScale}
           >
-            {showYAxis &&
-              this.renderHorizontalReferenceLine(min, minLabel)}
-            {showYAxis &&
-              this.renderHorizontalReferenceLine(max, maxLabel)}
-            <LineSeries
-              showArea={false}
-              stroke="#767676"
-            />
-            {tooltipData &&
+            {showYAxis && this.renderHorizontalReferenceLine(min, minLabel)}
+            {showYAxis && this.renderHorizontalReferenceLine(max, maxLabel)}
+            <LineSeries showArea={false} stroke="#767676" />
+            {tooltipData && (
               <VerticalReferenceLine
                 reference={tooltipData.index}
                 strokeDasharray="3 3"
                 strokeWidth={1}
-              />}
-            {tooltipData &&
+              />
+            )}
+            {tooltipData && (
               <PointSeries
                 points={[tooltipData.index]}
                 fill="#767676"
                 strokeWidth={1}
-              />}
+              />
+            )}
           </Sparkline>
         )}
       </WithTooltip>

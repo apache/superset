@@ -32,7 +32,7 @@ export function numeric(v) {
 }
 
 export function integer(v) {
-  if (v && (isNaN(v) || parseInt(v, 10) !== +(v))) {
+  if (v && (isNaN(v) || parseInt(v, 10) !== +v)) {
     return t('is expected to be an integer');
   }
   return false;
@@ -40,10 +40,10 @@ export function integer(v) {
 
 export function nonEmpty(v) {
   if (
-      v === null ||
-      v === undefined ||
-      v === '' ||
-      (Array.isArray(v) && v.length === 0)
+    v === null ||
+    v === undefined ||
+    v === '' ||
+    (Array.isArray(v) && v.length === 0)
   ) {
     return t('cannot be empty');
   }

@@ -39,8 +39,15 @@ const defaultProps = {
   disabled: false,
 };
 
-export default function QueryAndSaveBtns(
-  { canAdd, onQuery, onSave, onStop, loading, chartIsStale, errorMessage }) {
+export default function QueryAndSaveBtns({
+  canAdd,
+  onQuery,
+  onSave,
+  onStop,
+  loading,
+  chartIsStale,
+  errorMessage,
+}) {
   const saveClasses = classnames({
     'disabled disabledButton': canAdd !== 'True',
   });
@@ -54,10 +61,7 @@ export default function QueryAndSaveBtns(
 
   const saveButtonDisabled = errorMessage ? true : loading;
   const qryOrStopButton = loading ? (
-    <Button
-      onClick={onStop}
-      bsStyle="warning"
-    >
+    <Button onClick={onStop} bsStyle="warning">
       <i className="fa fa-stop-circle-o" /> Stop
     </Button>
   ) : (
@@ -85,20 +89,19 @@ export default function QueryAndSaveBtns(
           <i className="fa fa-plus-circle" /> Save
         </Button>
       </ButtonGroup>
-      {errorMessage &&
+      {errorMessage && (
         <span>
           {' '}
           <OverlayTrigger
             placement="right"
             overlay={
-              <Tooltip id={'query-error-tooltip'}>
-                {errorMessage}
-              </Tooltip>}
+              <Tooltip id={'query-error-tooltip'}>{errorMessage}</Tooltip>
+            }
           >
             <i className="fa fa-exclamation-circle text-danger fa-lg" />
           </OverlayTrigger>
         </span>
-      }
+      )}
     </div>
   );
 }

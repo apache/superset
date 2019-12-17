@@ -59,7 +59,6 @@ export function fetchDatasourcesFailed(error) {
   return { type: FETCH_DATASOURCES_FAILED, error };
 }
 
-
 export const POST_DATASOURCES_FAILED = 'POST_DATASOURCES_FAILED';
 export function postDatasourcesFailed(error) {
   return { type: POST_DATASOURCES_FAILED, error };
@@ -77,8 +76,10 @@ export function toggleFaveStar(isStarred) {
 
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId) {
-  return function (dispatch) {
-    SupersetClient.get({ endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count` }).then(({ json }) => {
+  return function(dispatch) {
+    SupersetClient.get({
+      endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count`,
+    }).then(({ json }) => {
       if (json.count > 0) {
         dispatch(toggleFaveStar(true));
       }
@@ -88,11 +89,17 @@ export function fetchFaveStar(sliceId) {
 
 export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(sliceId, isStarred) {
-  return function (dispatch) {
+  return function(dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
-    SupersetClient.get({ endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/` })
+    SupersetClient.get({
+      endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/`,
+    })
       .then(() => dispatch(toggleFaveStar(!isStarred)))
-      .catch(() => dispatch(addDangerToast(t('An error occurred while starring this chart'))));
+      .catch(() =>
+        dispatch(
+          addDangerToast(t('An error occurred while starring this chart')),
+        ),
+      );
   };
 }
 
@@ -122,6 +129,19 @@ export function updateChartTitle(slice_name) {
 }
 
 export const CREATE_NEW_SLICE = 'CREATE_NEW_SLICE';
-export function createNewSlice(can_add, can_download, can_overwrite, slice, form_data) {
-  return { type: CREATE_NEW_SLICE, can_add, can_download, can_overwrite, slice, form_data };
+export function createNewSlice(
+  can_add,
+  can_download,
+  can_overwrite,
+  slice,
+  form_data,
+) {
+  return {
+    type: CREATE_NEW_SLICE,
+    can_add,
+    can_download,
+    can_overwrite,
+    slice,
+    form_data,
+  };
 }

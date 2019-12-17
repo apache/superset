@@ -43,8 +43,10 @@ class CacheLabel extends React.PureComponent {
       <span>
         {t('Loaded data cached')}
         <b> {moment.utc(this.props.cachedTimestamp).fromNow()}</b>
-      </span>) :
-      t('Loaded from cache');
+      </span>
+    ) : (
+      t('Loaded from cache')
+    );
 
     const tooltipContent = (
       <span>
@@ -66,10 +68,7 @@ class CacheLabel extends React.PureComponent {
   render() {
     const labelStyle = this.state.hovered ? 'primary' : 'default';
     return (
-      <TooltipWrapper
-        tooltip={this.state.tooltipContent}
-        label="cache-desc"
-      >
+      <TooltipWrapper tooltip={this.state.tooltipContent} label="cache-desc">
         <Label
           className={this.props.className}
           bsStyle={labelStyle}
@@ -80,7 +79,8 @@ class CacheLabel extends React.PureComponent {
         >
           {t('cached')} <i className="fa fa-refresh" />
         </Label>
-      </TooltipWrapper>);
+      </TooltipWrapper>
+    );
   }
 }
 CacheLabel.propTypes = propTypes;

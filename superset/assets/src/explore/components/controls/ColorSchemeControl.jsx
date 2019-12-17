@@ -34,10 +34,7 @@ const propTypes = {
     PropTypes.arrayOf(PropTypes.array),
     PropTypes.func,
   ]).isRequired,
-  schemes: PropTypes.oneOfType([
-    PropTypes.object,
-    PropTypes.func,
-  ]).isRequired,
+  schemes: PropTypes.oneOfType([PropTypes.object, PropTypes.func]).isRequired,
   isLinear: PropTypes.bool,
 };
 
@@ -90,7 +87,9 @@ export default class ColorSchemeControl extends React.PureComponent {
                 backgroundColor: color,
                 border: `1px solid ${color === 'white' ? 'black' : color}`,
               }}
-            >&nbsp;</li>
+            >
+              &nbsp;
+            </li>
           ))}
         </ul>
       </TooltipWrapper>
@@ -99,8 +98,10 @@ export default class ColorSchemeControl extends React.PureComponent {
 
   render() {
     const { choices } = this.props;
-    const options = (isFunction(choices) ? choices() : choices)
-      .map(choice => ({ value: choice[0], label: choice[1] }));
+    const options = (isFunction(choices) ? choices() : choices).map(choice => ({
+      value: choice[0],
+      label: choice[1],
+    }));
 
     const selectProps = {
       multi: false,

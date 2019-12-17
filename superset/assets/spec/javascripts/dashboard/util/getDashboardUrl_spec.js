@@ -17,10 +17,16 @@
  * under the License.
  */
 import getDashboardUrl from '../../../../src/dashboard/util/getDashboardUrl';
+import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../../../../src/dashboard/reducers/dashboardFilters';
 
 describe('getChartIdsFromLayout', () => {
   it('should encode filters', () => {
-    const filters = { 35: { key: ['value'] } };
+    const filters = {
+      '35_key': {
+        values: ['value'],
+        scope: DASHBOARD_FILTER_SCOPE_GLOBAL,
+      },
+    };
     const url = getDashboardUrl('path', filters);
     expect(url).toBe(
       'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D',

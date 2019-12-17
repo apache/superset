@@ -28,7 +28,6 @@ import sqlparse
 from flask import g
 from flask_babel import lazy_gettext as _
 from sqlalchemy import column, DateTime, select
-from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
@@ -39,7 +38,7 @@ from sqlalchemy.types import TypeEngine
 from werkzeug.utils import secure_filename
 from wtforms_json import MultiDict
 
-from superset import app, db, sql_parse
+from superset import app, sql_parse
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -52,9 +51,6 @@ class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
     label: str
     function: str
     duration: Optional[str]
-
-
-config = app.config
 
 
 QueryStatus = utils.QueryStatus
@@ -399,14 +395,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             form_data -- dictionary containing the properties for the import
             table -- the SqlaTable object into which the data should be imported
             csv_filename -- the name of the csv file
-            database -- the database object which contains the connection string
+           database -- Database model object for the target database
         Raises:
             IntegrityError: If there was a problem creating the table
         """
 
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
-            extension = os.path.splitext(filename)[1]
+            extension = os.path.splitext(filename)[1].lower()
             return (
                 extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
             )
@@ -431,10 +427,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         }
         df = cls.csv_to_df(**csv_to_df_kwargs)
 
+        engine = cls.get_engine(database)
+
         df_to_sql_kwargs = {
             "df": df,
             "name": form_data.get("tableName"),
-            "con": create_engine(database.sqlalchemy_uri_decrypted, echo=False),
+            "con": engine,
             "schema": form_data.get("schema") or None,
             "if_exists": form_data.get("ifTableExists").lower(),
             "index": strtobool(form_data.get("dataframeIndex")),
@@ -633,6 +631,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database,
         table_name: str,
         engine: Engine,
+        sql: Optional[str] = None,
         schema: Optional[str] = None,
         limit: int = 100,
         show_cols: bool = False,
@@ -645,6 +644,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param database: Database instance
         :param table_name: Table name
+        :param sql: SQL defining a subselect
         :param engine: SqlALchemy Engine instance
         :param schema: Schema
         :param limit: limit to impose on query
@@ -654,20 +654,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
-        fields = "*"
-        cols = cols or []
-        if (show_cols or latest_partition) and not cols:
-            cols = database.get_columns(table_name, schema)
-
-        if show_cols:
-            fields = cls._get_fields(cols)
         quote = engine.dialect.identifier_preparer.quote
         if schema:
             full_table_name = quote(schema) + "." + quote(table_name)
         else:
             full_table_name = quote(table_name)
 
-        qry = select(fields).select_from(text(full_table_name))
+        if sql is not None:
+            subselect = f"(\n{sql}\n) AS {quote(table_name)}"
+            qry = select("*").select_from(text(subselect))
+        else:
+            fields = "*"
+            cols = cols or []
+            if (show_cols or latest_partition) and not cols:
+                cols = database.get_columns(table_name, schema)
+            if show_cols:
+                fields = cls._get_fields(cols)
+            qry = select(fields).select_from(text(full_table_name))
 
         if limit:
             qry = qry.limit(limit)
@@ -677,10 +680,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             if partition_query is not None:
                 qry = partition_query
-        sql = database.compile_sqla_query(qry)
+        select_star_query = database.compile_sqla_query(qry)
         if indent:
-            sql = sqlparse.format(sql, reindent=True)
-        return sql
+            select_star_query = sqlparse.format(select_star_query, reindent=True)
+        return select_star_query
 
     @classmethod
     def estimate_statement_cost(

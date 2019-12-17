@@ -17,18 +17,23 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import {
-  TIME_RANGE,
-  FILTER_LABELS,
-} from '../../visualizations/FilterBox/FilterBox';
+import { TIME_FILTER_MAP } from '../../visualizations/FilterBox/FilterBox';
+import { TIME_FILTER_LABELS } from '../../explore/constants';
 
 export default function getFilterConfigsFromFormdata(form_data = {}) {
-  const { date_filter, filter_configs = [] } = form_data;
+  const {
+    date_filter,
+    filter_configs = [],
+    show_druid_time_granularity,
+    show_druid_time_origin,
+    show_sqla_time_column,
+    show_sqla_time_granularity,
+  } = form_data;
   let configs = filter_configs.reduce(
     ({ columns, labels }, config) => {
       const updatedColumns = {
         ...columns,
-        [config.column]: config.vals,
+        [config.column]: config.vals || config.defaultValue,
       };
       const updatedLabels = {
         ...labels,
@@ -44,14 +49,48 @@ export default function getFilterConfigsFromFormdata(form_data = {}) {
   );
 
   if (date_filter) {
-    const updatedColumns = {
+    let updatedColumns = {
       ...configs.columns,
-      [TIME_RANGE]: form_data[TIME_RANGE],
+      [TIME_FILTER_MAP.time_range]: form_data.time_range,
     };
     const updatedLabels = {
       ...configs.labels,
-      [TIME_RANGE]: FILTER_LABELS[TIME_RANGE],
+      ...Object.entries(TIME_FILTER_MAP).reduce(
+        (map, [key, value]) => ({
+          ...map,
+          [value]: TIME_FILTER_LABELS[key],
+        }),
+        {},
+      ),
     };
+
+    if (show_sqla_time_granularity) {
+      updatedColumns = {
+        ...updatedColumns,
+        [TIME_FILTER_MAP.time_grain_sqla]: form_data.time_grain_sqla,
+      };
+    }
+
+    if (show_sqla_time_column) {
+      updatedColumns = {
+        ...updatedColumns,
+        [TIME_FILTER_MAP.granularity_sqla]: form_data.granularity_sqla,
+      };
+    }
+
+    if (show_druid_time_granularity) {
+      updatedColumns = {
+        ...updatedColumns,
+        [TIME_FILTER_MAP.granularity]: form_data.granularity,
+      };
+    }
+
+    if (show_druid_time_origin) {
+      updatedColumns = {
+        ...updatedColumns,
+        [TIME_FILTER_MAP.druid_time_origin]: form_data.druid_time_origin,
+      };
+    }
 
     configs = {
       ...configs,

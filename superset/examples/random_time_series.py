@@ -62,7 +62,6 @@ def load_random_time_series_data(only_metadata=False, force=False):
         "since": "1 year ago",
         "until": "now",
         "metric": "count",
-        "where": "",
         "viz_type": "cal_heatmap",
         "domain_granularity": "month",
         "subdomain_granularity": "day",

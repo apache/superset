@@ -24,7 +24,7 @@ import Dashboard from '../../../../src/dashboard/components/Dashboard';
 import DashboardBuilder from '../../../../src/dashboard/containers/DashboardBuilder';
 
 // mock data
-import chartQueries, { sliceId as chartId } from '../fixtures/mockChartQueries';
+import chartQueries from '../fixtures/mockChartQueries';
 import datasources from '../../../fixtures/mockDatasource';
 import dashboardInfo from '../fixtures/mockDashboardInfo';
 import { dashboardLayout } from '../fixtures/mockDashboardLayout';
@@ -46,7 +46,7 @@ describe('Dashboard', () => {
     dashboardState,
     dashboardInfo,
     charts: chartQueries,
-    filters: {},
+    activeFilters: {},
     slices: sliceEntities.slices,
     datasources,
     layout: dashboardLayout.present,
@@ -61,94 +61,17 @@ describe('Dashboard', () => {
     return wrapper;
   }
 
+  // activeFilters map use id_column) as key
   const OVERRIDE_FILTERS = {
-    1: { region: [] },
-    2: { country_name: ['USA'] },
-    3: { region: [], country_name: ['USA'] },
+    '1_region': [],
+    '2_country_name': ['USA'],
+    '3_region': [],
+    '3_country_name': ['USA'],
   };
 
   it('should render a DashboardBuilder', () => {
     const wrapper = setup();
     expect(wrapper.find(DashboardBuilder)).toHaveLength(1);
-  });
-
-  describe('refreshExcept', () => {
-    const overrideDashboardInfo = {
-      ...dashboardInfo,
-      metadata: {
-        ...dashboardInfo.metadata,
-        filterImmuneSliceFields: { [chartQueries[chartId].id]: ['region'] },
-      },
-    };
-
-    const overrideCharts = {
-      ...chartQueries,
-      1001: {
-        ...chartQueries[chartId],
-        id: 1001,
-      },
-    };
-
-    const overrideSlices = {
-      ...props.slices,
-      1001: {
-        ...props.slices[chartId],
-        slice_id: 1001,
-      },
-    };
-
-    it('should call triggerQuery for all non-exempt slices', () => {
-      const wrapper = setup({ charts: overrideCharts, slices: overrideSlices });
-      const spy = sinon.spy(props.actions, 'triggerQuery');
-      wrapper.instance().refreshExcept('1001');
-      spy.restore();
-      expect(spy.callCount).toBe(Object.keys(overrideCharts).length - 1);
-    });
-
-    it('should not call triggerQuery for filterImmuneSlices', () => {
-      const wrapper = setup({
-        charts: overrideCharts,
-        dashboardInfo: {
-          ...dashboardInfo,
-          metadata: {
-            ...dashboardInfo.metadata,
-            filterImmuneSlices: Object.keys(overrideCharts).map(id =>
-              Number(id),
-            ),
-          },
-        },
-      });
-      const spy = sinon.spy(props.actions, 'triggerQuery');
-      wrapper.instance().refreshExcept();
-      spy.restore();
-      expect(spy.callCount).toBe(0);
-    });
-
-    it('should not call triggerQuery for filterImmuneSliceFields', () => {
-      const wrapper = setup({
-        filters: OVERRIDE_FILTERS,
-        dashboardInfo: overrideDashboardInfo,
-      });
-      const spy = sinon.spy(props.actions, 'triggerQuery');
-      wrapper.instance().refreshExcept('1');
-      expect(spy.callCount).toBe(0);
-      spy.restore();
-    });
-
-    it('should call triggerQuery if filter has more filter-able fields', () => {
-      const wrapper = setup({
-        filters: OVERRIDE_FILTERS,
-        dashboardInfo: overrideDashboardInfo,
-      });
-      const spy = sinon.spy(props.actions, 'triggerQuery');
-
-      // if filter have additional fields besides immune ones,
-      // should apply filter.
-      wrapper.instance().refreshExcept('3');
-      expect(spy.callCount).toBe(1);
-
-      spy.restore();
-    });
   });
 
   describe('componentWillReceiveProps', () => {
@@ -186,17 +109,17 @@ describe('Dashboard', () => {
   describe('componentDidUpdate', () => {
     let wrapper;
     let prevProps;
-    let refreshExceptSpy;
+    let refreshSpy;
 
     beforeEach(() => {
-      wrapper = setup({ filters: OVERRIDE_FILTERS });
+      wrapper = setup({ activeFilters: OVERRIDE_FILTERS });
       wrapper.instance().appliedFilters = OVERRIDE_FILTERS;
       prevProps = wrapper.instance().props;
-      refreshExceptSpy = sinon.spy(wrapper.instance(), 'refreshExcept');
+      refreshSpy = sinon.spy(wrapper.instance(), 'refreshCharts');
     });
 
     afterEach(() => {
-      refreshExceptSpy.restore();
+      refreshSpy.restore();
     });
 
     it('should not call refresh when is editMode', () => {
@@ -207,15 +130,15 @@ describe('Dashboard', () => {
         },
       });
       wrapper.instance().componentDidUpdate(prevProps);
-      expect(refreshExceptSpy.callCount).toBe(0);
+      expect(refreshSpy.callCount).toBe(0);
     });
 
     it('should not call refresh when there is no change', () => {
       wrapper.setProps({
-        filters: OVERRIDE_FILTERS,
+        activeFilters: OVERRIDE_FILTERS,
       });
       wrapper.instance().componentDidUpdate(prevProps);
-      expect(refreshExceptSpy.callCount).toBe(0);
+      expect(refreshSpy.callCount).toBe(0);
       expect(wrapper.instance().appliedFilters).toBe(OVERRIDE_FILTERS);
     });
 
@@ -224,12 +147,12 @@ describe('Dashboard', () => {
         gender: ['boy', 'girl'],
       };
       wrapper.setProps({
-        filters: {
+        activeFilters: {
           ...OVERRIDE_FILTERS,
           ...newFilter,
         },
       });
-      expect(refreshExceptSpy.callCount).toBe(1);
+      expect(refreshSpy.callCount).toBe(1);
       expect(wrapper.instance().appliedFilters).toEqual({
         ...OVERRIDE_FILTERS,
         ...newFilter,
@@ -238,23 +161,23 @@ describe('Dashboard', () => {
 
     it('should call refresh if a filter is removed', () => {
       wrapper.setProps({
-        filters: {},
+        activeFilters: {},
       });
-      expect(refreshExceptSpy.callCount).toBe(1);
+      expect(refreshSpy.callCount).toBe(1);
       expect(wrapper.instance().appliedFilters).toEqual({});
     });
 
     it('should call refresh if a filter is changed', () => {
       wrapper.setProps({
-        filters: {
+        activeFilters: {
           ...OVERRIDE_FILTERS,
-          region: ['Canada'],
+          '1_region': ['Canada'],
         },
       });
-      expect(refreshExceptSpy.callCount).toBe(1);
+      expect(refreshSpy.callCount).toBe(1);
       expect(wrapper.instance().appliedFilters).toEqual({
         ...OVERRIDE_FILTERS,
-        region: ['Canada'],
+        '1_region': ['Canada'],
       });
     });
   });

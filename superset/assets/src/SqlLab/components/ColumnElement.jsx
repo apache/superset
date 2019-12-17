@@ -54,7 +54,7 @@ export default function ColumnElement(props) {
                 {JSON.stringify(key, null, '  ')}
               </pre>
             </Tooltip>
-            }
+          }
         >
           <i className={`fa text-muted m-l-2 ${iconMap[key.type]}`} />
         </OverlayTrigger>
@@ -64,11 +64,13 @@ export default function ColumnElement(props) {
   return (
     <div className="clearfix table-column">
       <div className="pull-left m-l-10 col-name">
-        {name}{icons}
+        {name}
+        {icons}
       </div>
       <div className="pull-right text-muted">
         <small> {col.type}</small>
       </div>
-    </div>);
+    </div>
+  );
 }
 ColumnElement.propTypes = propTypes;

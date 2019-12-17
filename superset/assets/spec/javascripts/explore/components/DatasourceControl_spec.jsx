@@ -47,7 +47,9 @@ describe('DatasourceControl', () => {
   function setup() {
     const mockStore = configureStore([]);
     const store = mockStore({});
-    return shallow(<DatasourceControl {...defaultProps} />, { context: { store } });
+    return shallow(<DatasourceControl {...defaultProps} />, {
+      context: { store },
+    });
   }
 
   it('renders a Modal', () => {

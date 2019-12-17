@@ -29,13 +29,15 @@ import Control from '../../explore/components/Control';
 import controls from '../../explore/controls';
 import OnPasteSelect from '../../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
-import { getFilterColorKey, getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
+import { getDashboardFilterKey } from '../../dashboard/util/getDashboardFilterKey';
+import { getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
+import { TIME_FILTER_LABELS } from '../../explore/constants';
 import FilterBadgeIcon from '../../components/FilterBadgeIcon';
 
-import './FilterBox.css';
+import './FilterBox.less';
 
 // maps control names to their key in extra_filters
-const TIME_FILTER_MAP = {
+export const TIME_FILTER_MAP = {
   time_range: '__time_range',
   granularity_sqla: '__time_col',
   time_grain_sqla: '__time_grain',
@@ -43,26 +45,30 @@ const TIME_FILTER_MAP = {
   granularity: '__granularity',
 };
 
-export const TIME_RANGE = '__time_range';
-export const FILTER_LABELS = {
-  [TIME_RANGE]: 'Time range',
-};
+// a shortcut to a map key, used by many components
+export const TIME_RANGE = TIME_FILTER_MAP.time_range;
 
 const propTypes = {
   chartId: PropTypes.number.isRequired,
   origSelectedValues: PropTypes.object,
   datasource: PropTypes.object.isRequired,
   instantFiltering: PropTypes.bool,
-  filtersFields: PropTypes.arrayOf(PropTypes.shape({
-    field: PropTypes.string,
-    label: PropTypes.string,
-  })),
-  filtersChoices: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.shape({
-    id: PropTypes.string,
-    text: PropTypes.string,
-    filter: PropTypes.string,
-    metric: PropTypes.number,
-  }))),
+  filtersFields: PropTypes.arrayOf(
+    PropTypes.shape({
+      field: PropTypes.string,
+      label: PropTypes.string,
+    }),
+  ),
+  filtersChoices: PropTypes.objectOf(
+    PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.string,
+        text: PropTypes.string,
+        filter: PropTypes.string,
+        metric: PropTypes.number,
+      }),
+    ),
+  ),
   onChange: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
@@ -98,7 +104,10 @@ class FilterBox extends React.Component {
     this.onFilterMenuClose = this.onFilterMenuClose.bind(this);
     this.onFocus = this.onFilterMenuOpen;
     this.onBlur = this.onFilterMenuClose;
-    this.onOpenDateFilterControl = this.onFilterMenuOpen.bind(props.chartId, TIME_RANGE);
+    this.onOpenDateFilterControl = this.onFilterMenuOpen.bind(
+      props.chartId,
+      TIME_RANGE,
+    );
   }
 
   onFilterMenuOpen(chartId, column) {
@@ -118,9 +127,7 @@ class FilterBox extends React.Component {
       actions: { setControlValue: this.changeFilter },
     });
     const mapFunc = control.mapStateToProps;
-    return mapFunc
-      ? Object.assign({}, control, mapFunc(this.props))
-      : control;
+    return mapFunc ? Object.assign({}, control, mapFunc(this.props)) : control;
   }
 
   clickApply() {
@@ -156,7 +163,7 @@ class FilterBox extends React.Component {
 
   renderDateFilter() {
     const { showDateFilter, chartId } = this.props;
-    const label = t(FILTER_LABELS[TIME_RANGE]);
+    const label = TIME_FILTER_LABELS.time_range;
     if (showDateFilter) {
       return (
         <div className="row space-1">
@@ -166,7 +173,9 @@ class FilterBox extends React.Component {
               name={TIME_RANGE}
               label={label}
               description={t('Select start and end date')}
-              onChange={(...args) => { this.changeFilter(TIME_RANGE, ...args); }}
+              onChange={(...args) => {
+                this.changeFilter(TIME_RANGE, ...args);
+              }}
               onOpenDateFilterControl={this.onOpenDateFilterControl}
               onCloseDateFilterControl={this.onFilterMenuClose}
               value={this.state.selectedValues[TIME_RANGE] || 'No filter'}
@@ -223,8 +232,10 @@ class FilterBox extends React.Component {
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
     Object.keys(selectedValues)
-      .filter(key => selectedValues.hasOwnProperty(key) && (key in filtersChoices))
-      .forEach((key) => {
+      .filter(
+        key => selectedValues.hasOwnProperty(key) && key in filtersChoices,
+      )
+      .forEach(key => {
         const choices = filtersChoices[key] || [];
         const choiceIds = new Set(choices.map(f => f.id));
         const selectedValuesForKey = Array.isArray(selectedValues[key])
@@ -232,7 +243,7 @@ class FilterBox extends React.Component {
           : [selectedValues[key]];
         selectedValuesForKey
           .filter(value => !choiceIds.has(value))
-          .forEach((value) => {
+          .forEach(value => {
             choices.unshift({
               filter: key,
               id: value,
@@ -262,33 +273,37 @@ class FilterBox extends React.Component {
         multi={filterConfig.multiple}
         clearable={filterConfig.clearable}
         value={value}
-        options={data.map((opt) => {
+        options={data.map(opt => {
           const perc = Math.round((opt.metric / max) * 100);
-          const backgroundImage = (
+          const backgroundImage =
             'linear-gradient(to right, lightgrey, ' +
-            `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
-          );
+            `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`;
           const style = {
             backgroundImage,
             padding: '2px 5px',
           };
           return { value: opt.id, label: opt.id, style };
         })}
-        onChange={(...args) => { this.changeFilter(key, ...args); }}
+        onChange={(...args) => {
+          this.changeFilter(key, ...args);
+        }}
         onFocus={this.onFocus}
         onBlur={this.onBlur}
-        onOpen={(...args) => { this.onFilterMenuOpen(key, ...args); }}
+        onOpen={(...args) => {
+          this.onFilterMenuOpen(key, ...args);
+        }}
         onClose={this.onFilterMenuClose}
         selectComponent={Creatable}
         selectWrap={VirtualizedSelect}
         optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
         noResultsText={t('No results found')}
-      />);
+      />
+    );
   }
 
   renderFilters() {
     const { filtersFields, chartId } = this.props;
-    return filtersFields.map((filterConfig) => {
+    return filtersFields.map(filterConfig => {
       const { label, key } = filterConfig;
       return (
         <div key={key} className="m-b-5 filter-container">
@@ -303,15 +318,13 @@ class FilterBox extends React.Component {
   }
 
   renderFilterBadge(chartId, column) {
-    const colorKey = getFilterColorKey(chartId, column);
+    const colorKey = getDashboardFilterKey({ chartId, column });
     const filterColorMap = getFilterColorMap();
     const colorCode = filterColorMap[colorKey];
 
     return (
       <div className="filter-badge-container">
-        <FilterBadgeIcon
-          colorCode={colorCode}
-        />
+        <FilterBadgeIcon colorCode={colorCode} />
       </div>
     );
   }
@@ -325,7 +338,7 @@ class FilterBox extends React.Component {
           {this.renderDateFilter()}
           {this.renderDatasourceFilters()}
           {this.renderFilters()}
-          {!instantFiltering &&
+          {!instantFiltering && (
             <Button
               bsSize="small"
               bsStyle="primary"
@@ -334,7 +347,7 @@ class FilterBox extends React.Component {
             >
               {t('Apply')}
             </Button>
-          }
+          )}
         </div>
       </div>
     );

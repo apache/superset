@@ -26,13 +26,14 @@ from unittest import mock
 
 from superset import app
 from superset.utils import core as utils
+from tests.base_tests import SupersetTestCase
 
 from .utils import read_fixture
 
 send_email_test = mock.Mock()
 
 
-class EmailSmtpTest(unittest.TestCase):
+class EmailSmtpTest(SupersetTestCase):
     def setUp(self):
         app.config["smtp_ssl"] = False
 
