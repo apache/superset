@@ -57,6 +57,7 @@ PACKAGE_DIR = os.path.join(BASE_DIR, "static", "assets")
 VERSION_INFO_FILE = os.path.join(PACKAGE_DIR, "version_info.json")
 PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets", "package.json")
 
+
 def _try_json_readversion(filepath):
     try:
         with open(filepath, "r") as f:
