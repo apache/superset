@@ -17,6 +17,8 @@
 # pylint: disable=C,R,W
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from typing import cast, Optional
+
 from flask import g, request, Response
 from flask_appbuilder import expose
 
@@ -82,7 +84,10 @@ class Lyft(Superset):
                 "tab": request.form.get("tab"),
             }
 
-        return self.sql_json_exec(request_json)
+        log_params = {
+            "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
+        }
+        return self.sql_json_exec(request_json, log_params)
 
     @event_logger.log_this
     @expose("/queries/<last_updated_ms>")
