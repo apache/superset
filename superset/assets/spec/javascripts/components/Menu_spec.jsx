@@ -156,7 +156,7 @@ describe('Menu', () => {
     };
 
     const versionedWrapper = mount(<Menu {...props} />);
-    
+
     expect(versionedWrapper.find('.version-info div')).toHaveLength(2);
   });
 });

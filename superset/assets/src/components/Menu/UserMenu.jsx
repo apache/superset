@@ -28,7 +28,12 @@ const propTypes = {
   versionSha: PropTypes.string,
 };
 
-export default function UserMenu({ userInfoUrl, userLogoutUrl, versionString, versionSha }) {
+export default function UserMenu({
+  userInfoUrl,
+  userLogoutUrl,
+  versionString,
+  versionSha,
+}) {
   return (
     <NavDropdown
       id="user-menu-dropwn"
@@ -48,12 +53,8 @@ export default function UserMenu({ userInfoUrl, userLogoutUrl, versionString, ve
       </MenuItem>
       {(versionString || versionSha) && (
         <li className="version-info">
-          {versionString && (
-              <div>Version: {versionString}</div>
-          )}
-          {versionSha && (
-              <div>SHA: {versionSha}</div>
-          )}
+          {versionString && <div>Version: {versionString}</div>}
+          {versionSha && <div>SHA: {versionSha}</div>}
         </li>
       )}
     </NavDropdown>
