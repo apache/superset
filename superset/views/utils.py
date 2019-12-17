@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from collections import defaultdict
 from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
@@ -82,13 +81,13 @@ def get_viz(
     if slice_id:
         slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
         return slc.get_viz()
-    else:
-        viz_type = form_data.get("viz_type", "table")
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session
-        )
-        viz_obj = viz.viz_types[viz_type](datasource, form_data=form_data, force=force)
-        return viz_obj
+
+    viz_type = form_data.get("viz_type", "table")
+    datasource = ConnectorRegistry.get_datasource(
+        datasource_type, datasource_id, db.session
+    )
+    viz_obj = viz.viz_types[viz_type](datasource, form_data=form_data, force=force)
+    return viz_obj
 
 
 def get_form_data(slice_id=None, use_slice_data=False):

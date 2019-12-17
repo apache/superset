@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import json
 import os
 from typing import Any, Dict
@@ -40,7 +39,7 @@ def get_language_pack(locale):
             with open(filename) as f:
                 pack = json.load(f)
                 ALL_LANGUAGE_PACKS[locale] = pack
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             # Assuming english, client side falls back on english
             pass
     return pack

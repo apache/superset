@@ -55,7 +55,7 @@ else:
 # ---------------------------------------------------------
 PACKAGE_DIR = os.path.join(BASE_DIR, "static", "assets")
 VERSION_INFO_FILE = os.path.join(PACKAGE_DIR, "version_info.json")
-PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets" "package.json")
+PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets", "package.json")
 
 
 def _try_json_readversion(filepath):
@@ -69,7 +69,7 @@ def _try_json_readversion(filepath):
 def _try_json_readsha(filepath, length):  # pylint: disable=unused-argument
     try:
         with open(filepath, "r") as f:
-            return json.load(f).get("GIT_SHA")
+            return json.load(f).get("GIT_SHA")[:length]
     except Exception:  # pylint: disable=broad-except
         return None
 
