@@ -38,14 +38,23 @@ class BaseGeocoder(object):
         self.conf = config
         self._set_initial_states()
 
-    def geocode(self, data: list):
+    def geocode(self, data: list) -> list:
+        """
+        Runs the geocoding and resets the state
+        :param data: The data to geocode
+        """
         try:
             return self._geocode(data)
         finally:
             self.progress["progress"] = 0
             self.progress["is_in_progress"] = False
 
-    def _append_cords_to_data_entry(self, data_entry: list, geocoded: list):
+    def _append_cords_to_data_entry(self, data_entry: list, geocoded: list) -> list:
+        """
+        Appends the lat/lon coordinates to the data entry
+        :param data_entry: The data entry
+        :param geocoded: The geocoded values to add (0: lat, 1: lon)
+        """
         coordinates = geocoded[0]
         relevance = geocoded[1]
         if relevance > 0.8:
@@ -58,7 +67,11 @@ class BaseGeocoder(object):
         data_entry.append(str(coordinates[1]))
         return data_entry
 
-    def _set_initial_states(self, in_progress=False):
+    def _set_initial_states(self, in_progress=False) -> None:
+        """
+        Sets the initial state of the progress
+        :param in_progress: If the geocoding is in progress
+        """
         self.interruptflag = False
         self.progress["success_counter"] = 0
         self.progress["doubt_counter"] = 0
@@ -66,7 +79,11 @@ class BaseGeocoder(object):
         self.progress["is_in_progress"] = in_progress
         self.progress["progress"] = 0
 
-    def _set_result_precision_counters(self):
+    def _set_result_precision_counters(self) -> dict:
+        """
+        Sets the success, doubt and faled counters
+        :return: The dict containing the counters
+        """
         success_dict = {
             "success": self.progress["success_counter"],
             "doubt": self.progress["doubt_counter"],
@@ -76,9 +93,9 @@ class BaseGeocoder(object):
 
     def _geocode(self, data: list) -> list:
         """
-        geocode the data using the Maptiler API
+        Factory method for the geocoding process
         :param data: the addresses to be geocoded as a list of tuples
-        :return: a dictionary containing the addresses and their long,lat values
+        :return: a list containing the addresses and their lat, lon values
         """
 
         geocoded_data: list = []
@@ -140,9 +157,18 @@ class BaseGeocoder(object):
         return ["", [geocoded_data, self._set_result_precision_counters()]]
 
     def _get_coordinates_from_address(self, address: str):
+        """
+        Gets the coordinates from an address using the geocoding api
+        :param address: The address to geocode
+        :raise NotImplementedError: If the method is not implemented
+        """
         raise NotImplementedError
 
     def check_api_key(self):
+        """
+        Checks the api key from the config
+        :raise NotImplementedError: If the method is not implemented
+        """
         raise NotImplementedError
 
 
@@ -153,6 +179,7 @@ class MapTilerGeocoder(BaseGeocoder):
         BaseGeocoder.__init__(self, config)
 
     def _get_coordinates_from_address(self, address: str):
+        """override"""
         base_url = "https://api.maptiler.com/geocoding/"
         response = get(
             base_url + address + ".json?key=" + self.conf["MAPTILER_API_KEY"]
@@ -171,6 +198,7 @@ class MapTilerGeocoder(BaseGeocoder):
         return None
 
     def check_api_key(self):
+        """override"""
         if not self.conf["MAPTILER_API_KEY"]:
             raise NoAPIKeySuppliedException("No API Key for MapTiler was supplied")
 
@@ -182,6 +210,7 @@ class GoogleGeocoder(BaseGeocoder):
         BaseGeocoder.__init__(self, config)
 
     def _get_coordinates_from_address(self, address: str):
+        """override"""
         base_url = "https://maps.googleapis.com/maps/api/geocode/"
         response = get(
             base_url + "json?address=" + address + "&key=" + self.conf["GOOGLE_API_KEY"]
@@ -214,5 +243,6 @@ class GoogleGeocoder(BaseGeocoder):
         return None
 
     def check_api_key(self):
+        """override"""
         if not self.conf["GOOGLE_API_KEY"]:
             raise NoAPIKeySuppliedException("No API Key for Google was supplied")
