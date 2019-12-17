@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import imp
 import json
+from typing import Union
 from unittest.mock import Mock
 
 import pandas as pd
@@ -42,6 +43,20 @@ class SupersetTestCase(TestCase):
 
     def create_app(self):
         return app
+
+    @staticmethod
+    def create_user(
+        username: str,
+        password: str,
+        role_name: str,
+        first_name: str = "admin",
+        last_name: str = "user",
+        email: str = "admin@fab.org",
+    ) -> Union[ab_models.User, bool]:
+        role_admin = security_manager.find_role(role_name)
+        return security_manager.add_user(
+            username, first_name, last_name, email, role_admin, password
+        )
 
     @classmethod
     def create_druid_test_objects(cls):
@@ -193,6 +208,7 @@ class SupersetTestCase(TestCase):
         raise_on_error=False,
         query_limit=None,
         database_name="examples",
+        sql_editor_id=None,
     ):
         if user_name:
             self.logout()
@@ -207,6 +223,7 @@ class SupersetTestCase(TestCase):
                 select_as_create_as=False,
                 client_id=client_id,
                 queryLimit=query_limit,
+                sql_editor_id=sql_editor_id,
             ),
         )
         if raise_on_error and "error" in resp:
@@ -226,6 +243,7 @@ class SupersetTestCase(TestCase):
             cls=models.Database,
             criteria={"database_name": database_name},
             session=db.session,
+            sqlalchemy_uri="sqlite://test",
             id=db_id,
             extra=extra,
         )

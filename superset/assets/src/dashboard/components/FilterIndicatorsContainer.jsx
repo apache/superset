@@ -26,6 +26,7 @@ import { FILTER_INDICATORS_DISPLAY_LENGTH } from '../util/constants';
 import { getChartIdsInFilterScope } from '../util/activeDashboardFilters';
 import { getDashboardFilterKey } from '../util/getDashboardFilterKey';
 import { getFilterColorMap } from '../util/dashboardFiltersColorMap';
+import { TIME_FILTER_MAP } from '../../visualizations/FilterBox/FilterBox';
 
 const propTypes = {
   // from props
@@ -34,6 +35,7 @@ const propTypes = {
   chartStatus: PropTypes.string,
 
   // from redux
+  datasources: PropTypes.object.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
   filterFieldOnFocus: PropTypes.object.isRequired,
 };
@@ -41,6 +43,11 @@ const propTypes = {
 const defaultProps = {
   chartStatus: 'loading',
 };
+
+const TIME_GRANULARITY_FIELDS = [
+  TIME_FILTER_MAP.granularity,
+  TIME_FILTER_MAP.time_grain_sqla,
+];
 
 function sortByIndicatorLabel(indicator1, indicator2) {
   const s1 = (indicator1.label || indicator1.name).toLowerCase();
@@ -56,6 +63,7 @@ function sortByIndicatorLabel(indicator1, indicator2) {
 export default class FilterIndicatorsContainer extends React.PureComponent {
   getFilterIndicators() {
     const {
+      datasources = {},
       dashboardFilters,
       chartId: currentChartId,
       filterFieldOnFocus,
@@ -66,12 +74,12 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
     }
 
     const dashboardFiltersColorMap = getFilterColorMap();
-
     const sortIndicatorsByEmptiness = Object.values(dashboardFilters).reduce(
       (indicators, dashboardFilter) => {
         const {
           chartId,
           componentId,
+          datasourceId,
           directPathToFilter,
           isDateFilter,
           isInstantFilter,
@@ -79,6 +87,7 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
           labels,
           scopes,
         } = dashboardFilter;
+        const datasource = datasources[datasourceId] || {};
 
         if (currentChartId !== chartId) {
           Object.keys(columns)
@@ -110,6 +119,25 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
                   chartId === filterFieldOnFocus.chartId &&
                   name === filterFieldOnFocus.column,
               };
+
+              // map time granularity value to datasource configure
+              if (isDateFilter && TIME_GRANULARITY_FIELDS.includes(name)) {
+                const timeGranularityConfig =
+                  (name === TIME_FILTER_MAP.time_grain_sqla
+                    ? datasource.time_grain_sqla
+                    : datasource.granularity) || [];
+                const timeGranularityDisplayMapping = timeGranularityConfig.reduce(
+                  (map, [key, value]) => ({
+                    ...map,
+                    [key]: value,
+                  }),
+                  {},
+                );
+
+                indicator.values = indicator.values.map(
+                  value => timeGranularityDisplayMapping[value] || value,
+                );
+              }
 
               if (isEmpty(indicator.values)) {
                 indicators[1].push(indicator);

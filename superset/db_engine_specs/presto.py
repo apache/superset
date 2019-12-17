@@ -48,7 +48,7 @@ config = app.config
 
 # map between Presto types and Pandas
 pandas_dtype_map = {
-    "boolean": "bool",
+    "boolean": "object",  # to support nullable bool
     "tinyint": "Int64",  # note: capital "I" means nullable int
     "smallint": "Int64",
     "integer": "Int64",

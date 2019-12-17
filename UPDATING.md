@@ -38,6 +38,10 @@ defaults to False. To enable Druid-API-based functionality, override the
 * [8450](https://github.com/apache/incubator-superset/pull/8450): The time range picker
 now uses UTC for the tooltips and default placeholder timestamps (sans timezone).
 
+* [8418](https://github.com/apache/incubator-superset/pull/8418): FLASK_APP / Worker App
+have changed. FLASK_APP should be updated to `superset.app:create_app()` and Celery Workers
+should be started with `--app=superset.tasks.celery_app:app`
+
 ## 0.35.0
 
 * [8370](https://github.com/apache/incubator-superset/pull/8370): Deprecates

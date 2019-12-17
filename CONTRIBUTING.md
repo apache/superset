@@ -353,7 +353,7 @@ pip install -r requirements-dev.txt
 pip install -e .
 
 # Create an admin user in your metadata database
-flask fab create-admin
+superset fab create-admin
 
 # Initialize the database
 superset db upgrade
@@ -369,6 +369,9 @@ superset load_examples
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 ```
+
+**Note: the FLASK_APP env var should not need to be set, as it's currently controlled 
+via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`** 
 
 If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
 `FLASK_ENV=development superset run -p 8088 --reload --debugger`
@@ -387,7 +390,7 @@ def FLASK_APP_MUTATOR(app):
 Then make sure you run your WSGI server using the right worker type:
 
 ```bash
-FLASK_ENV=development gunicorn superset:app -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
+FLASK_ENV=development gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
 ```
 
 You can log anything to the browser console, including objects:
@@ -434,7 +437,7 @@ You can run the Webpack dev server (in a separate terminal from Flask), which ru
 npm run dev-server
 
 # Run the dev server on a non-default port
-npm run dev-server -- --port=9001
+npm run dev-server -- --devserverPort=9001
 
 # Run the dev server proxying to a Flask server on a non-default port
 npm run dev-server -- --supersetPort=8081
@@ -456,7 +459,7 @@ If you run this service from somewhere other than your local machine, you may ne
 npm install --global webpack webpack-cli webpack-dev-server
 ```
 
-#### Docker 
+#### Docker (docker-compose)
 
 See docs [here](docker/README.md)
 
@@ -834,6 +837,10 @@ To do this, you'll need to:
     ```python
     from werkzeug.contrib.cache import FileSystemCache
     RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
+    ```
+* Start up a celery worker
+    ```shell script
+    celery worker --app=superset.tasks.celery_app:app -Ofair
     ```
 
 Note that:

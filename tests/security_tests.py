@@ -316,7 +316,9 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_set_perm_database(self):
         session = db.session
-        database = Database(database_name="tmp_database")
+        database = Database(
+            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
+        )
         session.add(database)
 
         stored_db = (
@@ -346,7 +348,9 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_set_perm_slice(self):
         session = db.session
-        database = Database(database_name="tmp_database")
+        database = Database(
+            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
+        )
         table = SqlaTable(table_name="tmp_perm_table", database=database)
         session.add(database)
         session.add(table)
@@ -399,7 +403,7 @@ class RolePermissionTests(SupersetTestCase):
 
         # TODO test slice permission
 
-    @patch("superset.security.g")
+    @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_admin(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
         with self.client.application.test_request_context():
@@ -409,7 +413,7 @@ class RolePermissionTests(SupersetTestCase):
             )
             self.assertEquals(schemas, ["1", "2", "3"])  # no changes
 
-    @patch("superset.security.g")
+    @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_schema_access(self, mock_g):
         # User has schema access to the schema 1
         create_schema_perm("[examples].[1]")
@@ -423,7 +427,7 @@ class RolePermissionTests(SupersetTestCase):
             self.assertEquals(schemas, ["1"])
         delete_schema_perm("[examples].[1]")
 
-    @patch("superset.security.g")
+    @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_datasource_access(self, mock_g):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
         mock_g.user = security_manager.find_user("gamma")
@@ -434,7 +438,7 @@ class RolePermissionTests(SupersetTestCase):
             )
             self.assertEquals(schemas, ["temp_schema"])
 
-    @patch("superset.security.g")
+    @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_datasource_and_schema_access(self, mock_g):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
         create_schema_perm("[examples].[2]")

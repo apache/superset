@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import logging
 
 from colorama import Fore, Style
@@ -59,14 +58,9 @@ class DummyStatsLogger(BaseStatsLogger):
             (Fore.CYAN + f"[stats_logger] (timing) {key} | {value} " + Style.RESET_ALL)
         )
 
-    def gauge(self, key, value):
+    def gauge(self, key):
         logging.debug(
-            (
-                Fore.CYAN
-                + "[stats_logger] (gauge) "
-                + f"{key} | {value}"
-                + Style.RESET_ALL
-            )
+            (Fore.CYAN + "[stats_logger] (gauge) " + f"{key}" + Style.RESET_ALL)
         )
 
 
@@ -74,7 +68,7 @@ try:
     from statsd import StatsClient
 
     class StatsdStatsLogger(BaseStatsLogger):
-        def __init__(
+        def __init__(  # pylint: disable=super-init-not-called
             self, host="localhost", port=8125, prefix="superset", statsd_client=None
         ):
             """
@@ -102,5 +96,5 @@ try:
             self.client.gauge(key)
 
 
-except Exception:
+except Exception:  # pylint: disable=broad-except
     pass
