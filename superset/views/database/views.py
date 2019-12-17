@@ -76,7 +76,7 @@ appbuilder.add_view(
 )
 
 
-class DatabaseTablesAsync(DatabaseView): # pylint: disable=too-many-ancestors
+class DatabaseTablesAsync(DatabaseView):  # pylint: disable=too-many-ancestors
     list_columns = ["id", "all_table_names_in_database", "all_schema_names"]
 
 

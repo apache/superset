@@ -148,8 +148,8 @@ class CsvUploadTests(SupersetTestCase):
             os.remove(os.getcwd() + "/" + db_name + ".db")
 
     @unittest.skipIf(
-        "mysql" in app.config["SQLALCHEMY_DATABASE_URI", ""]
-        or SQLITE in app.config["SQLALCHEMY_DATABASE_URI", ""],
+        "mysql" in app.config["SQLALCHEMY_DATABASE_URI"]
+        or SQLITE in app.config["SQLALCHEMY_DATABASE_URI"],
         "This test only runs when a PostgreSQL database exists",
     )
     def test_import_into_new_postgres(self):
@@ -234,8 +234,8 @@ class CsvUploadTests(SupersetTestCase):
             db.session.commit()
 
     @unittest.skipIf(
-        "mysql" in app.config["SQLALCHEMY_DATABASE_URI", ""]
-        or SQLITE in app.config["SQLALCHEMY_DATABASE_URI", ""],
+        "mysql" in app.config["SQLALCHEMY_DATABASE_URI"]
+        or SQLITE in app.config["SQLALCHEMY_DATABASE_URI"],
         "This test only run when a PostgreSQL database exists",
     )
     def test_create_postgresql_database(self):
@@ -291,8 +291,8 @@ class CsvUploadTests(SupersetTestCase):
             self.importer._setup_postgresql_database(db_name, None)
 
     @unittest.skipIf(
-        "mysql" in app.config["SQLALCHEMY_DATABASE_URI", ""]
-        or SQLITE in app.config["SQLALCHEMY_DATABASE_URI", ""],
+        "mysql" in app.config["SQLALCHEMY_DATABASE_URI"]
+        or SQLITE in app.config["SQLALCHEMY_DATABASE_URI"],
         "This test only runs when a PostgreSQL database exists",
     )
     def test_postgres_already_exist(self):

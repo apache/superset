@@ -1402,7 +1402,7 @@ if is_feature_enabled("TAGGING_SYSTEM"):
     sqla.event.listen(FavStar, "after_delete", FavStarUpdater.after_delete)
 
 
-class DatabaseDto: # pylint: disable=too-few-public-methods
+class DatabaseDto:  # pylint: disable=too-few-public-methods
     def __init__(self, database_id: int, name: str, allowed_schemas: list):
         self.id = database_id
         self.name = name
