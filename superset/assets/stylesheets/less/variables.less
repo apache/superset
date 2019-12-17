@@ -37,11 +37,16 @@
 @lightest: #ffffff;
 @darkest: #000000;
 
-/* toasts */ // I think we can deprecate these colors now.
-@pink: #c7254e; // was #e32364
+/**************************** text-specific *****************************/
+@link: @brand-primary;
+@link-hover: darken(@link, @colorstop-one);
+
+/******************************** toasts ********************************/
+/* I think we can deprecate these colors now. */
+@pink: #c7254e;
 @purple: #2c2261;
 
-/* status colors */
+/***************************** status colors ****************************/
 @success: #4ac15f; // formerly #00bfa5
 @info: lighten(#2ab7ca, 15%);
 @warning: mix(
@@ -52,9 +57,9 @@
 @danger: #fe4a49; // formerly @pink;
 
 /* general component effects */
-@shadow-highlight: rgb(0, 166, 153);
+@shadow-highlight: @primary-color;
 
-/* filter indicators */
+/*************************** filter indicators **************************/
 /* make sure be consistent with FILTER_COLORS_COUNT in
    dashboardFiltersColorMap.js
 */
