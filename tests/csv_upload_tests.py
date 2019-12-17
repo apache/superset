@@ -362,10 +362,10 @@ class CsvUploadTests(SupersetTestCase):
             os.remove(path)
             os.remove(filename)
 
-    def test_create_table(self):
+    def test_create_table_in_superset(self):
         table_name = "newTable"
         example_db = utils.get_example_database()
-        table = self.importer._create_table_in_superset(table_name, example_db, [])
+        table = self.importer._create_table_in_superset(table_name, example_db, None)
         assert table.table_name == table_name
         assert table.database == example_db
 
