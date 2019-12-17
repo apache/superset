@@ -50,7 +50,9 @@ class DashboardTable extends React.PureComponent {
       .catch(response => {
         if (response.status === 401) {
           this.props.addDangerToast(
-            t("You don't have the necessary permissions to load dashboards. Please contact your administrator."),
+            t(
+              "You don't have the necessary permissions to load dashboards. Please contact your administrator.",
+            ),
           );
         } else {
           this.props.addDangerToast(
