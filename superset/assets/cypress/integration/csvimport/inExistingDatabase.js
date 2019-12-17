@@ -28,34 +28,33 @@ export default () => {
     });
 
     it('test import in existing database', () => {
-
       cy.get('#tableName')
         .clear({ force: true })
-        .type(
-        'MyCsvTableForExisting',
-        { force: true },
+        .type('MyCsvTableForExisting', { force: true });
+
+      cy.upload_file(
+        'myCsv.csv',
+        'text/csv',
+        'aaa;bbb;ccc;\nddd;eee;fff;',
+        '#file',
       );
 
-      cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
-
-      cy.get('#database').then((elem) => {
+      cy.get('#database').then(elem => {
         elem.val('1');
       });
 
       cy.get('#delimiter')
         .clear({ force: true })
-        .type(
-        ';',
-        { force: true },
-      );
+        .type(';', { force: true });
 
-      cy.get('#tableExists').then((elem) => {
+      cy.get('#tableExists').then(elem => {
         elem.val('Fail');
       });
 
-      cy.get('button').contains('Save').click();
+      cy.get('button')
+        .contains('Save')
+        .click();
       cy.url({ timeout: 30000 }).should('include', '/tablemodelview/list');
     });
-
   });
 };

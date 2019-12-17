@@ -1404,6 +1404,6 @@ if is_feature_enabled("TAGGING_SYSTEM"):
 
 class DatabaseDto:  # pylint: disable=too-few-public-methods
     def __init__(self, database_id: int, name: str, allowed_schemas: list):
-        self.id = database_id
+        self.database_id = database_id
         self.name = name
         self.allowed_schemas = allowed_schemas

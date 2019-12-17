@@ -19,7 +19,6 @@
 
 export default () => {
   describe('CSV importer for a new database', () => {
-
     const sqliteDatabaseName = 'new_sqlite_database';
     const postgresqlDatabaseName = 'new_postgresql_database';
 
@@ -30,92 +29,101 @@ export default () => {
 
       cy.route('/tablemodelview/list').as('finish_import');
 
-      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + sqliteDatabaseName, { timeout: 30000 });
-      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + postgresqlDatabaseName, { timeout: 30000 });
+      cy.exec(
+        'python cypress/integration/csvimport/scripts/remove_db_file.py ' +
+          sqliteDatabaseName,
+        { timeout: 30000 },
+      );
+      cy.exec(
+        'python cypress/integration/csvimport/scripts/remove_db_file.py ' +
+          postgresqlDatabaseName,
+        { timeout: 30000 },
+      );
     });
 
     afterEach(() => {
-      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + sqliteDatabaseName, { timeout: 30000 });
-      cy.exec('python cypress/integration/csvimport/scripts/remove_db_file.py ' + postgresqlDatabaseName, { timeout: 30000 });
+      cy.exec(
+        'python cypress/integration/csvimport/scripts/remove_db_file.py ' +
+          sqliteDatabaseName,
+        { timeout: 30000 },
+      );
+      cy.exec(
+        'python cypress/integration/csvimport/scripts/remove_db_file.py ' +
+          postgresqlDatabaseName,
+        { timeout: 30000 },
+      );
     });
 
     it('test import in new SQLite database', () => {
-
       cy.get('#tableName')
         .clear({ force: true })
-        .type(
-        'MyCsvTableForNewSQlite',
-        { force: true },
+        .type('MyCsvTableForNewSQlite', { force: true });
+
+      cy.upload_file(
+        'myCsv.csv',
+        'text/csv',
+        'aaa;bbb;ccc;\nddd;eee;fff;',
+        '#file',
       );
 
-      cy.upload_file('myCsv.csv', 'text/csv', 'aaa;bbb;ccc;\nddd;eee;fff;', '#file');
-
-      cy.get('#database').then((elem) => {
+      cy.get('#database').then(elem => {
         elem.val('-1');
       });
 
       cy.get('#databaseName')
         .clear({ force: true })
-        .type(
-        sqliteDatabaseName,
-        { force: true },
-      );
+        .type(sqliteDatabaseName, { force: true });
 
-      cy.get('#databaseFlavor').then((elem) => {
+      cy.get('#databaseFlavor').then(elem => {
         elem.val('sqlite');
       });
 
       cy.get('#delimiter')
         .clear({ force: true })
-        .type(
-        ';',
-        { force: true },
-      );
+        .type(';', { force: true });
 
-      cy.get('button').contains('Save').click();
+      cy.get('button')
+        .contains('Save')
+        .click();
       cy.url({ timeout: 30000 }).should('include', '/tablemodelview/list');
     });
 
     it('test import in new PostgreSQL database', () => {
-
       cy.get('#tableName')
         .clear({ force: true })
-        .type(
-        'MyCsvTableForNewPG',
-        { force: true },
+        .type('MyCsvTableForNewPG', { force: true });
+
+      cy.upload_file(
+        'myCsv.csv',
+        'text/csv',
+        'aaa,bbb,ccc,\nddd,eee,fff,',
+        '#file',
       );
 
-      cy.upload_file('myCsv.csv', 'text/csv', 'aaa,bbb,ccc,\nddd,eee,fff,', '#file');
-
-      cy.get('#database').then((elem) => {
+      cy.get('#database').then(elem => {
         elem.val('-1');
       });
 
       cy.get('#databaseName')
         .clear({ force: true })
-        .type(
-        postgresqlDatabaseName,
-        { force: true },
-      );
+        .type(postgresqlDatabaseName, { force: true });
 
-      cy.get('#databaseFlavor').then((elem) => {
+      cy.get('#databaseFlavor').then(elem => {
         elem.val('postgresql');
       });
 
       cy.get('#delimiter')
         .clear({ force: true })
-        .type(
-        ',',
-        { force: true },
-      );
+        .type(',', { force: true });
 
-      cy.get('#tableExists').then((elem) => {
+      cy.get('#tableExists').then(elem => {
         elem.val('Fail');
       });
 
-      cy.get('button').contains('Save').click();
+      cy.get('button')
+        .contains('Save')
+        .click();
       cy.url({ timeout: 30000 }).should('include', '/tablemodelview/list');
     });
-
   });
 };

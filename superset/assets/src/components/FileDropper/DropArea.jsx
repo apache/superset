@@ -65,11 +65,17 @@ export default class DropArea extends React.PureComponent {
     return (
       <div>
         <div
-          className={supportsDragAndDrop() ? `filedropper-container ${
-            isVisible ? 'is-visible' : 'is-not-visible'
-          } ${
-            hover ? 'filedropper-background-hover' : 'filedropper-background'
-          }` : 'is-not-visible'}
+          className={
+            supportsDragAndDrop()
+              ? `filedropper-container ${
+                  isVisible ? 'is-visible' : 'is-not-visible'
+                } ${
+                  hover
+                    ? 'filedropper-background-hover'
+                    : 'filedropper-background'
+                }`
+              : 'is-not-visible'
+          }
           onDragOver={this.setHover}
           onMouseOver={this.setHover}
           onDragExit={this.unsetHover}
@@ -90,7 +96,9 @@ export default class DropArea extends React.PureComponent {
             </>
           )}
           {supportsDragAndDrop() && showFileSelected ? (
-            <div className="filedropper-file">{t('File')}: {fileName || t('No file chosen')}</div>
+            <div className="filedropper-file">
+              {t('File')}: {fileName || t('No file chosen')}
+            </div>
           ) : (
             <></>
           )}

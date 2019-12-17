@@ -18,7 +18,7 @@
 import os
 import sys
 
-from superset import app
+from tests.test_app import app
 
 if __name__ == "__main__":
     db_name = sys.argv[1]

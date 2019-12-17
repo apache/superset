@@ -78,9 +78,7 @@ export default class FileDropper extends React.Component {
     if (!this.allowedMimeType(file)) {
       reject({
         status: ErrorStatus.MimeTypeDisallowed,
-        msg: `File type '${file.type}' is not allowed (${
-          this.props.allowedMimeTypes
-        }).`,
+        msg: `File type '${file.type}' is not allowed (${this.props.allowedMimeTypes}).`,
         fileName: file.name,
       });
       return;
@@ -89,9 +87,7 @@ export default class FileDropper extends React.Component {
     if (this.props.maxSize && file.size > this.props.maxSize) {
       reject({
         status: ErrorStatus.FileSizeExceeded,
-        msg: `File size (${file.size}) exceeds maximum file size (${
-          this.props.maxSize
-        }).`,
+        msg: `File size (${file.size}) exceeds maximum file size (${this.props.maxSize}).`,
         fileName: file.name,
       });
       return;
@@ -109,7 +105,11 @@ export default class FileDropper extends React.Component {
     const errors = [];
 
     for (let i = 0; i < fileList.length; i++) {
-      this.checkFile(fileList.item(i), f => files.push(f), e => errors.push(e));
+      this.checkFile(
+        fileList.item(i),
+        f => files.push(f),
+        e => errors.push(e),
+      );
     }
 
     if (errors.length > 0 && this.props.onError) {
@@ -148,7 +148,7 @@ export default class FileDropper extends React.Component {
         className={className}
         onClick={() => !disableClick && this.fileRef.click()}
         onDragOver={event => event.preventDefault()}
-        onDrop={(event) => {
+        onDrop={event => {
           this.handleFileInputChanged(event.dataTransfer.files);
           event.preventDefault();
         }}
@@ -161,9 +161,11 @@ export default class FileDropper extends React.Component {
           accept={allowedMimeTypes && allowedMimeTypes.join(',')}
           multiple={allowMultipleSelection || false}
           ref={element => this.setFileRef(element)}
-          className={supportsDragAndDrop() ? `filedropper-input ${
-            fileInputClassName || ''
-          }` : fileInputClassName}
+          className={
+            supportsDragAndDrop()
+              ? `filedropper-input ${fileInputClassName || ''}`
+              : fileInputClassName
+          }
           onChange={this.fileInputChanged}
         />
       </div>

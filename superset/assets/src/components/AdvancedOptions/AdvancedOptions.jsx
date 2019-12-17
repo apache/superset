@@ -22,36 +22,38 @@ import { t } from '@superset-ui/translation';
 import './AdvancedOptionsStyles.css';
 
 const propTypes = {
-    children: PropTypes.node,
+  children: PropTypes.node,
 };
 
 export default class AdvancedOptions extends PureComponent {
-    constructor(props) {
-        super(props);
-        this.state = {
-            hide: true,
-        };
-        this.handleChildren = this.handleChildren.bind(this);
-    }
+  constructor(props) {
+    super(props);
+    this.state = {
+      hide: true,
+    };
+    this.handleChildren = this.handleChildren.bind(this);
+  }
 
-    handleChildren() {
-        const currentState = this.state.hide;
-        this.setState({ hide: !currentState });
-    }
+  handleChildren() {
+    const currentState = this.state.hide;
+    this.setState({ hide: !currentState });
+  }
 
-
-    render() {
-        return (
-          <div>
-            <div className={'title ' + (this.state.hide ? 'openTitle' : 'closeTitle')} onClick={this.handleChildren}>
-              <span>{t('Advanced Options')}</span>
-            </div>
-            <div className={this.state.hide ? 'hide' : null}>
-              {this.props.children}
-            </div>
-          </div>
-        );
-    }
+  render() {
+    return (
+      <div>
+        <div
+          className={'title ' + (this.state.hide ? 'openTitle' : 'closeTitle')}
+          onClick={this.handleChildren}
+        >
+          <span>{t('Advanced Options')}</span>
+        </div>
+        <div className={this.state.hide ? 'hide' : null}>
+          {this.props.children}
+        </div>
+      </div>
+    );
+  }
 }
 
 AdvancedOptions.propTypes = propTypes;

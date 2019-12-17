@@ -23,7 +23,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.datastructures import FileStorage
 
 import superset.models.core as models
-from superset import app, db
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
     DatabaseAlreadyExistException,
@@ -37,6 +37,7 @@ from superset.exceptions import (
 )
 from superset.utils import core as utils
 from superset.views.csv_import import CsvImporter
+from tests.test_app import app
 
 from .base_tests import SupersetTestCase
 

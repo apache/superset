@@ -23,8 +23,8 @@ import { connect } from 'react-redux';
 import * as Actions from './actions/statusMessages';
 
 const propTypes = {
-    statusMessages: PropTypes.object.isRequired,
-    actions: PropTypes.object.isRequired,
+  statusMessages: PropTypes.object.isRequired,
+  actions: PropTypes.object.isRequired,
 };
 
 export class StatusMessages extends React.PureComponent {
@@ -45,7 +45,11 @@ export class StatusMessages extends React.PureComponent {
     return (
       <div key={status.id} className="alert alert-danger">
         {status.message}
-        <button key={status.id} className="close" onClick={() => this.handleButtonClick(status)}>
+        <button
+          key={status.id}
+          className="close"
+          onClick={() => this.handleButtonClick(status)}
+        >
           ×
         </button>
       </div>
@@ -56,7 +60,11 @@ export class StatusMessages extends React.PureComponent {
     return (
       <div key={status.id} className="alert alert-info">
         {status.message}
-        <button key={status.id} className="close" onClick={() => this.handleButtonClick(status)}>
+        <button
+          key={status.id}
+          className="close"
+          onClick={() => this.handleButtonClick(status)}
+        >
           ×
         </button>
       </div>
@@ -67,7 +75,11 @@ export class StatusMessages extends React.PureComponent {
     return (
       <div key={status.id} className="alert alert-warning">
         {status.message}
-        <button key={status.id} className="close" onClick={() => this.handleButtonClick(status)}>
+        <button
+          key={status.id}
+          className="close"
+          onClick={() => this.handleButtonClick(status)}
+        >
           ×
         </button>
       </div>
@@ -75,39 +87,36 @@ export class StatusMessages extends React.PureComponent {
   }
 
   render() {
-      const { statusMessages } = this.props;
-      let elements = <></>;
-      if (statusMessages && statusMessages.statusMessages) {
-        elements = statusMessages.statusMessages.map((status) => {
-          switch (status.statusType) {
-              case Actions.STATUS_TYPE.INFO:
-                  return this.renderInfoContainer(status);
-              case Actions.STATUS_TYPE.WARNING:
-                  return this.renderWarningContainer(status);
-              case Actions.STATUS_TYPE.ERROR:
-                  return this.renderErrorContainer(status);
-              default:
-                  return <></>;
-          }
-        });
-      }
-  return <div className="alert-container">{elements}</div>;
+    const { statusMessages } = this.props;
+    let elements = <></>;
+    if (statusMessages && statusMessages.statusMessages) {
+      elements = statusMessages.statusMessages.map(status => {
+        switch (status.statusType) {
+          case Actions.STATUS_TYPE.INFO:
+            return this.renderInfoContainer(status);
+          case Actions.STATUS_TYPE.WARNING:
+            return this.renderWarningContainer(status);
+          case Actions.STATUS_TYPE.ERROR:
+            return this.renderErrorContainer(status);
+          default:
+            return <></>;
+        }
+      });
+    }
+    return <div className="alert-container">{elements}</div>;
   }
 }
 
 StatusMessages.propTypes = propTypes;
 
 function mapStateToProps({ statusMessages }) {
-    return { statusMessages };
+  return { statusMessages };
 }
 
 function mapDispatchToProps(dispatch) {
-    return {
-        actions: bindActionCreators(Actions, dispatch),
-    };
+  return {
+    actions: bindActionCreators(Actions, dispatch),
+  };
 }
 
-export default connect(
-mapStateToProps,
-mapDispatchToProps,
-)(StatusMessages);
+export default connect(mapStateToProps, mapDispatchToProps)(StatusMessages);
