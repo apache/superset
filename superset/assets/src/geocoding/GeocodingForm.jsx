@@ -52,6 +52,7 @@ export class GeocodingForm extends React.Component {
       streetColumn: undefined,
       cityColumn: undefined,
       countryColumn: undefined,
+      buildingNumberColumn: undefined,
       longitudeColumnName: 'lon',
       latitudeColumnName: 'lat',
       geocoder: { label: 'Maptiler', value: 'maptiler' },
@@ -96,7 +97,10 @@ export class GeocodingForm extends React.Component {
   }
 
   getGeocoders() {
-    return [{ label: 'Maptiler', value: 'maptiler' }, { label: 'Google', value: 'google' }];
+    return [
+      { label: 'Maptiler', value: 'maptiler' },
+      { label: 'Google', value: 'google' },
+    ];
   }
 
   setDatasource(datasource) {
@@ -110,6 +114,7 @@ export class GeocodingForm extends React.Component {
       streetColumn: undefined,
       cityColumn: undefined,
       countryColumn: undefined,
+      buildingNumberColumn: undefined,
     });
   }
 
@@ -129,6 +134,7 @@ export class GeocodingForm extends React.Component {
       streetColumn,
       cityColumn,
       countryColumn,
+      buildingNumberColumn,
       geocoder,
       longitudeColumnName,
       latitudeColumnName,
@@ -144,7 +150,12 @@ export class GeocodingForm extends React.Component {
         },
         isLoading: false,
       });
-    } else if (!streetColumn && !cityColumn && !countryColumn) {
+    } else if (
+      !streetColumn &&
+      !cityColumn &&
+      !countryColumn &&
+      !buildingNumberColumn
+    ) {
       this.setState({
         validation: {
           message: 'At least one column needs to be selected',
@@ -159,6 +170,9 @@ export class GeocodingForm extends React.Component {
         streetColumn: streetColumn ? streetColumn.value : undefined,
         cityColumn: cityColumn ? cityColumn.value : undefined,
         countryColumn: countryColumn ? countryColumn.value : undefined,
+        buildingNumberColumn: buildingNumberColumn
+          ? buildingNumberColumn.value
+          : undefined,
         longitudeColumnName,
         latitudeColumnName,
         overwriteIfExists: overwriteIfExists.value,
@@ -257,6 +271,29 @@ export class GeocodingForm extends React.Component {
                           value={this.state.countryColumn}
                           helpText={t(
                             'Name of the column where the country is stored.',
+                          )}
+                          disabled={!this.state.datasource}
+                        />
+                      </td>
+                    </tr>
+                    <tr
+                      className={
+                        this.state.datasource ? null : 'disable-component'
+                      }
+                    >
+                      <td className="col-lg-2">
+                        {t('Building number column')}
+                      </td>
+                      <td>
+                        <FormSelect
+                          id={'buildingNumberColumn'}
+                          options={this.getColumnList()}
+                          onChange={value =>
+                            this.setPropertyValue('buildingNumberColumn', value)
+                          }
+                          value={this.state.countryColumn}
+                          helpText={t(
+                            'Name of the column where the building number is stored.',
                           )}
                           disabled={!this.state.datasource}
                         />
@@ -362,8 +399,13 @@ export class GeocodingForm extends React.Component {
                 </table>
               </div>
               <div className="well well-sm">
-                <Button bsStyle="primary" onClick={this.handleSubmit} disabled={this.state.isLoading} >
-                  {this.state.isLoading ? t('Sending...') : t('Geocode')} <i className="fa fa-globe" />
+                <Button
+                  bsStyle="primary"
+                  onClick={this.handleSubmit}
+                  disabled={this.state.isLoading}
+                >
+                  {this.state.isLoading ? t('Sending...') : t('Geocode')}{' '}
+                  <i className="fa fa-globe" />
                 </Button>
                 <Button href="/back">
                   {t('Back')} <i className="fa fa-arrow-left" />

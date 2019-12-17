@@ -143,6 +143,8 @@ class Geocoder(BaseSupersetView):
             columns.append(request.json.get("cityColumn"))
         if request_data.get("countryColumn"):
             columns.append(request.json.get("countryColumn"))
+        if request_data.get("buildingNumberColumn"):
+            columns.append(request_data.get("buildingNumberColumn"))
         if_exists = request_data.get("overwriteIfExists")
         lat_column = request_data.get("latitudeColumnName", "lat")
         lon_column = request_data.get("longitudeColumnName", "lon")
