@@ -387,7 +387,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def create_and_fill_table_from_csv(
-        cls, form_data: MultiDict, csv_filename: str, database: Database
+        cls, form_data: MultiDict, csv_filename: str, database
     ) -> None:
         """ import the data in the csv-file into the given table
 
