@@ -22,6 +22,7 @@ from urllib import parse
 
 import sqlalchemy as sqla
 from flask_appbuilder import Model
+from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
 from markupsafe import escape, Markup
 from sqlalchemy import (
