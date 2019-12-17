@@ -2444,7 +2444,7 @@ class Superset(BaseSupersetView):
         rendered_query: str,
         query: Query,
         expand_data: bool,
-        log_params: Dict[str, Any] = None,
+        log_params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
             Send SQL JSON query to celery workers
@@ -2495,7 +2495,7 @@ class Superset(BaseSupersetView):
         rendered_query: str,
         query: Query,
         expand_data: bool,
-        log_params: Dict[str, Any] = None,
+        log_params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
             Execute SQL query (sql json)
@@ -2545,7 +2545,7 @@ class Superset(BaseSupersetView):
         }
         return self.sql_json_exec(request.json, log_params)
 
-    def sql_json_exec(self, query_params: dict, log_params: dict = None):
+    def sql_json_exec(self, query_params: dict, log_params: Optional[Dict[str, Any]] = None):
         """Runs arbitrary sql and returns data as json"""
         # Collect Values
         database_id: int = cast(int, query_params.get("database_id"))
