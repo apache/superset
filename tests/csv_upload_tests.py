@@ -19,11 +19,12 @@ import os
 import unittest
 
 import sqlalchemy_utils
+from flask import g
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.datastructures import FileStorage
 
 import superset.models.core as models
-from superset import db
+from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
     DatabaseAlreadyExistException,
@@ -58,6 +59,8 @@ class CsvUploadTests(SupersetTestCase):
 
     def setUp(self):
         self.login()
+        admin_user = security_manager.find_user(username="admin")
+        g.user = admin_user
 
     def tearDown(self):
         self.logout()
@@ -71,10 +74,14 @@ class CsvUploadTests(SupersetTestCase):
         test_file = open(filename, "rb")
         return test_file
 
-    def get_existing_db_id(self):
+    def get_existing_db(self):
         example_db = utils.get_example_database()
         example_db.allow_csv_upload = True
         db.session.commit()
+        return example_db
+
+    def get_existing_db_id(self):
+        example_db = self.get_existing_db()
         return example_db.id
 
     def get_full_data(
@@ -362,19 +369,18 @@ class CsvUploadTests(SupersetTestCase):
             os.remove(path)
             os.remove(filename)
 
-    def test_create_table_in_superset(self):
+    def test_create_table_in_superset_fail(self):
         table_name = "newTable"
         example_db = utils.get_example_database()
-        table = self.importer._create_table_in_superset(table_name, example_db, None)
-        assert table.table_name == table_name
-        assert table.database == example_db
+        error_message = f"Table {table_name} could not be created."
+        with self.assertRaisesRegex(TableCreationException, error_message):
+            self.importer._create_table_in_superset(table_name, example_db, None)
 
     def test_schema_is_not_allowed(self):
         filename = "not_allowed_schema.csv"
         schema = "mySchema"
         db_name = "not_allowed_schema"
         table_name = "schema_not_allowed"
-        table = SqlaTable(table_name=table_name)
         try:
             form_data = self.get_full_data(
                 filename, NEW_DATABASE_ID, db_name, table_name, schema
@@ -386,7 +392,7 @@ class CsvUploadTests(SupersetTestCase):
             )
             with self.assertRaisesRegex(TableCreationException, error_message):
                 self.importer._create_and_fill_table_on_system(
-                    form_data, table, filename
+                    form_data, self.get_existing_db(), filename
                 )
 
         finally:
