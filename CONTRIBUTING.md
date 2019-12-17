@@ -437,7 +437,7 @@ You can run the Webpack dev server (in a separate terminal from Flask), which ru
 npm run dev-server
 
 # Run the dev server on a non-default port
-npm run dev-server -- --port=9001
+npm run dev-server -- --devserverPort=9001
 
 # Run the dev server proxying to a Flask server on a non-default port
 npm run dev-server -- --supersetPort=8081

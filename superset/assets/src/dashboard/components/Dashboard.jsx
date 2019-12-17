@@ -79,7 +79,7 @@ class Dashboard extends React.PureComponent {
 
   constructor(props) {
     super(props);
-    this.appliedFilters = {};
+    this.appliedFilters = props.activeFilters || {};
   }
 
   componentDidMount() {

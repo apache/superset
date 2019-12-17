@@ -497,6 +497,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         meta = MetaData(bind=self.get_sqla_engine())
         meta.reflect()
 
+    @renders("dashboard_title")
     def dashboard_link(self) -> Markup:
         title = escape(self.dashboard_title or "<empty>")
         return Markup(f'<a href="{self.url}">{title}</a>')
