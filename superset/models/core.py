@@ -497,6 +497,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         meta = MetaData(bind=self.get_sqla_engine())
         meta.reflect()
 
+    @renders("dashboard_title")
     def dashboard_link(self) -> Markup:
         title = escape(self.dashboard_title or "<empty>")
         return Markup(f'<a href="{self.url}">{title}</a>')
@@ -766,7 +767,7 @@ class Database(
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
     database_name = Column(String(250), unique=True, nullable=False)
-    sqlalchemy_uri = Column(String(1024))
+    sqlalchemy_uri = Column(String(1024), nullable=False)
     password = Column(EncryptedType(String(1024), config["SECRET_KEY"]))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)

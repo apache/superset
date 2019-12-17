@@ -1,4 +1,3 @@
-# pylint: disable=C,R,W
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,29 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import g, redirect
-from flask_appbuilder import expose
-from flask_appbuilder.security.decorators import has_access
+"""add_not_null_to_dbs_sqlalchemy_url
 
-from superset import appbuilder, db
-from superset.models import core as models
+Revision ID: 817e1c9b09d0
+Revises: db4b49eb0782
+Create Date: 2019-12-03 10:24:16.201580
 
-from .base import BaseSupersetView
+"""
+import sqlalchemy as sa
+from alembic import op
+
+# revision identifiers, used by Alembic.
+revision = "817e1c9b09d0"
+down_revision = "89115a40e8ea"
 
 
-class Dashboard(BaseSupersetView):
-    """The base views for Superset!"""
-
-    @has_access
-    @expose("/new/")
-    def new(self):  # pylint: disable=no-self-use
-        """Creates a new, blank dashboard and redirects to it in edit mode"""
-        new_dashboard = models.Dashboard(
-            dashboard_title="[ untitled dashboard ]", owners=[g.user]
+def upgrade():
+    with op.batch_alter_table("dbs") as batch_op:
+        batch_op.alter_column(
+            "sqlalchemy_uri", existing_type=sa.VARCHAR(length=1024), nullable=False
         )
-        db.session.add(new_dashboard)
-        db.session.commit()
-        return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
 
-appbuilder.add_view_no_menu(Dashboard)
+def downgrade():
+    with op.batch_alter_table("dbs") as batch_op:
+        batch_op.alter_column(
+            "sqlalchemy_uri", existing_type=sa.VARCHAR(length=1024), nullable=True
+        )
