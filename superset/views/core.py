@@ -3021,7 +3021,6 @@ class CssTemplateAsyncModelView(CssTemplateModelView):
     list_columns = ["template_name", "css"]
 
 
-appbuilder.add_separator("Sources")
 appbuilder.add_view(
     CssTemplateModelView,
     "CSS Templates",
@@ -3064,7 +3063,6 @@ appbuilder.add_link(
     category_label=__("Sources"),
     category_icon="fa-wrench",
 )
-appbuilder.add_separator("Sources")
 
 
 @app.after_request

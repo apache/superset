@@ -25,12 +25,12 @@ const propTypes = {
   icon: PropTypes.string.isRequired,
   index: PropTypes.number.isRequired,
   url: PropTypes.string,
-  childs: PropTypes.arrayOf(
+  children: PropTypes.arrayOf(
     PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   ),
 };
 
-export default function MenuObject({ label, icon, childs, url, index }) {
+export default function MenuObject({ label, icon, children, url, index }) {
   if (url) {
     return (
       <NavItem eventKey={index} href={url}>
@@ -51,19 +51,15 @@ export default function MenuObject({ label, icon, childs, url, index }) {
       eventKey={index}
       title={navTitle}
     >
-      {childs.map((child, index1) =>
-        child === '-' ? (
-          <MenuItem key={`$${index1}`} divider />
-        ) : (
-          <MenuItem
-            key={`${child.label}`}
-            href={child.url}
-            eventKey={parseFloat(`${index}.${index1}`)}
-          >
-            <i className={`fa ${child.icon}`} />
-            &nbsp; {child.label}
-          </MenuItem>
-        ),
+      {children.map((child, index1) =>
+        <MenuItem
+          key={`${child.label}`}
+          href={child.url}
+          eventKey={parseFloat(`${index}.${index1}`)}
+        >
+          <i className={`fa ${child.icon}`} />
+          &nbsp; {child.label}
+        </MenuItem>
       )}
     </NavDropdown>
   );

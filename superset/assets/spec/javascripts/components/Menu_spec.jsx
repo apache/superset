@@ -29,7 +29,7 @@ const defaultProps = {
         name: 'Security',
         icon: 'fa-cogs',
         label: 'Security',
-        childs: [
+        children: [
           {
             name: 'List Users',
             icon: 'fa-user',
@@ -42,7 +42,7 @@ const defaultProps = {
         name: 'Sources',
         icon: 'fa-table',
         label: 'Sources',
-        childs: [
+        children: [
           {
             name: 'Tables',
             icon: 'fa-table',
