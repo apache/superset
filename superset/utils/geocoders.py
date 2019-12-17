@@ -109,7 +109,9 @@ class BaseGeocoder(object):
 
                 self.progress["progress"] = counter / len(data)
                 exceptions = 0
-
+            except NotImplementedError as e:
+                exceptions += 1
+                self.logger.exception(f"self._get_coordinates_from_address is not implemented, {e}")
             except (ConnectionError, HTTPError, Timeout, RequestException) as e:
                 exceptions += 1
                 self.logger.exception(

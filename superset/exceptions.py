@@ -122,6 +122,10 @@ class TableNotFoundException(SupersetException):
     status = 400
 
 
+class NoColumnsException(SupersetException):
+    status = 400
+
+
 class SqlSelectException(SqlException):
     status = 500
 

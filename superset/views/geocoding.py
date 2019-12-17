@@ -35,7 +35,7 @@ from superset.exceptions import (
     SqlSelectException,
     SqlUpdateException,
     TableNotFoundException,
-)
+    NoColumnsException)
 from superset.utils.geocoders import BaseGeocoder, GoogleGeocoder, MapTilerGeocoder
 
 from .base import api, BaseSupersetView, json_error_response, json_success
@@ -292,13 +292,15 @@ class Geocoder(BaseSupersetView):
         :return true if column name exists in table
         :raise TableNotFoundException: When there is no table
         """
-        if table and table.columns:
-            column_names = [column.column_name.lower() for column in table.columns]
-            return column_name.lower() in column_names
-        raise TableNotFoundException(f"Table with ID {table.id} does not exists")
+        if table:
+            if table.columns:
+                column_names = [column.column_name.lower() for column in table.columns]
+                return column_name.lower() in column_names
+            raise NoColumnsException(f"No columns found for table with ID {table.id}.")
+        raise TableNotFoundException(f"Table with ID {table.id} does not exist")
 
     def _load_data_from_columns(
-        self, id: int, columns: list, lat_column=None, lon_column=None
+        self, table_id: int, columns: list, lat_column=None, lon_column=None
     ):
         """
         Get data from columns form table
@@ -308,7 +310,7 @@ class Geocoder(BaseSupersetView):
         :raise SqlSelectException: When SELECT from given columns went wrong
         """
         try:
-            table = self._get_table_by_id(id)
+            table = self._get_table_by_id(table_id)
             full_table_name = self._get_from_clause(table)
             column_list = self._create_column_list(columns, lat_column, lon_column)
             sql = f"SELECT {column_list} FROM {full_table_name}"
@@ -371,7 +373,10 @@ class Geocoder(BaseSupersetView):
         :param data: the data to be geocoded as a list of tuples
         :return: a list of tuples containing the data and the corresponding long, lat values
         """
-        geocoder.check_api_key()
+        try:
+            geocoder.check_api_key()
+        except NotImplementedError:
+            return json_error_response("Geocoder is not implemented correctly, please contact your administrator.")
         return geocoder.geocode(data)
 
     def _add_lat_lon_columns(
@@ -419,11 +424,11 @@ class Geocoder(BaseSupersetView):
         """
         column = Column(column_name, column_type)
         name = column.compile(column_name, dialect=db.engine.dialect)
-        type = column.type.compile(db.engine.dialect)
-        sql = text(f"ALTER TABLE {self._get_from_clause(table)} ADD {name} {type}")
+        col_type = column.type.compile(db.engine.dialect)
+        sql = text(f"ALTER TABLE {self._get_from_clause(table)} ADD {name} {col_type}")
         connection.execute(sql)
 
-        table.columns.append(TableColumn(column_name=column_name, type=type))
+        table.columns.append(TableColumn(column_name=column_name, type=col_type))
 
     def _insert_geocoded_data(
         self,
