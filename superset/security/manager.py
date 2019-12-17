@@ -910,7 +910,7 @@ class SupersetSecurityManager(SecurityManager):
                 for f in table.row_level_security_filters
                 if any(r.id in roles for r in f.roles)
             ]
-            ids.sort()
+            ids.sort()  # Combinations rather than permutations
             return ids
         except AttributeError:
             return []

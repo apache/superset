@@ -1190,7 +1190,7 @@ RLSFilterRoles = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
-    Column("rlsfilter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
 )
 
 
