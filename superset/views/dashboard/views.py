@@ -101,6 +101,7 @@ class Dashboard(BaseSupersetView):
         db.session.commit()
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
+    @has_access
     @expose("/list/")
     def list_all(self):
         payload = {
