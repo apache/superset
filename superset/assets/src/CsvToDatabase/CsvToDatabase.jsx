@@ -51,8 +51,14 @@ export class CsvToDatabase extends React.PureComponent {
       selectedConnection: { label: t('In a new database'), value: -1 },
       schema: undefined,
       delimiter: ',',
+      selectedTableExists: { label: t('Fail'), value: 'Fail' },
       headerRow: '0',
       decimalCharacter: '.',
+      tableExistsValues: [
+        { label: t('Fail'), value: 'Fail' },
+        { label: t('Replace'), value: 'Replace' },
+        { label: t('Append'), value: 'Append' },
+      ],
       databaseFlavorValues: [
           { label: t('SQLite'), value: 'sqlite' },
           { label: t('PostgreSQL'), value: 'postgresql' },
@@ -70,6 +76,7 @@ export class CsvToDatabase extends React.PureComponent {
     };
     this.setFile = this.setFile.bind(this);
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
+    this.setTableExists = this.setTableExists.bind(this);
     this.setDatabaseFlavor = this.setDatabaseFlavor.bind(this);
     this.setUserInput = this.setUserInput.bind(this);
     this.getConnectionStrings = this.getConnectionStrings.bind(this);
@@ -104,6 +111,10 @@ export class CsvToDatabase extends React.PureComponent {
     if (schemas.length > 0) {
       this.setState({ schema: schemas[0] });
     }
+  }
+
+  setTableExists(value) {
+    this.setState({ selectedTableExists: value });
   }
 
   setDatabaseFlavor(value) {
@@ -158,6 +169,7 @@ export class CsvToDatabase extends React.PureComponent {
       selectedConnection,
       schema,
       delimiter,
+      selectedTableExists,
       headerRow,
       decimalCharacter,
       indexColumn,
@@ -179,7 +191,7 @@ export class CsvToDatabase extends React.PureComponent {
       databaseFlavor: selectedConnection.value === -1 ? selectedDatabaseFlavor.value : '',
       schema: schema ? schema.value : '',
       delimiter,
-      ifTableExists: 'Fail',
+      ifTableExists: selectedTableExists.value,
       headerRow,
       decimalCharacter,
       indexColumn,
@@ -337,6 +349,22 @@ export class CsvToDatabase extends React.PureComponent {
                           value={this.state.delimiter}
                           onChange={this.setUserInput}
                           helpText={t('Delimiter used by CSV file (for whitespace use \\s++)')}
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="col-lg-2">
+                        {t('Table Exists')} <Asterisk />
+                      </td>
+                      <td>
+                        <FormSelect
+                          id={'tableExists'}
+                          required
+                          value={this.state.selectedTableExists}
+                          onChange={this.setTableExists}
+                          options={this.state.tableExistsValues}
+                          clearable={false}
+                          helpText={t('If table exists do one of the following: Fail (do nothing), Replace (drop and recreate table) or Append (insert data)')}
                         />
                       </td>
                     </tr>

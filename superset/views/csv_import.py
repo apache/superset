@@ -35,7 +35,6 @@ from werkzeug.utils import secure_filename
 from superset import app, appbuilder, conf, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import (
-    CsvException,
     DatabaseAlreadyExistException,
     DatabaseCreationException,
     DatabaseDeletionException,
@@ -52,7 +51,13 @@ from superset.exceptions import (
 from superset.models.core import Database, DatabaseDto
 from superset.utils import core as utils
 
-from .base import api, BaseSupersetView, json_error_response, json_success
+from .base import (
+    api,
+    BaseSupersetView,
+    common_bootstrap_payload,
+    json_error_response,
+    json_success,
+)
 
 STATS_LOGGER = app.config["STATS_LOGGER"]
 LOGGER = logging.getLogger(__name__)
@@ -78,7 +83,7 @@ class CsvImporter(BaseSupersetView):
         """
         bootstrap_data = {
             "databases": self._allow_csv_upload_databases(),
-            "common": self.common_bootstrap_payload(),
+            "common": common_bootstrap_payload(),
         }
 
         if strtobool(request.args.get("json", "False")):
@@ -150,12 +155,12 @@ class CsvImporter(BaseSupersetView):
             db_flavor = form_data.get("databaseFlavor", SQLITE)
             database_id = self._convert_database_id(form_data.get("connectionId"))
             table_name = self._clean_name(form_data.get("tableName", ""), "Table")
-            self._check_table_name(table_name)
+            fail_if_table_exists = form_data.get("ifTableExists", "Fail")
+            self._check_table_name(table_name, fail_if_table_exists == "Fail")
+            schema = form_data.get("schema") or None
 
             if database_id != NEW_DATABASE_ID:
-                database = self._get_existing_database(
-                    database_id, form_data.get("schema") or None
-                )
+                database = self._get_existing_database(database_id, schema)
                 db_name = database.database_name
             else:
                 db_name = self._clean_name(
@@ -164,10 +169,9 @@ class CsvImporter(BaseSupersetView):
                 self._check_database_name(db_name)
                 database, db_uri = self._create_database(db_name, db_flavor)
 
-            table = self._create_table(table_name, database)
-
             csv_path = self._check_and_save_csv(csv_file, csv_filename)
-            self._fill_table(form_data, table, csv_filename)
+            self._create_and_fill_table_on_system(form_data, database, csv_filename)
+            self._create_table_in_superset(table_name, database, schema)
         except (
             NameNotAllowedException,
             DatabaseFileAlreadyExistsException,
@@ -236,12 +240,18 @@ class CsvImporter(BaseSupersetView):
             )
             raise DatabaseFileAlreadyExistsException(message, e)
 
-    def _check_table_name(self, table_name: str) -> None:
+    def _check_table_name(self, table_name: str, fail_if_table_exists: bool) -> None:
         """ Check if table name is alredy in use
         :param table_name: the name of the table to check
-        :return: False if table name is not in use or otherwise TableNameInUseException
+        :param fail_if_table_exists: only check table name if table exists has 'Fail' as value
+        :return: TableNameInUseException if table name is in use
         """
-        if db.session.query(SqlaTable).filter_by(table_name=table_name).one_or_none():
+        if (
+            fail_if_table_exists
+            and db.session.query(SqlaTable)
+            .filter_by(table_name=table_name)
+            .one_or_none()
+        ):
             message = _(
                 f"Table name {table_name} already exists. Please choose another"
             )
@@ -460,7 +470,9 @@ class CsvImporter(BaseSupersetView):
             )
         return path
 
-    def _create_table(self, table_name: str, database: Database) -> SqlaTable:
+    def _create_table_in_superset(
+        self, table_name: str, database: Database, schema
+    ) -> SqlaTable:
         """ Create the Table itself
 
         Keyword arguments:
@@ -472,14 +484,32 @@ class CsvImporter(BaseSupersetView):
                                      2. If the Table could not be created in the database
         """
         try:
-            table = SqlaTable(table_name=table_name)
-            table.database = database
-            table.database_id = table.database.id
+            table = (
+                db.session.query(SqlaTable)
+                .filter_by(
+                    table_name=table_name, schema=schema, database_id=database.id
+                )
+                .one_or_none()
+            )
+            if table:
+                table.fetch_metadata()
+            if not table:
+                table = SqlaTable(table_name=table_name)
+                table.database = database
+                table.database_id = database.id
+                table.user_id = g.user.id
+                table.schema = schema
+                table.fetch_metadata()
+                db.session.add(table)
+            db.session.commit()
+
             return table
         except Exception as e:
             raise TableCreationException(f"Table {table_name} could not be created.", e)
 
-    def _fill_table(self, form_data: dict, table: SqlaTable, csv_filename: str) -> None:
+    def _create_and_fill_table_on_system(
+        self, form_data: dict, database: Database, csv_filename: str
+    ) -> None:
         """ Fill the table with the data from the csv file
 
         Keyword arguments:
@@ -491,8 +521,8 @@ class CsvImporter(BaseSupersetView):
             TableCreationException:  If the data could not be inserted into the table
         """
         try:
-            table.database.db_engine_spec.create_and_fill_table_from_csv(
-                form_data, table, csv_filename, table.database
+            database.db_engine_spec.create_and_fill_table_from_csv(
+                form_data, csv_filename, database
             )
         except Exception as e:
             raise TableCreationException(

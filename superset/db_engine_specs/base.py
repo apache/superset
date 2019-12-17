@@ -38,7 +38,7 @@ from sqlalchemy.types import TypeEngine
 from werkzeug.utils import secure_filename
 from wtforms_json import MultiDict
 
-from superset import app, sql_parse
+from superset import app, db, sql_parse
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -387,13 +387,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def create_and_fill_table_from_csv(
-        cls, form_data: MultiDict, table, csv_filename: str, database
+        cls, form_data: MultiDict, csv_filename: str, database: Database
     ) -> None:
         """ import the data in the csv-file into the given table
 
         Keyword arguments:
             form_data -- dictionary containing the properties for the import
-            table -- the SqlaTable object into which the data should be imported
             csv_filename -- the name of the csv file
            database -- Database model object for the target database
         Raises:
@@ -440,12 +439,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "chunksize": 10000,
         }
         cls.df_to_sql(**df_to_sql_kwargs)
-
-        table.user_id = g.user.id
-        table.schema = form_data.get("schema") or None
-        table.fetch_metadata()
-        db.session.add(table)
-        db.session.commit()
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:

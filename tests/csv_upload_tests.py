@@ -359,7 +359,7 @@ class CsvUploadTests(SupersetTestCase):
     def test_create_table(self):
         table_name = "newTable"
         example_db = utils.get_example_database()
-        table = self.importer._create_table(table_name, example_db)
+        table = self.importer._create_table_in_superset(table_name, example_db)
         assert table.table_name == table_name
         assert table.database == example_db
 
@@ -379,7 +379,9 @@ class CsvUploadTests(SupersetTestCase):
                 f"This could be an issue with the schema, a connection issue, etc."
             )
             with self.assertRaisesRegex(TableCreationException, error_message):
-                self.importer._fill_table(form_data, table, filename)
+                self.importer._create_and_fill_table_on_system(
+                    form_data, table, filename
+                )
 
         finally:
             os.remove(filename)
