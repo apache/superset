@@ -25,12 +25,12 @@ const propTypes = {
   icon: PropTypes.string.isRequired,
   index: PropTypes.number.isRequired,
   url: PropTypes.string,
-  children: PropTypes.arrayOf(
+  childs: PropTypes.arrayOf(
     PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   ),
 };
 
-export default function MenuObject({ label, icon, children, url, index }) {
+export default function MenuObject({ label, icon, childs, url, index }) {
   if (url) {
     return (
       <NavItem eventKey={index} href={url}>
@@ -51,7 +51,7 @@ export default function MenuObject({ label, icon, children, url, index }) {
       eventKey={index}
       title={navTitle}
     >
-      {children.map((child, index1) =>
+      {childs.map((child, index1) =>
         <MenuItem
           key={`${child.label}`}
           href={child.url}
