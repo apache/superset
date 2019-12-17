@@ -17,9 +17,10 @@
 # pylint: disable=C,R,W
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from typing import cast, Optional
+
 from flask import g, request, Response
 from flask_appbuilder import expose
-from typing import cast, Optional
 
 import superset.models.core as models
 from superset import app, appbuilder, event_logger, security_manager
