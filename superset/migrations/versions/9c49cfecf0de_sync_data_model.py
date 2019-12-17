@@ -35,11 +35,27 @@ def upgrade():
     with op.batch_alter_table("annotation") as batch_op:
         batch_op.alter_column("layer_id", existing_type=sa.INTEGER(), nullable=False)
 
-    with op.batch_alter_table("datasources"):
-        op.create_foreign_key(None, "datasources", "ab_user", ["changed_by_fk"], ["id"])
+    try:
+        op.create_foreign_key(
+            "datasources_changed_by_fk",
+            "datasources",
+            "ab_user",
+            ["changed_by_fk"],
+            ["id"],
+        )
+    except Exception:
+        # We're on SQLite which doesn't support constraint changes on existing tables
+        pass
 
 
 def downgrade():
-    op.drop_constraint(None, "datasources", type_="foreignkey")
     with op.batch_alter_table("annotation") as batch_op:
         op.alter_column("layer_id", existing_type=sa.INTEGER(), nullable=True)
+
+    try:
+        op.drop_constraint(
+            "datasources_changed_by_fk", "datasources", type_="foreignkey"
+        )
+    except Exception:
+        # We're on SQLite which doesn't support constraint changes on existing tables
+        pass

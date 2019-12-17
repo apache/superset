@@ -348,11 +348,7 @@ class SqlaTable(Model, BaseDatasource):
     owner_class = security_manager.user_model
 
     __tablename__ = "tables"
-    __table_args__ = (
-        UniqueConstraint(
-            "database_id", "schema", "table_name", name="_customer_location_uc"
-        ),
-    )
+    __table_args__ = (UniqueConstraint("database_id", "table_name"),)
 
     table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
