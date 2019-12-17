@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import '../../../stylesheets/less/variables.less';
 
 #main-menu {
   .navbar .caret {
@@ -24,6 +25,14 @@
     &:before {
       position: relative;
       top: -2px;
+    }
+  }
+  .version-info {
+    padding: 5px 20px;
+    color: @gray-heading;
+    font-size: @font-size-xs;
+    div {
+      white-space: nowrap;
     }
   }
 }
