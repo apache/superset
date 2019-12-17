@@ -482,7 +482,6 @@ class KV(BaseSupersetView):
     @has_access_api
     @expose("/<key_id>/", methods=["GET"])
     def get_value(self, key_id):
-        kv = None
         try:
             kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()
             if not kv:
@@ -502,7 +501,7 @@ class R(BaseSupersetView):
     @event_logger.log_this
     @expose("/<url_id>")
     def index(self, url_id):
-        url = db.session.query(models.Url).filter_by(id=url_id).first()
+        url = db.session.query(models.Url).get(url_id)
         if url and url.url:
             explore_url = "//superset/explore/?"
             if url.url.startswith(explore_url):
@@ -1170,7 +1169,6 @@ class Superset(BaseSupersetView):
                 .filter_by(id=int(request.args.get("save_to_dashboard_id")))
                 .one()
             )
-
             # check edit dashboard permissions
             dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
             if not dash_overwrite_perm:
@@ -1251,7 +1249,7 @@ class Superset(BaseSupersetView):
             for name, source in ConnectorRegistry.sources.items()
         }
         model = modelview_to_model[model_view]
-        col = db.session.query(model).filter_by(id=id_).first()
+        col = db.session.query(model).get(id_)
         checked = value == "true"
         if col:
             setattr(col, attr, checked)
@@ -1268,7 +1266,7 @@ class Superset(BaseSupersetView):
     def schemas(self, db_id, force_refresh="false"):
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == "true"
-        database = db.session.query(models.Database).filter_by(id=db_id).first()
+        database = db.session.query(models.Database).get(db_id)
         if database:
             schemas = database.get_all_schema_names(
                 cache=database.schema_cache_enabled,
@@ -1382,9 +1380,7 @@ class Superset(BaseSupersetView):
         session = db.session()
         data = json.loads(request.form.get("data"))
         dash = models.Dashboard()
-        original_dash = (
-            session.query(models.Dashboard).filter_by(id=dashboard_id).first()
-        )
+        original_dash = session.query(models.Dashboard).get(dashboard_id)
 
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data["dashboard_title"]
@@ -1429,7 +1425,7 @@ class Superset(BaseSupersetView):
     def save_dash(self, dashboard_id):
         """Save a dashboard's metadata"""
         session = db.session()
-        dash = session.query(models.Dashboard).filter_by(id=dashboard_id).first()
+        dash = session.query(models.Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form.get("data"))
         self._set_dash_metadata(dash, data)
@@ -1513,8 +1509,8 @@ class Superset(BaseSupersetView):
         """Add and save slices to a dashboard"""
         data = json.loads(request.form.get("data"))
         session = db.session()
-        Slice = models.Slice
-        dash = session.query(models.Dashboard).filter_by(id=dashboard_id).first()
+        Slice = models.Slice  # noqa
+        dash = session.query(models.Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         new_slices = session.query(Slice).filter(Slice.id.in_(data["slice_ids"]))
         dash.slices += new_slices
@@ -1540,7 +1536,7 @@ class Superset(BaseSupersetView):
                 existing_database = (
                     db.session.query(models.Database)
                     .filter_by(database_name=db_name)
-                    .first()
+                    .one_or_none()
                 )
                 if existing_database and uri == existing_database.safe_sqlalchemy_uri():
                     uri = existing_database.sqlalchemy_uri_decrypted
@@ -1837,7 +1833,7 @@ class Superset(BaseSupersetView):
                     models.Database.database_name == db_name
                     or SqlaTable.table_name == table_name
                 )
-            ).first()
+            ).one_or_none()
             if not table:
                 return json_error_response(
                     __(
@@ -2085,7 +2081,9 @@ class Superset(BaseSupersetView):
             logging.error(err_msg)
             return json_error_response(err_msg)
         cluster = (
-            db.session.query(DruidCluster).filter_by(cluster_name=cluster_name).first()
+            db.session.query(DruidCluster)
+            .filter_by(cluster_name=cluster_name)
+            .one_or_none()
         )
         if not cluster:
             err_msg = __(
@@ -2108,10 +2106,15 @@ class Superset(BaseSupersetView):
         SqlaTable = ConnectorRegistry.sources["table"]
         data = json.loads(request.form.get("data"))
         table_name = data.get("datasourceName")
-        table = db.session.query(SqlaTable).filter_by(table_name=table_name).first()
+        database_id = data.get("dbId")
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, table_name=table_name)
+            .one_or_none()
+        )
         if not table:
             table = SqlaTable(table_name=table_name, owners=[g.user])
-        table.database_id = data.get("dbId")
+        table.database_id = database_id
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")
         table.is_sqllab_view = True
@@ -2217,7 +2220,7 @@ class Superset(BaseSupersetView):
     @expose("/select_star/<database_id>/<table_name>/<schema>")
     @event_logger.log_this
     def select_star(self, database_id, table_name, schema=None):
-        mydb = db.session.query(models.Database).filter_by(id=database_id).first()
+        mydb = db.session.query(models.Database).get(database_id)
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
         return json_success(
@@ -2229,7 +2232,7 @@ class Superset(BaseSupersetView):
     @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])
     @event_logger.log_this
     def estimate_query_cost(self, database_id: int, schema: str = None) -> Response:
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one_or_none()
+        mydb = db.session.query(models.Database).get(database_id)
 
         sql = json.loads(request.form.get("sql", '""'))
         template_params = json.loads(request.form.get("templateParams") or "{}")
@@ -2580,7 +2583,7 @@ class Superset(BaseSupersetView):
         status: str = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).one_or_none()
+        mydb = session.query(models.Database).get(database_id)
         if not mydb:
             return json_error_response(f"Database with id {database_id} is missing.")
 
