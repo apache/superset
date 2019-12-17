@@ -16,35 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
+import { t } from '@superset-ui/translation';
 import moment from 'moment';
-import { Panel, Modal, Button } from 'react-bootstrap';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { Button, Modal, Panel } from 'react-bootstrap';
 import ListView from 'src/components/ListView/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 import './DashboardList.less';
 const PAGE_SIZE = 25;
 
-type Props = {
+interface Props {
   addDangerToast: (msg: string) => void;
-};
+}
 
-type State = {
+interface State {
   dashboards: any[];
   dashboard_count: number;
   loading: boolean;
   showDeleteModal: boolean;
   deleteCandidate: any;
-};
+}
 class DashboardTable extends React.PureComponent<Props, State> {
-  static propTypes = {
+  public static propTypes = {
     addDangerToast: PropTypes.func.isRequired,
   };
 
-  state: State = {
+  public state: State = {
     dashboards: [],
     dashboard_count: 0,
     loading: false,
@@ -52,7 +52,7 @@ class DashboardTable extends React.PureComponent<Props, State> {
     deleteCandidate: {},
   };
 
-  columns = [
+  public columns = [
     {
       accessor: 'dashboard_title',
       // id: 'dashboard_title',
@@ -126,20 +126,20 @@ class DashboardTable extends React.PureComponent<Props, State> {
     },
   ];
 
-  initialSort = [{ id: 'changed_on', desc: true }];
+  public initialSort = [{ id: 'changed_on', desc: true }];
 
-  handleDashboardEdit = ({ id }: { id: number }) => {
+  public handleDashboardEdit = ({ id }: { id: number }) => {
     window.location.assign(`/dashboard/edit/${id}`);
   };
 
-  handleDashboardDeleteConfirm = (dashboard: any) => {
+  public handleDashboardDeleteConfirm = (dashboard: any) => {
     this.setState({
       deleteCandidate: dashboard,
       showDeleteModal: true,
     });
   };
 
-  handleDashboardDelete = () => {
+  public handleDashboardDelete = () => {
     const { id, title } = this.state.deleteCandidate;
     SupersetClient.delete({
       endpoint: `/api/v1/dashboard/${id}`,
@@ -160,11 +160,11 @@ class DashboardTable extends React.PureComponent<Props, State> {
     );
   };
 
-  toggleModal = () => {
+  public toggleModal = () => {
     this.setState({ showDeleteModal: !this.state.showDeleteModal });
   };
 
-  fetchData = ({ pageIndex, pageSize, sortBy, filters }) => {
+  public fetchData = ({ pageIndex, pageSize, sortBy, filters }) => {
     this.setState({ loading: true });
     const filterExps = Object.keys(filters).map(fk => ({
       col: fk,
@@ -194,7 +194,7 @@ class DashboardTable extends React.PureComponent<Props, State> {
       .finally(() => this.setState({ loading: false }));
   };
 
-  render() {
+  public render() {
     return (
       <div className="container welcome">
         <Panel>
@@ -208,7 +208,7 @@ class DashboardTable extends React.PureComponent<Props, State> {
             fetchData={this.fetchData}
             loading={this.state.loading}
             initialSort={this.initialSort}
-            filterable
+            filterable={true}
             filterTypes={[
               { label: 'Starts With', value: 'sw' },
               { label: 'Ends With', value: 'ew' },
@@ -223,7 +223,7 @@ class DashboardTable extends React.PureComponent<Props, State> {
         </Panel>
 
         <Modal show={this.state.showDeleteModal} onHide={this.toggleModal}>
-          <Modal.Header closeButton></Modal.Header>
+          <Modal.Header closeButton={true}></Modal.Header>
           <Modal.Body>
             Are you sure you want to delete{' '}
             {this.state.deleteCandidate.dashboard_title}?

@@ -30,7 +30,7 @@ const PAGE_SIZE = 25;
 class DashboardTable extends React.PureComponent {
   static propTypes = {
     addDangerToast: PropTypes.func.isRequired,
-    search: PropTypes.string.isRequired,
+    search: PropTypes.string,
   };
 
   state = {
@@ -38,6 +38,17 @@ class DashboardTable extends React.PureComponent {
     dashboard_count: 0,
     loading: false,
   };
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.search !== this.props.search) {
+      this.fetchDataDebounced({
+        pageSize: PAGE_SIZE,
+        pageIndex: 0,
+        sortBy: this.initialSort,
+        filters: {},
+      });
+    }
+  }
 
   columns = [
     {
@@ -47,9 +58,9 @@ class DashboardTable extends React.PureComponent {
       sortable: true,
       Cell: ({
         row: {
-          original: { url, dashboard_title },
+          original: { url, dashboard_title: dashboardTitle },
         },
-      }) => <a href={url}>{dashboard_title}</a>,
+      }) => <a href={url}>{dashboardTitle}</a>,
     },
     {
       accessor: 'changed_by_fk',
@@ -58,9 +69,9 @@ class DashboardTable extends React.PureComponent {
       sortable: true,
       Cell: ({
         row: {
-          original: { changed_by_name, changed_by_url },
+          original: { changed_by_name: changedByName, changedByUrl },
         },
-      }) => <a href={changed_by_url}>{changed_by_name}</a>,
+      }) => <a href={changedByUrl}>{changedByName}</a>,
     },
     {
       accessor: 'changed_on',
@@ -69,9 +80,9 @@ class DashboardTable extends React.PureComponent {
       sortable: true,
       Cell: ({
         row: {
-          original: { changed_on },
+          original: { changed_on: changedOn },
         },
-      }) => <span className="no-wrap">{moment(changed_on).fromNow()}</span>,
+      }) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
     },
   ];
 
@@ -128,17 +139,6 @@ class DashboardTable extends React.PureComponent {
   };
 
   fetchDataDebounced = debounce(this.fetchData, 200);
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.search !== this.props.search) {
-      this.fetchDataDebounced({
-        pageSize: PAGE_SIZE,
-        pageIndex: 0,
-        sortBy: this.initialSort,
-        filters: {},
-      });
-    }
-  }
 
   render() {
     return (
