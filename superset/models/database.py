@@ -46,17 +46,17 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import Select
 from sqlalchemy_utils import EncryptedType
 
-from superset import db_engine_specs, security_manager
+from superset import app, db_engine_specs, security_manager
 from superset.db_engine_specs.base import TimeGrain
-from superset.models.core import (
-    config,
-    custom_password_store,
-    DB_CONNECTION_MUTATOR,
-    log_query,
-    PASSWORD_MASK,
-)
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.utils import cache as cache_util, core as utils
+
+config = app.config
+custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
+log_query = config["QUERY_LOGGER"]
+
+PASSWORD_MASK = "X" * 10
+DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
 
 def names_in_schema_memoizer_key(*args, **kwargs):

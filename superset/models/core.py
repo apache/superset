@@ -58,13 +58,7 @@ if TYPE_CHECKING:
     )
 
 config = app.config
-custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
-stats_logger = config["STATS_LOGGER"]
-log_query = config["QUERY_LOGGER"]
 metadata = Model.metadata  # pylint: disable=no-member
-
-PASSWORD_MASK = "X" * 10
-DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
 
 def set_related_perm(mapper, connection, target):

@@ -40,6 +40,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
+from superset.models import database as database_module
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.views import core as views
@@ -391,7 +392,7 @@ class CoreTests(SupersetTestCase):
         def custom_password_store(uri):
             return "password_store_test"
 
-        models.custom_password_store = custom_password_store
+        database_module.custom_password_store = custom_password_store
         conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
         if conn_pre.password:
             assert conn.password == "password_store_test"
