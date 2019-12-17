@@ -59,7 +59,7 @@ PASSWORD_MASK = "X" * 10
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
 
-def names_in_schema_memoizer_key(*args, **kwargs):
+def names_in_schema_memoizer_key(**kwargs):
     return f"db:{{}}:schema:{kwargs.get('schema')}:view_list"
 
 
