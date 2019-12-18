@@ -59,7 +59,7 @@ class BaseGeocoder(object):
         relevance = geocoded[1]
         if relevance > 0.8:
             self.progress["success_counter"] += 1
-        elif relevance > 0.49:
+        elif relevance >= 0.5:
             self.progress["doubt_counter"] += 1
         else:
             self.progress["failed_counter"] += 1

@@ -112,8 +112,8 @@ class GeocodingTests(SupersetTestCase):
                 "Switzerland",
                 "Switzerland",
             ],
-            "lat": [None, None, None, None, None],
-            "lon": [None, None, None, None, None],
+            "lat": [None, None, None, None, 4.789],
+            "lon": [None, None, None, 1.234, None],
         }
         df = pd.DataFrame(data=data)
 
@@ -211,11 +211,27 @@ class GeocodingTests(SupersetTestCase):
         with self.assertRaisesRegex(TableNotFoundException, error_message):
             GeocoderApi()._get_table_with_columns(table_id)
 
-    def test_load_data_from_all_columns(self):
+    def test_load_data_from_columns_fail(self):
         table = self.test_table
         geo_columns = ["street", "city", "country"]
+        lat_column = "lat"
+        lon_column = "lon"
 
-        data = GeocoderApi()._load_data_from_columns(table, geo_columns)
+        data = GeocoderApi()._load_data_from_columns(
+            table, geo_columns, lat_column, lon_column, False
+        )
+        assert 5 == len(data)
+        assert ("Oberseestrasse 10", "Rapperswil", "Switzerland") in data
+
+    def test_load_data_from_columns_append(self):
+        table = self.test_table
+        geo_columns = ["street", "city", "country"]
+        lat_column = "lat"
+        lon_column = "lon"
+
+        data = GeocoderApi()._load_data_from_columns(
+            table, geo_columns, lat_column, lon_column, True
+        )
         assert 5 == len(data)
         assert ("Oberseestrasse 10", "Rapperswil", "Switzerland") in data
 
@@ -227,7 +243,9 @@ class GeocodingTests(SupersetTestCase):
         columns = self.test_table.columns
         number_of_columns_before = len(columns)
 
-        GeocoderApi()._create_columns(lat_column_name, False, lon_column_name, False, table)
+        GeocoderApi()._create_columns(
+            lat_column_name, False, lon_column_name, False, table
+        )
 
         columns = self.test_table.columns
         number_of_columns_after = len(columns)
