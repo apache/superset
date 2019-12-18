@@ -34,18 +34,18 @@ services:
     image: redis:3.2
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_PORT}:6379"
     volumes:
       - redis:/data
 
   db:
     env_file: docker/.env
-    image: postgres:10
+    image: "$DATABASE_IMAGE"
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5423:5423"
+      - "127.0.0.1:${DATABASE_PORT}:${DATABASE_PORT}"
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - "postgres:${DATABASE_DATADIR}"
 
   superset:
     build: *superset-build
