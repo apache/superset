@@ -281,7 +281,7 @@ class Slice(
             params["schema"],
             params["database_name"],
         )
-        slc_to_import.datasource_id = datasource.id if datasource else None
+        slc_to_import.datasource_id = datasource.id
         if slc_to_override:
             slc_to_override.override(slc_to_import)
             session.flush()

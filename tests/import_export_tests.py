@@ -22,8 +22,8 @@ import unittest
 from flask import g
 from sqlalchemy.orm.session import make_transient
 
-from superset.utils.dashboard_import_export import decode_dashboards
 from tests.test_app import app
+from superset.utils.dashboard_import_export import decode_dashboards
 from superset import db, security_manager
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
