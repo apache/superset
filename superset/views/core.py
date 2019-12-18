@@ -78,6 +78,7 @@ from superset.exceptions import (
 )
 from superset.jinja_context import get_template_processor
 from superset.models.database import Database
+from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
@@ -118,7 +119,7 @@ config = app.config
 CACHE_DEFAULT_TIMEOUT = config["CACHE_DEFAULT_TIMEOUT"]
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
 stats_logger = config["STATS_LOGGER"]
-DAR = models.DatasourceAccessRequest
+DAR = DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
 
 DATABASE_KEYS = [

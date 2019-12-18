@@ -47,10 +47,18 @@ class DashboardTable extends React.PureComponent {
       .then(({ json }) => {
         this.setState({ dashboards: json.result });
       })
-      .catch(() => {
-        this.props.addDangerToast(
-          t('An error occurred while fethching Dashboards'),
-        );
+      .catch(response => {
+        if (response.status === 401) {
+          this.props.addDangerToast(
+            t(
+              "You don't have the necessary permissions to load dashboards. Please contact your administrator.",
+            ),
+          );
+        } else {
+          this.props.addDangerToast(
+            t('An error occurred while fetching Dashboards'),
+          );
+        }
       });
   }
 
