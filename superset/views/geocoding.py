@@ -78,7 +78,7 @@ class Geocoder(BaseSupersetView):
     def _get_editable_tables(self) -> list:
         """
         Get tables which are allowed to create columns (allow dml on their database)
-        :return: list of table names
+        :return: list of dto table
         """
         tables = []
         for database in (
@@ -133,8 +133,7 @@ class Geocoder(BaseSupersetView):
     def geocode(self) -> Response:
         """
         Geocode addresses in given columns from given table
-        :return: geocoded data as list of tuples with success, doubt and failed counters as dict bundled in a list
-                 or an error message if somethings went wrong
+        :return: OK message or an error messge
         """
         request_data = request.json
         self._set_geocoder(request_data.get("geocoder", ""))
@@ -223,6 +222,11 @@ class Geocoder(BaseSupersetView):
         return json_success('"OK"')
 
     def _create_column_list(self, request_data: dict) -> list:
+        """
+        Create a list of column names from the given columns from request
+        :param request_data: data sent by the request
+        :return: list of column names
+        """
         columns = []
         street_column = request_data.get("streetColumn")
         city_column = request_data.get("cityColumn")
@@ -260,12 +264,13 @@ class Geocoder(BaseSupersetView):
         table: SqlaTable,
     ) -> None:
         """
-        Check and create the lat / lon columns if needed
-        :param if_exists: What should happen if the columns already exist
+        Create the lat / lon columns if needed
         :param lat_column: The name of the latitude column
+        :param lat_exists: True if the lat column already exists
         :param lon_column: The name of the longitude column
-        :param table_id: The id of the table
-        :return: A message describing what columns have been created or an empty message if no columns have been created
+        :param lon_exists: True if the lon column already exists
+        :param table: The table to check and add columns
+        :return: SqlAddColumnException if the alter column SQL fail
         """
 
         connection = table.database.get_sqla_engine().connect()
