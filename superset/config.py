@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """The main config file for Superset
 
 All configuration in this file can be overridden by providing a superset_config
@@ -56,25 +55,37 @@ else:
 # ---------------------------------------------------------
 PACKAGE_DIR = os.path.join(BASE_DIR, "static", "assets")
 VERSION_INFO_FILE = os.path.join(PACKAGE_DIR, "version_info.json")
-PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets" "package.json")
+PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets", "package.json")
 
 
-def _try_json_readfile(filepath):
+def _try_json_readversion(filepath):
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("version")
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         return None
 
 
-# Depending on the context in which this config is loaded, the version_info.json file
-# may or may not be available, as it is generated on install via setup.py. In the event
-# that we're actually running Superset, we will have already installed, therefore it WILL
-# exist. When unit tests are running, however, it WILL NOT exist, so we fall
-# back to reading package.json
-VERSION_STRING = _try_json_readfile(VERSION_INFO_FILE) or _try_json_readfile(
+def _try_json_readsha(filepath, length):  # pylint: disable=unused-argument
+    try:
+        with open(filepath, "r") as f:
+            return json.load(f).get("GIT_SHA")[:length]
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
+# Depending on the context in which this config is loaded, the
+# version_info.json file may or may not be available, as it is
+# generated on install via setup.py. In the event that we're
+# actually running Superset, we will have already installed,
+# therefore it WILL exist. When unit tests are running, however,
+# it WILL NOT exist, so we fall back to reading package.json
+VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversion(
     PACKAGE_JSON_FILE
 )
+
+VERSION_SHA_LENGTH = 8
+VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
@@ -83,6 +94,7 @@ FILTER_SELECT_ROW_LIMIT = 10000
 SUPERSET_WORKERS = 2  # deprecated
 SUPERSET_CELERY_WORKERS = 32  # deprecated
 
+SUPERSET_WEBSERVER_PROTOCOL = "http"
 SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"
 SUPERSET_WEBSERVER_PORT = 8088
 
@@ -93,22 +105,26 @@ SUPERSET_WEBSERVER_PORT = 8088
 SUPERSET_WEBSERVER_TIMEOUT = 60
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
-EMAIL_NOTIFICATIONS = False
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
 # Your App secret key
-SECRET_KEY = "\2\1thisismyscretkey\1\2\e\y\y\h"
+SECRET_KEY = (
+    "\2\1thisismyscretkey\1\2\e\y\y\h"  # pylint: disable=anomalous-backslash-in-string
+)
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
-# The PostgreSQL username and password used for inserting a csv into a new postgres database
+# The PostgreSQL username, password, host and port used for inserting a csv into a new
+# postgres database
 POSTGRESQL_USERNAME = os.environ.get("POSTGRESQL_USERNAME", "")
 POSTGRESQL_PASSWORD = os.environ.get("POSTGRESQL_PASSWORD", "")
+POSTGRESQL_HOST = os.environ.get("POSTGRESQL_HOST", "")
+POSTGRESQL_PORT = os.environ.get("POSTGRESQL_PORT", "")
 
 # In order to hook up a custom password store for all SQLACHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
@@ -157,6 +173,10 @@ APP_ICON_WIDTH = 126
 # e.g. setting it to '/welcome' would take the user to '/superset/welcome'
 LOGO_TARGET_PATH = None
 
+# Enables SWAGGER UI for superset openapi spec
+# ex: http://localhost:8080/swaggerview/v1
+FAB_API_SWAGGER_UI = True
+
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
 # tz.tzlocal() : Using local timezone
@@ -164,9 +184,14 @@ LOGO_TARGET_PATH = None
 # [TimeZone List]
 # See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 # other tz can be overridden by providing a local_config
-DRUID_IS_ACTIVE = True
 DRUID_TZ = tz.tzutc()
 DRUID_ANALYSIS_TYPES = ["cardinality"]
+
+# Legacy Druid connector
+# Druid supports a SQL interface in its newer versions.
+# Setting this flag to True enables the deprecated, API-based Druid
+# connector. This feature may be removed at a future date.
+DRUID_IS_ACTIVE = False
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -292,7 +317,7 @@ SUPERSET_WEBSERVER_DOMAINS = None
 
 # Allowed format types for upload on Database view
 # TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
-ALLOWED_EXTENSIONS = set(["csv"])
+ALLOWED_EXTENSIONS = {"csv", "tsv"}
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.
@@ -426,7 +451,7 @@ WARNING_MSG = None
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
 
 
-class CeleryConfig(object):
+class CeleryConfig(object):  # pylint: disable=too-few-public-methods
     BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
     CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
     CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"
@@ -450,7 +475,7 @@ class CeleryConfig(object):
     }
 
 
-CELERY_CONFIG = CeleryConfig
+CELERY_CONFIG = CeleryConfig  # pylint: disable=invalid-name
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None
@@ -496,7 +521,7 @@ RESULTS_BACKEND = None
 # rather than JSON. This feature requires additional testing from the
 # community before it is fully adopted, so this config option is provided
 # in order to disable should breaking issues be discovered.
-RESULTS_BACKEND_USE_MSGPACK = True
+RESULTS_BACKEND_USE_MSGPACK = False
 
 # The S3 bucket where you want to store your external hive tables created
 # from CSV files. For example, 'companyname-superset'
@@ -663,8 +688,11 @@ WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
+
 # Send user to a link where they can read more about Superset
 DOCUMENTATION_URL = None
+DOCUMENTATION_TEXT = "Documentation"
+DOCUMENTATION_ICON = None  # Recommended size: 16x16
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
@@ -715,7 +743,11 @@ SQLALCHEMY_EXAMPLES_URI = None
 SIP_15_ENABLED = False
 SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
 SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
-SIP_15_TOAST_MESSAGE = 'Action Required: Preview then save your chart using the new time range endpoints <a target="_blank" href="{url}" class="alert-link">here</a>.'
+SIP_15_TOAST_MESSAGE = (
+    "Action Required: Preview then save your chart using the"
+    'new time range endpoints <a target="_blank" href="{url}"'
+    'class="alert-link">here</a>.'
+)
 
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
@@ -736,7 +768,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
         raise
 elif importlib.util.find_spec("superset_config"):
     try:
-        from superset_config import *  # pylint: disable=import-error
+        from superset_config import *  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config  # pylint: disable=import-error
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")

@@ -26,7 +26,6 @@ import { t } from '@superset-ui/translation';
 import ModalTrigger from '../../components/ModalTrigger';
 import Checkbox from '../../components/Checkbox';
 import { SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
-import { safeStringify } from '../../utils/safeStringify';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -37,7 +36,6 @@ const propTypes = {
   layout: PropTypes.object.isRequired,
   saveType: PropTypes.oneOf([SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD]),
   triggerNode: PropTypes.node.isRequired,
-  filters: PropTypes.object.isRequired,
   css: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
@@ -101,7 +99,6 @@ class SaveModal extends React.PureComponent {
       colorNamespace,
       colorScheme,
       expandedSlices,
-      filters,
       dashboardId,
       refreshFrequency,
     } = this.props;
@@ -120,7 +117,6 @@ class SaveModal extends React.PureComponent {
       expanded_slices: expandedSlices,
       dashboard_title:
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
-      default_filters: safeStringify(filters),
       duplicate_slices: this.state.duplicateSlices,
       refresh_frequency: refreshFrequency,
     };

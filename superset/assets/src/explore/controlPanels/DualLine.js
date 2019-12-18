@@ -26,31 +26,22 @@ export default {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [
-        ['color_scheme', 'label_colors'],
-        ['x_axis_format'],
-      ],
+      controlSetRows: [['color_scheme', 'label_colors'], ['x_axis_format']],
     },
     {
       label: t('Y Axis 1'),
       expanded: true,
-      controlSetRows: [
-        ['metric', 'y_axis_format'],
-      ],
+      controlSetRows: [['metric', 'y_axis_format']],
     },
     {
       label: t('Y Axis 2'),
       expanded: true,
-      controlSetRows: [
-        ['metric_2', 'y_axis_2_format'],
-      ],
+      controlSetRows: [['metric_2', 'y_axis_2_format']],
     },
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [
-        ['adhoc_filters'],
-      ],
+      controlSetRows: [['adhoc_filters']],
     },
     annotations,
   ],
@@ -65,6 +56,14 @@ export default {
     x_axis_format: {
       choices: D3_TIME_FORMAT_OPTIONS,
       default: 'smart_date',
+    },
+  },
+  sectionOverrides: {
+    druidTimeSeries: {
+      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
+    },
+    sqlaTimeSeries: {
+      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
     },
   },
 };

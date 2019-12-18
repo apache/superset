@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../dashboard/stylesheets/variables.less';
+@import '../../../stylesheets/less/variables.less';
 
 .toast-presenter {
   position: fixed;
@@ -28,12 +28,12 @@
 }
 
 .toast {
-  background: white;
+  background: @lightest;
   color: @almost-black;
   opacity: 0;
   position: relative;
   white-space: pre-line;
-  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 4px 0 fade(@darkest, @opacity-medium-light);
   will-change: transform, opacity;
   transform: translateY(-100%);
   transition: transform 0.3s, opacity 0.3s;

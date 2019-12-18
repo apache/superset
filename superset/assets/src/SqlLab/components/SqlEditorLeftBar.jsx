@@ -54,10 +54,16 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, schema);
   }
   onSchemasLoad(schemas) {
-    this.props.actions.queryEditorSetSchemaOptions(this.props.queryEditor, schemas);
+    this.props.actions.queryEditorSetSchemaOptions(
+      this.props.queryEditor,
+      schemas,
+    );
   }
   onTablesLoad(tables) {
-    this.props.actions.queryEditorSetTableOptions(this.props.queryEditor, tables);
+    this.props.actions.queryEditorSetTableOptions(
+      this.props.queryEditor,
+      tables,
+    );
   }
   onDbChange(db) {
     this.props.actions.queryEditorSetDb(this.props.queryEditor, db.id);
@@ -76,7 +82,9 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     }));
     this.props.actions.setDatabases(data.result);
     if (data.result.length === 0) {
-      this.props.actions.addDangerToast(t("It seems you don't have access to any database"));
+      this.props.actions.addDangerToast(
+        t("It seems you don't have access to any database"),
+      );
     }
     return options;
   }
@@ -118,9 +126,16 @@ export default class SqlEditorLeftBar extends React.PureComponent {
         />
         <div className="divider" />
         <div className="scrollbar-container">
-          <div className="scrollbar-content" style={{ height: tableMetaDataHeight }}>
+          <div
+            className="scrollbar-content"
+            style={{ height: tableMetaDataHeight }}
+          >
             {this.props.tables.map(table => (
-              <TableElement table={table} key={table.id} actions={this.props.actions} />
+              <TableElement
+                table={table}
+                key={table.id}
+                actions={this.props.actions}
+              />
             ))}
           </div>
         </div>

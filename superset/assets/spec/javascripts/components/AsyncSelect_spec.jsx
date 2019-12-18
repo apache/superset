@@ -44,15 +44,11 @@ describe('AsyncSelect', () => {
   };
 
   it('is valid element', () => {
-    expect(
-      React.isValidElement(<AsyncSelect {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<AsyncSelect {...mockedProps} />)).toBe(true);
   });
 
   it('has one select', () => {
-    const wrapper = shallow(
-      <AsyncSelect {...mockedProps} />,
-    );
+    const wrapper = shallow(<AsyncSelect {...mockedProps} />);
     expect(wrapper.find(Select)).toHaveLength(1);
   });
 
@@ -67,13 +63,11 @@ describe('AsyncSelect', () => {
   });
 
   describe('auto select', () => {
-    it('should not call onChange if autoSelect=false', (done) => {
+    it('should not call onChange if autoSelect=false', done => {
       expect.assertions(2);
 
       const onChangeSpy = jest.fn();
-      shallow(
-        <AsyncSelect {...mockedProps} onChange={onChangeSpy} />,
-      );
+      shallow(<AsyncSelect {...mockedProps} onChange={onChangeSpy} />);
 
       setTimeout(() => {
         expect(fetchMock.calls(dataGlob)).toHaveLength(1);
@@ -82,7 +76,7 @@ describe('AsyncSelect', () => {
       });
     });
 
-    it('should auto select the first option if autoSelect=true', (done) => {
+    it('should auto select the first option if autoSelect=true', done => {
       expect.assertions(3);
 
       const onChangeSpy = jest.fn();
@@ -98,12 +92,17 @@ describe('AsyncSelect', () => {
       });
     });
 
-    it('should not auto select when value prop is set and autoSelect=true', (done) => {
+    it('should not auto select when value prop is set and autoSelect=true', done => {
       expect.assertions(3);
 
       const onChangeSpy = jest.fn();
       const wrapper = shallow(
-        <AsyncSelect {...mockedProps} value={2} onChange={onChangeSpy} autoSelect />,
+        <AsyncSelect
+          {...mockedProps}
+          value={2}
+          onChange={onChangeSpy}
+          autoSelect
+        />,
       );
 
       setTimeout(() => {
@@ -114,7 +113,7 @@ describe('AsyncSelect', () => {
       });
     });
 
-    it('should call onAsyncError if there is an error fetching options', (done) => {
+    it('should call onAsyncError if there is an error fetching options', done => {
       expect.assertions(3);
 
       const errorEndpoint = 'async/error/';
@@ -123,7 +122,11 @@ describe('AsyncSelect', () => {
 
       const onAsyncError = jest.fn();
       shallow(
-        <AsyncSelect {...mockedProps} dataEndpoint={errorEndpoint} onAsyncError={onAsyncError} />,
+        <AsyncSelect
+          {...mockedProps}
+          dataEndpoint={errorEndpoint}
+          onAsyncError={onAsyncError}
+        />,
       );
 
       setTimeout(() => {

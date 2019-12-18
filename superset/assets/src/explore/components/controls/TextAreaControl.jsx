@@ -41,7 +41,14 @@ const propTypes = {
   minLines: PropTypes.number,
   maxLines: PropTypes.number,
   offerEditInModal: PropTypes.bool,
-  language: PropTypes.oneOf([null, 'json', 'html', 'sql', 'markdown', 'javascript']),
+  language: PropTypes.oneOf([
+    null,
+    'json',
+    'html',
+    'sql',
+    'markdown',
+    'javascript',
+  ]),
   aboveEditorSection: PropTypes.node,
   readOnly: PropTypes.bool,
 };
@@ -92,7 +99,8 @@ export default class TextAreaControl extends React.Component {
           disabled={this.props.readOnly}
           style={{ height: this.props.height }}
         />
-      </FormGroup>);
+      </FormGroup>
+    );
   }
   renderModalBody() {
     return (
@@ -108,17 +116,19 @@ export default class TextAreaControl extends React.Component {
       <div>
         {controlHeader}
         {this.renderEditor()}
-        {this.props.offerEditInModal &&
+        {this.props.offerEditInModal && (
           <ModalTrigger
             bsSize="large"
             modalTitle={controlHeader}
             triggerNode={
               <Button bsSize="small" className="m-t-5">
-                {t('Edit')} <strong>{this.props.language}</strong> {t('in modal')}
+                {t('Edit')} <strong>{this.props.language}</strong>{' '}
+                {t('in modal')}
               </Button>
             }
             modalBody={this.renderModalBody(true)}
-          />}
+          />
+        )}
       </div>
     );
   }

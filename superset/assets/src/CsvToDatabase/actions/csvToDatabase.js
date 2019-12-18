@@ -18,7 +18,10 @@
  */
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
-import { addStatusMessage, STATUS_TYPE } from 'src/components/StatusMessages/actions/statusMessages';
+import {
+  addStatusMessage,
+  STATUS_TYPE,
+} from 'src/components/StatusMessages/actions/statusMessages';
 
 export function uploadCsv(data) {
   return dispatch =>
@@ -30,8 +33,8 @@ export function uploadCsv(data) {
       .then(() => {
         window.open('/tablemodelview/list/', '_self');
       })
-      .catch((response) => {
-        getClientErrorObject(response).then((error) => {
+      .catch(response => {
+        getClientErrorObject(response).then(error => {
           dispatch(addStatusMessage(error.error, STATUS_TYPE.ERROR));
         });
       });

@@ -35,43 +35,48 @@ export default {
       label: t('Options'),
       expanded: true,
       controlSetRows: [
-        [{
-          name: 'size_from',
-          config: {
-            type: 'TextControl',
-            isInt: true,
-            label: t('Minimum Font Size'),
-            renderTrigger: true,
-            default: 10,
-            description: t('Font size for the smallest value in the list'),
+        [
+          {
+            name: 'size_from',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              label: t('Minimum Font Size'),
+              renderTrigger: true,
+              default: 10,
+              description: t('Font size for the smallest value in the list'),
+            },
           },
-        }, {
-          name: 'size_to',
-          config: {
-            type: 'TextControl',
-            isInt: true,
-            label: t('Maximum Font Size'),
-            renderTrigger: true,
-            default: 70,
-            description: t('Font size for the biggest value in the list'),
+          {
+            name: 'size_to',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              label: t('Maximum Font Size'),
+              renderTrigger: true,
+              default: 70,
+              description: t('Font size for the biggest value in the list'),
+            },
           },
-        }],
-        [{
-          name: 'rotation',
-          config: {
-            type: 'SelectControl',
-            label: t('Word Rotation'),
-            choices: [
-              ['random', 'random'],
-              ['flat', 'flat'],
-              ['square', 'square'],
-            ],
-            renderTrigger: true,
-            default: 'square',
-            clearable: false,
-            description: t('Rotation to apply to words in the cloud'),
+        ],
+        [
+          {
+            name: 'rotation',
+            config: {
+              type: 'SelectControl',
+              label: t('Word Rotation'),
+              choices: [
+                ['random', 'random'],
+                ['flat', 'flat'],
+                ['square', 'square'],
+              ],
+              renderTrigger: true,
+              default: 'square',
+              clearable: false,
+              description: t('Rotation to apply to words in the cloud'),
+            },
           },
-        }],
+        ],
         ['color_scheme', 'label_colors'],
       ],
     },

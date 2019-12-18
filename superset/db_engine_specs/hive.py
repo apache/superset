@@ -23,7 +23,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
 from sqlalchemy import Column
-from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
@@ -99,8 +98,8 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def create_and_fill_table_from_csv(
-        cls, form_data: dict, table, csv_filename: str, database
-    ):  # pylint: disable=too-many-locals
+        cls, form_data: dict, csv_filename: str, database
+    ) -> None:  # pylint: disable=too-many-locals
         """Uploads a csv file and creates a superset datasource in Hive."""
 
         def convert_to_hive_type(col_type):
@@ -177,7 +176,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             TEXTFILE LOCATION '{location}'
             tblproperties ('skip.header.line.count'='1')"""
         logging.info(database)
-        engine = create_engine(database.sqlalchemy_uri_decrypted, echo=False)
+        engine = cls.get_engine(database)
         engine.execute(sql)
 
     @classmethod
@@ -356,6 +355,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         database,
         table_name: str,
         engine: Engine,
+        sql: Optional[str] = None,
         schema: str = None,
         limit: int = 100,
         show_cols: bool = False,
@@ -369,6 +369,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             database,
             table_name,
             engine,
+            sql,
             schema,
             limit,
             show_cols,

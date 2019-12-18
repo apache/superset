@@ -44,7 +44,8 @@ export default function chartReducer(charts = {}, action) {
       };
     },
     [actions.CHART_UPDATE_SUCCEEDED](state) {
-      return { ...state,
+      return {
+        ...state,
         chartStatus: 'success',
         queryResponse: action.queryResponse,
         chartAlert: null,
@@ -62,45 +63,57 @@ export default function chartReducer(charts = {}, action) {
       };
     },
     [actions.CHART_UPDATE_STOPPED](state) {
-      return { ...state,
+      return {
+        ...state,
         chartStatus: 'stopped',
         chartAlert: t('Updating chart was stopped'),
         chartUpdateEndTime: now(),
       };
     },
     [actions.CHART_RENDERING_SUCCEEDED](state) {
-      return { ...state,
-        chartStatus: 'rendered',
-        chartUpdateEndTime: now(),
-      };
+      return { ...state, chartStatus: 'rendered', chartUpdateEndTime: now() };
     },
     [actions.CHART_RENDERING_FAILED](state) {
-      return { ...state,
+      return {
+        ...state,
         chartStatus: 'failed',
         chartStackTrace: action.stackTrace,
-        chartAlert: t('An error occurred while rendering the visualization: %s', action.error),
+        chartAlert: t(
+          'An error occurred while rendering the visualization: %s',
+          action.error,
+        ),
       };
     },
     [actions.CHART_UPDATE_TIMEOUT](state) {
-      return { ...state,
+      return {
+        ...state,
         chartStatus: 'failed',
-        chartAlert: (
+        chartAlert:
           `${t('Query timeout')} - ` +
-          t(`visualization queries are set to timeout at ${action.timeout} seconds. `) +
-          t('Perhaps your data has grown, your database is under unusual load, ' +
-            'or you are simply querying a data source that is too large ' +
-            'to be processed within the timeout range. ' +
-            'If that is the case, we recommend that you summarize your data further.')),
+          t(
+            `visualization queries are set to timeout at ${action.timeout} seconds. `,
+          ) +
+          t(
+            'Perhaps your data has grown, your database is under unusual load, ' +
+              'or you are simply querying a data source that is too large ' +
+              'to be processed within the timeout range. ' +
+              'If that is the case, we recommend that you summarize your data further.',
+          ),
         chartUpdateEndTime: now(),
       };
     },
     [actions.CHART_UPDATE_FAILED](state) {
-      return { ...state,
+      return {
+        ...state,
         chartStatus: 'failed',
-        chartAlert: action.queryResponse ? action.queryResponse.error : t('Network error.'),
+        chartAlert: action.queryResponse
+          ? action.queryResponse.error
+          : t('Network error.'),
         chartUpdateEndTime: now(),
         queryResponse: action.queryResponse,
-        chartStackTrace: action.queryResponse ? action.queryResponse.stacktrace : null,
+        chartStackTrace: action.queryResponse
+          ? action.queryResponse.stacktrace
+          : null,
       };
     },
     [actions.TRIGGER_QUERY](state) {
@@ -117,8 +130,10 @@ export default function chartReducer(charts = {}, action) {
       return { ...state, latestQueryFormData: action.value };
     },
     [actions.ANNOTATION_QUERY_STARTED](state) {
-      if (state.annotationQuery &&
-        state.annotationQuery[action.annotation.name]) {
+      if (
+        state.annotationQuery &&
+        state.annotationQuery[action.annotation.name]
+      ) {
         state.annotationQuery[action.annotation.name].abort();
       }
       const annotationQuery = {
@@ -151,8 +166,9 @@ export default function chartReducer(charts = {}, action) {
       delete annotationData[action.annotation.name];
       const annotationError = {
         ...state.annotationError,
-        [action.annotation.name]: action.queryResponse ?
-          action.queryResponse.error : t('Network error.'),
+        [action.annotation.name]: action.queryResponse
+          ? action.queryResponse.error
+          : t('Network error.'),
       };
       const annotationQuery = { ...state.annotationQuery };
       delete annotationQuery[action.annotation.name];

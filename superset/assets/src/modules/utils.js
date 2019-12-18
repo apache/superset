@@ -54,9 +54,7 @@ export function formatSelectOptionsForRange(start, end) {
 }
 
 export function formatSelectOptions(options) {
-  return options.map(opt =>
-     [opt, opt.toString()],
-  );
+  return options.map(opt => [opt, opt.toString()]);
 }
 
 export function getDatasourceParameter(datasourceId, datasourceType) {
@@ -68,14 +66,16 @@ export function getParam(name) {
   const formattedName = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
   const regex = new RegExp('[\\?&]' + formattedName + '=([^&#]*)');
   const results = regex.exec(location.search);
-  return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+  return results === null
+    ? ''
+    : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
 
 export function mainMetric(savedMetrics) {
   // Using 'count' as default metric if it exists, otherwise using whatever one shows up first
   let metric;
   if (savedMetrics && savedMetrics.length > 0) {
-    savedMetrics.forEach((m) => {
+    savedMetrics.forEach(m => {
       if (m.metric_name === 'count') {
         metric = 'count';
       }

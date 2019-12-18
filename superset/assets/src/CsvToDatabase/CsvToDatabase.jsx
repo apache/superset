@@ -51,11 +51,17 @@ export class CsvToDatabase extends React.PureComponent {
       selectedConnection: { label: t('In a new database'), value: -1 },
       schema: undefined,
       delimiter: ',',
+      selectedIfTableExists: { label: t('Fail'), value: 'Fail' },
       headerRow: '0',
       decimalCharacter: '.',
+      ifTableExistsValues: [
+        { label: t('Fail'), value: 'Fail' },
+        { label: t('Replace'), value: 'Replace' },
+        { label: t('Append'), value: 'Append' },
+      ],
       databaseFlavorValues: [
-          { label: t('SQLite'), value: 'sqlite' },
-          { label: t('PostgreSQL'), value: 'postgresql' },
+        { label: t('SQLite'), value: 'sqlite' },
+        { label: t('PostgreSQL'), value: 'postgresql' },
       ],
       indexColumn: '',
       mangleDuplicateColumns: true,
@@ -70,6 +76,7 @@ export class CsvToDatabase extends React.PureComponent {
     };
     this.setFile = this.setFile.bind(this);
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
+    this.setIfTableExists = this.setIfTableExists.bind(this);
     this.setDatabaseFlavor = this.setDatabaseFlavor.bind(this);
     this.setUserInput = this.setUserInput.bind(this);
     this.getConnectionStrings = this.getConnectionStrings.bind(this);
@@ -106,6 +113,10 @@ export class CsvToDatabase extends React.PureComponent {
     }
   }
 
+  setIfTableExists(value) {
+    this.setState({ selectedIfTableExists: value });
+  }
+
   setDatabaseFlavor(value) {
     this.setState({ selectedDatabaseFlavor: value });
   }
@@ -123,22 +134,24 @@ export class CsvToDatabase extends React.PureComponent {
   getConnectionStrings() {
     const connections = [];
     this.props.databases.forEach(database =>
-      connections.push({ label: database.name, value: database.id }),
+      connections.push({ label: database.name, value: database.database_id }),
     );
     return connections;
   }
 
   getSchemasAllowed(selectedDatabase) {
     const schemas = [];
-    this.props.databases.forEach((database) => {
+    this.props.databases.forEach(database => {
       if (selectedDatabase) {
-        if (selectedDatabase.value === database.id) {
+        if (selectedDatabase.value === database.database_id) {
           database.allowed_schemas.forEach(schema =>
-            schemas.push({ label: schema, value: schema }));
+            schemas.push({ label: schema, value: schema }),
+          );
         }
-      } else if (this.state.selectedConnection.value === database.id) {
-          database.allowed_schemas.forEach(schema =>
-            schemas.push({ label: schema, value: schema }));
+      } else if (this.state.selectedConnection.value === database.database_id) {
+        database.allowed_schemas.forEach(schema =>
+          schemas.push({ label: schema, value: schema }),
+        );
       }
     });
     return schemas;
@@ -158,6 +171,7 @@ export class CsvToDatabase extends React.PureComponent {
       selectedConnection,
       schema,
       delimiter,
+      selectedIfTableExists,
       headerRow,
       decimalCharacter,
       indexColumn,
@@ -176,10 +190,11 @@ export class CsvToDatabase extends React.PureComponent {
       file,
       connectionId: selectedConnection.value,
       databaseName: selectedConnection.value === -1 ? databaseName : '',
-      databaseFlavor: selectedConnection.value === -1 ? selectedDatabaseFlavor.value : '',
+      databaseFlavor:
+        selectedConnection.value === -1 ? selectedDatabaseFlavor.value : '',
       schema: schema ? schema.value : '',
       delimiter,
-      ifTableExists: 'Fail',
+      ifTableExists: selectedIfTableExists.value,
       headerRow,
       decimalCharacter,
       indexColumn,
@@ -196,13 +211,19 @@ export class CsvToDatabase extends React.PureComponent {
   }
 
   render() {
-    const fileHelpText = !supportsDragAndDrop() && <FormHelpText helpText={t('Select a CSV file to be uploaded to a database')} />;
+    const fileHelpText = !supportsDragAndDrop() && (
+      <FormHelpText
+        helpText={t('Select a CSV file to be uploaded to a database')}
+      />
+    );
     return (
       <div className="container">
         <StatusMessages />
         <div className="panel panel-primary">
           <div className="panel-heading">
-            <h4 className="panel-title">{t('CSV to Database configuration')}</h4>
+            <h4 className="panel-title">
+              {t('CSV to Database configuration')}
+            </h4>
           </div>
           <div id="Home" className="tab-pane active">
             <form
@@ -226,7 +247,9 @@ export class CsvToDatabase extends React.PureComponent {
                           required
                           value={this.state.tableName}
                           onChange={this.setUserInput}
-                          helpText={t('Name of the table to be created from csv data.')}
+                          helpText={t(
+                            'Name of the table to be created from csv data (may already be in use).',
+                          )}
                         />
                       </td>
                     </tr>
@@ -234,7 +257,11 @@ export class CsvToDatabase extends React.PureComponent {
                       <td className="col-lg-2">
                         {t('CSV File')} <Asterisk />
                       </td>
-                      <td className={supportsDragAndDrop() ? 'td-no-padding' : null}>
+                      <td
+                        className={
+                          supportsDragAndDrop() ? 'td-no-padding' : null
+                        }
+                      >
                         <FileDropper
                           onFileSelected={this.setFile}
                           allowedMimeTypes={['text/csv']}
@@ -285,7 +312,9 @@ export class CsvToDatabase extends React.PureComponent {
                           required={this.state.selectedConnection.value === -1}
                           value={this.state.databaseName}
                           onChange={this.setUserInput}
-                          helpText={t('Name of the database file to be created.')}
+                          helpText={t(
+                            'Name of the database to be created (may already be in use).',
+                          )}
                         />
                       </td>
                     </tr>
@@ -307,7 +336,9 @@ export class CsvToDatabase extends React.PureComponent {
                           onChange={this.setDatabaseFlavor}
                           options={this.state.databaseFlavorValues}
                           clearable={false}
-                          helpText={t('Choose database flavor to create a new database')}
+                          helpText={t(
+                            'Choose database flavor to create a new database',
+                          )}
                         />
                       </td>
                     </tr>
@@ -320,7 +351,9 @@ export class CsvToDatabase extends React.PureComponent {
                           onChange={this.setSchema}
                           options={this.getSchemasAllowed()}
                           clearable={false}
-                          helpText={t('Specify a schema (if database flavor supports this)')}
+                          helpText={t(
+                            'Specify a schema (if database flavor supports this)',
+                          )}
                         />
                       </td>
                     </tr>
@@ -336,7 +369,27 @@ export class CsvToDatabase extends React.PureComponent {
                           required
                           value={this.state.delimiter}
                           onChange={this.setUserInput}
-                          helpText={t('Delimiter used by CSV file (for whitespace use \\s++)')}
+                          helpText={t(
+                            'Delimiter used by CSV file (for whitespace use \\s++)',
+                          )}
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="col-lg-2">
+                        {t('Table Exists')} <Asterisk />
+                      </td>
+                      <td>
+                        <FormSelect
+                          id={'ifTableExists'}
+                          required
+                          value={this.state.selectedIfTableExists}
+                          onChange={this.setIfTableExists}
+                          options={this.state.ifTableExistsValues}
+                          clearable={false}
+                          helpText={t(
+                            'If table exists do one of the following: Fail (do nothing), Replace (drop and recreate table) or Append (insert data)',
+                          )}
                         />
                       </td>
                     </tr>
@@ -354,7 +407,9 @@ export class CsvToDatabase extends React.PureComponent {
                             placeholder={t('Header Row')}
                             value={this.state.headerRow}
                             onChange={this.setUserInput}
-                            helpText={t('Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.')}
+                            helpText={t(
+                              'Row containing the headers to use as column names (0 is first line of data).',
+                            )}
                           />
                         </td>
                       </tr>
@@ -367,21 +422,25 @@ export class CsvToDatabase extends React.PureComponent {
                             placeholder={t('Index Column')}
                             value={this.state.indexColumn}
                             onChange={this.setUserInput}
-                            helpText={t('Column to use as the row labels of the dataframe. Leave empty if no index column.')}
+                            helpText={t(
+                              'Column to use as the row labels of the dataframe. Leave empty if no index column.',
+                            )}
                           />
                         </td>
                       </tr>
                       <tr>
-                        <td className="col-lg-2">{t('Mangle Duplicate Columns')}</td>
+                        <td className="col-lg-2">
+                          {t('Mangle Duplicate Columns')}
+                        </td>
                         <td>
                           <FormCheckbox
                             checked={this.state.mangleDuplicateColumns}
                             onChange={v =>
                               this.setCheckboxValue('mangleDuplicateColumns', v)
                             }
-                            helpText={
-                              t('Specify duplicate columns as "X.0, X.1".')
-                            }
+                            helpText={t(
+                              'Specify duplicate columns as "X.0, X.1".',
+                            )}
                           />
                         </td>
                       </tr>
@@ -406,7 +465,9 @@ export class CsvToDatabase extends React.PureComponent {
                             placeholder={t('Skip Rows')}
                             value={this.state.skipRows}
                             onChange={this.setUserInput}
-                            helpText={t('Number of rows to skip at start of file.')}
+                            helpText={t(
+                              'Number of rows to skip at start of file.',
+                            )}
                           />
                         </td>
                       </tr>
@@ -431,7 +492,9 @@ export class CsvToDatabase extends React.PureComponent {
                             onChange={v =>
                               this.setCheckboxValue('skipBlankLines', v)
                             }
-                            helpText={t('Skip blank lines rather than interpreting them as NaN values.')}
+                            helpText={t(
+                              'Skip blank lines rather than interpreting them as NaN values.',
+                            )}
                           />
                         </td>
                       </tr>
@@ -444,19 +507,25 @@ export class CsvToDatabase extends React.PureComponent {
                             placeholder={t('Parse Dates')}
                             value={this.state.parseDates}
                             onChange={this.setUserInput}
-                            helpText={t('A comma separated list of columns that should be parsed as dates.')}
+                            helpText={t(
+                              'A comma separated list of columns that should be parsed as dates.',
+                            )}
                           />
                         </td>
                       </tr>
                       <tr>
-                        <td className="col-lg-2">{t('Infer Datetime Format')}</td>
+                        <td className="col-lg-2">
+                          {t('Infer Datetime Format')}
+                        </td>
                         <td>
                           <FormCheckbox
                             checked={this.state.inferDatetimeFormat}
                             onChange={v =>
                               this.setCheckboxValue('inferDatetimeFormat', v)
                             }
-                            helpText={t('Use Pandas to interpret the datetime format automatically.')}
+                            helpText={t(
+                              'Use Pandas to interpret the datetime format automatically.',
+                            )}
                           />
                         </td>
                       </tr>
@@ -469,7 +538,9 @@ export class CsvToDatabase extends React.PureComponent {
                             placeholder={t('Decimal Character')}
                             value={this.state.decimalCharacter}
                             onChange={this.setUserInput}
-                            helpText={t('Character to interpret as decimal point.')}
+                            helpText={t(
+                              'Character to interpret as decimal point.',
+                            )}
                           />
                         </td>
                       </tr>
@@ -494,7 +565,9 @@ export class CsvToDatabase extends React.PureComponent {
                             placeholder={t('Column Label(s)')}
                             value={this.state.columnLabels}
                             onChange={this.setUserInput}
-                            helpText={t('Column label for index column(s). If None is given and Dataframe Index is True, Index Names are used.')}
+                            helpText={t(
+                              'Column label for index column(s). If None is given and Dataframe Index is True, Index Names are used.',
+                            )}
                           />
                         </td>
                       </tr>
@@ -526,7 +599,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(
-  null,
-  mapDispatchToProps,
-)(CsvToDatabase);
+export default connect(null, mapDispatchToProps)(CsvToDatabase);

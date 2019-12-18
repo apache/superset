@@ -14,16 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import json
 import unittest
 
 import yaml
 
+from tests.test_app import app
 from superset import db
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.utils.core import get_example_database
+from superset.utils.dict_import_export import export_to_dict
 
 from .base_tests import SupersetTestCase
 
@@ -40,15 +43,16 @@ class DictImportExportTests(SupersetTestCase):
 
     @classmethod
     def delete_imports(cls):
-        # Imported data clean up
-        session = db.session
-        for table in session.query(SqlaTable):
-            if DBREF in table.params_dict:
-                session.delete(table)
-        for datasource in session.query(DruidDatasource):
-            if DBREF in datasource.params_dict:
-                session.delete(datasource)
-        session.commit()
+        with app.app_context():
+            # Imported data clean up
+            session = db.session
+            for table in session.query(SqlaTable):
+                if DBREF in table.params_dict:
+                    session.delete(table)
+            for datasource in session.query(DruidDatasource):
+                if DBREF in datasource.params_dict:
+                    session.delete(datasource)
+            session.commit()
 
     @classmethod
     def setUpClass(cls):
@@ -264,6 +268,33 @@ class DictImportExportTests(SupersetTestCase):
         self.assert_table_equals(copy_table, self.get_table(imported_table.id))
         self.yaml_compare(
             imported_copy_table.export_to_dict(), imported_table.export_to_dict()
+        )
+
+    def test_export_datasource_ui_cli(self):
+        cli_export = export_to_dict(
+            session=db.session,
+            recursive=True,
+            back_references=False,
+            include_defaults=False,
+        )
+        self.get_resp("/login/", data=dict(username="admin", password="general"))
+        resp = self.get_resp(
+            "/databaseview/action_post", {"action": "yaml_export", "rowid": 1}
+        )
+        ui_export = yaml.safe_load(resp)
+
+        cli_export_database_names = {
+            database.get("database_name") for database in cli_export["databases"]
+        }
+        cli_export_tables = []
+        for database in cli_export["databases"]:
+            for table in database["tables"]:
+                cli_export_tables.append(table["table_name"])
+        self.assertIn(
+            ui_export["databases"][0]["database_name"], cli_export_database_names
+        )
+        self.assertIn(
+            ui_export["databases"][0]["tables"][0]["table_name"], cli_export_tables
         )
 
     def test_import_druid_no_metadata(self):

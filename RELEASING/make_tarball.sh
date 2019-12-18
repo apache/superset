@@ -15,24 +15,59 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-set -ex
+set -e
 
-if [ -z "$VERSION" ]; then
-  echo "VERSION is required to run this container"
+usage() {
+   echo "usage: make_tarball.sh <SUPERSET_VERSION> <SUPERSET_RC> <PGP_KEY_FULLBANE>"
+}
+
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+  if [ -z "${SUPERSET_VERSION}" ] || [ -z "${SUPERSET_RC}" ] || [ -z "${SUPERSET_PGP_FULLNAME}" ]; then
+    echo "No parameters found an no required environment variables set"
+    echo "usage: make_tarball.sh <SUPERSET_VERSION> <SUPERSET_RC> <PGP_KEY_FULLBANE>"
+    usage;
+    exit 1
+  fi
+else
+  SUPERSET_VERSION="${1}"
+  SUPERSET_RC="${2}"
+  SUPERSET_PGP_FULLNAME="${3}"
+fi
+
+SUPERSET_VERSION_RC="${SUPERSET_VERSION}rc${SUPERSET_RC}"
+
+if [ -z "${SUPERSET_SVN_DEV_PATH}" ]; then
+  SUPERSET_SVN_DEV_PATH="$HOME/svn/superset_dev"
+fi
+
+if [[ ! -d "${SUPERSET_SVN_DEV_PATH}" ]]; then
+  echo "${SUPERSET_SVN_DEV_PATH} does not exist, you need to: svn checkout"
   exit 1
 fi
 
+if [ -d "${SUPERSET_SVN_DEV_PATH}/${SUPERSET_VERSION_RC}" ]; then
+  echo "${SUPERSET_VERSION_RC} Already exists on svn, refusing to overwrite"
+  exit 1
+fi
 
-echo "version: $VERSION"
-cd /tmp
-git clone --depth 1 --branch $VERSION https://github.com/apache/incubator-superset.git
-mkdir ~/$VERSION
-cd incubator-superset && \
-git archive \
-    --format=tar.gz \
-    --prefix=apache-superset-incubating-$VERSION/ \
-    HEAD \
-    -o ~/$VERSION/apache-superset-incubating.tar.gz
+SUPERSET_RELEASE_RC_TARBALL_PATH="${SUPERSET_SVN_DEV_PATH}"/"${SUPERSET_VERSION_RC}"/"${SUPERSET_RELEASE_RC_TARBALL}"
+DOCKER_SVN_PATH="/docker_svn"
 
-gpg --armor --output apache-superset-incubating.tar.gz.asc --detach-sig apache-superset-incubating.tar.gz
-gpg --print-md SHA512 apache-superset-incubating.tar.gz > apache-superset-incubating.tar.gz.sha512
+# Building docker that will produce a tarball
+docker build -t apache-builder -f Dockerfile.make_tarball .
+
+# Running docker to produce a tarball
+docker run \
+      -e SUPERSET_SVN_DEV_PATH="${DOCKER_SVN_PATH}" \
+      -e SUPERSET_VERSION="${SUPERSET_VERSION}" \
+      -e SUPERSET_VERSION_RC="${SUPERSET_VERSION_RC}" \
+      -e HOST_UID=${UID} \
+      -v "${SUPERSET_SVN_DEV_PATH}":"${DOCKER_SVN_PATH}":rw \
+      -ti apache-builder
+
+gpg --armor --local-user "${SUPERSET_PGP_FULLNAME}" --output "${SUPERSET_RELEASE_RC_TARBALL_PATH}".asc --detach-sig "${SUPERSET_RELEASE_RC_TARBALL_PATH}"
+gpg --print-md --local-user "${SUPERSET_PGP_FULLNAME}" SHA512 "${SUPERSET_RELEASE_RC_TARBALL_PATH}" > "${SUPERSET_RELEASE_RC_TARBALL_PATH}".sha512
+
+echo ---------------------------------------
+echo Release candidate tarball is ready
+echo ---------------------------------------

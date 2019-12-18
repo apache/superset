@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import logging
 from logging.config import fileConfig
 
@@ -72,7 +71,9 @@ def run_migrations_online():
     # this callback is used to prevent an auto-migration from being generated
     # when there are no changes to the schema
     # reference: https://alembic.sqlalchemy.org/en/latest/cookbook.html
-    def process_revision_directives(context, revision, directives):
+    def process_revision_directives(
+        context, revision, directives
+    ):  # pylint: disable=redefined-outer-name, unused-argument
         if getattr(config.cmd_opts, "autogenerate", False):
             script = directives[0]
             if script.upgrade_ops.is_empty():

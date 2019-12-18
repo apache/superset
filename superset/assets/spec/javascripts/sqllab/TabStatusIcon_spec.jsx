@@ -24,7 +24,9 @@ import TabStatusIcon from '../../../src/SqlLab/components/TabStatusIcon';
 
 function setup() {
   const onClose = sinon.spy();
-  const wrapper = shallow(<TabStatusIcon onClose={onClose} tabState="running" />);
+  const wrapper = shallow(
+    <TabStatusIcon onClose={onClose} tabState="running" />,
+  );
   return { wrapper, onClose };
 }
 

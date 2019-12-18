@@ -38,19 +38,15 @@ const propTypes = {
 
 function MetricDefinitionOption({ option, addWarningToast }) {
   if (option.metric_name) {
-    return (
-      <MetricOption metric={option} showType />
-    );
+    return <MetricOption metric={option} showType />;
   } else if (option.column_name) {
-    return (
-      <ColumnOption column={option} showType />
-    );
+    return <ColumnOption column={option} showType />;
   } else if (option.aggregate_name) {
-    return (
-      <AggregateOption aggregate={option} showType />
-    );
+    return <AggregateOption aggregate={option} showType />;
   }
-  addWarningToast('You must supply either a saved metric, column or aggregate to MetricDefinitionOption');
+  addWarningToast(
+    'You must supply either a saved metric, column or aggregate to MetricDefinitionOption',
+  );
   return null;
 }
 

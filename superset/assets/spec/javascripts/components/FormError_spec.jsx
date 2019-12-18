@@ -23,7 +23,11 @@ import FormError from 'src/components/FormError';
 describe('FormError', () => {
   let wrapper;
   beforeEach(() => {
-    wrapper = mount(<FormError status={{ message: 'Error message', timestamp: Date.now() }} />);
+    wrapper = mount(
+      <FormError
+        status={{ message: 'Error message', timestamp: Date.now() }}
+      />,
+    );
   });
   it('renders without crashing', () => {
     expect(wrapper.find('.alert-danger')).toHaveLength(1);

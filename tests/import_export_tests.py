@@ -14,18 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import json
 import unittest
 
-from flask import Flask, g
+from flask import g
 from sqlalchemy.orm.session import make_transient
 
+from superset.utils.dashboard_import_export import decode_dashboards
+from tests.test_app import app
 from superset import db, security_manager
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models import core as models
-from superset.utils import core as utils
 
 from .base_tests import SupersetTestCase
 
@@ -35,21 +37,22 @@ class ImportExportTests(SupersetTestCase):
 
     @classmethod
     def delete_imports(cls):
-        # Imported data clean up
-        session = db.session
-        for slc in session.query(models.Slice):
-            if "remote_id" in slc.params_dict:
-                session.delete(slc)
-        for dash in session.query(models.Dashboard):
-            if "remote_id" in dash.params_dict:
-                session.delete(dash)
-        for table in session.query(SqlaTable):
-            if "remote_id" in table.params_dict:
-                session.delete(table)
-        for datasource in session.query(DruidDatasource):
-            if "remote_id" in datasource.params_dict:
-                session.delete(datasource)
-        session.commit()
+        with app.app_context():
+            # Imported data clean up
+            session = db.session
+            for slc in session.query(models.Slice):
+                if "remote_id" in slc.params_dict:
+                    session.delete(slc)
+            for dash in session.query(models.Dashboard):
+                if "remote_id" in dash.params_dict:
+                    session.delete(dash)
+            for table in session.query(SqlaTable):
+                if "remote_id" in table.params_dict:
+                    session.delete(table)
+            for datasource in session.query(DruidDatasource):
+                if "remote_id" in datasource.params_dict:
+                    session.delete(datasource)
+            session.commit()
 
     @classmethod
     def setUpClass(cls):
@@ -226,7 +229,7 @@ class ImportExportTests(SupersetTestCase):
         )
         resp = self.client.get(export_dash_url)
         exported_dashboards = json.loads(
-            resp.data.decode("utf-8"), object_hook=utils.decode_dashboards
+            resp.data.decode("utf-8"), object_hook=decode_dashboards
         )["dashboards"]
 
         birth_dash = self.get_dash_by_slug("births")
@@ -235,13 +238,12 @@ class ImportExportTests(SupersetTestCase):
         self.assertEqual(
             birth_dash.id,
             json.loads(
-                exported_dashboards[0].json_metadata,
-                object_hook=utils.decode_dashboards,
+                exported_dashboards[0].json_metadata, object_hook=decode_dashboards
             )["remote_id"],
         )
 
         exported_tables = json.loads(
-            resp.data.decode("utf-8"), object_hook=utils.decode_dashboards
+            resp.data.decode("utf-8"), object_hook=decode_dashboards
         )["datasources"]
         self.assertEqual(1, len(exported_tables))
         self.assert_table_equals(
@@ -256,9 +258,7 @@ class ImportExportTests(SupersetTestCase):
             birth_dash.id, world_health_dash.id
         )
         resp = self.client.get(export_dash_url)
-        resp_data = json.loads(
-            resp.data.decode("utf-8"), object_hook=utils.decode_dashboards
-        )
+        resp_data = json.loads(resp.data.decode("utf-8"), object_hook=decode_dashboards)
         exported_dashboards = sorted(
             resp_data.get("dashboards"), key=lambda d: d.dashboard_title
         )
@@ -460,68 +460,64 @@ class ImportExportTests(SupersetTestCase):
         )
 
     def test_import_new_dashboard_slice_reset_ownership(self):
-        app = Flask("test_import_dashboard_slice_set_user")
-        with app.app_context():
-            admin_user = security_manager.find_user(username="admin")
-            self.assertTrue(admin_user)
-            gamma_user = security_manager.find_user(username="gamma")
-            self.assertTrue(gamma_user)
-            g.user = gamma_user
+        admin_user = security_manager.find_user(username="admin")
+        self.assertTrue(admin_user)
+        gamma_user = security_manager.find_user(username="gamma")
+        self.assertTrue(gamma_user)
+        g.user = gamma_user
 
-            dash_with_1_slice = self._create_dashboard_for_import(id_=10200)
-            # set another user as an owner of importing dashboard
-            dash_with_1_slice.created_by = admin_user
-            dash_with_1_slice.changed_by = admin_user
-            dash_with_1_slice.owners = [admin_user]
+        dash_with_1_slice = self._create_dashboard_for_import(id_=10200)
+        # set another user as an owner of importing dashboard
+        dash_with_1_slice.created_by = admin_user
+        dash_with_1_slice.changed_by = admin_user
+        dash_with_1_slice.owners = [admin_user]
 
-            imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
-            imported_dash = self.get_dash(imported_dash_id)
-            self.assertEqual(imported_dash.created_by, gamma_user)
-            self.assertEqual(imported_dash.changed_by, gamma_user)
-            self.assertEqual(imported_dash.owners, [gamma_user])
+        imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
+        imported_dash = self.get_dash(imported_dash_id)
+        self.assertEqual(imported_dash.created_by, gamma_user)
+        self.assertEqual(imported_dash.changed_by, gamma_user)
+        self.assertEqual(imported_dash.owners, [gamma_user])
 
-            imported_slc = imported_dash.slices[0]
-            self.assertEqual(imported_slc.created_by, gamma_user)
-            self.assertEqual(imported_slc.changed_by, gamma_user)
-            self.assertEqual(imported_slc.owners, [gamma_user])
+        imported_slc = imported_dash.slices[0]
+        self.assertEqual(imported_slc.created_by, gamma_user)
+        self.assertEqual(imported_slc.changed_by, gamma_user)
+        self.assertEqual(imported_slc.owners, [gamma_user])
 
     def test_import_override_dashboard_slice_reset_ownership(self):
-        app = Flask("test_import_dashboard_slice_set_user")
-        with app.app_context():
-            admin_user = security_manager.find_user(username="admin")
-            self.assertTrue(admin_user)
-            gamma_user = security_manager.find_user(username="gamma")
-            self.assertTrue(gamma_user)
-            g.user = gamma_user
+        admin_user = security_manager.find_user(username="admin")
+        self.assertTrue(admin_user)
+        gamma_user = security_manager.find_user(username="gamma")
+        self.assertTrue(gamma_user)
+        g.user = gamma_user
 
-            dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
+        dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
 
-            imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
-            imported_dash = self.get_dash(imported_dash_id)
-            self.assertEqual(imported_dash.created_by, gamma_user)
-            self.assertEqual(imported_dash.changed_by, gamma_user)
-            self.assertEqual(imported_dash.owners, [gamma_user])
+        imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
+        imported_dash = self.get_dash(imported_dash_id)
+        self.assertEqual(imported_dash.created_by, gamma_user)
+        self.assertEqual(imported_dash.changed_by, gamma_user)
+        self.assertEqual(imported_dash.owners, [gamma_user])
 
-            imported_slc = imported_dash.slices[0]
-            self.assertEqual(imported_slc.created_by, gamma_user)
-            self.assertEqual(imported_slc.changed_by, gamma_user)
-            self.assertEqual(imported_slc.owners, [gamma_user])
+        imported_slc = imported_dash.slices[0]
+        self.assertEqual(imported_slc.created_by, gamma_user)
+        self.assertEqual(imported_slc.changed_by, gamma_user)
+        self.assertEqual(imported_slc.owners, [gamma_user])
 
-            # re-import with another user shouldn't change the permissions
-            g.user = admin_user
+        # re-import with another user shouldn't change the permissions
+        g.user = admin_user
 
-            dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
+        dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
 
-            imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
-            imported_dash = self.get_dash(imported_dash_id)
-            self.assertEqual(imported_dash.created_by, gamma_user)
-            self.assertEqual(imported_dash.changed_by, gamma_user)
-            self.assertEqual(imported_dash.owners, [gamma_user])
+        imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
+        imported_dash = self.get_dash(imported_dash_id)
+        self.assertEqual(imported_dash.created_by, gamma_user)
+        self.assertEqual(imported_dash.changed_by, gamma_user)
+        self.assertEqual(imported_dash.owners, [gamma_user])
 
-            imported_slc = imported_dash.slices[0]
-            self.assertEqual(imported_slc.created_by, gamma_user)
-            self.assertEqual(imported_slc.changed_by, gamma_user)
-            self.assertEqual(imported_slc.owners, [gamma_user])
+        imported_slc = imported_dash.slices[0]
+        self.assertEqual(imported_slc.created_by, gamma_user)
+        self.assertEqual(imported_slc.changed_by, gamma_user)
+        self.assertEqual(imported_slc.owners, [gamma_user])
 
     def _create_dashboard_for_import(self, id_=10100):
         slc = self.create_slice("health_slc" + str(id_), id=id_ + 1)

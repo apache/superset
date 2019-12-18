@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../src/explore/AdhocFilter';
+import AdhocFilter, {
+  EXPRESSION_TYPES,
+  CLAUSES,
+} from '../../../src/explore/AdhocFilter';
 
 describe('AdhocFilter', () => {
   it('sets filterOptionName in constructor', () => {
@@ -93,7 +96,9 @@ describe('AdhocFilter', () => {
       sqlExpression: 'value > 10',
       clause: CLAUSES.WHERE,
     });
-    const adhocFilter4 = adhocFilter3.duplicateWith({ sqlExpression: 'value = 5' });
+    const adhocFilter4 = adhocFilter3.duplicateWith({
+      sqlExpression: 'value = 5',
+    });
 
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter3.equals(adhocFilter4)).toBe(false);

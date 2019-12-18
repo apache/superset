@@ -46,7 +46,9 @@ export default class Welcome extends React.PureComponent {
           <Tab eventKey={1} title={t('Dashboards')}>
             <Panel>
               <Row>
-                <Col md={8}><h2>{t('Dashboards')}</h2></Col>
+                <Col md={8}>
+                  <h2>{t('Dashboards')}</h2>
+                </Col>
                 <Col md={4}>
                   <FormControl
                     type="text"
@@ -65,7 +67,9 @@ export default class Welcome extends React.PureComponent {
           <Tab eventKey={2} title={t('Recently Viewed')}>
             <Panel>
               <Row>
-                <Col md={8}><h2>{t('Recently Viewed')}</h2></Col>
+                <Col md={8}>
+                  <h2>{t('Recently Viewed')}</h2>
+                </Col>
               </Row>
               <hr />
               <RecentActivity user={this.props.user} />
@@ -74,7 +78,9 @@ export default class Welcome extends React.PureComponent {
           <Tab eventKey={3} title={t('Favorites')}>
             <Panel>
               <Row>
-                <Col md={8}><h2>{t('Favorites')}</h2></Col>
+                <Col md={8}>
+                  <h2>{t('Favorites')}</h2>
+                </Col>
               </Row>
               <hr />
               <Favorites user={this.props.user} />

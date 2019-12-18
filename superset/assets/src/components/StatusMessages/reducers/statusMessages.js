@@ -21,7 +21,9 @@ import * as actions from '../actions/statusMessages';
 
 export default function statusMessageReducer(state = {}, action) {
   if (action.type === actions.ADD_STATUS_MESSAGE) {
-    const statusMessages = state.statusMessages ? state.statusMessages.slice() : [];
+    const statusMessages = state.statusMessages
+      ? state.statusMessages.slice()
+      : [];
     const newState = Object.assign({}, state, { statusMessages });
     return addToArr(newState, 'statusMessages', action.status);
   }

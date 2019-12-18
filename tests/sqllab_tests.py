@@ -17,10 +17,12 @@
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime, timedelta
+from random import random
 
 import prison
 
 from superset import db, security_manager
+from superset.connectors.sqla.models import SqlaTable
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
@@ -289,22 +291,23 @@ class SqlLabTests(SupersetTestCase):
         self.assertEqual(len(cols), len(cdf.columns))
 
     def test_sqllab_viz(self):
+        self.login("admin")
         examples_dbid = get_example_database().id
         payload = {
             "chartType": "dist_bar",
-            "datasourceName": "test_viz_flow_table",
+            "datasourceName": f"test_viz_flow_table_{random()}",
             "schema": "superset",
             "columns": [
                 {
                     "is_date": False,
                     "type": "STRING",
-                    "name": "viz_type",
+                    "name": f"viz_type_{random()}",
                     "is_dim": True,
                 },
                 {
                     "is_date": False,
                     "type": "OBJECT",
-                    "name": "ccount",
+                    "name": f"ccount_{random()}",
                     "is_dim": True,
                     "agg": "sum",
                 },
@@ -318,6 +321,11 @@ class SqlLabTests(SupersetTestCase):
         data = {"data": json.dumps(payload)}
         resp = self.get_json_resp("/superset/sqllab_viz/", data=data)
         self.assertIn("table_id", resp)
+
+        # ensure owner is set correctly
+        table_id = resp["table_id"]
+        table = db.session.query(SqlaTable).filter_by(id=table_id).one()
+        self.assertEqual([owner.username for owner in table.owners], ["admin"])
 
     def test_sql_limit(self):
         self.login("admin")
@@ -398,18 +406,21 @@ class SqlLabTests(SupersetTestCase):
         session.commit()
 
     def test_api_database(self):
-        self.login("admin")
-        self.create_fake_db()
+        try:
+            self.login("admin")
+            self.create_fake_db()
 
-        arguments = {
-            "keys": [],
-            "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
-            "order_column": "database_name",
-            "order_direction": "asc",
-            "page": 0,
-            "page_size": -1,
-        }
-        url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
-        dblist = {r.get("database_name") for r in self.get_json_resp(url)["result"]}
-        mylist = {"examples", "fake_db_100"}
-        assert set(mylist).issubset(dblist)
+            arguments = {
+                "keys": [],
+                "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
+                "order_column": "database_name",
+                "order_direction": "asc",
+                "page": 0,
+                "page_size": -1,
+            }
+            url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
+            dblist = {r.get("database_name") for r in self.get_json_resp(url)["result"]}
+            mylist = {"examples", "fake_db_100"}
+            assert set(mylist).issubset(dblist)
+        finally:
+            self.delete_fake_db()

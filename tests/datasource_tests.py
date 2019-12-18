@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for Superset"""
 import json
+from copy import deepcopy
 
 from .base_tests import SupersetTestCase
 from .fixtures.datasource import datasource_post
@@ -62,6 +63,33 @@ class DatasourceTests(SupersetTestCase):
                 self.compare_lists(datasource_post[k], resp[k], "metric_name")
             else:
                 self.assertEqual(resp[k], datasource_post[k])
+
+    def test_save_duplicate_key(self):
+        self.login(username="admin")
+        tbl_id = self.get_table_by_name("birth_names").id
+        datasource_post_copy = deepcopy(datasource_post)
+        datasource_post_copy["id"] = tbl_id
+        datasource_post_copy["columns"].extend(
+            [
+                {
+                    "column_name": "<new column>",
+                    "filterable": True,
+                    "groupby": True,
+                    "expression": "<enter SQL expression here>",
+                    "id": "somerandomid",
+                },
+                {
+                    "column_name": "<new column>",
+                    "filterable": True,
+                    "groupby": True,
+                    "expression": "<enter SQL expression here>",
+                    "id": "somerandomid2",
+                },
+            ]
+        )
+        data = dict(data=json.dumps(datasource_post_copy))
+        resp = self.get_json_resp("/datasource/save/", data, raise_on_error=False)
+        self.assertIn("Duplicate column name(s): <new column>", resp["error"])
 
     def test_get_datasource(self):
         self.login(username="admin")

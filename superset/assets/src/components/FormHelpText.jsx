@@ -25,12 +25,8 @@ const propTypes = {
 
 export default class FormHelpText extends PureComponent {
   render() {
-    const {
-      helpText,
-    } = this.props;
-    return (
-      <span className="help-block">{helpText}</span>
-    );
+    const { helpText } = this.props;
+    return <span className="help-block">{helpText}</span>;
   }
 }
 

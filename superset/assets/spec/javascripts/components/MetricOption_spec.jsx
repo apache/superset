@@ -61,7 +61,12 @@ describe('MetricOption', () => {
   it('shows a label with metric_name when no verbose_name', () => {
     props.metric.verbose_name = null;
     wrapper = shallow(factory(props));
-    expect(wrapper.find('.option-label').first().text()).toBe('foo');
+    expect(
+      wrapper
+        .find('.option-label')
+        .first()
+        .text(),
+    ).toBe('foo');
   });
   it('shows only 1 InfoTooltipWithTrigger when no descr and no warning', () => {
     props.metric.warning_text = null;

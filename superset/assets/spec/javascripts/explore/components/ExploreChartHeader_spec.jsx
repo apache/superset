@@ -44,9 +44,9 @@ describe('ExploreChartHeader', () => {
   });
 
   it('is valid', () => {
-    expect(
-      React.isValidElement(<ExploreChartHeader {...mockProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<ExploreChartHeader {...mockProps} />)).toBe(
+      true,
+    );
   });
 
   it('renders', () => {

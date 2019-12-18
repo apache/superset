@@ -96,7 +96,6 @@ def load_long_lat_data(only_metadata=False, force=False):
         "granularity_sqla": "day",
         "since": "2014-01-01",
         "until": "now",
-        "where": "",
         "viz_type": "mapbox",
         "all_columns_x": "LON",
         "all_columns_y": "LAT",

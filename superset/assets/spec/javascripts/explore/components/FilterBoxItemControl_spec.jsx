@@ -35,7 +35,7 @@ describe('FilterBoxItemControl', () => {
   let wrapper;
   let inst;
 
-  const getWrapper = (propOverrides) => {
+  const getWrapper = propOverrides => {
     const props = { ...defaultProps, ...propOverrides };
     return shallow(<FilterBoxItemControl {...props} />);
   };

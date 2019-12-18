@@ -27,7 +27,8 @@ export const STATUS_TYPE = {
 };
 
 export function addStatusMessage(message, statusType) {
-  return dispatch => dispatch({ type: ADD_STATUS_MESSAGE, status: { message, statusType } });
+  return dispatch =>
+    dispatch({ type: ADD_STATUS_MESSAGE, status: { message, statusType } });
 }
 
 export function removeStatusMessage(status) {

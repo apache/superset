@@ -18,11 +18,11 @@
 import os
 import sys
 
-from superset import conf
+from tests.test_app import app
 
 if __name__ == "__main__":
     db_name = sys.argv[1]
-    path = conf["BASE_DIR"]
+    path = app.config["BASE_DIR"]
     db_path = os.path.abspath(os.path.join(os.getcwd(), path + db_name + ".db"))
     if os.path.isfile(db_path):
         os.remove(db_path)

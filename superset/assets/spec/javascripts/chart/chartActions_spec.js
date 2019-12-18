@@ -117,7 +117,9 @@ describe('chart actions', () => {
 
   it('should CHART_UPDATE_TIMEOUT action upon query timeout', () => {
     const unresolvingPromise = new Promise(() => {});
-    fetchMock.post(MOCK_URL, () => unresolvingPromise, { overwriteRoutes: true });
+    fetchMock.post(MOCK_URL, () => unresolvingPromise, {
+      overwriteRoutes: true,
+    });
 
     const timeoutInSec = 1 / 1000;
     const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
@@ -133,7 +135,11 @@ describe('chart actions', () => {
   });
 
   it('should dispatch CHART_UPDATE_FAILED action upon non-timeout non-abort failure', () => {
-    fetchMock.post(MOCK_URL, { throws: { statusText: 'misc error' } }, { overwriteRoutes: true });
+    fetchMock.post(
+      MOCK_URL,
+      { throws: { statusText: 'misc error' } },
+      { overwriteRoutes: true },
+    );
 
     const timeoutInSec = 1 / 1000;
     const actionThunk = actions.postChartFormData({}, false, timeoutInSec);

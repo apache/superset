@@ -29,7 +29,7 @@ describe('Checkbox', () => {
   };
 
   let wrapper;
-  const factory = (o) => {
+  const factory = o => {
     const props = Object.assign({}, defaultProps, o);
     return shallow(<Checkbox {...props} />);
   };
@@ -49,7 +49,10 @@ describe('Checkbox', () => {
   });
   it('unchecks when clicked', () => {
     expect(wrapper.find('i.fa-check.text-transparent')).toHaveLength(0);
-    wrapper.find('i').first().simulate('click');
+    wrapper
+      .find('i')
+      .first()
+      .simulate('click');
     expect(defaultProps.onChange.calledOnce).toBe(true);
   });
 });

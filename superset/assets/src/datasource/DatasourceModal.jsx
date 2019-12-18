@@ -27,7 +27,6 @@ import getClientErrorObject from '../utils/getClientErrorObject';
 import DatasourceEditor from '../datasource/DatasourceEditor';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
-
 const propTypes = {
   onChange: PropTypes.func,
   datasource: PropTypes.object.isRequired,
@@ -62,10 +61,7 @@ class DatasourceModal extends React.PureComponent {
     this.dialog.show({
       title: t('Confirm save'),
       bsSize: 'medium',
-      actions: [
-        Dialog.CancelAction(),
-        Dialog.OKAction(this.onConfirmSave),
-      ],
+      actions: [Dialog.CancelAction(), Dialog.OKAction(this.onConfirmSave)],
       body: this.renderSaveDialog(),
     });
   }
@@ -88,9 +84,7 @@ class DatasourceModal extends React.PureComponent {
             title: 'Error',
             bsSize: 'medium',
             bsStyle: 'danger',
-            actions: [
-              Dialog.DefaultAction('Ok', () => {}, 'btn-danger'),
-            ],
+            actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
             body: error || statusText || t('An error has occurred'),
           });
         }),
@@ -129,11 +123,7 @@ class DatasourceModal extends React.PureComponent {
 
   render() {
     return (
-      <Modal
-        show={this.props.show}
-        onHide={this.props.onHide}
-        bsSize="lg"
-      >
+      <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
         <Modal.Header closeButton>
           <Modal.Title>
             <div>
@@ -145,11 +135,12 @@ class DatasourceModal extends React.PureComponent {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {this.props.show &&
+          {this.props.show && (
             <DatasourceEditor
               datasource={this.props.datasource}
               onChange={this.onDatasourceChange}
-            />}
+            />
+          )}
         </Modal.Body>
         <Modal.Footer>
           <span className="float-left">
@@ -173,11 +164,14 @@ class DatasourceModal extends React.PureComponent {
             >
               {t('Save')}
             </Button>
-            <Button bsSize="sm" onClick={this.props.onHide}>{t('Cancel')}</Button>
+            <Button bsSize="sm" onClick={this.props.onHide}>
+              {t('Cancel')}
+            </Button>
             <Dialog ref={this.setDialogRef} />
           </span>
         </Modal.Footer>
-      </Modal>);
+      </Modal>
+    );
   }
 }
 

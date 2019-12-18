@@ -14,14 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 
-"""Utility functions used across Superset"""
+"""
+This is the main entrypoint used by Celery workers. As such,
+it needs to call create_app() in order to initialize things properly
+"""
 
 # Superset framework imports
-from superset import app
-from superset.utils.core import get_celery_app
+from superset import create_app
+from superset.extensions import celery_app
 
-# Globals
-config = app.config
-app = get_celery_app(config)
+# Init the Flask app / configure everything
+create_app()
+
+# Need to import late, as the celery_app will have been setup by "create_app()"
+# pylint: disable=wrong-import-position, unused-import
+from . import cache, schedules  # isort:skip
+
+# Export the celery app globally for Celery (as run on the cmd line) to find
+app = celery_app

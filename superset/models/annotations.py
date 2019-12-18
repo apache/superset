@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """a collection of Annotation-related models"""
 from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
@@ -28,7 +27,7 @@ class AnnotationLayer(Model, AuditMixinNullable):
     """A logical namespace for a set of annotations"""
 
     __tablename__ = "annotation_layer"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     name = Column(String(250))
     descr = Column(Text)
 
@@ -41,7 +40,7 @@ class Annotation(Model, AuditMixinNullable):
     """Time-related annotation"""
 
     __tablename__ = "annotation"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     start_dttm = Column(DateTime)
     end_dttm = Column(DateTime)
     layer_id = Column(Integer, ForeignKey("annotation_layer.id"), nullable=False)

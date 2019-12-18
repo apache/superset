@@ -26,12 +26,9 @@ export default () => {
     });
 
     it('test advanced options', () => {
-
       cy.get('.title').should('have.class', 'openTitle');
       cy.get('.title').click();
       cy.get('.title', { timeout: 10000 }).should('have.class', 'closeTitle');
-
     });
-
   });
 };

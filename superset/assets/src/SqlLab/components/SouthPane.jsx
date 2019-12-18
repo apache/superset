@@ -23,11 +23,16 @@ import { Alert, Label, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { t } from '@superset-ui/translation';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import * as Actions from '../actions/sqlLab';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
-import { STATUS_OPTIONS, STATE_BSSTYLE_MAP, LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../constants';
+import {
+  STATUS_OPTIONS,
+  STATE_BSSTYLE_MAP,
+  LOCALSTORAGE_MAX_QUERY_AGE_MS,
+} from '../constants';
 
 const TAB_HEIGHT = 44;
 
@@ -68,7 +73,9 @@ export class SouthPane extends React.PureComponent {
   }
   // One layer of abstraction for easy spying in unit tests
   getSouthPaneHeight() {
-    return this.southPaneRef.current ? this.southPaneRef.current.clientHeight : 0;
+    return this.southPaneRef.current
+      ? this.southPaneRef.current.clientHeight
+      : 0;
   }
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
@@ -76,33 +83,56 @@ export class SouthPane extends React.PureComponent {
   render() {
     if (this.props.offline) {
       return (
-        <Label className="m-r-3" bsStyle={STATE_BSSTYLE_MAP[STATUS_OPTIONS.offline]}>
-          { STATUS_OPTIONS.offline }
-        </Label>);
+        <Label
+          className="m-r-3"
+          bsStyle={STATE_BSSTYLE_MAP[STATUS_OPTIONS.offline]}
+        >
+          {STATUS_OPTIONS.offline}
+        </Label>
+      );
     }
     const innerTabContentHeight = this.state.height - TAB_HEIGHT;
     let latestQuery;
     const props = this.props;
     if (props.editorQueries.length > 0) {
       // get the latest query
-      latestQuery = props.editorQueries.find(q => q.id === this.props.latestQueryId);
+      latestQuery = props.editorQueries.find(
+        q => q.id === this.props.latestQueryId,
+      );
     }
     let results;
-    if (latestQuery &&
-      (Date.now() - latestQuery.startDttm) <= LOCALSTORAGE_MAX_QUERY_AGE_MS) {
-      results = (
-        <ResultSet
-          showControls
-          search
-          query={latestQuery}
-          actions={props.actions}
-          height={innerTabContentHeight}
-          database={this.props.databases[latestQuery.dbId]}
-          displayLimit={this.props.displayLimit}
-        />
-      );
+    if (latestQuery) {
+      if (
+        isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
+        latestQuery.state === 'success' &&
+        !latestQuery.resultsKey &&
+        !latestQuery.results
+      ) {
+        results = (
+          <Alert bsStyle="warning">
+            {t('No stored results found, you need to re-run your query')}
+          </Alert>
+        );
+      } else if (
+        Date.now() - latestQuery.startDttm <=
+        LOCALSTORAGE_MAX_QUERY_AGE_MS
+      ) {
+        results = (
+          <ResultSet
+            showControls
+            search
+            query={latestQuery}
+            actions={props.actions}
+            height={innerTabContentHeight}
+            database={this.props.databases[latestQuery.dbId]}
+            displayLimit={this.props.displayLimit}
+          />
+        );
+      }
     } else {
-      results = <Alert bsStyle="info">{t('Run a query to display results here')}</Alert>;
+      results = (
+        <Alert bsStyle="info">{t('Run a query to display results here')}</Alert>
+      );
     }
     const dataPreviewTabs = props.dataPreviewQueries.map(query => (
       <Tab
@@ -132,16 +162,10 @@ export class SouthPane extends React.PureComponent {
           activeKey={this.props.activeSouthPaneTab}
           onSelect={this.switchTab}
         >
-          <Tab
-            title={t('Results')}
-            eventKey="Results"
-          >
+          <Tab title={t('Results')} eventKey="Results">
             {results}
           </Tab>
-          <Tab
-            title={t('Query History')}
-            eventKey="History"
-          >
+          <Tab title={t('Query History')} eventKey="History">
             <QueryHistory
               queries={props.editorQueries}
               actions={props.actions}

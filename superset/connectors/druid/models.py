@@ -50,6 +50,7 @@ from sqlalchemy_utils import EncryptedType
 
 from superset import conf, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.constants import NULL_STRING
 from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
@@ -62,8 +63,9 @@ try:
         MapLookupExtraction,
         RegexExtraction,
         RegisteredLookupExtraction,
+        TimeFormatExtraction,
     )
-    from pydruid.utils.filters import Dimension, Filter
+    from pydruid.utils.filters import Bound, Dimension, Filter
     from pydruid.utils.having import Aggregation, Having
     from pydruid.utils.postaggregator import (
         Const,
@@ -167,7 +169,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         base_url = self.get_base_url(self.broker_host, self.broker_port)
         return f"{base_url}/{self.broker_endpoint}"
 
-    def get_pydruid_client(self) -> PyDruid:
+    def get_pydruid_client(self) -> "PyDruid":
         cli = PyDruid(
             self.get_base_url(self.broker_host, self.broker_port), self.broker_endpoint
         )
@@ -290,6 +292,10 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     @property
     def unique_name(self) -> str:
         return self.verbose_name or self.cluster_name
+
+
+sa.event.listen(DruidCluster, "after_insert", security_manager.set_perm)
+sa.event.listen(DruidCluster, "after_update", security_manager.set_perm)
 
 
 class DruidColumn(Model, BaseColumn):
@@ -529,8 +535,7 @@ class DruidDatasource(Model, BaseDatasource):
         else:
             return None
 
-    @property
-    def schema_perm(self) -> Optional[str]:
+    def get_schema_perm(self) -> Optional[str]:
         """Returns schema permission if present, cluster one otherwise."""
         return security_manager.get_schema_perm(self.cluster, self.schema)
 
@@ -829,7 +834,7 @@ class DruidDatasource(Model, BaseDatasource):
         return granularity
 
     @staticmethod
-    def get_post_agg(mconf: Dict) -> Postaggregator:
+    def get_post_agg(mconf: Dict) -> "Postaggregator":
         """
         For a metric specified as `postagg` returns the
         kind of post aggregation for pydruid.
@@ -1363,7 +1368,7 @@ class DruidDatasource(Model, BaseDatasource):
         Here we replace None with <NULL> and make the whole series a
         str instead of an object.
         """
-        df[groupby_cols] = df[groupby_cols].fillna("<NULL>").astype("unicode")
+        df[groupby_cols] = df[groupby_cols].fillna(NULL_STRING).astype("unicode")
         return df
 
     def query(self, query_obj: Dict) -> QueryResult:
@@ -1436,12 +1441,16 @@ class DruidDatasource(Model, BaseDatasource):
                 extraction_fn = RegexExtraction(fn["expr"])
             elif ext_type == "registeredLookup":
                 extraction_fn = RegisteredLookupExtraction(fn.get("lookup"))
+            elif ext_type == "timeFormat":
+                extraction_fn = TimeFormatExtraction(
+                    fn.get("format"), fn.get("locale"), fn.get("timeZone")
+                )
             else:
                 raise Exception(_("Unsupported extraction function: " + ext_type))
         return (col, extraction_fn)
 
     @classmethod
-    def get_filters(cls, raw_filters, num_cols, columns_dict) -> Filter:
+    def get_filters(cls, raw_filters, num_cols, columns_dict) -> "Filter":
         """Given Superset filter data structure, returns pydruid Filter(s)"""
         filters = None
         for flt in raw_filters:
@@ -1515,53 +1524,49 @@ class DruidDatasource(Model, BaseDatasource):
             # For the ops below, could have used pydruid's Bound,
             # but it doesn't support extraction functions
             elif op == ">=":
-                cond = Filter(
-                    type="bound",
+                cond = Bound(
                     extraction_function=extraction_fn,
                     dimension=col,
                     lowerStrict=False,
                     upperStrict=False,
                     lower=eq,
                     upper=None,
-                    alphaNumeric=is_numeric_col,
+                    ordering=cls._get_ordering(is_numeric_col),
                 )
             elif op == "<=":
-                cond = Filter(
-                    type="bound",
+                cond = Bound(
                     extraction_function=extraction_fn,
                     dimension=col,
                     lowerStrict=False,
                     upperStrict=False,
                     lower=None,
                     upper=eq,
-                    alphaNumeric=is_numeric_col,
+                    ordering=cls._get_ordering(is_numeric_col),
                 )
             elif op == ">":
-                cond = Filter(
-                    type="bound",
+                cond = Bound(
                     extraction_function=extraction_fn,
                     lowerStrict=True,
                     upperStrict=False,
                     dimension=col,
                     lower=eq,
                     upper=None,
-                    alphaNumeric=is_numeric_col,
+                    ordering=cls._get_ordering(is_numeric_col),
                 )
             elif op == "<":
-                cond = Filter(
-                    type="bound",
+                cond = Bound(
                     extraction_function=extraction_fn,
                     upperStrict=True,
                     lowerStrict=False,
                     dimension=col,
                     lower=None,
                     upper=eq,
-                    alphaNumeric=is_numeric_col,
+                    ordering=cls._get_ordering(is_numeric_col),
                 )
             elif op == "IS NULL":
-                cond = Dimension(col) is None
+                cond = Filter(dimension=col, value="")
             elif op == "IS NOT NULL":
-                cond = Dimension(col) is not None
+                cond = ~Filter(dimension=col, value="")
 
             if filters:
                 filters = Filter(type="and", fields=[cond, filters])
@@ -1570,7 +1575,11 @@ class DruidDatasource(Model, BaseDatasource):
 
         return filters
 
-    def _get_having_obj(self, col: str, op: str, eq: str) -> Having:
+    @staticmethod
+    def _get_ordering(is_numeric_col: bool) -> str:
+        return "numeric" if is_numeric_col else "lexicographic"
+
+    def _get_having_obj(self, col: str, op: str, eq: str) -> "Having":
         cond = None
         if op == "==":
             if col in self.column_names:
@@ -1584,7 +1593,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         return cond
 
-    def get_having_filters(self, raw_filters: List[Dict]) -> Having:
+    def get_having_filters(self, raw_filters: List[Dict]) -> "Having":
         filters = None
         reversed_op_map = {"!=": "==", ">=": "<", "<=": ">"}
 

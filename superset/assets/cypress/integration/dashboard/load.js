@@ -19,37 +19,40 @@
 import readResponseBlob from '../../utils/readResponseBlob';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
-export default () => describe('load', () => {
-  const aliases = [];
+export default () =>
+  describe('load', () => {
+    const aliases = [];
 
-  beforeEach(() => {
-    cy.server();
-    cy.login();
+    beforeEach(() => {
+      cy.server();
+      cy.login();
 
-    cy.visit(WORLD_HEALTH_DASHBOARD);
+      cy.visit(WORLD_HEALTH_DASHBOARD);
 
-    cy.get('#app').then((data) => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const slices = bootstrapData.dashboard_data.slices;
-      // then define routes and create alias for each requests
-      slices.forEach((slice) => {
-        const alias = `getJson_${slice.slice_id}`;
-        const formData = `{"slice_id":${slice.slice_id}}`;
-        cy.route('POST', `/superset/explore_json/?form_data=${formData}`).as(alias);
-        aliases.push(`@${alias}`);
+      cy.get('#app').then(data => {
+        const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
+        const slices = bootstrapData.dashboard_data.slices;
+        // then define routes and create alias for each requests
+        slices.forEach(slice => {
+          const alias = `getJson_${slice.slice_id}`;
+          const formData = `{"slice_id":${slice.slice_id}}`;
+          cy.route('POST', `/superset/explore_json/?form_data=${formData}`).as(
+            alias,
+          );
+          aliases.push(`@${alias}`);
+        });
+      });
+    });
+
+    it('should load dashboard', () => {
+      // wait and verify one-by-one
+      cy.wait(aliases).then(requests => {
+        requests.forEach(async xhr => {
+          expect(xhr.status).to.eq(200);
+          const responseBody = await readResponseBlob(xhr.response.body);
+          expect(responseBody).to.have.property('error', null);
+          cy.get(`#slice-container-${xhr.response.body.form_data.slice_id}`);
+        });
       });
     });
   });
-
-  it('should load dashboard', () => {
-    // wait and verify one-by-one
-    cy.wait(aliases).then((requests) => {
-      requests.forEach(async (xhr) => {
-        expect(xhr.status).to.eq(200);
-        const responseBody = await readResponseBlob(xhr.response.body);
-        expect(responseBody).to.have.property('error', null);
-        cy.get(`#slice-container-${xhr.response.body.form_data.slice_id}`);
-      });
-    });
-  });
-});

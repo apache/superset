@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint camelcase: 0 */
+import serializeActiveFilterValues from './serializeActiveFilterValues';
 
 export default function getDashboardUrl(pathname, filters = {}, hash = '') {
-  const preselect_filters = encodeURIComponent(JSON.stringify(filters));
+  // convert flattened { [id_column]: values } object
+  // to nested filter object
+  const obj = serializeActiveFilterValues(filters);
+  const preselectFilters = encodeURIComponent(JSON.stringify(obj));
   const hashSection = hash ? `#${hash}` : '';
-  return `${pathname}?preselect_filters=${preselect_filters}${hashSection}`;
+  return `${pathname}?preselect_filters=${preselectFilters}${hashSection}`;
 }

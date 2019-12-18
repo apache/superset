@@ -51,6 +51,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 
 from superset import app, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.exceptions import DatabaseNotFoundException
 from superset.jinja_context import get_template_processor
@@ -459,8 +460,7 @@ class SqlaTable(Model, BaseDatasource):
         anchor = f'<a target="_blank" href="{self.explore_url}">{name}</a>'
         return Markup(anchor)
 
-    @property
-    def schema_perm(self) -> Optional[str]:
+    def get_schema_perm(self) -> Optional[str]:
         """Returns schema permission if present, database one otherwise."""
         return security_manager.get_schema_perm(self.database, self.schema)
 
@@ -530,7 +530,11 @@ class SqlaTable(Model, BaseDatasource):
         # show_cols and latest_partition set to false to avoid
         # the expensive cost of inspecting the DB
         return self.database.select_star(
-            self.table_name, schema=self.schema, show_cols=False, latest_partition=False
+            self.table_name,
+            sql=self.sql,
+            schema=self.schema,
+            show_cols=False,
+            latest_partition=False,
         )
 
     def get_col(self, col_name: str) -> Optional[Column]:
@@ -804,7 +808,7 @@ class SqlaTable(Model, BaseDatasource):
                 )
                 if op in ("in", "not in"):
                     cond = col_obj.get_sqla_col().in_(eq)
-                    if "<NULL>" in eq:
+                    if NULL_STRING in eq:
                         cond = or_(cond, col_obj.get_sqla_col() == None)
                     if op == "not in":
                         cond = ~cond

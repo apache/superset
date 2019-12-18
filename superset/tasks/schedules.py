@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 
 """Utility functions used across Superset"""
 
@@ -24,7 +23,7 @@ import urllib.request
 from collections import namedtuple
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
-from urllib.error import URLError
+from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
 import croniter
 import simplejson as json
@@ -39,13 +38,13 @@ from werkzeug.http import parse_cookie
 
 # Superset framework imports
 from superset import app, db, security_manager
+from superset.extensions import celery_app
 from superset.models.schedules import (
     EmailDeliveryType,
     get_scheduler_model,
     ScheduleType,
     SliceEmailReportFormat,
 )
-from superset.tasks.celery_app import app as celery_app
 from superset.utils.core import get_email_address_list, send_email_smtp
 
 # Globals
@@ -190,11 +189,11 @@ def destroy_webdriver(driver):
     # and catch-all exceptions
     try:
         retry_call(driver.close, tries=2)
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         pass
     try:
         driver.quit()
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         pass
 
 
@@ -264,7 +263,8 @@ def _get_slice_data(schedule):
         raise URLError(response.getcode())
 
     # TODO: Move to the csv module
-    rows = [r.split(b",") for r in response.content.splitlines()]
+    content = response.read()
+    rows = [r.split(b",") for r in content.splitlines()]
 
     if schedule.delivery_type == EmailDeliveryType.inline:
         data = None
@@ -281,7 +281,7 @@ def _get_slice_data(schedule):
             )
 
     elif schedule.delivery_type == EmailDeliveryType.attachment:
-        data = {__("%(name)s.csv", name=slc.slice_name): response.content}
+        data = {__("%(name)s.csv", name=slc.slice_name): content}
         body = __(
             '<b><a href="%(url)s">Explore in Superset</a></b><p></p>',
             name=slc.slice_name,
@@ -347,7 +347,9 @@ def deliver_slice(schedule):
 
 
 @celery_app.task(name="email_reports.send", bind=True, soft_time_limit=300)
-def schedule_email_report(task, report_type, schedule_id, recipients=None):
+def schedule_email_report(
+    task, report_type, schedule_id, recipients=None
+):  # pylint: disable=unused-argument
     model_cls = get_scheduler_model(report_type)
     schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
 

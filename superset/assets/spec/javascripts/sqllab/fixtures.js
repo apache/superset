@@ -244,7 +244,10 @@ export const queries = [
           type: 'STRING',
         },
       ],
-      data: [{ col1: 0, col2: 1 }, { col1: 2, col2: 3 }],
+      data: [
+        { col1: 0, col2: 1 },
+        { col1: 2, col2: 3 },
+      ],
     },
   },
   {

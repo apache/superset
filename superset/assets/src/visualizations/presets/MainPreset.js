@@ -17,7 +17,10 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
-import { BigNumberChartPlugin, BigNumberTotalChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
+import {
+  BigNumberChartPlugin,
+  BigNumberTotalChartPlugin,
+} from '@superset-ui/legacy-preset-chart-big-number';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
@@ -36,7 +39,7 @@ import PivotTableChartPlugin from '@superset-ui/legacy-plugin-chart-pivot-table'
 import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import SunburstChartPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
-import TableChartPlugin from '@superset-ui/plugin-chart-table/esm/legacy';
+import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
 import TreemapChartPlugin from '@superset-ui/legacy-plugin-chart-treemap';
 import WordCloudChartPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
@@ -45,9 +48,19 @@ import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 // Make sure to import '@superset-ui/legacy-preset-chart-nvd3/lib'
 // Not '@superset-ui/legacy-preset-chart-nvd3',
 // which will point to '@superset-ui/legacy-preset-chart-nvd3/esm' by default
-import { AreaChartPlugin, BarChartPlugin, BubbleChartPlugin, BulletChartPlugin,
-  CompareChartPlugin, DistBarChartPlugin, DualLineChartPlugin, LineChartPlugin,
-  LineMultiChartPlugin, PieChartPlugin, TimePivotChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3/lib';
+import {
+  AreaChartPlugin,
+  BarChartPlugin,
+  BubbleChartPlugin,
+  BulletChartPlugin,
+  CompareChartPlugin,
+  DistBarChartPlugin,
+  DualLineChartPlugin,
+  LineChartPlugin,
+  LineMultiChartPlugin,
+  PieChartPlugin,
+  TimePivotChartPlugin,
+} from '@superset-ui/legacy-preset-chart-nvd3/lib';
 import { BoxPlotChartPlugin } from '@superset-ui/preset-chart-xy/esm/legacy';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 
@@ -58,9 +71,7 @@ export default class MainPreset extends Preset {
   constructor() {
     super({
       name: 'Legacy charts',
-      presets: [
-        new DeckGLChartPreset(),
-      ],
+      presets: [new DeckGLChartPreset()],
       plugins: [
         new AreaChartPlugin().configure({ key: 'area' }),
         new BarChartPlugin().configure({ key: 'bar' }),

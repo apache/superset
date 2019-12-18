@@ -34,12 +34,15 @@
       });
 
       var data = {};
+      const extra = $("#extra").val();
+      const encryptedExtra = $("#encrypted_extra").val();
       try{
         data = JSON.stringify({
           uri: $.trim($("#sqlalchemy_uri").val()),
           name: $('#database_name').val(),
           impersonate_user: $('#impersonate_user').is(':checked'),
-          extras: JSON.parse($("#extra").val()),
+          extras: extra ? JSON.parse(extra) : {},
+          encrypted_extra: encryptedExtra ? JSON.parse(encryptedExtra) : {},
         })
       } catch(parse_error){
         alert("Malformed JSON in the extras field: " + parse_error);
@@ -54,15 +57,6 @@
         contentType: "application/json; charset=utf-8"
       }).done(function(data) {
           alert("Seems OK!");
-          if ($('#tables').length == 0)
-            $('body div.container').append('<div id="tables"></div>');
-          div = $('#tables')
-          div.html('Tables:<br>');
-          $.each(data, function(i, d){
-            var id = 'tbl_' + d;
-            div.append('<span id="' + id + '" style="margin: 0px 10px 10px 0px;" class="btn btn-default">' + d + '</span>')
-            $('#' + id).click(function(){window.location = '/tablemodelview/add';})
-          });
       }).fail(function(error) {
           var respJSON = error.responseJSON;
           var errorMsg = error.responseText;

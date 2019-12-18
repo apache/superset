@@ -35,11 +35,10 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 from enum import Enum
 from time import struct_time
-from typing import Iterator, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Tuple, Union
 from urllib.parse import unquote_plus
 
 import bleach
-import celery
 import markdown as md
 import numpy
 import pandas as pd
@@ -47,10 +46,9 @@ import parsedatetime
 import sqlalchemy as sa
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
-from flask import current_app, flash, Flask, g, Markup, render_template
+from flask import current_app, flash, g, Markup, render_template
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
-from flask_caching import Cache
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.sql.type_api import Variant
@@ -250,30 +248,6 @@ def parse_human_datetime(s):
 
 def dttm_from_timetuple(d: struct_time) -> datetime:
     return datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
-
-
-def decode_dashboards(o):
-    """
-    Function to be passed into json.loads obj_hook parameter
-    Recreates the dashboard object from a json representation.
-    """
-    import superset.models.core as models
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-
-    if "__Dashboard__" in o:
-        return models.Dashboard(**o["__Dashboard__"])
-    elif "__Slice__" in o:
-        return models.Slice(**o["__Slice__"])
-    elif "__TableColumn__" in o:
-        return TableColumn(**o["__TableColumn__"])
-    elif "__SqlaTable__" in o:
-        return SqlaTable(**o["__SqlaTable__"])
-    elif "__SqlMetric__" in o:
-        return SqlMetric(**o["__SqlMetric__"])
-    elif "__datetime__" in o:
-        return datetime.strptime(o["__datetime__"], "%Y-%m-%dT%H:%M:%S")
-    else:
-        return o
 
 
 class DashboardEncoder(json.JSONEncoder):
@@ -562,7 +536,8 @@ def validate_json(obj):
     if obj:
         try:
             json.loads(obj)
-        except Exception:
+        except Exception as e:
+            logging.error(f"JSON is not valid {e}")
             raise SupersetException("JSON is not valid")
 
 
@@ -645,13 +620,13 @@ def pessimistic_connection_handling(some_engine):
 class QueryStatus:
     """Enum-type class for query statuses"""
 
-    STOPPED = "stopped"
-    FAILED = "failed"
-    PENDING = "pending"
-    RUNNING = "running"
-    SCHEDULED = "scheduled"
-    SUCCESS = "success"
-    TIMED_OUT = "timed_out"
+    STOPPED: str = "stopped"
+    FAILED: str = "failed"
+    PENDING: str = "pending"
+    RUNNING: str = "running"
+    SCHEDULED: str = "scheduled"
+    SUCCESS: str = "success"
+    TIMED_OUT: str = "timed_out"
 
 
 def notify_user_about_perm_udate(granter, user, role, datasource, tpl_name, config):
@@ -791,20 +766,6 @@ def choicify(values):
     return [(v, v) for v in values]
 
 
-def setup_cache(app: Flask, cache_config) -> Optional[Cache]:
-    """Setup the flask-cache on a flask app"""
-    if cache_config:
-        if isinstance(cache_config, dict):
-            if cache_config["CACHE_TYPE"] != "null":
-                return Cache(app, config=cache_config)
-        else:
-            # Accepts a custom cache initialization function,
-            # returning an object compatible with Flask-Caching API
-            return cache_config(app)
-
-    return None
-
-
 def zlib_compress(data):
     """
     Compress things in a py2/3 safe fashion
@@ -830,19 +791,6 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
     else:
         decompressed = zlib.decompress(bytes(blob, "utf-8"))
     return decompressed.decode("utf-8") if decode else decompressed
-
-
-_celery_app = None
-
-
-def get_celery_app(config):
-    global _celery_app
-    if _celery_app:
-        return _celery_app
-    _celery_app = celery.Celery()
-    _celery_app.config_from_object(config["CELERY_CONFIG"])
-    _celery_app.set_default()
-    return _celery_app
 
 
 def to_adhoc(filt, expressionType="SIMPLE", clause="where"):
@@ -933,8 +881,16 @@ def merge_extra_filters(form_data: dict):
         del form_data["extra_filters"]
 
 
-def merge_request_params(form_data: dict, params: dict):
-    url_params = {}
+def merge_request_params(form_data: Dict[str, Any], params: Dict[str, Any]) -> None:
+    """
+    Merge request parameters to the key `url_params` in form_data. Only updates
+    or appends parameters to `form_data` that are defined in `params; pre-existing
+    parameters not defined in params are left unchanged.
+
+    :param form_data: object to be updated
+    :param params: request parameters received via query string
+    """
+    url_params = form_data.get("url_params", {})
     for key, value in params.items():
         if key in ("form_data", "r"):
             continue
@@ -1261,3 +1217,13 @@ class TimeRangeEndpoint(str, Enum):
     EXCLUSIVE = "exclusive"
     INCLUSIVE = "inclusive"
     UNKNOWN = "unknown"
+
+
+class ReservedUrlParameters(Enum):
+    """
+    Reserved URL parameters that are used internally by Superset. These will not be
+    passed to chart queries, as they control the behavior of the UI.
+    """
+
+    STANDALONE = "standalone"
+    EDIT_MODE = "edit"

@@ -36,10 +36,7 @@ const databases = bootstrapData.databases;
 const store = createStore(
   rootReducer,
   {},
-  compose(
-    applyMiddleware(thunk, logger),
-    initEnhancer(false),
-  ),
+  compose(applyMiddleware(thunk, logger), initEnhancer(false)),
 );
 
 const App = () => (
