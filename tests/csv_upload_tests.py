@@ -369,7 +369,7 @@ class CsvUploadTests(SupersetTestCase):
             os.remove(path)
             os.remove(filename)
 
-    def test_create_table_in_superset_fail(self):
+    def test_create_table_in_superset_not_in_system(self):
         table_name = "newTable"
         example_db = utils.get_example_database()
         error_message = f"Table {table_name} could not be created."

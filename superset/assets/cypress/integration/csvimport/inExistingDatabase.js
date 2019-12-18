@@ -47,7 +47,7 @@ export default () => {
         .clear({ force: true })
         .type(';', { force: true });
 
-      cy.get('#tableExists').then(elem => {
+      cy.get('#ifTableExists').then(elem => {
         elem.val('Fail');
       });
 

@@ -51,10 +51,10 @@ export class CsvToDatabase extends React.PureComponent {
       selectedConnection: { label: t('In a new database'), value: -1 },
       schema: undefined,
       delimiter: ',',
-      selectedTableExists: { label: t('Fail'), value: 'Fail' },
+      selectedIfTableExists: { label: t('Fail'), value: 'Fail' },
       headerRow: '0',
       decimalCharacter: '.',
-      tableExistsValues: [
+      ifTableExistsValues: [
         { label: t('Fail'), value: 'Fail' },
         { label: t('Replace'), value: 'Replace' },
         { label: t('Append'), value: 'Append' },
@@ -76,7 +76,7 @@ export class CsvToDatabase extends React.PureComponent {
     };
     this.setFile = this.setFile.bind(this);
     this.setSelectedConnection = this.setSelectedConnection.bind(this);
-    this.setTableExists = this.setTableExists.bind(this);
+    this.setIfTableExists = this.setIfTableExists.bind(this);
     this.setDatabaseFlavor = this.setDatabaseFlavor.bind(this);
     this.setUserInput = this.setUserInput.bind(this);
     this.getConnectionStrings = this.getConnectionStrings.bind(this);
@@ -113,8 +113,8 @@ export class CsvToDatabase extends React.PureComponent {
     }
   }
 
-  setTableExists(value) {
-    this.setState({ selectedTableExists: value });
+  setIfTableExists(value) {
+    this.setState({ selectedIfTableExists: value });
   }
 
   setDatabaseFlavor(value) {
@@ -171,7 +171,7 @@ export class CsvToDatabase extends React.PureComponent {
       selectedConnection,
       schema,
       delimiter,
-      selectedTableExists,
+      selectedIfTableExists,
       headerRow,
       decimalCharacter,
       indexColumn,
@@ -194,7 +194,7 @@ export class CsvToDatabase extends React.PureComponent {
         selectedConnection.value === -1 ? selectedDatabaseFlavor.value : '',
       schema: schema ? schema.value : '',
       delimiter,
-      ifTableExists: selectedTableExists.value,
+      ifTableExists: selectedIfTableExists.value,
       headerRow,
       decimalCharacter,
       indexColumn,
@@ -381,11 +381,11 @@ export class CsvToDatabase extends React.PureComponent {
                       </td>
                       <td>
                         <FormSelect
-                          id={'tableExists'}
+                          id={'ifTableExists'}
                           required
-                          value={this.state.selectedTableExists}
-                          onChange={this.setTableExists}
-                          options={this.state.tableExistsValues}
+                          value={this.state.selectedIfTableExists}
+                          onChange={this.setIfTableExists}
+                          options={this.state.ifTableExistsValues}
                           clearable={false}
                           helpText={t(
                             'If table exists do one of the following: Fail (do nothing), Replace (drop and recreate table) or Append (insert data)',
