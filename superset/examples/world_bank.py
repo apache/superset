@@ -25,17 +25,17 @@ from sqlalchemy.sql import column
 
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.utils import core as utils
 
 from .helpers import (
     config,
-    Dash,
     EXAMPLES_FOLDER,
     get_example_data,
     get_slice_json,
     merge_slice,
     misc_dash_slices,
-    Slice,
     TBL,
     update_slice_ids,
 )
@@ -332,10 +332,10 @@ def load_world_bank_health_n_pop(
     print("Creating a World's Health Bank dashboard")
     dash_name = "World Bank's Data"
     slug = "world_health"
-    dash = db.session.query(Dash).filter_by(slug=slug).first()
+    dash = db.session.query(Dashboard).filter_by(slug=slug).first()
 
     if not dash:
-        dash = Dash()
+        dash = Dashboard()
     dash.published = True
     js = textwrap.dedent(
         """\

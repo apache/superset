@@ -21,7 +21,8 @@ import time
 from datetime import datetime
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.models.core import Dashboard, Slice
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 
 
 def decode_dashboards(o):

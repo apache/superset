@@ -17,7 +17,9 @@
 from sqlalchemy import and_, or_
 
 from superset import db, security_manager
-from superset.models.core import Dashboard, FavStar, Slice
+from superset.models.core import FavStar
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.views.base import BaseFilter
 
 from ..base import get_user_roles

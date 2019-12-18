@@ -40,7 +40,9 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
+from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
+from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.views import core as views
@@ -221,7 +223,7 @@ class CoreTests(SupersetTestCase):
         )
         db.session.expunge_all()
         new_slice_id = resp.json["form_data"]["slice_id"]
-        slc = db.session.query(models.Slice).filter_by(id=new_slice_id).one()
+        slc = db.session.query(Slice).filter_by(id=new_slice_id).one()
 
         self.assertEqual(slc.slice_name, copy_name)
         form_data.pop("slice_id")  # We don't save the slice id when saving as
@@ -241,7 +243,7 @@ class CoreTests(SupersetTestCase):
             data={"form_data": json.dumps(form_data)},
         )
         db.session.expunge_all()
-        slc = db.session.query(models.Slice).filter_by(id=new_slice_id).one()
+        slc = db.session.query(Slice).filter_by(id=new_slice_id).one()
         self.assertEqual(slc.slice_name, new_slice_name)
         self.assertEqual(slc.viz.form_data, form_data)
 
@@ -280,7 +282,7 @@ class CoreTests(SupersetTestCase):
     def test_slices(self):
         # Testing by hitting the two supported end points for all slices
         self.login(username="admin")
-        Slc = models.Slice
+        Slc = Slice
         urls = []
         for slc in db.session.query(Slc).all():
             urls += [
@@ -333,7 +335,7 @@ class CoreTests(SupersetTestCase):
         )
         self.login(username="explore_beta", password="general")
 
-        Slc = models.Slice
+        Slc = Slice
         urls = []
         for slc in db.session.query(Slc).all():
             urls += [(slc.slice_name, "slice_url", slc.slice_url)]
@@ -554,7 +556,7 @@ class CoreTests(SupersetTestCase):
         resp = self.get_json_resp(url)
         self.assertEqual(resp["count"], 1)
 
-        dash = db.session.query(models.Dashboard).filter_by(slug="births").first()
+        dash = db.session.query(Dashboard).filter_by(slug="births").first()
         url = "/superset/favstar/Dashboard/{}/select/".format(dash.id)
         resp = self.get_json_resp(url)
         self.assertEqual(resp["count"], 1)
@@ -579,7 +581,7 @@ class CoreTests(SupersetTestCase):
 
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
         # superset/explore case
-        slc = db.session.query(models.Slice).filter_by(slice_name="Girls").one()
+        slc = db.session.query(Slice).filter_by(slice_name="Girls").one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
         self.get_resp(slc.slice_url, {"form_data": json.dumps(slc.form_data)})
         self.assertEqual(1, qry.count())
@@ -587,7 +589,7 @@ class CoreTests(SupersetTestCase):
     def test_slice_id_is_always_logged_correctly_on_ajax_request(self):
         # superset/explore_json case
         self.login(username="admin")
-        slc = db.session.query(models.Slice).filter_by(slice_name="Girls").one()
+        slc = db.session.query(Slice).filter_by(slice_name="Girls").one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
         slc_url = slc.slice_url.replace("explore", "explore_json")
         self.get_json_resp(slc_url, {"form_data": json.dumps(slc.form_data)})
