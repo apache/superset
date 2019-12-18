@@ -36,6 +36,14 @@ def upgrade():
         batch_op.alter_column("layer_id", existing_type=sa.INTEGER(), nullable=False)
 
     try:
+        op.drop_constraint("_customer_location_uc", "tables")
+    except Exception:
+        # either we're on SQLite which doesn't support changing constraints
+        # or we're on MySQL and this constraint wasn't ever created in the first
+        # place due to index length issues.
+        pass
+
+    try:
         op.create_foreign_key(
             "datasources_changed_by_fk",
             "datasources",
@@ -51,6 +59,15 @@ def upgrade():
 def downgrade():
     with op.batch_alter_table("annotation") as batch_op:
         op.alter_column("layer_id", existing_type=sa.INTEGER(), nullable=True)
+
+    try:
+        op.create_unique_constraint(
+            "_customer_location_uc", "tables", ["database_id", "schema", "table_name"]
+        )
+    except Exception:
+        # We're on SQLite which doesn't support altering constraints,
+        # or we're on MySQL and the constraint is too large to create.
+        pass
 
     try:
         op.drop_constraint(
