@@ -65,12 +65,23 @@ describe('ExploreChartHeader', () => {
     expect(wrapper.find(ExploreActionButtons)).toHaveLength(1);
   });
 
-  it('updateChartTitleOrSaveSlice', () => {
+  it('should updateChartTitleOrSaveSlice for existed slice', () => {
     const newTitle = 'New Chart Title';
     wrapper.instance().updateChartTitleOrSaveSlice(newTitle);
     expect(stub.call.length).toEqual(1);
     expect(stub).toHaveBeenCalledWith(mockProps.slice.form_data, {
       action: 'overwrite',
+      slice_name: newTitle,
+    });
+  });
+
+  it('should updateChartTitleOrSaveSlice for new slice', () => {
+    const newTitle = 'New Chart Title';
+    wrapper.setProps({ slice: undefined });
+    wrapper.instance().updateChartTitleOrSaveSlice(newTitle);
+    expect(stub.call.length).toEqual(1);
+    expect(stub).toHaveBeenCalledWith(mockProps.form_data, {
+      action: 'saveas',
       slice_name: newTitle,
     });
   });

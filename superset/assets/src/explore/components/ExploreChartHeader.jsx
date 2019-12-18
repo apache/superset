@@ -61,32 +61,36 @@ class ExploreChartHeader extends React.PureComponent {
 
   updateChartTitleOrSaveSlice(newTitle) {
     const isNewSlice = !this.props.slice;
+    const currentFormData = isNewSlice
+      ? this.props.form_data
+      : this.props.slice.form_data;
+
     const params = {
       slice_name: newTitle,
       action: isNewSlice ? 'saveas' : 'overwrite',
     };
     // this.props.slice hold the original slice params stored in slices table
-    this.props.actions
-      .saveSlice(this.props.slice.form_data, params)
-      .then(json => {
-        const { data } = json;
-        if (isNewSlice) {
-          this.props.actions.updateChartId(data.slice.slice_id, 0);
-          this.props.actions.createNewSlice(
-            data.can_add,
-            data.can_download,
-            data.can_overwrite,
-            data.slice,
-            data.form_data,
-          );
-          this.props.addHistory({
-            isReplace: true,
-            title: `[chart] ${data.slice.slice_name}`,
-          });
-        } else {
-          this.props.actions.updateChartTitle(newTitle);
-        }
-      });
+    // when chart is saved or overwritten, the explore view will reload page
+    // to make sure sync with updated query params
+    this.props.actions.saveSlice(currentFormData, params).then(json => {
+      const { data } = json;
+      if (isNewSlice) {
+        this.props.actions.updateChartId(data.slice.slice_id, 0);
+        this.props.actions.createNewSlice(
+          data.can_add,
+          data.can_download,
+          data.can_overwrite,
+          data.slice,
+          data.form_data,
+        );
+        this.props.addHistory({
+          isReplace: true,
+          title: `[chart] ${data.slice.slice_name}`,
+        });
+      } else {
+        this.props.actions.updateChartTitle(newTitle);
+      }
+    });
   }
 
   renderChartTitle() {
