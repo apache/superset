@@ -31,6 +31,7 @@ from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.core import Database
+from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.utils.core import get_example_database
 
 FAKE_DB_NAME = "fake_db_100"
@@ -158,7 +159,7 @@ class SupersetTestCase(TestCase):
         return json.loads(resp)
 
     def get_access_requests(self, username, ds_type, ds_id):
-        DAR = models.DatasourceAccessRequest
+        DAR = DatasourceAccessRequest
         return (
             db.session.query(DAR)
             .filter(
