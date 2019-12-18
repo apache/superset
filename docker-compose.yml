@@ -34,7 +34,7 @@ services:
     image: redis:3.2
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${REDIS_PORT}:6379"
+      - "127.0.0.1:${REDIS_PORT}:${REDIS_PORT}"
     volumes:
       - redis:/data
 
