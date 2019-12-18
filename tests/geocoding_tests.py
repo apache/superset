@@ -51,19 +51,6 @@ class GeocoderMock(BaseGeocoder):
     def check_api_key(self):
         pass
 
-    def _append_cords_to_data_entry(self, data_entry: list, geocoded: list):
-        center_coordinates = geocoded[0]
-        relevance = geocoded[1]
-        if relevance > 0.8:
-            self.progress["success_counter"] += 1
-        elif relevance > 0.49:
-            self.progress["doubt_counter"] += 1
-        else:
-            self.progress["failed_counter"] += 1
-        data_entry.append(str(center_coordinates[0]))
-        data_entry.append(str(center_coordinates[1]))
-        return data_entry
-
 
 class GeocodingTests(SupersetTestCase):
     test_database = None
@@ -222,23 +209,15 @@ class GeocodingTests(SupersetTestCase):
 
         error_message = f"Table with ID {table_id} does not exists"
         with self.assertRaisesRegex(TableNotFoundException, error_message):
-            GeocoderApi()._get_table_by_id(table_id)
+            GeocoderApi()._get_table_with_columns(table_id)
 
     def test_load_data_from_all_columns(self):
-        table_id = self.test_table.id
+        table = self.test_table
         geo_columns = ["street", "city", "country"]
 
-        data = GeocoderApi()._load_data_from_columns(table_id, geo_columns)
+        data = GeocoderApi()._load_data_from_columns(table, geo_columns)
         assert 5 == len(data)
         assert ("Oberseestrasse 10", "Rapperswil", "Switzerland") in data
-
-    def test_load_data_from_columns_with_none(self):
-        table_id = self.test_table.id
-        geo_columns = ["street", None, "country"]
-
-        data = GeocoderApi()._load_data_from_columns(table_id, geo_columns)
-        assert 5 == len(data)
-        assert ("Oberseestrasse 10", "Switzerland") in data
 
     def test_add_lat_lon_columns(self):
         table = self.test_table
@@ -248,7 +227,7 @@ class GeocodingTests(SupersetTestCase):
         columns = self.test_table.columns
         number_of_columns_before = len(columns)
 
-        GeocoderApi()._add_lat_lon_columns(table, lat_column_name, lon_column_name)
+        GeocoderApi()._create_columns(lat_column_name, False, lon_column_name, False, table)
 
         columns = self.test_table.columns
         number_of_columns_after = len(columns)

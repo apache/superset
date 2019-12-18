@@ -137,53 +137,32 @@ class Geocoder(BaseSupersetView):
                  or an error message if somethings went wrong
         """
         request_data = request.json
-        columns = []
-
         self._set_geocoder(request_data.get("geocoder", ""))
-        street_column = request_data.get("streetColumn")
-        city_column = request_data.get("cityColumn")
-        country_column = request_data.get("countryColumn")
-        building_number_column = request_data.get("buildingNumberColumn")
-        if street_column:
-            columns.append(street_column)
-        if city_column:
-            columns.append(city_column)
-        if country_column:
-            columns.append(country_column)
-        if building_number_column:
-            columns.append(building_number_column)
-        if_exists = request_data.get("ifExists")
         lat_column = request_data.get("latitudeColumnName", "lat")
         lon_column = request_data.get("longitudeColumnName", "lon")
+        columns = self._create_column_list(request_data)
+        if_exists = request_data.get("ifExists")
         save_on_stop_geocoding = request_data.get("saveOnErrorOrInterrupt", True)
         table_dto = request_data.get("datasource", models.TableDto())
         table_id = table_dto.get("id", "")
         message_suffix = ""
         try:
-            column_message = self._check_and_create_columns(
-                if_exists, lat_column, lon_column, table_id
+            table = self._get_table_with_columns(table_id)
+            lat_exists = self._does_column_name_exist(table, lat_column)
+            lon_exists = self._does_column_name_exist(table, lon_column)
+            if "fail" in if_exists and (lat_exists or lon_exists):
+                self.stats_logger.incr("geocoding_failed")
+                return json_error_response("At least one of the columns already exists!", status=400)
+            self._create_columns(
+                lat_column, lat_exists, lon_column, lon_exists, table
             )
-            if column_message:
-                message_suffix = f" but {column_message} please choose the overwrite option when trying again"
-            if "append" in if_exists:
-                table_data = self._load_data_from_columns(
-                    table_id, columns, lat_column, lon_column
-                )
-            else:
-                table_data = self._load_data_from_columns(table_id, columns)
-        except (NoColumnsException, TableNotFoundException) as e:
+            message_suffix = f" but columns have been created please choose the 'Replace' or 'Append' option when trying again."
+            table_data = self._load_data_from_columns(table, columns)
+            table_data = self._filter_data(table_data, len(columns) - 1, len(columns), "append" in if_exists)
+        except (NoColumnsException, TableNotFoundException, SqlSelectException) as e:
             self.stats_logger.incr("geocoding_failed")
+            self.logger.exception(f"Error while verifying parameters {e}")
             return json_error_response(e.args[0], status=400)
-        except ValueError as e:
-            self.logger.exception(f"ValueError when querying for lat/lon columns {e}")
-            self.stats_logger.incr("geocoding_failed")
-            return json_error_response(f"{e.args[0]} {message_suffix}", status=400)
-        except SqlSelectException as e:
-            self.logger.exception(
-                f"SqlSelectException when preparing for geocoding {e.orig}"
-            )
-            self.stats_logger.incr("geocoding_failed")
-            return json_error_response(f"{e.args[0]} {message_suffix}", status=500)
         except Exception as e:
             self.logger.exception(f"Exception when preparing for geocoding {e}")
             self.stats_logger.incr("geocoding_failed")
@@ -195,34 +174,29 @@ class Geocoder(BaseSupersetView):
             self.logger.exception(e.args[0])
             self.stats_logger.inc("geocoding_failed")
             return json_error_response(
-                json.dumps(
-                    "Geocoder is not implemented correctly. Please contact your "
-                    "administrator."
-                )
+                "Geocoder is not implemented correctly. Please contact your administrator."
             )
         except NoAPIKeySuppliedException as e:
             self.logger.exception(e.args[0])
             self.stats_logger.incr("geocoding_failed")
             return json_error_response(f"{e.args[0]} {message_suffix}")
-        if self.geocoder.interruptflag:
-            if not save_on_stop_geocoding:
-                return json_success(
-                    json.dumps(f"geocoding interrupted {message_suffix}")
-                )
+
+        if self.geocoder.interruptflag and not save_on_stop_geocoding:
+            return json_success(
+                json.dumps(f"geocoding interrupted {message_suffix}")
+            )
         # If there was an error, data[0] will be a message, otherwise it will be an empty string meaning we can proceed
-        if geocoded_values_with_message[0]:
-            if not save_on_stop_geocoding:
-                return json_error_response(
-                    json.dumps(f"{geocoded_values_with_message[0]} {message_suffix}")
-                )
+        if geocoded_values_with_message[0] and not save_on_stop_geocoding:
+            return json_error_response(
+               f"{geocoded_values_with_message[0]} {message_suffix}"
+            )
         try:
             geocoded_values = geocoded_values_with_message[1]
             # It is possible that no exception occured but no geocoded values are returned check for this
-            if len(geocoded_values[0]) == 0:
+            if len(geocoded_values[0]) == 0:  # geocoded_values[0] = (lat, lon)
                 return json_error_response(
-                    json.dumps(f"No geocoded values received {message_suffix}")
+                    f"No geocoded values received {message_suffix}"
                 )
-            table = self._get_table_by_id(table_id)
             self._insert_geocoded_data(
                 table, lat_column, lon_column, columns, geocoded_values[0]
             )
@@ -231,7 +205,7 @@ class Geocoder(BaseSupersetView):
                 f"Failed to add columns/ data after geocoding {e.orig}"
             )
             self.stats_logger.incr("geocoding_failed")
-            return json_error_response(f"{e.args[0]} {message_suffix}", status=500)
+            return json_error_response(f"{e.args[0]} {message_suffix}", status=400)
         except Exception as e:
             self.logger.exception(
                 f"Exception when adding columns/ data after geocoding {e}"
@@ -249,6 +223,24 @@ class Geocoder(BaseSupersetView):
         self.stats_logger.incr("succesful_geocoding")
         return json_success('"OK"')
 
+    def _create_column_list(self, request_data: dict) -> list:
+        columns = []
+        street_column = request_data.get("streetColumn")
+        city_column = request_data.get("cityColumn")
+        country_column = request_data.get("countryColumn")
+        building_number_column = request_data.get("buildingNumberColumn")
+        if street_column:
+            columns.append(street_column)
+        if city_column:
+            columns.append(city_column)
+        if country_column:
+            columns.append(country_column)
+        if building_number_column:
+            columns.append(building_number_column)
+        columns.append(request_data.get("latitudeColumnName", "lat"))
+        columns.append(request_data.get("longitudeColumnName", "lon"))
+        return columns
+
     def _get_from_clause(self, table: SqlaTable) -> str:
         """
         Get the from clause for the SQL statement
@@ -262,9 +254,9 @@ class Geocoder(BaseSupersetView):
             full_table_name = quote(table.table_name)
         return text(full_table_name)
 
-    def _check_and_create_columns(
-        self, if_exists: str, lat_column: str, lon_column: str, table_id: str
-    ) -> str:
+    def _create_columns(
+        self, lat_column: str, lat_exists: bool, lon_column: str, lon_exists: bool, table: SqlaTable
+    ) -> None:
         """
         Check and create the lat / lon columns if needed
         :param if_exists: What should happen if the columns already exist
@@ -273,58 +265,38 @@ class Geocoder(BaseSupersetView):
         :param table_id: The id of the table
         :return: A message describing what columns have been created or an empty message if no columns have been created
         """
-        if "fail" in if_exists:
-            override_if_exist = False
-        else:
-            override_if_exist = True
-        table = self._get_table_by_id(table_id)
-        self._check_table(table)
-        lat_exists = self._does_column_name_exist(table, lat_column)
-        lon_exists = self._does_column_name_exist(table, lon_column)
-        column_message_suffix = ""
-        if override_if_exist:
-            if lat_exists:
-                if lon_exists:
-                    pass
-                else:
-                    self._add_lat_lon_columns(table, lon_column=lon_column)
-                    column_message_suffix = f"successfully created column {lon_column}"
-            else:
-                if lon_exists:
-                    self._add_lat_lon_columns(table, lat_column=lat_column)
-                    column_message_suffix = f"successfully created column {lat_column}"
-                else:
-                    self._add_lat_lon_columns(table, lat_column, lon_column)
-                    column_message_suffix = (
-                        f"successfully created columns: {lat_column} and {lon_column}"
-                    )
-        else:
-            if lat_exists:
-                raise ValueError(
-                    f"Column name {lat_column} for latitude is already in use"
-                )
-            if lon_exists:
-                raise ValueError(
-                    f"Column name {lon_column} for longitude is already in use"
-                )
-            self._add_lat_lon_columns(table, lat_column, lon_column)
-            column_message_suffix = (
-                f"successfully created columns: {lat_column} and {lon_column}"
+
+        connection = table.database.get_sqla_engine().connect()
+        transaction = connection.begin()
+        try:
+            if not lat_exists:
+                self._add_column(connection, table, lat_column, Float())
+            if not lon_exists:
+                self._add_column(connection, table, lon_column, Float())
+        except Exception as e:
+            transaction.rollback()
+            raise SqlAddColumnException(
+                "An error occured while creating new columns for latitude and longitude",
+                e,
             )
+        finally:
+            transaction.close()
+            connection.close()
+            db.session.commit()
 
-        return column_message_suffix
-
-    def _check_table(self, table: SqlaTable) -> None:
+    def _get_table_with_columns(self, table_id: str) -> SqlaTable:
         """
         Check if there is a table and the table has columns
-        :param table: The SqlaTable
+        :param table_id: The id of the table
         :raise TableNotFoundException: If there is no table object
         :raise NoColumnsException: If the table does not have any columns
         """
+        table = db.session.query(SqlaTable).filter_by(id=table_id).first()
         if not table:
-            raise TableNotFoundException(f"Table with ID {table.id} does not exist")
+            raise TableNotFoundException(f"Table with ID {table_id} does not exists")
         if not table.columns:
             raise NoColumnsException(f"No columns found for table with ID {table.id}.")
+        return table
 
     def _does_column_name_exist(self, table: SqlaTable, column_name: str):
         """
@@ -337,7 +309,7 @@ class Geocoder(BaseSupersetView):
         return column_name.lower() in column_names
 
     def _load_data_from_columns(
-        self, table_id: str, columns: list, lat_column=None, lon_column=None
+        self, table: SqlaTable, columns: list
     ) -> list:
         """
         Get data from columns form table
@@ -349,20 +321,11 @@ class Geocoder(BaseSupersetView):
         :raise SqlSelectException: When SELECT from given columns went wrong
         """
         try:
-            table = self._get_table_by_id(table_id)
             full_table_name = self._get_from_clause(table)
-            column_list = self._create_column_list(columns, lat_column, lon_column)
+            column_list = self._create_columns_string(columns)
             sql = f"SELECT {column_list} FROM {full_table_name}"
             result = table.database.get_sqla_engine().connect().execute(sql)
-            if lat_column and lon_column:
-                resultset = []
-                column_count = len(columns)
-                for row in result:
-                    if not row[column_count] or not row[column_count + 1]:
-                        resultset.append(row[0:column_count])
-                return resultset
-            else:
-                return [row for row in result]
+            return [row for row in result]
         except Exception as e:
             raise SqlSelectException(
                 "An error occured while getting address data from columns "
@@ -370,19 +333,13 @@ class Geocoder(BaseSupersetView):
                 e,
             )
 
-    def _get_table_by_id(self, table_id: str) -> SqlaTable:
-        """
-        Get a SqlaTable object from the session and return it
-        :param table_id: The ID of the table to get
-        :return: The SqlaTable object with the corresponding ID
-        """
-        table = db.session.query(SqlaTable).filter_by(id=table_id).first()
-        if not table:
-            raise TableNotFoundException(f"Table with ID {table_id} does not exists")
-        return table
+    def _filter_data(self, data: list, lat_index: int, lon_index: int, is_append: bool) -> list:
+        if is_append:
+            return list(filter(lambda row: not (row[lat_index] and row[lon_index])), data)
+        return data
 
-    def _create_column_list(
-        self, columns: list, lat_column: str, lon_column: str
+    def _create_columns_string(
+        self, columns: list
     ) -> str:
         """
         Creates a string containing all the columns
@@ -391,15 +348,7 @@ class Geocoder(BaseSupersetView):
         :param lon_column: The name of the longitude column
         :return: A string containing a comma separated list of all the columns
         """
-        column_list = []
-        for column in columns:
-            if column:
-                column_list.append(column)
-        if lat_column and lon_column:
-            column_list.append(lat_column)
-            column_list.append(lon_column)
-
-        return ", ".join(filter(None, column_list))
+        return ", ".join(columns)
 
     def _set_geocoder(self, geocoder_name: str) -> None:
         """
@@ -420,35 +369,6 @@ class Geocoder(BaseSupersetView):
         """
         self.geocoder.check_api_key()
         return self.geocoder.geocode(data)
-
-    def _add_lat_lon_columns(
-        self, table: SqlaTable, lat_column: str = None, lon_column: str = None
-    ) -> None:
-        """
-        Add new longitude and latitude columns to table
-        :param table: The SqlaTable where the columns need to be added to
-        :param lat_column: The name of latitude column
-        :param lon_column: The name of longitude column
-        :raise SqlAddColumnException: When add column-SQL went wrong
-        """
-        connection = table.database.get_sqla_engine().connect()
-        transaction = connection.begin()
-        try:
-            if lat_column:
-                self._add_column(connection, table, lat_column, Float())
-            if lon_column:
-                self._add_column(connection, table, lon_column, Float())
-            transaction.commit()
-        except Exception as e:
-            transaction.rollback()
-            raise SqlAddColumnException(
-                "An error occured while creating new columns for latitude and longitude",
-                e,
-            )
-        finally:
-            transaction.close()
-            connection.close()
-            db.session.commit()
 
     def _add_column(
         self,
@@ -489,7 +409,7 @@ class Geocoder(BaseSupersetView):
         :param data: row with geographical data and geocoded coordinates
         :raise SqlUpdateException: When update of given columns with given data went wrong
         """
-        where_clause = "='%s' AND ".join(filter(None, geo_columns)) + "='%s'"
+        where_clause = "='%s' AND ".join(geo_columns) + "='%s'"
         lat_column_index = len(geo_columns)
 
         connection = table.database.get_sqla_engine().connect()
