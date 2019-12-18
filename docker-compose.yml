@@ -43,7 +43,7 @@ services:
     image: postgres:10
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5324:5324"
+      - "127.0.0.1:5423:5423"
     volumes:
       - postgres:/var/lib/postgresql/data
 
