@@ -40,7 +40,7 @@ services:
 
   db:
     env_file: docker/.env
-    image: "$DATABASE_IMAGE"
+    image: "${DATABASE_IMAGE}"
     restart: unless-stopped
     ports:
       - "127.0.0.1:${DATABASE_PORT}:${DATABASE_PORT}"
