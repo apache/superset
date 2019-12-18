@@ -99,7 +99,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def create_and_fill_table_from_csv(
         cls, form_data: dict, csv_filename: str, database
-    ):  # pylint: disable=too-many-locals
+    ) -> None:  # pylint: disable=too-many-locals
         """Uploads a csv file and creates a superset datasource in Hive."""
 
         def convert_to_hive_type(col_type):
