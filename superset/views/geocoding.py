@@ -320,10 +320,11 @@ class Geocoder(BaseSupersetView):
     ) -> list:
         """
         Get data from columns form table
-        :param table_id: The id of the table
+        :param table: The SqlaTable
         :param columns: The names of columns to select
         :param lat_column: The name of the lat column
         :param lon_column: The name of the lon_column
+        :param is_append: If the data needs to be appended
         :return: The data from columns from given table as list of tuples
         :raise SqlSelectException: When SELECT from given columns went wrong
         """
