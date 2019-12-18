@@ -43,11 +43,7 @@ services:
     image: postgres:10
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${DATABASE_PORT}:${DATABASE_PORT}"
-    environment:
-      - POSTGRES_DB="${DATABASE_DB}"
-      - POSTGRES_PASSWORD="${DATABASE_PASSWORD}"
-      - POSTGRES_USER="${DATABASE_USER}"
+      - "127.0.0.1:5324:5324"
     volumes:
       - postgres:/var/lib/postgresql/data
 
