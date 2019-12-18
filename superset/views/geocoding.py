@@ -170,7 +170,7 @@ class Geocoder(BaseSupersetView):
             return json_error_response(f"{e.args[0]} {message_suffix}", status=500)
 
         try:
-            geocoded_values_with_message = self._geocode(table_data)
+            message_with_geocoded_values = self._geocode(table_data)
         except NotImplementedError as e:
             self.logger.exception(e.args[0])
             self.stats_logger.inc("geocoding_failed")
@@ -185,14 +185,14 @@ class Geocoder(BaseSupersetView):
         if self.geocoder.interruptflag and not save_on_stop_geocoding:
             return json_success(json.dumps(f"geocoding interrupted {message_suffix}"))
         # If there was an error, data[0] will be a message, otherwise it will be an empty string meaning we can proceed
-        if geocoded_values_with_message[0] and not save_on_stop_geocoding:
+        if message_with_geocoded_values[0] and not save_on_stop_geocoding:
             return json_error_response(
-                f"{geocoded_values_with_message[0]} {message_suffix}"
+                f"{message_with_geocoded_values[0]} {message_suffix}"
             )
         try:
-            geocoded_values = geocoded_values_with_message[1]
+            geocoded_values = message_with_geocoded_values[1]
             # It is possible that no exception occured but no geocoded values are returned check for this
-            if len(geocoded_values[0]) == 0:  # geocoded_values[0] = (lat, lon)
+            if len(geocoded_values[0]) == 0:
                 return json_error_response(
                     f"No geocoded values received {message_suffix}"
                 )
