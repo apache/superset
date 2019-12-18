@@ -60,8 +60,8 @@ import {
   LineMultiChartPlugin,
   PieChartPlugin,
   TimePivotChartPlugin,
-} from '@superset-ui/legacy-preset-chart-nvd3';
-// import { BoxPlotChartPlugin } from '@superset-ui/preset-chart-xy/esm/legacy';
+} from '@superset-ui/legacy-preset-chart-nvd3/lib';
+import { BoxPlotChartPlugin } from '@superset-ui/preset-chart-xy/esm/legacy';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
@@ -77,7 +77,7 @@ export default class MainPreset extends Preset {
         new BarChartPlugin().configure({ key: 'bar' }),
         new BigNumberChartPlugin().configure({ key: 'big_number' }),
         new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
-        // new BoxPlotChartPlugin().configure({ key: 'box_plot' }),
+        new BoxPlotChartPlugin().configure({ key: 'box_plot' }),
         new BubbleChartPlugin().configure({ key: 'bubble' }),
         new BulletChartPlugin().configure({ key: 'bullet' }),
         new CalendarChartPlugin().configure({ key: 'cal_heatmap' }),
