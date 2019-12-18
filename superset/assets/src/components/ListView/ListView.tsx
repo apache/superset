@@ -32,6 +32,7 @@ import { FetchDataConfig, SortColumn, FilterToggle, FilterType } from './types';
 import { removeFromList, useListViewState, convertFilters } from './utils';
 import TableCollection from './TableCollection';
 import './ListViewStyles.less';
+import Loading from '../Loading';
 
 interface Props {
   columns: any[];
@@ -90,6 +91,10 @@ const ListView: FunctionComponent<Props> = ({
     setFilterToggles(updated);
     setAllFilters(convertFilters(updated));
   };
+
+  if (!data || !data.length) {
+    return <Loading />
+  }
 
   return (
     <div className={`superset-list-view ${className}`}>

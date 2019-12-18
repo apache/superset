@@ -53,7 +53,6 @@ class DashboardTable extends React.PureComponent {
   columns = [
     {
       accessor: 'dashboard_title',
-      // id: 'dashboard_title',
       Header: 'Dashboard',
       sortable: true,
       Cell: ({
@@ -64,7 +63,6 @@ class DashboardTable extends React.PureComponent {
     },
     {
       accessor: 'changed_by_fk',
-      // id: 'changed_by_fk',
       Header: 'Creator',
       sortable: true,
       Cell: ({
@@ -75,7 +73,6 @@ class DashboardTable extends React.PureComponent {
     },
     {
       accessor: 'changed_on',
-      // id: 'changed_on',
       Header: 'Modified',
       sortable: true,
       Cell: ({
