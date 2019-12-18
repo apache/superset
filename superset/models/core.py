@@ -22,7 +22,7 @@ import textwrap
 from contextlib import closing
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 
 import numpy
 import pandas as pd
@@ -57,11 +57,6 @@ from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import DashboardUpdater, FavStarUpdater
 from superset.utils import cache as cache_util, core as utils
-
-if TYPE_CHECKING:
-    from superset.connectors.base.models import (  # pylint: disable=unused-import
-        BaseDatasource,
-    )
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
