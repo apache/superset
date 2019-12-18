@@ -212,6 +212,7 @@
     "transform-loader": "^0.2.3",
     "ts-jest": "^24.0.2",
     "ts-loader": "^5.4.5",
+    "tslib": "^1.10.0",
     "tslint": "^5.11.0",
     "tslint-react": "^3.6.0",
     "typescript": "^3.5.3",

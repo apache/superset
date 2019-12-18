@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { FunctionComponent } from 'react';
 import {
   Pagination,
   DropdownButton,
@@ -47,7 +47,7 @@ interface Props {
   filterTypes?: FilterType[];
 }
 
-export default function ListView({
+const ListView: FunctionComponent<Props> = ({
   columns,
   data,
   count,
@@ -59,7 +59,7 @@ export default function ListView({
   title = '',
   filterable = false,
   filterTypes = [],
-}: Props) {
+}) => {
   const {
     getTableProps,
     getTableBodyProps,
@@ -244,4 +244,6 @@ export default function ListView({
       </div>
     </div>
   );
-}
+};
+
+export default ListView;
