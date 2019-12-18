@@ -123,11 +123,13 @@
 }
 
 .dot {
-  height: 4px;
-  width: 4px;
+  @dot-diameter: 4px;
+
+  height: @dot-diameter;
+  width: @dot-diameter;
   background-color: @gray;
-  border-radius: 50%;
-  margin: 2px 0;
+  border-radius: @dot-diameter / 2;
+  margin: @dot-diameter / 2 0;
   display: inline-block;
 
   .vertical-dots-container & {
