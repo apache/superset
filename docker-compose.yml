@@ -45,7 +45,7 @@ services:
     ports:
       - "127.0.0.1:${DATABASE_PORT}:${DATABASE_PORT}"
     volumes:
-      - "postgres:${DATABASE_DATADIR}"
+      - "db_home:${DATABASE_DATADIR}"
 
   superset:
     build: *superset-build
@@ -82,7 +82,7 @@ services:
 volumes:
   superset_home:
     external: false
-  postgres:
+  db_home:
     external: false
   redis:
     external: false
