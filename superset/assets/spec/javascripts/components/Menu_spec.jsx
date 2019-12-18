@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { shallow, mount } from 'enzyme';
 import { Nav } from 'react-bootstrap';
 
 import Menu from '../../../src/components/Menu/Menu';
@@ -136,5 +136,27 @@ describe('Menu', () => {
     });
     expect(loggedOutWrapper.find('i.fa-sign-in')).toHaveLength(1);
     expect(loggedOutWrapper.find('i.fa-user')).toHaveLength(0);
+  });
+
+  it('renders version number and SHA', () => {
+    const overrideProps = {
+      data: {
+        ...defaultProps.data,
+        navbar_right: {
+          ...defaultProps.data.navbar_right,
+          version_string: 'A1',
+          version_sha: 'X',
+        },
+      },
+    };
+
+    const props = {
+      ...defaultProps,
+      ...overrideProps,
+    };
+
+    const versionedWrapper = mount(<Menu {...props} />);
+
+    expect(versionedWrapper.find('.version-info div')).toHaveLength(2);
   });
 });
