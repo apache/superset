@@ -283,13 +283,19 @@ class DictImportExportTests(SupersetTestCase):
         )
         ui_export = yaml.safe_load(resp)
 
-        cli_export_database_names = {database.get("database_name") for database in cli_export["databases"]}
+        cli_export_database_names = {
+            database.get("database_name") for database in cli_export["databases"]
+        }
         cli_export_tables = []
         for database in cli_export["databases"]:
             for table in database["tables"]:
                 cli_export_tables.append(table["table_name"])
-        self.assertIn(ui_export["databases"][0]["database_name"], cli_export_database_names)
-        self.assertIn(ui_export["databases"][0]["tables"][0]["table_name"], cli_export_tables)
+        self.assertIn(
+            ui_export["databases"][0]["database_name"], cli_export_database_names
+        )
+        self.assertIn(
+            ui_export["databases"][0]["tables"][0]["table_name"], cli_export_tables
+        )
 
     def test_import_druid_no_metadata(self):
         datasource, dict_datasource = self.create_druid_datasource(
