@@ -24,7 +24,8 @@ from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetSecurityException
-from superset.models.core import Database, Slice
+from superset.models.core import Database
+from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase

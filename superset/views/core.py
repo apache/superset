@@ -77,7 +77,9 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
+from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
+from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
@@ -291,7 +293,7 @@ if config["ENABLE_ACCESS_REQUEST"]:
 
 class SliceModelView(SupersetModelView, DeleteMixin):
     route_base = "/chart"
-    datamodel = SQLAInterface(models.Slice)
+    datamodel = SQLAInterface(Slice)
 
     list_title = _("Charts")
     show_title = _("Show Chart")
@@ -605,9 +607,7 @@ class Superset(BaseSupersetView):
         datasources = set()
         dashboard_id = request.args.get("dashboard_id")
         if dashboard_id:
-            dash = (
-                db.session.query(models.Dashboard).filter_by(id=int(dashboard_id)).one()
-            )
+            dash = db.session.query(Dashboard).filter_by(id=int(dashboard_id)).one()
             datasources |= dash.datasources
         datasource_id = request.args.get("datasource_id")
         datasource_type = request.args.get("datasource_type")
@@ -755,7 +755,7 @@ class Superset(BaseSupersetView):
         force=False,
     ):
         if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
+            slc = db.session.query(Slice).filter_by(id=slice_id).one()
             return slc.get_viz()
         else:
             viz_type = form_data.get("viz_type", "table")
@@ -1148,7 +1148,7 @@ class Superset(BaseSupersetView):
         if action in ("saveas"):
             if "slice_id" in form_data:
                 form_data.pop("slice_id")  # don't save old slice_id
-            slc = models.Slice(owners=[g.user] if g.user else [])
+            slc = Slice(owners=[g.user] if g.user else [])
 
         slc.params = json.dumps(form_data, indent=2, sort_keys=True)
         slc.datasource_name = datasource_name
@@ -1166,7 +1166,7 @@ class Superset(BaseSupersetView):
         dash = None
         if request.args.get("add_to_dash") == "existing":
             dash = (
-                db.session.query(models.Dashboard)
+                db.session.query(Dashboard)
                 .filter_by(id=int(request.args.get("save_to_dashboard_id")))
                 .one()
             )
@@ -1197,7 +1197,7 @@ class Superset(BaseSupersetView):
                     status=400,
                 )
 
-            dash = models.Dashboard(
+            dash = Dashboard(
                 dashboard_title=request.args.get("new_dashboard_name"),
                 owners=[g.user] if g.user else [],
             )
@@ -1381,7 +1381,7 @@ class Superset(BaseSupersetView):
         session = db.session()
         data = json.loads(request.form.get("data"))
         dash = models.Dashboard()
-        original_dash = session.query(models.Dashboard).get(dashboard_id)
+        original_dash = session.query(Dashboard).get(dashboard_id)
 
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data["dashboard_title"]
@@ -1426,7 +1426,7 @@ class Superset(BaseSupersetView):
     def save_dash(self, dashboard_id):
         """Save a dashboard's metadata"""
         session = db.session()
-        dash = session.query(models.Dashboard).get(dashboard_id)
+        dash = session.query(Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form.get("data"))
         self._set_dash_metadata(dash, data)
@@ -1451,7 +1451,6 @@ class Superset(BaseSupersetView):
                     pass
 
         session = db.session()
-        Slice = models.Slice
         current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
 
         dashboard.slices = current_slices
@@ -1510,8 +1509,7 @@ class Superset(BaseSupersetView):
         """Add and save slices to a dashboard"""
         data = json.loads(request.form.get("data"))
         session = db.session()
-        Slice = models.Slice  # noqa
-        dash = session.query(models.Dashboard).get(dashboard_id)
+        dash = session.query(Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         new_slices = session.query(Slice).filter(Slice.id.in_(data["slice_ids"]))
         dash.slices += new_slices
@@ -1576,9 +1574,9 @@ class Superset(BaseSupersetView):
             limit = 1000
 
         qry = (
-            db.session.query(M.Log, M.Dashboard, M.Slice)
+            db.session.query(M.Log, M.Dashboard, Slice)
             .outerjoin(M.Dashboard, M.Dashboard.id == M.Log.dashboard_id)
-            .outerjoin(M.Slice, M.Slice.id == M.Log.slice_id)
+            .outerjoin(Slice, Slice.id == M.Log.slice_id)
             .filter(
                 and_(
                     ~M.Log.action.in_(("queries", "shortner", "sql_json")),
@@ -1643,13 +1641,13 @@ class Superset(BaseSupersetView):
     @expose("/fave_dashboards/<user_id>/", methods=["GET"])
     def fave_dashboards(self, user_id):
         qry = (
-            db.session.query(models.Dashboard, models.FavStar.dttm)
+            db.session.query(Dashboard, models.FavStar.dttm)
             .join(
                 models.FavStar,
                 and_(
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == "Dashboard",
-                    models.Dashboard.id == models.FavStar.obj_id,
+                    Dashboard.id == models.FavStar.obj_id,
                 ),
             )
             .order_by(models.FavStar.dttm.desc())
@@ -1674,7 +1672,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/created_dashboards/<user_id>/", methods=["GET"])
     def created_dashboards(self, user_id):
-        Dash = models.Dashboard
+        Dash = Dashboard
         qry = (
             db.session.query(Dash)
             .filter(or_(Dash.created_by_fk == user_id, Dash.changed_by_fk == user_id))
@@ -1700,7 +1698,6 @@ class Superset(BaseSupersetView):
         """List of slices a user created, or faved"""
         if not user_id:
             user_id = g.user.id
-        Slice = models.Slice
         FavStar = models.FavStar
         qry = (
             db.session.query(Slice, FavStar.dttm)
@@ -1709,7 +1706,7 @@ class Superset(BaseSupersetView):
                 and_(
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == "slice",
-                    models.Slice.id == models.FavStar.obj_id,
+                    Slice.id == models.FavStar.obj_id,
                 ),
                 isouter=True,
             )
@@ -1743,7 +1740,6 @@ class Superset(BaseSupersetView):
         """List of slices created by this user"""
         if not user_id:
             user_id = g.user.id
-        Slice = models.Slice
         qry = (
             db.session.query(Slice)
             .filter(or_(Slice.created_by_fk == user_id, Slice.changed_by_fk == user_id))
@@ -1770,13 +1766,13 @@ class Superset(BaseSupersetView):
         if not user_id:
             user_id = g.user.id
         qry = (
-            db.session.query(models.Slice, models.FavStar.dttm)
+            db.session.query(Slice, models.FavStar.dttm)
             .join(
                 models.FavStar,
                 and_(
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == "slice",
-                    models.Slice.id == models.FavStar.obj_id,
+                    Slice.id == models.FavStar.obj_id,
                 ),
             )
             .order_by(models.FavStar.dttm.desc())
@@ -1820,7 +1816,7 @@ class Superset(BaseSupersetView):
                 status=400,
             )
         if slice_id:
-            slices = session.query(models.Slice).filter_by(id=slice_id).all()
+            slices = session.query(Slice).filter_by(id=slice_id).all()
             if not slices:
                 return json_error_response(
                     __("Chart %(id)s not found", id=slice_id), status=404
@@ -1845,7 +1841,7 @@ class Superset(BaseSupersetView):
                     status=404,
                 )
             slices = (
-                session.query(models.Slice)
+                session.query(Slice)
                 .filter_by(datasource_id=table.id, datasource_type=table.type)
                 .all()
             )
@@ -1906,7 +1902,7 @@ class Superset(BaseSupersetView):
     def publish(self, dashboard_id):
         """Gets and toggles published status on dashboards"""
         session = db.session()
-        Dashboard = models.Dashboard
+        Dashboard = Dashboard
         Role = ab_models.Role
         dash = (
             session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
@@ -1940,7 +1936,7 @@ class Superset(BaseSupersetView):
     def dashboard(self, dashboard_id):
         """Server side rendering for a dashboard"""
         session = db.session()
-        qry = session.query(models.Dashboard)
+        qry = session.query(Dashboard)
         if dashboard_id.isdigit():
             qry = qry.filter_by(id=int(dashboard_id))
         else:

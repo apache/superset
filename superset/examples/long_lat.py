@@ -22,6 +22,7 @@ import pandas as pd
 from sqlalchemy import DateTime, Float, String
 
 from superset import db
+from superset.models.slice import Slice
 from superset.utils import core as utils
 
 from .helpers import (
@@ -29,7 +30,6 @@ from .helpers import (
     get_slice_json,
     merge_slice,
     misc_dash_slices,
-    Slice,
     TBL,
 )
 

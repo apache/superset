@@ -22,12 +22,13 @@ import unittest
 from flask import g
 from sqlalchemy.orm.session import make_transient
 
-from superset.utils.dashboard_import_export import decode_dashboards
 from tests.test_app import app
+from superset.utils.dashboard_import_export import decode_dashboards
 from superset import db, security_manager
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.models import core as models
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 
 from .base_tests import SupersetTestCase
 
@@ -40,10 +41,10 @@ class ImportExportTests(SupersetTestCase):
         with app.app_context():
             # Imported data clean up
             session = db.session
-            for slc in session.query(models.Slice):
+            for slc in session.query(Slice):
                 if "remote_id" in slc.params_dict:
                     session.delete(slc)
-            for dash in session.query(models.Dashboard):
+            for dash in session.query(Dashboard):
                 if "remote_id" in dash.params_dict:
                     session.delete(dash)
             for table in session.query(SqlaTable):
@@ -86,7 +87,7 @@ class ImportExportTests(SupersetTestCase):
             if table:
                 ds_id = table.id
 
-        return models.Slice(
+        return Slice(
             slice_name=name,
             datasource_type="table",
             viz_type="bubble",
@@ -97,7 +98,7 @@ class ImportExportTests(SupersetTestCase):
 
     def create_dashboard(self, title, id=0, slcs=[]):
         json_metadata = {"remote_id": id}
-        return models.Dashboard(
+        return Dashboard(
             id=id,
             dashboard_title=title,
             slices=slcs,
@@ -132,13 +133,13 @@ class ImportExportTests(SupersetTestCase):
         return datasource
 
     def get_slice(self, slc_id):
-        return db.session.query(models.Slice).filter_by(id=slc_id).first()
+        return db.session.query(Slice).filter_by(id=slc_id).first()
 
     def get_slice_by_name(self, name):
-        return db.session.query(models.Slice).filter_by(slice_name=name).first()
+        return db.session.query(Slice).filter_by(slice_name=name).first()
 
     def get_dash(self, dash_id):
-        return db.session.query(models.Dashboard).filter_by(id=dash_id).first()
+        return db.session.query(Dashboard).filter_by(id=dash_id).first()
 
     def get_datasource(self, datasource_id):
         return db.session.query(DruidDatasource).filter_by(id=datasource_id).first()
@@ -292,7 +293,7 @@ class ImportExportTests(SupersetTestCase):
 
     def test_import_1_slice(self):
         expected_slice = self.create_slice("Import Me", id=10001)
-        slc_id = models.Slice.import_obj(expected_slice, None, import_time=1989)
+        slc_id = Slice.import_obj(expected_slice, None, import_time=1989)
         slc = self.get_slice(slc_id)
         self.assertEqual(slc.datasource.perm, slc.perm)
         self.assert_slice_equals(expected_slice, slc)
@@ -304,9 +305,9 @@ class ImportExportTests(SupersetTestCase):
         table_id = self.get_table_by_name("wb_health_population").id
         # table_id != 666, import func will have to find the table
         slc_1 = self.create_slice("Import Me 1", ds_id=666, id=10002)
-        slc_id_1 = models.Slice.import_obj(slc_1, None)
+        slc_id_1 = Slice.import_obj(slc_1, None)
         slc_2 = self.create_slice("Import Me 2", ds_id=666, id=10003)
-        slc_id_2 = models.Slice.import_obj(slc_2, None)
+        slc_id_2 = Slice.import_obj(slc_2, None)
 
         imported_slc_1 = self.get_slice(slc_id_1)
         imported_slc_2 = self.get_slice(slc_id_2)
@@ -320,25 +321,25 @@ class ImportExportTests(SupersetTestCase):
 
     def test_import_slices_for_non_existent_table(self):
         with self.assertRaises(AttributeError):
-            models.Slice.import_obj(
+            Slice.import_obj(
                 self.create_slice("Import Me 3", id=10004, table_name="non_existent"),
                 None,
             )
 
     def test_import_slices_override(self):
         slc = self.create_slice("Import Me New", id=10005)
-        slc_1_id = models.Slice.import_obj(slc, None, import_time=1990)
+        slc_1_id = Slice.import_obj(slc, None, import_time=1990)
         slc.slice_name = "Import Me New"
         imported_slc_1 = self.get_slice(slc_1_id)
         slc_2 = self.create_slice("Import Me New", id=10005)
-        slc_2_id = models.Slice.import_obj(slc_2, imported_slc_1, import_time=1990)
+        slc_2_id = Slice.import_obj(slc_2, imported_slc_1, import_time=1990)
         self.assertEqual(slc_1_id, slc_2_id)
         imported_slc_2 = self.get_slice(slc_2_id)
         self.assert_slice_equals(slc, imported_slc_2)
 
     def test_import_empty_dashboard(self):
         empty_dash = self.create_dashboard("empty_dashboard", id=10001)
-        imported_dash_id = models.Dashboard.import_obj(empty_dash, import_time=1989)
+        imported_dash_id = Dashboard.import_obj(empty_dash, import_time=1989)
         imported_dash = self.get_dash(imported_dash_id)
         self.assert_dash_equals(empty_dash, imported_dash, check_position=False)
 
@@ -363,9 +364,7 @@ class ImportExportTests(SupersetTestCase):
         """.format(
             slc.id
         )
-        imported_dash_id = models.Dashboard.import_obj(
-            dash_with_1_slice, import_time=1990
-        )
+        imported_dash_id = Dashboard.import_obj(dash_with_1_slice, import_time=1990)
         imported_dash = self.get_dash(imported_dash_id)
 
         expected_dash = self.create_dashboard("dash_with_1_slice", slcs=[slc], id=10002)
@@ -400,9 +399,7 @@ class ImportExportTests(SupersetTestCase):
             }
         )
 
-        imported_dash_id = models.Dashboard.import_obj(
-            dash_with_2_slices, import_time=1991
-        )
+        imported_dash_id = Dashboard.import_obj(dash_with_2_slices, import_time=1991)
         imported_dash = self.get_dash(imported_dash_id)
 
         expected_dash = self.create_dashboard(
@@ -431,9 +428,7 @@ class ImportExportTests(SupersetTestCase):
         dash_to_import = self.create_dashboard(
             "override_dashboard", slcs=[e_slc, b_slc], id=10004
         )
-        imported_dash_id_1 = models.Dashboard.import_obj(
-            dash_to_import, import_time=1992
-        )
+        imported_dash_id_1 = Dashboard.import_obj(dash_to_import, import_time=1992)
 
         # create new instances of the slices
         e_slc = self.create_slice("e_slc", id=10009, table_name="energy_usage")
@@ -442,7 +437,7 @@ class ImportExportTests(SupersetTestCase):
         dash_to_import_override = self.create_dashboard(
             "override_dashboard_new", slcs=[e_slc, b_slc, c_slc], id=10004
         )
-        imported_dash_id_2 = models.Dashboard.import_obj(
+        imported_dash_id_2 = Dashboard.import_obj(
             dash_to_import_override, import_time=1992
         )
 
@@ -472,7 +467,7 @@ class ImportExportTests(SupersetTestCase):
         dash_with_1_slice.changed_by = admin_user
         dash_with_1_slice.owners = [admin_user]
 
-        imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
+        imported_dash_id = Dashboard.import_obj(dash_with_1_slice)
         imported_dash = self.get_dash(imported_dash_id)
         self.assertEqual(imported_dash.created_by, gamma_user)
         self.assertEqual(imported_dash.changed_by, gamma_user)
@@ -492,7 +487,7 @@ class ImportExportTests(SupersetTestCase):
 
         dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
 
-        imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
+        imported_dash_id = Dashboard.import_obj(dash_with_1_slice)
         imported_dash = self.get_dash(imported_dash_id)
         self.assertEqual(imported_dash.created_by, gamma_user)
         self.assertEqual(imported_dash.changed_by, gamma_user)
@@ -508,7 +503,7 @@ class ImportExportTests(SupersetTestCase):
 
         dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
 
-        imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
+        imported_dash_id = Dashboard.import_obj(dash_with_1_slice)
         imported_dash = self.get_dash(imported_dash_id)
         self.assertEqual(imported_dash.created_by, gamma_user)
         self.assertEqual(imported_dash.changed_by, gamma_user)

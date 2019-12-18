@@ -17,9 +17,10 @@
 import json
 
 from superset import db
+from superset.models.slice import Slice
 
 from .birth_names import load_birth_names
-from .helpers import merge_slice, misc_dash_slices, Slice
+from .helpers import merge_slice, misc_dash_slices
 from .world_bank import load_world_bank_health_n_pop
 
 
