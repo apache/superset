@@ -28,7 +28,7 @@ import numpy
 import pandas as pd
 import sqlalchemy as sqla
 import sqlparse
-from flask import g, Markup, request
+from flask import g, request
 from flask_appbuilder import Model
 from sqlalchemy import (
     Boolean,
@@ -51,8 +51,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import Select
 from sqlalchemy_utils import EncryptedType
 
-from superset import app, db, db_engine_specs, is_feature_enabled, security_manager
-from superset.connectors.connector_registry import ConnectorRegistry
+from superset import app, db_engine_specs, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import TimeGrain
 from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ImportMixin
