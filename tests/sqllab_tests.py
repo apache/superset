@@ -406,19 +406,21 @@ class SqlLabTests(SupersetTestCase):
         session.commit()
 
     def test_api_database(self):
-        self.login("admin")
-        self.create_fake_db()
+        try:
+            self.login("admin")
+            self.create_fake_db()
 
-        arguments = {
-            "keys": [],
-            "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
-            "order_column": "database_name",
-            "order_direction": "asc",
-            "page": 0,
-            "page_size": -1,
-        }
-        url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
-        dblist = {r.get("database_name") for r in self.get_json_resp(url)["result"]}
-        mylist = {"examples", "fake_db_100"}
-        assert set(mylist).issubset(dblist)
-        self.delete_fake_db()
+            arguments = {
+                "keys": [],
+                "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
+                "order_column": "database_name",
+                "order_direction": "asc",
+                "page": 0,
+                "page_size": -1,
+            }
+            url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
+            dblist = {r.get("database_name") for r in self.get_json_resp(url)["result"]}
+            mylist = {"examples", "fake_db_100"}
+            assert set(mylist).issubset(dblist)
+        finally:
+            self.delete_fake_db()
