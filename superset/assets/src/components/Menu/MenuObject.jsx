@@ -51,7 +51,7 @@ export default function MenuObject({ label, icon, childs, url, index }) {
       eventKey={index}
       title={navTitle}
     >
-      {childs.map((child, index1) =>
+      {childs.map((child, index1) => (
         <MenuItem
           key={`${child.label}`}
           href={child.url}
@@ -60,7 +60,7 @@ export default function MenuObject({ label, icon, childs, url, index }) {
           <i className={`fa ${child.icon}`} />
           &nbsp; {child.label}
         </MenuItem>
-      )}
+      ))}
     </NavDropdown>
   );
 }
