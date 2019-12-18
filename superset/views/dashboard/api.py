@@ -180,7 +180,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         "info": "list",
         "related": "list",
     }
-    exclude_route_methods = ("info",)
+    # exclude_route_methods = ("info",)
     show_columns = [
         "dashboard_title",
         "slug",
