@@ -30,7 +30,6 @@ from superset import db, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
-from superset.models.core import Database
 from superset.models.database import Database
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.utils.core import get_example_database
