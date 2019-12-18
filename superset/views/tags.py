@@ -26,7 +26,8 @@ from werkzeug.routing import BaseConverter
 
 from superset import app, appbuilder, db, utils
 from superset.jinja_context import current_user_id, current_username
-from superset.models.core import Dashboard, Slice
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.models.tags import ObjectTypes, Tag, TaggedObject, TagTypes
 
