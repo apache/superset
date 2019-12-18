@@ -396,7 +396,7 @@ class Geocoder(BaseSupersetView):
         lat_column: str,
         lon_column: str,
         geo_columns: list,
-        data,
+        data: list,
     ) -> None:
         """
         Insert geocoded coordinates in table

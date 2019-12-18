@@ -49,7 +49,7 @@ class BaseGeocoder(object):
             self.progress["progress"] = 0
             self.progress["is_in_progress"] = False
 
-    def _append_cords_to_data_entry(self, data_entry: list, geocoded: list) -> list:
+    def _append_coordinates_to_data_entry(self, data_entry: list, geocoded: list) -> list:
         """
         Appends the lat/lon coordinates to the data entry
         :param data_entry: The data entry
@@ -118,7 +118,7 @@ class BaseGeocoder(object):
                 address = " ".join(data_entry)
                 geocoded = self._get_coordinates_from_address(address)
                 if geocoded is not None:
-                    data_entry = self._append_cords_to_data_entry(data_entry, geocoded)
+                    data_entry = self._append_coordinates_to_data_entry(data_entry, geocoded)
                     geocoded_data.append(data_entry)
                 else:
                     self.progress["failed_counter"] += 1
