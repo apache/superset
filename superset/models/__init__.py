@@ -14,4 +14,4 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import core, schedules, sql_lab, user_attributes
+from . import core, datasource_access_request, schedules, sql_lab, user_attributes

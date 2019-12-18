@@ -41,6 +41,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
 from superset.models.dashboard import Dashboard
+from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
@@ -57,7 +58,7 @@ class CoreTests(SupersetTestCase):
 
     def setUp(self):
         db.session.query(Query).delete()
-        db.session.query(models.DatasourceAccessRequest).delete()
+        db.session.query(DatasourceAccessRequest).delete()
         db.session.query(models.Log).delete()
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
