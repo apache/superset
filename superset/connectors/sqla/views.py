@@ -438,5 +438,3 @@ appbuilder.add_link(
     category_label=__("Sources"),
     category_icon="fa-table",
 )
-
-appbuilder.add_separator("Sources")

@@ -409,6 +409,9 @@ class Druid(BaseSupersetView):
 
 
 if app.config["DRUID_IS_ACTIVE"]:
+
+    appbuilder.add_separator("Sources")
+
     appbuilder.add_view(
         DruidDatasourceModelView,
         "Druid Datasources",
