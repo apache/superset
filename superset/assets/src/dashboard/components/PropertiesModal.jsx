@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Button, Modal, FormControl } from 'react-bootstrap';
+import { Row, Col, Alert, Button, Modal, FormControl } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
 import Select from 'react-select';
 import { t } from '@superset-ui/translation';
@@ -26,7 +26,6 @@ import { SupersetClient } from '@superset-ui/connection';
 
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
-
 
 const propTypes = {
   dashboardTitle: PropTypes.string,
@@ -41,6 +40,7 @@ const propTypes = {
 const defaultProps = {
   dashboardInfo: {},
   dashboardTitle: '[dashboard name]',
+  owners: [],
   onHide: () => {},
   onDashboardSave: () => {},
   show: false,
@@ -52,58 +52,48 @@ class PropertiesModal extends React.PureComponent {
     this.state = {
       errors: [],
       values: {
-        dashboardTitle: this.props.dashboardTitle,
+        dashboard_title: this.props.dashboardTitle,
         slug: this.props.dashboardInfo.slug,
         owners: this.props.owners || [],
+        json_metadata: JSON.stringify(this.props.dashboardInfo.metadata),
       },
       userOptions: null,
+      isAdvancedOpen: false,
     };
     console.log(props);
     this.onChange = this.onChange.bind(this);
     this.onOwnersChange = this.onOwnersChange.bind(this);
     this.save = this.save.bind(this);
     this.setDialogRef = this.setDialogRef.bind(this);
+    this.toggleAdvanced = this.toggleAdvanced.bind(this);
   }
 
   componentDidMount() {
-    SupersetClient.get({ endpoint: `/users/api/read` })
-    .then(response => {
+    SupersetClient.get({ endpoint: `/users/api/read` }).then(response => {
       const options = response.json.result.map((user, i) => ({
         // ids are in a separate `pks` array in the results... need api v2
         value: response.json.pks[i],
-        label: user.first_name + ' ' + user.last_name,
-      }))
+        label: `${user.first_name} ${user.last_name}`,
+      }));
       this.setState({
         userOptions: options,
       });
-    })
-  }
-
-  componentDidUpdate(prevProps) {
-    if (this.props.dashboardInfo !== prevProps.dashboardInfo) {
-      this.setState({
-        values: {
-          dashboard_title: this.props.dashboardInfo.title,
-          slug: this.props.dashboardInfo.slug,
-          owners: this.props.dashboardInfo.owners,
-        },
-      });
-    }
+    });
   }
 
   onOwnersChange(value) {
     console.log(value);
-    this.setState((state) => ({
+    this.setState(state => ({
       values: {
         ...state.values,
         owners: value,
-      }
+      },
     }));
   }
 
   onChange(e) {
     const { name, value } = e.target;
-    this.setState((state) => ({
+    this.setState(state => ({
       values: {
         ...state.values,
         [name]: value,
@@ -111,93 +101,149 @@ class PropertiesModal extends React.PureComponent {
     }));
   }
 
+  setDialogRef(ref) {
+    this.dialog = ref;
+  }
+
+  toggleAdvanced() {
+    this.setState(state => ({
+      isAdvancedOpen: !state.isAdvancedOpen,
+    }));
+  }
+
   save(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    console.log('saving!')
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('saving!');
     const owners = this.state.values.owners.map(o => o.value);
     SupersetClient.put({
-      endpoint: `/dashboard/api/update/${this.props.dashboardInfo.id}`,
-      postPayload: {
+      endpoint: `/api/v1/dashboard/${this.props.dashboardInfo.id}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        // ...this.props.dashboardInfo,
         ...this.state.values,
-        owners,
-      },
+        owners: [3],
+        owner_ids: owners,
+      }),
     })
       .then(({ json }) => {
         this.props.addSuccessToast(t('The dashboard has been saved'));
         this.props.onDashboardSave(json);
         this.props.onHide();
       })
-      .catch(response =>
-        console.log(response) ||
-        getClientErrorObject(response).then(({ error, statusText }) => {
-          this.dialog.show({
-            title: 'Error',
-            bsSize: 'medium',
-            bsStyle: 'danger',
-            actions: [
-              Dialog.DefaultAction('Ok', () => {}, 'btn-danger'),
-            ],
-            body: error || statusText || t('An error has occurred'),
-          });
-        }),
+      .catch(
+        response =>
+          console.log(response) ||
+          getClientErrorObject(response).then(({ error, statusText }) => {
+            this.dialog.show({
+              title: 'Error',
+              bsSize: 'medium',
+              bsStyle: 'danger',
+              actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
+              body: error || statusText || t('An error has occurred'),
+            });
+          }),
       );
   }
 
-  setDialogRef(ref) {
-    this.dialog = ref;
-  }
-
   render() {
-    const { userOptions, values } = this.state;
-    console.log(values)
+    const { userOptions, values, isAdvancedOpen } = this.state;
+    console.log(values);
     return (
-      <Modal
-        show={this.props.show}
-        onHide={this.props.onHide}
-        bsSize="lg"
-      >
+      <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
         <form onSubmit={this.save}>
           <Modal.Header closeButton>
             <Modal.Title>
               <div>
-                <span className="float-left">
-                  {t('Dashboard Properties')}
-                </span>
+                <span className="float-left">{t('Dashboard Properties')}</span>
               </div>
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <div>
-              <FormControl
-                name="dashboard_title"
-                type="text"
-                bsSize="sm"
-                value={values.dashboard_title}
-                placeholder={t('Title')}
-                onChange={this.onChange}
-              />
-              <FormControl
-                name="slug"
-                type="text"
-                bsSize="sm"
-                value={values.slug}
-                placeholder={t('URL Slug')}
-                onChange={this.onChange}
-              />
-              {userOptions && (
-                <Select
-                  name="owners"
-                  placeholder="Owners"
-                  multi
-                  isLoading={!userOptions}
-                  value={values.owners}
-                  options={userOptions || []}
-                  onChange={this.onOwnersChange}
+            <Row>
+              <Col md={12}>
+                <h3>Basic Information</h3>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <label className="control-label" htmlFor="embed-height">
+                  {t('Title')}
+                </label>
+                <FormControl
+                  name="dashboard_title"
+                  type="text"
+                  bsSize="sm"
+                  value={values.dashboard_title}
+                  onChange={this.onChange}
                 />
-              )}
-
-            </div>
+              </Col>
+              <Col md={6}>
+                <label className="control-label" htmlFor="embed-height">
+                  {t('URL Slug')}
+                </label>
+                <FormControl
+                  name="slug"
+                  type="text"
+                  bsSize="sm"
+                  value={values.slug}
+                  onChange={this.onChange}
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <h3>Access</h3>
+                <label className="control-label" htmlFor="owners">
+                  {t('Owners')}
+                </label>
+                {userOptions && (
+                  <Select
+                    name="owners"
+                    multi
+                    isLoading={!userOptions}
+                    value={values.owners}
+                    options={userOptions || []}
+                    onChange={this.onOwnersChange}
+                  />
+                )}
+              </Col>
+            </Row>
+            <Row>
+              <Col md={12}>
+                <h3>
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={this.toggleAdvanced}
+                  >
+                    <i
+                      className={`fa fa-angle-${
+                        isAdvancedOpen ? 'down' : 'right'
+                      }`}
+                      style={{ minWidth: '1em' }}
+                    />
+                    Advanced
+                  </button>
+                </h3>
+                {isAdvancedOpen && (
+                  <>
+                    <label className="control-label" htmlFor="json_metadata">
+                      {t('JSON Metadata')}
+                    </label>
+                    <FormControl
+                      componentClass="textarea"
+                      style={{ maxWidth: '100%' }}
+                      name="json_metadata"
+                      type="text"
+                      bsSize="sm"
+                      value={values.json_metadata}
+                      onChange={this.onChange}
+                    />
+                  </>
+                )}
+              </Col>
+            </Row>
           </Modal.Body>
           <Modal.Footer>
             <span className="float-right">
@@ -210,12 +256,15 @@ class PropertiesModal extends React.PureComponent {
               >
                 {t('Save')}
               </Button>
-              <Button type="button" bsSize="sm" onClick={this.props.onHide}>{t('Cancel')}</Button>
+              <Button type="button" bsSize="sm" onClick={this.props.onHide}>
+                {t('Cancel')}
+              </Button>
               <Dialog ref={this.setDialogRef} />
             </span>
           </Modal.Footer>
         </form>
-      </Modal>);
+      </Modal>
+    );
   }
 }
 
