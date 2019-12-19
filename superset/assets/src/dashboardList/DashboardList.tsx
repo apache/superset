@@ -60,19 +60,19 @@ class DashboardTable extends React.PureComponent<Props, State> {
   };
 
   get canEdit() {
-    if (!this.state.permissions.length) {
-      return false;
-    }
-
-    return Boolean(this.state.permissions.find((perm) => perm === 'can_edit'));
+    return this.hasPerm('can_edit')
   }
 
   get canDelete() {
+    return this.hasPerm('can_delete')
+  }
+
+  hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
       return false;
     }
 
-    return Boolean(this.state.permissions.find((perm) => perm === 'can_delete'));
+    return Boolean(this.state.permissions.find((p) => p === perm));
   }
 
   public columns = [
