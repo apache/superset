@@ -18,7 +18,7 @@ import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import simplejson as json
 import yaml
@@ -27,6 +27,7 @@ from flask_appbuilder import BaseView, Model, ModelRestApi, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.forms import DynamicForm
+from flask_appbuilder.models.filters import Filters
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
@@ -389,7 +390,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
     Extends FAB's ModelResApi to implement specific superset generic functionality
     """
 
-    order_rel_fields = None
+    order_rel_fields: Dict[str, Tuple[str, str]] = {}
     """
     Impose ordering on related fields query::
 
@@ -397,17 +398,17 @@ class BaseSupersetModelRestApi(ModelRestApi):
             "<RELATED_FIELD>": ("<RELATED_FIELD_FIELD>", "<asc|desc>"),
              ...
         }
-    """
-    filter_rel_fields_field = None
+    """  # pylint: disable=pointless-string-statement
+    filter_rel_fields_field: Dict[str, str] = {}
     """
     Declare the related field field for filtering::
 
         filter_rel_fields_field = {
             "<RELATED_FIELD>": "<RELATED_FIELD_FIELD>", "<asc|desc>")
         }
-    """
+    """  # pylint: disable=pointless-string-statement
 
-    def _get_related_filter(self, datamodel, column_name: str, value: str) -> "Filters":
+    def _get_related_filter(self, datamodel, column_name: str, value: str) -> Filters:
         filter_field = self.filter_rel_fields_field.get(column_name)
         filters = datamodel.get_filters([filter_field])
         if value:
