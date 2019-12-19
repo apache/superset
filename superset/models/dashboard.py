@@ -179,7 +179,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         title = escape(self.dashboard_title or "<empty>")
         return Markup(f'<a href="{self.url}">{title}</a>')
 
-     @property
+    @property
     def dashboard_title_raw(self) -> str:
         return self.dashboard_title
 
