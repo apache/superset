@@ -16,23 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/translation';
 import React, { FunctionComponent } from 'react';
 import {
-  Pagination,
+  Button,
+  Col,
   DropdownButton,
   FormControl,
   MenuItem,
+  Pagination,
   Row,
-  Col,
-  Button,
   // @ts-ignore
 } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
-import { FetchDataConfig, SortColumn, FilterToggle, FilterTypeMap, FilterType } from './types';
-import { removeFromList, useListViewState, convertFilters } from './utils';
-import TableCollection from './TableCollection';
-import './ListViewStyles.less';
 import Loading from '../Loading';
+import './ListViewStyles.less';
+import TableCollection from './TableCollection';
+import { FetchDataConfig, FilterToggle, FilterType, FilterTypeMap, SortColumn } from './types';
+import { convertFilters, removeFromList, useListViewState } from './utils';
 
 interface Props {
   columns: any[];
@@ -69,7 +69,7 @@ const ListView: FunctionComponent<Props> = ({
     prepareRow,
     canPreviousPage,
     canNextPage,
-    pageCount,
+    pageCount = 1,
     gotoPage,
     setAllFilters,
     setFilterToggles,
@@ -78,14 +78,14 @@ const ListView: FunctionComponent<Props> = ({
     filtersApplied,
     state: { pageIndex, pageSize, filterToggles },
   } = useListViewState({
-    fetchData,
     columns,
-    data,
     count,
+    data,
+    fetchData,
     initialPageSize,
     initialSort,
   });
-  const filterableColumns = columns.filter(c => c.filterable);
+  const filterableColumns = columns.filter((c) => c.filterable);
 
   const removeFilterAndApply = (index: number) => {
     const updated = removeFromList(filterToggles, index);
@@ -94,43 +94,43 @@ const ListView: FunctionComponent<Props> = ({
   };
 
   if (!data || !data.length) {
-    return <Loading />
+    return <Loading />;
   }
 
   return (
     <div className={`superset-list-view ${className}`}>
       {title && filterable && (
-        <div className="header">
+        <div className='header'>
           <Row>
             <Col md={10}>
               <h2>{t(title)}</h2>
             </Col>
             {filterable && (
               <Col md={2}>
-                <div className="filter-dropdown">
+                <div className='filter-dropdown'>
                   <DropdownButton
-                    bsSize="small"
+                    bsSize='small'
                     bsStyle={'default'}
-                    noCaret
-                    title={
+                    noCaret={true}
+                    title={(
                       <>
-                        <i className="fa fa-filter text-primary" />
+                        <i className='fa fa-filter text-primary' />
                         {'  '}Filter List
                       </>
-                    }
+                    )}
                     id={'filter-picker'}
                   >
                     {filterableColumns
                       .map(({ id, accessor, Header }) => ({
-                        id: id || accessor,
                         Header,
+                        id: id || accessor,
                       }))
                       .map((filter: FilterToggle) => (
                         <MenuItem
                           key={filter.id}
                           eventKey={filter}
-                          onSelect={(filter: FilterToggle) =>
-                            setFilterToggles([...filterToggles, filter])
+                          onSelect={(fltr: FilterToggle) =>
+                            setFilterToggles([...filterToggles, fltr])
                           }
                         >
                           {filter.Header}
@@ -145,20 +145,20 @@ const ListView: FunctionComponent<Props> = ({
           {filterToggles.map((ft, i) => (
             <div key={`${ft.Header}-${i}`}>
               <Row>
-                <Col className="text-center filter-column" md={2}>
+                <Col className='text-center filter-column' md={2}>
                   <span>{ft.Header}</span>
                 </Col>
                 <Col md={2}>
                   <FormControl
-                    componentClass="select"
-                    bsSize="small"
+                    componentClass='select'
+                    bsSize='small'
                     value={ft.filterId || 0}
-                    placeholder="Starts With"
+                    placeholder='Starts With'
                     onChange={(e: React.MouseEvent<HTMLInputElement>) =>
                       updateFilterToggle(i, { filterId: e.currentTarget.value })
                     }
                   >
-                    {filterableColumns.map(c => filterTypes[c]).map(
+                    {filterableColumns.map((c) => filterTypes[c]).map(
                       ({ name, operator }: FilterType) => (
                         <option key={name} value={operator}>
                           {name}
@@ -170,8 +170,8 @@ const ListView: FunctionComponent<Props> = ({
                 <Col md={1} />
                 <Col md={4}>
                   <FormControl
-                    type="text"
-                    bsSize="small"
+                    type='text'
+                    bsSize='small'
                     value={ft.filterValue || ''}
                     onChange={(e: React.KeyboardEvent<HTMLInputElement>) =>
                       updateFilterToggle(i, {
@@ -182,11 +182,11 @@ const ListView: FunctionComponent<Props> = ({
                 </Col>
                 <Col md={1}>
                   <div
-                    className="filter-close"
-                    role="button"
+                    className='filter-close'
+                    role='button'
                     onClick={() => removeFilterAndApply(i)}
                   >
-                    <i className="fa fa-close text-primary" />
+                    <i className='fa fa-close text-primary' />
                   </div>
                 </Col>
               </Row>
@@ -201,9 +201,9 @@ const ListView: FunctionComponent<Props> = ({
                   {filterToggles.length > 0 && (
                     <Button
                       disabled={filtersApplied ? true : false}
-                      bsStyle="primary"
+                      bsStyle='primary'
                       onClick={applyFilters}
-                      bsSize="small"
+                      bsSize='small'
                     >
                       Apply
                     </Button>
@@ -215,7 +215,7 @@ const ListView: FunctionComponent<Props> = ({
           )}
         </div>
       )}
-      <div className="body">
+      <div className='body'>
         <TableCollection
           getTableProps={getTableProps}
           getTableBodyProps={getTableBodyProps}
@@ -225,7 +225,7 @@ const ListView: FunctionComponent<Props> = ({
           loading={loading}
         />
       </div>
-      <div className="footer">
+      <div className='footer'>
         <Pagination
           prev={canPreviousPage}
           first={pageIndex > 1}
@@ -233,12 +233,12 @@ const ListView: FunctionComponent<Props> = ({
           last={pageIndex < pageCount - 2}
           items={pageCount}
           activePage={pageIndex + 1}
-          ellipsis
-          boundaryLinks
+          ellipsis={true}
+          boundaryLinks={true}
           maxButtons={5}
           onSelect={(p: number) => gotoPage(p - 1)}
         />
-        <span className="pull-right">
+        <span className='pull-right'>
           showing{' '}
           <strong>
             {pageSize * pageIndex + (rows.length && 1)}-

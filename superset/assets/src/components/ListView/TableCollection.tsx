@@ -17,7 +17,17 @@
  * under the License.
  */
 import React from 'react';
+import { Cell, HeaderGroup, Row } from 'react-table';
 
+interface Props<D> {
+  getTableProps: (userProps?: any) => any;
+  getTableBodyProps: (userProps?: any) => any;
+  prepareRow: (row: Row<D>) => any;
+  headerGroups: Array<HeaderGroup<D>>;
+  rows: Array<Row<D>>;
+  loading: boolean;
+}
+/* tslint:disable:jsx-key */
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
@@ -25,11 +35,11 @@ export default function TableCollection({
   headerGroups,
   rows,
   loading,
-}: any) {
+}: Props<any>) {
   return (
-    <table {...getTableProps()} className="table table-hover">
+    <table {...getTableProps()} className='table table-hover'>
       <thead>
-        {headerGroups.map((headerGroup: any) => (
+        {headerGroups.map((headerGroup) => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map((column: any) => (
               <th {...column.getHeaderProps(column.getSortByToggleProps())}>
@@ -43,7 +53,7 @@ export default function TableCollection({
                           ? 'sort-down'
                           : 'sort-up'
                         : 'sort'
-                    }`}
+                      }`}
                   />
                 )}
               </th>
@@ -52,17 +62,17 @@ export default function TableCollection({
         ))}
       </thead>
       <tbody {...getTableBodyProps()}>
-        {rows.map((row: any) => {
+        {rows.map((row) => {
           prepareRow(row);
           const loadingProps = loading ? { className: 'table-row-loader' } : {};
           return (
             <tr
               {...row.getRowProps()}
               {...loadingProps}
-              onMouseEnter={() => row.setState({ hover: true })}
-              onMouseLeave={() => row.setState({ hover: false })}
+              onMouseEnter={() => row.setState && row.setState({ hover: true })}
+              onMouseLeave={() => row.setState && row.setState({ hover: false })}
             >
-              {row.cells.map((cell: any) => {
+              {row.cells.map((cell: Cell<any>) => {
                 const columnCellProps = cell.column.cellProps || {};
 
                 return (

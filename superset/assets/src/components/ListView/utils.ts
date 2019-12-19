@@ -18,33 +18,29 @@
  */
 import { useEffect, useState } from 'react';
 import {
-  useTable,
   useFilters,
-  useSortBy,
   usePagination,
   useRowState,
-  // @ts-ignore
+  useSortBy,
+  useTable,
 } from 'react-table';
+
 import {
-  useQueryParams,
+  JsonParam,
   NumberParam,
   StringParam,
-  JsonParam,
+  useQueryParams,
 } from 'use-query-params';
 
-import { TableState, FilterToggle, SortColumn, FetchDataConfig } from './types';
+import { FetchDataConfig, FilterToggle, SortColumn } from './types';
 
 // removes element from a list, returns new list
-export function removeFromList(list: Array<any>, index: number): Array<any> {
+export function removeFromList(list: any[], index: number): any[] {
   return list.filter((_, i) => index !== i);
 }
 
 // apply update to elements of object list, returns new list
-function updateInList(
-  list: Array<any>,
-  index: number,
-  update: any,
-): Array<any> {
+function updateInList(list: any[], index: number, update: any): any[] {
   const element = list.find((_, i) => index === i);
 
   return [
@@ -57,7 +53,7 @@ function updateInList(
 // convert filters from UI objects to data objects
 export function convertFilters(fts: FilterToggle[]) {
   return fts
-    .filter(ft => ft.filterValue)
+    .filter((ft) => ft.filterValue)
     .reduce((acc, elem) => {
       acc[elem.id] = {
         filterId: elem.filterId || 'sw',
@@ -67,14 +63,14 @@ export function convertFilters(fts: FilterToggle[]) {
     }, {});
 }
 
-type UseListViewConfig = {
+interface UseListViewConfig {
   fetchData: (conf: FetchDataConfig) => any;
   columns: any[];
   data: any[];
   count: number;
   initialPageSize: number;
   initialSort?: SortColumn[];
-};
+}
 
 export function useListViewState({
   fetchData,
@@ -85,10 +81,10 @@ export function useListViewState({
   initialSort = [],
 }: UseListViewConfig) {
   const [query, setQuery] = useQueryParams({
+    filters: JsonParam,
     pageIndex: NumberParam,
     sortColumn: StringParam,
     sortOrder: StringParam,
-    filters: JsonParam,
   });
 
   const {
@@ -103,24 +99,24 @@ export function useListViewState({
     gotoPage,
     setAllFilters,
     state: { pageIndex, pageSize, sortBy, filters },
-  }: TableState = useTable(
+  } = useTable(
     {
       columns,
-      data,
       count,
+      data,
+      disableSortRemove: true,
       initialState: {
+        filters: convertFilters(query.filters || []),
         pageIndex: query.pageIndex || 0,
         pageSize: initialPageSize,
         sortBy:
           query.sortColumn && query.sortOrder
             ? [{ id: query.sortColumn, desc: query.sortOrder === 'desc' }]
             : initialSort,
-        filters: convertFilters(query.filters || []),
       },
-      manualSorting: true,
-      disableSortRemove: true,
-      manualPagination: true,
       manualFilters: true,
+      manualPagination: true,
+      manualSorting: true,
       pageCount: Math.ceil(count / initialPageSize),
     },
     useFilters,
@@ -135,10 +131,10 @@ export function useListViewState({
 
   useEffect(() => {
     setQuery({
+      filters: filterToggles,
       pageIndex,
       sortColumn: sortBy[0].id,
       sortOrder: sortBy[0].desc ? 'desc' : 'asc',
-      filters: filterToggles,
     });
 
     fetchData({ pageIndex, pageSize, sortBy, filters });
@@ -149,25 +145,25 @@ export function useListViewState({
       id &&
       filters[id] &&
       filters[id].filterValue === filterValue &&
-      filters[id].filterId == filterId,
+      filters[id].filterId === filterId,
   );
 
   return {
-    setFilterToggles,
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    rows,
-    prepareRow,
-    canPreviousPage,
+    applyFilters: () => setAllFilters(convertFilters(filterToggles)),
     canNextPage,
-    pageCount,
-    gotoPage,
-    setAllFilters,
+    canPreviousPage,
     filtersApplied,
+    getTableBodyProps,
+    getTableProps,
+    gotoPage,
+    headerGroups,
+    pageCount,
+    prepareRow,
+    rows,
+    setAllFilters,
+    setFilterToggles,
     state: { pageIndex, pageSize, sortBy, filters, filterToggles },
     updateFilterToggle: (index: number, update: object) =>
       setFilterToggles(updateInList(filterToggles, index, update)),
-    applyFilters: () => setAllFilters(convertFilters(filterToggles)),
   };
 }

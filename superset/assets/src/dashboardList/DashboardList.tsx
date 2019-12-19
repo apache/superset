@@ -45,6 +45,14 @@ interface State {
   permissions: string[];
 }
 class DashboardTable extends React.PureComponent<Props, State> {
+
+  get canEdit() {
+    return this.hasPerm('can_edit');
+  }
+
+  get canDelete() {
+    return this.hasPerm('can_delete');
+  }
   public static propTypes = {
     addDangerToast: PropTypes.func.isRequired,
   };
@@ -58,22 +66,6 @@ class DashboardTable extends React.PureComponent<Props, State> {
     permissions: [],
     showDeleteModal: false,
   };
-
-  get canEdit() {
-    return this.hasPerm('can_edit')
-  }
-
-  get canDelete() {
-    return this.hasPerm('can_delete')
-  }
-
-  hasPerm = (perm: string) => {
-    if (!this.state.permissions.length) {
-      return false;
-    }
-
-    return Boolean(this.state.permissions.find((p) => p === perm));
-  }
 
   public columns = [
     {
@@ -131,20 +123,24 @@ class DashboardTable extends React.PureComponent<Props, State> {
 
         return (
           <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
-            {this.canDelete && (<span
-              role='button'
-              className='action-button'
-              onClick={handleDelete}
-            >
-              <i className='fa fa-trash' />
-            </span>)}
-            {this.canEdit && (<span
-              role='button'
-              className='action-button'
-              onClick={handleEdit}
-            >
-              <i className='fa fa-pencil' />
-            </span>)}
+            {this.canDelete && (
+              <span
+                role='button'
+                className='action-button'
+                onClick={handleDelete}
+              >
+                <i className='fa fa-trash' />
+              </span>
+            )}
+            {this.canEdit && (
+              <span
+                role='button'
+                className='action-button'
+                onClick={handleEdit}
+              >
+                <i className='fa fa-pencil' />
+              </span>
+            )}
           </span>
         );
       },
@@ -154,6 +150,14 @@ class DashboardTable extends React.PureComponent<Props, State> {
   ];
 
   public initialSort = [{ id: 'changed_on', desc: true }];
+
+  public hasPerm = (perm: string) => {
+    if (!this.state.permissions.length) {
+      return false;
+    }
+
+    return Boolean(this.state.permissions.find((p) => p === perm));
+  }
 
   public handleDashboardEdit = ({ id }: { id: number }) => {
     window.location.assign(`/dashboard/edit/${id}`);
