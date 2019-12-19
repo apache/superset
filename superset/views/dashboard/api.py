@@ -18,7 +18,6 @@ import json
 import re
 
 from flask import current_app, g, request
-from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, pre_load, Schema, ValidationError
@@ -29,7 +28,7 @@ import superset.models.core as models
 from superset import appbuilder
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
-from superset.views.base import BaseSupersetSchema
+from superset.views.base import BaseSupersetModelRestApi, BaseSupersetSchema
 
 from .mixin import DashboardMixin
 
@@ -157,7 +156,7 @@ class DashboardPutSchema(BaseDashboardSchema):
         return self.instance
 
 
-class DashboardRestApi(DashboardMixin, ModelRestApi):
+class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(models.Dashboard)
 
     resource_name = "dashboard"
@@ -171,6 +170,7 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
         "put": "edit",
         "delete": "delete",
         "info": "list",
+        "related": "list",
     }
     exclude_route_methods = ("info",)
     show_columns = [
@@ -185,9 +185,27 @@ class DashboardRestApi(DashboardMixin, ModelRestApi):
         "table_names",
         "charts",
     ]
+    order_columns = ["dashboard_title", "changed_on", "published", "changed_by_fk"]
+    list_columns = [
+        "id",
+        "dashboard_title",
+        "url",
+        "published",
+        "owners_json",
+        "changed_by.username",
+        "changed_by_name",
+        "changed_by_url",
+        "changed_on",
+    ]
 
     add_model_schema = DashboardPostSchema()
     edit_model_schema = DashboardPutSchema()
+
+    order_rel_fields = {
+        "slices": ("slice_name", "asc"),
+        "owners": ("first_name", "asc"),
+    }
+    filter_rel_fields_field = {"owners": "first_name", "slices": "slice_name"}
 
     @expose("/", methods=["POST"])
     @protect()
