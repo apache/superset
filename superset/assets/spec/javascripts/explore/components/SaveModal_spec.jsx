@@ -146,7 +146,10 @@ describe('SaveModal', () => {
 
       sinon.stub(defaultProps.actions, 'saveSlice').callsFake(() =>
         Promise.resolve({
-          data: { dashboard: '/mock/', slice: { slice_url: '/mock/' } },
+          data: {
+            dashboard: '/mock_dashboard/',
+            slice: { slice_url: '/mock_slice/' },
+          },
         }),
       );
     });
@@ -189,6 +192,52 @@ describe('SaveModal', () => {
       wrapper.instance().saveOrOverwrite(true);
       const args = defaultProps.actions.saveSlice.getCall(0).args;
       expect(args[1].new_dashboard_name).toBe(newDashboardName);
+    });
+
+    describe('should always reload or redirect', () => {
+      let wrapper;
+      beforeEach(() => {
+        wrapper = getWrapper();
+        sinon.stub(window.location, 'assign');
+      });
+      afterEach(() => {
+        window.location.assign.restore();
+      });
+
+      it('Save & go to dashboard', done => {
+        wrapper.instance().saveOrOverwrite(true);
+        defaultProps.actions.saveSlice().then(() => {
+          expect(window.location.assign.callCount).toEqual(1);
+          expect(window.location.assign.getCall(0).args[0]).toEqual(
+            'http://localhost/mock_dashboard/',
+          );
+          done();
+        });
+      });
+
+      it('saveas new slice', done => {
+        wrapper.setState({ action: 'saveas', newSliceName: 'new slice name' });
+        wrapper.instance().saveOrOverwrite(false);
+        defaultProps.actions.saveSlice().then(() => {
+          expect(window.location.assign.callCount).toEqual(1);
+          expect(window.location.assign.getCall(0).args[0]).toEqual(
+            '/mock_slice/',
+          );
+          done();
+        });
+      });
+
+      it('overwrite original slice', done => {
+        wrapper.setState({ action: 'overwrite' });
+        wrapper.instance().saveOrOverwrite(false);
+        defaultProps.actions.saveSlice().then(() => {
+          expect(window.location.assign.callCount).toEqual(1);
+          expect(window.location.assign.getCall(0).args[0]).toEqual(
+            '/mock_slice/',
+          );
+          done();
+        });
+      });
     });
   });
 
