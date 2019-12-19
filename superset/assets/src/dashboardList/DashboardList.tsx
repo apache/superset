@@ -23,6 +23,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { Button, Modal, Panel } from 'react-bootstrap';
 import ListView from 'src/components/ListView/ListView';
+import { FilterTypeMap } from 'src/components/ListView/types';
 import { FetchDataConfig } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
@@ -40,6 +41,8 @@ interface State {
   loading: boolean;
   showDeleteModal: boolean;
   deleteCandidate: any;
+  filterTypes: FilterTypeMap;
+  permissions: string[];
 }
 class DashboardTable extends React.PureComponent<Props, State> {
   public static propTypes = {
@@ -50,9 +53,27 @@ class DashboardTable extends React.PureComponent<Props, State> {
     dashboard_count: 0,
     dashboards: [],
     deleteCandidate: {},
+    filterTypes: {},
     loading: false,
+    permissions: [],
     showDeleteModal: false,
   };
+
+  get canEdit() {
+    if (!this.state.permissions.length) {
+      return false;
+    }
+
+    return Boolean(this.state.permissions.find((perm) => perm === 'can_edit'));
+  }
+
+  get canDelete() {
+    if (!this.state.permissions.length) {
+      return false;
+    }
+
+    return Boolean(this.state.permissions.find((perm) => perm === 'can_delete'));
+  }
 
   public columns = [
     {
@@ -82,7 +103,7 @@ class DashboardTable extends React.PureComponent<Props, State> {
           original: { published },
         },
       }: any) => (
-          <span className='no-wrap'>{published ? 'True' : 'False'}</span>
+          <span className='no-wrap'>{published ? <i className='fa fa-check' /> : ''}</span>
         ),
       Header: 'Published',
       accessor: 'published',
@@ -104,23 +125,26 @@ class DashboardTable extends React.PureComponent<Props, State> {
       Cell: ({ row: { state, original } }: any) => {
         const handleDelete = () => this.handleDashboardDeleteConfirm(original);
         const handleEdit = () => this.handleDashboardEdit(original);
+        if (!this.canEdit && !this.canDelete) {
+          return null;
+        }
 
         return (
           <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
-            <span
+            {this.canDelete && (<span
               role='button'
               className='action-button'
               onClick={handleDelete}
             >
               <i className='fa fa-trash' />
-            </span>
-            <span
+            </span>)}
+            {this.canEdit && (<span
               role='button'
               className='action-button'
               onClick={handleEdit}
             >
               <i className='fa fa-pencil' />
-            </span>
+            </span>)}
           </span>
         );
       },
@@ -130,17 +154,6 @@ class DashboardTable extends React.PureComponent<Props, State> {
   ];
 
   public initialSort = [{ id: 'changed_on', desc: true }];
-
-  public filterTypes = [
-    { label: 'Starts With', value: 'sw' },
-    { label: 'Ends With', value: 'ew' },
-    { label: 'Contains', value: 'ct' },
-    { label: 'Equal To', value: 'eq' },
-    { label: 'Not Starts With', value: 'nsw' },
-    { label: 'Not Ends With', value: 'new' },
-    { label: 'Not Contains', value: 'nct' },
-    { label: 'Not Equal To', value: 'neq' },
-  ];
 
   public handleDashboardEdit = ({ id }: { id: number }) => {
     window.location.assign(`/dashboard/edit/${id}`);
@@ -212,6 +225,15 @@ class DashboardTable extends React.PureComponent<Props, State> {
       .finally(() => this.setState({ loading: false }));
   }
 
+  public componentDidMount() {
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/_info`,
+    })
+      .then(({ json }) => {
+        this.setState({ filterTypes: json.filters, permissions: json.permissions });
+      });
+  }
+
   public render() {
     return (
       <div className='container welcome'>
@@ -227,7 +249,7 @@ class DashboardTable extends React.PureComponent<Props, State> {
             loading={this.state.loading}
             initialSort={this.initialSort}
             filterable={true}
-            filterTypes={this.filterTypes}
+            filterTypes={this.state.filterTypes}
           />
         </Panel>
 
@@ -235,7 +257,7 @@ class DashboardTable extends React.PureComponent<Props, State> {
           <Modal.Header closeButton={true} />
           <Modal.Body>
             Are you sure you want to delete{' '}
-            {this.state.deleteCandidate.dashboard_title}?
+            <b>{this.state.deleteCandidate.dashboard_title}</b>?
           </Modal.Body>
           <Modal.Footer>
             <Button onClick={this.toggleModal}>Cancel</Button>

@@ -28,7 +28,7 @@ import {
   // @ts-ignore
 } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-import { FetchDataConfig, SortColumn, FilterToggle, FilterType } from './types';
+import { FetchDataConfig, SortColumn, FilterToggle, FilterTypeMap, FilterType } from './types';
 import { removeFromList, useListViewState, convertFilters } from './utils';
 import TableCollection from './TableCollection';
 import './ListViewStyles.less';
@@ -45,7 +45,7 @@ interface Props {
   title?: string;
   initialSort?: SortColumn[];
   filterable?: boolean;
-  filterTypes?: FilterType[];
+  filterTypes?: FilterTypeMap;
 }
 
 const ListView: FunctionComponent<Props> = ({
@@ -85,6 +85,7 @@ const ListView: FunctionComponent<Props> = ({
     initialPageSize,
     initialSort,
   });
+  const filterableColumns = columns.filter(c => c.filterable);
 
   const removeFilterAndApply = (index: number) => {
     const updated = removeFromList(filterToggles, index);
@@ -119,8 +120,7 @@ const ListView: FunctionComponent<Props> = ({
                     }
                     id={'filter-picker'}
                   >
-                    {columns
-                      .filter(c => c.filterable)
+                    {filterableColumns
                       .map(({ id, accessor, Header }) => ({
                         id: id || accessor,
                         Header,
@@ -158,10 +158,10 @@ const ListView: FunctionComponent<Props> = ({
                       updateFilterToggle(i, { filterId: e.currentTarget.value })
                     }
                   >
-                    {filterTypes.map(
-                      ({ label, value }: { label: string; value: any }) => (
-                        <option key={label} value={value}>
-                          {label}
+                    {filterableColumns.map(c => filterTypes[c]).map(
+                      ({ name, operator }: FilterType) => (
+                        <option key={name} value={operator}>
+                          {name}
                         </option>
                       ),
                     )}

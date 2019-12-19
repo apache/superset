@@ -29,8 +29,12 @@ export type Filter = {
 };
 
 export type FilterType = {
-  label: string;
-  value: any;
+  name: string;
+  operator: any;
+};
+
+export type FilterTypeMap = {
+  [columnId: string]: FilterType;
 };
 
 type FilterMap = {
