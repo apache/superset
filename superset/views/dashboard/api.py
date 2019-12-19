@@ -191,7 +191,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         "dashboard_title",
         "url",
         "published",
-        "owners.name",
+        "owners_json",
         "changed_by.username",
         "changed_by_name",
         "changed_by_url",
