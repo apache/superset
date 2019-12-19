@@ -372,7 +372,11 @@ class DashboardApiTests(SupersetTestCase):
                 {"text": "gamma_sqllab user", "value": 4},
             ],
         }
-        self.assertEqual(response, expected_response)
+        self.assertEqual(response["count"], expected_response["count"])
+        # This is needed to be implemented like this because ordering varies between
+        # postgres and mysql
+        for result in expected_response["result"]:
+            self.assertIn(result, response["result"])
 
     def test_get_filter_related_owners(self):
         """
