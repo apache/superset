@@ -396,6 +396,9 @@ class SqlaTable(Model, BaseDatasource):
         "MAX": sa.func.MAX,
     }
 
+    def additional_import_constraints(self):
+        [UniqueConstraint("database_id", "schema", "table_name")]
+
     def make_sqla_column_compatible(
         self, sqla_col: Column, label: Optional[str] = None
     ) -> Column:

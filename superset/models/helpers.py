@@ -123,6 +123,12 @@ class ImportMixin(object):
             c: dict_rep.get(c) for c in cls.export_children if c in dict_rep
         }
         unique_constrains = cls._unique_constrains()
+        additional_constraints = None
+        try:
+            additional_constraints = cls.additional_import_export_constraints()
+        except AttributeError:
+            # none defined on class
+            pass
 
         filters = []  # Using these filters to check if obj already exists
 
@@ -158,6 +164,20 @@ class ImportMixin(object):
             for cs in unique_constrains
         ]
         filters.append(or_(*ucs))
+
+        if additional_constraints:
+            # Add any additional constraints defined for import/export
+            acs = [
+                and_(
+                    *[
+                        getattr(cls, k) == dict_rep.get(k)
+                        for k in cs
+                        if dict_rep.get(k) is not None
+                    ]
+                )
+                for cs in additional_constraints
+            ]
+            filters.append(or_(*acs))
 
         # Check if object already exists in DB, break if more than one is found
         try:
