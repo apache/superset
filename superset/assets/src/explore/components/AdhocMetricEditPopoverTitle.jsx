@@ -88,7 +88,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
             inputRef={this.refFunc}
           />
         ) : (
-          <span className='inline-editable'>
+          <span className="inline-editable">
             {adhocMetric.hasCustomLabel ? adhocMetric.label : 'My Metric'}
             &nbsp;
             <i
