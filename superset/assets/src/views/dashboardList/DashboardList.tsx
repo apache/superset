@@ -21,6 +21,7 @@ import { t } from '@superset-ui/translation';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
+// @ts-ignore
 import { Button, Modal, Panel } from 'react-bootstrap';
 import ListView from 'src/components/ListView/ListView';
 import { FilterTypeMap } from 'src/components/ListView/types';
@@ -44,7 +45,7 @@ interface State {
   filterTypes: FilterTypeMap;
   permissions: string[];
 }
-class DashboardTable extends React.PureComponent<Props, State> {
+class DashboardList extends React.PureComponent<Props, State> {
 
   get canEdit() {
     return this.hasPerm('can_edit');
@@ -219,6 +220,7 @@ class DashboardTable extends React.PureComponent<Props, State> {
       endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
       .then(({ json }) => {
+        if (!json) return;
         this.setState({ dashboards: json.result, dashboard_count: json.count });
       })
       .catch(() => {
@@ -275,4 +277,4 @@ class DashboardTable extends React.PureComponent<Props, State> {
   }
 }
 
-export default withToasts(DashboardTable);
+export default withToasts(DashboardList);

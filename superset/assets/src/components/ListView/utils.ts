@@ -53,7 +53,7 @@ function updateInList(list: any[], index: number, update: any): any[] {
 // convert filters from UI objects to data objects
 export function convertFilters(fts: FilterToggle[]) {
   return fts
-    .filter((ft) => ft.filterValue)
+    .filter(ft => ft.filterValue)
     .reduce((acc, elem) => {
       acc[elem.id] = {
         filterId: elem.filterId || 'sw',
@@ -130,12 +130,15 @@ export function useListViewState({
   );
 
   useEffect(() => {
-    setQuery({
+    const queryParams: any = {
       filters: filterToggles,
       pageIndex,
-      sortColumn: sortBy[0].id,
-      sortOrder: sortBy[0].desc ? 'desc' : 'asc',
-    });
+    };
+    if (sortBy[0]) {
+      queryParams.sortColumn = sortBy[0].id;
+      queryParams.sortOrder = sortBy[0].desc ? 'desc' : 'asc';
+    }
+    setQuery(queryParams);
 
     fetchData({ pageIndex, pageSize, sortBy, filters });
   }, [fetchData, pageIndex, pageSize, sortBy, filters]);

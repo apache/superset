@@ -41,7 +41,7 @@ interface Props {
   pageSize: number;
   fetchData: (conf: FetchDataConfig) => any;
   loading: boolean;
-  className: string;
+  className?: string;
   title?: string;
   initialSort?: SortColumn[];
   filterable?: boolean;
@@ -55,7 +55,7 @@ const ListView: FunctionComponent<Props> = ({
   pageSize: initialPageSize,
   fetchData,
   loading,
-  initialSort,
+  initialSort = [],
   className = '',
   title = '',
   filterable = false,

@@ -24,7 +24,7 @@ import { Provider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 
 import Menu from 'src/components/Menu/Menu';
-import DashboardList from 'src/dashboardList/DashboardList';
+import DashboardList from 'src/views/dashboardList/DashboardList';
 
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
