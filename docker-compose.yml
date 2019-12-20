@@ -19,7 +19,7 @@ x-superset-build: &superset-build
   dockerfile: Dockerfile
   target: dev
 x-superset-depends-on: &superset-depends-on
-  - postgres
+  - db
   - redis
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
@@ -38,14 +38,14 @@ services:
     volumes:
       - redis:/data
 
-  postgres:
+  db:
     env_file: docker/.env
     image: postgres:10
     restart: unless-stopped
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - db_home:/var/lib/postgresql/data
 
   superset:
     build: *superset-build
@@ -82,7 +82,7 @@ services:
 volumes:
   superset_home:
     external: false
-  postgres:
+  db_home:
     external: false
   redis:
     external: false
