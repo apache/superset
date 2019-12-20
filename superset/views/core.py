@@ -1902,7 +1902,6 @@ class Superset(BaseSupersetView):
     def publish(self, dashboard_id):
         """Gets and toggles published status on dashboards"""
         session = db.session()
-        Dashboard = Dashboard
         Role = ab_models.Role
         dash = (
             session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
