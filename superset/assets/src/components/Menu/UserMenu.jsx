@@ -24,9 +24,16 @@ import { t } from '@superset-ui/translation';
 const propTypes = {
   userInfoUrl: PropTypes.string.isRequired,
   userLogoutUrl: PropTypes.string.isRequired,
+  versionString: PropTypes.string,
+  versionSha: PropTypes.string,
 };
 
-export default function UserMenu({ userInfoUrl, userLogoutUrl }) {
+export default function UserMenu({
+  userInfoUrl,
+  userLogoutUrl,
+  versionString,
+  versionSha,
+}) {
   return (
     <NavDropdown
       id="user-menu-dropwn"
@@ -44,6 +51,12 @@ export default function UserMenu({ userInfoUrl, userLogoutUrl }) {
         <span className="fa fa-fw fa-sign-out" />
         {t('Logout')}
       </MenuItem>
+      {(versionString || versionSha) && (
+        <li className="version-info">
+          {versionString && <div>Version: {versionString}</div>}
+          {versionSha && <div>SHA: {versionSha}</div>}
+        </li>
+      )}
     </NavDropdown>
   );
 }

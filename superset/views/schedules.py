@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import enum
 from typing import Optional, Type
 
@@ -29,12 +28,13 @@ from wtforms import BooleanField, StringField
 
 from superset import app, appbuilder, db, security_manager
 from superset.exceptions import SupersetException
-from superset.models.core import Dashboard, Slice
+from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
     DashboardEmailSchedule,
     ScheduleType,
     SliceEmailSchedule,
 )
+from superset.models.slice import Slice
 from superset.tasks.schedules import schedule_email_report
 from superset.utils.core import get_email_address_list, json_iso_dttm_ser
 from superset.views.core import json_success
@@ -42,7 +42,9 @@ from superset.views.core import json_success
 from .base import DeleteMixin, SupersetModelView
 
 
-class EmailScheduleView(SupersetModelView, DeleteMixin):
+class EmailScheduleView(
+    SupersetModelView, DeleteMixin
+):  # pylint: disable=too-many-ancestors
     _extra_data = {"test_email": False, "test_email_recipients": None}
     schedule_type: Optional[Type] = None
     schedule_type_model: Optional[Type] = None
@@ -91,35 +93,35 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
         self._extra_data["test_email"] = form.test_email.data
         self._extra_data["test_email_recipients"] = test_email_recipients
 
-    def pre_add(self, obj):
+    def pre_add(self, item):
         try:
-            recipients = get_email_address_list(obj.recipients)
-            obj.recipients = ", ".join(recipients)
+            recipients = get_email_address_list(item.recipients)
+            item.recipients = ", ".join(recipients)
         except Exception:
             raise SupersetException("Invalid email list")
 
-        obj.user = obj.user or g.user
-        if not croniter.is_valid(obj.crontab):
+        item.user = item.user or g.user
+        if not croniter.is_valid(item.crontab):
             raise SupersetException("Invalid crontab format")
 
-    def pre_update(self, obj):
-        self.pre_add(obj)
+    def pre_update(self, item):
+        self.pre_add(item)
 
-    def post_add(self, obj):
+    def post_add(self, item):
         # Schedule a test mail if the user requested for it.
         if self._extra_data["test_email"]:
-            recipients = self._extra_data["test_email_recipients"] or obj.recipients
-            args = (self.schedule_type, obj.id)
+            recipients = self._extra_data["test_email_recipients"] or item.recipients
+            args = (self.schedule_type, item.id)
             kwargs = dict(recipients=recipients)
             schedule_email_report.apply_async(args=args, kwargs=kwargs)
 
         # Notify the user that schedule changes will be activate only in the
         # next hour
-        if obj.active:
+        if item.active:
             flash("Schedule changes will get applied in one hour", "warning")
 
-    def post_update(self, obj):
-        self.post_add(obj)
+    def post_update(self, item):
+        self.post_add(item)
 
     @has_access
     @expose("/fetch/<int:item_id>/", methods=["GET"])
@@ -149,7 +151,9 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
         return json_success(json.dumps(schedules, default=json_iso_dttm_ser))
 
 
-class DashboardEmailScheduleView(EmailScheduleView):
+class DashboardEmailScheduleView(
+    EmailScheduleView
+):  # pylint: disable=too-many-ancestors
     schedule_type = ScheduleType.dashboard.value
     schedule_type_model = Dashboard
 
@@ -202,13 +206,13 @@ class DashboardEmailScheduleView(EmailScheduleView):
         "delivery_type": _("Delivery Type"),
     }
 
-    def pre_add(self, obj):
-        if obj.dashboard is None:
+    def pre_add(self, item):
+        if item.dashboard is None:
             raise SupersetException("Dashboard is mandatory")
-        super(DashboardEmailScheduleView, self).pre_add(obj)
+        super(DashboardEmailScheduleView, self).pre_add(item)
 
 
-class SliceEmailScheduleView(EmailScheduleView):
+class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-ancestors
     schedule_type = ScheduleType.slice.value
     schedule_type_model = Slice
     add_title = _("Schedule Email Reports for Charts")
@@ -263,10 +267,10 @@ class SliceEmailScheduleView(EmailScheduleView):
         "email_format": _("Email Format"),
     }
 
-    def pre_add(self, obj):
-        if obj.slice is None:
+    def pre_add(self, item):
+        if item.slice is None:
             raise SupersetException("Slice is mandatory")
-        super(SliceEmailScheduleView, self).pre_add(obj)
+        super(SliceEmailScheduleView, self).pre_add(item)
 
 
 def _register_schedule_menus():

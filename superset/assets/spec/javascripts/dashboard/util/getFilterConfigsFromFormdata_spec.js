@@ -20,6 +20,16 @@ import getFilterConfigsFromFormdata from '../../../../src/dashboard/util/getFilt
 
 describe('getFilterConfigsFromFormdata', () => {
   const testFormdata = {
+    filter_configs: [
+      {
+        asc: true,
+        clearable: true,
+        column: 'state',
+        defaultValue: 'CA',
+        key: 'fvwncPjUf',
+        multiple: true,
+      },
+    ],
     date_filter: true,
     granularity_sqla: '__time',
     time_grain_sqla: 'P1M',
@@ -43,6 +53,16 @@ describe('getFilterConfigsFromFormdata', () => {
     });
     expect(result.columns).toMatchObject({
       __time_col: testFormdata.granularity_sqla,
+    });
+  });
+
+  it('should use default value from form_data', () => {
+    const result = getFilterConfigsFromFormdata({
+      ...testFormdata,
+      show_sqla_time_column: true,
+    });
+    expect(result.columns).toMatchObject({
+      state: 'CA',
     });
   });
 });

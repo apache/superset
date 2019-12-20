@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """Defines the templating context for SQL Lab"""
 import inspect
 import json
@@ -112,11 +111,11 @@ def filter_values(column: str, default: Optional[str] = None) -> List[str]:
 
     if default:
         return [default]
-    else:
-        return []
+
+    return []
 
 
-class CacheKeyWrapper:
+class CacheKeyWrapper:  # pylint: disable=too-few-public-methods
     """ Dummy class that exposes a method used to store additional values used in
      calculation of query object cache keys"""
 
@@ -152,7 +151,7 @@ class CacheKeyWrapper:
         return key
 
 
-class BaseTemplateProcessor:
+class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
     """Base class for database-specific jinja context
 
     There's this bit of magic in ``process_template`` that instantiates only
@@ -273,5 +272,7 @@ for k in keys:
 
 
 def get_template_processor(database, table=None, query=None, **kwargs):
-    TP = template_processors.get(database.backend, BaseTemplateProcessor)
-    return TP(database=database, table=table, query=query, **kwargs)
+    template_processor = template_processors.get(
+        database.backend, BaseTemplateProcessor
+    )
+    return template_processor(database=database, table=table, query=query, **kwargs)

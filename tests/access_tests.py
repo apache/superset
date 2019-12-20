@@ -26,6 +26,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid.models import DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
+from superset.models.datasource_access_request import DatasourceAccessRequest
 
 from .base_tests import SupersetTestCase
 
@@ -83,7 +84,7 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
     security_manager.add_permission_role(
         security_manager.find_role(role_name), ds_perm_view
     )
-    access_request = models.DatasourceAccessRequest(
+    access_request = DatasourceAccessRequest(
         datasource_id=ds.id,
         datasource_type=ds_type,
         created_by_fk=security_manager.find_user(username=user_name).id,

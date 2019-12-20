@@ -23,14 +23,25 @@ import ExploreChartHeader from '../../../../src/explore/components/ExploreChartH
 import ExploreActionButtons from '../../../../src/explore/components/ExploreActionButtons';
 import EditableTitle from '../../../../src/components/EditableTitle';
 
+const stub = jest.fn(() => ({
+  then: () => {},
+}));
 const mockProps = {
-  actions: {},
+  actions: {
+    saveSlice: stub,
+  },
   can_overwrite: true,
   can_download: true,
   isStarred: true,
-  slice: {},
+  slice: {
+    form_data: {
+      viz_type: 'line',
+    },
+  },
   table_name: 'foo',
-  form_data: {},
+  form_data: {
+    viz_type: 'table',
+  },
   timeout: 1000,
   chart: {
     queryResponse: {},
@@ -52,5 +63,26 @@ describe('ExploreChartHeader', () => {
   it('renders', () => {
     expect(wrapper.find(EditableTitle)).toHaveLength(1);
     expect(wrapper.find(ExploreActionButtons)).toHaveLength(1);
+  });
+
+  it('should updateChartTitleOrSaveSlice for existed slice', () => {
+    const newTitle = 'New Chart Title';
+    wrapper.instance().updateChartTitleOrSaveSlice(newTitle);
+    expect(stub.call.length).toEqual(1);
+    expect(stub).toHaveBeenCalledWith(mockProps.slice.form_data, {
+      action: 'overwrite',
+      slice_name: newTitle,
+    });
+  });
+
+  it('should updateChartTitleOrSaveSlice for new slice', () => {
+    const newTitle = 'New Chart Title';
+    wrapper.setProps({ slice: undefined });
+    wrapper.instance().updateChartTitleOrSaveSlice(newTitle);
+    expect(stub.call.length).toEqual(1);
+    expect(stub).toHaveBeenCalledWith(mockProps.form_data, {
+      action: 'saveas',
+      slice_name: newTitle,
+    });
   });
 });

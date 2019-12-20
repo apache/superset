@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import logging
 import uuid
 from contextlib import closing
@@ -54,6 +53,8 @@ config = app.config
 stats_logger = config["STATS_LOGGER"]
 SQLLAB_TIMEOUT = config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
+SQL_MAX_ROW = config["SQL_MAX_ROW"]
+SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ def get_query_backoff_handler(details):
     logger.error(f"Query {query_id}: Sleeping for a sec before retrying...")
 
 
-def get_query_giveup_handler(details):
+def get_query_giveup_handler(_):
     stats_logger.incr("error_failed_at_getting_orm_query")
 
 
@@ -142,7 +143,7 @@ def session_scope(nullpool):
     time_limit=SQLLAB_HARD_TIMEOUT,
     soft_time_limit=SQLLAB_TIMEOUT,
 )
-def get_sql_results(
+def get_sql_results(  # pylint: disable=too-many-arguments
     ctask,
     query_id,
     rendered_query,
@@ -151,13 +152,13 @@ def get_sql_results(
     user_name=None,
     start_time=None,
     expand_data=False,
+    log_params=None,
 ):
     """Executes the sql query returns the results."""
     with session_scope(not ctask.request.called_directly) as session:
 
         try:
             return execute_sql_statements(
-                ctask,
                 query_id,
                 rendered_query,
                 return_results,
@@ -166,22 +167,22 @@ def get_sql_results(
                 session=session,
                 start_time=start_time,
                 expand_data=expand_data,
+                log_params=log_params,
             )
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             logger.exception(f"Query {query_id}: {e}")
             stats_logger.incr("error_sqllab_unhandled")
             query = get_query(query_id, session)
             return handle_query_error(str(e), query, session)
 
 
-def execute_sql_statement(sql_statement, query, user_name, session, cursor):
+# pylint: disable=too-many-arguments
+def execute_sql_statement(sql_statement, query, user_name, session, cursor, log_params):
     """Executes a single SQL statement"""
-    query_id = query.id
     database = query.database
     db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()
-    SQL_MAX_ROWS = app.config["SQL_MAX_ROW"]
 
     if not parsed_query.is_readonly() and not database.allow_dml:
         raise SqlLabSecurityException(
@@ -203,13 +204,12 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
         sql = parsed_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
     if parsed_query.is_select():
-        if SQL_MAX_ROWS and (not query.limit or query.limit > SQL_MAX_ROWS):
-            query.limit = SQL_MAX_ROWS
+        if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
+            query.limit = SQL_MAX_ROW
         if query.limit:
             sql = database.apply_limit_to_sql(sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
-    SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
     if SQL_QUERY_MUTATOR:
         sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
 
@@ -222,34 +222,35 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
                 user_name,
                 __name__,
                 security_manager,
+                log_params,
             )
         query.executed_sql = sql
         session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
-            logger.info(f"Query {query_id}: Running query: \n{sql}")
+            logger.info(f"Query {query.id}: Running query: \n{sql}")
             db_engine_spec.execute(cursor, sql, async_=True)
-            logger.info(f"Query {query_id}: Handling cursor")
+            logger.info(f"Query {query.id}: Handling cursor")
             db_engine_spec.handle_cursor(cursor, query, session)
 
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
             logger.debug(
-                "Query {}: Fetching data for query object: {}".format(
-                    query_id, query.to_dict()
-                )
+                "Query %d: Fetching data for query object: %s",
+                query.id,
+                str(query.to_dict()),
             )
             data = db_engine_spec.fetch_data(cursor, query.limit)
 
     except SoftTimeLimitExceeded as e:
-        logger.exception(f"Query {query_id}: {e}")
+        logger.exception(f"Query {query.id}: {e}")
         raise SqlLabTimeoutException(
             "SQL Lab timeout. This environment's policy is to kill queries "
             "after {} seconds.".format(SQLLAB_TIMEOUT)
         )
     except Exception as e:
-        logger.exception(f"Query {query_id}: {e}")
+        logger.exception(f"Query {query.id}: {e}")
         raise SqlLabException(db_engine_spec.extract_error_message(e))
 
-    logger.debug(f"Query {query_id}: Fetching cursor description")
+    logger.debug(f"Query {query.id}: Fetching cursor description")
     cursor_description = cursor.description
     return SupersetTable(data, cursor_description, db_engine_spec)
 
@@ -260,8 +261,8 @@ def _serialize_payload(
     logger.debug(f"Serializing to msgpack: {use_msgpack}")
     if use_msgpack:
         return msgpack.dumps(payload, default=json_iso_dttm_ser, use_bin_type=True)
-    else:
-        return json.dumps(payload, default=json_iso_dttm_ser, ignore_nan=True)
+
+    return json.dumps(payload, default=json_iso_dttm_ser, ignore_nan=True)
 
 
 def _serialize_and_expand_data(
@@ -302,7 +303,6 @@ def _serialize_and_expand_data(
 
 
 def execute_sql_statements(
-    ctask,
     query_id,
     rendered_query,
     return_results=True,
@@ -311,7 +311,8 @@ def execute_sql_statements(
     session=None,
     start_time=None,
     expand_data=False,
-):
+    log_params=None,
+):  # pylint: disable=too-many-arguments, too-many-locals, too-many-statements
     """Executes the sql query returns the results."""
     if store_results and start_time:
         # only asynchronous queries
@@ -351,7 +352,7 @@ def execute_sql_statements(
                 # Check if stopped
                 query = get_query(query_id, session)
                 if query.status == QueryStatus.STOPPED:
-                    return
+                    return None
 
                 # Run statement
                 msg = f"Running statement {i+1} out of {statement_count}"
@@ -360,9 +361,9 @@ def execute_sql_statements(
                 session.commit()
                 try:
                     result_table = execute_sql_statement(
-                        statement, query, user_name, session, cursor
+                        statement, query, user_name, session, cursor, log_params
                     )
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-except
                     msg = str(e)
                     if statement_count > 1:
                         msg = f"[Statement {i+1} out of {statement_count}] " + msg
@@ -430,3 +431,5 @@ def execute_sql_statements(
 
     if return_results:
         return payload
+
+    return None
