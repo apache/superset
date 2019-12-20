@@ -17,8 +17,10 @@
 # pylint: disable=C,R,W
 """ Superset wrapper around pyarrow.Table.
 """
+import datetime
 import logging
 import re
+from typing import Any, Callable, List
 
 import numpy as np
 import pandas as pd
@@ -76,8 +78,16 @@ class SupersetTable(object):
         if data:
             for i, column in enumerate(column_names):
                 if pa.types.is_temporal(data[i].type):
-                    series = pd.Series(array[:, i])
-                    data[i] = pa.Array.from_pandas(series)
+                    sample = self.first_nonempty(array[:, i])
+                    if sample and isinstance(sample, datetime.datetime):
+                        try:
+                            if sample.tzinfo:
+                                series = pd.Series(array[:, i], dtype="datetime64[ns]")
+                                data[i] = pa.Array.from_pandas(
+                                    series, type=pa.timestamp("ns", tz=sample.tzinfo)
+                                )
+                        except Exception as e:
+                            logging.exception(e)
 
         self.table = pa.Table.from_arrays(data, names=column_names)
         self._type_dict = {}
@@ -96,7 +106,11 @@ class SupersetTable(object):
         return pa_table.to_pandas(integer_object_nulls=True)
 
     @staticmethod
-    def is_date(db_type_str):
+    def first_nonempty(items: List) -> Any:
+        return next((i for i in items if i), None)
+
+    @staticmethod
+    def is_date(db_type_str: str) -> bool:
         return db_type_str in ("DATETIME", "TIMESTAMP")
 
     @classmethod

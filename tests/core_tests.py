@@ -703,16 +703,21 @@ class CoreTests(SupersetTestCase):
         tz = pytz.FixedOffset(60)
         data = [
             (datetime.datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=tz),),
-            (datetime.datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=tz),),
+            (datetime.datetime(2017, 11, 18, 22, 6, 30, tzinfo=tz),),
         ]
         table = SupersetTable(list(data), [["data"]], BaseEngineSpec)
         df = table.to_pandas_df()
         data = dataframe.df_to_dict(df)
+        json_str = json.dumps(data, default=utils.pessimistic_json_iso_dttm_ser)
         self.assertDictEqual(
             data[0], {"data": pd.Timestamp("2017-11-18 21:53:00.219225+0100", tz=tz)}
         )
         self.assertDictEqual(
-            data[1], {"data": pd.Timestamp("2017-11-18 22:06:30.061810+0100", tz=tz)}
+            data[1], {"data": pd.Timestamp("2017-11-18 22:06:30+0100", tz=tz)}
+        )
+        self.assertEqual(
+            json_str,
+            '[{"data": "2017-11-18T21:53:00.219225+01:00"}, {"data": "2017-11-18T22:06:30+01:00"}]',
         )
 
     def test_mssql_engine_spec_pymssql(self):
