@@ -230,7 +230,7 @@ def _deserialize_results_payload(
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
             pa_table = pa.deserialize(ds_payload["data"])
 
-        df = table.SupersetTable.pa_table_to_df(pa_table)
+        df = table.SupersetTable.convert_table_to_df(pa_table)
         ds_payload["data"] = dataframe.df_to_dict(df) or []
 
         db_engine_spec = query.database.db_engine_spec

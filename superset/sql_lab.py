@@ -19,7 +19,7 @@ import uuid
 from contextlib import closing
 from datetime import datetime
 from sys import getsizeof
-from typing import Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import backoff
 import msgpack
@@ -271,8 +271,8 @@ def _serialize_and_expand_data(
     use_msgpack: Optional[bool] = False,
     expand_data: bool = False,
 ) -> Tuple[Union[bytes, str], list, list, list]:
-    selected_columns: list = result_table.columns
-    expanded_columns: list
+    selected_columns: List[Dict] = result_table.columns
+    expanded_columns: List[Dict]
 
     if use_msgpack:
         with stats_timing(

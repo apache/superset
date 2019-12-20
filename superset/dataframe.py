@@ -30,7 +30,6 @@ def df_to_dict(dframe: pd.DataFrame) -> Dict:
         for k, v in list(d.items()):
             # if an int is too big for Java Script to handle
             # convert it to a string
-            if isinstance(v, int):
-                if abs(v) > JS_MAX_INTEGER:
-                    d[k] = str(v)
+            if isinstance(v, int) and abs(v) > JS_MAX_INTEGER:
+                d[k] = str(v)
     return data
