@@ -59,7 +59,7 @@ const ListView: FunctionComponent<Props> = ({
   className = '',
   title = '',
   filterable = false,
-  filterTypes = [],
+  filterTypes = {},
 }) => {
   const {
     getTableProps,
@@ -93,7 +93,7 @@ const ListView: FunctionComponent<Props> = ({
     setAllFilters(convertFilters(updated));
   };
 
-  if (!data || !data.length) {
+  if (loading) {
     return <Loading />;
   }
 
@@ -158,7 +158,7 @@ const ListView: FunctionComponent<Props> = ({
                       updateFilterToggle(i, { filterId: e.currentTarget.value })
                     }
                   >
-                    {filterableColumns.map((c) => filterTypes[c]).map(
+                    {filterTypes[ft.id] && filterTypes[ft.id].map(
                       ({ name, operator }: FilterType) => (
                         <option key={name} value={operator}>
                           {name}

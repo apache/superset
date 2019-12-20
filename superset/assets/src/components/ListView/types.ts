@@ -34,7 +34,7 @@ export interface FilterType {
 }
 
 export interface FilterTypeMap {
-  [columnId: string]: FilterType;
+  [columnId: string]: FilterType[];
 }
 
 interface FilterMap {
