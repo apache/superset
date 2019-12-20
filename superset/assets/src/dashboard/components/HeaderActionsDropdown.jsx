@@ -30,7 +30,6 @@ import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
-import ModalTrigger from 'src/components/ModalTrigger';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,

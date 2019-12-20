@@ -277,8 +277,6 @@ const actionHandlers = {
   },
 
   [DASHBOARD_TITLE_CHANGED](state, action) {
-    console.log('dashboard title changed reducer whaaaaat');
-    console.log(state);
     return {
       ...state,
       [DASHBOARD_HEADER_ID]: {
