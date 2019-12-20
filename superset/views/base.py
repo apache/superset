@@ -18,14 +18,16 @@ import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import simplejson as json
 import yaml
 from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
-from flask_appbuilder import BaseView, Model, ModelView
+from flask_appbuilder import BaseView, Model, ModelRestApi, ModelView
 from flask_appbuilder.actions import action
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.forms import DynamicForm
+from flask_appbuilder.models.filters import Filters
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
@@ -371,6 +373,130 @@ class BaseSupersetSchema(Schema):
     ):  # pylint: disable=arguments-differ
         self.instance = instance
         return super().load(data, many=many, partial=partial, **kwargs)
+
+
+get_related_schema = {
+    "type": "object",
+    "properties": {
+        "page_size": {"type": "integer"},
+        "page": {"type": "integer"},
+        "filter": {"type": "string"},
+    },
+}
+
+
+class BaseSupersetModelRestApi(ModelRestApi):
+    """
+    Extends FAB's ModelResApi to implement specific superset generic functionality
+    """
+
+    order_rel_fields: Dict[str, Tuple[str, str]] = {}
+    """
+    Impose ordering on related fields query::
+
+        order_rel_fields = {
+            "<RELATED_FIELD>": ("<RELATED_FIELD_FIELD>", "<asc|desc>"),
+             ...
+        }
+    """  # pylint: disable=pointless-string-statement
+    filter_rel_fields_field: Dict[str, str] = {}
+    """
+    Declare the related field field for filtering::
+
+        filter_rel_fields_field = {
+            "<RELATED_FIELD>": "<RELATED_FIELD_FIELD>", "<asc|desc>")
+        }
+    """  # pylint: disable=pointless-string-statement
+
+    def _get_related_filter(self, datamodel, column_name: str, value: str) -> Filters:
+        filter_field = self.filter_rel_fields_field.get(column_name)
+        filters = datamodel.get_filters([filter_field])
+        if value:
+            filters.rest_add_filters(
+                [{"opr": "sw", "col": filter_field, "value": value}]
+            )
+        return filters
+
+    @expose("/related/<column_name>", methods=["GET"])
+    @protect()
+    @safe
+    @rison(get_related_schema)
+    def related(self, column_name: str, **kwargs):
+        """Get related fields data
+        ---
+        get:
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: column_name
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    page_size:
+                      type: integer
+                    page:
+                      type: integer
+                    filter:
+                      type: string
+          responses:
+            200:
+              description: Related column data
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      result:
+                        type: object
+                        properties:
+                          value:
+                            type: integer
+                          text:
+                            type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        args = kwargs.get("rison", {})
+        # handle pagination
+        page, page_size = self._handle_page_args(args)
+        try:
+            datamodel = self.datamodel.get_related_interface(column_name)
+        except KeyError:
+            return self.response_404()
+        page, page_size = self._sanitize_page_args(page, page_size)
+        # handle ordering
+        order_field = self.order_rel_fields.get(column_name)
+        if order_field:
+            order_column, order_direction = order_field
+        else:
+            order_column, order_direction = "", ""
+        # handle filters
+        filters = self._get_related_filter(datamodel, column_name, args.get("filter"))
+        # Make the query
+        count, values = datamodel.query(
+            filters, order_column, order_direction, page=page, page_size=page_size
+        )
+        # produce response
+        result = [
+            {"value": datamodel.get_pk_value(value), "text": str(value)}
+            for value in values
+        ]
+        return self.response(200, count=count, result=result)
 
 
 class CsvResponse(Response):  # pylint: disable=too-many-ancestors
