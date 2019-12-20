@@ -180,6 +180,25 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return Markup(f'<a href="{self.url}">{title}</a>')
 
     @property
+    def changed_by_name(self):
+        if not self.changed_by:
+            return ""
+        return str(self.changed_by)
+
+    @property
+    def changed_by_url(self):
+        if not self.changed_by:
+            return ""
+        return f"/superset/profile/{self.changed_by.username}"
+
+    @property
+    def owners_json(self) -> List[Dict[str, Any]]:
+        owners = []
+        for owner in self.owners:
+            owners.append({"name": owner.name})
+        return owners
+
+    @property
     def data(self) -> Dict[str, Any]:
         positions = self.position_json
         if positions:
