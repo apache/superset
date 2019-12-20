@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, Alert, Button, Modal, FormControl } from 'react-bootstrap';
+import { Row, Col, Button, Modal, FormControl } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
 import Select from 'react-select';
 import { t } from '@superset-ui/translation';
@@ -57,14 +57,13 @@ class PropertiesModal extends React.PureComponent {
         owners: this.props.owners || [],
         json_metadata: JSON.stringify(this.props.dashboardInfo.metadata),
       },
+      isOwnersLoaded: false,
       userOptions: null,
       isAdvancedOpen: false,
     };
-    console.log(props);
     this.onChange = this.onChange.bind(this);
     this.onOwnersChange = this.onOwnersChange.bind(this);
     this.save = this.save.bind(this);
-    this.setDialogRef = this.setDialogRef.bind(this);
     this.toggleAdvanced = this.toggleAdvanced.bind(this);
   }
 
@@ -79,10 +78,19 @@ class PropertiesModal extends React.PureComponent {
         userOptions: options,
       });
     });
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/${this.props.dashboardInfo.id}`,
+    }).then(response => {
+      this.setState({ isOwnersLoaded: true });
+      const initialSelectedValues = response.json.result.owners.map(owner => ({
+        value: owner.id,
+        label: owner.username,
+      }));
+      this.onOwnersChange(initialSelectedValues);
+    });
   }
 
   onOwnersChange(value) {
-    console.log(value);
     this.setState(state => ({
       values: {
         ...state.values,
@@ -101,10 +109,6 @@ class PropertiesModal extends React.PureComponent {
     }));
   }
 
-  setDialogRef(ref) {
-    this.dialog = ref;
-  }
-
   toggleAdvanced() {
     this.setState(state => ({
       isAdvancedOpen: !state.isAdvancedOpen,
@@ -114,41 +118,40 @@ class PropertiesModal extends React.PureComponent {
   save(e) {
     e.preventDefault();
     e.stopPropagation();
-    console.log('saving!');
     const owners = this.state.values.owners.map(o => o.value);
     SupersetClient.put({
       endpoint: `/api/v1/dashboard/${this.props.dashboardInfo.id}`,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        // ...this.props.dashboardInfo,
         ...this.state.values,
-        owners: [3],
-        owner_ids: owners,
+        owners,
       }),
     })
       .then(({ json }) => {
         this.props.addSuccessToast(t('The dashboard has been saved'));
-        this.props.onDashboardSave(json);
+        this.props.onDashboardSave({
+          title: json.result.dashboard_title,
+          slug: json.result.slug,
+          jsonMetadata: json.result.json_metadata,
+          ownerIds: json.result.owners,
+        });
         this.props.onHide();
       })
-      .catch(
-        response =>
-          console.log(response) ||
-          getClientErrorObject(response).then(({ error, statusText }) => {
-            this.dialog.show({
-              title: 'Error',
-              bsSize: 'medium',
-              bsStyle: 'danger',
-              actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-              body: error || statusText || t('An error has occurred'),
-            });
-          }),
+      .catch(response =>
+        getClientErrorObject(response).then(({ error, statusText }) => {
+          this.dialog.show({
+            title: 'Error',
+            bsSize: 'medium',
+            bsStyle: 'danger',
+            actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
+            body: error || statusText || t('An error has occurred'),
+          });
+        }),
       );
   }
 
   render() {
-    const { userOptions, values, isAdvancedOpen } = this.state;
-    console.log(values);
+    const { userOptions, values, isOwnersLoaded, isAdvancedOpen } = this.state;
     return (
       <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
         <form onSubmit={this.save}>
@@ -205,6 +208,7 @@ class PropertiesModal extends React.PureComponent {
                     value={values.owners}
                     options={userOptions || []}
                     onChange={this.onOwnersChange}
+                    disabled={!isOwnersLoaded}
                   />
                 )}
               </Col>
@@ -259,7 +263,11 @@ class PropertiesModal extends React.PureComponent {
               <Button type="button" bsSize="sm" onClick={this.props.onHide}>
                 {t('Cancel')}
               </Button>
-              <Dialog ref={this.setDialogRef} />
+              <Dialog
+                ref={ref => {
+                  this.dialog = ref;
+                }}
+              />
             </span>
           </Modal.Footer>
         </form>

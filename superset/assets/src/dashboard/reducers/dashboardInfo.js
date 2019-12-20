@@ -16,27 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
 
-import charts from '../../chart/chartReducer';
-import dashboardInfo from './dashboardInfo';
-import dashboardState from './dashboardState';
-import dashboardFilters from './dashboardFilters';
-import datasources from './datasources';
-import sliceEntities from './sliceEntities';
-import dashboardLayout from '../reducers/undoableDashboardLayout';
-import messageToasts from '../../messageToasts/reducers';
+import { DASHBOARD_INFO_UPDATED } from '../actions/dashboardInfo';
 
-const impressionId = (state = '') => state;
-
-export default combineReducers({
-  charts,
-  datasources,
-  dashboardInfo,
-  dashboardFilters,
-  dashboardState,
-  dashboardLayout,
-  impressionId,
-  messageToasts,
-  sliceEntities,
-});
+export default function dashboardStateReducer(state = {}, action) {
+  switch (action.type) {
+    case DASHBOARD_INFO_UPDATED:
+      return {
+        ...state,
+        ...action.newInfo,
+      };
+    default:
+      return state;
+  }
+}

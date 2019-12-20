@@ -87,6 +87,8 @@ const propTypes = {
   maxUndoHistoryToast: PropTypes.func.isRequired,
   refreshFrequency: PropTypes.number.isRequired,
   setRefreshFrequency: PropTypes.func.isRequired,
+  dashboardInfoChanged: PropTypes.func.isRequired,
+  dashboardTitleChanged: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -423,6 +425,18 @@ class Header extends React.PureComponent {
               dashboardInfo={dashboardInfo}
               show={this.state.showingPropertiesModal}
               onHide={this.hidePropertiesModal}
+              onDashboardSave={updates => {
+                this.props.dashboardInfoChanged({
+                  slug: updates.slug,
+                  metadata: JSON.parse(updates.jsonMetadata),
+                });
+                this.props.dashboardTitleChanged(updates.title);
+                history.pushState(
+                  { event: 'dashboard_properties_changed' },
+                  '',
+                  `/superset/dashboard/${updates.slug}/`,
+                );
+              }}
             />
           )}
 
