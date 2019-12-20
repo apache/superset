@@ -220,7 +220,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
       .then(({ json }) => {
-        if (!json) return;
+        if (!json) { return; }
         this.setState({ dashboards: json.result, dashboard_count: json.count });
       })
       .catch(() => {
