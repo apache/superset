@@ -23,11 +23,16 @@ import ListView from 'src/components/ListView/ListView';
 
 describe('ListView', () => {
   const mockedProps = {
-    columns: [],
+    columns: [
+      {
+        accessor: 'id',
+        Header: 'ID',
+      },
+    ],
     data: [],
     count: 0,
     pageSize: 1,
-    fetchData: jest.fn(),
+    fetchData: jest.fn(() => []),
     loading: false,
   };
   const wrapper = mount(<ListView {...mockedProps} />);

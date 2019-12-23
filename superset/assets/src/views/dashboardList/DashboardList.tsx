@@ -54,6 +54,7 @@ class DashboardList extends React.PureComponent<Props, State> {
   get canDelete() {
     return this.hasPerm('can_delete');
   }
+
   public static propTypes = {
     addDangerToast: PropTypes.func.isRequired,
   };
@@ -219,8 +220,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
-      .then(({ json }) => {
-        if (!json) { return; }
+      .then(({ json = {} }) => {
         this.setState({ dashboards: json.result, dashboard_count: json.count });
       })
       .catch(() => {
@@ -235,7 +235,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     SupersetClient.get({
       endpoint: `/api/v1/dashboard/_info`,
     })
-      .then(({ json }) => {
+      .then(({ json = {} }) => {
         this.setState({ filterTypes: json.filters, permissions: json.permissions });
       });
   }
