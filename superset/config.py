@@ -651,6 +651,10 @@ SCHEDULED_EMAIL_DEBUG_MODE = False
 # Email reports - minimum time resolution (in minutes) for the crontab
 EMAIL_REPORTS_CRON_RESOLUTION = 15
 
+# The MAX duration (in seconds) a email schedule can run for before being killed
+# by celery.
+EMAIL_ASYNC_TIME_LIMIT_SEC = 300
+
 # Email report configuration
 # From address in emails
 EMAIL_REPORT_FROM_ADDRESS = "reports@superset.org"
