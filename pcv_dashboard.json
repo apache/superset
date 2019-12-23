@@ -398,7 +398,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 38, \"database_name\": \"examples\", \"import_time\": 1570639278}",
                 "schema": "pcv",
-                "sql": "select  addrcountry, userid as location from pcv.customer_attributes",
+                "sql": "select  addrcountry, userid as location from pcv.customer_attributes where ispeakrowdelete is null",
                 "table_name": "Top Locations",
                 "template_params": "{}"
             }
@@ -578,7 +578,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 49, \"database_name\": \"examples\", \"import_time\": 1570639278}",
                 "schema": "pcv",
-                "sql": "SELECT prednexttranswindow, userid as transaction\r\nfrom pcv.customer_attributes ORDER BY prednexttranswindow ASC",
+                "sql": "SELECT prednexttranswindow, userid as transaction\r\nfrom pcv.customer_attributes where ispeakrowdelete is null ORDER BY prednexttranswindow ASC",
                 "table_name": "Next Transaction Window",
                 "template_params": "{}"
             }
@@ -938,7 +938,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 41, \"database_name\": \"examples\", \"import_time\": 1570639278}",
                 "schema": "pcv",
-                "sql": "select predinmarket, userid  from pcv.customer_attributes",
+                "sql": "select predinmarket, userid  from pcv.customer_attributes where ispeakrowdelete is null",
                 "table_name": "In Market Customers Breakdown",
                 "template_params": "{}"
             }
@@ -1118,7 +1118,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 35, \"database_name\": \"examples\", \"import_time\": 1570639278}",
                 "schema": "pcv",
-                "sql": "select userid as gender, usergender from pcv.customer_attributes",
+                "sql": "select userid as gender, usergender from pcv.customer_attributes where ispeakrowdelete is null",
                 "table_name": "Gender Distribution",
                 "template_params": "{}"
             }
@@ -1298,7 +1298,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 50, \"database_name\": \"examples\", \"import_time\": 1570639278}",
                 "schema": "pcv",
-                "sql": "SELECT predengagement, userid as engagement\r\nfrom pcv.customer_attributes ORDER BY predengagement ASC",
+                "sql": "SELECT predengagement, userid as engagement\r\nfrom pcv.customer_attributes where ispeakrowdelete is null ORDER BY predengagement ASC",
                 "table_name": "Predictive Engagement",
                 "template_params": "{}"
             }
@@ -1934,7 +1934,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 42, \"database_name\": \"examples\", \"import_time\": 1570639278}",
                 "schema": "pcv",
-                "sql": "select associationvalue,\n         count(*) as user_count,\n         associationrank\n  from pcv.customer_preferences\n  where associationtype = 'Product Recommendation'\n  group by associationvalue,\n           associationrank\n  ORDER by associationrank asc\n  limit 10",
+                "sql": "select associationvalue,\n         count(*) as user_count,\n         associationrank\n  from pcv.customer_preferences\n  where associationtype = 'Product Recommendation' and ispeakrowdelete is null\n  group by associationvalue,\n           associationrank\n  ORDER by associationrank asc\n  limit 10",
                 "table_name": "Top Products",
                 "template_params": "{}"
             }
@@ -2024,7 +2024,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 39, \"database_name\": \"examples\", \"import_time\": 1570639278}",
                 "schema": "pcv",
-                "sql": "select predchurnrisk , userid as atrisk from pcv.customer_attributes",
+                "sql": "select predchurnrisk , userid as atrisk from pcv.customer_attributes where ispeakrowdelete is null",
                 "table_name": "At Risk Customers Breakdown",
                 "template_params": "{}"
             }
