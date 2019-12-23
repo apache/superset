@@ -120,10 +120,12 @@
 /* Z-INDEX                                                              */
 /* Think of the site as "layers" rather than an arms race of numbers    */
 /* Try to keep these to a minimum                                       */
+/* Try to label semantic "layers" and add comments for usage notes      */
 /************************************************************************/
-@z-index-max: 1000;
-@z-index-dropdown: 11;
-
+@z-max: 3000; // used for toast messages
+@z-dropdown: 11;
+@z-chart: 1;
+@z-chart--dragging: @z-chart + 1;
 /************************************************************************/
 /* TYPOGRAPHY                                                           */
 /* Commonly used font weights, line heights, etc. These should be the   */
