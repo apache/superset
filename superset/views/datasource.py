@@ -17,9 +17,10 @@
 import json
 from collections import Counter
 
-from flask import request
+from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
+from sqlalchemy.orm.exc import NoResultFound
 
 from superset import appbuilder, db
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -35,15 +36,19 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
-    def save(self):
-        datasource = json.loads(request.form.get("data"))
+    def save(self) -> Response:
+        data = request.form.get("data")
+        if not isinstance(data, str):
+            return json_error_response("Request missing data field.", status="500")
+
+        datasource = json.loads(data)
         datasource_id = datasource.get("id")
         datasource_type = datasource.get("type")
         orm_datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session
         )
 
-        if "owners" in datasource:
+        if "owners" in datasource and orm_datasource.owner_class is not None:
             datasource["owners"] = (
                 db.session.query(orm_datasource.owner_class)
                 .filter(orm_datasource.owner_class.id.in_(datasource["owners"]))
@@ -72,23 +77,24 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
-    def get(self, datasource_type, datasource_id):
-        orm_datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session
-        )
-
-        if not orm_datasource:
+    def get(self, datasource_type: str, datasource_id: int) -> Response:
+        try:
+            orm_datasource = ConnectorRegistry.get_datasource(
+                datasource_type, datasource_id, db.session
+            )
+            if not orm_datasource.data:
+                return json_error_response(
+                    "Error fetching datasource data.", status="500"
+                )
+            return self.json_response(orm_datasource.data)
+        except NoResultFound:
             return json_error_response("This datasource does not exist", status="400")
-        elif not orm_datasource.data:
-            return json_error_response("Error fetching datasource data.", status="500")
-
-        return self.json_response(orm_datasource.data)
 
     @expose("/external_metadata/<datasource_type>/<datasource_id>/")
     @has_access_api
     @api
     @handle_api_exception
-    def external_metadata(self, datasource_type=None, datasource_id=None):
+    def external_metadata(self, datasource_type: str, datasource_id: int) -> Response:
         """Gets column info from the source system"""
         if datasource_type == "druid":
             datasource = ConnectorRegistry.get_datasource(
@@ -104,6 +110,8 @@ class Datasource(BaseSupersetView):
                 table_name=request.args.get("table_name"),
                 schema=request.args.get("schema") or None,
             )
+        else:
+            raise Exception(f"Unsupported datasource_type: {datasource_type}")
         external_metadata = datasource.external_metadata()
         return self.json_response(external_metadata)
 
