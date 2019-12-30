@@ -17,7 +17,7 @@
 import logging
 import pickle as pkl
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -41,8 +41,13 @@ class QueryContext:
     to retrieve the data payload for a given viz.
     """
 
-    cache_type: str = "df"
-    enforce_numerical_metrics: bool = True
+    cache_type: ClassVar[str] = "df"
+    enforce_numerical_metrics: ClassVar[bool] = True
+
+    datasource: BaseDatasource
+    queries: List[QueryObject]
+    force: bool
+    custom_cache_timeout: Optional[int]
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     # a vanilla python type https://github.com/python/mypy/issues/5288
@@ -53,7 +58,7 @@ class QueryContext:
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
     ) -> None:
-        self.datasource: BaseDatasource = ConnectorRegistry.get_datasource(
+        self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
         )
         self.queries = [QueryObject(**query_obj) for query_obj in queries]

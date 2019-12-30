@@ -273,10 +273,7 @@ class BaseViz:
         gb = form_data.get("groupby") or []
         metrics = self.all_metrics or []
         columns = form_data.get("columns") or []
-        groupby: List[str] = []
-        for o in gb + columns:
-            if o not in groupby:
-                groupby.append(o)
+        groupby = list(set(gb + columns))
 
         is_timeseries = self.is_timeseries
         if DTTM_ALIAS in groupby:
