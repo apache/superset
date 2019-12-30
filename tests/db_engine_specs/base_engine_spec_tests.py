@@ -16,7 +16,7 @@
 # under the License.
 from unittest import mock
 
-from superset import app
+from tests.test_app import app  # isort:skip
 from superset.db_engine_specs import engines
 from superset.db_engine_specs.base import BaseEngineSpec, builtin_time_grains
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
