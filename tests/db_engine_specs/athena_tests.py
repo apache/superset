@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from tests.test_app import app  # isort:skip
+
 from superset.db_engine_specs.athena import AthenaEngineSpec
 from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
