@@ -16,19 +16,19 @@
 # under the License.
 """ Superset utilities for pandas.DataFrame.
 """
-from typing import Dict
+from typing import Any, Dict, List
 
 import pandas as pd
 
 from superset.utils.core import JS_MAX_INTEGER
 
 
-def df_to_dict(dframe: pd.DataFrame) -> Dict:
-    data = dframe.to_dict(orient="records")
+def df_to_dict(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
+    data: List[Dict[str, Any]] = dframe.to_dict(orient="records")
     # TODO: refactor this
     for d in data:
         for k, v in list(d.items()):
-            # if an int is too big for Java Script to handle
+            # if an int is too big for JavaScript to handle
             # convert it to a string
             if isinstance(v, int) and abs(v) > JS_MAX_INTEGER:
                 d[k] = str(v)
