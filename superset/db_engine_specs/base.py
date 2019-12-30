@@ -856,3 +856,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: Compiled column type
         """
         return sqla_column_type.compile(dialect=dialect).upper()
+
+    @staticmethod
+    def pyodbc_rows_to_tuples(data: List[Any]) -> List[Tuple]:
+        """
+        Convert pyodbc.Row objects from `fetch_data` to tuples.
+
+        :param data: List of tuples or pyodbc.Row objects
+        :return: List of tuples
+        """
+        if data and type(data[0]).__name__ == "Row":
+            data = [tuple(row) for row in data]
+        return data
