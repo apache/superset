@@ -221,7 +221,7 @@ class SupersetAppInitializer:
 
         if self.config["ENABLE_CHUNK_ENCODING"]:
 
-            class ChunkedEncodingFix(object):  # pylint: disable=too-few-public-methods
+            class ChunkedEncodingFix:  # pylint: disable=too-few-public-methods
                 def __init__(self, app):
                     self.app = app
 

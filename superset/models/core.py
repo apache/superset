@@ -361,7 +361,7 @@ class Database(
                 )
 
                 if mutator:
-                    df = mutator(df)
+                    mutator(df)
 
                 for k, v in df.dtypes.items():
                     if v.type == numpy.object_ and needs_conversion(df[k]):

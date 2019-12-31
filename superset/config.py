@@ -449,7 +449,7 @@ WARNING_MSG = None
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
 
 
-class CeleryConfig(object):  # pylint: disable=too-few-public-methods
+class CeleryConfig:  # pylint: disable=too-few-public-methods
     BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
     CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
     CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"

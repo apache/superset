@@ -49,7 +49,7 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
     return None
 
 
-class ParsedQuery(object):
+class ParsedQuery:
     def __init__(self, sql_statement):
         self.sql: str = sql_statement
         self._table_names: Set[str] = set()

@@ -47,7 +47,7 @@ def json_to_dict(json_str):
     return {}
 
 
-class ImportMixin(object):
+class ImportMixin:
     export_parent: Optional[str] = None
     # The name of the attribute
     # with the SQL Alchemy back reference
@@ -361,7 +361,7 @@ class AuditMixinNullable(AuditMixin):
         return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')
 
 
-class QueryResult(object):  # pylint: disable=too-few-public-methods
+class QueryResult:  # pylint: disable=too-few-public-methods
 
     """Object returned by the query interface"""
 
