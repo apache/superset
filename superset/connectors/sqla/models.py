@@ -19,7 +19,7 @@ import logging
 import re
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 import sqlalchemy as sa
@@ -84,7 +84,7 @@ class AnnotationDatasource(BaseDatasource):
 
     cache_timeout = 0
 
-    def query(self, query_obj: Dict) -> QueryResult:
+    def query(self, query_obj: Dict[str, Any]) -> QueryResult:
         df = None
         error_message = None
         qry = db.session.query(Annotation)
@@ -537,16 +537,9 @@ class SqlaTable(Model, BaseDatasource):
             latest_partition=False,
         )
 
-    def get_col(self, col_name: str) -> Optional[Column]:
-        columns = self.columns
-        for col in columns:
-            if col_name == col.column_name:
-                return col
-        return None
-
     @property
     def data(self) -> Dict:
-        d = super(SqlaTable, self).data
+        d = super().data
         if self.type == "table":
             grains = self.database.grains() or []
             if grains:
@@ -598,7 +591,7 @@ class SqlaTable(Model, BaseDatasource):
     def get_template_processor(self, **kwargs):
         return get_template_processor(table=self, database=self.database, **kwargs)
 
-    def get_query_str_extended(self, query_obj: Dict) -> QueryStringExtended:
+    def get_query_str_extended(self, query_obj: Dict[str, Any]) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         logging.info(sql)
@@ -608,7 +601,7 @@ class SqlaTable(Model, BaseDatasource):
             labels_expected=sqlaq.labels_expected, sql=sql, prequeries=sqlaq.prequeries
         )
 
-    def get_query_str(self, query_obj: Dict) -> str:
+    def get_query_str(self, query_obj: Dict[str, Any]) -> str:
         query_str_ext = self.get_query_str_extended(query_obj)
         all_queries = query_str_ext.prequeries + [query_str_ext.sql]
         return ";\n\n".join(all_queries) + ";"
@@ -976,14 +969,23 @@ class SqlaTable(Model, BaseDatasource):
 
         return or_(*groups)
 
-    def query(self, query_obj: Dict) -> QueryResult:
+    def query(self, query_obj: Dict[str, Any]) -> QueryResult:
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
         status = utils.QueryStatus.SUCCESS
         error_message = None
 
-        def mutator(df):
+        def mutator(df: pd.DataFrame) -> None:
+            """
+            Some engines change the case or generate bespoke column names, either by
+            default or due to lack of support for aliasing. This function ensures that
+            the column names in the DataFrame correspond to what is expected by
+            the viz components.
+
+            :param df: Original DataFrame returned by the engine
+            """
+
             labels_expected = query_str_ext.labels_expected
             if df is not None and not df.empty:
                 if len(df.columns) != len(labels_expected):
@@ -993,7 +995,6 @@ class SqlaTable(Model, BaseDatasource):
                     )
                 else:
                     df.columns = labels_expected
-            return df
 
         try:
             df = self.database.get_df(sql, self.schema, mutator)
@@ -1135,13 +1136,16 @@ class SqlaTable(Model, BaseDatasource):
     def default_query(qry) -> Query:
         return qry.filter_by(is_sqllab_view=False)
 
-    def has_extra_cache_keys(self, query_obj: Dict) -> bool:
+    def has_calls_to_cache_key_wrapper(self, query_obj: Dict[str, Any]) -> bool:
         """
-        Detects the presence of calls to cache_key_wrapper in items in query_obj that can
-        be templated.
+        Detects the presence of calls to `cache_key_wrapper` in items in query_obj that
+        can be templated. If any are present, the query must be evaluated to extract
+        additional keys for the cache key. This method is needed to avoid executing
+        the template code unnecessarily, as it may contain expensive calls, e.g. to
+        extract the latest partition of a database.
 
         :param query_obj: query object to analyze
-        :return: True if at least one item calls cache_key_wrapper, otherwise False
+        :return: True if at least one item calls `cache_key_wrapper`, otherwise False
         """
         regex = re.compile(r"\{\{.*cache_key_wrapper\(.*\).*\}\}")
         templatable_statements: List[str] = []
@@ -1159,12 +1163,19 @@ class SqlaTable(Model, BaseDatasource):
                 return True
         return False
 
-    def get_extra_cache_keys(self, query_obj: Dict) -> List[Any]:
-        if self.has_extra_cache_keys(query_obj):
+    def get_extra_cache_keys(self, query_obj: Dict[str, Any]) -> List[Hashable]:
+        """
+        The cache key of a SqlaTable needs to consider any keys added by the parent class
+        and any keys added via `cache_key_wrapper`.
+
+        :param query_obj: query object to analyze
+        :return: True if at least one item calls `cache_key_wrapper`, otherwise False
+        """
+        extra_cache_keys = super().get_extra_cache_keys(query_obj)
+        if self.has_calls_to_cache_key_wrapper(query_obj):
             sqla_query = self.get_sqla_query(**query_obj)
-            extra_cache_keys = sqla_query.extra_cache_keys
-            return extra_cache_keys
-        return []
+            extra_cache_keys += sqla_query.extra_cache_keys
+        return extra_cache_keys
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)

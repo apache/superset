@@ -103,7 +103,7 @@ def get_object_type(class_name):
         raise Exception("No mapping found for {0}".format(class_name))
 
 
-class ObjectUpdater(object):
+class ObjectUpdater:
 
     object_type: Optional[str] = None
 
@@ -204,7 +204,7 @@ class QueryUpdater(ObjectUpdater):
         return [target.user_id]
 
 
-class FavStarUpdater(object):
+class FavStarUpdater:
     @classmethod
     def after_insert(cls, mapper, connection, target):
         # pylint: disable=unused-argument
