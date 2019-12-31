@@ -18,7 +18,7 @@ import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict, Hashable, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import simplejson as json
 import yaml
@@ -168,9 +168,7 @@ def get_user_roles():
 
 class BaseSupersetView(BaseView):
     @staticmethod
-    def json_response(
-        obj: Hashable, status=200
-    ) -> Response:  # pylint: disable=no-self-use
+    def json_response(obj, status=200) -> Response:  # pylint: disable=no-self-use
         return Response(
             json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,
