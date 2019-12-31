@@ -32,7 +32,7 @@ from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 from functools import reduce
 from itertools import product
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import geohash
 import numpy as np
@@ -49,6 +49,7 @@ from pandas.tseries.frequencies import to_offset
 from superset import app, cache, get_css_manifest_files
 from superset.constants import NULL_STRING
 from superset.exceptions import NullValueException, SpatialException
+from superset.models.helpers import QueryResult
 from superset.utils import core as utils
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -56,6 +57,9 @@ from superset.utils.core import (
     merge_extra_filters,
     to_adhoc,
 )
+
+if TYPE_CHECKING:
+    from superset.connectors.base.models import BaseDatasource
 
 config = app.config
 stats_logger = config["STATS_LOGGER"]
@@ -74,7 +78,7 @@ METRIC_KEYS = [
 ]
 
 
-class BaseViz(object):
+class BaseViz:
 
     """All visualizations derive this base class"""
 
@@ -85,7 +89,12 @@ class BaseViz(object):
     cache_type = "df"
     enforce_numerical_metrics = True
 
-    def __init__(self, datasource, form_data, force=False):
+    def __init__(
+        self,
+        datasource: "BaseDatasource",
+        form_data: Dict[str, Any],
+        force: bool = False,
+    ):
         if not datasource:
             raise Exception(_("Viz is missing a datasource"))
 
@@ -102,7 +111,7 @@ class BaseViz(object):
 
         self.status = None
         self.error_msg = ""
-        self.results = None
+        self.results: Optional[QueryResult] = None
         self.error_message = None
         self.force = force
 
@@ -110,10 +119,9 @@ class BaseViz(object):
         # this is useful to trigger the <CachedLabel /> when
         # in the cases where visualization have many queries
         # (FilterBox for instance)
-        self._some_from_cache = False
-        self._any_cache_key = None
-        self._any_cached_dttm = None
-        self._extra_chart_data = []
+        self._any_cache_key: Optional[str] = None
+        self._any_cached_dttm: Optional[str] = None
+        self._extra_chart_data: List[Tuple[str, pd.DataFrame]] = []
 
         self.process_metrics()
 
@@ -195,9 +203,9 @@ class BaseViz(object):
 
         timestamp_format = None
         if self.datasource.type == "table":
-            dttm_col = self.datasource.get_col(query_obj["granularity"])
-            if dttm_col:
-                timestamp_format = dttm_col.python_date_format
+            granularity_col = self.datasource.get_column(query_obj["granularity"])
+            if granularity_col:
+                timestamp_format = granularity_col.python_date_format
 
         # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(query_obj)
@@ -258,17 +266,14 @@ class BaseViz(object):
         merge_extra_filters(self.form_data)
         utils.split_adhoc_filters_into_base_filters(self.form_data)
 
-    def query_obj(self):
+    def query_obj(self) -> Dict[str, Any]:
         """Building a query object"""
         form_data = self.form_data
         self.process_query_filters()
         gb = form_data.get("groupby") or []
         metrics = self.all_metrics or []
         columns = form_data.get("columns") or []
-        groupby = []
-        for o in gb + columns:
-            if o not in groupby:
-                groupby.append(o)
+        groupby = list(set(gb + columns))
 
         is_timeseries = self.is_timeseries
         if DTTM_ALIAS in groupby:

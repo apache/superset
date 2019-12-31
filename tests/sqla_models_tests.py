@@ -60,7 +60,7 @@ class DatabaseModelTestCase(SupersetTestCase):
             "extras": {"where": "(user != '{{ cache_key_wrapper('user_2') }}')"},
         }
         extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertTrue(table.has_extra_cache_keys(query_obj))
+        self.assertTrue(table.has_calls_to_cache_key_wrapper(query_obj))
         self.assertListEqual(extra_cache_keys, ["user_1", "user_2"])
 
     def test_has_no_extra_cache_keys(self):
@@ -81,5 +81,5 @@ class DatabaseModelTestCase(SupersetTestCase):
             "extras": {"where": "(user != 'abc')"},
         }
         extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertFalse(table.has_extra_cache_keys(query_obj))
+        self.assertFalse(table.has_calls_to_cache_key_wrapper(query_obj))
         self.assertListEqual(extra_cache_keys, [])

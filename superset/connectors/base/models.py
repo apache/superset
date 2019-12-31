@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Hashable, List, Optional, Type
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
@@ -44,7 +44,7 @@ class BaseDatasource(
     baselink: Optional[str] = None  # url portion pointing to ModelView endpoint
     column_class: Optional[Type] = None  # link to derivative of BaseColumn
     metric_class: Optional[Type] = None  # link to derivative of BaseMetric
-    owner_class = None
+    owner_class: Optional[User] = None
 
     # Used to do code highlighting when displaying the query in the UI
     query_language: Optional[str] = None
@@ -342,11 +342,14 @@ class BaseDatasource(
             obj.get("columns"), self.columns, self.column_class, "column_name"
         )
 
-    def get_extra_cache_keys(  # pylint: disable=unused-argument,no-self-use
-        self, query_obj: Dict
-    ) -> List[Any]:
+    def get_extra_cache_keys(  # pylint: disable=no-self-use
+        self, query_obj: Dict[str, Any]  # pylint: disable=unused-argument
+    ) -> List[Hashable]:
         """ If a datasource needs to provide additional keys for calculation of
         cache keys, those can be provided via this method
+
+        :param query_obj: The dict representation of a query object
+        :return: list of keys
         """
         return []
 
@@ -404,6 +407,10 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
         raise NotImplementedError()
 
     @property
+    def python_date_format(self):
+        raise NotImplementedError()
+
+    @property
     def data(self) -> Dict[str, Any]:
         attrs = (
             "id",
@@ -415,7 +422,6 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
             "groupby",
             "is_dttm",
             "type",
-            "python_date_format",
         )
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
 

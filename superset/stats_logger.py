@@ -19,7 +19,7 @@ import logging
 from colorama import Fore, Style
 
 
-class BaseStatsLogger(object):
+class BaseStatsLogger:
     """Base class for logging realtime events"""
 
     def __init__(self, prefix="superset"):

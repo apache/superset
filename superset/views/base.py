@@ -167,7 +167,8 @@ def get_user_roles():
 
 
 class BaseSupersetView(BaseView):
-    def json_response(self, obj, status=200):  # pylint: disable=no-self-use
+    @staticmethod
+    def json_response(obj, status=200) -> Response:  # pylint: disable=no-self-use
         return Response(
             json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,
@@ -263,7 +264,7 @@ def validate_json(_form, field):
         raise Exception(_("json isn't valid"))
 
 
-class YamlExportMixin(object):  # pylint: disable=too-few-public-methods
+class YamlExportMixin:  # pylint: disable=too-few-public-methods
     """
     Override this if you want a dict response instead, with a certain key.
     Used on DatabaseView for cli compatibility
@@ -286,7 +287,7 @@ class YamlExportMixin(object):  # pylint: disable=too-few-public-methods
         )
 
 
-class DeleteMixin(object):  # pylint: disable=too-few-public-methods
+class DeleteMixin:  # pylint: disable=too-few-public-methods
     def _delete(self, primary_key):
         """
             Delete function logic, override to implement diferent logic
