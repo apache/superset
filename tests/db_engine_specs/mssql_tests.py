@@ -14,11 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import unittest.mock as mock
+
 from sqlalchemy import column, table
 from sqlalchemy.dialects import mssql
 from sqlalchemy.sql import select
 from sqlalchemy.types import String, UnicodeText
 
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
@@ -87,3 +90,15 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
             MssqlEngineSpec.convert_dttm("SMALLDATETIME", dttm),
             "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)",
         )
+
+    @mock.patch.object(
+        MssqlEngineSpec, "pyodbc_rows_to_tuples", return_value="converted"
+    )
+    def test_fetch_data(self, mock_pyodbc_rows_to_tuples):
+        data = [(1, "foo")]
+        with mock.patch.object(
+            BaseEngineSpec, "fetch_data", return_value=data
+        ) as mock_fetch:
+            result = MssqlEngineSpec.fetch_data(None, 0)
+            mock_pyodbc_rows_to_tuples.assert_called_once_with(data)
+            self.assertEqual(result, "converted")
