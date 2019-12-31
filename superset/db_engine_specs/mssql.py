@@ -63,9 +63,8 @@ class MssqlEngineSpec(BaseEngineSpec):
     @classmethod
     def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
         data = super().fetch_data(cursor, limit)
-        if data and type(data[0]).__name__ == "Row":
-            data = [tuple(row) for row in data]
-        return data
+        # Lists of `pyodbc.Row` need to be unpacked further
+        return cls.pyodbc_rows_to_tuples(data)
 
     column_types = [
         (String(), re.compile(r"^(?<!N)((VAR){0,1}CHAR|TEXT|STRING)", re.IGNORECASE)),
