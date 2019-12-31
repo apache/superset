@@ -189,6 +189,7 @@ the world know they are using Superset. Join our growing community!
  1. [Now](https://www.now.vn/)
  1. [Ona](https://ona.io)
  1. [PeopleDoc](https://www.people-doc.com)
+ 1. [Popoko VM Games Studio](https://popoko.live)
  1. [Pronto Tools](http://www.prontotools.io)
  1. [QPID Health](http://www.qpidhealth.com/    )
  1. [Qunar](https://www.qunar.com/)
@@ -217,4 +218,3 @@ the world know they are using Superset. Join our growing community!
  1. [Zaihang](http://www.zaih.com/)
  1. [Zalando](https://www.zalando.com)
  1. [Zalora](https://www.zalora.com)
- 1. [Popoko VM Games Studio](https://popoko.live)
