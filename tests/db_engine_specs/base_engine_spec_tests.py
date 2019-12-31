@@ -14,14 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from tests.test_app import app  # isort:skip
+
+import datetime
 from unittest import mock
 
-from superset import app
 from superset.db_engine_specs import engines
 from superset.db_engine_specs.base import BaseEngineSpec, builtin_time_grains
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.utils.core import get_example_database
 from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+
+from ..fixtures.pyodbcRow import Row
 
 
 class DbEngineSpecsTests(DbEngineSpecTestCase):
@@ -206,3 +210,25 @@ class DbEngineSpecsTests(DbEngineSpecTestCase):
     def test_convert_dttm(self):
         dttm = self.get_dttm()
         self.assertIsNone(BaseEngineSpec.convert_dttm("", dttm))
+
+    def test_pyodbc_rows_to_tuples(self):
+        # Test for case when pyodbc.Row is returned (odbc driver)
+        data = [
+            Row((1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000))),
+            Row((2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000))),
+        ]
+        expected = [
+            (1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000)),
+            (2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000)),
+        ]
+        result = BaseEngineSpec.pyodbc_rows_to_tuples(data)
+        self.assertListEqual(result, expected)
+
+    def test_pyodbc_rows_to_tuples_passthrough(self):
+        # Test for case when tuples are returned
+        data = [
+            (1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000)),
+            (2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000)),
+        ]
+        result = BaseEngineSpec.pyodbc_rows_to_tuples(data)
+        self.assertListEqual(result, data)
