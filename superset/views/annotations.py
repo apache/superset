@@ -24,7 +24,7 @@ from superset.models.annotations import Annotation, AnnotationLayer
 from .base import DeleteMixin, SupersetModelView
 
 
-class StartEndDttmValidator(object):  # pylint: disable=too-few-public-methods
+class StartEndDttmValidator:  # pylint: disable=too-few-public-methods
     """
     Validates dttm fields.
     """

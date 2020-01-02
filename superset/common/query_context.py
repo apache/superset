@@ -17,7 +17,7 @@
 import logging
 import pickle as pkl
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -41,8 +41,8 @@ class QueryContext:
     to retrieve the data payload for a given viz.
     """
 
-    cache_type: str = "df"
-    enforce_numerical_metrics: bool = True
+    cache_type: ClassVar[str] = "df"
+    enforce_numerical_metrics: ClassVar[bool] = True
 
     datasource: BaseDatasource
     queries: List[QueryObject]
@@ -53,20 +53,16 @@ class QueryContext:
     # a vanilla python type https://github.com/python/mypy/issues/5288
     def __init__(
         self,
-        datasource: Dict,
-        queries: List[Dict],
+        datasource: Dict[str, Any],
+        queries: List[Dict[str, Any]],
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
     ) -> None:
-        self.datasource = ConnectorRegistry.get_datasource(  # type: ignore
-            datasource.get("type"),  # type: ignore
-            int(datasource.get("id")),  # type: ignore
-            db.session,
+        self.datasource = ConnectorRegistry.get_datasource(
+            str(datasource["type"]), int(datasource["id"]), db.session
         )
-        self.queries = list(map(lambda query_obj: QueryObject(**query_obj), queries))
-
+        self.queries = [QueryObject(**query_obj) for query_obj in queries]
         self.force = force
-
         self.custom_cache_timeout = custom_cache_timeout
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
@@ -78,7 +74,7 @@ class QueryContext:
 
         timestamp_format = None
         if self.datasource.type == "table":
-            dttm_col = self.datasource.get_col(query_object.granularity)
+            dttm_col = self.datasource.get_column(query_object.granularity)
             if dttm_col:
                 timestamp_format = dttm_col.python_date_format
 
@@ -115,17 +111,18 @@ class QueryContext:
             "df": df,
         }
 
+    @staticmethod
     def df_metrics_to_num(  # pylint: disable=invalid-name,no-self-use
-        self, df: pd.DataFrame, query_object: QueryObject
+        df: pd.DataFrame, query_object: QueryObject
     ) -> None:
         """Converting metrics to numeric when pandas.read_sql cannot"""
-        metrics = [metric for metric in query_object.metrics]
         for col, dtype in df.dtypes.items():
-            if dtype.type == np.object_ and col in metrics:
+            if dtype.type == np.object_ and col in query_object.metrics:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
+    @staticmethod
     def get_data(  # pylint: disable=invalid-name,no-self-use
-        self, df: pd.DataFrame
+        df: pd.DataFrame
     ) -> List[Dict]:
         return df.to_dict(orient="records")
 

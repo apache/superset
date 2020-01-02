@@ -104,7 +104,7 @@ def compile_timegrain_expression(
     return element.name.replace("{col}", compiler.process(element.col, **kw))
 
 
-class LimitMethod(object):  # pylint: disable=too-few-public-methods
+class LimitMethod:  # pylint: disable=too-few-public-methods
     """Enum the ways that limits can be applied"""
 
     FETCH_MANY = "fetch_many"
