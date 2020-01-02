@@ -19,14 +19,14 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from superset.dataframe import df_to_dict
+from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
-from superset.table import dedup, SupersetTable
+from superset.result_set import dedup, SupersetResultSet
 
 from .base_tests import SupersetTestCase
 
 
-class SupersetTableTestCase(SupersetTestCase):
+class SupersetResultSetTestCase(SupersetTestCase):
     def test_dedup(self):
         self.assertEqual(dedup(["foo", "bar"]), ["foo", "bar"])
         self.assertEqual(
@@ -45,9 +45,9 @@ class SupersetTableTestCase(SupersetTestCase):
     def test_get_columns_basic(self):
         data = [("a1", "b1", "c1"), ("a2", "b2", "c2")]
         cursor_descr = (("a", "string"), ("b", "string"), ("c", "string"))
-        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(
-            table.columns,
+            results.columns,
             [
                 {"is_date": False, "type": "STRING", "name": "a"},
                 {"is_date": False, "type": "STRING", "name": "b"},
@@ -58,9 +58,9 @@ class SupersetTableTestCase(SupersetTestCase):
     def test_get_columns_with_int(self):
         data = [("a1", 1), ("a2", 2)]
         cursor_descr = (("a", "string"), ("b", "int"))
-        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(
-            table.columns,
+            results.columns,
             [
                 {"is_date": False, "type": "STRING", "name": "a"},
                 {"is_date": False, "type": "INT", "name": "b"},
@@ -73,9 +73,9 @@ class SupersetTableTestCase(SupersetTestCase):
             (3.14, 2, "bar", datetime(2019, 10, 19, 23, 39, 16, 660000), False),
         ]
         cursor_descr = (("a", None), ("b", None), ("c", None), ("d", None), ("e", None))
-        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(
-            table.columns,
+            results.columns,
             [
                 {"is_date": False, "type": "FLOAT", "name": "a"},
                 {"is_date": False, "type": "INT", "name": "b"},
@@ -86,7 +86,7 @@ class SupersetTableTestCase(SupersetTestCase):
         )
 
     def test_is_date(self):
-        is_date = SupersetTable.is_date
+        is_date = SupersetResultSet.is_date
         self.assertEqual(is_date("DATETIME"), True)
         self.assertEqual(is_date("TIMESTAMP"), True)
         self.assertEqual(is_date("STRING"), False)
@@ -96,24 +96,24 @@ class SupersetTableTestCase(SupersetTestCase):
     def test_dedup_with_data(self):
         data = [("a", 1), ("a", 2)]
         cursor_descr = (("a", "string"), ("a", "string"))
-        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
-        column_names = [col["name"] for col in table.columns]
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        column_names = [col["name"] for col in results.columns]
         self.assertListEqual(column_names, ["a", "a__1"])
 
     def test_int64_with_missing_data(self):
         data = [(None,), (1239162456494753670,), (None,), (None,), (None,), (None,)]
         cursor_descr = [("user_id", "bigint", None, None, None, None, True)]
-        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
-        self.assertEqual(table.columns[0]["type"], "BIGINT")
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(results.columns[0]["type"], "BIGINT")
 
     def test_nullable_bool(self):
         data = [(None,), (True,), (None,), (None,), (None,), (None,)]
         cursor_descr = [("is_test", "bool", None, None, None, None, True)]
-        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
-        self.assertEqual(table.columns[0]["type"], "BOOL")
-        df = table.to_pandas_df()
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(results.columns[0]["type"], "BOOL")
+        df = results.to_pandas_df()
         self.assertEqual(
-            df_to_dict(df),
+            df_to_records(df),
             [
                 {"is_test": None},
                 {"is_test": True},
@@ -127,8 +127,8 @@ class SupersetTableTestCase(SupersetTestCase):
     def test_empty_datetime(self):
         data = [(None,)]
         cursor_descr = [("ds", "timestamp", None, None, None, None, True)]
-        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
-        self.assertEqual(table.columns[0]["type"], "TIMESTAMP")
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(results.columns[0]["type"], "TIMESTAMP")
 
     def test_no_type_coercion(self):
         data = [("a", 1), ("b", 2)]
@@ -136,9 +136,9 @@ class SupersetTableTestCase(SupersetTestCase):
             ("one", "varchar", None, None, None, None, True),
             ("two", "int", None, None, None, None, True),
         ]
-        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
-        self.assertEqual(table.columns[0]["type"], "VARCHAR")
-        self.assertEqual(table.columns[1]["type"], "INT")
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(results.columns[0]["type"], "VARCHAR")
+        self.assertEqual(results.columns[1]["type"], "INT")
 
     def test_empty_data(self):
         data = []
@@ -146,5 +146,5 @@ class SupersetTableTestCase(SupersetTestCase):
             ("emptyone", "varchar", None, None, None, None, True),
             ("emptytwo", "int", None, None, None, None, True),
         ]
-        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
-        self.assertEqual(table.columns, [])
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(results.columns, [])

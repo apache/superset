@@ -17,33 +17,33 @@
 import numpy as np
 import pandas as pd
 
-from superset.dataframe import df_to_dict
+from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
-from superset.table import SupersetTable
+from superset.result_set import SupersetResultSet
 
 from .base_tests import SupersetTestCase
 
 
 class SupersetDataFrameTestCase(SupersetTestCase):
-    def test_df_to_dict(self):
+    def test_df_to_records(self):
         data = [("a1", "b1", "c1"), ("a2", "b2", "c2")]
         cursor_descr = (("a", "string"), ("b", "string"), ("c", "string"))
-        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
-        df = table.to_pandas_df()
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        df = results.to_pandas_df()
 
         self.assertEqual(
-            df_to_dict(df),
+            df_to_records(df),
             [{"a": "a1", "b": "b1", "c": "c1"}, {"a": "a2", "b": "b2", "c": "c2"}],
         )
 
     def test_js_max_int(self):
         data = [(1, 1239162456494753670, "c1"), (2, 100, "c2")]
         cursor_descr = (("a", "int"), ("b", "int"), ("c", "string"))
-        table = SupersetTable(data, cursor_descr, BaseEngineSpec)
-        df = table.to_pandas_df()
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        df = results.to_pandas_df()
 
         self.assertEqual(
-            df_to_dict(df),
+            df_to_records(df),
             [
                 {"a": 1, "b": "1239162456494753670", "c": "c1"},
                 {"a": 2, "b": 100, "c": "c2"},

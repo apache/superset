@@ -55,7 +55,7 @@ def dedup(l: List[str], suffix: str = "__", case_sensitive: bool = True) -> List
     return new_l
 
 
-class SupersetTable:
+class SupersetResultSet:
     def __init__(
         self,
         data: List[Tuple[Any, ...]],

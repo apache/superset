@@ -23,7 +23,7 @@ import pandas as pd
 from superset.utils.core import JS_MAX_INTEGER
 
 
-def df_to_dict(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
+def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
     data: List[Dict[str, Any]] = dframe.to_dict(orient="records")
     # TODO: refactor this
     for d in data:

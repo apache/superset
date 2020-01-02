@@ -61,11 +61,11 @@ from superset import (
     event_logger,
     get_feature_flags,
     is_feature_enabled,
+    result_set,
     results_backend,
     results_backend_use_msgpack,
     security_manager,
     sql_lab,
-    table,
     talisman,
     viz,
 )
@@ -230,8 +230,8 @@ def _deserialize_results_payload(
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
             pa_table = pa.deserialize(ds_payload["data"])
 
-        df = table.SupersetTable.convert_table_to_df(pa_table)
-        ds_payload["data"] = dataframe.df_to_dict(df) or []
+        df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
+        ds_payload["data"] = dataframe.df_to_records(df) or []
 
         db_engine_spec = query.database.db_engine_spec
         all_columns, data, expanded_columns = db_engine_spec.expand_data(
