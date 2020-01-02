@@ -171,6 +171,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         "delete": "delete",
         "info": "list",
         "related": "list",
+        "published": "edit",
     }
     exclude_route_methods = ("info",)
     show_columns = [
@@ -311,6 +312,54 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
             self.datamodel.edit(item.data, raise_exception=True)
             return self.response(
                 200, result=self.edit_model_schema.dump(item.data, many=False).data
+            )
+        except SQLAlchemyError as e:
+            return self.response_422(message=str(e))
+
+    @expose("/<pk>/published", methods=["PUT"])
+    @protect()
+    @safe
+    def published(self, pk):
+        """Toggled publish Dashboard
+        ---
+        put:
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Item changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                            published:
+                                type: boolean
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item = self.datamodel.get(pk, self._base_filters)
+        if not item:
+            return self.response_404()
+        item.published = not item.published
+        try:
+            self.datamodel.session.commit()
+            return self.response(
+                200, result={"published": item.published}
             )
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
