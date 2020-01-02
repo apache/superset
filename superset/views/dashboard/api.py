@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import functools
 import json
 import re
 
@@ -32,6 +33,24 @@ from superset.views.base import BaseSupersetModelRestApi, BaseSupersetSchema
 
 from ..base import check_ownership
 from .mixin import DashboardMixin
+
+
+def check_owner(f):
+    """
+    A Decorator that checks if an object is owned by the current user
+    """
+
+    def wraps(self, model_id):
+        item = self.datamodel.get(model_id, self._base_filters)  # pylint: disable=protected-access
+        if not item:
+            return self.response_404()
+        try:
+            check_ownership(item)
+        except SupersetSecurityException as e:
+            return self.response(403, message=str(e))
+        return f(self, item)
+
+    return functools.update_wrapper(wraps, f)
 
 
 class DashboardJSONMetadataSchema(Schema):
@@ -208,6 +227,62 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
     }
     filter_rel_fields_field = {"owners": "first_name", "slices": "slice_name"}
 
+    @expose("/<model_id>", methods=["PUT"])
+    @protect()
+    @check_owner
+    @safe
+    def put(self, item):  # pylint: disable=arguments-differ
+        """Changes a dashboard
+        ---
+        put:
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Model schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Item changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            self.response_400(message="Request is not JSON")
+        item = self.edit_model_schema.load(request.json, instance=item)
+        if item.errors:
+            return self.response_422(message=item.errors)
+        try:
+            self.datamodel.edit(item.data, raise_exception=True)
+            return self.response(
+                200, result=self.edit_model_schema.dump(item.data, many=False).data
+            )
+        except SQLAlchemyError as e:
+            return self.response_422(message=str(e))
+
     @expose("/", methods=["POST"])
     @protect()
     @safe
@@ -259,37 +334,29 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
 
-    @expose("/<pk>", methods=["PUT"])
+    @expose("/<model_id>", methods=["DELETE"])
     @protect()
+    @check_owner
     @safe
-    def put(self, pk):
-        """Changes a dashboard
+    def delete(self, item):  # pylint: disable=arguments-differ
+        """Delete Dashboard
         ---
-        put:
+        delete:
           parameters:
           - in: path
             schema:
               type: integer
             name: pk
-          requestBody:
-            description: Model schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
           responses:
             200:
-              description: Item changed
+              description: Dashboard delete
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-            400:
-              $ref: '#/components/responses/400'
+                      message:
+                        type: string
             401:
               $ref: '#/components/responses/401'
             403:
@@ -301,23 +368,9 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            self.response_400(message="Request is not JSON")
-        item = self.datamodel.get(pk, self._base_filters)
-        if not item:
-            return self.response_404()
         try:
-            check_ownership(item)
-        except SupersetSecurityException as e:
-            return self.response(403, message=str(e))
-        item = self.edit_model_schema.load(request.json, instance=item)
-        if item.errors:
-            return self.response_422(message=item.errors)
-        try:
-            self.datamodel.edit(item.data, raise_exception=True)
-            return self.response(
-                200, result=self.edit_model_schema.dump(item.data, many=False).data
-            )
+            self.datamodel.delete(item, raise_exception=True)
+            return self.response(200, message="OK")
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
 

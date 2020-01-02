@@ -126,7 +126,7 @@ class DashboardApiTests(SupersetTestCase):
         self.login(username="alpha2", password="password")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.delete(uri)
-        self.assertEqual(rv.status_code, 500)
+        self.assertEqual(rv.status_code, 403)
         db.session.delete(dashboard)
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
