@@ -24,7 +24,6 @@ from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
 from flask_wtf import CSRFProtect
-from werkzeug.routing import BaseConverter
 
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import (
@@ -435,6 +434,7 @@ class SupersetAppInitializer:
         """
         self.configure_feature_flags()
         self.configure_fab()
+        self.configure_url_map_converters()
         self.configure_data_sources()
 
         # Hook that provides administrators a handle on the Flask APP
@@ -513,23 +513,13 @@ class SupersetAppInitializer:
         appbuilder.update_perms = False
         appbuilder.init_app(self.flask_app, db.session)
 
-        # ---------------------------------------------------------------------
-        # Redirecting URL from previous names
-        class RegexConverter(BaseConverter):
-            def __init__(self, url_map, *items):
-                super(RegexConverter, self).__init__(url_map)
-                self.regex = items[0]
-
-        from superset.models.tags import ObjectTypes
-
-        class ObjectTypeConverter(BaseConverter):
-            """Validate that object_type is indeed an object type."""
-
-            def to_python(self, value):
-                return ObjectTypes[value]
-
-            def to_url(self, value):
-                return value.name
+    def configure_url_map_converters(self):
+        #
+        # Doing local imports here as model importing causes a reference to
+        # app.config to be invoked and we need the current_app to have been setup
+        #
+        from superset.utils.url_map_converters import RegexConverter
+        from superset.utils.url_map_converters import ObjectTypeConverter
 
         self.flask_app.url_map.converters["regex"] = RegexConverter
         self.flask_app.url_map.converters["object_type"] = ObjectTypeConverter
