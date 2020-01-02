@@ -117,7 +117,8 @@ class SupersetAppInitializer:
 
     def init_views(self) -> None:
         #
-        # We're doing local imports, as several of them import models which in turn try to import
+        # We're doing local imports, as several of them import
+        # models which in turn try to import
         # the global Flask app
         #
         from superset.connectors.druid.views import (
