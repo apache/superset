@@ -114,6 +114,3 @@ class Datasource(BaseSupersetView):
             raise Exception(f"Unsupported datasource_type: {datasource_type}")
         external_metadata = datasource.external_metadata()
         return self.json_response(external_metadata)
-
-
-appbuilder.add_view_no_menu(Datasource)

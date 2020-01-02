@@ -314,6 +314,3 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
             )
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
-
-
-appbuilder.add_api(DashboardRestApi)

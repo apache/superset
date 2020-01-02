@@ -34,7 +34,7 @@ EOF
 }
 
 # Create an admin user
-echo_step "1" "Starting" "Setting up admin user"
+echo_step "1" "Starting" "Setting up admin user ( admin / admin )"
 superset fab create-admin \
               --username admin \
               --firstname Superset \

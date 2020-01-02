@@ -70,6 +70,3 @@ class Api(BaseSupersetView):
         update_time_range(form_data)
 
         return json.dumps(form_data)
-
-
-appbuilder.add_view_no_menu(Api)

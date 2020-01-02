@@ -60,28 +60,6 @@ class DatabaseView(
         DeleteMixin._delete(self, pk)
 
 
-appbuilder.add_link(
-    "Import Dashboards",
-    label=__("Import Dashboards"),
-    href="/superset/import_dashboards",
-    icon="fa-cloud-upload",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="fa-wrench",
-)
-
-
-appbuilder.add_view(
-    DatabaseView,
-    "Databases",
-    label=__("Databases"),
-    icon="fa-database",
-    category="Sources",
-    category_label=__("Sources"),
-    category_icon="fa-database",
-)
-
-
 class CsvToDatabaseView(SimpleFormView):
     form = CsvToDatabaseForm
     form_template = "superset/form_view/csv_to_database_view/edit.html"
@@ -181,14 +159,8 @@ class CsvToDatabaseView(SimpleFormView):
         return redirect("/tablemodelview/list/")
 
 
-appbuilder.add_view_no_menu(CsvToDatabaseView)
-
-
 class DatabaseTablesAsync(DatabaseView):  # pylint: disable=too-many-ancestors
     list_columns = ["id", "all_table_names_in_database", "all_schema_names"]
-
-
-appbuilder.add_view_no_menu(DatabaseTablesAsync)
 
 
 class DatabaseAsync(DatabaseView):  # pylint: disable=too-many-ancestors
@@ -205,6 +177,3 @@ class DatabaseAsync(DatabaseView):  # pylint: disable=too-many-ancestors
         "allows_subquery",
         "backend",
     ]
-
-
-appbuilder.add_view_no_menu(DatabaseAsync)

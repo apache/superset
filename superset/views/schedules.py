@@ -271,29 +271,3 @@ class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-anc
         if item.slice is None:
             raise SupersetException("Slice is mandatory")
         super(SliceEmailScheduleView, self).pre_add(item)
-
-
-def _register_schedule_menus():
-    appbuilder.add_separator("Manage")
-
-    appbuilder.add_view(
-        DashboardEmailScheduleView,
-        "Dashboard Email Schedules",
-        label=__("Dashboard Emails"),
-        category="Manage",
-        category_label=__("Manage"),
-        icon="fa-search",
-    )
-
-    appbuilder.add_view(
-        SliceEmailScheduleView,
-        "Chart Emails",
-        label=__("Chart Email Schedules"),
-        category="Manage",
-        category_label=__("Manage"),
-        icon="fa-search",
-    )
-
-
-if app.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
-    _register_schedule_menus()

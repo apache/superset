@@ -103,9 +103,6 @@ class Dashboard(BaseSupersetView):
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
 
-appbuilder.add_view_no_menu(Dashboard)
-
-
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
     list_columns = [
@@ -126,9 +123,6 @@ class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-a
     }
 
 
-appbuilder.add_view_no_menu(DashboardModelViewAsync)
-
-
 class DashboardAddView(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardaddview"
     list_columns = [
@@ -142,6 +136,3 @@ class DashboardAddView(DashboardModelView):  # pylint: disable=too-many-ancestor
         "changed_by_name",
     ]
     show_columns = list(set(DashboardModelView.edit_columns + list_columns))
-
-
-appbuilder.add_view_no_menu(DashboardAddView)

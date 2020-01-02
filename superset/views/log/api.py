@@ -38,10 +38,3 @@ class LogRestApi(LogMixin, ModelRestApi):
     resource_name = "log"
     allow_browser_login = True
     list_columns = ("user.username", "action", "dttm")
-
-
-if (
-    not app.config["FAB_ADD_SECURITY_VIEWS"] is False
-    or app.config["SUPERSET_LOG_VIEW"] is False
-):
-    appbuilder.add_api(LogRestApi)

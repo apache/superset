@@ -105,23 +105,3 @@ class AnnotationLayerModelView(
     add_columns = edit_columns
 
     label_columns = {"name": _("Name"), "descr": _("Description")}
-
-
-appbuilder.add_view(
-    AnnotationLayerModelView,
-    "Annotation Layers",
-    label=__("Annotation Layers"),
-    icon="fa-comment",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="",
-)
-appbuilder.add_view(
-    AnnotationModelView,
-    "Annotations",
-    label=__("Annotations"),
-    icon="fa-comments",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="",
-)

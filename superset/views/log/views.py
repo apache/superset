@@ -26,17 +26,3 @@ from . import LogMixin
 
 class LogModelView(LogMixin, SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Log)
-
-
-if (
-    not app.config["FAB_ADD_SECURITY_VIEWS"] is False
-    or app.config["SUPERSET_LOG_VIEW"] is False
-):
-    appbuilder.add_view(
-        LogModelView,
-        "Action Log",
-        label=__("Action Log"),
-        category="Security",
-        category_label=__("Security"),
-        icon="fa-list-ol",
-    )

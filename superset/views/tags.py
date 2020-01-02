@@ -34,17 +34,6 @@ from superset.models.tags import ObjectTypes, Tag, TaggedObject, TagTypes
 from .base import BaseSupersetView, json_success
 
 
-class ObjectTypeConverter(BaseConverter):
-
-    """Validate that object_type is indeed an object type."""
-
-    def to_python(self, value):
-        return ObjectTypes[value]
-
-    def to_url(self, value):
-        return value.name
-
-
 def process_template(content):
     env = SandboxedEnvironment()
     template = env.from_string(content)
@@ -228,7 +217,3 @@ class TagView(BaseSupersetView):
             )
 
         return json_success(json.dumps(results, default=utils.core.json_int_dttm_ser))
-
-
-app.url_map.converters["object_type"] = ObjectTypeConverter
-appbuilder.add_view_no_menu(TagView)
