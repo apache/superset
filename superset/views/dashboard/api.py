@@ -171,7 +171,6 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         "delete": "delete",
         "info": "list",
         "related": "list",
-        "published": "edit",
     }
     exclude_route_methods = ("info",)
     show_columns = [
