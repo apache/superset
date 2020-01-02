@@ -316,53 +316,5 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
 
-    @expose("/<pk>/published", methods=["PUT"])
-    @protect()
-    @safe
-    def published(self, pk):
-        """Toggled publish Dashboard
-        ---
-        put:
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          responses:
-            200:
-              description: Item changed
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        type: object
-                        properties:
-                            published:
-                                type: boolean
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        item = self.datamodel.get(pk, self._base_filters)
-        if not item:
-            return self.response_404()
-        item.published = not item.published
-        try:
-            self.datamodel.session.commit()
-            return self.response(
-                200, result={"published": item.published}
-            )
-        except SQLAlchemyError as e:
-            return self.response_422(message=str(e))
-
 
 appbuilder.add_api(DashboardRestApi)
