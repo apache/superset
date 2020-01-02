@@ -44,9 +44,7 @@ class JinjaContextManager:
         }
 
     def init_app(self, app):
-        self._base_context = self._base_context.update(
-            app.config["JINJA_CONTEXT_ADDONS"]
-        )
+        self._base_context.update(app.config["JINJA_CONTEXT_ADDONS"])
 
     @property
     def base_context(self):
