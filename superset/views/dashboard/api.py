@@ -41,7 +41,9 @@ def check_owner(f):
     """
 
     def wraps(self, model_id):
-        item = self.datamodel.get(model_id, self._base_filters)  # pylint: disable=protected-access
+        item = self.datamodel.get(
+            model_id, self._base_filters
+        )  # pylint: disable=protected-access
         if not item:
             return self.response_404()
         try:
