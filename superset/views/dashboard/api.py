@@ -26,10 +26,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 import superset.models.core as models
 from superset import appbuilder
-from superset.exceptions import SupersetException
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.utils import core as utils
 from superset.views.base import BaseSupersetModelRestApi, BaseSupersetSchema
 
+from ..base import check_ownership
 from .mixin import DashboardMixin
 
 
@@ -291,6 +292,8 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -303,7 +306,10 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         item = self.datamodel.get(pk, self._base_filters)
         if not item:
             return self.response_404()
-
+        try:
+            check_ownership(item)
+        except SupersetSecurityException as e:
+            return self.response(403, message=str(e))
         item = self.edit_model_schema.load(request.json, instance=item)
         if item.errors:
             return self.response_422(message=item.errors)
