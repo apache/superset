@@ -23,10 +23,10 @@ from flask import flash, g
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from wtforms import BooleanField, StringField
 
-from superset import app, appbuilder, db, security_manager
+from superset import db, security_manager
 from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (

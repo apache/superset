@@ -22,7 +22,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 from sqlalchemy.orm.exc import NoResultFound
 
-from superset import appbuilder, db
+from superset import db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.core import Database
 

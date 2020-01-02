@@ -15,10 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import gettext as __
 
 import superset.models.core as models
-from superset import app, appbuilder
 from superset.views.base import SupersetModelView
 
 from . import LogMixin

@@ -121,6 +121,8 @@ class SupersetAppInitializer:
         # models which in turn try to import
         # the global Flask app
         #
+        # pylint: disable=too-many-locals
+        # pylint: disable=too-many-statements
         from superset.connectors.druid.views import (
             DruidDatasourceModelView,
             DruidClusterModelView,

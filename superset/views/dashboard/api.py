@@ -25,7 +25,6 @@ from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
 
 import superset.models.core as models
-from superset import appbuilder
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
 from superset.views.base import BaseSupersetModelRestApi, BaseSupersetSchema

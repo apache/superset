@@ -19,13 +19,13 @@ import os
 from flask import flash, g, redirect
 from flask_appbuilder import SimpleFormView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from werkzeug.utils import secure_filename
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app, appbuilder, db
+from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin

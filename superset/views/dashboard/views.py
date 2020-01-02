@@ -24,7 +24,7 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
-from superset import appbuilder, db, event_logger
+from superset import db, event_logger
 from superset.utils import core as utils
 
 from ..base import (

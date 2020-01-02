@@ -22,9 +22,8 @@ from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import and_, func
-from werkzeug.routing import BaseConverter
 
-from superset import app, appbuilder, db, utils
+from superset import db, utils
 from superset.jinja_context import current_user_id, current_username
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
