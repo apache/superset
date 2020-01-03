@@ -27,6 +27,7 @@ from superset.models.slice import Slice
 from superset.utils import core as utils
 
 from .base import api, BaseSupersetView, handle_api_exception
+from .chart import api as chart_api  # pylint: disable=unused-import
 from .dashboard import api as dashboard_api  # pylint: disable=unused-import
 from .database import api as database_api  # pylint: disable=unused-import
 
