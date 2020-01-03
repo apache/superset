@@ -24,20 +24,6 @@ from sqlalchemy import literal_column
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
-pandas_dtype_map = {
-    "STRING": "object",
-    "BOOLEAN": "object",  # to support nullable bool
-    "INTEGER": "Int64",
-    "FLOAT": "float64",
-    "TIMESTAMP": "datetime64[ns]",
-    "DATETIME": "datetime64[ns]",
-    "DATE": "object",
-    "BYTES": "object",
-    "TIME": "object",
-    "RECORD": "object",
-    "NUMERIC": "object",
-}
-
 
 class BigQueryEngineSpec(BaseEngineSpec):
     """Engine spec for Google's BigQuery
@@ -209,9 +195,3 @@ class BigQueryEngineSpec(BaseEngineSpec):
             if key in kwargs:
                 gbq_kwargs[key] = kwargs[key]
         pandas_gbq.to_gbq(df, **gbq_kwargs)
-
-    @classmethod
-    def get_pandas_dtype(cls, cursor_description: List[tuple]) -> Dict[str, str]:
-        return {
-            col[0]: pandas_dtype_map.get(col[1], "object") for col in cursor_description
-        }
