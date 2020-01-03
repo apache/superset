@@ -290,12 +290,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
-    def get_pandas_dtype(
-        cls, cursor_description: List[tuple]
-    ) -> Optional[Dict[str, str]]:
-        return None
-
-    @classmethod
     def extra_table_metadata(
         cls, database, table_name: str, schema_name: str
     ) -> Dict[str, Any]:
