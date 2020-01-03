@@ -29,9 +29,9 @@ from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
 from superset.views.base import (
-    check_ownership_and_item_exists,
     BaseSupersetModelRestApi,
     BaseSupersetSchema,
+    check_ownership_and_item_exists,
 )
 
 from .mixin import DashboardMixin
