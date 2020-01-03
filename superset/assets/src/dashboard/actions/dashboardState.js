@@ -114,8 +114,8 @@ export function savePublished(id, isPublished) {
       endpoint: `/api/v1/dashboard/${id}`,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        published: isPublished
-      })
+        published: isPublished,
+      }),
     })
       .then(() => {
         const nowPublished = isPublished ? 'published' : 'hidden';
