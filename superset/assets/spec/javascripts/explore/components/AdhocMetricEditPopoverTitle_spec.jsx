@@ -52,7 +52,12 @@ describe('AdhocMetricEditPopoverTitle', () => {
   it('renders an OverlayTrigger wrapper with the title', () => {
     const { wrapper } = setup();
     expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
-    expect(wrapper.find(OverlayTrigger).find('span').text()).toBe('My Metric\xa0');
+    expect(
+      wrapper
+        .find(OverlayTrigger)
+        .find('span')
+        .text(),
+    ).toBe('My Metric\xa0');
   });
 
   it('transfers to edit mode when clicked', () => {

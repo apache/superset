@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from datetime import datetime
+from typing import Optional
 
 from superset.db_engine_specs.base import LimitMethod
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -40,7 +40,10 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        return ("""TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""").format(
-            dttm.isoformat()
-        )
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == "DATE":
+            return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
+        if tt == "TIMESTAMP":
+            return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""  # pylint: disable=line-too-long
+        return None

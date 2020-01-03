@@ -14,15 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 from datetime import datetime, timedelta
-import unittest
 from unittest.mock import Mock, patch, PropertyMock
 
 from flask_babel import gettext as __
 from selenium.common.exceptions import WebDriverException
 
-from superset import app, db
-from superset.models.core import Dashboard, Slice
+from tests.test_app import app
+from superset import db
+from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
     DashboardEmailSchedule,
     EmailDeliveryType,
@@ -35,10 +36,13 @@ from superset.tasks.schedules import (
     deliver_slice,
     next_schedules,
 )
+from superset.models.slice import Slice
+from tests.base_tests import SupersetTestCase
+
 from .utils import read_fixture
 
 
-class SchedulesTestCase(unittest.TestCase):
+class SchedulesTestCase(SupersetTestCase):
 
     RECIPIENTS = "recipient1@superset.com, recipient2@superset.com"
     BCC = "bcc@superset.com"
@@ -46,41 +50,45 @@ class SchedulesTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.common_data = dict(
-            active=True,
-            crontab="* * * * *",
-            recipients=cls.RECIPIENTS,
-            deliver_as_group=True,
-            delivery_type=EmailDeliveryType.inline,
-        )
+        with app.app_context():
+            cls.common_data = dict(
+                active=True,
+                crontab="* * * * *",
+                recipients=cls.RECIPIENTS,
+                deliver_as_group=True,
+                delivery_type=EmailDeliveryType.inline,
+            )
 
-        # Pick up a random slice and dashboard
-        slce = db.session.query(Slice).all()[0]
-        dashboard = db.session.query(Dashboard).all()[0]
+            # Pick up a random slice and dashboard
+            slce = db.session.query(Slice).all()[0]
+            dashboard = db.session.query(Dashboard).all()[0]
 
-        dashboard_schedule = DashboardEmailSchedule(**cls.common_data)
-        dashboard_schedule.dashboard_id = dashboard.id
-        dashboard_schedule.user_id = 1
-        db.session.add(dashboard_schedule)
+            dashboard_schedule = DashboardEmailSchedule(**cls.common_data)
+            dashboard_schedule.dashboard_id = dashboard.id
+            dashboard_schedule.user_id = 1
+            db.session.add(dashboard_schedule)
 
-        slice_schedule = SliceEmailSchedule(**cls.common_data)
-        slice_schedule.slice_id = slce.id
-        slice_schedule.user_id = 1
-        slice_schedule.email_format = SliceEmailReportFormat.data
+            slice_schedule = SliceEmailSchedule(**cls.common_data)
+            slice_schedule.slice_id = slce.id
+            slice_schedule.user_id = 1
+            slice_schedule.email_format = SliceEmailReportFormat.data
 
-        db.session.add(slice_schedule)
-        db.session.commit()
+            db.session.add(slice_schedule)
+            db.session.commit()
 
-        cls.slice_schedule = slice_schedule.id
-        cls.dashboard_schedule = dashboard_schedule.id
+            cls.slice_schedule = slice_schedule.id
+            cls.dashboard_schedule = dashboard_schedule.id
 
     @classmethod
     def tearDownClass(cls):
-        db.session.query(SliceEmailSchedule).filter_by(id=cls.slice_schedule).delete()
-        db.session.query(DashboardEmailSchedule).filter_by(
-            id=cls.dashboard_schedule
-        ).delete()
-        db.session.commit()
+        with app.app_context():
+            db.session.query(SliceEmailSchedule).filter_by(
+                id=cls.slice_schedule
+            ).delete()
+            db.session.query(DashboardEmailSchedule).filter_by(
+                id=cls.dashboard_schedule
+            ).delete()
+            db.session.commit()
 
     def test_crontab_scheduler(self):
         crontab = "* * * * *"
@@ -218,7 +226,7 @@ class SchedulesTestCase(unittest.TestCase):
         driver.screenshot.assert_not_called()
         send_email_smtp.assert_called_once()
         self.assertIsNone(send_email_smtp.call_args[1]["images"])
-        self.assertEquals(
+        self.assertEqual(
             send_email_smtp.call_args[1]["data"]["screenshot.png"],
             element.screenshot_as_png,
         )
@@ -253,8 +261,8 @@ class SchedulesTestCase(unittest.TestCase):
         driver.screenshot.assert_called_once()
         send_email_smtp.assert_called_once()
 
-        self.assertEquals(send_email_smtp.call_args[0][0], self.RECIPIENTS)
-        self.assertEquals(
+        self.assertEqual(send_email_smtp.call_args[0][0], self.RECIPIENTS)
+        self.assertEqual(
             list(send_email_smtp.call_args[1]["images"].values())[0],
             driver.screenshot.return_value,
         )
@@ -290,8 +298,8 @@ class SchedulesTestCase(unittest.TestCase):
         mtime.sleep.assert_called_once()
         driver.screenshot.assert_not_called()
 
-        self.assertEquals(send_email_smtp.call_count, 2)
-        self.assertEquals(send_email_smtp.call_args[1]["bcc"], self.BCC)
+        self.assertEqual(send_email_smtp.call_count, 2)
+        self.assertEqual(send_email_smtp.call_args[1]["bcc"], self.BCC)
 
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
@@ -322,7 +330,7 @@ class SchedulesTestCase(unittest.TestCase):
         driver.screenshot.assert_not_called()
         send_email_smtp.assert_called_once()
 
-        self.assertEquals(
+        self.assertEqual(
             list(send_email_smtp.call_args[1]["images"].values())[0],
             element.screenshot_as_png,
         )
@@ -356,7 +364,7 @@ class SchedulesTestCase(unittest.TestCase):
         driver.screenshot.assert_not_called()
         send_email_smtp.assert_called_once()
 
-        self.assertEquals(
+        self.assertEqual(
             send_email_smtp.call_args[1]["data"]["screenshot.png"],
             element.screenshot_as_png,
         )
@@ -371,7 +379,7 @@ class SchedulesTestCase(unittest.TestCase):
         mock_open.return_value = response
         mock_urlopen.return_value = response
         mock_urlopen.return_value.getcode.return_value = 200
-        response.content = self.CSV
+        response.read.return_value = self.CSV
 
         schedule = (
             db.session.query(SliceEmailSchedule)
@@ -387,7 +395,7 @@ class SchedulesTestCase(unittest.TestCase):
 
         file_name = __("%(name)s.csv", name=schedule.slice.slice_name)
 
-        self.assertEquals(send_email_smtp.call_args[1]["data"][file_name], self.CSV)
+        self.assertEqual(send_email_smtp.call_args[1]["data"][file_name], self.CSV)
 
     @patch("superset.tasks.schedules.urllib.request.urlopen")
     @patch("superset.tasks.schedules.urllib.request.OpenerDirector.open")
@@ -397,8 +405,7 @@ class SchedulesTestCase(unittest.TestCase):
         mock_open.return_value = response
         mock_urlopen.return_value = response
         mock_urlopen.return_value.getcode.return_value = 200
-        response.content = self.CSV
-
+        response.read.return_value = self.CSV
         schedule = (
             db.session.query(SliceEmailSchedule)
             .filter_by(id=self.slice_schedule)

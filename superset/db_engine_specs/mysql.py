@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib import parse
@@ -51,12 +50,13 @@ class MySQLEngineSpec(BaseEngineSpec):
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        if target_type.upper() in ("DATETIME", "DATE"):
-            return "STR_TO_DATE('{}', '%Y-%m-%d %H:%i:%s')".format(
-                dttm.strftime("%Y-%m-%d %H:%M:%S")
-            )
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == "DATE":
+            return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
+        if tt == "DATETIME":
+            return f"""STR_TO_DATE('{dttm.isoformat(sep=" ", timespec="microseconds")}', '%Y-%m-%d %H:%i:%s.%f')"""  # pylint: disable=line-too-long
+        return None
 
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
@@ -77,7 +77,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         datatype = type_code
         if isinstance(type_code, int):
             datatype = cls.type_code_map.get(type_code)
-        if datatype and isinstance(datatype, str) and len(datatype):
+        if datatype and isinstance(datatype, str) and datatype:
             return datatype
         return None
 
@@ -92,7 +92,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         try:
             if isinstance(e.args, tuple) and len(e.args) > 1:
                 message = e.args[1]
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             pass
         return message
 

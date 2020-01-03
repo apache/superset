@@ -19,12 +19,12 @@
 // We can codegen the enum definition based on a list of supported flags that we
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
-  SCOPED_FILTER = 'SCOPED_FILTER',
   OMNIBAR = 'OMNIBAR',
   CLIENT_CACHE = 'CLIENT_CACHE',
   SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',
   SQL_VALIDATORS_BY_ENGINE = 'SQL_VALIDATORS_BY_ENGINE',
   ESTIMATE_QUERY_COST = 'ESTIMATE_QUERY_COST',
+  SQLLAB_BACKEND_PERSISTENCE = 'SQLLAB_BACKEND_PERSISTENCE',
 }
 
 export type FeatureFlagMap = {

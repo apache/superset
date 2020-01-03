@@ -38,8 +38,17 @@ const defaultProps = {
 const tooltipStyle = { wordWrap: 'break-word' };
 
 export default function InfoTooltipWithTrigger({
-    label, tooltip, icon, className, onClick, placement, bsStyle }) {
-  const iconClass = `fa fa-${icon} ${className} ${bsStyle ? `text-${bsStyle}` : ''}`;
+  label,
+  tooltip,
+  icon,
+  className,
+  onClick,
+  placement,
+  bsStyle,
+}) {
+  const iconClass = `fa fa-${icon} ${className} ${
+    bsStyle ? `text-${bsStyle}` : ''
+  }`;
   const iconEl = (
     <i
       className={iconClass}

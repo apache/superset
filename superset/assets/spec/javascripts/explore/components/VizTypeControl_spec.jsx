@@ -35,14 +35,20 @@ describe('VizTypeControl', () => {
 
   const registry = getChartMetadataRegistry();
   registry
-    .registerValue('vis1', new ChartMetadata({
-      name: 'vis1',
-      thumbnail: '',
-    }))
-    .registerValue('vis2', new ChartMetadata({
-      name: 'vis2',
-      thumbnail: '',
-    }));
+    .registerValue(
+      'vis1',
+      new ChartMetadata({
+        name: 'vis1',
+        thumbnail: '',
+      }),
+    )
+    .registerValue(
+      'vis2',
+      new ChartMetadata({
+        name: 'vis2',
+        thumbnail: '',
+      }),
+    );
 
   beforeEach(() => {
     wrapper = shallow(<VizTypeControl {...defaultProps} />);

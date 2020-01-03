@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for Superset"""
 import json
+from copy import deepcopy
 
 from .base_tests import SupersetTestCase
 from .fixtures.datasource import datasource_post
@@ -37,7 +38,7 @@ class DatasourceTests(SupersetTestCase):
         )
         resp = self.get_json_resp(url)
         col_names = {o.get("name") for o in resp}
-        self.assertEquals(
+        self.assertEqual(
             col_names, {"sum_boys", "num", "gender", "name", "ds", "state", "sum_girls"}
         )
 
@@ -47,7 +48,7 @@ class DatasourceTests(SupersetTestCase):
             obj2 = l2_lookup.get(obj1.get(key))
             for k in obj1:
                 if k not in "id" and obj1.get(k):
-                    self.assertEquals(obj1.get(k), obj2.get(k))
+                    self.assertEqual(obj1.get(k), obj2.get(k))
 
     def test_save(self):
         self.login(username="admin")
@@ -61,16 +62,43 @@ class DatasourceTests(SupersetTestCase):
             elif k == "metrics":
                 self.compare_lists(datasource_post[k], resp[k], "metric_name")
             else:
-                self.assertEquals(resp[k], datasource_post[k])
+                self.assertEqual(resp[k], datasource_post[k])
+
+    def test_save_duplicate_key(self):
+        self.login(username="admin")
+        tbl_id = self.get_table_by_name("birth_names").id
+        datasource_post_copy = deepcopy(datasource_post)
+        datasource_post_copy["id"] = tbl_id
+        datasource_post_copy["columns"].extend(
+            [
+                {
+                    "column_name": "<new column>",
+                    "filterable": True,
+                    "groupby": True,
+                    "expression": "<enter SQL expression here>",
+                    "id": "somerandomid",
+                },
+                {
+                    "column_name": "<new column>",
+                    "filterable": True,
+                    "groupby": True,
+                    "expression": "<enter SQL expression here>",
+                    "id": "somerandomid2",
+                },
+            ]
+        )
+        data = dict(data=json.dumps(datasource_post_copy))
+        resp = self.get_json_resp("/datasource/save/", data, raise_on_error=False)
+        self.assertIn("Duplicate column name(s): <new column>", resp["error"])
 
     def test_get_datasource(self):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
         url = f"/datasource/get/{tbl.type}/{tbl.id}/"
         resp = self.get_json_resp(url)
-        self.assertEquals(resp.get("type"), "table")
+        self.assertEqual(resp.get("type"), "table")
         col_names = {o.get("column_name") for o in resp["columns"]}
-        self.assertEquals(
+        self.assertEqual(
             col_names,
             {
                 "sum_boys",
@@ -88,4 +116,4 @@ class DatasourceTests(SupersetTestCase):
         self.login(username="admin")
         url = f"/datasource/get/druid/500000/"
         resp = self.get_json_resp(url)
-        self.assertEquals(resp.get("error"), "This datasource does not exist")
+        self.assertEqual(resp.get("error"), "This datasource does not exist")

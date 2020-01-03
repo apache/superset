@@ -24,8 +24,8 @@ Create Date: 2017-10-03 14:37:01.376578
 
 import logging
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 from superset.utils.core import (
     generic_find_fk_constraint_name,

@@ -27,57 +27,55 @@ import {
 describe('controlUtils', () => {
   const state = {
     datasource: {
-      columns: [
-        'a', 'b', 'c',
-      ],
-      metrics: [
-        { metric_name: 'first' },
-        { metric_name: 'second' },
-      ],
+      columns: ['a', 'b', 'c'],
+      metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
     },
   };
 
   beforeAll(() => {
-    getChartControlPanelRegistry().registerValue('test-chart', {
-      requiresTime: true,
-      controlPanelSections: [
-        {
-          label: t('Chart Options'),
-          expanded: true,
-          controlSetRows: [
-            ['color_scheme', {
-              name: 'rose_area_proportion',
-              config: {
-                type: 'CheckboxControl',
-                label: t('Use Area Proportions'),
-                description: t(
-                  'Check if the Rose Chart should use segment area instead of ' +
-                  'segment radius for proportioning',
-                ),
-                default: false,
-                renderTrigger: true,
-              },
-            }],
-          ],
+    getChartControlPanelRegistry()
+      .registerValue('test-chart', {
+        requiresTime: true,
+        controlPanelSections: [
+          {
+            label: t('Chart Options'),
+            expanded: true,
+            controlSetRows: [
+              [
+                'color_scheme',
+                {
+                  name: 'rose_area_proportion',
+                  config: {
+                    type: 'CheckboxControl',
+                    label: t('Use Area Proportions'),
+                    description: t(
+                      'Check if the Rose Chart should use segment area instead of ' +
+                        'segment radius for proportioning',
+                    ),
+                    default: false,
+                    renderTrigger: true,
+                  },
+                },
+              ],
+            ],
+          },
+        ],
+      })
+      .registerValue('test-chart-override', {
+        requiresTime: true,
+        controlPanelSections: [
+          {
+            label: t('Chart Options'),
+            expanded: true,
+            controlSetRows: [['color_scheme']],
+          },
+        ],
+        controlOverrides: {
+          color_scheme: {
+            label: t('My beautiful colors'),
+          },
         },
-      ],
-    }).registerValue('test-chart-override', {
-      requiresTime: true,
-      controlPanelSections: [
-        {
-          label: t('Chart Options'),
-          expanded: true,
-          controlSetRows: [
-            ['color_scheme'],
-          ],
-        },
-      ],
-      controlOverrides: {
-        color_scheme: {
-          label: t('My beautiful colors'),
-        },
-      },
-    });
+      });
   });
 
   afterAll(() => {
@@ -101,20 +99,26 @@ describe('controlUtils', () => {
       expect(control.label).toEqual('My beautiful colors');
     });
 
-    it('returns correct control config when control config is defined ' +
-      'in the control panel definition', () => {
-        const roseAreaProportionControlConfig = getControlConfig('rose_area_proportion', 'test-chart');
+    it(
+      'returns correct control config when control config is defined ' +
+        'in the control panel definition',
+      () => {
+        const roseAreaProportionControlConfig = getControlConfig(
+          'rose_area_proportion',
+          'test-chart',
+        );
         expect(roseAreaProportionControlConfig).toEqual({
           type: 'CheckboxControl',
           label: t('Use Area Proportions'),
           description: t(
             'Check if the Rose Chart should use segment area instead of ' +
-            'segment radius for proportioning',
+              'segment radius for proportioning',
           ),
           default: false,
           renderTrigger: true,
-      });
-    });
+        });
+      },
+    );
   });
 
   describe('applyMapStateToPropsToControl,', () => {
@@ -129,7 +133,6 @@ describe('controlUtils', () => {
       control = applyMapStateToPropsToControl(control, state);
       expect(control.mapStateToProps).toBe(undefined);
     });
-
   });
 
   describe('getControlState', () => {

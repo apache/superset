@@ -14,23 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __
 
-from superset import app, appbuilder
 import superset.models.core as models
+from superset import app, appbuilder
 from superset.views.base import SupersetModelView
+
 from . import LogMixin
 
 
-class LogModelView(LogMixin, SupersetModelView):
+class LogModelView(LogMixin, SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Log)
 
 
 if (
-    not app.config.get("FAB_ADD_SECURITY_VIEWS") is False
-    or app.config.get("SUPERSET_LOG_VIEW") is False
+    not app.config["FAB_ADD_SECURITY_VIEWS"] is False
+    or app.config["SUPERSET_LOG_VIEW"] is False
 ):
     appbuilder.add_view(
         LogModelView,

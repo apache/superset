@@ -40,8 +40,15 @@ const defaultProps = {
   disabled: false,
 };
 
-export default function QueryAndSaveBtns(
-  { canAdd, onQuery, onSave, onStop, loading, chartIsStale, errorMessage }) {
+export default function QueryAndSaveBtns({
+  canAdd,
+  onQuery,
+  onSave,
+  onStop,
+  loading,
+  chartIsStale,
+  errorMessage,
+}) {
   const saveClasses = classnames({
     'disabled disabledButton': canAdd !== 'True',
   });
@@ -86,20 +93,19 @@ export default function QueryAndSaveBtns(
           <i className="fa fa-plus-circle" /> {' ' + t('Save')}
         </Button>
       </ButtonGroup>
-      {errorMessage &&
+      {errorMessage && (
         <span>
           {' '}
           <OverlayTrigger
             placement="right"
             overlay={
-              <Tooltip id={'query-error-tooltip'}>
-                {errorMessage}
-              </Tooltip>}
+              <Tooltip id={'query-error-tooltip'}>{errorMessage}</Tooltip>
+            }
           >
             <i className="fa fa-exclamation-circle text-danger fa-lg" />
           </OverlayTrigger>
         </span>
-      }
+      )}
     </div>
   );
 }

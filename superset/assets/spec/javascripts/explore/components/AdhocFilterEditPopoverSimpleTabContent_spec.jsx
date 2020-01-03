@@ -22,7 +22,10 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { FormGroup } from 'react-bootstrap';
 
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/explore/AdhocFilter';
+import AdhocFilter, {
+  EXPRESSION_TYPES,
+  CLAUSES,
+} from '../../../../src/explore/AdhocFilter';
 import AdhocMetric from '../../../../src/explore/AdhocMetric';
 import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/explore/components/AdhocFilterEditPopoverSimpleTabContent';
 import { AGGREGATES } from '../../../../src/explore/constants';
@@ -68,7 +71,9 @@ function setup(overrides) {
     datasource: {},
     ...overrides,
   };
-  const wrapper = shallow(<AdhocFilterEditPopoverSimpleTabContent {...props} />);
+  const wrapper = shallow(
+    <AdhocFilterEditPopoverSimpleTabContent {...props} />,
+  );
   return { wrapper, onChange, onHeightChange };
 }
 
@@ -80,23 +85,29 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
   it('passes the new adhocFilter to onChange after onSubjectChange', () => {
     const { wrapper, onChange } = setup();
-    wrapper.instance().onSubjectChange({ type: 'VARCHAR(255)', column_name: 'source' });
+    wrapper
+      .instance()
+      .onSubjectChange({ type: 'VARCHAR(255)', column_name: 'source' });
     expect(onChange.calledOnce).toBe(true);
-    expect(onChange.lastCall.args[0].equals((
-      simpleAdhocFilter.duplicateWith({ subject: 'source' })
-    ))).toBe(true);
+    expect(
+      onChange.lastCall.args[0].equals(
+        simpleAdhocFilter.duplicateWith({ subject: 'source' }),
+      ),
+    ).toBe(true);
   });
 
   it('may alter the clause in onSubjectChange if the old clause is not appropriate', () => {
     const { wrapper, onChange } = setup();
     wrapper.instance().onSubjectChange(sumValueAdhocMetric);
     expect(onChange.calledOnce).toBe(true);
-    expect(onChange.lastCall.args[0].equals((
-      simpleAdhocFilter.duplicateWith({
-        subject: sumValueAdhocMetric.label,
-        clause: CLAUSES.HAVING,
-      })
-    ))).toBe(true);
+    expect(
+      onChange.lastCall.args[0].equals(
+        simpleAdhocFilter.duplicateWith({
+          subject: sumValueAdhocMetric.label,
+          clause: CLAUSES.HAVING,
+        }),
+      ),
+    ).toBe(true);
   });
 
   it('will convert from individual comparator to array if the operator changes to multi', () => {
@@ -109,21 +120,27 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
   });
 
   it('will convert from array to individual comparators if the operator changes from multi', () => {
-    const { wrapper, onChange } = setup({ adhocFilter: simpleMultiAdhocFilter });
+    const { wrapper, onChange } = setup({
+      adhocFilter: simpleMultiAdhocFilter,
+    });
     wrapper.instance().onOperatorChange({ operator: '<' });
     expect(onChange.calledOnce).toBe(true);
-    expect(onChange.lastCall.args[0].equals((
-      simpleAdhocFilter.duplicateWith({ operator: '<', comparator: '10' })
-    ))).toBe(true);
+    expect(
+      onChange.lastCall.args[0].equals(
+        simpleAdhocFilter.duplicateWith({ operator: '<', comparator: '10' }),
+      ),
+    ).toBe(true);
   });
 
   it('passes the new adhocFilter to onChange after onComparatorChange', () => {
     const { wrapper, onChange } = setup();
     wrapper.instance().onComparatorChange('20');
     expect(onChange.calledOnce).toBe(true);
-    expect(onChange.lastCall.args[0].equals((
-      simpleAdhocFilter.duplicateWith({ comparator: '20' })
-    ))).toBe(true);
+    expect(
+      onChange.lastCall.args[0].equals(
+        simpleAdhocFilter.duplicateWith({ comparator: '20' }),
+      ),
+    ).toBe(true);
   });
 
   it('will filter operators for table datasources', () => {
@@ -141,8 +158,9 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
   it('expands when its multi comparator input field expands', () => {
     const { wrapper, onHeightChange } = setup();
 
-    wrapper.instance().multiComparatorComponent =
-      { _selectRef: { select: { control: { clientHeight: 57 } } } };
+    wrapper.instance().multiComparatorComponent = {
+      _selectRef: { select: { control: { clientHeight: 57 } } },
+    };
     wrapper.instance().handleMultiComparatorInputHeightChange();
 
     expect(onHeightChange.calledOnce).toBe(true);

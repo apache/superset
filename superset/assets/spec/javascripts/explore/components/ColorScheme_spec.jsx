@@ -22,11 +22,12 @@ import { mount } from 'enzyme';
 import { Creatable } from 'react-select';
 import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 
-import ColorSchemeControl from
-  '../../../../src/explore/components/controls/ColorSchemeControl';
+import ColorSchemeControl from '../../../../src/explore/components/controls/ColorSchemeControl';
 
 const defaultProps = {
-  options: getCategoricalSchemeRegistry().keys().map(s => ([s, s])),
+  options: getCategoricalSchemeRegistry()
+    .keys()
+    .map(s => [s, s]),
 };
 
 describe('ColorSchemeControl', () => {

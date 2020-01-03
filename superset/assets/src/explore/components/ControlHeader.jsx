@@ -49,29 +49,28 @@ export default class ControlHeader extends React.Component {
     if (this.props.hovered) {
       return (
         <span>
-          {this.props.description &&
+          {this.props.description && (
             <span>
               <InfoTooltipWithTrigger
                 label={t('description')}
                 tooltip={this.props.description}
                 placement="top"
                 onClick={this.props.tooltipOnClick}
-              />
-              {' '}
+              />{' '}
             </span>
-          }
-          {this.props.renderTrigger &&
+          )}
+          {this.props.renderTrigger && (
             <span>
               <InfoTooltipWithTrigger
                 label={t('bolt')}
                 tooltip={t('Changing this control takes effect instantly')}
                 placement="top"
                 icon="bolt"
-              />
-              {' '}
+              />{' '}
             </span>
-          }
-        </span>);
+          )}
+        </span>
+      );
     }
     return null;
   }
@@ -79,26 +78,21 @@ export default class ControlHeader extends React.Component {
     if (!this.props.label) {
       return null;
     }
-    const labelClass = (this.props.validationErrors.length > 0) ? 'text-danger' : '';
+    const labelClass =
+      this.props.validationErrors.length > 0 ? 'text-danger' : '';
     return (
-      <div
-        className="ControlHeader"
-        data-test={`${this.props.name}-header`}
-      >
+      <div className="ControlHeader" data-test={`${this.props.name}-header`}>
         <div className="pull-left">
           <ControlLabel>
-            {this.props.leftNode &&
-              <span>{this.props.leftNode}</span>
-            }
+            {this.props.leftNode && <span>{this.props.leftNode}</span>}
             <span
               onClick={this.props.onClick}
               className={labelClass}
               style={{ cursor: this.props.onClick ? 'pointer' : '' }}
             >
               {this.props.label}
-            </span>
-            {' '}
-            {(this.props.warning) &&
+            </span>{' '}
+            {this.props.warning && (
               <span>
                 <OverlayTrigger
                   placement="top"
@@ -107,11 +101,10 @@ export default class ControlHeader extends React.Component {
                   }
                 >
                   <i className="fa fa-exclamation-circle text-warning" />
-                </OverlayTrigger>
-                {' '}
+                </OverlayTrigger>{' '}
               </span>
-            }
-            {(this.props.danger) &&
+            )}
+            {this.props.danger && (
               <span>
                 <OverlayTrigger
                   placement="top"
@@ -120,11 +113,10 @@ export default class ControlHeader extends React.Component {
                   }
                 >
                   <i className="fa fa-exclamation-circle text-danger" />
-                </OverlayTrigger>
-                {' '}
+                </OverlayTrigger>{' '}
               </span>
-            }
-            {(this.props.validationErrors.length > 0) &&
+            )}
+            {this.props.validationErrors.length > 0 && (
               <span>
                 <OverlayTrigger
                   placement="top"
@@ -135,18 +127,15 @@ export default class ControlHeader extends React.Component {
                   }
                 >
                   <i className="fa fa-exclamation-circle text-danger" />
-                </OverlayTrigger>
-                {' '}
+                </OverlayTrigger>{' '}
               </span>
-            }
+            )}
             {this.renderOptionalIcons()}
           </ControlLabel>
         </div>
-        {this.props.rightNode &&
-          <div className="pull-right">
-            {this.props.rightNode}
-          </div>
-        }
+        {this.props.rightNode && (
+          <div className="pull-right">{this.props.rightNode}</div>
+        )}
         <div className="clearfix" />
       </div>
     );

@@ -25,7 +25,7 @@ const MAX_URL_LENGTH = 8000;
 
 export function getChartKey(explore) {
   const slice = explore.slice;
-  return slice ? (slice.slice_id) : 0;
+  return slice ? slice.slice_id : 0;
 }
 
 let requestCounter = 0;
@@ -45,23 +45,33 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
   }
   const uri = URI(window.location.search);
   const endpoint = isNative ? 'annotation_json' : 'slice_json';
-  return uri.pathname(`/superset/${endpoint}/${slice_id}`)
+  return uri
+    .pathname(`/superset/${endpoint}/${slice_id}`)
     .search({
-      form_data: safeStringify(form_data,
-        (key, value) => value === null ? undefined : value),
-    }).toString();
+      form_data: safeStringify(form_data, (key, value) =>
+        value === null ? undefined : value,
+      ),
+    })
+    .toString();
 }
 
 export function getURIDirectory(formData, endpointType = 'base') {
   // Building the directory part of the URI
   let directory = '/superset/explore/';
-  if (['json', 'csv', 'query', 'results', 'samples'].indexOf(endpointType) >= 0) {
+  if (
+    ['json', 'csv', 'query', 'results', 'samples'].indexOf(endpointType) >= 0
+  ) {
     directory = '/superset/explore_json/';
   }
   return directory;
 }
 
-export function getExploreLongUrl(formData, endpointType, allowOverflow = true, extraSearch = {}) {
+export function getExploreLongUrl(
+  formData,
+  endpointType,
+  allowOverflow = true,
+  extraSearch = {},
+) {
   if (!formData.datasource) {
     return null;
   }
@@ -69,21 +79,25 @@ export function getExploreLongUrl(formData, endpointType, allowOverflow = true, 
   const uri = new URI('/');
   const directory = getURIDirectory(formData, endpointType);
   const search = uri.search(true);
-  Object.keys(extraSearch).forEach((key) => {
+  Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];
   });
   search.form_data = safeStringify(formData);
   if (endpointType === 'standalone') {
     search.standalone = 'true';
   }
-  const url = uri.directory(directory).search(search).toString();
+  const url = uri
+    .directory(directory)
+    .search(search)
+    .toString();
   if (!allowOverflow && url.length > MAX_URL_LENGTH) {
     const minimalFormData = {
       datasource: formData.datasource,
       viz_type: formData.viz_type,
     };
-    return getExploreLongUrl(
-      minimalFormData, endpointType, false, { URL_IS_TOO_LONG_TO_SHARE: null });
+    return getExploreLongUrl(minimalFormData, endpointType, false, {
+      URL_IS_TOO_LONG_TO_SHARE: null,
+    });
   }
   return url;
 }
@@ -153,7 +167,7 @@ export function getExploreUrlAndPayload({
   }
   const paramNames = Object.keys(requestParams);
   if (paramNames.length) {
-    paramNames.forEach((name) => {
+    paramNames.forEach(name => {
       if (requestParams.hasOwnProperty(name)) {
         search[name] = requestParams[name];
       }

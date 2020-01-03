@@ -24,12 +24,13 @@ function getDomainsConfig() {
 
   const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
   const availableDomains = new Set([location.hostname]);
-  if (bootstrapData &&
+  if (
+    bootstrapData &&
     bootstrapData.common &&
     bootstrapData.common.conf &&
     bootstrapData.common.conf.SUPERSET_WEBSERVER_DOMAINS
   ) {
-    bootstrapData.common.conf.SUPERSET_WEBSERVER_DOMAINS.forEach((hostName) => {
+    bootstrapData.common.conf.SUPERSET_WEBSERVER_DOMAINS.forEach(hostName => {
       availableDomains.add(hostName);
     });
   }

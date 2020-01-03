@@ -15,17 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=R
+import simplejson as json
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
-import simplejson as json
 
 from superset import appbuilder, db, event_logger, security_manager
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
-import superset.models.core as models
+from superset.models.slice import Slice
 from superset.utils import core as utils
+
 from .base import api, BaseSupersetView, handle_api_exception
+from .dashboard import api as dashboard_api  # pylint: disable=unused-import
+from .database import api as database_api  # pylint: disable=unused-import
 
 
 class Api(BaseSupersetView):
@@ -41,7 +44,7 @@ class Api(BaseSupersetView):
         params: query_context: json_blob
         """
         query_context = QueryContext(**json.loads(request.form.get("query_context")))
-        security_manager.assert_datasource_permission(query_context.datasource)
+        security_manager.assert_query_context_permission(query_context)
         payload_json = query_context.get_payload()
         return json.dumps(
             payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
@@ -60,7 +63,7 @@ class Api(BaseSupersetView):
         form_data = {}
         slice_id = request.args.get("slice_id")
         if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
+            slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
             if slc:
                 form_data = slc.form_data.copy()
 

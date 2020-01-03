@@ -21,7 +21,34 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
-## Next Version
+## Next
+
+* [8732](https://github.com/apache/incubator-superset/pull/8732): Swagger user interface is now enabled by default. 
+A new permission `show on SwaggerView` is created by `superset init` and given to the `Admin` Role. To disable the UI,
+set `FAB_API_SWAGGER_UI = False` on config.
+
+* [8721](https://github.com/apache/incubator-superset/pull/8721): When using the cache
+warmup Celery task you should now specify the `SUPERSET_WEBSERVER_PROTOCOL` variable
+in your configuration (probably either "http" or "https"). This defaults to "http".
+
+* [8512](https://github.com/apache/incubator-superset/pull/8512): `DRUID_IS_ACTIVE` now
+defaults to False. To enable Druid-API-based functionality, override the
+`DRUID_IS_ACTIVE` configuration variable by setting it to `True` for your deployment.
+
+* [8450](https://github.com/apache/incubator-superset/pull/8450): The time range picker
+now uses UTC for the tooltips and default placeholder timestamps (sans timezone).
+
+* [8418](https://github.com/apache/incubator-superset/pull/8418): FLASK_APP / Worker App
+have changed. FLASK_APP should be updated to `superset.app:create_app()` and Celery Workers
+should be started with `--app=superset.tasks.celery_app:app`
+
+## 0.35.0
+
+* [8370](https://github.com/apache/incubator-superset/pull/8370): Deprecates
+  the `HTTP_HEADERS` variable in favor of `DEFAULT_HTTP_HEADERS` and
+  `OVERRIDE_HTTP_HEADERS`. To retain the same behavior you should use
+  `OVERRIDE_HTTP_HEADERS` instead of `HTTP_HEADERS`. `HTTP_HEADERS` will still
+  work but may be removed in a future update.
 
 * We're deprecating the concept of "restricted metric", this feature
   was not fully working anyhow.
@@ -35,6 +62,10 @@ using `ENABLE_PROXY_FIX = True`, review the newly-introducted variable,
 [PyArrow](https://arrow.apache.org/docs/python/) for async query results
 backend serialization. To disable set `RESULTS_BACKEND_USE_MSGPACK = False`
 in your configuration.
+
+* [8371](https://github.com/apache/incubator-superset/pull/8371): makes
+`tables.table_name`, `dbs.database_name`, `datasources.cluster_name`, and `clusters.cluster_name` non-nullable.
+Depending on the integrity of the data, manual intervention may be required.
 
 ## 0.34.0
 
@@ -59,16 +90,18 @@ which adds missing non-nullable fields to the `datasources` table. Depending on
 the integrity of the data, manual intervention may be required.
 
 * [5452](https://github.com/apache/incubator-superset/pull/5452): a change
-which adds missing non-nullable fields and uniqueness constraints to the
-`columns`and `table_columns` tables. Depending on the integrity of the data,
-manual intervention may be required.
+which adds missing non-nullable fields and uniqueness constraints (which may be 
+case insensitive depending on your database configuration) to the `columns`and 
+`table_columns` tables. Depending on the integrity of the data, manual 
+intervention may be required.
 * `fabmanager` command line is deprecated since Flask-AppBuilder 2.0.0, use
 the new `flask fab <command>` integrated with *Flask cli*.
 * `SUPERSET_UPDATE_PERMS` environment variable was replaced by
 `FAB_UPDATE_PERMS` config boolean key. To disable automatic
 creation of permissions set `FAB_UPDATE_PERMS = False` on config.
 * [5453](https://github.com/apache/incubator-superset/pull/5453): a change
-which adds missing non-nullable fields and uniqueness constraints to the metrics
+which adds missing non-nullable fields and uniqueness constraints (which may be 
+case insensitive depending on your database configuration) to the metrics
 and sql_metrics tables. Depending on the integrity of the data, manual
 intervention may be required.
 * [7616](https://github.com/apache/incubator-superset/pull/7616): this bug fix

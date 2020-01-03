@@ -35,12 +35,16 @@ describe('CreatedContent', () => {
   };
 
   it('renders 2 TableLoader', () => {
-    const wrapper = shallow(<CreatedContent {...mockedProps} />, { context: { store } });
+    const wrapper = shallow(<CreatedContent {...mockedProps} />, {
+      context: { store },
+    });
     expect(wrapper.find(TableLoader)).toHaveLength(2);
   });
 
   it('renders 2 titles', () => {
-    const wrapper = shallow(<CreatedContent {...mockedProps} />, { context: { store } });
+    const wrapper = shallow(<CreatedContent {...mockedProps} />, {
+      context: { store },
+    });
     expect(wrapper.find('h3')).toHaveLength(2);
   });
 });

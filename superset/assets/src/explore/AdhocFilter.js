@@ -48,8 +48,12 @@ function translateToSql(adhocMetric, { useSimple } = {}) {
     const isMulti = MULTI_OPERATORS.indexOf(adhocMetric.operator) >= 0;
     const subject = adhocMetric.subject;
     const operator = OPERATORS_TO_SQL[adhocMetric.operator];
-    const comparator = Array.isArray(adhocMetric.comparator) ? adhocMetric.comparator.join("','") : adhocMetric.comparator;
-    return `${subject} ${operator} ${isMulti ? '(\'' : ''}${comparator}${isMulti ? '\')' : ''}`;
+    const comparator = Array.isArray(adhocMetric.comparator)
+      ? adhocMetric.comparator.join("','")
+      : adhocMetric.comparator;
+    return `${subject} ${operator} ${isMulti ? "('" : ''}${comparator}${
+      isMulti ? "')" : ''
+    }`;
   } else if (adhocMetric.expressionType === EXPRESSION_TYPES.SQL) {
     return adhocMetric.sqlExpression;
   }
@@ -66,9 +70,10 @@ export default class AdhocFilter {
       this.clause = adhocFilter.clause;
       this.sqlExpression = null;
     } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
-      this.sqlExpression = typeof adhocFilter.sqlExpression === 'string' ?
-        adhocFilter.sqlExpression :
-        translateToSql(adhocFilter, { useSimple: true });
+      this.sqlExpression =
+        typeof adhocFilter.sqlExpression === 'string'
+          ? adhocFilter.sqlExpression
+          : translateToSql(adhocFilter, { useSimple: true });
       this.clause = adhocFilter.clause;
       this.subject = null;
       this.operator = null;
@@ -76,8 +81,13 @@ export default class AdhocFilter {
     }
     this.fromFormData = !!adhocFilter.filterOptionName;
 
-    this.filterOptionName = adhocFilter.filterOptionName ||
-      `filter_${Math.random().toString(36).substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`;
+    this.filterOptionName =
+      adhocFilter.filterOptionName ||
+      `filter_${Math.random()
+        .toString(36)
+        .substring(2, 15)}_${Math.random()
+        .toString(36)
+        .substring(2, 15)}`;
   }
 
   duplicateWith(nextFields) {
@@ -95,20 +105,19 @@ export default class AdhocFilter {
   }
 
   equals(adhocFilter) {
-    return adhocFilter.expressionType === this.expressionType &&
+    return (
+      adhocFilter.expressionType === this.expressionType &&
       adhocFilter.sqlExpression === this.sqlExpression &&
       adhocFilter.operator === this.operator &&
       adhocFilter.comparator === this.comparator &&
-      adhocFilter.subject === this.subject;
+      adhocFilter.subject === this.subject
+    );
   }
 
   isValid() {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
       if (this.operator === 'IS NOT NULL' || this.operator === 'IS NULL') {
-        return !!(
-          this.operator &&
-          this.subject
-        );
+        return !!(this.operator && this.subject);
       }
 
       return !!(
@@ -126,9 +135,7 @@ export default class AdhocFilter {
 
   getDefaultLabel() {
     const label = this.translateToSql();
-    return label.length < 43 ?
-      label :
-      label.substring(0, 40) + '...';
+    return label.length < 43 ? label : label.substring(0, 40) + '...';
   }
 
   translateToSql() {

@@ -14,9 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from datetime import datetime
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 from sqlalchemy.engine.reflection import Inspector
 
@@ -25,7 +24,7 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.core import Database
+    from superset.models.core import Database  # pylint: disable=unused-import
 
 
 class SqliteEngineSpec(BaseEngineSpec):
@@ -50,41 +49,40 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_all_datasource_names(
-        cls, db, datasource_type: str
+        cls, database, datasource_type: str
     ) -> List[utils.DatasourceName]:
-        schemas = db.get_all_schema_names(
-            cache=db.schema_cache_enabled,
-            cache_timeout=db.schema_cache_timeout,
+        schemas = database.get_all_schema_names(
+            cache=database.schema_cache_enabled,
+            cache_timeout=database.schema_cache_timeout,
             force=True,
         )
         schema = schemas[0]
         if datasource_type == "table":
-            return db.get_all_table_names_in_schema(
+            return database.get_all_table_names_in_schema(
                 schema=schema,
                 force=True,
-                cache=db.table_cache_enabled,
-                cache_timeout=db.table_cache_timeout,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
             )
         elif datasource_type == "view":
-            return db.get_all_view_names_in_schema(
+            return database.get_all_view_names_in_schema(
                 schema=schema,
                 force=True,
-                cache=db.table_cache_enabled,
-                cache_timeout=db.table_cache_timeout,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
             )
         else:
             raise Exception(f"Unsupported datasource_type: {datasource_type}")
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        iso = dttm.isoformat().replace("T", " ")
-        if "." not in iso:
-            iso += ".000000"
-        return "'{}'".format(iso)
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        if target_type.upper() == "TEXT":
+            return f"""'{dttm.isoformat(sep=" ", timespec="microseconds")}'"""
+        return None
 
     @classmethod
     def get_table_names(
-        cls, database: "Database", inspector: Inspector, schema: str
+        cls, database: "Database", inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())

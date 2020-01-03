@@ -15,15 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=R
-from datetime import datetime, timedelta
 import hashlib
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 
 import simplejson as json
 
 from superset import app
 from superset.utils import core as utils
-
 
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
 # https://github.com/python/mypy/issues/5288
@@ -39,7 +38,7 @@ class QueryObject:
     from_dttm: datetime
     to_dttm: datetime
     is_timeseries: bool
-    time_shift: timedelta
+    time_shift: Optional[timedelta]
     groupby: List[str]
     metrics: List[Union[Dict, str]]
     row_limit: int
@@ -61,14 +60,14 @@ class QueryObject:
         time_shift: Optional[str] = None,
         is_timeseries: bool = False,
         timeseries_limit: int = 0,
-        row_limit: int = app.config.get("ROW_LIMIT"),
+        row_limit: int = app.config["ROW_LIMIT"],
         timeseries_limit_metric: Optional[Dict] = None,
         order_desc: bool = True,
         extras: Optional[Dict] = None,
         columns: Optional[List[str]] = None,
         orderby: Optional[List[List]] = None,
-        relative_start: str = app.config.get("DEFAULT_RELATIVE_START_TIME", "today"),
-        relative_end: str = app.config.get("DEFAULT_RELATIVE_END_TIME", "today"),
+        relative_start: str = app.config["DEFAULT_RELATIVE_START_TIME"],
+        relative_end: str = app.config["DEFAULT_RELATIVE_END_TIME"],
     ):
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(
@@ -85,7 +84,7 @@ class QueryObject:
         # Temporal solution for backward compatability issue
         # due the new format of non-ad-hoc metric.
         self.metrics = [
-            metric if "expressionType" in metric else metric["label"]  # noqa: T484
+            metric if "expressionType" in metric else metric["label"]  # type: ignore
             for metric in metrics
         ]
         self.row_limit = row_limit

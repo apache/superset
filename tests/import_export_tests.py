@@ -14,18 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import json
 import unittest
 
-from flask import Flask, g
+from flask import g
 from sqlalchemy.orm.session import make_transient
 
+from tests.test_app import app
+from superset.utils.dashboard_import_export import decode_dashboards
 from superset import db, security_manager
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.models import core as models
-from superset.utils import core as utils
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+
 from .base_tests import SupersetTestCase
 
 
@@ -34,21 +38,22 @@ class ImportExportTests(SupersetTestCase):
 
     @classmethod
     def delete_imports(cls):
-        # Imported data clean up
-        session = db.session
-        for slc in session.query(models.Slice):
-            if "remote_id" in slc.params_dict:
-                session.delete(slc)
-        for dash in session.query(models.Dashboard):
-            if "remote_id" in dash.params_dict:
-                session.delete(dash)
-        for table in session.query(SqlaTable):
-            if "remote_id" in table.params_dict:
-                session.delete(table)
-        for datasource in session.query(DruidDatasource):
-            if "remote_id" in datasource.params_dict:
-                session.delete(datasource)
-        session.commit()
+        with app.app_context():
+            # Imported data clean up
+            session = db.session
+            for slc in session.query(Slice):
+                if "remote_id" in slc.params_dict:
+                    session.delete(slc)
+            for dash in session.query(Dashboard):
+                if "remote_id" in dash.params_dict:
+                    session.delete(dash)
+            for table in session.query(SqlaTable):
+                if "remote_id" in table.params_dict:
+                    session.delete(table)
+            for datasource in session.query(DruidDatasource):
+                if "remote_id" in datasource.params_dict:
+                    session.delete(datasource)
+            session.commit()
 
     @classmethod
     def setUpClass(cls):
@@ -82,7 +87,7 @@ class ImportExportTests(SupersetTestCase):
             if table:
                 ds_id = table.id
 
-        return models.Slice(
+        return Slice(
             slice_name=name,
             datasource_type="table",
             viz_type="bubble",
@@ -93,7 +98,7 @@ class ImportExportTests(SupersetTestCase):
 
     def create_dashboard(self, title, id=0, slcs=[]):
         json_metadata = {"remote_id": id}
-        return models.Dashboard(
+        return Dashboard(
             id=id,
             dashboard_title=title,
             slices=slcs,
@@ -128,13 +133,13 @@ class ImportExportTests(SupersetTestCase):
         return datasource
 
     def get_slice(self, slc_id):
-        return db.session.query(models.Slice).filter_by(id=slc_id).first()
+        return db.session.query(Slice).filter_by(id=slc_id).first()
 
     def get_slice_by_name(self, name):
-        return db.session.query(models.Slice).filter_by(slice_name=name).first()
+        return db.session.query(Slice).filter_by(slice_name=name).first()
 
     def get_dash(self, dash_id):
-        return db.session.query(models.Dashboard).filter_by(id=dash_id).first()
+        return db.session.query(Dashboard).filter_by(id=dash_id).first()
 
     def get_datasource(self, datasource_id):
         return db.session.query(DruidDatasource).filter_by(id=datasource_id).first()
@@ -143,41 +148,41 @@ class ImportExportTests(SupersetTestCase):
         return db.session.query(SqlaTable).filter_by(table_name=name).first()
 
     def assert_dash_equals(self, expected_dash, actual_dash, check_position=True):
-        self.assertEquals(expected_dash.slug, actual_dash.slug)
-        self.assertEquals(expected_dash.dashboard_title, actual_dash.dashboard_title)
-        self.assertEquals(len(expected_dash.slices), len(actual_dash.slices))
+        self.assertEqual(expected_dash.slug, actual_dash.slug)
+        self.assertEqual(expected_dash.dashboard_title, actual_dash.dashboard_title)
+        self.assertEqual(len(expected_dash.slices), len(actual_dash.slices))
         expected_slices = sorted(expected_dash.slices, key=lambda s: s.slice_name or "")
         actual_slices = sorted(actual_dash.slices, key=lambda s: s.slice_name or "")
         for e_slc, a_slc in zip(expected_slices, actual_slices):
             self.assert_slice_equals(e_slc, a_slc)
         if check_position:
-            self.assertEquals(expected_dash.position_json, actual_dash.position_json)
+            self.assertEqual(expected_dash.position_json, actual_dash.position_json)
 
     def assert_table_equals(self, expected_ds, actual_ds):
-        self.assertEquals(expected_ds.table_name, actual_ds.table_name)
-        self.assertEquals(expected_ds.main_dttm_col, actual_ds.main_dttm_col)
-        self.assertEquals(expected_ds.schema, actual_ds.schema)
-        self.assertEquals(len(expected_ds.metrics), len(actual_ds.metrics))
-        self.assertEquals(len(expected_ds.columns), len(actual_ds.columns))
-        self.assertEquals(
+        self.assertEqual(expected_ds.table_name, actual_ds.table_name)
+        self.assertEqual(expected_ds.main_dttm_col, actual_ds.main_dttm_col)
+        self.assertEqual(expected_ds.schema, actual_ds.schema)
+        self.assertEqual(len(expected_ds.metrics), len(actual_ds.metrics))
+        self.assertEqual(len(expected_ds.columns), len(actual_ds.columns))
+        self.assertEqual(
             set([c.column_name for c in expected_ds.columns]),
             set([c.column_name for c in actual_ds.columns]),
         )
-        self.assertEquals(
+        self.assertEqual(
             set([m.metric_name for m in expected_ds.metrics]),
             set([m.metric_name for m in actual_ds.metrics]),
         )
 
     def assert_datasource_equals(self, expected_ds, actual_ds):
-        self.assertEquals(expected_ds.datasource_name, actual_ds.datasource_name)
-        self.assertEquals(expected_ds.main_dttm_col, actual_ds.main_dttm_col)
-        self.assertEquals(len(expected_ds.metrics), len(actual_ds.metrics))
-        self.assertEquals(len(expected_ds.columns), len(actual_ds.columns))
-        self.assertEquals(
+        self.assertEqual(expected_ds.datasource_name, actual_ds.datasource_name)
+        self.assertEqual(expected_ds.main_dttm_col, actual_ds.main_dttm_col)
+        self.assertEqual(len(expected_ds.metrics), len(actual_ds.metrics))
+        self.assertEqual(len(expected_ds.columns), len(actual_ds.columns))
+        self.assertEqual(
             set([c.column_name for c in expected_ds.columns]),
             set([c.column_name for c in actual_ds.columns]),
         )
-        self.assertEquals(
+        self.assertEqual(
             set([m.metric_name for m in expected_ds.metrics]),
             set([m.metric_name for m in actual_ds.metrics]),
         )
@@ -186,9 +191,9 @@ class ImportExportTests(SupersetTestCase):
         # to avoid bad slice data (no slice_name)
         expected_slc_name = expected_slc.slice_name or ""
         actual_slc_name = actual_slc.slice_name or ""
-        self.assertEquals(expected_slc_name, actual_slc_name)
-        self.assertEquals(expected_slc.datasource_type, actual_slc.datasource_type)
-        self.assertEquals(expected_slc.viz_type, actual_slc.viz_type)
+        self.assertEqual(expected_slc_name, actual_slc_name)
+        self.assertEqual(expected_slc.datasource_type, actual_slc.datasource_type)
+        self.assertEqual(expected_slc.viz_type, actual_slc.viz_type)
         exp_params = json.loads(expected_slc.params)
         actual_params = json.loads(actual_slc.params)
         diff_params_keys = (
@@ -203,7 +208,7 @@ class ImportExportTests(SupersetTestCase):
                 actual_params.pop(k)
             if k in exp_params:
                 exp_params.pop(k)
-        self.assertEquals(exp_params, actual_params)
+        self.assertEqual(exp_params, actual_params)
 
     def assert_only_exported_slc_fields(self, expected_dash, actual_dash):
         """ only exported json has this params
@@ -225,24 +230,23 @@ class ImportExportTests(SupersetTestCase):
         )
         resp = self.client.get(export_dash_url)
         exported_dashboards = json.loads(
-            resp.data.decode("utf-8"), object_hook=utils.decode_dashboards
+            resp.data.decode("utf-8"), object_hook=decode_dashboards
         )["dashboards"]
 
         birth_dash = self.get_dash_by_slug("births")
         self.assert_only_exported_slc_fields(birth_dash, exported_dashboards[0])
         self.assert_dash_equals(birth_dash, exported_dashboards[0])
-        self.assertEquals(
+        self.assertEqual(
             birth_dash.id,
             json.loads(
-                exported_dashboards[0].json_metadata,
-                object_hook=utils.decode_dashboards,
+                exported_dashboards[0].json_metadata, object_hook=decode_dashboards
             )["remote_id"],
         )
 
         exported_tables = json.loads(
-            resp.data.decode("utf-8"), object_hook=utils.decode_dashboards
+            resp.data.decode("utf-8"), object_hook=decode_dashboards
         )["datasources"]
-        self.assertEquals(1, len(exported_tables))
+        self.assertEqual(1, len(exported_tables))
         self.assert_table_equals(
             self.get_table_by_name("birth_names"), exported_tables[0]
         )
@@ -251,29 +255,27 @@ class ImportExportTests(SupersetTestCase):
         self.login("admin")
         birth_dash = self.get_dash_by_slug("births")
         world_health_dash = self.get_dash_by_slug("world_health")
-        export_dash_url = "/dashboard/export_dashboards_form?id={}&id={}&action=go".format(  # noqa ignore: E50
+        export_dash_url = "/dashboard/export_dashboards_form?id={}&id={}&action=go".format(
             birth_dash.id, world_health_dash.id
         )
         resp = self.client.get(export_dash_url)
-        resp_data = json.loads(
-            resp.data.decode("utf-8"), object_hook=utils.decode_dashboards
-        )
+        resp_data = json.loads(resp.data.decode("utf-8"), object_hook=decode_dashboards)
         exported_dashboards = sorted(
             resp_data.get("dashboards"), key=lambda d: d.dashboard_title
         )
-        self.assertEquals(2, len(exported_dashboards))
+        self.assertEqual(2, len(exported_dashboards))
 
         birth_dash = self.get_dash_by_slug("births")
         self.assert_only_exported_slc_fields(birth_dash, exported_dashboards[0])
         self.assert_dash_equals(birth_dash, exported_dashboards[0])
-        self.assertEquals(
+        self.assertEqual(
             birth_dash.id, json.loads(exported_dashboards[0].json_metadata)["remote_id"]
         )
 
         world_health_dash = self.get_dash_by_slug("world_health")
         self.assert_only_exported_slc_fields(world_health_dash, exported_dashboards[1])
         self.assert_dash_equals(world_health_dash, exported_dashboards[1])
-        self.assertEquals(
+        self.assertEqual(
             world_health_dash.id,
             json.loads(exported_dashboards[1].json_metadata)["remote_id"],
         )
@@ -281,7 +283,7 @@ class ImportExportTests(SupersetTestCase):
         exported_tables = sorted(
             resp_data.get("datasources"), key=lambda t: t.table_name
         )
-        self.assertEquals(2, len(exported_tables))
+        self.assertEqual(2, len(exported_tables))
         self.assert_table_equals(
             self.get_table_by_name("birth_names"), exported_tables[0]
         )
@@ -291,53 +293,53 @@ class ImportExportTests(SupersetTestCase):
 
     def test_import_1_slice(self):
         expected_slice = self.create_slice("Import Me", id=10001)
-        slc_id = models.Slice.import_obj(expected_slice, None, import_time=1989)
+        slc_id = Slice.import_obj(expected_slice, None, import_time=1989)
         slc = self.get_slice(slc_id)
-        self.assertEquals(slc.datasource.perm, slc.perm)
+        self.assertEqual(slc.datasource.perm, slc.perm)
         self.assert_slice_equals(expected_slice, slc)
 
         table_id = self.get_table_by_name("wb_health_population").id
-        self.assertEquals(table_id, self.get_slice(slc_id).datasource_id)
+        self.assertEqual(table_id, self.get_slice(slc_id).datasource_id)
 
     def test_import_2_slices_for_same_table(self):
         table_id = self.get_table_by_name("wb_health_population").id
         # table_id != 666, import func will have to find the table
         slc_1 = self.create_slice("Import Me 1", ds_id=666, id=10002)
-        slc_id_1 = models.Slice.import_obj(slc_1, None)
+        slc_id_1 = Slice.import_obj(slc_1, None)
         slc_2 = self.create_slice("Import Me 2", ds_id=666, id=10003)
-        slc_id_2 = models.Slice.import_obj(slc_2, None)
+        slc_id_2 = Slice.import_obj(slc_2, None)
 
         imported_slc_1 = self.get_slice(slc_id_1)
         imported_slc_2 = self.get_slice(slc_id_2)
-        self.assertEquals(table_id, imported_slc_1.datasource_id)
+        self.assertEqual(table_id, imported_slc_1.datasource_id)
         self.assert_slice_equals(slc_1, imported_slc_1)
-        self.assertEquals(imported_slc_1.datasource.perm, imported_slc_1.perm)
+        self.assertEqual(imported_slc_1.datasource.perm, imported_slc_1.perm)
 
-        self.assertEquals(table_id, imported_slc_2.datasource_id)
+        self.assertEqual(table_id, imported_slc_2.datasource_id)
         self.assert_slice_equals(slc_2, imported_slc_2)
-        self.assertEquals(imported_slc_2.datasource.perm, imported_slc_2.perm)
+        self.assertEqual(imported_slc_2.datasource.perm, imported_slc_2.perm)
 
     def test_import_slices_for_non_existent_table(self):
         with self.assertRaises(AttributeError):
-            models.Slice.import_obj(
+            Slice.import_obj(
                 self.create_slice("Import Me 3", id=10004, table_name="non_existent"),
                 None,
             )
 
     def test_import_slices_override(self):
         slc = self.create_slice("Import Me New", id=10005)
-        slc_1_id = models.Slice.import_obj(slc, None, import_time=1990)
+        slc_1_id = Slice.import_obj(slc, None, import_time=1990)
         slc.slice_name = "Import Me New"
         imported_slc_1 = self.get_slice(slc_1_id)
         slc_2 = self.create_slice("Import Me New", id=10005)
-        slc_2_id = models.Slice.import_obj(slc_2, imported_slc_1, import_time=1990)
-        self.assertEquals(slc_1_id, slc_2_id)
+        slc_2_id = Slice.import_obj(slc_2, imported_slc_1, import_time=1990)
+        self.assertEqual(slc_1_id, slc_2_id)
         imported_slc_2 = self.get_slice(slc_2_id)
         self.assert_slice_equals(slc, imported_slc_2)
 
     def test_import_empty_dashboard(self):
         empty_dash = self.create_dashboard("empty_dashboard", id=10001)
-        imported_dash_id = models.Dashboard.import_obj(empty_dash, import_time=1989)
+        imported_dash_id = Dashboard.import_obj(empty_dash, import_time=1989)
         imported_dash = self.get_dash(imported_dash_id)
         self.assert_dash_equals(empty_dash, imported_dash, check_position=False)
 
@@ -362,15 +364,13 @@ class ImportExportTests(SupersetTestCase):
         """.format(
             slc.id
         )
-        imported_dash_id = models.Dashboard.import_obj(
-            dash_with_1_slice, import_time=1990
-        )
+        imported_dash_id = Dashboard.import_obj(dash_with_1_slice, import_time=1990)
         imported_dash = self.get_dash(imported_dash_id)
 
         expected_dash = self.create_dashboard("dash_with_1_slice", slcs=[slc], id=10002)
         make_transient(expected_dash)
         self.assert_dash_equals(expected_dash, imported_dash, check_position=False)
-        self.assertEquals(
+        self.assertEqual(
             {"remote_id": 10002, "import_time": 1990},
             json.loads(imported_dash.json_metadata),
         )
@@ -380,7 +380,7 @@ class ImportExportTests(SupersetTestCase):
         # id from json is used only for updating position with new id
         meta = expected_position["DASHBOARD_CHART_TYPE-10006"]["meta"]
         meta["chartId"] = imported_dash.slices[0].id
-        self.assertEquals(expected_position, imported_dash.position)
+        self.assertEqual(expected_position, imported_dash.position)
 
     def test_import_dashboard_2_slices(self):
         e_slc = self.create_slice("e_slc", id=10007, table_name="energy_usage")
@@ -399,9 +399,7 @@ class ImportExportTests(SupersetTestCase):
             }
         )
 
-        imported_dash_id = models.Dashboard.import_obj(
-            dash_with_2_slices, import_time=1991
-        )
+        imported_dash_id = Dashboard.import_obj(dash_with_2_slices, import_time=1991)
         imported_dash = self.get_dash(imported_dash_id)
 
         expected_dash = self.create_dashboard(
@@ -420,7 +418,7 @@ class ImportExportTests(SupersetTestCase):
                 "{}".format(i_b_slc.id): False,
             },
         }
-        self.assertEquals(
+        self.assertEqual(
             expected_json_metadata, json.loads(imported_dash.json_metadata)
         )
 
@@ -430,9 +428,7 @@ class ImportExportTests(SupersetTestCase):
         dash_to_import = self.create_dashboard(
             "override_dashboard", slcs=[e_slc, b_slc], id=10004
         )
-        imported_dash_id_1 = models.Dashboard.import_obj(
-            dash_to_import, import_time=1992
-        )
+        imported_dash_id_1 = Dashboard.import_obj(dash_to_import, import_time=1992)
 
         # create new instances of the slices
         e_slc = self.create_slice("e_slc", id=10009, table_name="energy_usage")
@@ -441,86 +437,82 @@ class ImportExportTests(SupersetTestCase):
         dash_to_import_override = self.create_dashboard(
             "override_dashboard_new", slcs=[e_slc, b_slc, c_slc], id=10004
         )
-        imported_dash_id_2 = models.Dashboard.import_obj(
+        imported_dash_id_2 = Dashboard.import_obj(
             dash_to_import_override, import_time=1992
         )
 
         # override doesn't change the id
-        self.assertEquals(imported_dash_id_1, imported_dash_id_2)
+        self.assertEqual(imported_dash_id_1, imported_dash_id_2)
         expected_dash = self.create_dashboard(
             "override_dashboard_new", slcs=[e_slc, b_slc, c_slc], id=10004
         )
         make_transient(expected_dash)
         imported_dash = self.get_dash(imported_dash_id_2)
         self.assert_dash_equals(expected_dash, imported_dash, check_position=False)
-        self.assertEquals(
+        self.assertEqual(
             {"remote_id": 10004, "import_time": 1992},
             json.loads(imported_dash.json_metadata),
         )
 
     def test_import_new_dashboard_slice_reset_ownership(self):
-        app = Flask("test_import_dashboard_slice_set_user")
-        with app.app_context():
-            admin_user = security_manager.find_user(username="admin")
-            self.assertTrue(admin_user)
-            gamma_user = security_manager.find_user(username="gamma")
-            self.assertTrue(gamma_user)
-            g.user = gamma_user
+        admin_user = security_manager.find_user(username="admin")
+        self.assertTrue(admin_user)
+        gamma_user = security_manager.find_user(username="gamma")
+        self.assertTrue(gamma_user)
+        g.user = gamma_user
 
-            dash_with_1_slice = self._create_dashboard_for_import(id_=10200)
-            # set another user as an owner of importing dashboard
-            dash_with_1_slice.created_by = admin_user
-            dash_with_1_slice.changed_by = admin_user
-            dash_with_1_slice.owners = [admin_user]
+        dash_with_1_slice = self._create_dashboard_for_import(id_=10200)
+        # set another user as an owner of importing dashboard
+        dash_with_1_slice.created_by = admin_user
+        dash_with_1_slice.changed_by = admin_user
+        dash_with_1_slice.owners = [admin_user]
 
-            imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
-            imported_dash = self.get_dash(imported_dash_id)
-            self.assertEqual(imported_dash.created_by, gamma_user)
-            self.assertEqual(imported_dash.changed_by, gamma_user)
-            self.assertEqual(imported_dash.owners, [gamma_user])
+        imported_dash_id = Dashboard.import_obj(dash_with_1_slice)
+        imported_dash = self.get_dash(imported_dash_id)
+        self.assertEqual(imported_dash.created_by, gamma_user)
+        self.assertEqual(imported_dash.changed_by, gamma_user)
+        self.assertEqual(imported_dash.owners, [gamma_user])
 
-            imported_slc = imported_dash.slices[0]
-            self.assertEqual(imported_slc.created_by, gamma_user)
-            self.assertEqual(imported_slc.changed_by, gamma_user)
-            self.assertEqual(imported_slc.owners, [gamma_user])
+        imported_slc = imported_dash.slices[0]
+        self.assertEqual(imported_slc.created_by, gamma_user)
+        self.assertEqual(imported_slc.changed_by, gamma_user)
+        self.assertEqual(imported_slc.owners, [gamma_user])
 
     def test_import_override_dashboard_slice_reset_ownership(self):
-        app = Flask("test_import_dashboard_slice_set_user")
-        with app.app_context():
-            admin_user = security_manager.find_user(username="admin")
-            self.assertTrue(admin_user)
-            gamma_user = security_manager.find_user(username="gamma")
-            self.assertTrue(gamma_user)
-            g.user = gamma_user
+        admin_user = security_manager.find_user(username="admin")
+        self.assertTrue(admin_user)
+        gamma_user = security_manager.find_user(username="gamma")
+        self.assertTrue(gamma_user)
+        g.user = gamma_user
 
-            dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
+        dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
 
-            imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
-            imported_dash = self.get_dash(imported_dash_id)
-            self.assertEqual(imported_dash.created_by, gamma_user)
-            self.assertEqual(imported_dash.changed_by, gamma_user)
-            self.assertEqual(imported_dash.owners, [gamma_user])
+        imported_dash_id = Dashboard.import_obj(dash_with_1_slice)
+        imported_dash = self.get_dash(imported_dash_id)
+        self.assertEqual(imported_dash.created_by, gamma_user)
+        self.assertEqual(imported_dash.changed_by, gamma_user)
+        self.assertEqual(imported_dash.owners, [gamma_user])
 
-            imported_slc = imported_dash.slices[0]
-            self.assertEqual(imported_slc.created_by, gamma_user)
-            self.assertEqual(imported_slc.changed_by, gamma_user)
-            self.assertEqual(imported_slc.owners, [gamma_user])
+        imported_slc = imported_dash.slices[0]
+        self.assertEqual(imported_slc.created_by, gamma_user)
+        self.assertEqual(imported_slc.changed_by, gamma_user)
+        self.assertEqual(imported_slc.owners, [gamma_user])
 
-            # re-import with another user shouldn't change the permissions
-            g.user = admin_user
+        # re-import with another user shouldn't change the permissions
+        g.user = admin_user
 
-            dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
+        dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
 
-            imported_dash_id = models.Dashboard.import_obj(dash_with_1_slice)
-            imported_dash = self.get_dash(imported_dash_id)
-            self.assertEqual(imported_dash.created_by, gamma_user)
-            self.assertEqual(imported_dash.changed_by, gamma_user)
-            self.assertEqual(imported_dash.owners, [gamma_user])
+        imported_dash_id = Dashboard.import_obj(dash_with_1_slice)
+        imported_dash = self.get_dash(imported_dash_id)
+        self.assertEqual(imported_dash.created_by, gamma_user)
+        self.assertEqual(imported_dash.changed_by, gamma_user)
+        self.assertEqual(imported_dash.owners, [gamma_user])
 
-            imported_slc = imported_dash.slices[0]
-            self.assertEqual(imported_slc.created_by, gamma_user)
-            self.assertEqual(imported_slc.changed_by, gamma_user)
-            self.assertEqual(imported_slc.owners, [gamma_user])
+        imported_slc = imported_dash.slices[0]
+        self.assertEqual(imported_slc.created_by, gamma_user)
+        self.assertEqual(imported_slc.changed_by, gamma_user)
+        self.assertEqual(imported_slc.owners, [gamma_user])
 
     def _create_dashboard_for_import(self, id_=10100):
         slc = self.create_slice("health_slc" + str(id_), id=id_ + 1)
@@ -558,7 +550,7 @@ class ImportExportTests(SupersetTestCase):
         imported_id = SqlaTable.import_obj(table, import_time=1990)
         imported = self.get_table(imported_id)
         self.assert_table_equals(table, imported)
-        self.assertEquals(
+        self.assertEqual(
             {"remote_id": 10002, "import_time": 1990, "database_name": "examples"},
             json.loads(imported.params),
         )
@@ -590,7 +582,7 @@ class ImportExportTests(SupersetTestCase):
         imported_over_id = SqlaTable.import_obj(table_over, import_time=1992)
 
         imported_over = self.get_table(imported_over_id)
-        self.assertEquals(imported_id, imported_over.id)
+        self.assertEqual(imported_id, imported_over.id)
         expected_table = self.create_table(
             "table_override",
             id=10003,
@@ -616,7 +608,7 @@ class ImportExportTests(SupersetTestCase):
         )
         imported_id_copy = SqlaTable.import_obj(copy_table, import_time=1994)
 
-        self.assertEquals(imported_id, imported_id_copy)
+        self.assertEqual(imported_id, imported_id_copy)
         self.assert_table_equals(copy_table, self.get_table(imported_id))
 
     def test_import_druid_no_metadata(self):
@@ -632,7 +624,7 @@ class ImportExportTests(SupersetTestCase):
         imported_id = DruidDatasource.import_obj(datasource, import_time=1990)
         imported = self.get_datasource(imported_id)
         self.assert_datasource_equals(datasource, imported)
-        self.assertEquals(
+        self.assertEqual(
             {"remote_id": 10002, "import_time": 1990, "database_name": "druid_test"},
             json.loads(imported.params),
         )
@@ -662,7 +654,7 @@ class ImportExportTests(SupersetTestCase):
         imported_over_id = DruidDatasource.import_obj(table_over, import_time=1992)
 
         imported_over = self.get_datasource(imported_over_id)
-        self.assertEquals(imported_id, imported_over.id)
+        self.assertEqual(imported_id, imported_over.id)
         expected_datasource = self.create_druid_datasource(
             "druid_override",
             id=10004,
@@ -688,7 +680,7 @@ class ImportExportTests(SupersetTestCase):
         )
         imported_id_copy = DruidDatasource.import_obj(copy_datasource, import_time=1994)
 
-        self.assertEquals(imported_id, imported_id_copy)
+        self.assertEqual(imported_id, imported_id_copy)
         self.assert_datasource_equals(copy_datasource, self.get_datasource(imported_id))
 
 

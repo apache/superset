@@ -25,9 +25,7 @@ import Welcome from '../../../src/welcome/Welcome';
 describe('Welcome', () => {
   const mockedProps = {};
   it('is valid', () => {
-    expect(
-      React.isValidElement(<Welcome {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<Welcome {...mockedProps} />)).toBe(true);
   });
   it('renders 4 Tab, Panel, and Row components', () => {
     const wrapper = shallow(<Welcome {...mockedProps} />);

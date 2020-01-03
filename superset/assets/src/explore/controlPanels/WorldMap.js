@@ -25,22 +25,26 @@ export default {
       expanded: true,
       controlSetRows: [
         ['entity'],
-        [{
-          name: 'country_fieldtype',
-          config: {
-            type: 'SelectControl',
-            label: t('Country Field Type'),
-            default: 'cca2',
-            choices: [
-              ['name', 'Full name'],
-              ['cioc', 'code International Olympic Committee (cioc)'],
-              ['cca2', 'code ISO 3166-1 alpha-2 (cca2)'],
-              ['cca3', 'code ISO 3166-1 alpha-3 (cca3)'],
-            ],
-            description: t('The country code standard that Superset should expect ' +
-              'to find in the [country] column'),
+        [
+          {
+            name: 'country_fieldtype',
+            config: {
+              type: 'SelectControl',
+              label: t('Country Field Type'),
+              default: 'cca2',
+              choices: [
+                ['name', 'Full name'],
+                ['cioc', 'code International Olympic Committee (cioc)'],
+                ['cca2', 'code ISO 3166-1 alpha-2 (cca2)'],
+                ['cca3', 'code ISO 3166-1 alpha-3 (cca3)'],
+              ],
+              description: t(
+                'The country code standard that Superset should expect ' +
+                  'to find in the [country] column',
+              ),
+            },
           },
-        }],
+        ],
         ['metric'],
         ['adhoc_filters'],
         ['row_limit'],
@@ -49,16 +53,18 @@ export default {
     {
       label: t('Bubbles'),
       controlSetRows: [
-        [{
-          name: 'show_bubbles',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Show Bubbles'),
-            default: false,
-            renderTrigger: true,
-            description: t('Whether to display bubbles on top of countries'),
+        [
+          {
+            name: 'show_bubbles',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Bubbles'),
+              default: false,
+              renderTrigger: true,
+              description: t('Whether to display bubbles on top of countries'),
+            },
           },
-        }],
+        ],
         ['secondary_metric'],
         ['max_bubble_size'],
       ],

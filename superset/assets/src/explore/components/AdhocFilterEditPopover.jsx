@@ -31,11 +31,13 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
   onResize: PropTypes.func.isRequired,
-  options: PropTypes.arrayOf(PropTypes.oneOfType([
-    columnType,
-    PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
-    adhocMetricType,
-  ])).isRequired,
+  options: PropTypes.arrayOf(
+    PropTypes.oneOfType([
+      columnType,
+      PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
+      adhocMetricType,
+    ]),
+  ).isRequired,
   datasource: PropTypes.object,
 };
 
@@ -88,8 +90,14 @@ export default class AdhocFilterEditPopover extends React.Component {
   onMouseMove(e) {
     this.props.onResize();
     this.setState({
-      width: Math.max(this.dragStartWidth + (e.clientX - this.dragStartX), startingWidth),
-      height: Math.max(this.dragStartHeight + (e.clientY - this.dragStartY) * 2, startingHeight),
+      width: Math.max(
+        this.dragStartWidth + (e.clientX - this.dragStartX),
+        startingWidth,
+      ),
+      height: Math.max(
+        this.dragStartHeight + (e.clientY - this.dragStartY) * 2,
+        startingHeight,
+      ),
     });
   }
 
@@ -118,10 +126,7 @@ export default class AdhocFilterEditPopover extends React.Component {
     const hasUnsavedChanges = !adhocFilter.equals(propsAdhocFilter);
 
     return (
-      <Popover
-        id="filter-edit-popover"
-        {...popoverProps}
-      >
+      <Popover id="filter-edit-popover" {...popoverProps}>
         <Tabs
           id="adhoc-filter-edit-tabs"
           defaultActiveKey={adhocFilter.expressionType}
@@ -146,32 +151,38 @@ export default class AdhocFilterEditPopover extends React.Component {
             eventKey={EXPRESSION_TYPES.SQL}
             title="Custom SQL"
           >
-            {
-              (!this.props.datasource || this.props.datasource.type !== 'druid') ?
-                <AdhocFilterEditPopoverSqlTabContent
-                  adhocFilter={this.state.adhocFilter}
-                  onChange={this.onAdhocFilterChange}
-                  options={this.props.options}
-                  height={this.state.height}
-                /> :
-                <div className="custom-sql-disabled-message">
-                  Custom SQL Filters are not available on druid datasources
-                </div>
-            }
+            {!this.props.datasource ||
+            this.props.datasource.type !== 'druid' ? (
+              <AdhocFilterEditPopoverSqlTabContent
+                adhocFilter={this.state.adhocFilter}
+                onChange={this.onAdhocFilterChange}
+                options={this.props.options}
+                height={this.state.height}
+              />
+            ) : (
+              <div className="custom-sql-disabled-message">
+                Custom SQL Filters are not available on druid datasources
+              </div>
+            )}
           </Tab>
         </Tabs>
         <div>
           <Button
             disabled={!stateIsValid}
-            bsStyle={(hasUnsavedChanges && stateIsValid) ? 'primary' : 'default'}
+            bsStyle={hasUnsavedChanges && stateIsValid ? 'primary' : 'default'}
             bsSize="small"
             className="m-r-5"
             onClick={this.onSave}
           >
             Save
           </Button>
-          <Button bsSize="small" onClick={this.props.onClose}>Close</Button>
-          <i onMouseDown={this.onDragDown} className="glyphicon glyphicon-resize-full edit-popover-resize" />
+          <Button bsSize="small" onClick={this.props.onClose}>
+            Close
+          </Button>
+          <i
+            onMouseDown={this.onDragDown}
+            className="glyphicon glyphicon-resize-full edit-popover-resize"
+          />
         </div>
       </Popover>
     );

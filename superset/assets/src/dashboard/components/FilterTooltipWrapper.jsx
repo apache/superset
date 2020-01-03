@@ -55,7 +55,7 @@ class FilterTooltipWrapper extends React.Component {
   render() {
     const { show, target } = this.state;
     return (
-      <React.Fragment>
+      <>
         <Overlay container={this} target={target} show={show} placement="left">
           <Tooltip id="filter-indicator-tooltip">
             <div onMouseOver={this.showTooltip} onMouseOut={this.hideTooltip}>
@@ -72,7 +72,7 @@ class FilterTooltipWrapper extends React.Component {
         >
           {this.props.children}
         </div>
-      </React.Fragment>
+      </>
     );
   }
 }

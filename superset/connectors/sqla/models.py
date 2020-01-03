@@ -15,17 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from collections import OrderedDict
-from datetime import datetime
 import logging
 import re
-from typing import Any, Dict, List, NamedTuple, Optional, Union
+from collections import OrderedDict
+from datetime import datetime
+from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
+import pandas as pd
+import sqlalchemy as sa
+import sqlparse
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
-import pandas as pd
-import sqlalchemy as sa
 from sqlalchemy import (
     and_,
     asc,
@@ -47,10 +48,10 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
-import sqlparse
 
 from superset import app, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.exceptions import DatabaseNotFound
 from superset.jinja_context import get_template_processor
@@ -83,7 +84,7 @@ class AnnotationDatasource(BaseDatasource):
 
     cache_timeout = 0
 
-    def query(self, query_obj: Dict) -> QueryResult:
+    def query(self, query_obj: Dict[str, Any]) -> QueryResult:
         df = None
         error_message = None
         qry = db.session.query(Annotation)
@@ -126,7 +127,7 @@ class TableColumn(Model, BaseColumn):
     expression = Column(Text)
     python_date_format = Column(String(255))
 
-    export_fields = (
+    export_fields = [
         "table_id",
         "column_name",
         "verbose_name",
@@ -138,7 +139,7 @@ class TableColumn(Model, BaseColumn):
         "expression",
         "description",
         "python_date_format",
-    )
+    ]
 
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
     export_parent = "table"
@@ -159,14 +160,29 @@ class TableColumn(Model, BaseColumn):
         return self.table
 
     def get_time_filter(
-        self, start_dttm: DateTime, end_dttm: DateTime
+        self,
+        start_dttm: DateTime,
+        end_dttm: DateTime,
+        time_range_endpoints: Optional[
+            Tuple[utils.TimeRangeEndpoint, utils.TimeRangeEndpoint]
+        ],
     ) -> ColumnElement:
         col = self.get_sqla_col(label="__time")
-        l = []  # noqa: E741
+        l = []
         if start_dttm:
-            l.append(col >= text(self.dttm_sql_literal(start_dttm)))
+            l.append(
+                col >= text(self.dttm_sql_literal(start_dttm, time_range_endpoints))
+            )
         if end_dttm:
-            l.append(col <= text(self.dttm_sql_literal(end_dttm)))
+            if (
+                time_range_endpoints
+                and time_range_endpoints[1] == utils.TimeRangeEndpoint.EXCLUSIVE
+            ):
+                l.append(
+                    col < text(self.dttm_sql_literal(end_dttm, time_range_endpoints))
+                )
+            else:
+                l.append(col <= text(self.dttm_sql_literal(end_dttm, None)))
         return and_(*l)
 
     def get_timestamp_expression(
@@ -207,19 +223,47 @@ class TableColumn(Model, BaseColumn):
 
         return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
-    def dttm_sql_literal(self, dttm: DateTime) -> str:
+    def dttm_sql_literal(
+        self,
+        dttm: DateTime,
+        time_range_endpoints: Optional[
+            Tuple[utils.TimeRangeEndpoint, utils.TimeRangeEndpoint]
+        ],
+    ) -> str:
         """Convert datetime object to a SQL expression string"""
+        sql = (
+            self.table.database.db_engine_spec.convert_dttm(self.type, dttm)
+            if self.type
+            else None
+        )
+
+        if sql:
+            return sql
+
         tf = self.python_date_format
+
+        # Fallback to the default format (if defined) only if the SIP-15 time range
+        # endpoints, i.e., [start, end) are enabled.
+        if not tf and time_range_endpoints == (
+            utils.TimeRangeEndpoint.INCLUSIVE,
+            utils.TimeRangeEndpoint.EXCLUSIVE,
+        ):
+            tf = (
+                self.table.database.get_extra()
+                .get("python_date_format_by_column_name", {})
+                .get(self.column_name)
+            )
+
         if tf:
-            seconds_since_epoch = int(dttm.timestamp())
-            if tf == "epoch_s":
-                return str(seconds_since_epoch)
-            elif tf == "epoch_ms":
+            if tf in ["epoch_ms", "epoch_s"]:
+                seconds_since_epoch = int(dttm.timestamp())
+                if tf == "epoch_s":
+                    return str(seconds_since_epoch)
                 return str(seconds_since_epoch * 1000)
-            return "'{}'".format(dttm.strftime(tf))
-        else:
-            s = self.table.database.db_engine_spec.convert_dttm(self.type or "", dttm)
-            return s or "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S.%f"))
+            return f"'{dttm.strftime(tf)}'"
+
+        # TODO(john-bodley): SIP-15 will explicitly require a type conversion.
+        return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
 
 class SqlMetric(Model, BaseMetric):
@@ -236,7 +280,7 @@ class SqlMetric(Model, BaseMetric):
     )
     expression = Column(Text, nullable=False)
 
-    export_fields = (
+    export_fields = [
         "metric_name",
         "verbose_name",
         "metric_type",
@@ -245,7 +289,7 @@ class SqlMetric(Model, BaseMetric):
         "description",
         "d3format",
         "warning_text",
-    )
+    ]
     update_from_object_fields = list(
         [s for s in export_fields if s not in ("table_id",)]
     )
@@ -306,7 +350,7 @@ class SqlaTable(Model, BaseDatasource):
     __tablename__ = "tables"
     __table_args__ = (UniqueConstraint("database_id", "table_name"),)
 
-    table_name = Column(String(250))
+    table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     fetch_values_predicate = Column(String(1000))
@@ -323,7 +367,7 @@ class SqlaTable(Model, BaseDatasource):
 
     baselink = "tablemodelview"
 
-    export_fields = (
+    export_fields = [
         "table_name",
         "main_dttm_col",
         "description",
@@ -337,7 +381,7 @@ class SqlaTable(Model, BaseDatasource):
         "template_params",
         "filter_select_enabled",
         "fetch_values_predicate",
-    )
+    ]
     update_from_object_fields = [
         f for f in export_fields if f not in ("table_name", "database_id")
     ]
@@ -416,8 +460,7 @@ class SqlaTable(Model, BaseDatasource):
         anchor = f'<a target="_blank" href="{self.explore_url}">{name}</a>'
         return Markup(anchor)
 
-    @property
-    def schema_perm(self) -> Optional[str]:
+    def get_schema_perm(self) -> Optional[str]:
         """Returns schema permission if present, database one otherwise."""
         return security_manager.get_schema_perm(self.database, self.schema)
 
@@ -425,7 +468,7 @@ class SqlaTable(Model, BaseDatasource):
         return ("[{obj.database}].[{obj.table_name}]" "(id:{obj.id})").format(obj=self)
 
     @property
-    def name(self) -> str:
+    def name(self) -> str:  # type: ignore
         if not self.schema:
             return self.table_name
         return "{}.{}".format(self.schema, self.table_name)
@@ -438,7 +481,7 @@ class SqlaTable(Model, BaseDatasource):
 
     @property
     def dttm_cols(self) -> List:
-        l = [c.column_name for c in self.columns if c.is_dttm]  # noqa: E741
+        l = [c.column_name for c in self.columns if c.is_dttm]
         if self.main_dttm_col and self.main_dttm_col not in l:
             l.append(self.main_dttm_col)
         return l
@@ -487,19 +530,16 @@ class SqlaTable(Model, BaseDatasource):
         # show_cols and latest_partition set to false to avoid
         # the expensive cost of inspecting the DB
         return self.database.select_star(
-            self.table_name, schema=self.schema, show_cols=False, latest_partition=False
+            self.table_name,
+            sql=self.sql,
+            schema=self.schema,
+            show_cols=False,
+            latest_partition=False,
         )
-
-    def get_col(self, col_name: str) -> Optional[Column]:
-        columns = self.columns
-        for col in columns:
-            if col_name == col.column_name:
-                return col
-        return None
 
     @property
     def data(self) -> Dict:
-        d = super(SqlaTable, self).data
+        d = super().data
         if self.type == "table":
             grains = self.database.grains() or []
             if grains:
@@ -542,7 +582,7 @@ class SqlaTable(Model, BaseDatasource):
         """Apply config's SQL_QUERY_MUTATOR
 
         Typically adds comments to the query with context"""
-        SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR")
+        SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
         if SQL_QUERY_MUTATOR:
             username = utils.get_username()
             sql = SQL_QUERY_MUTATOR(sql, username, security_manager, self.database)
@@ -551,7 +591,7 @@ class SqlaTable(Model, BaseDatasource):
     def get_template_processor(self, **kwargs):
         return get_template_processor(table=self, database=self.database, **kwargs)
 
-    def get_query_str_extended(self, query_obj: Dict) -> QueryStringExtended:
+    def get_query_str_extended(self, query_obj: Dict[str, Any]) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         logging.info(sql)
@@ -561,7 +601,7 @@ class SqlaTable(Model, BaseDatasource):
             labels_expected=sqlaq.labels_expected, sql=sql, prequeries=sqlaq.prequeries
         )
 
-    def get_query_str(self, query_obj: Dict) -> str:
+    def get_query_str(self, query_obj: Dict[str, Any]) -> str:
         query_str_ext = self.get_query_str_extended(query_obj)
         all_queries = query_str_ext.prequeries + [query_str_ext.sql]
         return ";\n\n".join(all_queries) + ";"
@@ -616,7 +656,7 @@ class SqlaTable(Model, BaseDatasource):
         granularity,
         from_dttm,
         to_dttm,
-        filter=None,  # noqa
+        filter=None,
         is_timeseries=True,
         timeseries_limit=15,
         timeseries_limit_metric=None,
@@ -703,6 +743,7 @@ class SqlaTable(Model, BaseDatasource):
                 )
             metrics_exprs = []
 
+        time_range_endpoints = extras.get("time_range_endpoints")
         groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
         if granularity:
             dttm_col = cols[granularity]
@@ -714,16 +755,20 @@ class SqlaTable(Model, BaseDatasource):
                 select_exprs += [timestamp]
                 groupby_exprs_with_timestamp[timestamp.name] = timestamp
 
-            # Use main dttm column to support index with secondary dttm columns
+            # Use main dttm column to support index with secondary dttm columns.
             if (
                 db_engine_spec.time_secondary_columns
                 and self.main_dttm_col in self.dttm_cols
                 and self.main_dttm_col != dttm_col.column_name
             ):
                 time_filters.append(
-                    cols[self.main_dttm_col].get_time_filter(from_dttm, to_dttm)
+                    cols[self.main_dttm_col].get_time_filter(
+                        from_dttm, to_dttm, time_range_endpoints
+                    )
                 )
-            time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
+            time_filters.append(
+                dttm_col.get_time_filter(from_dttm, to_dttm, time_range_endpoints)
+            )
 
         select_exprs += metrics_exprs
 
@@ -756,8 +801,8 @@ class SqlaTable(Model, BaseDatasource):
                 )
                 if op in ("in", "not in"):
                     cond = col_obj.get_sqla_col().in_(eq)
-                    if "<NULL>" in eq:
-                        cond = or_(cond, col_obj.get_sqla_col() == None)  # noqa
+                    if NULL_STRING in eq:
+                        cond = or_(cond, col_obj.get_sqla_col() == None)
                     if op == "not in":
                         cond = ~cond
                     where_clause_and.append(cond)
@@ -779,9 +824,9 @@ class SqlaTable(Model, BaseDatasource):
                     elif op == "LIKE":
                         where_clause_and.append(col_obj.get_sqla_col().like(eq))
                     elif op == "IS NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() == None)  # noqa
+                        where_clause_and.append(col_obj.get_sqla_col() == None)
                     elif op == "IS NOT NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() != None)  # noqa
+                        where_clause_and.append(col_obj.get_sqla_col() != None)
         if extras:
             where = extras.get("where")
             if where:
@@ -829,7 +874,9 @@ class SqlaTable(Model, BaseDatasource):
                 inner_select_exprs += [inner_main_metric_expr]
                 subq = select(inner_select_exprs).select_from(tbl)
                 inner_time_filter = dttm_col.get_time_filter(
-                    inner_from_dttm or from_dttm, inner_to_dttm or to_dttm
+                    inner_from_dttm or from_dttm,
+                    inner_to_dttm or to_dttm,
+                    time_range_endpoints,
                 )
                 subq = subq.where(and_(*(where_clause_and + [inner_time_filter])))
                 subq = subq.group_by(*inner_groupby_exprs)
@@ -922,14 +969,23 @@ class SqlaTable(Model, BaseDatasource):
 
         return or_(*groups)
 
-    def query(self, query_obj: Dict) -> QueryResult:
+    def query(self, query_obj: Dict[str, Any]) -> QueryResult:
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
         status = utils.QueryStatus.SUCCESS
         error_message = None
 
-        def mutator(df):
+        def mutator(df: pd.DataFrame) -> None:
+            """
+            Some engines change the case or generate bespoke column names, either by
+            default or due to lack of support for aliasing. This function ensures that
+            the column names in the DataFrame correspond to what is expected by
+            the viz components.
+
+            :param df: Original DataFrame returned by the engine
+            """
+
             labels_expected = query_str_ext.labels_expected
             if df is not None and not df.empty:
                 if len(df.columns) != len(labels_expected):
@@ -939,7 +995,6 @@ class SqlaTable(Model, BaseDatasource):
                     )
                 else:
                     df.columns = labels_expected
-            return df
 
         try:
             df = self.database.get_df(sql, self.schema, mutator)
@@ -974,7 +1029,7 @@ class SqlaTable(Model, BaseDatasource):
                 ).format(self.table_name)
             )
 
-        M = SqlMetric  # noqa
+        M = SqlMetric
         metrics = []
         any_date_col = None
         db_engine_spec = self.database.db_engine_spec
@@ -1081,13 +1136,16 @@ class SqlaTable(Model, BaseDatasource):
     def default_query(qry) -> Query:
         return qry.filter_by(is_sqllab_view=False)
 
-    def has_extra_cache_keys(self, query_obj: Dict) -> bool:
+    def has_calls_to_cache_key_wrapper(self, query_obj: Dict[str, Any]) -> bool:
         """
-        Detects the presence of calls to cache_key_wrapper in items in query_obj that can
-        be templated.
+        Detects the presence of calls to `cache_key_wrapper` in items in query_obj that
+        can be templated. If any are present, the query must be evaluated to extract
+        additional keys for the cache key. This method is needed to avoid executing
+        the template code unnecessarily, as it may contain expensive calls, e.g. to
+        extract the latest partition of a database.
 
         :param query_obj: query object to analyze
-        :return: True if at least one item calls cache_key_wrapper, otherwise False
+        :return: True if at least one item calls `cache_key_wrapper`, otherwise False
         """
         regex = re.compile(r"\{\{.*cache_key_wrapper\(.*\).*\}\}")
         templatable_statements: List[str] = []
@@ -1105,12 +1163,19 @@ class SqlaTable(Model, BaseDatasource):
                 return True
         return False
 
-    def get_extra_cache_keys(self, query_obj: Dict) -> List[Any]:
-        if self.has_extra_cache_keys(query_obj):
+    def get_extra_cache_keys(self, query_obj: Dict[str, Any]) -> List[Hashable]:
+        """
+        The cache key of a SqlaTable needs to consider any keys added by the parent class
+        and any keys added via `cache_key_wrapper`.
+
+        :param query_obj: query object to analyze
+        :return: True if at least one item calls `cache_key_wrapper`, otherwise False
+        """
+        extra_cache_keys = super().get_extra_cache_keys(query_obj)
+        if self.has_calls_to_cache_key_wrapper(query_obj):
             sqla_query = self.get_sqla_query(**query_obj)
-            extra_cache_keys = sqla_query.extra_cache_keys
-            return extra_cache_keys
-        return []
+            extra_cache_keys += sqla_query.extra_cache_keys
+        return extra_cache_keys
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)

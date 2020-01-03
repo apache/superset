@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 
-
+# pylint: disable=protected-access
 # TODO: contribute back to pyhive.
-def fetch_logs(self, max_rows=1024, orientation=None):
+def fetch_logs(
+    self, max_rows=1024, orientation=None
+):  # pylint: disable=unused-argument
     """Mocked. Retrieve the logs produced by the execution of the query.
     Can be called multiple times to fetch the logs produced after
     the previous call.
@@ -27,8 +28,8 @@ def fetch_logs(self, max_rows=1024, orientation=None):
     .. note::
         This is not a part of DB-API.
     """
-    from pyhive import hive  # noqa
-    from TCLIService import ttypes  # noqa
+    from pyhive import hive
+    from TCLIService import ttypes
     from thrift import Thrift  # pylint: disable=import-error
 
     orientation = orientation or ttypes.TFetchOrientation.FETCH_NEXT

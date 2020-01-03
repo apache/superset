@@ -25,10 +25,7 @@ import ControlHeader from '../ControlHeader';
 const propTypes = {
   onChange: PropTypes.func,
   onFocus: PropTypes.func,
-  value: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.number,
-  ]),
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   isFloat: PropTypes.bool,
   isInt: PropTypes.bool,
   disabled: PropTypes.bool,
@@ -73,7 +70,10 @@ export default class TextControl extends React.Component {
   }
   render() {
     const { value: rawValue } = this.props;
-    const value = typeof rawValue !== 'undefined' && rawValue !== null ? rawValue.toString() : '';
+    const value =
+      typeof rawValue !== 'undefined' && rawValue !== null
+        ? rawValue.toString()
+        : '';
     return (
       <div>
         <ControlHeader {...this.props} />

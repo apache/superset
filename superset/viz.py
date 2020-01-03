@@ -20,34 +20,36 @@
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
-from collections import defaultdict, OrderedDict
 import copy
-from datetime import datetime, timedelta
-from functools import reduce
 import hashlib
 import inspect
-from itertools import product
 import logging
 import math
 import pickle as pkl
 import re
-from typing import Any, Dict, List, Optional
 import uuid
+from collections import defaultdict, OrderedDict
+from datetime import datetime, timedelta
+from functools import reduce
+from itertools import product
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
+import geohash
+import numpy as np
+import pandas as pd
+import polyline
+import simplejson as json
 from dateutil import relativedelta as rdelta
 from flask import request
 from flask_babel import lazy_gettext as _
-import geohash
 from geopy.point import Point
 from markdown import markdown
-import numpy as np
-import pandas as pd
 from pandas.tseries.frequencies import to_offset
-import polyline
-import simplejson as json
 
 from superset import app, cache, get_css_manifest_files
+from superset.constants import NULL_STRING
 from superset.exceptions import NullValueException, SpatialException
+from superset.models.helpers import QueryResult
 from superset.utils import core as utils
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -56,11 +58,13 @@ from superset.utils.core import (
     to_adhoc,
 )
 
+if TYPE_CHECKING:
+    from superset.connectors.base.models import BaseDatasource
 
 config = app.config
-stats_logger = config.get("STATS_LOGGER")
-relative_start = config.get("DEFAULT_RELATIVE_START_TIME", "today")
-relative_end = config.get("DEFAULT_RELATIVE_END_TIME", "today")
+stats_logger = config["STATS_LOGGER"]
+relative_start = config["DEFAULT_RELATIVE_START_TIME"]
+relative_end = config["DEFAULT_RELATIVE_END_TIME"]
 
 METRIC_KEYS = [
     "metric",
@@ -74,7 +78,7 @@ METRIC_KEYS = [
 ]
 
 
-class BaseViz(object):
+class BaseViz:
 
     """All visualizations derive this base class"""
 
@@ -85,7 +89,12 @@ class BaseViz(object):
     cache_type = "df"
     enforce_numerical_metrics = True
 
-    def __init__(self, datasource, form_data, force=False):
+    def __init__(
+        self,
+        datasource: "BaseDatasource",
+        form_data: Dict[str, Any],
+        force: bool = False,
+    ):
         if not datasource:
             raise Exception(_("Viz is missing a datasource"))
 
@@ -102,7 +111,7 @@ class BaseViz(object):
 
         self.status = None
         self.error_msg = ""
-        self.results = None
+        self.results: Optional[QueryResult] = None
         self.error_message = None
         self.force = force
 
@@ -110,10 +119,9 @@ class BaseViz(object):
         # this is useful to trigger the <CachedLabel /> when
         # in the cases where visualization have many queries
         # (FilterBox for instance)
-        self._some_from_cache = False
-        self._any_cache_key = None
-        self._any_cached_dttm = None
-        self._extra_chart_data = []
+        self._any_cache_key: Optional[str] = None
+        self._any_cached_dttm: Optional[str] = None
+        self._extra_chart_data: List[Tuple[str, pd.DataFrame]] = []
 
         self.process_metrics()
 
@@ -195,9 +203,9 @@ class BaseViz(object):
 
         timestamp_format = None
         if self.datasource.type == "table":
-            dttm_col = self.datasource.get_col(query_obj["granularity"])
-            if dttm_col:
-                timestamp_format = dttm_col.python_date_format
+            granularity_col = self.datasource.get_column(query_obj["granularity"])
+            if granularity_col:
+                timestamp_format = granularity_col.python_date_format
 
         # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(query_obj)
@@ -258,17 +266,14 @@ class BaseViz(object):
         merge_extra_filters(self.form_data)
         utils.split_adhoc_filters_into_base_filters(self.form_data)
 
-    def query_obj(self):
+    def query_obj(self) -> Dict[str, Any]:
         """Building a query object"""
         form_data = self.form_data
         self.process_query_filters()
         gb = form_data.get("groupby") or []
         metrics = self.all_metrics or []
         columns = form_data.get("columns") or []
-        groupby = []
-        for o in gb + columns:
-            if o not in groupby:
-                groupby.append(o)
+        groupby = list(set(gb + columns))
 
         is_timeseries = self.is_timeseries
         if DTTM_ALIAS in groupby:
@@ -278,7 +283,7 @@ class BaseViz(object):
         granularity = form_data.get("granularity") or form_data.get("granularity_sqla")
         limit = int(form_data.get("limit") or 0)
         timeseries_limit_metric = form_data.get("timeseries_limit_metric")
-        row_limit = int(form_data.get("row_limit") or config.get("ROW_LIMIT"))
+        row_limit = int(form_data.get("row_limit") or config["ROW_LIMIT"])
 
         # default order direction
         order_desc = form_data.get("order_desc", True)
@@ -303,11 +308,12 @@ class BaseViz(object):
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
         extras = {
-            "where": form_data.get("where", ""),
+            "druid_time_origin": form_data.get("druid_time_origin", ""),
             "having": form_data.get("having", ""),
             "having_druid": form_data.get("having_filters", []),
             "time_grain_sqla": form_data.get("time_grain_sqla", ""),
-            "druid_time_origin": form_data.get("druid_time_origin", ""),
+            "time_range_endpoints": form_data.get("time_range_endpoints"),
+            "where": form_data.get("where", ""),
         }
 
         d = {
@@ -337,7 +343,7 @@ class BaseViz(object):
             and self.datasource.database.cache_timeout
         ) is not None:
             return self.datasource.database.cache_timeout
-        return config.get("CACHE_DEFAULT_TIMEOUT")
+        return config["CACHE_DEFAULT_TIMEOUT"]
 
     def get_json(self):
         return json.dumps(
@@ -492,7 +498,7 @@ class BaseViz(object):
     def get_csv(self):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
-        return df.to_csv(index=include_index, **config.get("CSV_EXPORT"))
+        return df.to_csv(index=include_index, **config["CSV_EXPORT"])
 
     def get_data(self, df):
         return df.to_dict(orient="records")
@@ -686,7 +692,7 @@ class PivotTableViz(BaseViz):
 
         # Ensure that Pandas's sum function mimics that of SQL.
         if aggfunc == "sum":
-            aggfunc = lambda x: x.sum(min_count=1)  # noqa: E731
+            aggfunc = lambda x: x.sum(min_count=1)
 
         groupby = self.form_data.get("groupby")
         columns = self.form_data.get("columns")
@@ -1086,6 +1092,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     verbose_name = _("Time Series - Line Chart")
     sort_series = False
     is_timeseries = True
+    pivot_fill_value: Optional[int] = None
 
     def to_series(self, df, classed="", title_suffix=""):
         cols = []
@@ -1158,7 +1165,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
             )
         else:
             df = df.pivot_table(
-                index=DTTM_ALIAS, columns=fd.get("groupby"), values=self.metric_labels
+                index=DTTM_ALIAS,
+                columns=fd.get("groupby"),
+                values=self.metric_labels,
+                fill_value=self.pivot_fill_value,
             )
 
         rule = fd.get("resample_rule")
@@ -1291,7 +1301,7 @@ class MultiLineViz(NVD3Viz):
     def get_data(self, df):
         fd = self.form_data
         # Late imports to avoid circular import issues
-        from superset.models.core import Slice
+        from superset.models.slice import Slice
         from superset import db
 
         slice_ids1 = fd.get("line_charts")
@@ -1444,6 +1454,7 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     viz_type = "area"
     verbose_name = _("Time Series - Stacked")
     sort_series = True
+    pivot_fill_value = 0
 
 
 class DistributionPieViz(NVD3Viz):
@@ -1474,9 +1485,7 @@ class HistogramViz(BaseViz):
     def query_obj(self):
         """Returns the query object for this visualization"""
         d = super().query_obj()
-        d["row_limit"] = self.form_data.get(
-            "row_limit", int(config.get("VIZ_ROW_LIMIT"))
-        )
+        d["row_limit"] = self.form_data.get("row_limit", int(config["VIZ_ROW_LIMIT"]))
         numeric_columns = self.form_data.get("all_columns_x")
         if numeric_columns is None:
             raise Exception(_("Must have at least one numeric column specified"))
@@ -1525,7 +1534,7 @@ class DistributionBarViz(DistributionPieViz):
     is_timeseries = False
 
     def query_obj(self):
-        d = super().query_obj()  # noqa
+        d = super().query_obj()
         fd = self.form_data
         if len(d["groupby"]) < len(fd.get("groupby") or []) + len(
             fd.get("columns") or []
@@ -1540,10 +1549,15 @@ class DistributionBarViz(DistributionPieViz):
     def get_data(self, df):
         fd = self.form_data
         metrics = self.metric_labels
+        columns = fd.get("columns") or []
+
+        # pandas will throw away nulls when grouping/pivoting,
+        # so we substitute NULL_STRING for any nulls in the necessary columns
+        filled_cols = self.groupby + columns
+        df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         row = df.groupby(self.groupby).sum()[metrics[0]].copy()
         row.sort_values(ascending=False, inplace=True)
-        columns = fd.get("columns") or []
         pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
         if fd.get("contribution"):
             pt = pt.T
@@ -1823,19 +1837,21 @@ class FilterBoxViz(BaseViz):
             col = flt.get("column")
             metric = flt.get("metric")
             df = self.dataframes.get(col)
-            if metric:
-                df = df.sort_values(
-                    utils.get_metric_name(metric), ascending=flt.get("asc")
-                )
-                d[col] = [
-                    {"id": row[0], "text": row[0], "metric": row[1]}
-                    for row in df.itertuples(index=False)
-                ]
-            else:
-                df = df.sort_values(col, ascending=flt.get("asc"))
-                d[col] = [
-                    {"id": row[0], "text": row[0]} for row in df.itertuples(index=False)
-                ]
+            if df is not None:
+                if metric:
+                    df = df.sort_values(
+                        utils.get_metric_name(metric), ascending=flt.get("asc")
+                    )
+                    d[col] = [
+                        {"id": row[0], "text": row[0], "metric": row[1]}
+                        for row in df.itertuples(index=False)
+                    ]
+                else:
+                    df = df.sort_values(col, ascending=flt.get("asc"))
+                    d[col] = [
+                        {"id": row[0], "text": row[0]}
+                        for row in df.itertuples(index=False)
+                    ]
         return d
 
 
@@ -2064,7 +2080,7 @@ class MapboxViz(BaseViz):
         return {
             "geoJSON": geo_json,
             "hasCustomMetric": has_custom_metric,
-            "mapboxApiKey": config.get("MAPBOX_API_KEY"),
+            "mapboxApiKey": config["MAPBOX_API_KEY"],
             "mapStyle": fd.get("mapbox_style"),
             "aggregatorName": fd.get("pandas_aggfunc"),
             "clusteringRadius": fd.get("clustering_radius"),
@@ -2093,13 +2109,13 @@ class DeckGLMultiLayer(BaseViz):
     def get_data(self, df):
         fd = self.form_data
         # Late imports to avoid circular import issues
-        from superset.models.core import Slice
+        from superset.models.slice import Slice
         from superset import db
 
         slice_ids = fd.get("deck_slices")
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
         return {
-            "mapboxApiKey": config.get("MAPBOX_API_KEY"),
+            "mapboxApiKey": config["MAPBOX_API_KEY"],
             "slices": [slc.data for slc in slices],
         }
 
@@ -2250,7 +2266,7 @@ class BaseDeckGLViz(BaseViz):
 
         return {
             "features": features,
-            "mapboxApiKey": config.get("MAPBOX_API_KEY"),
+            "mapboxApiKey": config["MAPBOX_API_KEY"],
             "metricLabels": self.metric_labels,
         }
 
@@ -2496,7 +2512,7 @@ class DeckArc(BaseDeckGLViz):
     def get_data(self, df):
         d = super().get_data(df)
 
-        return {"features": d["features"], "mapboxApiKey": config.get("MAPBOX_API_KEY")}
+        return {"features": d["features"], "mapboxApiKey": config["MAPBOX_API_KEY"]}
 
 
 class EventFlowViz(BaseViz):
@@ -2771,6 +2787,6 @@ viz_types = {
     if (
         inspect.isclass(o)
         and issubclass(o, BaseViz)
-        and o.viz_type not in config.get("VIZ_TYPE_BLACKLIST")
+        and o.viz_type not in config["VIZ_TYPE_BLACKLIST"]
     )
 }

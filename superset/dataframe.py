@@ -22,8 +22,8 @@ TODO(bkyryliuk): add support for the conventions like: *_dim or dim_*
 TODO(bkyryliuk): recognize integer encoded enums.
 
 """
-from datetime import date, datetime
 import logging
+from datetime import date, datetime
 
 import numpy as np
 import pandas as pd
@@ -68,7 +68,7 @@ def is_numeric(dtype):
     return np.issubdtype(dtype, np.number)
 
 
-class SupersetDataFrame(object):
+class SupersetDataFrame:
     # Mapping numpy dtype.char to generic database types
     type_map = {
         "b": "BOOL",  # boolean

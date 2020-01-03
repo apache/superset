@@ -62,7 +62,9 @@ export default class CopyToClipboard extends React.Component {
 
   onClick() {
     if (this.props.getText) {
-      this.props.getText((d) => { this.copyToClipboard(d); });
+      this.props.getText(d => {
+        this.copyToClipboard(d);
+      });
     } else {
       this.copyToClipboard(this.props.text);
     }
@@ -135,7 +137,9 @@ export default class CopyToClipboard extends React.Component {
     return (
       <span>
         {this.props.shouldShowText && this.props.text && (
-          <span className="m-r-5" data-test="short-url">{this.props.text}</span>
+          <span className="m-r-5" data-test="short-url">
+            {this.props.text}
+          </span>
         )}
         <OverlayTrigger
           placement="top"
@@ -154,12 +158,13 @@ export default class CopyToClipboard extends React.Component {
 
   renderInMenu() {
     return (
-      <OverlayTrigger placement="top" overlay={this.renderTooltip()} trigger={['hover']}>
+      <OverlayTrigger
+        placement="top"
+        overlay={this.renderTooltip()}
+        trigger={['hover']}
+      >
         <MenuItem>
-          <span
-            onClick={this.onClick}
-            onMouseOut={this.onMouseOut}
-          >
+          <span onClick={this.onClick} onMouseOut={this.onMouseOut}>
             {this.props.copyNode}
           </span>
         </MenuItem>
@@ -169,9 +174,7 @@ export default class CopyToClipboard extends React.Component {
 
   renderTooltip() {
     return (
-      <Tooltip id="copy-to-clipboard-tooltip">
-        {this.tooltipText()}
-      </Tooltip>
+      <Tooltip id="copy-to-clipboard-tooltip">{this.tooltipText()}</Tooltip>
     );
   }
 

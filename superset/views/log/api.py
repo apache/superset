@@ -17,8 +17,9 @@
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset import app, appbuilder
 import superset.models.core as models
+from superset import app, appbuilder
+
 from . import LogMixin
 
 
@@ -37,10 +38,11 @@ class LogRestApi(LogMixin, ModelRestApi):
     resource_name = "log"
     allow_browser_login = True
     list_columns = ("user.username", "action", "dttm")
+    show_columns = list_columns
 
 
 if (
-    not app.config.get("FAB_ADD_SECURITY_VIEWS") is False
-    or app.config.get("SUPERSET_LOG_VIEW") is False
+    not app.config["FAB_ADD_SECURITY_VIEWS"] is False
+    or app.config["SUPERSET_LOG_VIEW"] is False
 ):
     appbuilder.add_api(LogRestApi)

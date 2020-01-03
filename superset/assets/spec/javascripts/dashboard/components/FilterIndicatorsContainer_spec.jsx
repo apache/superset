@@ -20,27 +20,33 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import { dashboardFilters } from '../fixtures/mockDashboardFilters';
+import { sliceId as chartId } from '../fixtures/mockChartQueries';
 import { filterId, column } from '../fixtures/mockSliceEntities';
 import FilterIndicatorsContainer from '../../../../src/dashboard/components/FilterIndicatorsContainer';
 import FilterIndicator from '../../../../src/dashboard/components/FilterIndicator';
 import * as colorMap from '../../../../src/dashboard/util/dashboardFiltersColorMap';
+import { buildActiveFilters } from '../../../../src/dashboard/util/activeDashboardFilters';
+import { getDashboardFilterKey } from '../../../../src/dashboard/util/getDashboardFilterKey';
+import { DASHBOARD_ROOT_ID } from '../../../../src/dashboard/util/constants';
+import { dashboardWithFilter } from '../fixtures/mockDashboardLayout';
 
 describe('FilterIndicatorsContainer', () => {
-  const chartId = 1;
   const mockedProps = {
     dashboardFilters,
     chartId,
     chartStatus: 'success',
-    filterImmuneSlices: [],
-    filterImmuneSliceFields: {},
     setDirectPathToChild: () => {},
     filterFieldOnFocus: {},
   };
 
-  colorMap.getFilterColorKey = jest.fn(() => 'id_column');
   colorMap.getFilterColorMap = jest.fn(() => ({
-    id_column: 'badge-1',
+    [getDashboardFilterKey({ chartId, column })]: 'badge-1',
   }));
+
+  buildActiveFilters({
+    dashboardFilters,
+    components: dashboardWithFilter,
+  });
 
   function setup(overrideProps) {
     return shallow(
@@ -58,18 +64,25 @@ describe('FilterIndicatorsContainer', () => {
     expect(wrapper.find(FilterIndicator)).toHaveLength(0);
   });
 
-  it('should not show indicator when chart is immune', () => {
-    const wrapper = setup({ filterImmuneSlices: [chartId] });
-    expect(wrapper.find(FilterIndicator)).toHaveLength(0);
-  });
-
-  it('should not show indicator when chart field is immune', () => {
-    const wrapper = setup({ filterImmuneSliceFields: { [chartId]: [column] } });
-    expect(wrapper.find(FilterIndicator)).toHaveLength(0);
-  });
-
   it('should show indicator', () => {
     const wrapper = setup();
     expect(wrapper.find(FilterIndicator)).toHaveLength(1);
+  });
+
+  it('should not show indicator when chart is immune', () => {
+    const overwriteDashboardFilters = {
+      ...dashboardFilters,
+      [filterId]: {
+        ...dashboardFilters[filterId],
+        scopes: {
+          region: {
+            scope: [DASHBOARD_ROOT_ID],
+            immune: [chartId],
+          },
+        },
+      },
+    };
+    const wrapper = setup({ dashboardFilters: overwriteDashboardFilters });
+    expect(wrapper.find(FilterIndicator)).toHaveLength(0);
   });
 });

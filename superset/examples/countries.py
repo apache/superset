@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 """This module contains data related to countries and is used for geo mapping"""
-countries = [
+from typing import Any, Dict, List
+
+countries: List[Dict[str, Any]] = [
     {
         "name": "Angola",
         "area": 1246700,
@@ -2488,7 +2490,7 @@ countries = [
     },
 ]
 
-all_lookups = {}
+all_lookups: Dict[str, Dict[str, Dict[str, Any]]] = {}
 lookups = ["cioc", "cca2", "cca3", "name"]
 for lookup in lookups:
     all_lookups[lookup] = {}

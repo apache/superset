@@ -22,7 +22,7 @@ croniter==0.3.30
 cryptography==2.7
 decorator==4.4.0          # via retry
 defusedxml==0.6.0         # via python3-openid
-flask-appbuilder==2.1.13
+flask-appbuilder==2.2.1
 flask-babel==0.12.2       # via flask-appbuilder
 flask-caching==1.7.2
 flask-compress==1.4.0
@@ -37,7 +37,7 @@ flask==1.1.1
 future==0.17.1            # via parsedatetime
 geographiclib==1.49       # via geopy
 geopy==1.20.0
-gunicorn==19.8.1
+gunicorn==20.0.2
 humanize==0.5.1
 isodate==0.6.0
 itsdangerous==1.1.0       # via flask
@@ -58,7 +58,7 @@ pathlib2==2.3.4
 polyline==1.4.0
 prison==0.1.2             # via flask-appbuilder
 py==1.8.0                 # via retry
-pyarrow==0.14.1
+pyarrow==0.15.1
 pycparser==2.19           # via cffi
 pyjwt==1.7.1              # via flask-appbuilder, flask-jwt-extended
 pyrsistent==0.15.4        # via jsonschema

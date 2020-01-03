@@ -38,19 +38,13 @@ export default function FilterDefinitionOption({ option }) {
     return (
       <div>
         <ColumnTypeLabel type="expression" />
-        <span className="m-r-5 option-label">
-          {option.saved_metric_name}
-        </span>
+        <span className="m-r-5 option-label">{option.saved_metric_name}</span>
       </div>
     );
   } else if (option.column_name) {
-    return (
-      <ColumnOption column={option} showType />
-    );
+    return <ColumnOption column={option} showType />;
   } else if (option.label) {
-    return (
-      <AdhocMetricStaticOption adhocMetric={option} showType />
-    );
+    return <AdhocMetricStaticOption adhocMetric={option} showType />;
   }
 }
 FilterDefinitionOption.propTypes = propTypes;

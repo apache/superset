@@ -18,10 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
-import {
-  getAllControlsState,
-  getFormDataFromControls,
-} from './controlUtils';
+import { getAllControlsState, getFormDataFromControls } from './controlUtils';
 import controls from './controls';
 
 function handleDeprecatedControls(formData) {
@@ -36,12 +33,12 @@ function handleDeprecatedControls(formData) {
 
 export function getControlsState(state, inputFormData) {
   /*
-  * Gets a new controls object to put in the state. The controls object
-  * is similar to the configuration control with only the controls
-  * related to the current viz_type, materializes mapStateToProps functions,
-  * adds value keys coming from inputFormData passed here. This can't be an action creator
-  * just yet because it's used in both the explore and dashboard views.
-  * */
+   * Gets a new controls object to put in the state. The controls object
+   * is similar to the configuration control with only the controls
+   * related to the current viz_type, materializes mapStateToProps functions,
+   * adds value keys coming from inputFormData passed here. This can't be an action creator
+   * just yet because it's used in both the explore and dashboard views.
+   * */
 
   // Getting a list of active control names for the current viz
   const formData = Object.assign({}, inputFormData);
@@ -67,16 +64,12 @@ export function getControlsState(state, inputFormData) {
 export function applyDefaultFormData(inputFormData) {
   const datasourceType = inputFormData.datasource.split('__')[1];
   const vizType = inputFormData.viz_type;
-  const controlsState =
-    getAllControlsState(
-      vizType,
-      datasourceType,
-      null,
-      { ...inputFormData },
-    );
+  const controlsState = getAllControlsState(vizType, datasourceType, null, {
+    ...inputFormData,
+  });
   const formData = {};
 
-  Object.keys(controlsState).forEach((controlName) => {
+  Object.keys(controlsState).forEach(controlName => {
     if (inputFormData[controlName] === undefined) {
       formData[controlName] = controlsState[controlName].value;
     } else {
@@ -87,9 +80,8 @@ export function applyDefaultFormData(inputFormData) {
   return formData;
 }
 
-
 const defaultControls = Object.assign({}, controls);
-Object.keys(controls).forEach((f) => {
+Object.keys(controls).forEach(f => {
   defaultControls[f].value = controls[f].default;
 });
 

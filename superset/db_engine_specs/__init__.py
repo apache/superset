@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """Compatibility layer for different database engines
 
 This modules stores logic specific to different database engines. Things
@@ -28,10 +27,10 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
-from importlib import import_module
 import inspect
-from pathlib import Path
 import pkgutil
+from importlib import import_module
+from pathlib import Path
 from typing import Dict, Type
 
 from superset.db_engine_specs.base import BaseEngineSpec

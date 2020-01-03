@@ -26,10 +26,10 @@ from superset.tasks.cache import (
     get_form_data,
     TopNDashboardsStrategy,
 )
+
 from .base_tests import SupersetTestCase
 
-
-URL_PREFIX = "0.0.0.0:8081"
+URL_PREFIX = "http://0.0.0.0:8081"
 
 
 class CacheWarmUpTests(SupersetTestCase):

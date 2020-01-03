@@ -22,10 +22,10 @@ Revises: e9df189e5c7e
 Create Date: 2019-05-06 14:30:26.181449
 
 """
+import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.databases import mysql
 from sqlalchemy.dialects.mysql.base import MySQLDialect
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "afc69274c25a"

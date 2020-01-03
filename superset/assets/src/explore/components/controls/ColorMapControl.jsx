@@ -37,7 +37,7 @@ const defaultProps = {
 export default class ColorMapControl extends React.PureComponent {
   constructor(props) {
     super(props);
-    Object.keys(this.props.value).forEach((label) => {
+    Object.keys(this.props.value).forEach(label => {
       CategoricalColorNamespace.getScale(
         this.props.colorScheme,
         this.props.colorNamespace,

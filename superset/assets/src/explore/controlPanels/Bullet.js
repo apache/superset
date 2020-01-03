@@ -24,10 +24,7 @@ export default {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [
-        ['metric'],
-        ['adhoc_filters'],
-      ],
+      controlSetRows: [['metric'], ['adhoc_filters']],
     },
     {
       label: t('Chart Options'),

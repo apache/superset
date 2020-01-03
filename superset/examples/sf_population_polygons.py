@@ -21,6 +21,7 @@ from sqlalchemy import BigInteger, Float, Text
 
 from superset import db
 from superset.utils import core as utils
+
 from .helpers import get_example_data, TBL
 
 

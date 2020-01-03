@@ -53,9 +53,9 @@ class FilterIndicatorGroup extends React.PureComponent {
     return (
       <FilterTooltipWrapper
         tooltip={
-          <React.Fragment>
+          <>
             <div className="group-title">
-              {t('%s more filters', indicators.length)}
+              {t('%s filters', indicators.length)}
             </div>
             <ul className="tooltip-group">
               {indicators.map((indicator, index) => (
@@ -68,7 +68,7 @@ class FilterIndicatorGroup extends React.PureComponent {
                 </li>
               ))}
             </ul>
-          </React.Fragment>
+          </>
         }
       >
         <div

@@ -23,15 +23,16 @@ import { decimal2sexagesimal } from 'geolib';
 
 import TextControl from './TextControl';
 import ControlHeader from '../ControlHeader';
-import { defaultViewport } from '../../../modules/geo';
 
-const PARAMS = [
-  'longitude',
-  'latitude',
-  'zoom',
-  'bearing',
-  'pitch',
-];
+export const DEFAULT_VIEWPORT = {
+  longitude: 6.85236157047845,
+  latitude: 31.222656842808707,
+  zoom: 1,
+  bearing: 0,
+  pitch: 0,
+};
+
+const PARAMS = ['longitude', 'latitude', 'zoom', 'bearing', 'pitch'];
 
 const propTypes = {
   onChange: PropTypes.func.isRequired,
@@ -49,7 +50,7 @@ const propTypes = {
 const defaultProps = {
   onChange: () => {},
   default: { type: 'fix', value: 5 },
-  value: defaultViewport,
+  value: DEFAULT_VIEWPORT,
 };
 
 export default class ViewportControl extends React.Component {
@@ -104,9 +105,7 @@ export default class ViewportControl extends React.Component {
           placement="right"
           overlay={this.renderPopover()}
         >
-          <Label style={{ cursor: 'pointer' }}>
-            {this.renderLabel()}
-          </Label>
+          <Label style={{ cursor: 'pointer' }}>{this.renderLabel()}</Label>
         </OverlayTrigger>
       </div>
     );

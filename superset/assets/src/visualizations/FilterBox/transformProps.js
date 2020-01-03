@@ -29,7 +29,7 @@ export default function transformProps(chartProps) {
   } = chartProps;
   const {
     onAddFilter = NOOP,
-    onFilterMenuOpen =  NOOP,
+    onFilterMenuOpen = NOOP,
     onFilterMenuClose = NOOP,
   } = hooks;
   const {
