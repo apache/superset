@@ -53,6 +53,20 @@ class DatabaseRestApi(DatabaseMixin, ModelRestApi):
         "allows_cost_estimate",
         "backend",
     ]
+    show_columns = [
+        "database_name",
+        "expose_in_sqllab",
+        "allow_ctas",
+        "force_ctas_schema",
+        "allow_run_async",
+        "allow_dml",
+        "allow_multi_schema_metadata_fetch",
+        "allow_csv_upload",
+        "allows_subquery",
+        "allows_cost_estimate",
+        "backend",
+    ]
+
     # Removes the local limit for the page size
     max_page_size = -1
     validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
