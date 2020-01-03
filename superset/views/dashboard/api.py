@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import functools
 import json
 import re
 
@@ -25,34 +24,17 @@ from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
 
-import superset.models.core as models
 from superset import appbuilder
-from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.exceptions import SupersetException
+from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
-from superset.views.base import BaseSupersetModelRestApi, BaseSupersetSchema
+from superset.views.base import (
+    api_exists_owned,
+    BaseSupersetModelRestApi,
+    BaseSupersetSchema,
+)
 
-from ..base import check_ownership
 from .mixin import DashboardMixin
-
-
-def check_owner(f):
-    """
-    A Decorator that checks if an object is owned by the current user
-    """
-
-    def wraps(self, model_id):
-        item = self.datamodel.get(
-            model_id, self._base_filters  # pylint: disable=protected-access
-        )
-        if not item:
-            return self.response_404()
-        try:
-            check_ownership(item)
-        except SupersetSecurityException as e:
-            return self.response(403, message=str(e))
-        return f(self, item)
-
-    return functools.update_wrapper(wraps, f)
 
 
 class DashboardJSONMetadataSchema(Schema):
@@ -89,7 +71,7 @@ def validate_slug_uniqueness(value):
     # slug is not required but must be unique
     if value:
         item = (
-            current_app.appbuilder.get_session.query(models.Dashboard.id)
+            current_app.appbuilder.get_session.query(Dashboard.id)
             .filter_by(slug=value)
             .one_or_none()
         )
@@ -145,7 +127,7 @@ class DashboardPostSchema(BaseDashboardSchema):
 
     @post_load
     def make_object(self, data):  # pylint: disable=no-self-use
-        instance = models.Dashboard()
+        instance = Dashboard()
         self.set_owners(instance, data["owners"])
         for field in data:
             if field == "owners":
@@ -179,7 +161,7 @@ class DashboardPutSchema(BaseDashboardSchema):
 
 
 class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(models.Dashboard)
+    datamodel = SQLAInterface(Dashboard)
 
     resource_name = "dashboard"
     allow_browser_login = True
@@ -229,9 +211,9 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
     }
     filter_rel_fields_field = {"owners": "first_name", "slices": "slice_name"}
 
-    @expose("/<model_id>", methods=["PUT"])
+    @expose("/<pk>", methods=["PUT"])
     @protect()
-    @check_owner
+    @api_exists_owned
     @safe
     def put(self, item):  # pylint: disable=arguments-differ
         """Changes a dashboard
@@ -336,9 +318,9 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
 
-    @expose("/<model_id>", methods=["DELETE"])
+    @expose("/<pk>", methods=["DELETE"])
     @protect()
-    @check_owner
+    @api_exists_owned
     @safe
     def delete(self, item):  # pylint: disable=arguments-differ
         """Delete Dashboard
