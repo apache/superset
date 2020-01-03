@@ -38,6 +38,7 @@ class LogRestApi(LogMixin, ModelRestApi):
     resource_name = "log"
     allow_browser_login = True
     list_columns = ("user.username", "action", "dttm")
+    show_columns = list_columns
 
 
 if (
