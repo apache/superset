@@ -155,7 +155,7 @@ def handle_api_exception(f):
     return functools.update_wrapper(wraps, f)
 
 
-def api_exists_owned(f):
+def check_ownership_and_item_exists(f):
     """
     A Decorator that checks if an object exists and is owned by the current user
     """

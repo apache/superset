@@ -29,7 +29,7 @@ from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
 from superset.views.base import (
-    api_exists_owned,
+    check_ownership_and_item_exists,
     BaseSupersetModelRestApi,
     BaseSupersetSchema,
 )
@@ -213,7 +213,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
-    @api_exists_owned
+    @check_ownership_and_item_exists
     @safe
     def put(self, item):  # pylint: disable=arguments-differ
         """Changes a dashboard
@@ -320,7 +320,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
-    @api_exists_owned
+    @check_ownership_and_item_exists
     @safe
     def delete(self, item):  # pylint: disable=arguments-differ
         """Delete Dashboard
