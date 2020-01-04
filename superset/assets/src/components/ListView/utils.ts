@@ -53,7 +53,7 @@ function updateInList(list: any[], index: number, update: any): any[] {
 // convert filters from UI objects to data objects
 export function convertFilters(fts: FilterToggle[]) {
   return fts
-    .filter(ft => ft.filterValue)
+    .filter((ft: FilterToggle) => ft.filterValue)
     .reduce((acc, ft) => {
       acc[ft.id] = {
         filterId: ft.filterId || 'sw',
