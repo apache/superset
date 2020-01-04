@@ -254,7 +254,6 @@ class DashboardList extends React.PureComponent<Props, State> {
             fetchData={this.fetchData}
             loading={this.state.loading}
             initialSort={this.initialSort}
-            filterable={true}
             filterTypes={this.state.filterTypes}
           />
         </Panel>

@@ -18,30 +18,154 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
+import { act } from 'react-dom/test-utils';
+import { MenuItem, Pagination } from 'react-bootstrap';
 
 import ListView from 'src/components/ListView/ListView';
 
 describe('ListView', () => {
   const mockedProps = {
+    title: 'Data Table',
     columns: [
       {
         accessor: 'id',
         Header: 'ID',
+        sortable: true,
+      },
+      {
+        accessor: 'name',
+        Header: 'Name',
+        filterable: true,
       },
     ],
-    data: [],
-    count: 0,
+    data: [
+      { id: 1, name: 'data 1' },
+      { id: 2, name: 'data 2' },
+    ],
+    count: 2,
     pageSize: 1,
     fetchData: jest.fn(() => []),
     loading: false,
   };
   const wrapper = mount(<ListView {...mockedProps} />);
 
-  it('renders', () => {
-    expect(wrapper.find(ListView)).toHaveLength(1);
+  afterEach(() => {
+    mockedProps.fetchData.mockClear();
   });
 
   it('calls fetchData on mount', () => {
-    expect(mockedProps.fetchData).toHaveBeenCalled();
+    expect(wrapper.find(ListView)).toHaveLength(1);
+    expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "filters": Object {},
+          "pageIndex": 0,
+          "pageSize": 1,
+          "sortBy": Array [],
+        },
+      ]
+    `);
+  });
+
+  it('calls fetchData on sort', () => {
+    wrapper
+      .find('[data-test="sort-header"]')
+      .first()
+      .simulate('click');
+    expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "filters": Object {},
+          "pageIndex": 0,
+          "pageSize": 1,
+          "sortBy": Array [
+            Object {
+              "desc": false,
+              "id": "id",
+            },
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('calls fetchData on filter', () => {
+    act(() => {
+      wrapper
+        .find('.dropdown-toggle')
+        .children('button')
+        .props()
+        .onClick();
+
+      wrapper
+        .find(MenuItem)
+        .props()
+        .onSelect({ id: 'name', Header: 'name' });
+    });
+    wrapper.update();
+
+    act(() => {
+      wrapper.find('.filter-inputs input[type="text"]').prop('onChange')({
+        currentTarget: { value: 'foo' },
+      });
+    });
+    wrapper.update();
+
+    act(() => {
+      wrapper
+        .find('[data-test="apply-filters"]')
+        .last()
+        .prop('onClick')();
+    });
+    wrapper.update();
+
+    expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "filters": Object {
+            "name": Object {
+              "filterId": "sw",
+              "filterValue": "foo",
+            },
+          },
+          "pageIndex": 0,
+          "pageSize": 1,
+          "sortBy": Array [
+            Object {
+              "desc": false,
+              "id": "id",
+            },
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('calls fetchData on page change', () => {
+    act(() => {
+      wrapper.find(Pagination).prop('onSelect')(2);
+    });
+    wrapper.update();
+
+    expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "filters": Object {
+            "name": Object {
+              "filterId": "sw",
+              "filterValue": "foo",
+            },
+          },
+          "pageIndex": 1,
+          "pageSize": 1,
+          "sortBy": Array [
+            Object {
+              "desc": false,
+              "id": "id",
+            },
+          ],
+        },
+      ]
+    `);
   });
 });

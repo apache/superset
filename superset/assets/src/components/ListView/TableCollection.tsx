@@ -42,7 +42,7 @@ export default function TableCollection({
         {headerGroups.map((headerGroup) => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map((column: any) => (
-              <th {...column.getHeaderProps(column.getSortByToggleProps())}>
+              <th {...column.getHeaderProps(column.getSortByToggleProps())} data-test='sort-header'>
                 {column.render('Header')}
                 {'  '}
                 {column.sortable && (

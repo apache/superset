@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useMemo } from 'react';
 import {
   Button,
   Col,
@@ -44,7 +44,6 @@ interface Props {
   className?: string;
   title?: string;
   initialSort?: SortColumn[];
-  filterable?: boolean;
   filterTypes?: FilterTypeMap;
 }
 
@@ -58,7 +57,6 @@ const ListView: FunctionComponent<Props> = ({
   initialSort = [],
   className = '',
   title = '',
-  filterable = false,
   filterTypes = {},
 }) => {
   const {
@@ -85,7 +83,8 @@ const ListView: FunctionComponent<Props> = ({
     initialPageSize,
     initialSort,
   });
-  const filterableColumns = columns.filter((c) => c.filterable);
+  const filterableColumns = useMemo(() => columns.filter((c) => c.filterable), [columns]);
+  const filterable = Boolean(columns.length);
 
   const removeFilterAndApply = (index: number) => {
     const updated = removeFromList(filterToggles, index);
@@ -125,15 +124,16 @@ const ListView: FunctionComponent<Props> = ({
                         Header,
                         id: id || accessor,
                       }))
-                      .map((filter: FilterToggle) => (
+                      .map((ft: FilterToggle) => (
                         <MenuItem
-                          key={filter.id}
-                          eventKey={filter}
-                          onSelect={(fltr: FilterToggle) =>
-                            setFilterToggles([...filterToggles, fltr])
+                          key={ft.id}
+                          eventKey={ft}
+                          onSelect={(fltr: FilterToggle) => {
+                            setFilterToggles([...filterToggles, fltr]);
+                          }
                           }
                         >
-                          {filter.Header}
+                          {ft.Header}
                         </MenuItem>
                       ))}
                   </DropdownButton>
@@ -143,7 +143,7 @@ const ListView: FunctionComponent<Props> = ({
           </Row>
           <hr />
           {filterToggles.map((ft, i) => (
-            <div key={`${ft.Header}-${i}`}>
+            <div key={`${ft.Header}-${i}`} className='filter-inputs'>
               <Row>
                 <Col className='text-center filter-column' md={2}>
                   <span>{ft.Header}</span>
@@ -193,28 +193,28 @@ const ListView: FunctionComponent<Props> = ({
               <br />
             </div>
           ))}
-          {filterToggles.length > 0 && (
+          {filterToggles.length && (
             <>
               <Row>
                 <Col md={10} />
                 <Col md={2}>
-                  {filterToggles.length > 0 && (
-                    <Button
-                      disabled={filtersApplied ? true : false}
-                      bsStyle='primary'
-                      onClick={applyFilters}
-                      bsSize='small'
-                    >
-                      Apply
-                    </Button>
-                  )}
+                  <Button
+                    data-test='apply-filters'
+                    disabled={filtersApplied ? true : false}
+                    bsStyle='primary'
+                    onClick={applyFilters}
+                    bsSize='small'
+                  >
+                    Apply
+                  </Button>
                 </Col>
               </Row>
-              <br />{' '}
+              <br />
             </>
           )}
         </div>
-      )}
+      )
+      }
       <div className='body'>
         <TableCollection
           getTableProps={getTableProps}
@@ -247,7 +247,7 @@ const ListView: FunctionComponent<Props> = ({
           of <strong>{count}</strong>
         </span>
       </div>
-    </div>
+    </div >
   );
 };
 

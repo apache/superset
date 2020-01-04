@@ -32,7 +32,7 @@ const store = mockStore({});
 const dashboardsInfoEndpoint = 'glob:*/api/v1/dashboard/_info*';
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
 
-const mockDashboards = [...new Array(3)].map(i => ({
+const mockDashboards = [...new Array(3)].map((_, i) => ({
   id: i,
   url: 'url',
   dashboard_title: `title ${i}`,
@@ -53,7 +53,6 @@ fetchMock.get(dashboardsEndpoint, {
 });
 
 describe('DashboardList', () => {
-  beforeEach(fetchMock.resetHistory);
   const mockedProps = {};
   const wrapper = mount(<DashboardList {...mockedProps} />, {
     context: { store },
@@ -65,5 +64,19 @@ describe('DashboardList', () => {
 
   it('renders a ListView', () => {
     expect(wrapper.find(ListView)).toHaveLength(1);
+  });
+
+  it('fetches info', () => {
+    const callsI = fetchMock.calls(/dashboard\/_info/);
+    expect(callsI).toHaveLength(1);
+  });
+
+  it('fetches data', () => {
+    wrapper.update();
+    const callsD = fetchMock.calls(/dashboard\/\?q/);
+    expect(callsD).toHaveLength(1);
+    expect(callsD[0][0]).toMatchInlineSnapshot(
+      `"/http//localhost/api/v1/dashboard/?q={%22order_column%22:%22changed_on%22,%22order_direction%22:%22desc%22,%22page%22:0,%22page_size%22:25}"`,
+    );
   });
 });
