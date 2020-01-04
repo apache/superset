@@ -346,7 +346,11 @@ def deliver_slice(schedule):
     _deliver_email(schedule, subject, email)
 
 
-@celery_app.task(name="email_reports.send", bind=True, soft_time_limit=300)
+@celery_app.task(
+    name="email_reports.send",
+    bind=True,
+    soft_time_limit=config["EMAIL_ASYNC_TIME_LIMIT_SEC"],
+)
 def schedule_email_report(
     task, report_type, schedule_id, recipients=None
 ):  # pylint: disable=unused-argument
