@@ -56,7 +56,6 @@ RUN npm ci \
 
 WORKDIR /home/superset/apache-superset-incubating-$VERSION
 RUN pip install --upgrade setuptools pip \
-    && pip install -r requirements.txt \
     && pip install --no-cache-dir .
 
 RUN flask fab babel-compile --target superset/translations
