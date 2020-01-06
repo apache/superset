@@ -86,6 +86,7 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
+from superset.views.chart import views as chart_views
 
 from .base import (
     api,
@@ -104,7 +105,6 @@ from .base import (
     json_success,
     SupersetModelView,
 )
-from superset.views.chart import views as chart_views
 from .dashboard import views as dash_views
 from .database import views as in_views
 from .utils import (
