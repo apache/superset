@@ -17,12 +17,13 @@
 from flask import current_app, request
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from marshmallow import fields, post_load, ValidationError
+from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 
 from superset import appbuilder
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.models.slice import Slice
 from superset.utils import core as utils
@@ -50,6 +51,54 @@ def validate_owners(value):
         raise ValidationError(f"User {value} does not exist")
 
 
+class BaseChartSchema(BaseSupersetSchema):
+    @staticmethod
+    def set_owners(instance, owners):
+        owner_objs = list()
+        for owner_id in owners:
+            user = current_app.appbuilder.get_session.query(
+                current_app.appbuilder.sm.user_model
+            ).get(owner_id)
+            owner_objs.append(user)
+        instance.owners = owner_objs
+
+
+class ChartPostSchema(BaseChartSchema):
+    slice_name = fields.String(validate=Length(1, 250))
+    description = fields.String(allow_none=True)
+    viz_type = fields.String(allow_none=True, validate=Length(0, 250))
+    owners = fields.List(fields.Integer(validate=validate_owners))
+    params = fields.String(allow_none=True)
+    cache_timeout = fields.Integer()
+    datasource_id = fields.Integer()
+    datasource_type = fields.String()
+    datasource_name = fields.String(allow_none=True)
+
+    @validates_schema
+    def validate_datasource(self, data, **kwargs):
+        datasource_type = data["datasource_type"]
+        datasource_id = data["datasource_id"]
+        try:
+            datasource = ConnectorRegistry.get_datasource(
+                datasource_type, datasource_id, current_app.appbuilder.get_session
+            )
+        except NoResultFound:
+            raise ValidationError(
+                f"Datasource [{datasource_type}].{datasource_id} does not exist"
+            )
+        data["datasource_name"] = datasource.name
+
+    @post_load
+    def make_object(self, data):  # pylint: disable=no-self-use
+        instance = Slice()
+        for field in data:
+            if field == "owners":
+                self.set_owners(instance, data["owners"])
+            else:
+                setattr(instance, field, data.get(field))
+        return instance
+
+
 class ChartPutSchema(BaseSupersetSchema):
     slice_name = fields.String(allow_none=True, validate=Length(0, 250))
     description = fields.String(allow_none=True)
@@ -57,6 +106,8 @@ class ChartPutSchema(BaseSupersetSchema):
     owners = fields.List(fields.Integer(validate=validate_owners))
     params = fields.String(allow_none=True)
     cache_timeout = fields.Integer()
+    datasource_id = fields.Integer(allow_none=True)
+    datasource_type = fields.String(allow_none=True)
 
     @post_load
     def make_object(self, data):  # pylint: disable=no-self-use
@@ -103,7 +154,7 @@ class ChartRestApi(SliceMixin, BaseSupersetModelRestApi):
         "cache_timeout",
     ]
 
-    add_model_schema = ChartPutSchema()
+    add_model_schema = ChartPostSchema()
     edit_model_schema = ChartPutSchema()
 
     order_rel_fields = {

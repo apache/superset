@@ -58,14 +58,6 @@ class DashboardApiTests(SupersetTestCase):
         db.session.commit()
         return dashboard
 
-    def get_user(self, username: str) -> ab_models.User:
-        user = (
-            db.session.query(security_manager.user_model)
-            .filter_by(username=username)
-            .one_or_none()
-        )
-        return user
-
     def test_delete_dashboard(self):
         """
             Dashboard API: Test delete
