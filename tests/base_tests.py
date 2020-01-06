@@ -65,8 +65,8 @@ class SupersetTestCase(TestCase):
     def get_user(username: str) -> ab_models.User:
         user = (
             db.session.query(security_manager.user_model)
-                .filter_by(username=username)
-                .one_or_none()
+            .filter_by(username=username)
+            .one_or_none()
         )
         return user
 

@@ -74,8 +74,9 @@ class ChartPostSchema(BaseChartSchema):
     datasource_type = fields.String()
     datasource_name = fields.String(allow_none=True)
 
+    @staticmethod
     @validates_schema
-    def validate_datasource(self, data, **kwargs):
+    def validate_datasource(data):
         datasource_type = data["datasource_type"]
         datasource_id = data["datasource_id"]
         try:
