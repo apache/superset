@@ -18,7 +18,7 @@ import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import simplejson as json
 import yaml
@@ -387,14 +387,14 @@ class BaseSupersetSchema(Schema):
 
 class BaseOwnedSchema(BaseSupersetSchema):
     """
-    Implements owners validation and pre load
+    Implements owners validation and pre load on Marshmallow schemas
     """
 
-    __class_model__ = None
+    __class_model__: Model = None
 
     @post_load
-    def make_object(self, data):  # pylint: disable=no-self-use
-        instance = self.__class_model__()
+    def make_object(self, data: Dict):
+        instance = self.__class_model__()  # pylint: disable=not-callable
         self.set_owners(instance, data["owners"])
         for field in data:
             if field == "owners":
@@ -404,11 +404,11 @@ class BaseOwnedSchema(BaseSupersetSchema):
         return instance
 
     @pre_load
-    def pre_load(self, data):  # pylint: disable=no-self-use
+    def pre_load(self, data: Dict):  # pylint: disable=no-self-use
         data["owners"] = data.get("owners", [])
 
     @staticmethod
-    def set_owners(instance, owners):
+    def set_owners(instance: Model, owners: List[int]):
         owner_objs = list()
         if g.user.id not in owners:
             owners.append(g.user.id)
