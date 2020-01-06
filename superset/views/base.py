@@ -155,6 +155,26 @@ def handle_api_exception(f):
     return functools.update_wrapper(wraps, f)
 
 
+def check_ownership_and_item_exists(f):
+    """
+    A Decorator that checks if an object exists and is owned by the current user
+    """
+
+    def wraps(self, pk):  # pylint: disable=invalid-name
+        item = self.datamodel.get(
+            pk, self._base_filters  # pylint: disable=protected-access
+        )
+        if not item:
+            return self.response_404()
+        try:
+            check_ownership(item)
+        except SupersetSecurityException as e:
+            return self.response(403, message=str(e))
+        return f(self, item)
+
+    return functools.update_wrapper(wraps, f)
+
+
 def get_datasource_exist_error_msg(full_name):
     return __("Datasource %(name)s already exists", name=full_name)
 
