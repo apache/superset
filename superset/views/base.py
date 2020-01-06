@@ -572,7 +572,7 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
     @check_ownership_and_item_exists
     @safe
     def put(self, item):  # pylint: disable=arguments-differ
-        """Changes a dashboard
+        """Changes a owned Model
         ---
         put:
           parameters:
@@ -627,7 +627,7 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     def post(self):
-        """Creates a new dashboard
+        """Creates a new owned Model
         ---
         post:
           requestBody:
@@ -639,7 +639,7 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
                   $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
           responses:
             201:
-              description: Dashboard added
+              description: Model added
               content:
                 application/json:
                   schema:
@@ -679,7 +679,7 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
     @check_ownership_and_item_exists
     @safe
     def delete(self, item):  # pylint: disable=arguments-differ
-        """Delete Dashboard
+        """Deletes owned Model
         ---
         delete:
           parameters:
@@ -689,7 +689,7 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
             name: pk
           responses:
             200:
-              description: Dashboard delete
+              description: Model delete
               content:
                 application/json:
                   schema:

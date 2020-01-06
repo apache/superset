@@ -132,7 +132,13 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "params",
         "cache_timeout",
     ]
-    exclude_route_methods = ("info",)
+    # Will just affect _info endpoint
+    edit_columns = [
+        "slice_name",
+    ]
+    add_columns = edit_columns
+
+# exclude_route_methods = ("info",)
 
     add_model_schema = ChartPostSchema()
     edit_model_schema = ChartPutSchema()
@@ -141,7 +147,7 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-    filter_rel_fields_field = {"owners": "first_name", "slices": "slice_name"}
+    filter_rel_fields_field = {"owners": "first_name", "dashboards": "dashboard_title"}
 
 
 appbuilder.add_api(ChartRestApi)
