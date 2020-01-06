@@ -26,7 +26,6 @@ under the License.
 - [#8714](https://github.com/apache/incubator-superset/pull/8714) [fix] Druid IS NULL/IS NOT NULL filters (#8714) (@john-bodley)
 - [#8678](https://github.com/apache/incubator-superset/pull/8678) fix: default missing values to zero on area chart (#8678) (@villebro)
 - [#8573](https://github.com/apache/incubator-superset/pull/8573) [SECURITY] bump packages with security vulnerabilities (#8573) (@nytai)
-- [#8511](https://github.com/apache/incubator-superset/pull/8511) Fix for BigQuery connection checks and CSV uploads (#8511) (@willbarrett)
 - [#8583](https://github.com/apache/incubator-superset/pull/8583) Bump pyarrow to 0.15.1 due to CVE (#8583) (@robdiciuccio)
 - [#8581](https://github.com/apache/incubator-superset/pull/8581) Fix error when templateParams is undefined (#8581) (@betodealmeida)
 - [#8575](https://github.com/apache/incubator-superset/pull/8575) Math.max(...array) considered harmful (#8575) (@betodealmeida)
