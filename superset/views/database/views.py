@@ -120,12 +120,8 @@ class CsvToDatabaseView(SimpleFormView):
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             csv_file.save(path)
             table_name = form.name.data
-
-            con = form.data.get("con")
-            database = (
-                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
-            )
-            database.db_engine_spec.create_table_from_csv(form, database)
+            database = form.data.get("con")
+            database.db_engine_spec.create_table_from_csv(form)
 
             table = (
                 db.session.query(SqlaTable)
