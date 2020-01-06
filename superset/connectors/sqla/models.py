@@ -530,11 +530,7 @@ class SqlaTable(Model, BaseDatasource):
         # show_cols and latest_partition set to false to avoid
         # the expensive cost of inspecting the DB
         return self.database.select_star(
-            self.table_name,
-            sql=self.sql,
-            schema=self.schema,
-            show_cols=False,
-            latest_partition=False,
+            self.table_name, schema=self.schema, show_cols=False, latest_partition=False
         )
 
     @property
