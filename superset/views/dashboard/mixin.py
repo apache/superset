@@ -16,6 +16,7 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
+from ..base import check_ownership
 from .filters import DashboardFilter
 
 
@@ -80,3 +81,6 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "json_metadata": _("JSON Metadata"),
         "table_names": _("Underlying Tables"),
     }
+
+    def pre_delete(self, item):  # pylint: disable=no-self-use
+        check_ownership(item)
