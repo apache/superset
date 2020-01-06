@@ -611,7 +611,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database,
         table_name: str,
         engine: Engine,
-        sql: Optional[str] = None,
         schema: Optional[str] = None,
         limit: int = 100,
         show_cols: bool = False,
@@ -624,7 +623,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param database: Database instance
         :param table_name: Table name
-        :param sql: SQL defining a subselect
         :param engine: SqlALchemy Engine instance
         :param schema: Schema
         :param limit: limit to impose on query
@@ -634,23 +632,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
+        fields = "*"
+        cols = cols or []
+        if (show_cols or latest_partition) and not cols:
+            cols = database.get_columns(table_name, schema)
+
+        if show_cols:
+            fields = cls._get_fields(cols)
         quote = engine.dialect.identifier_preparer.quote
         if schema:
             full_table_name = quote(schema) + "." + quote(table_name)
         else:
             full_table_name = quote(table_name)
 
-        if sql is not None:
-            subselect = f"(\n{sql}\n) AS {quote(table_name)}"
-            qry = select("*").select_from(text(subselect))
-        else:
-            fields = "*"
-            cols = cols or []
-            if (show_cols or latest_partition) and not cols:
-                cols = database.get_columns(table_name, schema)
-            if show_cols:
-                fields = cls._get_fields(cols)
-            qry = select(fields).select_from(text(full_table_name))
+        qry = select(fields).select_from(text(full_table_name))
 
         if limit:
             qry = qry.limit(limit)
@@ -660,10 +655,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             if partition_query is not None:
                 qry = partition_query
-        select_star_query = database.compile_sqla_query(qry)
+        sql = database.compile_sqla_query(qry)
         if indent:
-            select_star_query = sqlparse.format(select_star_query, reindent=True)
-        return select_star_query
+            sql = sqlparse.format(sql, reindent=True)
+        return sql
 
     @classmethod
     def estimate_statement_cost(
