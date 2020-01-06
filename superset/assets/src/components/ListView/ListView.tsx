@@ -193,7 +193,7 @@ const ListView: FunctionComponent<Props> = ({
               <br />
             </div>
           ))}
-          {filterToggles.length && (
+          {filterToggles.length > 0 && (
             <>
               <Row>
                 <Col md={10} />
