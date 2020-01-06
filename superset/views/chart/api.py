@@ -14,12 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import current_app, request
-from flask_appbuilder.api import expose, protect, safe
+from flask import current_app
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 
 from superset import appbuilder
@@ -27,7 +25,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.models.slice import Slice
 from superset.utils import core as utils
-from superset.views.base import BaseOwnedSchema, BaseSupersetModelRestApi
+from superset.views.base import BaseOwnedModelRestApi, BaseOwnedSchema
 from superset.views.chart.mixin import SliceMixin
 
 
@@ -97,7 +95,7 @@ class ChartPutSchema(BaseOwnedSchema):
         return self.instance
 
 
-class ChartRestApi(SliceMixin, BaseSupersetModelRestApi):
+class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
     datamodel = SQLAInterface(Slice)
 
     resource_name = "chart"
@@ -134,6 +132,7 @@ class ChartRestApi(SliceMixin, BaseSupersetModelRestApi):
         "params",
         "cache_timeout",
     ]
+    exclude_route_methods = ("info",)
 
     add_model_schema = ChartPostSchema()
     edit_model_schema = ChartPutSchema()
@@ -143,114 +142,6 @@ class ChartRestApi(SliceMixin, BaseSupersetModelRestApi):
         "owners": ("first_name", "asc"),
     }
     filter_rel_fields_field = {"owners": "first_name", "slices": "slice_name"}
-
-    @expose("/", methods=["POST"])
-    @protect()
-    @safe
-    def post(self):
-        """Creates a new Chart
-        ---
-        post:
-          requestBody:
-            description: Model schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-          responses:
-            201:
-              description: Dashboard added
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
-        item = self.add_model_schema.load(request.json)
-        # This validates custom Schema with custom validations
-        if item.errors:
-            return self.response_422(message=item.errors)
-        try:
-            self.datamodel.add(item.data, raise_exception=True)
-            return self.response(
-                201,
-                result=self.add_model_schema.dump(item.data, many=False).data,
-                id=item.data.id,
-            )
-        except SQLAlchemyError as e:
-            return self.response_422(message=str(e))
-
-    @expose("/<pk>", methods=["PUT"])
-    @protect()
-    @safe
-    def put(self, pk):
-        """Changes a Chart
-        ---
-        put:
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          requestBody:
-            description: Model schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-          responses:
-            200:
-              description: Item changed
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        if not request.is_json:
-            self.response_400(message="Request is not JSON")
-        item = self.datamodel.get(pk, self._base_filters)
-        if not item:
-            return self.response_404()
-
-        item = self.edit_model_schema.load(request.json, instance=item)
-        if item.errors:
-            return self.response_422(message=item.errors)
-        try:
-            self.datamodel.edit(item.data, raise_exception=True)
-            return self.response(
-                200, result=self.edit_model_schema.dump(item.data, many=False).data
-            )
-        except SQLAlchemyError as e:
-            return self.response_422(message=str(e))
 
 
 appbuilder.add_api(ChartRestApi)

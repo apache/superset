@@ -29,6 +29,7 @@ from flask import (
     g,
     get_flashed_messages,
     redirect,
+    request,
     Response,
     session,
 )
@@ -43,6 +44,7 @@ from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
 from marshmallow import post_load, pre_load, Schema
 from sqlalchemy import or_
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
 
@@ -562,6 +564,155 @@ class BaseSupersetModelRestApi(ModelRestApi):
             for value in values
         ]
         return self.response(200, count=count, result=result)
+
+
+class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
+    @expose("/<pk>", methods=["PUT"])
+    @protect()
+    @check_ownership_and_item_exists
+    @safe
+    def put(self, item):  # pylint: disable=arguments-differ
+        """Changes a dashboard
+        ---
+        put:
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Model schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Item changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            self.response_400(message="Request is not JSON")
+        item = self.edit_model_schema.load(request.json, instance=item)
+        if item.errors:
+            return self.response_422(message=item.errors)
+        try:
+            self.datamodel.edit(item.data, raise_exception=True)
+            return self.response(
+                200, result=self.edit_model_schema.dump(item.data, many=False).data
+            )
+        except SQLAlchemyError as e:
+            return self.response_422(message=str(e))
+
+    @expose("/", methods=["POST"])
+    @protect()
+    @safe
+    def post(self):
+        """Creates a new dashboard
+        ---
+        post:
+          requestBody:
+            description: Model schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+          responses:
+            201:
+              description: Dashboard added
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        item = self.add_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        if item.errors:
+            return self.response_422(message=item.errors)
+        try:
+            self.datamodel.add(item.data, raise_exception=True)
+            return self.response(
+                201,
+                result=self.add_model_schema.dump(item.data, many=False).data,
+                id=item.data.id,
+            )
+        except SQLAlchemyError as e:
+            return self.response_422(message=str(e))
+
+    @expose("/<pk>", methods=["DELETE"])
+    @protect()
+    @check_ownership_and_item_exists
+    @safe
+    def delete(self, item):  # pylint: disable=arguments-differ
+        """Delete Dashboard
+        ---
+        delete:
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Dashboard delete
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            self.datamodel.delete(item, raise_exception=True)
+            return self.response(200, message="OK")
+        except SQLAlchemyError as e:
+            return self.response_422(message=str(e))
 
 
 class CsvResponse(Response):  # pylint: disable=too-many-ancestors
