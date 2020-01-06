@@ -29,7 +29,7 @@ import superset.models.core as models
 from superset import appbuilder
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
-from superset.views.base import BaseSupersetModelRestApi, BaseSupersetSchema
+from superset.views.base import BaseOwnedSchema, BaseSupersetModelRestApi
 
 from .mixin import DashboardMixin
 
@@ -89,21 +89,10 @@ def validate_owners(value):
         raise ValidationError(f"User {value} does not exist")
 
 
-class BaseDashboardSchema(BaseSupersetSchema):
-    @staticmethod
-    def set_owners(instance, owners):
-        owner_objs = list()
-        if g.user.id not in owners:
-            owners.append(g.user.id)
-        for owner_id in owners:
-            user = current_app.appbuilder.get_session.query(
-                current_app.appbuilder.sm.user_model
-            ).get(owner_id)
-            owner_objs.append(user)
-        instance.owners = owner_objs
-
+class BaseDashboardSchema(BaseOwnedSchema):
     @pre_load
     def pre_load(self, data):  # pylint: disable=no-self-use
+        super().pre_load(data)
         data["slug"] = data.get("slug")
         data["owners"] = data.get("owners", [])
         if data["slug"]:
@@ -113,6 +102,8 @@ class BaseDashboardSchema(BaseSupersetSchema):
 
 
 class DashboardPostSchema(BaseDashboardSchema):
+    __class_model__ = models.Dashboard
+
     dashboard_title = fields.String(allow_none=True, validate=Length(0, 500))
     slug = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_slug_uniqueness]
@@ -122,17 +113,6 @@ class DashboardPostSchema(BaseDashboardSchema):
     css = fields.String()
     json_metadata = fields.String(validate=validate_json_metadata)
     published = fields.Boolean()
-
-    @post_load
-    def make_object(self, data):  # pylint: disable=no-self-use
-        instance = models.Dashboard()
-        self.set_owners(instance, data["owners"])
-        for field in data:
-            if field == "owners":
-                self.set_owners(instance, data["owners"])
-            else:
-                setattr(instance, field, data.get(field))
-        return instance
 
 
 class DashboardPutSchema(BaseDashboardSchema):

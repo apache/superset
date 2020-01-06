@@ -27,7 +27,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.models.slice import Slice
 from superset.utils import core as utils
-from superset.views.base import BaseSupersetModelRestApi, BaseSupersetSchema
+from superset.views.base import BaseOwnedSchema, BaseSupersetModelRestApi
 from superset.views.chart.mixin import SliceMixin
 
 
@@ -51,27 +51,17 @@ def validate_owners(value):
         raise ValidationError(f"User {value} does not exist")
 
 
-class BaseChartSchema(BaseSupersetSchema):
-    @staticmethod
-    def set_owners(instance, owners):
-        owner_objs = list()
-        for owner_id in owners:
-            user = current_app.appbuilder.get_session.query(
-                current_app.appbuilder.sm.user_model
-            ).get(owner_id)
-            owner_objs.append(user)
-        instance.owners = owner_objs
+class ChartPostSchema(BaseOwnedSchema):
+    __class_model__ = Slice
 
-
-class ChartPostSchema(BaseChartSchema):
-    slice_name = fields.String(validate=Length(1, 250))
+    slice_name = fields.String(required=True, validate=Length(1, 250))
     description = fields.String(allow_none=True)
     viz_type = fields.String(allow_none=True, validate=Length(0, 250))
     owners = fields.List(fields.Integer(validate=validate_owners))
     params = fields.String(allow_none=True)
     cache_timeout = fields.Integer()
-    datasource_id = fields.Integer()
-    datasource_type = fields.String()
+    datasource_id = fields.Integer(required=True)
+    datasource_type = fields.String(required=True)
     datasource_name = fields.String(allow_none=True)
 
     @staticmethod
@@ -89,18 +79,8 @@ class ChartPostSchema(BaseChartSchema):
             )
         data["datasource_name"] = datasource.name
 
-    @post_load
-    def make_object(self, data):  # pylint: disable=no-self-use
-        instance = Slice()
-        for field in data:
-            if field == "owners":
-                self.set_owners(instance, data["owners"])
-            else:
-                setattr(instance, field, data.get(field))
-        return instance
 
-
-class ChartPutSchema(BaseSupersetSchema):
+class ChartPutSchema(BaseOwnedSchema):
     slice_name = fields.String(allow_none=True, validate=Length(0, 250))
     description = fields.String(allow_none=True)
     viz_type = fields.String(allow_none=True, validate=Length(0, 250))

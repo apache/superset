@@ -22,7 +22,16 @@ from typing import Any, Dict, Optional, Tuple
 
 import simplejson as json
 import yaml
-from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
+from flask import (
+    abort,
+    current_app,
+    flash,
+    g,
+    get_flashed_messages,
+    redirect,
+    Response,
+    session,
+)
 from flask_appbuilder import BaseView, Model, ModelRestApi, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -32,7 +41,7 @@ from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
-from marshmallow import Schema
+from marshmallow import post_load, pre_load, Schema
 from sqlalchemy import or_
 from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
@@ -374,6 +383,41 @@ class BaseSupersetSchema(Schema):
     ):  # pylint: disable=arguments-differ
         self.instance = instance
         return super().load(data, many=many, partial=partial, **kwargs)
+
+
+class BaseOwnedSchema(BaseSupersetSchema):
+    """
+    Implements owners validation and pre load
+    """
+
+    __class_model__ = None
+
+    @post_load
+    def make_object(self, data):  # pylint: disable=no-self-use
+        instance = self.__class_model__()
+        self.set_owners(instance, data["owners"])
+        for field in data:
+            if field == "owners":
+                self.set_owners(instance, data["owners"])
+            else:
+                setattr(instance, field, data.get(field))
+        return instance
+
+    @pre_load
+    def pre_load(self, data):  # pylint: disable=no-self-use
+        data["owners"] = data.get("owners", [])
+
+    @staticmethod
+    def set_owners(instance, owners):
+        owner_objs = list()
+        if g.user.id not in owners:
+            owners.append(g.user.id)
+        for owner_id in owners:
+            user = current_app.appbuilder.get_session.query(
+                current_app.appbuilder.sm.user_model
+            ).get(owner_id)
+            owner_objs.append(user)
+        instance.owners = owner_objs
 
 
 get_related_schema = {
