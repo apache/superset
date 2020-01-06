@@ -19,7 +19,6 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import Any, cast, Dict, List, Optional, Union
 from urllib import parse
 
@@ -105,7 +104,7 @@ from .base import (
     json_success,
     SupersetModelView,
 )
-from .chart import views as chart_views
+from superset.views.chart import views as chart_views
 from .dashboard import views as dash_views
 from .database import views as in_views
 from .utils import (

@@ -23,6 +23,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.exc import NoResultFound
 
 import superset.models.core as models
 from superset import appbuilder
@@ -76,14 +77,15 @@ def validate_slug_uniqueness(value):
 
 
 def validate_owners(value):
-    owner = (
-        current_app.appbuilder.get_session.query(
-            current_app.appbuilder.sm.user_model.id
+    try:
+        (
+            current_app.appbuilder.get_session.query(
+                current_app.appbuilder.sm.user_model.id
+            )
+            .filter_by(id=value)
+            .one()
         )
-        .filter_by(id=value)
-        .one_or_none()
-    )
-    if not owner:
+    except NoResultFound:
         raise ValidationError(f"User {value} does not exist")
 
 

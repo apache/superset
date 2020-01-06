@@ -20,14 +20,14 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.exc import NoResultFound
 
 from superset import appbuilder
 from superset.exceptions import SupersetException
 from superset.models.slice import Slice
 from superset.utils import core as utils
 from superset.views.base import BaseSupersetModelRestApi, BaseSupersetSchema
-
-from .mixin import SliceMixin
+from superset.views.chart.mixin import SliceMixin
 
 
 def validate_json(value):
@@ -38,14 +38,15 @@ def validate_json(value):
 
 
 def validate_owners(value):
-    owner = (
-        current_app.appbuilder.get_session.query(
-            current_app.appbuilder.sm.user_model.id
+    try:
+        (
+            current_app.appbuilder.get_session.query(
+                current_app.appbuilder.sm.user_model.id
+            )
+            .filter_by(id=value)
+            .one()
         )
-        .filter_by(id=value)
-        .one_or_none()
-    )
-    if not owner:
+    except NoResultFound:
         raise ValidationError(f"User {value} does not exist")
 
 

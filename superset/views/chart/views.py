@@ -25,8 +25,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.slice import Slice
 from superset.utils import core as utils
 from superset.views.base import check_ownership, DeleteMixin, SupersetModelView
-
-from .mixin import SliceMixin
+from superset.views.chart.mixin import SliceMixin
 
 
 class SliceModelView(
