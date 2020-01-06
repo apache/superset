@@ -372,7 +372,7 @@ class DashboardApiTests(SupersetTestCase):
             "result": [
                 {"text": "admin user", "value": 1},
                 {"text": "alpha user", "value": 5},
-                {"text": "explore_beta  user", "value": 6},
+                {"text": "explore_beta  user", "value": 8},
                 {"text": "gamma user", "value": 2},
                 {"text": "gamma2 user", "value": 3},
                 {"text": "gamma_sqllab user", "value": 4},

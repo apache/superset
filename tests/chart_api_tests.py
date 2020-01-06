@@ -83,8 +83,8 @@ class ChartApiTests(SupersetTestCase):
             Chart API: Test not found delete
         """
         self.login(username="admin")
-        dashboard_id = 1000
-        uri = f"api/v1/chart/{dashboard_id}"
+        chart_id = 1000
+        uri = f"api/v1/chart/{chart_id}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -101,3 +101,65 @@ class ChartApiTests(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
         self.assertEqual(model, None)
+
+    def test_delete_chart_not_owned(self):
+        """
+            Chart API: Test delete try not owned
+        """
+        user_alpha1 = self.create_user(
+            "alpha1", "password", "Alpha", email="alpha1@superset.org"
+        )
+        user_alpha2 = self.create_user(
+            "alpha2", "password", "Alpha", email="alpha2@superset.org"
+        )
+        chart = self.insert_chart("title", [user_alpha1.id], 1)
+        self.login(username="alpha2", password="password")
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
+        db.session.delete(chart)
+        db.session.delete(user_alpha1)
+        db.session.delete(user_alpha2)
+        db.session.commit()
+
+    def test_create_chart(self):
+        """
+            Chart API: Test create chart
+        """
+        admin_id = self.get_user("admin").id
+        chart_data = {
+            "slice_name": "name1",
+            "description": "description1",
+            "owners": [admin_id],
+            "viz_type": "viz_type1",
+            "params": "1234",
+            "cache_timeout": 1000,
+            "datasource_id": 1,
+            "datasource_type": "table",
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/"
+        rv = self.client.post(uri, json=chart_data)
+        self.assertEqual(rv.status_code, 201)
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(Slice).get(data.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_create_simple_chart(self):
+        """
+            Dashboard API: Test create simple chart
+        """
+        dashboard_data = {
+            "dashboard_title": "title1",
+            "datasource_id": 1,
+            "datasource_type": "table",
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/"
+        rv = self.client.post(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 201)
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(Slice).get(data.get("id"))
+        db.session.delete(model)
+        db.session.commit()
