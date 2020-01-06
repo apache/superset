@@ -53,6 +53,8 @@ class DatabaseRestApi(DatabaseMixin, ModelRestApi):
         "allows_cost_estimate",
         "backend",
     ]
+    show_columns = list_columns
+
     # Removes the local limit for the page size
     max_page_size = -1
     validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
