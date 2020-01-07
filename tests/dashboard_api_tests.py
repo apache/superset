@@ -22,8 +22,8 @@ from superset import db, security_manager
 from superset.models import core as models
 from superset.models.slice import Slice
 
-from .base_tests import SupersetTestCase
 from .base_api_tests import ApiOwnersTestCaseMixin
+from .base_tests import SupersetTestCase
 
 
 class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
