@@ -378,10 +378,7 @@ class DashboardApiTests(SupersetTestCase):
         self.assertEqual(response["count"], 6)
         # This needs to be implemented like this, because ordering varies between
         # postgres and mysql
-        response_users = [
-            result["text"]
-            for result in response["result"]
-        ]
+        response_users = [result["text"] for result in response["result"]]
         for expected_user in expected_users:
             self.assertIn(expected_user, response_users)
 

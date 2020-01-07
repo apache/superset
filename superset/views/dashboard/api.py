@@ -21,7 +21,6 @@ from flask import current_app, g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
-from sqlalchemy.orm.exc import NoResultFound
 
 from superset import appbuilder
 from superset.exceptions import SupersetException

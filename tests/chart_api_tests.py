@@ -90,7 +90,7 @@ class ChartApiTests(SupersetTestCase):
 
     def test_delete_chart_admin_not_owned(self):
         """
-            Dashboard API: Test admin delete not owned
+            Chart API: Test admin delete not owned
         """
         gamma_id = self.get_user("gamma").id
         chart_id = self.insert_chart("title", [gamma_id], 1).id
@@ -148,18 +148,126 @@ class ChartApiTests(SupersetTestCase):
 
     def test_create_simple_chart(self):
         """
-            Dashboard API: Test create simple chart
+            Chart API: Test create simple chart
         """
-        dashboard_data = {
-            "dashboard_title": "title1",
+        chart_data = {
+            "slice_name": "title1",
             "datasource_id": 1,
             "datasource_type": "table",
         }
         self.login(username="admin")
-        uri = f"api/v1/dashboard/"
-        rv = self.client.post(uri, json=dashboard_data)
+        uri = f"api/v1/chart/"
+        rv = self.client.post(uri, json=chart_data)
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Slice).get(data.get("id"))
         db.session.delete(model)
+        db.session.commit()
+
+    def test_create_chart_validate_owners(self):
+        """
+            Chart API: Test create validate owners
+        """
+        chart_data = {
+            "slice_name": "title1",
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "owners": [1000],
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/"
+        rv = self.client.post(uri, json=chart_data)
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": {"owners": {"0": ["User 1000 does not exist"]}}}
+        self.assertEqual(response, expected_response)
+
+    def test_create_chart_validate_params(self):
+        """
+            Chart API: Test create validate json
+        """
+        chart_data = {
+            "slice_name": "title1",
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "params": '{"A:"a"}',
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/"
+        rv = self.client.post(uri, json=chart_data)
+        self.assertEqual(rv.status_code, 422)
+
+    def test_update_chart(self):
+        """
+            Chart API: Test update
+        """
+        admin = self.get_user("admin")
+        gamma = self.get_user("gamma")
+
+        chart_id = self.insert_chart("title", [admin.id], 1).id
+        chart_data = {
+            "slice_name": "title1_changed",
+            "description": "description1",
+            "owners": [gamma.id],
+            "viz_type": "viz_type1",
+            "params": "{'a': 1}",
+            "cache_timeout": 1000,
+            "datasource_id": 1,
+            "datasource_type": "table",
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}"
+        rv = self.client.put(uri, json=chart_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Slice).get(chart_id)
+        self.assertEqual(model.slice_name, "title1_changed")
+        self.assertEqual(model.description, "description1")
+        self.assertIn(admin, model.owners)
+        self.assertIn(gamma, model.owners)
+        self.assertEqual(model.viz_type, "viz_type1")
+        self.assertEqual(model.params, "{'a': 1}")
+        self.assertEqual(model.cache_timeout, 1000)
+        self.assertEqual(model.datasource_id, 1)
+        self.assertEqual(model.datasource_type, "table")
+        self.assertEqual(model.datasource_name, "birth_names")
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_chart_new_owner(self):
+        """
+            Chart API: Test update set new owner to current user
+        """
+        gamma = self.get_user("gamma")
+        admin = self.get_user("admin")
+        chart_id = self.insert_chart("title", [gamma.id], 1).id
+        chart_data = {"slice_name": "title1_changed"}
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}"
+        rv = self.client.put(uri, json=chart_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Slice).get(chart_id)
+        self.assertIn(admin, model.owners)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_chart_not_owned(self):
+        """
+            Chart API: Test update not owned
+        """
+        user_alpha1 = self.create_user(
+            "alpha1", "password", "Alpha", email="alpha1@superset.org"
+        )
+        user_alpha2 = self.create_user(
+            "alpha2", "password", "Alpha", email="alpha2@superset.org"
+        )
+        chart = self.insert_chart("title", [user_alpha1.id], 1)
+
+        self.login(username="alpha2", password="password")
+        chart_data = {"slice_name": "title1_changed"}
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.client.put(uri, json=chart_data)
+        self.assertEqual(rv.status_code, 403)
+        db.session.delete(chart)
+        db.session.delete(user_alpha1)
+        db.session.delete(user_alpha2)
         db.session.commit()

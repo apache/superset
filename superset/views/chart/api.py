@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import current_app
+from flask import current_app, g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length
@@ -43,7 +43,7 @@ class ChartPostSchema(BaseOwnedSchema):
     description = fields.String(allow_none=True)
     viz_type = fields.String(allow_none=True, validate=Length(0, 250))
     owners = fields.List(fields.Integer(validate=validate_owner))
-    params = fields.String(allow_none=True)
+    params = fields.String(allow_none=True, validate=validate_json)
     cache_timeout = fields.Integer()
     datasource_id = fields.Integer(required=True)
     datasource_type = fields.String(required=True)
@@ -77,8 +77,13 @@ class ChartPutSchema(BaseOwnedSchema):
 
     @post_load
     def make_object(self, data):  # pylint: disable=no-self-use
+        if "owners" not in data and g.user not in self.instance.owners:
+            self.instance.owners.append(g.user)
         for field in data:
-            setattr(self.instance, field, data.get(field))
+            if field == "owners":
+                self.set_owners(self.instance, data["owners"])
+            else:
+                setattr(self.instance, field, data.get(field))
         return self.instance
 
 
