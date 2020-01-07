@@ -27,7 +27,7 @@ from superset import appbuilder
 from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
-from superset.views.base import BaseOwnedModelRestApi, BaseOwnedSchema
+from superset.views.base import BaseOwnedModelRestApi, BaseOwnedSchema, validate_owner
 
 from .mixin import DashboardMixin
 
@@ -74,19 +74,6 @@ def validate_slug_uniqueness(value):
             raise ValidationError("Must be unique")
 
 
-def validate_owners(value):
-    try:
-        (
-            current_app.appbuilder.get_session.query(
-                current_app.appbuilder.sm.user_model.id
-            )
-            .filter_by(id=value)
-            .one()
-        )
-    except NoResultFound:
-        raise ValidationError(f"User {value} does not exist")
-
-
 class BaseDashboardSchema(BaseOwnedSchema):
     @pre_load
     def pre_load(self, data):  # pylint: disable=no-self-use
@@ -106,7 +93,7 @@ class DashboardPostSchema(BaseDashboardSchema):
     slug = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_slug_uniqueness]
     )
-    owners = fields.List(fields.Integer(validate=validate_owners))
+    owners = fields.List(fields.Integer(validate=validate_owner))
     position_json = fields.String(validate=validate_json)
     css = fields.String()
     json_metadata = fields.String(validate=validate_json_metadata)
@@ -116,7 +103,7 @@ class DashboardPostSchema(BaseDashboardSchema):
 class DashboardPutSchema(BaseDashboardSchema):
     dashboard_title = fields.String(allow_none=True, validate=Length(0, 500))
     slug = fields.String(allow_none=True, validate=Length(0, 255))
-    owners = fields.List(fields.Integer(validate=validate_owners))
+    owners = fields.List(fields.Integer(validate=validate_owner))
     position_json = fields.String(validate=validate_json)
     css = fields.String()
     json_metadata = fields.String(validate=validate_json_metadata)

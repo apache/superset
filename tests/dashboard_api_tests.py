@@ -367,22 +367,23 @@ class DashboardApiTests(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {
-            "count": 6,
-            "result": [
-                {"text": "admin user", "value": 1},
-                {"text": "alpha user", "value": 5},
-                {"text": "explore_beta  user", "value": 8},
-                {"text": "gamma user", "value": 2},
-                {"text": "gamma2 user", "value": 3},
-                {"text": "gamma_sqllab user", "value": 4},
-            ],
-        }
-        self.assertEqual(response["count"], expected_response["count"])
-        # This is needed to be implemented like this because ordering varies between
+        expected_users = [
+            "admin user",
+            "alpha user",
+            "explore_beta  user",
+            "gamma user",
+            "gamma2 user",
+            "gamma_sqllab user",
+        ]
+        self.assertEqual(response["count"], 6)
+        # This needs to be implemented like this, because ordering varies between
         # postgres and mysql
-        for result in expected_response["result"]:
-            self.assertIn(result, response["result"])
+        response_users = [
+            result["text"]
+            for result in response["result"]
+        ]
+        for expected_user in expected_users:
+            self.assertIn(expected_user, response_users)
 
     def test_get_filter_related_owners(self):
         """

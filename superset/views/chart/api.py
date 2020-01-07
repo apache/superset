@@ -25,7 +25,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.models.slice import Slice
 from superset.utils import core as utils
-from superset.views.base import BaseOwnedModelRestApi, BaseOwnedSchema
+from superset.views.base import BaseOwnedModelRestApi, BaseOwnedSchema, validate_owner
 from superset.views.chart.mixin import SliceMixin
 
 
@@ -36,26 +36,13 @@ def validate_json(value):
         raise ValidationError("JSON not valid")
 
 
-def validate_owners(value):
-    try:
-        (
-            current_app.appbuilder.get_session.query(
-                current_app.appbuilder.sm.user_model.id
-            )
-            .filter_by(id=value)
-            .one()
-        )
-    except NoResultFound:
-        raise ValidationError(f"User {value} does not exist")
-
-
 class ChartPostSchema(BaseOwnedSchema):
     __class_model__ = Slice
 
     slice_name = fields.String(required=True, validate=Length(1, 250))
     description = fields.String(allow_none=True)
     viz_type = fields.String(allow_none=True, validate=Length(0, 250))
-    owners = fields.List(fields.Integer(validate=validate_owners))
+    owners = fields.List(fields.Integer(validate=validate_owner))
     params = fields.String(allow_none=True)
     cache_timeout = fields.Integer()
     datasource_id = fields.Integer(required=True)
@@ -82,7 +69,7 @@ class ChartPutSchema(BaseOwnedSchema):
     slice_name = fields.String(allow_none=True, validate=Length(0, 250))
     description = fields.String(allow_none=True)
     viz_type = fields.String(allow_none=True, validate=Length(0, 250))
-    owners = fields.List(fields.Integer(validate=validate_owners))
+    owners = fields.List(fields.Integer(validate=validate_owner))
     params = fields.String(allow_none=True)
     cache_timeout = fields.Integer()
     datasource_id = fields.Integer(allow_none=True)
@@ -133,12 +120,10 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "cache_timeout",
     ]
     # Will just affect _info endpoint
-    edit_columns = [
-        "slice_name",
-    ]
+    edit_columns = ["slice_name"]
     add_columns = edit_columns
 
-# exclude_route_methods = ("info",)
+    # exclude_route_methods = ("info",)
 
     add_model_schema = ChartPostSchema()
     edit_model_schema = ChartPutSchema()

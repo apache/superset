@@ -42,9 +42,10 @@ from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
-from marshmallow import post_load, pre_load, Schema
+from marshmallow import post_load, pre_load, Schema, ValidationError
 from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
 
@@ -405,6 +406,19 @@ class BaseSupersetSchema(Schema):
     ):  # pylint: disable=arguments-differ
         self.instance = instance
         return super().load(data, many=many, partial=partial, **kwargs)
+
+
+def validate_owner(value):
+    try:
+        (
+            current_app.appbuilder.get_session.query(
+                current_app.appbuilder.sm.user_model.id
+            )
+            .filter_by(id=value)
+            .one()
+        )
+    except NoResultFound:
+        raise ValidationError(f"User {value} does not exist")
 
 
 class BaseOwnedSchema(BaseSupersetSchema):
