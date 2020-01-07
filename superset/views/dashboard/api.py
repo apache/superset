@@ -109,7 +109,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     published = fields.Boolean()
 
     @post_load
-    def make_object(self, data):  # pylint: disable=no-self-use
+    def make_object(self, data, discard=None):  # pylint: disable=no-self-use
         if "owners" not in data and g.user not in self.instance.owners:
             self.instance.owners.append(g.user)
         for field in data:

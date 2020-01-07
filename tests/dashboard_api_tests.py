@@ -18,17 +18,17 @@
 import json
 from typing import List
 
-import prison
-from flask_appbuilder.security.sqla import models as ab_models
-
 from superset import db, security_manager
 from superset.models import core as models
 from superset.models.slice import Slice
 
 from .base_tests import SupersetTestCase
+from .base_api_tests import ApiOwnersTestCaseMixin
 
 
-class DashboardApiTests(SupersetTestCase):
+class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
+    resource_name = "dashboard"
+
     def __init__(self, *args, **kwargs):
         super(DashboardApiTests, self).__init__(*args, **kwargs)
 
@@ -357,59 +357,3 @@ class DashboardApiTests(SupersetTestCase):
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
         db.session.commit()
-
-    def test_get_related_owners(self):
-        """
-            Dashboard API: Test dashboard get related owners
-        """
-        self.login(username="admin")
-        uri = f"api/v1/dashboard/related/owners"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-        response = json.loads(rv.data.decode("utf-8"))
-        expected_users = [
-            "admin user",
-            "alpha user",
-            "explore_beta  user",
-            "gamma user",
-            "gamma2 user",
-            "gamma_sqllab user",
-        ]
-        self.assertEqual(response["count"], 6)
-        # This needs to be implemented like this, because ordering varies between
-        # postgres and mysql
-        response_users = [result["text"] for result in response["result"]]
-        for expected_user in expected_users:
-            self.assertIn(expected_user, response_users)
-
-    def test_get_filter_related_owners(self):
-        """
-            Dashboard API: Test dashboard get filter related owners
-        """
-        self.login(username="admin")
-        argument = {"filter": "a"}
-        uri = "api/v1/dashboard/related/owners?{}={}".format(
-            "q", prison.dumps(argument)
-        )
-
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-        response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {
-            "count": 2,
-            "result": [
-                {"text": "admin user", "value": 1},
-                {"text": "alpha user", "value": 5},
-            ],
-        }
-        self.assertEqual(response, expected_response)
-
-    def test_get_related_fail(self):
-        """
-            Dashboard API: Test dashboard get related fail
-        """
-        self.login(username="admin")
-        uri = "api/v1/dashboard/related/owner"
-
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)

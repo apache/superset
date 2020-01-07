@@ -16,19 +16,22 @@
 # under the License.
 """Unit tests for Superset"""
 import json
-from typing import List
+from typing import List, Optional
 
 import prison
-from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 
 from .base_tests import SupersetTestCase
+from .base_api_tests import ApiOwnersTestCaseMixin
 
 
-class ChartApiTests(SupersetTestCase):
+class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
+    resource_name = "chart"
+
     def __init__(self, *args, **kwargs):
         super(ChartApiTests, self).__init__(*args, **kwargs)
 
@@ -38,10 +41,10 @@ class ChartApiTests(SupersetTestCase):
         owners: List[int],
         datasource_id: int,
         datasource_type: str = "table",
-        description: str = "",
-        viz_type: str = "",
-        params: str = "",
-        cache_timeout: int = 30,
+        description: str = None,
+        viz_type: str = None,
+        params: str = None,
+        cache_timeout: Optional[int] = None,
     ) -> Slice:
         obj_owners = list()
         for owner in owners:
@@ -136,6 +139,7 @@ class ChartApiTests(SupersetTestCase):
             "cache_timeout": 1000,
             "datasource_id": 1,
             "datasource_type": "table",
+            "dashboards": [1, 2],
         }
         self.login(username="admin")
         uri = f"api/v1/chart/"
@@ -214,12 +218,14 @@ class ChartApiTests(SupersetTestCase):
             "cache_timeout": 1000,
             "datasource_id": 1,
             "datasource_type": "table",
+            "dashboards": [1],
         }
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
         rv = self.client.put(uri, json=chart_data)
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
+        related_dashboard = db.session.query(Dashboard).get(1)
         self.assertEqual(model.slice_name, "title1_changed")
         self.assertEqual(model.description, "description1")
         self.assertIn(admin, model.owners)
@@ -230,6 +236,7 @@ class ChartApiTests(SupersetTestCase):
         self.assertEqual(model.datasource_id, 1)
         self.assertEqual(model.datasource_type, "table")
         self.assertEqual(model.datasource_name, "birth_names")
+        self.assertIn(related_dashboard, model.dashboards)
         db.session.delete(model)
         db.session.commit()
 
@@ -271,3 +278,105 @@ class ChartApiTests(SupersetTestCase):
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
         db.session.commit()
+
+    def test_get_chart(self):
+        """
+            Chart API: Test get chart
+        """
+        admin = self.get_user("admin")
+        chart = self.insert_chart("title", [admin.id], 1)
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        expected_result = {
+            "cache_timeout": None,
+            "dashboards": [],
+            "description": None,
+            "owners": [{"id": 1, "username": "admin"}],
+            "params": None,
+            "slice_name": "title",
+            "viz_type": None,
+        }
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["result"], expected_result)
+        db.session.delete(chart)
+        db.session.commit()
+
+    def test_get_chart_not_found(self):
+        """
+            Chart API: Test get chart not found
+        """
+        chart_id = 1000
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_chart_no_data_access(self):
+        """
+            Chart API: Test get chart without data access
+        """
+        self.login(username="gamma")
+        chart_no_access = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        uri = f"api/v1/chart/{chart_no_access.id}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_charts(self):
+        """
+            Chart API: Test get charts
+        """
+        self.login(username="admin")
+        uri = f"api/v1/chart/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 33)
+
+    def test_get_charts_filter(self):
+        """
+            Chart API: Test get charts filter
+        """
+        self.login(username="admin")
+        arguments = {"filters": [{"col": "slice_name", "opr": "sw", "value": "G"}]}
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 5)
+
+    def test_get_charts_page(self):
+        """
+            Chart API: Test get charts filter
+        """
+        # Assuming we have 33 sample charts
+        self.login(username="admin")
+        arguments = {"page_size": 10, "page": 0}
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(len(data["result"]), 10)
+
+        arguments = {"page_size": 10, "page": 3}
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(len(data["result"]), 3)
+
+    def test_get_charts_no_data_access(self):
+        """
+            Chart API: Test get charts no data access
+        """
+        self.login(username="gamma")
+        uri = f"api/v1/chart/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 0)

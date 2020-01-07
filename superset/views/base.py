@@ -429,13 +429,14 @@ class BaseOwnedSchema(BaseSupersetSchema):
     __class_model__: Model = None
 
     @post_load
-    def make_object(self, data: Dict):
+    def make_object(self, data: Dict, discard: List = None):
+        discard = discard or []
         instance = self.__class_model__()  # pylint: disable=not-callable
         self.set_owners(instance, data["owners"])
         for field in data:
             if field == "owners":
                 self.set_owners(instance, data["owners"])
-            else:
+            elif field not in discard:
                 setattr(instance, field, data.get(field))
         return instance
 

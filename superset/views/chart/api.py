@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Dict, List
+
 from flask import current_app, g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, validates_schema, ValidationError
@@ -23,6 +25,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from superset import appbuilder
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import core as utils
 from superset.views.base import BaseOwnedModelRestApi, BaseOwnedSchema, validate_owner
@@ -34,6 +37,27 @@ def validate_json(value):
         utils.validate_json(value)
     except SupersetException:
         raise ValidationError("JSON not valid")
+
+
+def validate_dashboard(value):
+    try:
+        (current_app.appbuilder.get_session.query(Dashboard).filter_by(id=value).one())
+    except NoResultFound:
+        raise ValidationError(f"Dashboard {value} does not exist")
+
+
+def populate_dashboards(instance: Slice, dashboards: List[int]):
+    """
+    Mutates a Slice with the dashboards SQLA Models
+    """
+    dashboards_tmp = []
+    for dashboard_id in dashboards:
+        dashboards_tmp.append(
+            current_app.appbuilder.get_session.query(Dashboard)
+            .filter_by(id=dashboard_id)
+            .one()
+        )
+    instance.dashboards = dashboards_tmp
 
 
 class ChartPostSchema(BaseOwnedSchema):
@@ -48,6 +72,7 @@ class ChartPostSchema(BaseOwnedSchema):
     datasource_id = fields.Integer(required=True)
     datasource_type = fields.String(required=True)
     datasource_name = fields.String(allow_none=True)
+    dashboards = fields.List(fields.Integer(validate=validate_dashboard))
 
     @staticmethod
     @validates_schema
@@ -64,6 +89,12 @@ class ChartPostSchema(BaseOwnedSchema):
             )
         data["datasource_name"] = datasource.name
 
+    @post_load
+    def make_object(self, data: Dict, discard=None):
+        instance = super().make_object(data, discard=["dashboards"])
+        populate_dashboards(instance, data.get("dashboards", []))
+        return instance
+
 
 class ChartPutSchema(BaseOwnedSchema):
     slice_name = fields.String(allow_none=True, validate=Length(0, 250))
@@ -74,14 +105,17 @@ class ChartPutSchema(BaseOwnedSchema):
     cache_timeout = fields.Integer()
     datasource_id = fields.Integer(allow_none=True)
     datasource_type = fields.String(allow_none=True)
+    dashboards = fields.List(fields.Integer(validate=validate_dashboard))
 
     @post_load
-    def make_object(self, data):  # pylint: disable=no-self-use
+    def make_object(self, data, discard=None):  # pylint: disable=no-self-use
         if "owners" not in data and g.user not in self.instance.owners:
             self.instance.owners.append(g.user)
         for field in data:
             if field == "owners":
                 self.set_owners(self.instance, data["owners"])
+            elif field == "dashboards":
+                populate_dashboards(self.instance, data.get("dashboards", []))
             else:
                 setattr(self.instance, field, data.get(field))
         return self.instance
