@@ -390,24 +390,6 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         )
 
 
-class BaseSupersetSchema(Schema):
-    """
-    Extends Marshmallow schema so that we can pass a Model to load
-    (following marshamallow-sqlalchemy pattern). This is useful
-    to perform partial model merges on HTTP PUT
-    """
-
-    def __init__(self, **kwargs):
-        self.instance = None
-        super().__init__(**kwargs)
-
-    def load(
-        self, data, many=None, partial=None, instance: Model = None, **kwargs
-    ):  # pylint: disable=arguments-differ
-        self.instance = instance
-        return super().load(data, many=many, partial=partial, **kwargs)
-
-
 def validate_owner(value):
     try:
         (
@@ -421,28 +403,62 @@ def validate_owner(value):
         raise ValidationError(f"User {value} does not exist")
 
 
+class BaseSupersetSchema(Schema):
+    """
+    Extends Marshmallow schema so that we can pass a Model to load
+    (following marshamallow-sqlalchemy pattern). This is useful
+    to perform partial model merges on HTTP PUT
+    """
+
+    __class_model__: Model = None
+
+    def __init__(self, **kwargs):
+        self.instance: Optional[Model] = None
+        super().__init__(**kwargs)
+
+    def load(
+        self, data, many=None, partial=None, instance: Model = None, **kwargs
+    ):  # pylint: disable=arguments-differ
+        self.instance = instance
+        return super().load(data, many=many, partial=partial, **kwargs)
+
+    @post_load
+    def make_object(self, data: Dict, discard: List = None) -> Model:
+        """
+        Creates a Model object from POST or PUT requests. PUT will use self.instance
+        previously fetched from the endpoint handler
+
+        :param data: Schema data payload
+        :param discard: List of fields to not set on the model
+        """
+        discard = discard or []
+        if not self.instance:
+            self.instance = self.__class_model__()  # pylint: disable=not-callable
+        for field in data:
+            if field not in discard:
+                setattr(self.instance, field, data.get(field))
+        return self.instance
+
+
 class BaseOwnedSchema(BaseSupersetSchema):
     """
     Implements owners validation and pre load on Marshmallow schemas
     """
 
-    __class_model__: Model = None
+    owners_field_name = "owners"
 
     @post_load
-    def make_object(self, data: Dict, discard: List = None):
+    def make_object(self, data: Dict, discard: List = None) -> Model:
         discard = discard or []
-        instance = self.__class_model__()  # pylint: disable=not-callable
-        self.set_owners(instance, data["owners"])
-        for field in data:
-            if field == "owners":
-                self.set_owners(instance, data["owners"])
-            elif field not in discard:
-                setattr(instance, field, data.get(field))
+        discard.append(self.owners_field_name)
+        instance = super().make_object(data, discard)
+        if self.owners_field_name in data:
+            self.set_owners(instance, data[self.owners_field_name])
         return instance
 
     @pre_load
-    def pre_load(self, data: Dict):  # pylint: disable=no-self-use
-        data["owners"] = data.get("owners", [])
+    def pre_load(self, data: Dict):
+        data[self.owners_field_name] = data.get(self.owners_field_name, [])
 
     @staticmethod
     def set_owners(instance: Model, owners: List[int]):
