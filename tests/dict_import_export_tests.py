@@ -23,7 +23,12 @@ import yaml
 
 from tests.test_app import app
 from superset import db
-from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
+from superset.connectors.druid.models import (
+    DruidColumn,
+    DruidDatasource,
+    DruidMetric,
+    DruidCluster,
+)
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.utils.core import get_example_database
 from superset.utils.dict_import_export import export_to_dict
@@ -87,11 +92,20 @@ class DictImportExportTests(SupersetTestCase):
         return table, dict_rep
 
     def create_druid_datasource(self, name, id=0, cols_names=[], metric_names=[]):
-        name = "{0}{1}".format(NAME_PREFIX, name)
         cluster_name = "druid_test"
+        cluster = (
+            db.session.query(DruidCluster).filter_by(cluster_name="druid_test").first()
+        )
+        if not cluster:
+            cluster = DruidCluster(cluster_name=cluster_name)
+            db.session.add(cluster)
+            db.session.commit()
+
+        cluster_id = cluster.id
+        name = "{0}{1}".format(NAME_PREFIX, name)
         params = {DBREF: id, "database_name": cluster_name}
         dict_rep = {
-            "cluster_name": cluster_name,
+            "cluster_id": cluster_id,
             "datasource_name": name,
             "id": id,
             "params": json.dumps(params),
@@ -102,7 +116,7 @@ class DictImportExportTests(SupersetTestCase):
         datasource = DruidDatasource(
             id=id,
             datasource_name=name,
-            cluster_name=cluster_name,
+            cluster_id=cluster_id,
             params=json.dumps(params),
         )
         for col_name in cols_names:
