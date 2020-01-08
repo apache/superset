@@ -24,10 +24,14 @@ from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
 
-import superset.models.core as models
 from superset.exceptions import SupersetException
+from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
-from superset.views.base import BaseSupersetModelRestApi, BaseSupersetSchema
+from superset.views.base import (
+    BaseSupersetModelRestApi,
+    BaseSupersetSchema,
+    check_ownership_and_item_exists,
+)
 
 from .mixin import DashboardMixin
 
@@ -66,7 +70,7 @@ def validate_slug_uniqueness(value):
     # slug is not required but must be unique
     if value:
         item = (
-            current_app.appbuilder.get_session.query(models.Dashboard.id)
+            current_app.appbuilder.get_session.query(Dashboard.id)
             .filter_by(slug=value)
             .one_or_none()
         )
@@ -122,7 +126,7 @@ class DashboardPostSchema(BaseDashboardSchema):
 
     @post_load
     def make_object(self, data):  # pylint: disable=no-self-use
-        instance = models.Dashboard()
+        instance = Dashboard()
         self.set_owners(instance, data["owners"])
         for field in data:
             if field == "owners":
@@ -156,7 +160,7 @@ class DashboardPutSchema(BaseDashboardSchema):
 
 
 class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(models.Dashboard)
+    datamodel = SQLAInterface(Dashboard)
 
     resource_name = "dashboard"
     allow_browser_login = True
@@ -205,6 +209,62 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         "owners": ("first_name", "asc"),
     }
     filter_rel_fields_field = {"owners": "first_name", "slices": "slice_name"}
+
+    @expose("/<pk>", methods=["PUT"])
+    @protect()
+    @check_ownership_and_item_exists
+    @safe
+    def put(self, item):  # pylint: disable=arguments-differ
+        """Changes a dashboard
+        ---
+        put:
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Model schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Item changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            self.response_400(message="Request is not JSON")
+        item = self.edit_model_schema.load(request.json, instance=item)
+        if item.errors:
+            return self.response_422(message=item.errors)
+        try:
+            self.datamodel.edit(item.data, raise_exception=True)
+            return self.response(
+                200, result=self.edit_model_schema.dump(item.data, many=False).data
+            )
+        except SQLAlchemyError as e:
+            return self.response_422(message=str(e))
 
     @expose("/", methods=["POST"])
     @protect()
@@ -257,38 +317,32 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
 
-    @expose("/<pk>", methods=["PUT"])
+    @expose("/<pk>", methods=["DELETE"])
     @protect()
+    @check_ownership_and_item_exists
     @safe
-    def put(self, pk):
-        """Changes a dashboard
+    def delete(self, item):  # pylint: disable=arguments-differ
+        """Delete Dashboard
         ---
-        put:
+        delete:
           parameters:
           - in: path
             schema:
               type: integer
             name: pk
-          requestBody:
-            description: Model schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
           responses:
             200:
-              description: Item changed
+              description: Dashboard delete
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-            400:
-              $ref: '#/components/responses/400'
+                      message:
+                        type: string
             401:
+              $ref: '#/components/responses/401'
+            403:
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
@@ -297,19 +351,8 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            self.response_400(message="Request is not JSON")
-        item = self.datamodel.get(pk, self._base_filters)
-        if not item:
-            return self.response_404()
-
-        item = self.edit_model_schema.load(request.json, instance=item)
-        if item.errors:
-            return self.response_422(message=item.errors)
         try:
-            self.datamodel.edit(item.data, raise_exception=True)
-            return self.response(
-                200, result=self.edit_model_schema.dump(item.data, many=False).data
-            )
+            self.datamodel.delete(item, raise_exception=True)
+            return self.response(200, message="OK")
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))

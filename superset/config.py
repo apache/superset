@@ -202,7 +202,7 @@ DRUID_IS_ACTIVE = False
 # ----------------------------------------------------
 # The authentication type
 # AUTH_OID : Is for OpenID
-# AUTH_DB : Is for database (username/password()
+# AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 AUTH_TYPE = AUTH_DB
@@ -219,7 +219,7 @@ AUTH_TYPE = AUTH_DB
 # The default user self registration role
 # AUTH_USER_REGISTRATION_ROLE = "Public"
 
-# When using LDAP Auth, setup the ldap server
+# When using LDAP Auth, setup the LDAP server
 # AUTH_LDAP_SERVER = "ldap://ldapserver.new"
 
 # Uncomment to setup OpenID providers example for OpenID authentication
@@ -519,7 +519,7 @@ RESULTS_BACKEND = None
 # rather than JSON. This feature requires additional testing from the
 # community before it is fully adopted, so this config option is provided
 # in order to disable should breaking issues be discovered.
-RESULTS_BACKEND_USE_MSGPACK = False
+RESULTS_BACKEND_USE_MSGPACK = True
 
 # The S3 bucket where you want to store your external hive tables created
 # from CSV files. For example, 'companyname-superset'
@@ -650,6 +650,10 @@ SCHEDULED_EMAIL_DEBUG_MODE = False
 
 # Email reports - minimum time resolution (in minutes) for the crontab
 EMAIL_REPORTS_CRON_RESOLUTION = 15
+
+# The MAX duration (in seconds) a email schedule can run for before being killed
+# by celery.
+EMAIL_ASYNC_TIME_LIMIT_SEC = 300
 
 # Email report configuration
 # From address in emails
