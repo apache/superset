@@ -93,19 +93,14 @@ class DictImportExportTests(SupersetTestCase):
 
     def create_druid_datasource(self, name, id=0, cols_names=[], metric_names=[]):
         cluster_name = "druid_test"
-        cluster = (
-            db.session.query(DruidCluster).filter_by(cluster_name="druid_test").first()
+        cluster = self.get_or_create(
+            DruidCluster, {"cluster_name": cluster_name}, db.session
         )
-        if not cluster:
-            cluster = DruidCluster(cluster_name=cluster_name)
-            db.session.add(cluster)
-            db.session.commit()
 
-        cluster_id = cluster.id
         name = "{0}{1}".format(NAME_PREFIX, name)
         params = {DBREF: id, "database_name": cluster_name}
         dict_rep = {
-            "cluster_id": cluster_id,
+            "cluster_id": cluster.id,
             "datasource_name": name,
             "id": id,
             "params": json.dumps(params),
@@ -116,7 +111,7 @@ class DictImportExportTests(SupersetTestCase):
         datasource = DruidDatasource(
             id=id,
             datasource_name=name,
-            cluster_id=cluster_id,
+            cluster_id=cluster.id,
             params=json.dumps(params),
         )
         for col_name in cols_names:

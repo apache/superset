@@ -39,11 +39,11 @@ def upgrade():
     bind = op.get_bind()
     insp = sa.engine.reflection.Inspector.from_engine(bind)
 
-    # Add new column
+    # Add cluster_id column
     with op.batch_alter_table("datasources") as batch_op:
         batch_op.add_column(sa.Column("cluster_id", sa.Integer()))
 
-    # Update new column values
+    # Update cluster_id values
     metadata = sa.MetaData(bind=bind)
     datasources = sa.Table("datasources", metadata, autoload=True)
     clusters = sa.Table("clusters", metadata, autoload=True)
@@ -56,19 +56,20 @@ def upgrade():
     db.session.execute(statement)
     db.session.commit()
 
-    # Drop old column and add constraints
     with op.batch_alter_table("datasources") as batch_op:
+        # Drop cluster_name column
         fk_constraint_name = generic_find_fk_constraint_name(
             "datasources", {"cluster_name"}, "clusters", insp
         )
         uq_constraint_name = generic_find_uq_constraint_name(
             "datasources", {"cluster_name", "datasource_name"}, insp
         )
-
-        batch_op.alter_column("cluster_id", existing_type=sa.Integer, nullable=False)
         batch_op.drop_constraint(fk_constraint_name, type_="foreignkey")
         batch_op.drop_constraint(uq_constraint_name, type_="unique")
         batch_op.drop_column("cluster_name")
+
+        # Add constraints to cluster_id column
+        batch_op.alter_column("cluster_id", existing_type=sa.Integer, nullable=False)
         batch_op.create_unique_constraint(
             "uq_datasources_cluster_id", ["cluster_id", "datasource_name"]
         )
@@ -81,11 +82,11 @@ def downgrade():
     bind = op.get_bind()
     insp = sa.engine.reflection.Inspector.from_engine(bind)
 
-    # Add old column
+    # Add cluster_name column
     with op.batch_alter_table("datasources") as batch_op:
         batch_op.add_column(sa.Column("cluster_name", sa.String(250)))
 
-    # Update old column values
+    # Update cluster_name values
     metadata = sa.MetaData(bind=bind)
     datasources = sa.Table("datasources", metadata, autoload=True)
     clusters = sa.Table("clusters", metadata, autoload=True)
@@ -98,21 +99,22 @@ def downgrade():
     db.session.execute(statement)
     db.session.commit()
 
-    # Drop new column and re-add constraints
     with op.batch_alter_table("datasources") as batch_op:
+        # Drop cluster_id column
         fk_constraint_name = generic_find_fk_constraint_name(
             "datasources", {"id"}, "clusters", insp
         )
         uq_constraint_name = generic_find_uq_constraint_name(
             "datasources", {"cluster_id", "datasource_name"}, insp
         )
-
-        batch_op.alter_column(
-            "cluster_name", existing_type=sa.String(250), nullable=False
-        )
         batch_op.drop_constraint(fk_constraint_name, type_="foreignkey")
         batch_op.drop_constraint(uq_constraint_name, type_="unique")
         batch_op.drop_column("cluster_id")
+
+        # Add constraints to cluster_name column
+        batch_op.alter_column(
+            "cluster_name", existing_type=sa.String(250), nullable=False
+        )
         batch_op.create_unique_constraint(
             "uq_datasources_cluster_name", ["cluster_name", "datasource_name"]
         )

@@ -125,13 +125,9 @@ class ImportExportTests(SupersetTestCase):
 
     def create_druid_datasource(self, name, id=0, cols_names=[], metric_names=[]):
         cluster_name = "druid_test"
-        cluster = (
-            db.session.query(DruidCluster).filter_by(cluster_name="druid_test").first()
+        cluster = self.get_or_create(
+            DruidCluster, {"cluster_name": cluster_name}, db.session
         )
-        if not cluster:
-            cluster = DruidCluster(cluster_name=cluster_name)
-            db.session.add(cluster)
-            db.session.commit()
 
         params = {"remote_id": id, "database_name": cluster_name}
         datasource = DruidDatasource(

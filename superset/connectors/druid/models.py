@@ -620,7 +620,7 @@ class DruidDatasource(Model, BaseDatasource):
             )
 
         def lookup_cluster(d: DruidDatasource) -> Optional[DruidCluster]:
-            return db.session.query(DruidCluster).filter_by(id=d.cluster_id).one()
+            return db.session.query(DruidCluster).filter_by(id=d.cluster_id).first()
 
         return import_datasource.import_datasource(
             db.session, i_datasource, lookup_cluster, lookup_datasource, import_time
@@ -1621,7 +1621,13 @@ class DruidDatasource(Model, BaseDatasource):
     def query_datasources_by_name(
         cls, session: Session, database: Database, datasource_name: str, schema=None
     ) -> List["DruidDatasource"]:
-        return session.query(cls).filter_by(datasource_name=datasource_name).all()
+        return (
+            session.query(cls)
+            .join(DruidCluster)
+            .filter(cls.datasource_name == datasource_name)
+            .filter(DruidCluster.cluster_name == database.name)
+            .all()
+        )
 
     def external_metadata(self) -> List[Dict]:
         self.merge_flag = True
