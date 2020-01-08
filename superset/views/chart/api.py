@@ -16,7 +16,7 @@
 # under the License.
 from typing import Dict, List
 
-from flask import current_app, g
+from flask import current_app
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length
@@ -46,6 +46,22 @@ def validate_dashboard(value):
         raise ValidationError(f"Dashboard {value} does not exist")
 
 
+def validate_update_datasource(data: Dict):
+    if not ("datasource_type" in data and "datasource_id" in data):
+        return
+    datasource_type = data["datasource_type"]
+    datasource_id = data["datasource_id"]
+    try:
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type, datasource_id, current_app.appbuilder.get_session
+        )
+    except (NoResultFound, KeyError):
+        raise ValidationError(
+            f"Datasource [{datasource_type}].{datasource_id} does not exist"
+        )
+    data["datasource_name"] = datasource.name
+
+
 def populate_dashboards(instance: Slice, dashboards: List[int]):
     """
     Mutates a Slice with the dashboards SQLA Models
@@ -60,24 +76,7 @@ def populate_dashboards(instance: Slice, dashboards: List[int]):
     instance.dashboards = dashboards_tmp
 
 
-class BaseChartSchema(BaseOwnedSchema):
-    @staticmethod
-    @validates_schema
-    def validate_datasource(data: Dict):
-        datasource_type = data["datasource_type"]
-        datasource_id = data["datasource_id"]
-        try:
-            datasource = ConnectorRegistry.get_datasource(
-                datasource_type, datasource_id, current_app.appbuilder.get_session
-            )
-        except NoResultFound:
-            raise ValidationError(
-                f"Datasource [{datasource_type}].{datasource_id} does not exist"
-            )
-        data["datasource_name"] = datasource.name
-
-
-class ChartPostSchema(BaseChartSchema):
+class ChartPostSchema(BaseOwnedSchema):
     __class_model__ = Slice
 
     slice_name = fields.String(required=True, validate=Length(1, 250))
@@ -91,14 +90,18 @@ class ChartPostSchema(BaseChartSchema):
     datasource_name = fields.String(allow_none=True)
     dashboards = fields.List(fields.Integer(validate=validate_dashboard))
 
+    @validates_schema
+    def validate_schema(self, data: Dict):  # pylint: disable=no-self-use
+        validate_update_datasource(data)
+
     @post_load
-    def make_object(self, data: Dict, discard=None) -> Slice:
+    def make_object(self, data: Dict, discard: List[str] = None) -> Slice:
         instance = super().make_object(data, discard=["dashboards"])
         populate_dashboards(instance, data.get("dashboards", []))
         return instance
 
 
-class ChartPutSchema(BaseChartSchema):
+class ChartPutSchema(BaseOwnedSchema):
     instance: Slice
 
     slice_name = fields.String(allow_none=True, validate=Length(0, 250))
@@ -111,10 +114,12 @@ class ChartPutSchema(BaseChartSchema):
     datasource_type = fields.String(allow_none=True)
     dashboards = fields.List(fields.Integer(validate=validate_dashboard))
 
+    @validates_schema
+    def validate_schema(self, data: Dict):  # pylint: disable=no-self-use
+        validate_update_datasource(data)
+
     @post_load
-    def make_object(self, data: Dict, discard: List = None) -> Slice:
-        if "owners" not in data and g.user not in self.instance.owners:
-            self.instance.owners.append(g.user)
+    def make_object(self, data: Dict, discard: List[str] = None) -> Slice:
         self.instance = super().make_object(data, ["dashboards"])
         populate_dashboards(self.instance, data.get("dashboards", []))
         return self.instance

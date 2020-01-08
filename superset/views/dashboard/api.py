@@ -16,8 +16,9 @@
 # under the License.
 import json
 import re
+from typing import Dict, List
 
-from flask import current_app, g
+from flask import current_app
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
@@ -109,14 +110,8 @@ class DashboardPutSchema(BaseDashboardSchema):
     published = fields.Boolean()
 
     @post_load
-    def make_object(self, data, discard=None):  # pylint: disable=no-self-use
-        if "owners" not in data and g.user not in self.instance.owners:
-            self.instance.owners.append(g.user)
-        for field in data:
-            if field == "owners":
-                self.set_owners(self.instance, data["owners"])
-            else:
-                setattr(self.instance, field, data.get(field))
+    def make_object(self, data: Dict, discard: List[str] = None) -> Dashboard:
+        self.instance = super().make_object(data, [])
         for slc in self.instance.slices:
             slc.owners = list(set(self.instance.owners) | set(slc.owners))
         return self.instance

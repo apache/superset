@@ -423,7 +423,7 @@ class BaseSupersetSchema(Schema):
         return super().load(data, many=many, partial=partial, **kwargs)
 
     @post_load
-    def make_object(self, data: Dict, discard: List = None) -> Model:
+    def make_object(self, data: Dict, discard: List[str] = None) -> Model:
         """
         Creates a Model object from POST or PUT requests. PUT will use self.instance
         previously fetched from the endpoint handler
@@ -448,10 +448,12 @@ class BaseOwnedSchema(BaseSupersetSchema):
     owners_field_name = "owners"
 
     @post_load
-    def make_object(self, data: Dict, discard: List = None) -> Model:
+    def make_object(self, data: Dict, discard: List[str] = None) -> Model:
         discard = discard or []
         discard.append(self.owners_field_name)
         instance = super().make_object(data, discard)
+        if "owners" not in data and g.user not in instance.owners:
+            instance.owners.append(g.user)
         if self.owners_field_name in data:
             self.set_owners(instance, data[self.owners_field_name])
         return instance

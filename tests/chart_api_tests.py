@@ -188,7 +188,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_create_chart_validate_params(self):
         """
-            Chart API: Test create validate json
+            Chart API: Test create validate params json
         """
         chart_data = {
             "slice_name": "title1",
@@ -200,6 +200,37 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/chart/"
         rv = self.client.post(uri, json=chart_data)
         self.assertEqual(rv.status_code, 422)
+
+    def test_create_chart_validate_datasource(self):
+        """
+            Chart API: Test create validate datasource
+        """
+        self.login(username="admin")
+        chart_data = {
+            "slice_name": "title1",
+            "datasource_id": 1,
+            "datasource_type": "unknown",
+        }
+        uri = f"api/v1/chart/"
+        rv = self.client.post(uri, json=chart_data)
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            response,
+            {"message": {"_schema": ["Datasource [unknown].1 does not exist"]}},
+        )
+        chart_data = {
+            "slice_name": "title1",
+            "datasource_id": 0,
+            "datasource_type": "table",
+        }
+        uri = f"api/v1/chart/"
+        rv = self.client.post(uri, json=chart_data)
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            response, {"message": {"_schema": ["Datasource [table].0 does not exist"]}}
+        )
 
     def test_update_chart(self):
         """
@@ -278,6 +309,51 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
         db.session.commit()
+
+    def test_update_chart_validate_datasource(self):
+        """
+            Chart API: Test update validate datasource
+        """
+        admin = self.get_user("admin")
+        chart = self.insert_chart("title", [admin.id], 1)
+        self.login(username="admin")
+        chart_data = {"datasource_id": 1, "datasource_type": "unknown"}
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.client.put(uri, json=chart_data)
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            response,
+            {"message": {"_schema": ["Datasource [unknown].1 does not exist"]}},
+        )
+        chart_data = {"datasource_id": 0, "datasource_type": "table"}
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.client.put(uri, json=chart_data)
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            response, {"message": {"_schema": ["Datasource [table].0 does not exist"]}}
+        )
+        db.session.delete(chart)
+        db.session.commit()
+
+    def test_update_chart_validate_owners(self):
+        """
+            Chart API: Test update validate owners
+        """
+        chart_data = {
+            "slice_name": "title1",
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "owners": [1000],
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/"
+        rv = self.client.post(uri, json=chart_data)
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": {"owners": {"0": ["User 1000 does not exist"]}}}
+        self.assertEqual(response, expected_response)
 
     def test_get_chart(self):
         """
