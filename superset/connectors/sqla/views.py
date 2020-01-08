@@ -162,9 +162,6 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
     edit_form_extra_fields = add_form_extra_fields
 
 
-appbuilder.add_view_no_menu(TableColumnInlineView)
-
-
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.SqlMetric)
 
@@ -222,9 +219,6 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     }
 
     edit_form_extra_fields = add_form_extra_fields
-
-
-appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
@@ -426,15 +420,3 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
             flash(failure_msg, "danger")
 
         return redirect("/tablemodelview/list/")
-
-
-appbuilder.add_view_no_menu(TableModelView)
-appbuilder.add_link(
-    "Tables",
-    label=__("Tables"),
-    href="/tablemodelview/list/?_flt_1_is_sqllab_view=y",
-    icon="fa-table",
-    category="Sources",
-    category_label=__("Sources"),
-    category_icon="fa-table",
-)

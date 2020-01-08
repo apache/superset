@@ -20,7 +20,7 @@ from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 
-from superset import appbuilder, db, event_logger, security_manager
+from superset import db, event_logger, security_manager
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
@@ -70,6 +70,3 @@ class Api(BaseSupersetView):
         update_time_range(form_data)
 
         return json.dumps(form_data)
-
-
-appbuilder.add_view_no_menu(Api)

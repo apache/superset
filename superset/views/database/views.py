@@ -19,13 +19,13 @@ import os
 from flask import flash, g, redirect
 from flask_appbuilder import SimpleFormView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from werkzeug.utils import secure_filename
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app, appbuilder, db
+from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
@@ -58,28 +58,6 @@ class DatabaseView(
 
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
-
-
-appbuilder.add_link(
-    "Import Dashboards",
-    label=__("Import Dashboards"),
-    href="/superset/import_dashboards",
-    icon="fa-cloud-upload",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="fa-wrench",
-)
-
-
-appbuilder.add_view(
-    DatabaseView,
-    "Databases",
-    label=__("Databases"),
-    icon="fa-database",
-    category="Sources",
-    category_label=__("Sources"),
-    category_icon="fa-database",
-)
 
 
 class CsvToDatabaseView(SimpleFormView):
@@ -181,14 +159,8 @@ class CsvToDatabaseView(SimpleFormView):
         return redirect("/tablemodelview/list/")
 
 
-appbuilder.add_view_no_menu(CsvToDatabaseView)
-
-
 class DatabaseTablesAsync(DatabaseView):  # pylint: disable=too-many-ancestors
     list_columns = ["id", "all_table_names_in_database", "all_schema_names"]
-
-
-appbuilder.add_view_no_menu(DatabaseTablesAsync)
 
 
 class DatabaseAsync(DatabaseView):  # pylint: disable=too-many-ancestors
@@ -205,6 +177,3 @@ class DatabaseAsync(DatabaseView):  # pylint: disable=too-many-ancestors
         "allows_subquery",
         "backend",
     ]
-
-
-appbuilder.add_view_no_menu(DatabaseAsync)

@@ -24,7 +24,7 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
-from superset import appbuilder, db, event_logger
+from superset import db, event_logger
 from superset.utils import core as utils
 
 from ..base import (
@@ -100,9 +100,6 @@ class Dashboard(BaseSupersetView):
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
 
-appbuilder.add_view_no_menu(Dashboard)
-
-
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
     list_columns = [
@@ -123,9 +120,6 @@ class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-a
     }
 
 
-appbuilder.add_view_no_menu(DashboardModelViewAsync)
-
-
 class DashboardAddView(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardaddview"
     list_columns = [
@@ -139,6 +133,3 @@ class DashboardAddView(DashboardModelView):  # pylint: disable=too-many-ancestor
         "changed_by_name",
     ]
     show_columns = list(set(DashboardModelView.edit_columns + list_columns))
-
-
-appbuilder.add_view_no_menu(DashboardAddView)
