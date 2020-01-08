@@ -24,6 +24,7 @@ from typing import List, Optional
 # isort and pylint disagree, isort should win
 # pylint: disable=ungrouped-imports
 import humanize
+import pandas as pd
 import sqlalchemy as sa
 import yaml
 from flask import escape, g, Markup
@@ -368,11 +369,11 @@ class QueryResult:  # pylint: disable=too-few-public-methods
     def __init__(  # pylint: disable=too-many-arguments
         self, df, query, duration, status=QueryStatus.SUCCESS, error_message=None
     ):
-        self.df = df  # pylint: disable=invalid-name
-        self.query = query
-        self.duration = duration
-        self.status = status
-        self.error_message = error_message
+        self.df: pd.DataFrame = df  # pylint: disable=invalid-name
+        self.query: str = query
+        self.duration: int = duration
+        self.status: str = status
+        self.error_message: Optional[str] = error_message
 
 
 class ExtraJSONMixin:
