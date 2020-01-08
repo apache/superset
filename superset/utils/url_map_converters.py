@@ -14,13 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder.models.sqla.interface import SQLAInterface
+from werkzeug.routing import BaseConverter
 
-import superset.models.core as models
-from superset.views.base import SupersetModelView
-
-from . import LogMixin
+from superset.models.tags import ObjectTypes
 
 
-class LogModelView(LogMixin, SupersetModelView):  # pylint: disable=too-many-ancestors
-    datamodel = SQLAInterface(models.Log)
+class RegexConverter(BaseConverter):
+    def __init__(self, url_map, *items):
+        super(RegexConverter, self).__init__(url_map)
+        self.regex = items[0]
+
+
+class ObjectTypeConverter(BaseConverter):
+    """Validate that object_type is indeed an object type."""
+
+    def to_python(self, value):
+        return ObjectTypes[value]
+
+    def to_url(self, value):
+        return value.name

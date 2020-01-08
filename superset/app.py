@@ -21,6 +21,7 @@ import os
 import wtforms_json
 from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
+from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
 from flask_wtf import CSRFProtect
 
@@ -114,10 +115,321 @@ class SupersetAppInitializer:
 
         celery_app.Task = AppContextTask
 
-    @staticmethod
-    def init_views() -> None:
-        # TODO - This should iterate over all views and register them with FAB...
-        from superset import views  # noqa pylint: disable=unused-variable
+    def init_views(self) -> None:
+        #
+        # We're doing local imports, as several of them import
+        # models which in turn try to import
+        # the global Flask app
+        #
+        # pylint: disable=too-many-locals
+        # pylint: disable=too-many-statements
+        from superset.connectors.druid.views import (
+            DruidDatasourceModelView,
+            DruidClusterModelView,
+            DruidMetricInlineView,
+            DruidColumnInlineView,
+            Druid,
+        )
+        from superset.connectors.sqla.views import (
+            TableColumnInlineView,
+            SqlMetricInlineView,
+            TableModelView,
+        )
+        from superset.views.annotations import (
+            AnnotationLayerModelView,
+            AnnotationModelView,
+        )
+        from superset.views.api import Api
+        from superset.views.core import (
+            AccessRequestsModelView,
+            SliceModelView,
+            SliceAsync,
+            SliceAddView,
+            KV,
+            R,
+            Superset,
+            CssTemplateModelView,
+            CssTemplateAsyncModelView,
+        )
+        from superset.views.dashboard.api import DashboardRestApi
+        from superset.views.dashboard.views import (
+            DashboardModelView,
+            Dashboard,
+            DashboardAddView,
+            DashboardModelViewAsync,
+        )
+        from superset.views.database.api import DatabaseRestApi
+        from superset.views.database.views import (
+            DatabaseView,
+            DatabaseTablesAsync,
+            CsvToDatabaseView,
+            DatabaseAsync,
+        )
+        from superset.views.datasource import Datasource
+        from superset.views.log.api import LogRestApi
+        from superset.views.log.views import LogModelView
+        from superset.views.schedules import (
+            DashboardEmailScheduleView,
+            SliceEmailScheduleView,
+        )
+        from superset.views.sql_lab import (
+            QueryView,
+            SavedQueryViewApi,
+            SavedQueryView,
+            TabStateView,
+            TableSchemaView,
+            SqlLab,
+        )
+        from superset.views.tags import TagView
+
+        #
+        # Setup API views
+        #
+        appbuilder.add_api(DashboardRestApi)
+        appbuilder.add_api(DatabaseRestApi)
+
+        #
+        # Setup regular views
+        #
+        appbuilder.add_view(
+            AnnotationLayerModelView,
+            "Annotation Layers",
+            label=__("Annotation Layers"),
+            icon="fa-comment",
+            category="Manage",
+            category_label=__("Manage"),
+            category_icon="",
+        )
+        appbuilder.add_view(
+            AnnotationModelView,
+            "Annotations",
+            label=__("Annotations"),
+            icon="fa-comments",
+            category="Manage",
+            category_label=__("Manage"),
+            category_icon="",
+        )
+        appbuilder.add_view(
+            SliceModelView,
+            "Charts",
+            label=__("Charts"),
+            icon="fa-bar-chart",
+            category="",
+            category_icon="",
+        )
+        appbuilder.add_view(
+            DatabaseView,
+            "Databases",
+            label=__("Databases"),
+            icon="fa-database",
+            category="Sources",
+            category_label=__("Sources"),
+            category_icon="fa-database",
+        )
+        appbuilder.add_view(
+            DashboardModelView,
+            "Dashboards",
+            label=__("Dashboards"),
+            icon="fa-dashboard",
+            category="",
+            category_icon="",
+        )
+        appbuilder.add_view(
+            CssTemplateModelView,
+            "CSS Templates",
+            label=__("CSS Templates"),
+            icon="fa-css3",
+            category="Manage",
+            category_label=__("Manage"),
+            category_icon="",
+        )
+        appbuilder.add_view(
+            QueryView,
+            "Queries",
+            label=__("Queries"),
+            category="Manage",
+            category_label=__("Manage"),
+            icon="fa-search",
+        )
+
+        #
+        # Setup views with no menu
+        #
+        appbuilder.add_view_no_menu(Api)
+        appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
+        appbuilder.add_view_no_menu(CsvToDatabaseView)
+        appbuilder.add_view_no_menu(Dashboard)
+        appbuilder.add_view_no_menu(DashboardAddView)
+        appbuilder.add_view_no_menu(DashboardModelViewAsync)
+        appbuilder.add_view_no_menu(DatabaseAsync)
+        appbuilder.add_view_no_menu(DatabaseTablesAsync)
+        appbuilder.add_view_no_menu(Datasource)
+        appbuilder.add_view_no_menu(KV)
+        appbuilder.add_view_no_menu(R)
+        appbuilder.add_view_no_menu(SavedQueryView)
+        appbuilder.add_view_no_menu(SavedQueryViewApi)
+        appbuilder.add_view_no_menu(SliceAddView)
+        appbuilder.add_view_no_menu(SliceAsync)
+        appbuilder.add_view_no_menu(SqlLab)
+        appbuilder.add_view_no_menu(SqlMetricInlineView)
+        appbuilder.add_view_no_menu(Superset)
+        appbuilder.add_view_no_menu(TableColumnInlineView)
+        appbuilder.add_view_no_menu(TableModelView)
+        appbuilder.add_view_no_menu(TableSchemaView)
+        appbuilder.add_view_no_menu(TabStateView)
+        appbuilder.add_view_no_menu(TagView)
+
+        #
+        # Add links
+        #
+        appbuilder.add_link(
+            __("Saved Queries"),
+            href="/sqllab/my_queries/",
+            icon="fa-save",
+            category="SQL Lab",
+        )
+        appbuilder.add_link(
+            "Import Dashboards",
+            label=__("Import Dashboards"),
+            href="/superset/import_dashboards",
+            icon="fa-cloud-upload",
+            category="Manage",
+            category_label=__("Manage"),
+            category_icon="fa-wrench",
+        )
+        appbuilder.add_link(
+            "SQL Editor",
+            label=_("SQL Editor"),
+            href="/superset/sqllab",
+            category_icon="fa-flask",
+            icon="fa-flask",
+            category="SQL Lab",
+            category_label=__("SQL Lab"),
+        )
+        appbuilder.add_link(
+            "Query Search",
+            label=_("Query Search"),
+            href="/superset/sqllab#search",
+            icon="fa-search",
+            category_icon="fa-flask",
+            category="SQL Lab",
+            category_label=__("SQL Lab"),
+        )
+        appbuilder.add_link(
+            "Upload a CSV",
+            label=__("Upload a CSV"),
+            href="/csvtodatabaseview/form",
+            icon="fa-upload",
+            category="Sources",
+            category_label=__("Sources"),
+            category_icon="fa-wrench",
+        )
+        appbuilder.add_link(
+            "Tables",
+            label=__("Tables"),
+            href="/tablemodelview/list/?_flt_1_is_sqllab_view=y",
+            icon="fa-table",
+            category="Sources",
+            category_label=__("Sources"),
+            category_icon="fa-table",
+        )
+
+        #
+        # Conditionally setup log views
+        #
+        if (
+            not self.config["FAB_ADD_SECURITY_VIEWS"] is False
+            or self.config["SUPERSET_LOG_VIEW"] is False
+        ):
+            appbuilder.add_api(LogRestApi)
+            appbuilder.add_view(
+                LogModelView,
+                "Action Log",
+                label=__("Action Log"),
+                category="Security",
+                category_label=__("Security"),
+                icon="fa-list-ol",
+            )
+
+        #
+        # Conditionally setup email views
+        #
+        if self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
+            appbuilder.add_separator("Manage")
+            appbuilder.add_view(
+                DashboardEmailScheduleView,
+                "Dashboard Email Schedules",
+                label=__("Dashboard Emails"),
+                category="Manage",
+                category_label=__("Manage"),
+                icon="fa-search",
+            )
+            appbuilder.add_view(
+                SliceEmailScheduleView,
+                "Chart Emails",
+                label=__("Chart Email Schedules"),
+                category="Manage",
+                category_label=__("Manage"),
+                icon="fa-search",
+            )
+
+        #
+        # Conditionally add Access Request Model View
+        #
+        if self.config["ENABLE_ACCESS_REQUEST"]:
+            appbuilder.add_view(
+                AccessRequestsModelView,
+                "Access requests",
+                label=__("Access requests"),
+                category="Security",
+                category_label=__("Security"),
+                icon="fa-table",
+            )
+
+        #
+        # Conditionally setup Druid Views
+        #
+        if self.config["DRUID_IS_ACTIVE"]:
+            appbuilder.add_separator("Sources")
+            appbuilder.add_view(
+                DruidDatasourceModelView,
+                "Druid Datasources",
+                label=__("Druid Datasources"),
+                category="Sources",
+                category_label=__("Sources"),
+                icon="fa-cube",
+            )
+            appbuilder.add_view(
+                DruidClusterModelView,
+                name="Druid Clusters",
+                label=__("Druid Clusters"),
+                icon="fa-cubes",
+                category="Sources",
+                category_label=__("Sources"),
+                category_icon="fa-database",
+            )
+            appbuilder.add_view_no_menu(DruidMetricInlineView)
+            appbuilder.add_view_no_menu(DruidColumnInlineView)
+            appbuilder.add_view_no_menu(Druid)
+            appbuilder.add_link(
+                "Scan New Datasources",
+                label=__("Scan New Datasources"),
+                href="/druid/scan_new_datasources/",
+                category="Sources",
+                category_label=__("Sources"),
+                category_icon="fa-database",
+                icon="fa-refresh",
+            )
+            appbuilder.add_link(
+                "Refresh Druid Metadata",
+                label=__("Refresh Druid Metadata"),
+                href="/druid/refresh_datasources/",
+                category="Sources",
+                category_label=__("Sources"),
+                category_icon="fa-database",
+                icon="fa-cog",
+            )
+            appbuilder.add_separator("Sources")
 
     def init_app_in_ctx(self) -> None:
         """
@@ -125,6 +437,7 @@ class SupersetAppInitializer:
         """
         self.configure_feature_flags()
         self.configure_fab()
+        self.configure_url_map_converters()
         self.configure_data_sources()
 
         # Hook that provides administrators a handle on the Flask APP
@@ -202,6 +515,17 @@ class SupersetAppInitializer:
         appbuilder.security_manager_class = custom_sm
         appbuilder.update_perms = False
         appbuilder.init_app(self.flask_app, db.session)
+
+    def configure_url_map_converters(self):
+        #
+        # Doing local imports here as model importing causes a reference to
+        # app.config to be invoked and we need the current_app to have been setup
+        #
+        from superset.utils.url_map_converters import RegexConverter
+        from superset.utils.url_map_converters import ObjectTypeConverter
+
+        self.flask_app.url_map.converters["regex"] = RegexConverter
+        self.flask_app.url_map.converters["object_type"] = ObjectTypeConverter
 
     def configure_jinja_context(self):
         jinja_context_manager.init_app(self.flask_app)

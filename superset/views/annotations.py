@@ -15,10 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from wtforms.validators import StopValidation
 
-from superset import appbuilder
 from superset.models.annotations import Annotation, AnnotationLayer
 
 from .base import DeleteMixin, SupersetModelView
@@ -105,23 +104,3 @@ class AnnotationLayerModelView(
     add_columns = edit_columns
 
     label_columns = {"name": _("Name"), "descr": _("Description")}
-
-
-appbuilder.add_view(
-    AnnotationLayerModelView,
-    "Annotation Layers",
-    label=__("Annotation Layers"),
-    icon="fa-comment",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="",
-)
-appbuilder.add_view(
-    AnnotationModelView,
-    "Annotations",
-    label=__("Annotations"),
-    icon="fa-comments",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="",
-)

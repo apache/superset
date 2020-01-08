@@ -22,9 +22,8 @@ from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import and_, func
-from werkzeug.routing import BaseConverter
 
-from superset import app, appbuilder, db, utils
+from superset import db, utils
 from superset.jinja_context import current_user_id, current_username
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -32,17 +31,6 @@ from superset.models.sql_lab import SavedQuery
 from superset.models.tags import ObjectTypes, Tag, TaggedObject, TagTypes
 
 from .base import BaseSupersetView, json_success
-
-
-class ObjectTypeConverter(BaseConverter):
-
-    """Validate that object_type is indeed an object type."""
-
-    def to_python(self, value):
-        return ObjectTypes[value]
-
-    def to_url(self, value):
-        return value.name
 
 
 def process_template(content):
@@ -228,7 +216,3 @@ class TagView(BaseSupersetView):
             )
 
         return json_success(json.dumps(results, default=utils.core.json_int_dttm_ser))
-
-
-app.url_map.converters["object_type"] = ObjectTypeConverter
-appbuilder.add_view_no_menu(TagView)
