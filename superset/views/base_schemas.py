@@ -93,7 +93,9 @@ class BaseOwnedSchema(BaseSupersetSchema):
 
     @pre_load
     def pre_load(self, data: Dict):
-        data[self.owners_field_name] = data.get(self.owners_field_name, [])
+        # if PUT request don't set owners to empty list
+        if not self.instance:
+            data[self.owners_field_name] = data.get(self.owners_field_name, [])
 
     @staticmethod
     def set_owners(instance: Model, owners: List[int]):

@@ -122,7 +122,8 @@ class ChartPutSchema(BaseOwnedSchema):
     @post_load
     def make_object(self, data: Dict, discard: List[str] = None) -> Slice:
         self.instance = super().make_object(data, ["dashboards"])
-        populate_dashboards(self.instance, data.get("dashboards", []))
+        if "dashboards" in data:
+            populate_dashboards(self.instance, data["dashboards"])
         return self.instance
 
 

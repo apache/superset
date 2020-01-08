@@ -22,16 +22,7 @@ from typing import Any, Dict, Optional
 
 import simplejson as json
 import yaml
-from flask import (
-    abort,
-    flash,
-    g,
-    get_flashed_messages,
-    redirect,
-    request,
-    Response,
-    session,
-)
+from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
 from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
