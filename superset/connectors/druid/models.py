@@ -988,11 +988,9 @@ class DruidDatasource(Model, BaseDatasource):
     def get_query_str(self, query_obj, phase=1, client=None):
         return self.run_query(client=client, phase=phase, **query_obj)
 
-    def _add_filter_from_pre_query_data(
-        self, df: Optional[pd.DataFrame], dimensions, dim_filter
-    ):
+    def _add_filter_from_pre_query_data(self, df: pd.DataFrame, dimensions, dim_filter):
         ret = dim_filter
-        if df is not None and not df.empty:
+        if not df.empty:
             new_filters = []
             for unused, row in df.iterrows():
                 fields = []
@@ -1379,7 +1377,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         if df is None or df.size == 0:
             return QueryResult(
-                df=pd.DataFrame([]),
+                df=pd.DataFrame(),
                 query=query_str,
                 duration=datetime.now() - qry_start_dttm,
             )
