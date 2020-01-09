@@ -727,14 +727,14 @@ Note that you can run the ``superset refresh_druid`` command to refresh the
 metadata from your Druid cluster(s)
 
 Dremio
------
+------
 
 Install the following dependencies to connect to Dremio:
 
-* Dremio SQLAlchemy: `pip install sqlalchemy_dremio`
+* Dremio SQLAlchemy: ``pip install sqlalchemy_dremio``
 * Dremio's ODBC driver: https://www.dremio.com/drivers/
 
-Example SQLAlchemy URI: `dremio+pyodbc://dremio:dremio123@localhost:31010/dremio`
+Example SQLAlchemy URI: ``dremio+pyodbc://dremio:dremio123@localhost:31010/dremio``
 
 Presto
 ------
