@@ -33,7 +33,8 @@ RUN mkdir /app \
 # in order to only build if and only if requirements change
 COPY ./requirements.txt /app/
 RUN cd /app \
-        && pip install --no-cache -r requirements.txt
+        && pip install --no-cache -r requirements.txt \
+	&& pip install snowflake-sqlalchemy
 
 
 ######################################################################
