@@ -172,7 +172,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
     method_permission_name = {
         "get_list": "list",
         "get": "show",
-        "export": "mulexport",
+        "export": "list",
         "post": "add",
         "put": "edit",
         "delete": "delete",
