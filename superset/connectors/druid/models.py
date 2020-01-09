@@ -1621,13 +1621,7 @@ class DruidDatasource(Model, BaseDatasource):
     def query_datasources_by_name(
         cls, session: Session, database: Database, datasource_name: str, schema=None
     ) -> List["DruidDatasource"]:
-        return (
-            session.query(cls)
-            .join(DruidCluster)
-            .filter(cls.datasource_name == datasource_name)
-            .filter(DruidCluster.cluster_name == database.name)
-            .all()
-        )
+        return []
 
     def external_metadata(self) -> List[Dict]:
         self.merge_flag = True

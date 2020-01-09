@@ -53,8 +53,7 @@ def upgrade():
         .where(datasources.c.cluster_name == clusters.c.cluster_name)
         .as_scalar()
     )
-    db.session.execute(statement)
-    db.session.commit()
+    bind.execute(statement)
 
     with op.batch_alter_table("datasources") as batch_op:
         # Drop cluster_name column
@@ -96,8 +95,7 @@ def downgrade():
         .where(datasources.c.cluster_id == clusters.c.id)
         .as_scalar()
     )
-    db.session.execute(statement)
-    db.session.commit()
+    bind.execute(statement)
 
     with op.batch_alter_table("datasources") as batch_op:
         # Drop cluster_id column
