@@ -85,7 +85,6 @@ class AnnotationDatasource(BaseDatasource):
     cache_timeout = 0
 
     def query(self, query_obj: Dict[str, Any]) -> QueryResult:
-        df = None
         error_message = None
         qry = db.session.query(Annotation)
         qry = qry.filter(Annotation.layer_id == query_obj["filter"][0]["val"])
@@ -97,6 +96,7 @@ class AnnotationDatasource(BaseDatasource):
         try:
             df = pd.read_sql_query(qry.statement, db.engine)
         except Exception as e:
+            df = pd.DataFrame()
             status = utils.QueryStatus.FAILED
             logging.exception(e)
             error_message = utils.error_msg_from_exception(e)
@@ -530,11 +530,7 @@ class SqlaTable(Model, BaseDatasource):
         # show_cols and latest_partition set to false to avoid
         # the expensive cost of inspecting the DB
         return self.database.select_star(
-            self.table_name,
-            sql=self.sql,
-            schema=self.schema,
-            show_cols=False,
-            latest_partition=False,
+            self.table_name, schema=self.schema, show_cols=False, latest_partition=False
         )
 
     @property
@@ -999,7 +995,7 @@ class SqlaTable(Model, BaseDatasource):
         try:
             df = self.database.get_df(sql, self.schema, mutator)
         except Exception as e:
-            df = None
+            df = pd.DataFrame()
             status = utils.QueryStatus.FAILED
             logging.exception(f"Query {sql} on schema {self.schema} failed")
             db_engine_spec = self.database.db_engine_spec

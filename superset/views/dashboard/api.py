@@ -23,7 +23,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 
-from superset import appbuilder
 from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
@@ -168,6 +167,3 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
         "owners": ("first_name", "asc"),
     }
     filter_rel_fields_field = {"owners": "first_name", "slices": "slice_name"}
-
-
-appbuilder.add_api(DashboardRestApi)

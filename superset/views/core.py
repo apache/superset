@@ -248,57 +248,25 @@ def _deserialize_results_payload(
             return json.loads(payload)  # type: ignore
 
 
-if config["ENABLE_ACCESS_REQUEST"]:
-
-    class AccessRequestsModelView(SupersetModelView, DeleteMixin):
-        datamodel = SQLAInterface(DAR)
-        list_columns = [
-            "username",
-            "user_roles",
-            "datasource_link",
-            "roles_with_datasource",
-            "created_on",
-        ]
-        order_columns = ["created_on"]
-        base_order = ("changed_on", "desc")
-        label_columns = {
-            "username": _("User"),
-            "user_roles": _("User Roles"),
-            "database": _("Database URL"),
-            "datasource_link": _("Datasource"),
-            "roles_with_datasource": _("Roles to grant"),
-            "created_on": _("Created On"),
-        }
-
-    appbuilder.add_view(
-        AccessRequestsModelView,
-        "Access requests",
-        label=__("Access requests"),
-        category="Security",
-        category_label=__("Security"),
-        icon="fa-table",
-    )
-
-appbuilder.add_view(
-    chart_views.SliceModelView,
-    "Charts",
-    label=__("Charts"),
-    icon="fa-bar-chart",
-    category="",
-    category_icon="",
-)
-
-appbuilder.add_view_no_menu(chart_views.SliceAsync)
-appbuilder.add_view_no_menu(chart_views.SliceAddView)
-
-appbuilder.add_view(
-    dash_views.DashboardModelView,
-    "Dashboards",
-    label=__("Dashboards"),
-    icon="fa-dashboard",
-    category="",
-    category_icon="",
-)
+class AccessRequestsModelView(SupersetModelView, DeleteMixin):
+    datamodel = SQLAInterface(DAR)
+    list_columns = [
+        "username",
+        "user_roles",
+        "datasource_link",
+        "roles_with_datasource",
+        "created_on",
+    ]
+    order_columns = ["created_on"]
+    base_order = ("changed_on", "desc")
+    label_columns = {
+        "username": _("User"),
+        "user_roles": _("User Roles"),
+        "database": _("Database URL"),
+        "datasource_link": _("Datasource"),
+        "roles_with_datasource": _("Roles to grant"),
+        "created_on": _("Created On"),
+    }
 
 
 @talisman(force_https=False)
@@ -349,9 +317,6 @@ class KV(BaseSupersetView):
         return Response(kv.value, status=200, content_type="text/plain")
 
 
-appbuilder.add_view_no_menu(KV)
-
-
 class R(BaseSupersetView):
 
     """used for short urls"""
@@ -385,9 +350,6 @@ class R(BaseSupersetView):
             ),
             mimetype="text/plain",
         )
-
-
-appbuilder.add_view_no_menu(R)
 
 
 class Superset(BaseSupersetView):
@@ -2851,9 +2813,6 @@ class Superset(BaseSupersetView):
             )
 
 
-appbuilder.add_view_no_menu(Superset)
-
-
 class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
 
@@ -2872,50 +2831,6 @@ class CssTemplateAsyncModelView(CssTemplateModelView):
     list_columns = ["template_name", "css"]
 
 
-appbuilder.add_view(
-    CssTemplateModelView,
-    "CSS Templates",
-    label=__("CSS Templates"),
-    icon="fa-css3",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="",
-)
-
-
-appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
-
-appbuilder.add_link(
-    "SQL Editor",
-    label=_("SQL Editor"),
-    href="/superset/sqllab",
-    category_icon="fa-flask",
-    icon="fa-flask",
-    category="SQL Lab",
-    category_label=__("SQL Lab"),
-)
-
-appbuilder.add_link(
-    "Query Search",
-    label=_("Query Search"),
-    href="/superset/sqllab#search",
-    icon="fa-search",
-    category_icon="fa-flask",
-    category="SQL Lab",
-    category_label=__("SQL Lab"),
-)
-
-appbuilder.add_link(
-    "Upload a CSV",
-    label=__("Upload a CSV"),
-    href="/csvtodatabaseview/form",
-    icon="fa-upload",
-    category="Sources",
-    category_label=__("Sources"),
-    category_icon="fa-wrench",
-)
-
-
 @app.after_request
 def apply_http_headers(response: Response):
     """Applies the configuration's http headers to all responses"""
@@ -2929,17 +2844,6 @@ def apply_http_headers(response: Response):
         if k not in response.headers:
             response.headers[k] = v
     return response
-
-
-# ---------------------------------------------------------------------
-# Redirecting URL from previous names
-class RegexConverter(BaseConverter):
-    def __init__(self, url_map, *items):
-        super(RegexConverter, self).__init__(url_map)
-        self.regex = items[0]
-
-
-app.url_map.converters["regex"] = RegexConverter
 
 
 @app.route('/<regex("panoramix\/.*"):url>')
