@@ -357,6 +357,8 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | Apache Druid     | ``pip install pydruid``               | ``druid://``                                    |
 +------------------+---------------------------------------+-------------------------------------------------+
+| Dremio           | ``pip install sqlalchemy_dremio``     | ``dremio+pyodbc://user:pwd@host:31010/          |
++------------------+---------------------------------------+-------------------------------------------------+
 | Apache Hive      | ``pip install pyhive``                | ``hive://``                                     |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Apache Impala    | ``pip install impyla``                | ``impala://``                                   |
@@ -724,6 +726,15 @@ Druid
 Note that you can run the ``superset refresh_druid`` command to refresh the
 metadata from your Druid cluster(s)
 
+Dremio
+-----
+
+Install the following dependencies to connect to Dremio:
+
+* pyodbc `pip install pyodbc`
+* Dremio's ODBC driver.
+
+Example SQLAlchemy URI: `dremio+pyodbc://dremio:dremio123@localhost:31010/dremio`
 
 Presto
 ------
