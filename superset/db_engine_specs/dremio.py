@@ -1,5 +1,4 @@
 from superset.db_engine_specs.base import BaseEngineSpec
-import sqlalchemy_dremio.pyodbc
 
 class DremioBaseEngineSpec(BaseEngineSpec):
 
