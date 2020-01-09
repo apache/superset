@@ -31,6 +31,7 @@ from superset.views.base import (
     BaseSupersetModelRestApi,
     BaseSupersetSchema,
     check_ownership_and_item_exists,
+    generate_download_headers,
 )
 
 from .mixin import DashboardMixin
@@ -405,5 +406,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
             return self.response_404()
         export = Dashboard.export_dashboards(kwargs["rison"])
         resp = make_response(export, 200)
-        resp.headers["Content-Disposition"] = 'attachment; filename="dashboards.json"'
+        resp.headers["Content-Disposition"] = generate_download_headers("json")[
+            "Content-Disposition"
+        ]
         return resp

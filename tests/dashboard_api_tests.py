@@ -443,6 +443,20 @@ class DashboardApiTests(SupersetTestCase):
         self.login(username="admin")
         argument = [1000]
         uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
-
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    def test_export_not_allowed(self):
+        """
+            Dashboard API: Test dashboard export not not allowed
+        """
+        admin_id = self.get_user("admin").id
+        dashboard = self.insert_dashboard("title", "slug1", [admin_id], published=False)
+
+        self.login(username="gamma")
+        argument = [dashboard.id]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+        db.session.delete(dashboard)
+        db.session.commit()
