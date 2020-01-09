@@ -423,3 +423,26 @@ class DashboardApiTests(SupersetTestCase):
 
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    def test_export(self):
+        """
+            Dashboard API: Test dashboard export
+        """
+        self.login(username="admin")
+        argument = [1, 2]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        rv.headers["Content-Disposition"] = 'attachment; filename="dashboards.json"'
+
+    def test_export_not_found(self):
+        """
+            Dashboard API: Test dashboard export not found
+        """
+        self.login(username="admin")
+        argument = [1000]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
