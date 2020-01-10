@@ -165,7 +165,7 @@ class PropertiesModal extends React.PureComponent {
           <Modal.Body>
             <Row>
               <Col md={12}>
-                <h3>Basic Information</h3>
+                <h3>{t('Basic Information')}</h3>
               </Col>
             </Row>
             <Row>
@@ -191,12 +191,13 @@ class PropertiesModal extends React.PureComponent {
                   bsSize="sm"
                   value={values.slug}
                   onChange={this.onChange}
+                  placeholder={t('A readable URL for your dashboard')}
                 />
               </Col>
             </Row>
             <Row>
               <Col md={6}>
-                <h3>Access</h3>
+                <h3>{t('Access')}</h3>
                 <label className="control-label" htmlFor="owners">
                   {t('Owners')}
                 </label>
@@ -227,7 +228,7 @@ class PropertiesModal extends React.PureComponent {
                       }`}
                       style={{ minWidth: '1em' }}
                     />
-                    Advanced
+                    {t('Advanced')}
                   </button>
                 </h3>
                 {isAdvancedOpen && (
