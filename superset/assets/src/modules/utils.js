@@ -61,6 +61,15 @@ export function getDatasourceParameter(datasourceId, datasourceType) {
   return `${datasourceId}__${datasourceType}`;
 }
 
+export default function fixTableHeight(a, b) {
+  const c = a.find('.dataTables_scrollHead').height();
+  const d = a.find('.dataTables_filter').height() || 0;
+  const e = a.find('.dataTables_length').height() || 0;
+  const f = a.find('.dataTables_paginate').height() || 0;
+  const g = e > d ? e : d;
+  a.find('.dataTables_scrollBody').css('max-height', b - c - g - f);
+}
+
 export function getParam(name) {
   /* eslint no-useless-escape: 0 */
   const formattedName = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');

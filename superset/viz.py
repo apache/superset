@@ -706,8 +706,9 @@ class PivotTableViz(BaseViz):
         # Display metrics side by side with each column
         if self.form_data.get("combine_metric"):
             df = df.stack(0).unstack()
+        parsed_columns = list(map(lambda x: list(map(str,x)) if type(x) === tuple else [x], df.columns.values))
         return dict(
-            columns=list(df.columns),
+            columns=parsed_columns,
             html=df.to_html(
                 na_rep="null",
                 classes=(
