@@ -654,7 +654,7 @@ class SqlaTable(Model, BaseDatasource):
         :rtype: List[str]
         """
         return [
-            text("({})".format(template_processor.process_template(f)))
+            text("({})".format(template_processor.process_template(f.clause)))
             for f in security_manager.get_rls_filters(self)
         ]
 
