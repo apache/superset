@@ -110,9 +110,12 @@ export function togglePublished(isPublished) {
 
 export function savePublished(id, isPublished) {
   return function savePublishedThunk(dispatch) {
-    return SupersetClient.post({
-      endpoint: `/superset/dashboard/${id}/published/`,
-      postPayload: { published: isPublished },
+    return SupersetClient.put({
+      endpoint: `/api/v1/dashboard/${id}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        published: isPublished,
+      }),
     })
       .then(() => {
         const nowPublished = isPublished ? 'published' : 'hidden';
