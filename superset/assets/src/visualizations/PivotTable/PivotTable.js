@@ -342,7 +342,7 @@ function PivotTable(element, props) {
         $(this)
           .find('td')
           .each(function(index) {
-            const col = cols[index];
+            const col = metricForCols[index];
             const val =
               $(this).attr('initialValue') ||
               $(this).data('originalvalue') ||
