@@ -120,7 +120,7 @@ class ControlPanelsContainer extends React.Component {
       ? { ...controlData, ...mapFn(exploreState, controlData, actions) }
       : controlData;
 
-    const { validationErrors, provideFormDataToProps } = controlData;
+    const { validationErrors } = controlData;
 
     return (
       <Control
@@ -129,7 +129,7 @@ class ControlPanelsContainer extends React.Component {
         value={formData[name]}
         validationErrors={validationErrors}
         actions={actions}
-        formData={provideFormDataToProps ? formData : null}
+        formData={formData}
         {...additionalProps}
       />
     );
