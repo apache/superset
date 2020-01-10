@@ -221,7 +221,6 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     edit_form_extra_fields = add_form_extra_fields
 
 
-
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
