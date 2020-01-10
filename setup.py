@@ -118,6 +118,7 @@ setup(
         "elasticsearch": ["elasticsearch-dbapi>=0.1.0, <0.2.0"],
         "druid": ["pydruid==0.5.7", "requests==2.22.0"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
+        "dremio": ["sqlalchemy_dremio>=0.5.0dev0"],
     },
     python_requires="~=3.6",
     author="Apache Software Foundation",
