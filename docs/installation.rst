@@ -635,6 +635,20 @@ section in `config.py`:
 This will cache all the charts in the top 5 most popular dashboards every hour.
 For other strategies, check the `superset/tasks/cache.py` file.
 
+Caching Thumbnails
+------------------
+
+Thumbnails are store on cache, an example config could be:
+
+.. code-block:: python
+
+    def init_thumbnail_cache(app):
+        return RedisCache(host='localhost', port=6379, key_prefix='superset_thumbnails_')
+
+
+    THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
+
+Using the above example cache keys for dashboards will be `superset_thumbnails_thumb__dashboard__{ID}`
 
 Deeper SQLAlchemy integration
 -----------------------------

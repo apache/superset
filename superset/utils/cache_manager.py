@@ -26,12 +26,15 @@ class CacheManager:
 
         self._tables_cache = None
         self._cache = None
+        self._thumbnail_cache = None
 
     def init_app(self, app):
         self._cache = self._setup_cache(app, app.config.get("CACHE_CONFIG"))
         self._tables_cache = self._setup_cache(
             app, app.config.get("TABLE_NAMES_CACHE_CONFIG")
         )
+        self._thumbnail_cache = self._setup_cache(
+            app, app.config.get("THUMBNAIL_CACHE_CONFIG"))
 
     @staticmethod
     def _setup_cache(app: Flask, cache_config) -> Optional[Cache]:
@@ -54,3 +57,7 @@ class CacheManager:
     @property
     def cache(self):
         return self._cache
+
+    @property
+    def thumbnail_cache(self):
+        return self._thumbnail_cache

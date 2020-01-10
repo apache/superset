@@ -437,6 +437,76 @@ def flower(port, address):
 
 @superset.command()
 @with_appcontext
+@click.option(
+    "--asynchronous",
+    "-a",
+    is_flag=True,
+    default=False,
+    help="Trigger commands to run remotely on a worker",
+)
+@click.option(
+    "--dashboards_only",
+    "-d",
+    is_flag=True,
+    default=False,
+    help="Only process dashboards",
+)
+@click.option(
+    "--charts_only", "-c", is_flag=True, default=False, help="Only process charts"
+)
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    default=False,
+    help="Force refresh, even if previously cached",
+)
+@click.option("--id", "-i", multiple=True)
+def compute_thumbnails(asynchronous, dashboards_only, charts_only, force, id):
+    """Compute thumbnails"""
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tasks.thumbnails import (
+        cache_chart_thumbnail,
+        cache_dashboard_thumbnail,
+    )
+    if not charts_only:
+        query = db.session.query(Dashboard)
+        if id:
+            query = query.filter(Dashboard.id.in_(id))
+        dashboards = query.all()
+        count = len(dashboards)
+        for i, dash in enumerate(dashboards):
+            if asynchronous:
+                func = cache_dashboard_thumbnail.delay
+                action = "Triggering"
+            else:
+                func = cache_dashboard_thumbnail
+                action = "Processing"
+            msg = f'{action} dashboard "{dash.dashboard_title}" ({i+1}/{count})'
+            click.secho(msg, fg="green")
+            func(dash.id, force=force)
+
+    if not dashboards_only:
+        query = db.session.query(Slice)
+        if id:
+            query = query.filter(Slice.id.in_(id))
+        slices = query.all()
+        count = len(slices)
+        for i, slc in enumerate(slices):
+            if asynchronous:
+                func = cache_chart_thumbnail.delay
+                action = "Triggering"
+            else:
+                func = cache_chart_thumbnail
+                action = "Processing"
+            msg = f'{action} chart "{slc.slice_name}" ({i+1}/{count})'
+            click.secho(msg, fg="green")
+            func(slc.id, force=force)
+
+
+@superset.command()
+@with_appcontext
 def load_test_users():
     """
     Loads admin, alpha, and gamma user for testing purposes
