@@ -23,8 +23,7 @@ import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import $ from 'jquery';
 import { formatNumber } from '@superset-ui/number-format';
 import fixTableHeight from '../../modules/utils';
-// eslint-disable-next-line import/extensions,import/no-unresolved
-import './pivot_table.css';
+import './PivotTable.css';
 
 dt(window, $);
 
