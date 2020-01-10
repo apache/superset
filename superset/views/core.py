@@ -1857,6 +1857,9 @@ class Superset(BaseSupersetView):
     @expose("/dashboard/<dashboard_id>/published/", methods=("GET", "POST"))
     def publish(self, dashboard_id):
         """Gets and toggles published status on dashboards"""
+        logging.warning(
+            "This API endpoint is deprecated and will be removed in version 1.0.0"
+        )
         session = db.session()
         Role = ab_models.Role
         dash = (
@@ -1869,16 +1872,14 @@ class Superset(BaseSupersetView):
                 return json_success(json.dumps({"published": dash.published}))
             else:
                 return json_error_response(
-                    "ERROR: cannot find dashboard {0}".format(dashboard_id), status=404
+                    f"ERROR: cannot find dashboard {dashboard_id}", status=404
                 )
 
         else:
             edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
             if not edit_perm:
                 return json_error_response(
-                    'ERROR: "{0}" cannot alter dashboard "{1}"'.format(
-                        g.user.username, dash.dashboard_title
-                    ),
+                    f'ERROR: "{g.user.username}" cannot alter dashboard "{dash.dashboard_title}"',
                     status=403,
                 )
 
