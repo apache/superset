@@ -58,6 +58,8 @@ function PivotTable(element, props) {
     formData,
   } = props;
 
+  console.log(formData);
+
   const { html, columns } = data;
   const container = element;
   const $container = $(element);
