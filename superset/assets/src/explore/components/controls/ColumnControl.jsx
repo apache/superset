@@ -58,7 +58,7 @@ export default class ColumnControl extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            metrics: props.formData.metrics || [],
+            metrics: (props.formData && props.formData.metrics) || [],
             value: props.value,
             selectedMetric: null,
             selectedColumns: [],
