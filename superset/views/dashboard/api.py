@@ -17,16 +17,19 @@
 import json
 import re
 
-from flask import current_app, g, request
+from flask import current_app, g, request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.wsgi import FileWrapper
 
+from superset import thumbnail_cache
 from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
+from superset.utils.selenium import DashboardScreenshot
 from superset.views.base import (
     BaseSupersetModelRestApi,
     BaseSupersetSchema,
@@ -169,6 +172,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
     method_permission_name = {
         "get_list": "list",
         "get": "show",
+        "thumbnail": "list",
         "post": "add",
         "put": "edit",
         "delete": "delete",
@@ -356,3 +360,46 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
             return self.response(200, message="OK")
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
+
+    @expose("/<pk>/thumbnail/<sha>/", methods=["GET"])
+    @protect()
+    @safe
+    def thumbnail(self, pk, sha):  # pylint: disable=invalid-name
+        """Delete Dashboard
+        ---
+        get:
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: path
+            schema:
+              type: string
+            name: sha
+          responses:
+            200:
+              description: Dashboard thumbnail image
+              content:
+               image/*:
+                 schema:
+                   type: string
+                   format: binary
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        sha = 1
+        query = self.datamodel.session.query(Dashboard)
+        dashboard = self._base_filters.apply_all(query).get(pk)
+        if not dashboard:
+            return self.response_404()
+        screenshot = DashboardScreenshot(pk).get_from_cache(thumbnail_cache)
+        return Response(
+            FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
+        )

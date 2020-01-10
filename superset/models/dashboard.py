@@ -180,6 +180,26 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return Markup(f'<a href="{self.url}">{title}</a>')
 
     @property
+    def thumbnail_url(self):
+        # SHA here is to force bypassing the browser cache when chart has changed
+        sha = utils.md5_hex(self.params, 6)
+        return f"/api/v1/dashboard/thumbnail/{self.id}/{sha}/"
+
+    @property
+    def thumbnail_img(self):
+        return Markup(f'<img width="75" src="{self.thumbnail_url}">')
+
+    @property
+    def thumbnail_link(self):
+        return Markup(
+            f"""
+            <a href="{self.thumbnail_url}?force=true">
+                {self.thumbnail_img}
+            </a>
+        """
+        )
+
+    @property
     def changed_by_name(self):
         if not self.changed_by:
             return ""

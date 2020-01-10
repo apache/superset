@@ -18,6 +18,7 @@
 from io import BytesIO
 import logging
 import time
+from typing import Optional
 import urllib
 
 from flask import current_app, request, Response, session, url_for
@@ -47,9 +48,8 @@ def get_url_path(view, **kwargs):
 
 
 class BaseScreenshot:
-    thumbnail_type = None
-    orm_class = None
-    element = None
+    thumbnail_type: Optional[str] = None
+    element: Optional[str] = None
     window_size = (800, 600)
     thumb_size = (400, 300)
 
@@ -82,7 +82,7 @@ class BaseScreenshot:
             return BytesIO(payload)
 
     def compute_and_cache(
-            self, user, cache, window_size=None, thumb_size=None, force=True
+        self, user, cache, window_size=None, thumb_size=None, force=True
     ):
         cache_key = self.cache_key
         if not cache:
@@ -247,7 +247,7 @@ def create_webdriver(user=None, webdriver="chrome", window=None):
 
 
 def get_png_from_url(
-        url, window, element, user, webdriver="chrome", retries=SELENIUM_RETRIES
+    url, window, element, user, webdriver="chrome", retries=SELENIUM_RETRIES
 ):
     driver = create_webdriver(user, webdriver, window)
     driver.set_window_size(*window)

@@ -470,6 +470,7 @@ def compute_thumbnails(asynchronous, dashboards_only, charts_only, force, id):
         cache_chart_thumbnail,
         cache_dashboard_thumbnail,
     )
+
     if not charts_only:
         query = db.session.query(Dashboard)
         if id:

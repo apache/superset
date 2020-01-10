@@ -34,7 +34,8 @@ class CacheManager:
             app, app.config.get("TABLE_NAMES_CACHE_CONFIG")
         )
         self._thumbnail_cache = self._setup_cache(
-            app, app.config.get("THUMBNAIL_CACHE_CONFIG"))
+            app, app.config.get("THUMBNAIL_CACHE_CONFIG")
+        )
 
     @staticmethod
     def _setup_cache(app: Flask, cache_config) -> Optional[Cache]:
