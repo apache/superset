@@ -23,10 +23,12 @@ import CollectionControl from './CollectionControl';
 import ColorMapControl from './ColorMapControl';
 import ColorPickerControl from './ColorPickerControl';
 import ColorSchemeControl from './ColorSchemeControl';
+import ColumnControl from './ColumnControl';
 import DatasourceControl from './DatasourceControl';
 import DateFilterControl from './DateFilterControl';
 import FixedOrMetricControl from './FixedOrMetricControl';
 import HiddenControl from './HiddenControl';
+import RowControl from './RowControl';
 import SelectAsyncControl from './SelectAsyncControl';
 import SelectControl from './SelectControl';
 import SliderControl from './SliderControl';
@@ -49,10 +51,12 @@ const controlMap = {
   ColorMapControl,
   ColorPickerControl,
   ColorSchemeControl,
+  ColumnControl,
   DatasourceControl,
   DateFilterControl,
   FixedOrMetricControl,
   HiddenControl,
+  RowControl,
   SelectAsyncControl,
   SelectControl,
   SliderControl,

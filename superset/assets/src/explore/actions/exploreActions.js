@@ -108,6 +108,11 @@ export function setControlValue(controlName, value, validationErrors) {
   return { type: SET_FIELD_VALUE, controlName, value, validationErrors };
 }
 
+export const SET_FETCH_COLUMNS = 'SET_FETCH_COLUMNS';
+export function setFetchColumns(queryResponse, key) {
+  return { type: SET_FETCH_COLUMNS, queryResponse, key };
+}
+
 export const UPDATE_EXPLORE_ENDPOINTS = 'UPDATE_EXPLORE_ENDPOINTS';
 export function updateExploreEndpoints(jsonUrl, csvUrl, standaloneUrl) {
   return { type: UPDATE_EXPLORE_ENDPOINTS, jsonUrl, csvUrl, standaloneUrl };

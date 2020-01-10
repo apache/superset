@@ -34,6 +34,7 @@ import { logEvent } from '../logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import { allowCrossDomain } from '../utils/hostNamesConfig';
+import { setFetchColumns } from "../explore/actions/exploreActions";
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -256,7 +257,10 @@ export function exploreJSON(
             viz_type: formData.viz_type,
           }),
         );
-        return dispatch(chartUpdateSucceeded(json, key));
+        return (
+          dispatch(chartUpdateSucceeded(json, key)) &&
+          dispatch(setFetchColumns(json, key))
+        );
       })
       .catch(response => {
         const appendErrorLog = errorDetails => {

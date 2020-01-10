@@ -1467,6 +1467,38 @@ export const controls = {
     ),
   },
 
+  column_configuration: {
+    type: 'ColumnControl',
+    label: t('Column configuration'),
+    description: 'Advanced configuration on columns',
+    updateOnFetch: queryResponse => ({
+      columns: queryResponse.data ? queryResponse.data.columns : [],
+    }),
+    mapStateToProps: state => ({
+      columns:
+        state.controls &&
+        state.controls.column_configuration &&
+        state.controls.column_configuration.columns
+          ? state.controls.column_configuration.columns
+          : [],
+    }),
+  },
+
+  row_configuration: {
+    type: 'RowControl',
+    label: t('Row change based on value of each td in the row'),
+    description: 'Advanced configuration on rows',
+  },
+
+  row_configuration_priority: {
+    type: 'CheckboxControl',
+    label: t('Prioritize Row Configuration'),
+    renderTrigger: false,
+    default: false,
+    description:
+      'Check to prioritize row configurations over column configurations',
+  },
+
   js_agg_function: {
     type: 'SelectControl',
     label: t('Dynamic Aggregation Function'),

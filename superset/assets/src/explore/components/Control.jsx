@@ -54,6 +54,7 @@ const propTypes = {
 const defaultProps = {
   renderTrigger: false,
   hidden: false,
+  formData: {},
   validationErrors: [],
 };
 
