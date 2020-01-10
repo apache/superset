@@ -44,8 +44,7 @@ class DashboardModelView(
     datamodel = SQLAInterface(models.Dashboard)
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
-    @staticmethod
-    def mulexport(items):
+    def mulexport(self, items):  # pylint: disable=no-self-use
         if not isinstance(items, list):
             items = [items]
         ids = "".join("&id={}".format(d.id) for d in items)
