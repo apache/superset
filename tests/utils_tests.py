@@ -121,6 +121,7 @@ class UtilsTestCase(SupersetTestCase):
     def test_base_json_conv(self):
         assert isinstance(base_json_conv(numpy.bool_(1)), bool) is True
         assert isinstance(base_json_conv(numpy.int64(1)), int) is True
+        assert isinstance(base_json_conv(numpy.array([1, 2, 3])), list) is True
         assert isinstance(base_json_conv(set([1])), list) is True
         assert isinstance(base_json_conv(Decimal("1.0")), float) is True
         assert isinstance(base_json_conv(uuid.uuid4()), str) is True
