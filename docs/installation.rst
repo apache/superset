@@ -372,6 +372,8 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
+| Dremio           | ``pip install sqlalchemy_dremio``     | ``dremio://user:pwd@host:31010/``               |
++------------------+---------------------------------------+-------------------------------------------------+
 | Elasticsearch    | ``pip install elasticsearch-dbapi``   | ``elasticsearch+http://``                       |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Exasol           | ``pip install sqlalchemy-exasol``     | ``exa+pyodbc://``                               |
@@ -724,6 +726,15 @@ Druid
 Note that you can run the ``superset refresh_druid`` command to refresh the
 metadata from your Druid cluster(s)
 
+Dremio
+------
+
+Install the following dependencies to connect to Dremio:
+
+* Dremio SQLAlchemy: ``pip install sqlalchemy_dremio``
+* Dremio's ODBC driver: https://www.dremio.com/drivers/
+
+Example SQLAlchemy URI: ``dremio://dremio:dremio123@localhost:31010/dremio``
 
 Presto
 ------
