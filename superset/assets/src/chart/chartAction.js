@@ -34,7 +34,7 @@ import { logEvent } from '../logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import { allowCrossDomain } from '../utils/hostNamesConfig';
-import { setFetchColumns } from "../explore/actions/exploreActions";
+import { setFetchColumns } from '../explore/actions/exploreActions';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {

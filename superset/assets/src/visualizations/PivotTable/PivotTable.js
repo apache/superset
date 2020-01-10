@@ -57,8 +57,6 @@ function PivotTable(element, props) {
     verboseMap,
     formData,
   } = props;
-  console.log(props);
-  console.log(formData);
 
   const { html, columns } = data;
   const container = element;
@@ -67,7 +65,7 @@ function PivotTable(element, props) {
   // payload data is a string of html with a single table element
   container.innerHTML = html;
 
-  const combineMetric = (formData || {}).combine_metric;
+  const { combineMetric } = formData || {};
 
   let metricForCols = columns;
 
