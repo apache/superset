@@ -106,6 +106,7 @@ class SupersetSecurityManager(SecurityManager):
         "ResetPasswordView",
         "RoleModelView",
         "Security",
+        "RowLevelSecurityFiltersModelView",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {"Upload a CSV"}
@@ -878,7 +879,7 @@ class SupersetSecurityManager(SecurityManager):
 
         self.assert_datasource_permission(viz.datasource)
 
-    def get_row_level_security_filters(self, table):
+    def get_rls_filters(self, table):
         """
         Retrieves the appropriate row level security filters for the current user and the passed table.
 
@@ -892,5 +893,24 @@ class SupersetSecurityManager(SecurityManager):
                 for f in table.row_level_security_filters
                 if any(r.id in roles for r in f.roles)
             ]
+        except AttributeError:
+            return []
+
+    def get_rls_ids(self, table) -> List[int]:
+        """
+        Retrieves the appropriate row level security filters IDs for the current user and the passed table.
+
+        :param table: The table to check against
+        :returns: A list of IDs.
+        """
+        try:
+            roles = [role.id for role in g.user.roles]
+            ids = [
+                f.id
+                for f in table.row_level_security_filters
+                if any(r.id in roles for r in f.roles)
+            ]
+            ids.sort()  # Combinations rather than permutations
+            return ids
         except AttributeError:
             return []

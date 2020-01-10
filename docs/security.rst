@@ -171,8 +171,6 @@ filter for the last 30 days and apply it to a specific role, with a clause like
 ``date_field > DATE_SUB(NOW(), INTERVAL 30 DAY)``.  It can also support multiple 
 conditions: ``client_id = 6 AND advertiser="foo"``, etc. 
 
-You can throw whatever you want in there to define the subset of the table you want the roles in question to have access to.
-
 All relevant ``Row level security filters`` will be ANDed together, so it's 
 possible to create a situation where two roles conflict in such a way as to 
 limit a table subset to empty.  For example, the filters ``client_id=4`` and 

@@ -645,14 +645,18 @@ class SqlaTable(Model, BaseDatasource):
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
-    def _get_row_level_filters(self) -> List[str]:
+    def _get_sqla_row_level_filters(self, template_processor) -> List[str]:
         """
         Return the appropriate row level security filters for this table and the current user.
 
+        :param BaseTemplateProcessor template_processor: The template processor to apply to the filters.
         :returns: A list of SQL clauses to be ANDed together.
         :rtype: List[str]
         """
-        return security_manager.get_row_level_security_filters(self)
+        return [
+            text("({})".format(template_processor.process_template(f)))
+            for f in security_manager.get_rls_filters(self)
+        ]
 
     def get_sqla_query(  # sqla
         self,
@@ -833,9 +837,7 @@ class SqlaTable(Model, BaseDatasource):
                     elif op == "IS NOT NULL":
                         where_clause_and.append(col_obj.get_sqla_col() != None)
 
-        where_clause_and += [
-            text("({})".format(f)) for f in self._get_row_level_filters()
-        ]
+        where_clause_and += self._get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
             if where:
@@ -1195,7 +1197,7 @@ RLSFilterRoles = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
-    Column("rlsfilter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
 )
 
 
