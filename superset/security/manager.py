@@ -886,7 +886,7 @@ class SupersetSecurityManager(SecurityManager):
         :param table: The table to check against
         :returns: A list of filters strings.
         """
-        if hasattr(g, 'user'):
+        if hasattr(g, "user"):
             roles = [role.id for role in g.user.roles]
             return [
                 f
