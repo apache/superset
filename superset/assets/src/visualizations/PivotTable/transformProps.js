@@ -14,5 +14,6 @@ export default function transformProps(a) {
     numGroups: f.length,
     numberFormat: g,
     verboseMap: i,
+    formData: d,
   };
 }

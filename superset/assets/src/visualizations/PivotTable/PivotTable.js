@@ -44,7 +44,7 @@ const propTypes = {
   numberFormat: PropTypes.string,
   numGroups: PropTypes.number,
   verboseMap: PropTypes.objectOf(PropTypes.string),
-  formData: PropTypes.object.isRequired,
+  formData: PropTypes.object,
 };
 
 function PivotTable(element, props) {
@@ -57,7 +57,7 @@ function PivotTable(element, props) {
     verboseMap,
     formData,
   } = props;
-
+  console.log(props);
   console.log(formData);
 
   const { html, columns } = data;
