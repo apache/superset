@@ -21,12 +21,14 @@ import { hot } from 'react-hot-loader';
 import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
+import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
 import Welcome from './Welcome';
 import Menu from '../components/Menu/Menu';
+import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 
 setupApp();
 
@@ -45,10 +47,15 @@ const store = createStore(
 
 const App = () => (
   <Provider store={store}>
-    <>
+    <Router>
       <Menu data={menu} />
-      <Welcome user={user} />
-    </>
+      <Switch>
+        <Route path="/superset/welcome">
+          <Welcome user={user} />
+          <ToastPresenter />
+        </Route>
+      </Switch>
+    </Router>
   </Provider>
 );
 

@@ -48,12 +48,6 @@ export const sqlaTimeSeries = {
   controlSetRows: [['granularity_sqla'], ['time_range']],
 };
 
-export const filters = {
-  label: t('Filters'),
-  expanded: true,
-  controlSetRows: [['filters']],
-};
-
 export const annotations = {
   label: t('Annotations and Layers'),
   expanded: true,

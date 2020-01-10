@@ -72,6 +72,7 @@ import * as v from './validators';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 import { DEFAULT_VIEWPORT } from '../explore/components/controls/ViewportControl';
+import { TIME_FILTER_LABELS } from './constants';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -814,7 +815,7 @@ export const controls = {
   druid_time_origin: {
     type: 'SelectControl',
     freeForm: true,
-    label: t('Origin'),
+    label: TIME_FILTER_LABELS.druid_time_origin,
     choices: [
       ['', 'default'],
       ['now', 'now'],
@@ -865,7 +866,7 @@ export const controls = {
   granularity: {
     type: 'SelectControl',
     freeForm: true,
-    label: t('Time Granularity'),
+    label: TIME_FILTER_LABELS.granularity,
     default: 'one day',
     choices: [
       [null, 'all'],
@@ -953,7 +954,7 @@ export const controls = {
 
   granularity_sqla: {
     type: 'SelectControl',
-    label: t('Time Column'),
+    label: TIME_FILTER_LABELS.granularity_sqla,
     description: t(
       'The time column for the visualization. Note that you ' +
         'can define arbitrary expression that return a DATETIME ' +
@@ -983,7 +984,7 @@ export const controls = {
 
   time_grain_sqla: {
     type: 'SelectControl',
-    label: t('Time Grain'),
+    label: TIME_FILTER_LABELS.time_grain_sqla,
     default: 'P1D',
     description: t(
       'The time granularity for the visualization. This ' +
@@ -1025,7 +1026,7 @@ export const controls = {
   time_range: {
     type: 'DateFilterControl',
     freeForm: true,
-    label: t('Time range'),
+    label: TIME_FILTER_LABELS.time_range,
     default: t('Last week'),
     description: t(
       'The time range for the visualization. All relative times, e.g. "Last month", ' +
@@ -1263,7 +1264,7 @@ export const controls = {
       'The URL, this control is templated, so you can integrate ' +
         '{{ width }} and/or {{ height }} in your URL string.',
     ),
-    default: 'https://www.youtube.com/embed/AdSZJzb-aX8',
+    default: '',
   },
 
   x_axis_label: {
@@ -2135,10 +2136,6 @@ export const controls = {
       datasource: state.datasource,
     }),
     provideFormDataToProps: true,
-  },
-
-  filters: {
-    type: 'FilterPanel',
   },
 
   slice_id: {

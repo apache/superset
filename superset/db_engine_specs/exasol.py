@@ -14,13 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from typing import List, Tuple
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
-class ExasolEngineSpec(BaseEngineSpec):
+class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Engine spec for Exasol"""
 
     engine = "exa"
@@ -43,6 +42,4 @@ class ExasolEngineSpec(BaseEngineSpec):
     def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
         data = super().fetch_data(cursor, limit)
         # Lists of `pyodbc.Row` need to be unpacked further
-        if data and type(data[0]).__name__ == "Row":
-            data = [tuple(row) for row in data]
-        return data
+        return cls.pyodbc_rows_to_tuples(data)

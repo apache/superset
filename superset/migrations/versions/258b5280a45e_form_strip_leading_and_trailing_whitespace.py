@@ -33,7 +33,7 @@ from superset.utils.core import MediumText
 Base = declarative_base()
 
 
-class BaseColumnMixin(object):
+class BaseColumnMixin:
     id = Column(Integer, primary_key=True)
     column_name = Column(String(255))
     description = Column(Text)
@@ -41,12 +41,12 @@ class BaseColumnMixin(object):
     verbose_name = Column(String(1024))
 
 
-class BaseDatasourceMixin(object):
+class BaseDatasourceMixin:
     id = Column(Integer, primary_key=True)
     description = Column(Text)
 
 
-class BaseMetricMixin(object):
+class BaseMetricMixin:
     id = Column(Integer, primary_key=True)
     d3format = Column(String(128))
     description = Column(Text)

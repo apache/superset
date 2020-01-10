@@ -24,14 +24,9 @@ import { defaultControls } from 'src/explore/store';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { ControlPanelsContainer } from 'src/explore/components/ControlPanelsContainer';
 import ControlPanelSection from 'src/explore/components/ControlPanelSection';
-import * as featureFlags from 'src/featureFlags';
 
 describe('ControlPanelsContainer', () => {
   let wrapper;
-  let scopedFilterOn = false;
-  const isFeatureEnabledMock = jest
-    .spyOn(featureFlags, 'isFeatureEnabled')
-    .mockImplementation(() => scopedFilterOn);
 
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue('table', {
@@ -81,7 +76,6 @@ describe('ControlPanelsContainer', () => {
 
   afterAll(() => {
     getChartControlPanelRegistry().remove('table');
-    isFeatureEnabledMock.mockRestore();
   });
 
   function getDefaultProps() {
@@ -99,11 +93,5 @@ describe('ControlPanelsContainer', () => {
   it('renders ControlPanelSections', () => {
     wrapper = shallow(<ControlPanelsContainer {...getDefaultProps()} />);
     expect(wrapper.find(ControlPanelSection)).toHaveLength(6);
-  });
-
-  it('renders filter panel when SCOPED_FILTER flag is on', () => {
-    scopedFilterOn = true;
-    wrapper = shallow(<ControlPanelsContainer {...getDefaultProps()} />);
-    expect(wrapper.find(ControlPanelSection)).toHaveLength(7);
   });
 });

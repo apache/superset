@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
-# pylint: disable=C,R,W
 import json
 import os
 import textwrap
@@ -26,23 +25,25 @@ from sqlalchemy.sql import column
 
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.utils import core as utils
 
 from .helpers import (
     config,
-    Dash,
     EXAMPLES_FOLDER,
     get_example_data,
     get_slice_json,
     merge_slice,
     misc_dash_slices,
-    Slice,
     TBL,
     update_slice_ids,
 )
 
 
-def load_world_bank_health_n_pop(only_metadata=False, force=False):
+def load_world_bank_health_n_pop(
+    only_metadata=False, force=False
+):  # pylint: disable=too-many-locals
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
     database = utils.get_example_database()
@@ -84,12 +85,12 @@ def load_world_bank_health_n_pop(only_metadata=False, force=False):
         "sum__SP_DYN_LE00_IN",
         "sum__SP_RUR_TOTL",
     ]
-    for m in metrics:
-        if not any(col.metric_name == m for col in tbl.metrics):
-            aggr_func = m[:3]
-            col = str(column(m[5:]).compile(db.engine))
+    for metric in metrics:
+        if not any(col.metric_name == metric for col in tbl.metrics):
+            aggr_func = metric[:3]
+            col = str(column(metric[5:]).compile(db.engine))
             tbl.metrics.append(
-                SqlMetric(metric_name=m, expression=f"{aggr_func}({col})")
+                SqlMetric(metric_name=metric, expression=f"{aggr_func}({col})")
             )
 
     db.session.merge(tbl)
@@ -331,10 +332,10 @@ def load_world_bank_health_n_pop(only_metadata=False, force=False):
     print("Creating a World's Health Bank dashboard")
     dash_name = "World Bank's Data"
     slug = "world_health"
-    dash = db.session.query(Dash).filter_by(slug=slug).first()
+    dash = db.session.query(Dashboard).filter_by(slug=slug).first()
 
     if not dash:
-        dash = Dash()
+        dash = Dashboard()
     dash.published = True
     js = textwrap.dedent(
         """\

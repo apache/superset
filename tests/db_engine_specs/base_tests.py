@@ -20,6 +20,8 @@ from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.models.core import Database
 from tests.base_tests import SupersetTestCase
 
+from tests.test_app import app  # isort:skip
+
 
 class DbEngineSpecTestCase(SupersetTestCase):
     def sql_limit_regex(

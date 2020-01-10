@@ -19,6 +19,7 @@ import pandas as pd
 from sqlalchemy import BigInteger, Date, DateTime, String
 
 from superset import db
+from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
 from .helpers import (
@@ -27,7 +28,6 @@ from .helpers import (
     get_slice_json,
     merge_slice,
     misc_dash_slices,
-    Slice,
     TBL,
 )
 

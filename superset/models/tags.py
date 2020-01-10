@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W,no-init
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import enum
@@ -104,7 +103,7 @@ def get_object_type(class_name):
         raise Exception("No mapping found for {0}".format(class_name))
 
 
-class ObjectUpdater(object):
+class ObjectUpdater:
 
     object_type: Optional[str] = None
 
@@ -205,7 +204,7 @@ class QueryUpdater(ObjectUpdater):
         return [target.user_id]
 
 
-class FavStarUpdater(object):
+class FavStarUpdater:
     @classmethod
     def after_insert(cls, mapper, connection, target):
         # pylint: disable=unused-argument

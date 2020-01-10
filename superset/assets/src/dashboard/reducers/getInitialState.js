@@ -223,6 +223,7 @@ export default function(bootstrapData) {
           ...dashboardFilter,
           chartId: key,
           componentId,
+          datasourceId: slice.form_data.datasource,
           filterName: slice.slice_name,
           directPathToFilter,
           columns,

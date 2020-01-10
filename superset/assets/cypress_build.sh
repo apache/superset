@@ -29,10 +29,12 @@ flask run -p 8081 --with-threads --reload --debugger &
 
 #block on the longer running javascript process
 time npm ci
-time npm run install-cypress
 time npm run build
 echo "[completed js build steps]"
 
+#setup cypress 
+cd cypress-base
+time npm ci
 CYPRESS_PATH='cypress/integration/'${1}'/*'
 time npm run cypress run -- --spec "$CYPRESS_PATH" --record false --config video=false
 

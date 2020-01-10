@@ -19,7 +19,6 @@
 // We can codegen the enum definition based on a list of supported flags that we
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
-  SCOPED_FILTER = 'SCOPED_FILTER',
   OMNIBAR = 'OMNIBAR',
   CLIENT_CACHE = 'CLIENT_CACHE',
   SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',

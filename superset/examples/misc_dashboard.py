@@ -18,8 +18,10 @@ import json
 import textwrap
 
 from superset import db
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 
-from .helpers import Dash, misc_dash_slices, Slice, update_slice_ids
+from .helpers import misc_dash_slices, update_slice_ids
 
 DASH_SLUG = "misc_charts"
 
@@ -29,10 +31,10 @@ def load_misc_dashboard():
 
     print("Creating the dashboard")
     db.session.expunge_all()
-    dash = db.session.query(Dash).filter_by(slug=DASH_SLUG).first()
+    dash = db.session.query(Dashboard).filter_by(slug=DASH_SLUG).first()
 
     if not dash:
-        dash = Dash()
+        dash = Dashboard()
     js = textwrap.dedent(
         """\
 {

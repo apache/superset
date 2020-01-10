@@ -20,13 +20,15 @@ from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 
-import superset.models.core as models
-from superset import appbuilder, db, event_logger, security_manager
+from superset import db, event_logger, security_manager
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
+from superset.models.slice import Slice
 from superset.utils import core as utils
 
 from .base import api, BaseSupersetView, handle_api_exception
+from .dashboard import api as dashboard_api  # pylint: disable=unused-import
+from .database import api as database_api  # pylint: disable=unused-import
 
 
 class Api(BaseSupersetView):
@@ -61,13 +63,10 @@ class Api(BaseSupersetView):
         form_data = {}
         slice_id = request.args.get("slice_id")
         if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
+            slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
             if slc:
                 form_data = slc.form_data.copy()
 
         update_time_range(form_data)
 
         return json.dumps(form_data)
-
-
-appbuilder.add_view_no_menu(Api)

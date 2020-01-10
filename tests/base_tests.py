@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import imp
 import json
+from typing import Union
 from unittest.mock import Mock
 
 import pandas as pd
@@ -29,7 +30,10 @@ from superset import db, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
+from superset.models.slice import Slice
 from superset.models.core import Database
+from superset.models.dashboard import Dashboard
+from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.utils.core import get_example_database
 
 FAKE_DB_NAME = "fake_db_100"
@@ -42,6 +46,20 @@ class SupersetTestCase(TestCase):
 
     def create_app(self):
         return app
+
+    @staticmethod
+    def create_user(
+        username: str,
+        password: str,
+        role_name: str,
+        first_name: str = "admin",
+        last_name: str = "user",
+        email: str = "admin@fab.org",
+    ) -> Union[ab_models.User, bool]:
+        role_admin = security_manager.find_role(role_name)
+        return security_manager.add_user(
+            username, first_name, last_name, email, role_admin, password
+        )
 
     @classmethod
     def create_druid_test_objects(cls):
@@ -91,7 +109,7 @@ class SupersetTestCase(TestCase):
         self.assertNotIn("User confirmation needed", resp)
 
     def get_slice(self, slice_name, session):
-        slc = session.query(models.Slice).filter_by(slice_name=slice_name).one()
+        slc = session.query(Slice).filter_by(slice_name=slice_name).one()
         session.expunge_all()
         return slc
 
@@ -143,7 +161,7 @@ class SupersetTestCase(TestCase):
         return json.loads(resp)
 
     def get_access_requests(self, username, ds_type, ds_id):
-        DAR = models.DatasourceAccessRequest
+        DAR = DatasourceAccessRequest
         return (
             db.session.query(DAR)
             .filter(
@@ -193,6 +211,7 @@ class SupersetTestCase(TestCase):
         raise_on_error=False,
         query_limit=None,
         database_name="examples",
+        sql_editor_id=None,
     ):
         if user_name:
             self.logout()
@@ -207,6 +226,7 @@ class SupersetTestCase(TestCase):
                 select_as_create_as=False,
                 client_id=client_id,
                 queryLimit=query_limit,
+                sql_editor_id=sql_editor_id,
             ),
         )
         if raise_on_error and "error" in resp:
@@ -226,6 +246,7 @@ class SupersetTestCase(TestCase):
             cls=models.Database,
             criteria={"database_name": database_name},
             session=db.session,
+            sqlalchemy_uri="sqlite://test",
             id=db_id,
             extra=extra,
         )
@@ -262,4 +283,4 @@ class SupersetTestCase(TestCase):
 
     def get_dash_by_slug(self, dash_slug):
         sesh = db.session()
-        return sesh.query(models.Dashboard).filter_by(slug=dash_slug).first()
+        return sesh.query(Dashboard).filter_by(slug=dash_slug).first()

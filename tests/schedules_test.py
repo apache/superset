@@ -23,7 +23,7 @@ from selenium.common.exceptions import WebDriverException
 
 from tests.test_app import app
 from superset import db
-from superset.models.core import Dashboard, Slice
+from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
     DashboardEmailSchedule,
     EmailDeliveryType,
@@ -36,6 +36,7 @@ from superset.tasks.schedules import (
     deliver_slice,
     next_schedules,
 )
+from superset.models.slice import Slice
 from tests.base_tests import SupersetTestCase
 
 from .utils import read_fixture
@@ -378,7 +379,7 @@ class SchedulesTestCase(SupersetTestCase):
         mock_open.return_value = response
         mock_urlopen.return_value = response
         mock_urlopen.return_value.getcode.return_value = 200
-        response.content = self.CSV
+        response.read.return_value = self.CSV
 
         schedule = (
             db.session.query(SliceEmailSchedule)
@@ -404,8 +405,7 @@ class SchedulesTestCase(SupersetTestCase):
         mock_open.return_value = response
         mock_urlopen.return_value = response
         mock_urlopen.return_value.getcode.return_value = 200
-        response.content = self.CSV
-
+        response.read.return_value = self.CSV
         schedule = (
             db.session.query(SliceEmailSchedule)
             .filter_by(id=self.slice_schedule)

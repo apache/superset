@@ -14,18 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from wtforms.validators import StopValidation
 
-from superset import appbuilder
 from superset.models.annotations import Annotation, AnnotationLayer
 
 from .base import DeleteMixin, SupersetModelView
 
 
-class StartEndDttmValidator(object):
+class StartEndDttmValidator:  # pylint: disable=too-few-public-methods
     """
     Validates dttm fields.
     """
@@ -43,7 +41,9 @@ class StartEndDttmValidator(object):
             )
 
 
-class AnnotationModelView(SupersetModelView, DeleteMixin):
+class AnnotationModelView(
+    SupersetModelView, DeleteMixin
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Annotation)
 
     list_title = _("List Annotation")
@@ -79,17 +79,19 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):
 
     validators_columns = {"start_dttm": [StartEndDttmValidator()]}
 
-    def pre_add(self, obj):
-        if not obj.start_dttm:
-            obj.start_dttm = obj.end_dttm
-        elif not obj.end_dttm:
-            obj.end_dttm = obj.start_dttm
+    def pre_add(self, item):
+        if not item.start_dttm:
+            item.start_dttm = item.end_dttm
+        elif not item.end_dttm:
+            item.end_dttm = item.start_dttm
 
-    def pre_update(self, obj):
-        self.pre_add(obj)
+    def pre_update(self, item):
+        self.pre_add(item)
 
 
-class AnnotationLayerModelView(SupersetModelView, DeleteMixin):
+class AnnotationLayerModelView(
+    SupersetModelView, DeleteMixin
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AnnotationLayer)
 
     list_title = _("List Annotation Layer")
@@ -102,23 +104,3 @@ class AnnotationLayerModelView(SupersetModelView, DeleteMixin):
     add_columns = edit_columns
 
     label_columns = {"name": _("Name"), "descr": _("Description")}
-
-
-appbuilder.add_view(
-    AnnotationLayerModelView,
-    "Annotation Layers",
-    label=__("Annotation Layers"),
-    icon="fa-comment",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="",
-)
-appbuilder.add_view(
-    AnnotationModelView,
-    "Annotations",
-    label=__("Annotations"),
-    icon="fa-comments",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="",
-)

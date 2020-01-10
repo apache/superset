@@ -178,7 +178,7 @@ Follow these few simple steps to install Superset.::
 
     # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
     $ export FLASK_APP=superset
-    flask fab create-admin
+    superset fab create-admin
 
     # Load some data to play with
     superset load_examples
@@ -371,6 +371,8 @@ Here's a list of some of the recommended packages.
 | BigQuery         | ``pip install pybigquery``            | ``bigquery://``                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
++------------------+---------------------------------------+-------------------------------------------------+
+| Dremio           | ``pip install sqlalchemy_dremio``     | ``dremio://user:pwd@host:31010/``               |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Elasticsearch    | ``pip install elasticsearch-dbapi``   | ``elasticsearch+http://``                       |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -724,6 +726,15 @@ Druid
 Note that you can run the ``superset refresh_druid`` command to refresh the
 metadata from your Druid cluster(s)
 
+Dremio
+------
+
+Install the following dependencies to connect to Dremio:
+
+* Dremio SQLAlchemy: ``pip install sqlalchemy_dremio``
+* Dremio's ODBC driver: https://www.dremio.com/drivers/
+
+Example SQLAlchemy URI: ``dremio://dremio:dremio123@localhost:31010/dremio``
 
 Presto
 ------

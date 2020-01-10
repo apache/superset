@@ -18,8 +18,10 @@
 import json
 
 from superset import db
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 
-from .helpers import Dash, get_slice_json, merge_slice, Slice, TBL, update_slice_ids
+from .helpers import get_slice_json, merge_slice, TBL, update_slice_ids
 
 COLOR_RED = {"r": 205, "g": 0, "b": 3, "a": 0.82}
 POSITION_JSON = """\
@@ -509,10 +511,10 @@ def load_deck_dash():
 
     print("Creating a dashboard")
     title = "deck.gl Demo"
-    dash = db.session.query(Dash).filter_by(slug=slug).first()
+    dash = db.session.query(Dashboard).filter_by(slug=slug).first()
 
     if not dash:
-        dash = Dash()
+        dash = Dashboard()
     dash.published = True
     js = POSITION_JSON
     pos = json.loads(js)

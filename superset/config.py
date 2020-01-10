@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """The main config file for Superset
 
 All configuration in this file can be overridden by providing a superset_config
@@ -56,35 +55,48 @@ else:
 # ---------------------------------------------------------
 PACKAGE_DIR = os.path.join(BASE_DIR, "static", "assets")
 VERSION_INFO_FILE = os.path.join(PACKAGE_DIR, "version_info.json")
-PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets" "package.json")
+PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "assets", "package.json")
+
+# Multiple favicons can be specified here. The "href" property
+# is mandatory, but "sizes," "type," and "rel" are optional.
+# For example:
+# {
+#     "href":path/to/image.png",
+#     "sizes": "16x16",
+#     "type": "image/png"
+#     "rel": "icon"
+# },
+FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
 
 
 def _try_json_readversion(filepath):
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("version")
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         return None
 
 
-def _try_json_readsha(filepath):
+def _try_json_readsha(filepath, length):  # pylint: disable=unused-argument
     try:
         with open(filepath, "r") as f:
-            return json.load(f).get("GIT_SHA")
-    except Exception:
+            return json.load(f).get("GIT_SHA")[:length]
+    except Exception:  # pylint: disable=broad-except
         return None
 
 
-# Depending on the context in which this config is loaded, the version_info.json file
-# may or may not be available, as it is generated on install via setup.py. In the event
-# that we're actually running Superset, we will have already installed, therefore it WILL
-# exist. When unit tests are running, however, it WILL NOT exist, so we fall
-# back to reading package.json
+# Depending on the context in which this config is loaded, the
+# version_info.json file may or may not be available, as it is
+# generated on install via setup.py. In the event that we're
+# actually running Superset, we will have already installed,
+# therefore it WILL exist. When unit tests are running, however,
+# it WILL NOT exist, so we fall back to reading package.json
 VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversion(
     PACKAGE_JSON_FILE
 )
 
-VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE)
+VERSION_SHA_LENGTH = 8
+VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
@@ -109,7 +121,9 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
 # Your App secret key
-SECRET_KEY = "\2\1thisismyscretkey\1\2\e\y\y\h"
+SECRET_KEY = (
+    "\2\1thisismyscretkey\1\2\e\y\y\h"  # pylint: disable=anomalous-backslash-in-string
+)
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
@@ -188,7 +202,7 @@ DRUID_IS_ACTIVE = False
 # ----------------------------------------------------
 # The authentication type
 # AUTH_OID : Is for OpenID
-# AUTH_DB : Is for database (username/password()
+# AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 AUTH_TYPE = AUTH_DB
@@ -205,7 +219,7 @@ AUTH_TYPE = AUTH_DB
 # The default user self registration role
 # AUTH_USER_REGISTRATION_ROLE = "Public"
 
-# When using LDAP Auth, setup the ldap server
+# When using LDAP Auth, setup the LDAP server
 # AUTH_LDAP_SERVER = "ldap://ldapserver.new"
 
 # Uncomment to setup OpenID providers example for OpenID authentication
@@ -435,7 +449,7 @@ WARNING_MSG = None
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
 
 
-class CeleryConfig(object):
+class CeleryConfig:  # pylint: disable=too-few-public-methods
     BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
     CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
     CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"
@@ -459,7 +473,7 @@ class CeleryConfig(object):
     }
 
 
-CELERY_CONFIG = CeleryConfig
+CELERY_CONFIG = CeleryConfig  # pylint: disable=invalid-name
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None
@@ -505,7 +519,7 @@ RESULTS_BACKEND = None
 # rather than JSON. This feature requires additional testing from the
 # community before it is fully adopted, so this config option is provided
 # in order to disable should breaking issues be discovered.
-RESULTS_BACKEND_USE_MSGPACK = False
+RESULTS_BACKEND_USE_MSGPACK = True
 
 # The S3 bucket where you want to store your external hive tables created
 # from CSV files. For example, 'companyname-superset'
@@ -637,6 +651,10 @@ SCHEDULED_EMAIL_DEBUG_MODE = False
 # Email reports - minimum time resolution (in minutes) for the crontab
 EMAIL_REPORTS_CRON_RESOLUTION = 15
 
+# The MAX duration (in seconds) a email schedule can run for before being killed
+# by celery.
+EMAIL_ASYNC_TIME_LIMIT_SEC = 300
+
 # Email report configuration
 # From address in emails
 EMAIL_REPORT_FROM_ADDRESS = "reports@superset.org"
@@ -727,7 +745,11 @@ SQLALCHEMY_EXAMPLES_URI = None
 SIP_15_ENABLED = False
 SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
 SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
-SIP_15_TOAST_MESSAGE = 'Action Required: Preview then save your chart using the new time range endpoints <a target="_blank" href="{url}" class="alert-link">here</a>.'
+SIP_15_TOAST_MESSAGE = (
+    "Action Required: Preview then save your chart using the"
+    'new time range endpoints <a target="_blank" href="{url}"'
+    'class="alert-link">here</a>.'
+)
 
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
@@ -748,7 +770,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
         raise
 elif importlib.util.find_spec("superset_config"):
     try:
-        from superset_config import *  # pylint: disable=import-error
+        from superset_config import *  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config  # pylint: disable=import-error
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")

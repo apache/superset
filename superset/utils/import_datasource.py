@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import logging
 
 from sqlalchemy.orm.session import make_transient
@@ -30,7 +29,7 @@ def import_datasource(
      superset instances. Audit metadata isn't copies over.
     """
     make_transient(i_datasource)
-    logging.info("Started import of the datasource: {}".format(i_datasource.to_json()))
+    logging.info("Started import of the datasource: %s", i_datasource.to_json())
 
     i_datasource.id = None
     i_datasource.database_id = lookup_database(i_datasource).id
@@ -47,25 +46,25 @@ def import_datasource(
         session.add(datasource)
         session.flush()
 
-    for m in i_datasource.metrics:
-        new_m = m.copy()
+    for metric in i_datasource.metrics:
+        new_m = metric.copy()
         new_m.table_id = datasource.id
         logging.info(
-            "Importing metric {} from the datasource: {}".format(
-                new_m.to_json(), i_datasource.full_name
-            )
+            "Importing metric %s from the datasource: %s",
+            new_m.to_json(),
+            i_datasource.full_name,
         )
         imported_m = i_datasource.metric_class.import_obj(new_m)
         if imported_m.metric_name not in [m.metric_name for m in datasource.metrics]:
             datasource.metrics.append(imported_m)
 
-    for c in i_datasource.columns:
-        new_c = c.copy()
+    for column in i_datasource.columns:
+        new_c = column.copy()
         new_c.table_id = datasource.id
         logging.info(
-            "Importing column {} from the datasource: {}".format(
-                new_c.to_json(), i_datasource.full_name
-            )
+            "Importing column %s from the datasource: %s",
+            new_c.to_json(),
+            i_datasource.full_name,
         )
         imported_c = i_datasource.column_class.import_obj(new_c)
         if imported_c.column_name not in [c.column_name for c in datasource.columns]:

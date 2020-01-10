@@ -35,7 +35,7 @@ class DashboardTable extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      dashboards: [],
+      dashboards: null,
     };
   }
 
@@ -47,15 +47,23 @@ class DashboardTable extends React.PureComponent {
       .then(({ json }) => {
         this.setState({ dashboards: json.result });
       })
-      .catch(() => {
-        this.props.addDangerToast(
-          t('An error occurred while fethching Dashboards'),
-        );
+      .catch(response => {
+        if (response.status === 401) {
+          this.props.addDangerToast(
+            t(
+              "You don't have the necessary permissions to load dashboards. Please contact your administrator.",
+            ),
+          );
+        } else {
+          this.props.addDangerToast(
+            t('An error occurred while fetching Dashboards'),
+          );
+        }
       });
   }
 
   render() {
-    if (this.state.dashboards.length > 0) {
+    if (this.state.dashboards !== null) {
       return (
         <Table
           className="table"
