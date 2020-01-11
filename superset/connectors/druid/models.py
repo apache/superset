@@ -1375,11 +1375,9 @@ class DruidDatasource(Model, BaseDatasource):
         query_str = self.get_query_str(client=client, query_obj=query_obj, phase=2)
         df = client.export_pandas()
 
-        if df is None or df.size == 0:
+        if df.empty:
             return QueryResult(
-                df=pd.DataFrame(),
-                query=query_str,
-                duration=datetime.now() - qry_start_dttm,
+                df=df, query=query_str, duration=datetime.now() - qry_start_dttm
             )
 
         df = self.homogenize_types(df, query_obj.get("groupby", []))
