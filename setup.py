@@ -93,6 +93,7 @@ setup(
         "pandas>=0.24.2, <0.25.0",
         "parsedatetime",
         "pathlib2",
+        "Pillow>=7.0.0, <8.0.0",
         "polyline",
         "python-dateutil",
         "python-dotenv",
