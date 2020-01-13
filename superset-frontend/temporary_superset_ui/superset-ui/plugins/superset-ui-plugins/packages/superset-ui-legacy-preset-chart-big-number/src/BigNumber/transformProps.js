@@ -36,8 +36,8 @@ export default function transformProps(chartProps) {
     startYAxisAtZero,
     subheader = '',
     vizType,
-    yAxisFormat,
   } = formData;
+  let { yAxisFormat } = formData;
   const { data } = queryData;
 
   let mainColor;
@@ -68,7 +68,10 @@ export default function transformProps(chartProps) {
       }
     }
     trendLineData = supportAndShowTrendLine
-      ? sortedData.map(point => ({ x: point[TIME_COLUMN], y: point[metricName] }))
+      ? sortedData.map(point => ({
+          x: point[TIME_COLUMN],
+          y: point[metricName],
+        }))
       : null;
   } else {
     bigNumber = data[0][metricName];
@@ -80,6 +83,14 @@ export default function transformProps(chartProps) {
     className = 'positive';
   } else if (percentChange < 0) {
     className = 'negative';
+  }
+
+  if (!yAxisFormat && chartProps.datasource && chartProps.datasource.metrics) {
+    chartProps.datasource.metrics.forEach(metricEntry => {
+      if (metricEntry.metric_name === metric && metricEntry.d3format) {
+        yAxisFormat = metricEntry.d3format;
+      }
+    });
   }
 
   const formatValue = getNumberFormatter(yAxisFormat);
