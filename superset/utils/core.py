@@ -40,7 +40,7 @@ from urllib.parse import unquote_plus
 
 import bleach
 import markdown as md
-import numpy
+import numpy as np
 import pandas as pd
 import parsedatetime
 import sqlalchemy as sa
@@ -343,10 +343,12 @@ def format_timedelta(td: timedelta) -> str:
 def base_json_conv(obj):
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
-    if isinstance(obj, numpy.int64):
+    if isinstance(obj, np.int64):
         return int(obj)
-    elif isinstance(obj, numpy.bool_):
+    elif isinstance(obj, np.bool_):
         return bool(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
     elif isinstance(obj, set):
         return list(obj)
     elif isinstance(obj, decimal.Decimal):
