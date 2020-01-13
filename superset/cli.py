@@ -19,7 +19,7 @@ import logging
 from datetime import datetime
 from subprocess import Popen
 from sys import stdout
-from typing import Union
+from typing import Union, Type
 
 import click
 import yaml
@@ -479,7 +479,10 @@ def compute_thumbnails(
     )
 
     def compute_generic_thumbnail(
-        friendly_type: str, model_cls: Union[Dashboard, Slice], model_id: int, func
+        friendly_type: str,
+        model_cls: Union[Type[Dashboard], Type[Slice]],
+        model_id: int,
+        compute_func,
     ):
         query = db.session.query(model_cls)
         if model_id:
@@ -488,7 +491,7 @@ def compute_thumbnails(
         count = len(dashboards)
         for i, model in enumerate(dashboards):
             if asynchronous:
-                func = func.delay
+                func = compute_func.delay
                 action = "Triggering"
             else:
                 action = "Processing"

@@ -57,13 +57,13 @@ class BaseScreenshot:
     window_size = (800, 600)
     thumb_size = (400, 300)
 
-    def __init__(self, id):
-        self.id = id
-        self.screenshot = None
+    def __init__(self, model_id: int):
+        self.model_id: int = model_id
+        self.screenshot: Optional[bytes] = None
 
     @property
     def cache_key(self):
-        return f"thumb__{self.thumbnail_type}__{self.id}"
+        return f"thumb__{self.thumbnail_type}__{self.model_id}"
 
     @property
     def url(self):
@@ -94,7 +94,8 @@ class BaseScreenshot:
         force: bool = True,
     ) -> Optional[bytes]:
         """
-            Fetches the screenshot, computes the thumbnail and caches the result
+        Fetches the screenshot, computes the thumbnail and caches the result
+
         :param user: If no user is given will use the current context
         :param cache: The cache to keep the thumbnail payload
         :param window_size: The window size from which will process the thumb
@@ -142,7 +143,7 @@ class BaseScreenshot:
         window_size: Tuple[int, int] = None,
         thumb_size: Tuple[int, int] = None,
         cache: "Cache" = None,
-    ):
+    ) -> Optional[bytes]:
         payload = None
         cache_key = self.cache_key
         window_size = window_size or self.window_size
@@ -162,7 +163,7 @@ class BaseScreenshot:
         output: str = "png",
         size: Tuple[int, int] = None,
         crop: bool = True,
-    ):
+    ) -> bytes:
         size = size or cls.thumb_size
         img = Image.open(BytesIO(img_bytes))
         logging.debug(f"Selenium image size: {img.size}")
@@ -189,7 +190,7 @@ class SliceScreenshot(BaseScreenshot):
 
     @property
     def url(self) -> str:
-        return get_url_path("Superset.slice", slice_id=self.id, standalone="true")
+        return get_url_path("Superset.slice", slice_id=self.model_id, standalone="true")
 
 
 class DashboardScreenshot(BaseScreenshot):
@@ -200,7 +201,7 @@ class DashboardScreenshot(BaseScreenshot):
 
     @property
     def url(self) -> str:
-        return get_url_path("Superset.dashboard", dashboard_id=self.id)
+        return get_url_path("Superset.dashboard", dashboard_id=self.model_id)
 
 
 def _destroy_webdriver(driver):

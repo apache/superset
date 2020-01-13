@@ -29,7 +29,7 @@ from superset.utils.selenium import DashboardScreenshot, SliceScreenshot
 def cache_chart_thumbnail(chart_id, force=False):
     with app.app_context():
         logging.info(f"Caching chart {chart_id}")
-        screenshot = SliceScreenshot(id=chart_id)
+        screenshot = SliceScreenshot(model_id=chart_id)
         user = security_manager.find_user("Admin")
         screenshot.compute_and_cache(user=user, cache=thumbnail_cache, force=force)
 
@@ -38,6 +38,6 @@ def cache_chart_thumbnail(chart_id, force=False):
 def cache_dashboard_thumbnail(dashboard_id, force=False):
     with app.app_context():
         logging.info(f"Caching dashboard {dashboard_id}")
-        screenshot = DashboardScreenshot(id=dashboard_id)
+        screenshot = DashboardScreenshot(model_id=dashboard_id)
         user = security_manager.find_user("Admin")
         screenshot.compute_and_cache(user=user, cache=thumbnail_cache, force=force)

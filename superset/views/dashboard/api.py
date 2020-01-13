@@ -16,7 +16,6 @@
 # under the License.
 import json
 import re
-from io import BytesIO
 
 from flask import current_app, g, request, Response
 from flask_appbuilder.api import expose, protect, safe
@@ -400,7 +399,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         dashboard = self._base_filters.apply_all(query).get(pk)
         if not dashboard:
             return self.response_404()
-        screenshot = BytesIO(DashboardScreenshot(pk).get_thumb(cache=thumbnail_cache))
+        screenshot = DashboardScreenshot(pk).get_thumb_as_bytes(cache=thumbnail_cache)
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
