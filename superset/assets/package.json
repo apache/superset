@@ -17,7 +17,7 @@
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production webpack --mode=production --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json ./{src,spec}/**/*.ts{,x}",
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json --fix ./{src,spec}/**/*.ts{,x} && npm run clean-css",
-    "clean-css": "prettier --write 'src/**/*.{css,less,sass,scss}'"
+    "clean-css": "prettier --write '{src,stylesheets}/**/*.{css,less,sass,scss}'"
   },
   "repository": {
     "type": "git",
@@ -193,7 +193,7 @@
     "jest": "^24.8.0",
     "jsdom": "9.12.0",
     "less": "^3.9.0",
-    "less-loader": "^4.1.0",
+    "less-loader": "^5.0.0",
     "mini-css-extract-plugin": "^0.4.0",
     "minimist": "^1.2.0",
     "optimize-css-assets-webpack-plugin": "^5.0.1",
