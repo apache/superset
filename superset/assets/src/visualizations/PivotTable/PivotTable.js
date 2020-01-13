@@ -65,6 +65,8 @@ function PivotTable(element, props) {
   // payload data is a string of html with a single table element
   container.innerHTML = html;
 
+  console.log(formData);
+
   const { combineMetric } = formData || {};
 
   let metricForCols = columns;
@@ -202,6 +204,7 @@ function PivotTable(element, props) {
     columnConfig.columnBasementConfig = columnBasementConfig;
     columnConfig.columnColorConfig = columnColorConfig;
     columnConfig.columnFontConfig = columnFontConfig;
+    console.log(columnConfig);
     return columnConfig;
   };
 
@@ -244,7 +247,6 @@ function PivotTable(element, props) {
   // apply color, font weight and format config to the cell
   const applyconfig = function(obj) {
     const config = obj.data('config') || {};
-    console.log(config);
     const originalValue = obj.attr('initialValue');
     if (config.color && checkObjectOrStringHasLengthOrnot(config.color)) {
       obj.css('background', config.color.hex);
