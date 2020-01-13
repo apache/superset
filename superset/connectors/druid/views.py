@@ -47,6 +47,8 @@ from . import models
 
 class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidColumn)
+    # TODO TODO, review need for this on related_views
+    include_route_methods = {"create", "read", "delete"}
 
     list_title = _("Columns")
     show_title = _("Show Druid Column")
@@ -133,6 +135,8 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
 
 class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidMetric)
+    # TODO TODO, review need for this on related_views
+    include_route_methods = {"create", "read", "delete"}
 
     list_title = _("Metrics")
     show_title = _("Show Druid Metric")
@@ -185,6 +189,8 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
 
 class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.DruidCluster)
+    # TODO TODO, review need for this on related_views
+    include_route_methods = {"create", "read", "delete"}
 
     list_title = _("Druid Clusters")
     show_title = _("Show Druid Cluster")
@@ -255,6 +261,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
 
 class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.DruidDatasource)
+    include_route_methods = {"create", "read", "delete"}
 
     list_title = _("Druid Datasources")
     show_title = _("Show Druid Datasource")

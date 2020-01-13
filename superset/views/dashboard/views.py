@@ -45,6 +45,7 @@ class DashboardModelView(
 ):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(models.Dashboard)
+    include_route_methods = {"create", "read", "delete"}
 
     @has_access
     @expose("/list/")
@@ -119,6 +120,8 @@ class Dashboard(BaseSupersetView):
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
+    include_route_methods = {"api_read"}
+
     list_columns = [
         "id",
         "dashboard_link",

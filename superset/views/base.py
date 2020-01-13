@@ -242,6 +242,9 @@ class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
 
 class SupersetModelView(ModelView):
     page_size = 100
+    # disable all endpoints by default, all "route_methods" have to be
+    # whitelisted at the class level
+    include_route_methods = set()
     list_widget = SupersetListWidget
 
 

@@ -48,6 +48,8 @@ logger = logging.getLogger(__name__)
 
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.TableColumn)
+    # TODO TODO, review need for this on related_views
+    include_route_methods = {"create", "read", "delete"}
 
     list_title = _("Columns")
     show_title = _("Show Column")
@@ -164,6 +166,8 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
 
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.SqlMetric)
+    # TODO TODO, review need for this on related_views
+    include_route_methods = {"create", "read", "delete"}
 
     list_title = _("Metrics")
     show_title = _("Show Metric")
@@ -223,6 +227,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
 
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.SqlaTable)
+    include_route_methods = {"create", "read", "delete"}
 
     list_title = _("Tables")
     show_title = _("Show Table")

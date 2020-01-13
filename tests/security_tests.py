@@ -486,14 +486,6 @@ class RolePermissionTests(SupersetTestCase):
         example_db.expose_in_sqllab = True
         session.commit()
 
-        OLD_FLASK_GET_SQL_DBS_REQUEST = (
-            "databaseasync/api/read?_flt_0_expose_in_sqllab=1&"
-            "_oc_DatabaseAsync=database_name&_od_DatabaseAsync=asc"
-        )
-        self.login(username="gamma")
-        databases_json = self.client.get(OLD_FLASK_GET_SQL_DBS_REQUEST).json
-        self.assertEquals(databases_json["count"], 1)
-
         arguments = {
             "keys": ["none"],
             "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],

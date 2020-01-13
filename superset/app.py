@@ -158,12 +158,7 @@ class SupersetAppInitializer:
             DashboardModelViewAsync,
         )
         from superset.views.database.api import DatabaseRestApi
-        from superset.views.database.views import (
-            DatabaseView,
-            DatabaseTablesAsync,
-            CsvToDatabaseView,
-            DatabaseAsync,
-        )
+        from superset.views.database.views import DatabaseView, CsvToDatabaseView
         from superset.views.datasource import Datasource
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
@@ -261,14 +256,11 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardAddView)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
-        appbuilder.add_view_no_menu(DatabaseAsync)
-        appbuilder.add_view_no_menu(DatabaseTablesAsync)
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(KV)
         appbuilder.add_view_no_menu(R)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SavedQueryViewApi)
-        appbuilder.add_view_no_menu(SliceAddView)
         appbuilder.add_view_no_menu(SliceAsync)
         appbuilder.add_view_no_menu(SqlLab)
         appbuilder.add_view_no_menu(SqlMetricInlineView)
