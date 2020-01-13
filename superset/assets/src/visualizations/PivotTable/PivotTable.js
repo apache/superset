@@ -246,9 +246,7 @@ function PivotTable(element, props) {
 
   // apply color, font weight and format config to the cell
   const applyconfig = function(obj) {
-    console.log('uepp0');
     const config = obj.data('config') || {};
-    console.log('uepp2');
     const originalValue = obj.attr('initialValue');
     if (config.color && checkObjectOrStringHasLengthOrnot(config.color)) {
       obj.css('background', config.color.hex);
@@ -267,7 +265,9 @@ function PivotTable(element, props) {
     }
     if (config.format && checkObjectOrStringHasLengthOrnot(config.format)) {
       if (originalValue !== '') {
+        console.log('uepp0');
         obj.html(formatNumber(config.format)(originalValue));
+        console.log('uepp2');
       }
     }
   };
