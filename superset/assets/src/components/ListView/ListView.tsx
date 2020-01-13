@@ -114,7 +114,7 @@ const ListView: FunctionComponent<Props> = ({
                     title={(
                       <>
                         <i className='fa fa-filter text-primary' />
-                        {'  '}Filter List
+                        {'  '}{t('Filter List')}
                       </>
                     )}
                     id={'filter-picker'}
@@ -205,7 +205,7 @@ const ListView: FunctionComponent<Props> = ({
                     onClick={applyFilters}
                     bsSize='small'
                   >
-                    Apply
+                    {t('Apply')}
                   </Button>
                 </Col>
               </Row>
@@ -239,12 +239,12 @@ const ListView: FunctionComponent<Props> = ({
           onSelect={(p: number) => gotoPage(p - 1)}
         />
         <span className='pull-right'>
-          showing{' '}
+          {t('showing')}{' '}
           <strong>
             {pageSize * pageIndex + (rows.length && 1)}-
             {pageSize * pageIndex + rows.length}
           </strong>{' '}
-          of <strong>{count}</strong>
+          {t('of')} <strong>{count}</strong>
         </span>
       </div>
     </div >
