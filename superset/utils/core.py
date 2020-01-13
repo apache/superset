@@ -35,7 +35,7 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 from enum import Enum
 from time import struct_time
-from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple, Union
 from urllib.parse import unquote_plus
 
 import bleach
@@ -46,7 +46,8 @@ import parsedatetime
 import sqlalchemy as sa
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
-from flask import current_app, flash, g, Markup, render_template
+from flask import current_app, flash, Flask, g, Markup, render_template
+from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import event, exc, select, Text
@@ -487,7 +488,9 @@ def readfile(file_path: str) -> Optional[str]:
     return content
 
 
-def generic_find_constraint_name(table, columns, referenced, db):
+def generic_find_constraint_name(
+    table: str, columns: Set[str], referenced: str, db: SQLA
+):
     """Utility to find a constraint name in alembic migrations"""
     t = sa.Table(table, db.metadata, autoload=True, autoload_with=db.engine)
 
@@ -496,7 +499,9 @@ def generic_find_constraint_name(table, columns, referenced, db):
             return fk.name
 
 
-def generic_find_fk_constraint_name(table, columns, referenced, insp):
+def generic_find_fk_constraint_name(
+    table: str, columns: Set[str], referenced: str, insp
+):
     """Utility to find a foreign-key constraint name in alembic migrations"""
     for fk in insp.get_foreign_keys(table):
         if (
