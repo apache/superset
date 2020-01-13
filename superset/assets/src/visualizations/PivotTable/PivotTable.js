@@ -70,6 +70,8 @@ function PivotTable(element, props) {
 
   const { combineMetric } = formData || {};
 
+  console.log(columns);
+
   let metricForCols = columns;
 
   if (Array.isArray(columns[0])) {
