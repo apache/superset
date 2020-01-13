@@ -238,7 +238,7 @@ class RolePermissionTests(SupersetTestCase):
         datasource = DruidDatasource(
             datasource_name="tmp_datasource",
             cluster=druid_cluster,
-            cluster_name="druid_test",
+            cluster_id=druid_cluster.id,
         )
         session.add(datasource)
         session.commit()

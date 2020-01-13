@@ -64,6 +64,7 @@ class SupersetTestCase(TestCase):
     @classmethod
     def create_druid_test_objects(cls):
         # create druid cluster and druid datasources
+
         with app.app_context():
             session = db.session
             cluster = (
@@ -75,11 +76,11 @@ class SupersetTestCase(TestCase):
                 session.commit()
 
                 druid_datasource1 = DruidDatasource(
-                    datasource_name="druid_ds_1", cluster_name="druid_test"
+                    datasource_name="druid_ds_1", cluster=cluster
                 )
                 session.add(druid_datasource1)
                 druid_datasource2 = DruidDatasource(
-                    datasource_name="druid_ds_2", cluster_name="druid_test"
+                    datasource_name="druid_ds_2", cluster=cluster
                 )
                 session.add(druid_datasource2)
                 session.commit()
