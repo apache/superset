@@ -19,7 +19,16 @@
 /* eslint-disable sort-keys */
 export default function transformProps(chartProps) {
   const { width, height, formData, queryData } = chartProps;
-  const { colorScheme, numberFormat, treemapRatio } = formData;
+  const { colorScheme, treemapRatio } = formData;
+  let { numberFormat } = formData;
+
+  if (!numberFormat && chartProps.datasource && chartProps.datasource.metrics) {
+    chartProps.datasource.metrics.forEach(metric => {
+      if (metric.metric_name === chartProps.formData.metrics[0] && metric.d3format) {
+        numberFormat = metric.d3format;
+      }
+    });
+  }
 
   return {
     width,
