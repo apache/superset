@@ -244,6 +244,7 @@ function PivotTable(element, props) {
   // apply color, font weight and format config to the cell
   const applyconfig = function(obj) {
     const config = obj.data('config') || {};
+    console.log(config);
     const originalValue = obj.attr('initialValue');
     if (config.color && checkObjectOrStringHasLengthOrnot(config.color)) {
       obj.css('background', config.color.hex);
@@ -313,7 +314,6 @@ function PivotTable(element, props) {
     $(this)
       .find('td')
       .each(function(i) {
-        console.log(metricForCols);
         const metric = metricForCols[i];
         const format = columnFormats[metric] || numberFormat || '.3s';
         const tdText = $(this)[0].textContent;
