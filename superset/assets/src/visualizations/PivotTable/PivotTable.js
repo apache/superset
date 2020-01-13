@@ -205,9 +205,9 @@ function PivotTable(element, props) {
     columnConfig.columnBasementConfig = columnBasementConfig;
     columnConfig.columnColorConfig = columnColorConfig;
     columnConfig.columnFontConfig = columnFontConfig;
-    if (!isEqual(columnConfig, {})) {
-      console.log(columnConfig);
-    }
+    // if (!isEqual(columnConfig, {})) {
+    //   console.log(columnConfig);
+    // }
     return columnConfig;
   };
 
@@ -348,10 +348,12 @@ function PivotTable(element, props) {
   function applyColumnConfiguration() {
     if (columnConfiguration) {
       $container.find('tbody tr').each(function() {
+        console.log(metricForCols);
         $(this)
           .find('td')
           .each(function(index) {
             const col = metricForCols[index];
+            console.log(col);
             const val =
               $(this).attr('initialValue') ||
               $(this).data('originalvalue') ||
