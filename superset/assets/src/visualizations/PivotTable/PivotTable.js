@@ -70,8 +70,6 @@ function PivotTable(element, props) {
 
   const { combineMetric } = formData || {};
 
-  console.log(columns);
-
   let metricForCols = columns;
 
   if (Array.isArray(columns[0])) {
@@ -177,6 +175,7 @@ function PivotTable(element, props) {
         ? {}
         : '';
     }
+    console.log(columnConfiguration);
     return columnConfiguration[columnString][configName];
   };
 
@@ -207,9 +206,6 @@ function PivotTable(element, props) {
     columnConfig.columnBasementConfig = columnBasementConfig;
     columnConfig.columnColorConfig = columnColorConfig;
     columnConfig.columnFontConfig = columnFontConfig;
-    // if (!isEqual(columnConfig, {})) {
-    //   console.log(columnConfig);
-    // }
     return columnConfig;
   };
 
@@ -350,12 +346,10 @@ function PivotTable(element, props) {
   function applyColumnConfiguration() {
     if (columnConfiguration) {
       $container.find('tbody tr').each(function() {
-        console.log(metricForCols);
         $(this)
           .find('td')
           .each(function(index) {
             const col = metricForCols[index];
-            console.log(col);
             const val =
               $(this).attr('initialValue') ||
               $(this).data('originalvalue') ||
@@ -373,9 +367,7 @@ function PivotTable(element, props) {
     applyColumnConfiguration();
     applyRowConfiguration();
   } else {
-    console.log('hello');
     applyRowConfiguration();
-    console.log('hello2');
     applyColumnConfiguration();
   }
 
