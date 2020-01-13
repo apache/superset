@@ -77,10 +77,10 @@ function PivotTable(element, props) {
     );
   }
 
-  const columnConfiguration = formData && formData.column_configuration;
-  const rowConfiguration = formData && formData.row_configuration;
+  const columnConfiguration = formData && formData.columnConfiguration;
+  const rowConfiguration = formData && formData.rowConfiguration;
   const rowConfigHasHighPriority =
-    (formData && formData.row_configuration_priority) || false;
+    (formData && formData.rowConfigurationPriority) || false;
 
   // const cols = Array.isArray(columns[0]) ? columns.map(col => col[0]) : columns;
 
