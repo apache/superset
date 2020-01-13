@@ -182,7 +182,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     @property
     def thumbnail_url(self):
         # SHA here is to force bypassing the browser cache when chart has changed
-        sha = utils.md5_hex(self.params, 6)
+        # sha = utils.md5_hex(self.params, 6)
         return f"/api/v1/dashboard/thumbnail/{self.id}/{sha}/"
 
     @property

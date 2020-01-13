@@ -19,6 +19,7 @@ import logging
 from datetime import datetime
 from subprocess import Popen
 from sys import stdout
+from typing import Union
 
 import click
 import yaml
@@ -461,8 +462,14 @@ def flower(port, address):
     default=False,
     help="Force refresh, even if previously cached",
 )
-@click.option("--id", "-i", multiple=True)
-def compute_thumbnails(asynchronous, dashboards_only, charts_only, force, id):
+@click.option("--model_id", "-i", multiple=True)
+def compute_thumbnails(
+    asynchronous: bool,
+    dashboards_only: bool,
+    charts_only: bool,
+    force: bool,
+    model_id: int,
+):
     """Compute thumbnails"""
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -471,39 +478,30 @@ def compute_thumbnails(asynchronous, dashboards_only, charts_only, force, id):
         cache_dashboard_thumbnail,
     )
 
-    if not charts_only:
-        query = db.session.query(Dashboard)
-        if id:
-            query = query.filter(Dashboard.id.in_(id))
+    def compute_generic_thumbnail(
+        friendly_type: str, model_cls: Union[Dashboard, Slice], model_id: int, func
+    ):
+        query = db.session.query(model_cls)
+        if model_id:
+            query = query.filter(model_cls.id.in_(model_id))
         dashboards = query.all()
         count = len(dashboards)
-        for i, dash in enumerate(dashboards):
+        for i, model in enumerate(dashboards):
             if asynchronous:
-                func = cache_dashboard_thumbnail.delay
+                func = func.delay
                 action = "Triggering"
             else:
-                func = cache_dashboard_thumbnail
                 action = "Processing"
-            msg = f'{action} dashboard "{dash.dashboard_title}" ({i+1}/{count})'
+            msg = f'{action} {friendly_type} "{model}" ({i+1}/{count})'
             click.secho(msg, fg="green")
-            func(dash.id, force=force)
+            func(model.id, force=force)
 
+    if not charts_only:
+        compute_generic_thumbnail(
+            "dashboard", Dashboard, model_id, cache_dashboard_thumbnail
+        )
     if not dashboards_only:
-        query = db.session.query(Slice)
-        if id:
-            query = query.filter(Slice.id.in_(id))
-        slices = query.all()
-        count = len(slices)
-        for i, slc in enumerate(slices):
-            if asynchronous:
-                func = cache_chart_thumbnail.delay
-                action = "Triggering"
-            else:
-                func = cache_chart_thumbnail
-                action = "Processing"
-            msg = f'{action} chart "{slc.slice_name}" ({i+1}/{count})'
-            click.secho(msg, fg="green")
-            func(slc.id, force=force)
+        compute_generic_thumbnail("chart", Slice, model_id, cache_chart_thumbnail)
 
 
 @superset.command()
