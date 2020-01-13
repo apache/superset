@@ -44,8 +44,14 @@ interface State {
   deleteCandidate: any;
   filterTypes: FilterTypeMap;
   permissions: string[];
+  labelColumns: { [key: string]: string }
 }
 class DashboardList extends React.PureComponent<Props, State> {
+
+  constructor(props: Props) {
+    super(props);
+    this.setColumns();
+  }
 
   get canEdit() {
     return this.hasPerm('can_edit');
@@ -67,89 +73,94 @@ class DashboardList extends React.PureComponent<Props, State> {
     loading: false,
     permissions: [],
     showDeleteModal: false,
+    labelColumns: {}
   };
 
-  public columns = [
-    {
-      Cell: ({
-        row: {
-          original: { url, dashboard_title },
-        },
-      }: any) => <a href={url}>{dashboard_title}</a>,
-      Header: 'Dashboard',
-      accessor: 'dashboard_title',
-      filterable: true,
-      sortable: true,
-    },
-    {
-      Cell: ({
-        row: {
-          original: { changed_by_name, changed_by_url },
-        },
-      }: any) => <a href={changed_by_url}>{changed_by_name}</a>,
-      Header: 'Creator',
-      accessor: 'changed_by_fk',
-      sortable: true,
-    },
-    {
-      Cell: ({
-        row: {
-          original: { published },
-        },
-      }: any) => (
-          <span className='no-wrap'>{published ? <i className='fa fa-check' /> : ''}</span>
-        ),
-      Header: 'Published',
-      accessor: 'published',
-      sortable: true,
-    },
-    {
-      Cell: ({
-        row: {
-          original: { changed_on },
-        },
-      }: any) => (
-          <span className='no-wrap'>{moment(changed_on).fromNow()}</span>
-        ),
-      Header: 'Modified',
-      accessor: 'changed_on',
-      sortable: true,
-    },
-    {
-      Cell: ({ row: { state, original } }: any) => {
-        const handleDelete = () => this.handleDashboardDeleteConfirm(original);
-        const handleEdit = () => this.handleDashboardEdit(original);
-        if (!this.canEdit && !this.canDelete) {
-          return null;
-        }
+  public columns: any = [];
 
-        return (
-          <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
-            {this.canDelete && (
-              <span
-                role='button'
-                className='action-button'
-                onClick={handleDelete}
-              >
-                <i className='fa fa-trash' />
-              </span>
-            )}
-            {this.canEdit && (
-              <span
-                role='button'
-                className='action-button'
-                onClick={handleEdit}
-              >
-                <i className='fa fa-pencil' />
-              </span>
-            )}
-          </span>
-        );
+  public setColumns = () => {
+    this.columns = [
+      {
+        Cell: ({
+          row: {
+            original: { url, dashboard_title },
+          },
+        }: any) => <a href={url}>{dashboard_title}</a>,
+        Header: this.state.labelColumns['dashboard_title'] || '',
+        accessor: 'dashboard_title',
+        filterable: true,
+        sortable: true,
       },
-      Header: 'Actions',
-      id: 'actions',
-    },
-  ];
+      {
+        Cell: ({
+          row: {
+            original: { changed_by_name, changed_by_url },
+          },
+        }: any) => <a href={changed_by_url}>{changed_by_name}</a>,
+        Header: this.state.labelColumns['changed_by_name'] || '',
+        accessor: 'changed_by_fk',
+        sortable: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { published },
+          },
+        }: any) => (
+            <span className='no-wrap'>{published ? <i className='fa fa-check' /> : ''}</span>
+          ),
+        Header: this.state.labelColumns['published'] || '',
+        accessor: 'published',
+        sortable: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on },
+          },
+        }: any) => (
+            <span className='no-wrap'>{moment(changed_on).fromNow()}</span>
+          ),
+        Header: this.state.labelColumns['changed_on'] || '',
+        accessor: 'changed_on',
+        sortable: true,
+      },
+      {
+        Cell: ({ row: { state, original } }: any) => {
+          const handleDelete = () => this.handleDashboardDeleteConfirm(original);
+          const handleEdit = () => this.handleDashboardEdit(original);
+          if (!this.canEdit && !this.canDelete) {
+            return null;
+          }
+
+          return (
+            <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
+              {this.canDelete && (
+                <span
+                  role='button'
+                  className='action-button'
+                  onClick={handleDelete}
+                >
+                  <i className='fa fa-trash' />
+                </span>
+              )}
+              {this.canEdit && (
+                <span
+                  role='button'
+                  className='action-button'
+                  onClick={handleEdit}
+                >
+                  <i className='fa fa-pencil' />
+                </span>
+              )}
+            </span>
+          );
+        },
+        Header: 'Actions',
+        id: 'actions',
+      },
+    ]
+  };
 
   public initialSort = [{ id: 'changed_on', desc: true }];
 
@@ -186,7 +197,7 @@ class DashboardList extends React.PureComponent<Props, State> {
         });
       },
       (err: any) => {
-        this.props.addDangerToast(t(`There was an issue deleting ${title}`));
+        this.props.addDangerToast(t('There was an issue deleting') + `${title}`);
         this.setState({ showDeleteModal: false, deleteCandidate: {} });
       },
     );
@@ -221,14 +232,17 @@ class DashboardList extends React.PureComponent<Props, State> {
       endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
       .then(({ json = {} }) => {
-        this.setState({ dashboards: json.result, dashboard_count: json.count });
+        this.setState({ dashboards: json.result, dashboard_count: json.count, labelColumns: json.label_columns });
       })
       .catch(() => {
         this.props.addDangerToast(
           t('An error occurred while fetching Dashboards'),
         );
       })
-      .finally(() => this.setState({ loading: false }));
+      .finally(() => {
+        this.setColumns();
+        this.setState({ loading: false })
+      });
   }
 
   public componentDidMount() {
@@ -265,9 +279,9 @@ class DashboardList extends React.PureComponent<Props, State> {
             <b>{this.state.deleteCandidate.dashboard_title}</b>?
           </Modal.Body>
           <Modal.Footer>
-            <Button onClick={this.toggleModal}>Cancel</Button>
+            <Button onClick={this.toggleModal}>{t('Cancel')}</Button>
             <Button bsStyle='danger' onClick={this.handleDashboardDelete}>
-              OK
+              {t('OK')}
             </Button>
           </Modal.Footer>
         </Modal>
