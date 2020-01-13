@@ -38,20 +38,15 @@ interface Props {
 
 interface State {
   dashboards: any[];
-  dashboard_count: number;
+  dashboardCount: number;
   loading: boolean;
   showDeleteModal: boolean;
   deleteCandidate: any;
   filterTypes: FilterTypeMap;
   permissions: string[];
-  labelColumns: { [key: string]: string }
+  labelColumns: { [key: string]: string };
 }
 class DashboardList extends React.PureComponent<Props, State> {
-
-  constructor(props: Props) {
-    super(props);
-    this.setColumns();
-  }
 
   get canEdit() {
     return this.hasPerm('can_edit');
@@ -66,17 +61,24 @@ class DashboardList extends React.PureComponent<Props, State> {
   };
 
   public state: State = {
-    dashboard_count: 0,
+    dashboardCount: 0,
     dashboards: [],
     deleteCandidate: {},
     filterTypes: {},
+    labelColumns: {},
     loading: false,
     permissions: [],
     showDeleteModal: false,
-    labelColumns: {}
   };
 
   public columns: any = [];
+
+  public initialSort = [{ id: 'changed_on', desc: true }];
+
+  constructor(props: Props) {
+    super(props);
+    this.setColumns();
+  }
 
   public setColumns = () => {
     this.columns = [
@@ -86,7 +88,7 @@ class DashboardList extends React.PureComponent<Props, State> {
             original: { url, dashboard_title },
           },
         }: any) => <a href={url}>{dashboard_title}</a>,
-        Header: this.state.labelColumns['dashboard_title'] || '',
+        Header: this.state.labelColumns.dashboard_title || '',
         accessor: 'dashboard_title',
         filterable: true,
         sortable: true,
@@ -97,7 +99,7 @@ class DashboardList extends React.PureComponent<Props, State> {
             original: { changed_by_name, changed_by_url },
           },
         }: any) => <a href={changed_by_url}>{changed_by_name}</a>,
-        Header: this.state.labelColumns['changed_by_name'] || '',
+        Header: this.state.labelColumns.changed_by_name || '',
         accessor: 'changed_by_fk',
         sortable: true,
       },
@@ -109,7 +111,7 @@ class DashboardList extends React.PureComponent<Props, State> {
         }: any) => (
             <span className='no-wrap'>{published ? <i className='fa fa-check' /> : ''}</span>
           ),
-        Header: this.state.labelColumns['published'] || '',
+        Header: this.state.labelColumns.published || '',
         accessor: 'published',
         sortable: true,
       },
@@ -121,7 +123,7 @@ class DashboardList extends React.PureComponent<Props, State> {
         }: any) => (
             <span className='no-wrap'>{moment(changed_on).fromNow()}</span>
           ),
-        Header: this.state.labelColumns['changed_on'] || '',
+        Header: this.state.labelColumns.changed_on || '',
         accessor: 'changed_on',
         sortable: true,
       },
@@ -159,10 +161,8 @@ class DashboardList extends React.PureComponent<Props, State> {
         Header: 'Actions',
         id: 'actions',
       },
-    ]
-  };
-
-  public initialSort = [{ id: 'changed_on', desc: true }];
+    ];
+  }
 
   public hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
@@ -232,7 +232,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
       .then(({ json = {} }) => {
-        this.setState({ dashboards: json.result, dashboard_count: json.count, labelColumns: json.label_columns });
+        this.setState({ dashboards: json.result, dashboardCount: json.count, labelColumns: json.label_columns });
       })
       .catch(() => {
         this.props.addDangerToast(
@@ -241,7 +241,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       })
       .finally(() => {
         this.setColumns();
-        this.setState({ loading: false })
+        this.setState({ loading: false });
       });
   }
 
@@ -255,6 +255,7 @@ class DashboardList extends React.PureComponent<Props, State> {
   }
 
   public render() {
+    const { dashboards, dashboardCount, loading, filterTypes } = this.state;
     return (
       <div className='container welcome'>
         <Panel>
@@ -262,13 +263,13 @@ class DashboardList extends React.PureComponent<Props, State> {
             className='dashboard-list-view'
             title={'Dashboards'}
             columns={this.columns}
-            data={this.state.dashboards}
-            count={this.state.dashboard_count}
+            data={dashboards}
+            count={dashboardCount}
             pageSize={PAGE_SIZE}
             fetchData={this.fetchData}
-            loading={this.state.loading}
+            loading={loading}
             initialSort={this.initialSort}
-            filterTypes={this.state.filterTypes}
+            filterTypes={filterTypes}
           />
         </Panel>
 
