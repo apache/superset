@@ -81,8 +81,6 @@ class QueryObject:
         self.time_shift = utils.parse_human_timedelta(time_shift)
         self.groupby = groupby or []
 
-        # Temporal solution for backward compatability issue
-        # due the new format of non-ad-hoc metric.
         self.metrics = [utils.get_metric_name(metric) for metric in metrics]
         self.row_limit = row_limit
         self.filter = filters or []
