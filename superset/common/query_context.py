@@ -87,7 +87,7 @@ class QueryContext:
         # be considered as the default ISO date format
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic
-        if df is not None and not df.empty:
+        if not df.empty:
             if DTTM_ALIAS in df.columns:
                 if timestamp_format in ("epoch_s", "epoch_ms"):
                     # Column has already been formatted as a timestamp.
@@ -129,15 +129,14 @@ class QueryContext:
     def get_single_payload(self, query_obj: QueryObject) -> Dict[str, Any]:
         """Returns a payload of metadata and data"""
         payload = self.get_df_payload(query_obj)
-        df = payload.get("df")
-        status = payload.get("status")
+        df = payload["df"]
+        status = payload["status"]
         if status != utils.QueryStatus.FAILED:
-            if df is None or df.empty:
+            if df.empty:
                 payload["error"] = "No data"
             else:
                 payload["data"] = self.get_data(df)
-        if "df" in payload:
-            del payload["df"]
+        del payload["df"]
         return payload
 
     def get_payload(self) -> List[Dict[str, Any]]:
@@ -174,7 +173,7 @@ class QueryContext:
         logging.info("Cache key: %s", cache_key)
         is_loaded = False
         stacktrace = None
-        df = None
+        df = pd.DataFrame()
         cached_dttm = datetime.utcnow().isoformat().split(".")[0]
         cache_value = None
         status = None
@@ -241,5 +240,5 @@ class QueryContext:
             "query": query,
             "status": status,
             "stacktrace": stacktrace,
-            "rowcount": len(df.index) if df is not None else 0,
+            "rowcount": len(df.index),
         }
