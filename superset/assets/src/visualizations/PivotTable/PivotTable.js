@@ -218,9 +218,6 @@ function PivotTable(element, props) {
 
   // update column configuration according to the cell's value
   const updateColumnConfig = function(obj, columnconfig, value) {
-    console.log(obj);
-    console.log(columnconfig);
-    console.log(value);
     let config = obj.data('config') || {};
     config = updateConfig(config, 'color', columnconfig.columnBgColorConfig);
     config = updateConfig(config, 'format', columnconfig.columnFormatConfig);
@@ -249,6 +246,7 @@ function PivotTable(element, props) {
   // apply color, font weight and format config to the cell
   const applyconfig = function(obj) {
     const config = obj.data('config') || {};
+    console.log(config);
     const originalValue = obj.attr('initialValue');
     if (config.color && checkObjectOrStringHasLengthOrnot(config.color)) {
       obj.css('background', config.color.hex);
@@ -270,6 +268,7 @@ function PivotTable(element, props) {
         obj.html(formatNumber(config.format)(originalValue));
       }
     }
+    console.log(obj);
   };
 
   // check if this row has row configuration or not
