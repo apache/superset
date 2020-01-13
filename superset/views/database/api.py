@@ -25,6 +25,7 @@ from .validators import sqlalchemy_uri_validator
 
 class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(models.Database)
+    include_route_methods = {"api_read"}
 
     class_permission_name = "DatabaseView"
     resource_name = "database"

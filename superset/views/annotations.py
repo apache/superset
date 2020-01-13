@@ -93,7 +93,7 @@ class AnnotationLayerModelView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AnnotationLayer)
-    include_route_methods = {"create", "read", "delete", "api_read"}
+    include_route_methods = {"add", "list", "delete", "api_read"}
 
     list_title = _("List Annotation Layer")
     show_title = _("Show Annotation Layer")
