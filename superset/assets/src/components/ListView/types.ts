@@ -18,14 +18,15 @@
  */
 export interface SortColumn {
   id: string;
-  desc: boolean;
+  desc?: boolean;
 }
 
 export type SortColumns = SortColumn[];
 
 export interface Filter {
-  filterId: number;
-  filterValue: string;
+  id: string;
+  filterId?: string;
+  value: string;
 }
 
 export interface FilterType {
@@ -37,20 +38,16 @@ export interface FilterTypeMap {
   [columnId: string]: FilterType[];
 }
 
-interface FilterMap {
-  [columnId: string]: Filter;
-}
-
 export interface FetchDataConfig {
   pageIndex: number;
   pageSize: number;
   sortBy: SortColumns;
-  filters: FilterMap;
+  filters: Filter[];
 }
 
 export interface FilterToggle {
   id: string;
   Header: string;
   filterId?: number;
-  filterValue?: string;
+  value?: string;
 }

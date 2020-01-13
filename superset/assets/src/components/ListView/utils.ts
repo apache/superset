@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   useFilters,
   usePagination,
   useRowState,
   useSortBy,
   useTable,
+  useRowSelect,
 } from 'react-table';
 
 import {
@@ -53,14 +54,8 @@ function updateInList(list: any[], index: number, update: any): any[] {
 // convert filters from UI objects to data objects
 export function convertFilters(fts: FilterToggle[]) {
   return fts
-    .filter((ft: FilterToggle) => ft.filterValue)
-    .reduce((acc, ft) => {
-      acc[ft.id] = {
-        filterId: ft.filterId || 'sw',
-        filterValue: ft.filterValue,
-      };
-      return acc;
-    }, {});
+    .filter((ft: FilterToggle) => ft.value)
+    .map(ft => ({ value: null, filterId: ft.filterId || 'sw', ...ft }));
 }
 
 interface UseListViewConfig {
@@ -70,6 +65,12 @@ interface UseListViewConfig {
   count: number;
   initialPageSize: number;
   initialSort?: SortColumn[];
+  bulkSelectMode?: boolean;
+  bulkSelectColumnConfig?: {
+    id: string;
+    Header: (conf: any) => React.ReactNode;
+    Cell: (conf: any) => React.ReactNode;
+  };
 }
 
 export function useListViewState({
@@ -79,6 +80,8 @@ export function useListViewState({
   count,
   initialPageSize,
   initialSort = [],
+  bulkSelectMode = false,
+  bulkSelectColumnConfig,
 }: UseListViewConfig) {
   const [query, setQuery] = useQueryParams({
     filters: JsonParam,
@@ -86,6 +89,26 @@ export function useListViewState({
     sortColumn: StringParam,
     sortOrder: StringParam,
   });
+
+  const initialSortBy = useMemo(
+    () =>
+      query.sortColumn && query.sortOrder
+        ? [{ id: query.sortColumn, desc: query.sortOrder === 'desc' }]
+        : initialSort,
+    [query.sortColumn, query.sortOrder],
+  );
+
+  const initialState = {
+    filters: convertFilters(query.filters || []),
+    pageIndex: query.pageIndex || 0,
+    pageSize: initialPageSize,
+    sortBy: initialSortBy,
+  };
+
+  const columnsWithSelect = useMemo(
+    () => (bulkSelectMode ? [bulkSelectColumnConfig, ...columns] : columns),
+    [bulkSelectMode, columns],
+  );
 
   const {
     getTableProps,
@@ -98,22 +121,15 @@ export function useListViewState({
     pageCount,
     gotoPage,
     setAllFilters,
+    selectedFlatRows,
     state: { pageIndex, pageSize, sortBy, filters },
   } = useTable(
     {
-      columns,
+      columns: columnsWithSelect,
       count,
       data,
       disableSortRemove: true,
-      initialState: {
-        filters: convertFilters(query.filters || []),
-        pageIndex: query.pageIndex || 0,
-        pageSize: initialPageSize,
-        sortBy:
-          query.sortColumn && query.sortOrder
-            ? [{ id: query.sortColumn, desc: query.sortOrder === 'desc' }]
-            : initialSort,
-      },
+      initialState,
       manualFilters: true,
       manualPagination: true,
       manualSorting: true,
@@ -123,6 +139,7 @@ export function useListViewState({
     useSortBy,
     usePagination,
     useRowState,
+    useRowSelect,
   );
 
   const [filterToggles, setFilterToggles] = useState<FilterToggle[]>(
@@ -144,11 +161,12 @@ export function useListViewState({
   }, [fetchData, pageIndex, pageSize, sortBy, filters]);
 
   const filtersApplied = filterToggles.every(
-    ({ id, filterValue, filterId = 'sw' }) =>
+    ({ id, value, filterId }, index) =>
       id &&
-      filters[id] &&
-      filters[id].filterValue === filterValue &&
-      filters[id].filterId === filterId,
+      filters[index] &&
+      filters[index].id === id &&
+      filters[index].value === value &&
+      filters[index].filterId === filterId,
   );
 
   return {
@@ -165,6 +183,7 @@ export function useListViewState({
     rows,
     setAllFilters,
     setFilterToggles,
+    selectedFlatRows,
     state: { pageIndex, pageSize, sortBy, filters, filterToggles },
     updateFilterToggle: (index: number, update: object) =>
       setFilterToggles(updateInList(filterToggles, index, update)),

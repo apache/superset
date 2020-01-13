@@ -188,7 +188,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     SupersetClient.delete({
       endpoint: `/api/v1/dashboard/${id}`,
     }).then(
-      (resp) => {
+      () => {
         const dashboards = this.state.dashboards.filter((d) => d.id !== id);
         this.setState({
           dashboards,
@@ -203,6 +203,10 @@ class DashboardList extends React.PureComponent<Props, State> {
     );
   }
 
+  public handleBulkDashboardDelete = (ids: number[]) => {
+    console.log('deteling', ids)
+  }
+
   public toggleModal = () => {
     this.setState({ showDeleteModal: !this.state.showDeleteModal });
   }
@@ -214,10 +218,10 @@ class DashboardList extends React.PureComponent<Props, State> {
     filters,
   }: FetchDataConfig) => {
     this.setState({ loading: true });
-    const filterExps = Object.keys(filters).map((fk) => ({
-      col: fk,
-      opr: filters[fk].filterId,
-      value: filters[fk].filterValue,
+    const filterExps = filters.map(({ id, filterId, value }) => ({
+      col: id,
+      opr: filterId,
+      value,
     }));
 
     const queryParams = JSON.stringify({
@@ -270,6 +274,14 @@ class DashboardList extends React.PureComponent<Props, State> {
             loading={loading}
             initialSort={this.initialSort}
             filterTypes={filterTypes}
+            bulkActions={
+              [
+                {
+                  name: <><i className="fa fa-trash" /> Delete</>,
+                  onSelect: this.handleBulkDashboardDelete
+                }
+              ]
+            }
           />
         </Panel>
 

@@ -29,6 +29,7 @@ import {
   // @ts-ignore
 } from 'react-bootstrap';
 import Loading from '../Loading';
+import IndeterminateCheckbox from '../IndeterminateCheckbox'
 import './ListViewStyles.less';
 import TableCollection from './TableCollection';
 import { FetchDataConfig, FilterToggle, FilterType, FilterTypeMap, SortColumn } from './types';
@@ -45,7 +46,26 @@ interface Props {
   title?: string;
   initialSort?: SortColumn[];
   filterTypes?: FilterTypeMap;
+  bulkActions?: Array<{ name: any, onSelect: (rows: any[]) => any }>
 }
+
+const bulkSelectColumnConfig = {
+  id: 'selection',
+  // The header can use the table's getToggleAllRowsSelectedProps method
+  // to render a checkbox
+  Header: ({ getToggleAllRowsSelectedProps }: any) => (
+    <div>
+      <IndeterminateCheckbox {...getToggleAllRowsSelectedProps()} />
+    </div>
+  ),
+  // The cell can use the individual row's getToggleRowSelectedProps method
+  // to the render a checkbox
+  Cell: ({ row }: any) => (
+    <div>
+      <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} />
+    </div>
+  ),
+};
 
 const ListView: FunctionComponent<Props> = ({
   columns,
@@ -58,6 +78,7 @@ const ListView: FunctionComponent<Props> = ({
   className = '',
   title = '',
   filterTypes = {},
+  bulkActions = []
 }) => {
   const {
     getTableProps,
@@ -74,6 +95,7 @@ const ListView: FunctionComponent<Props> = ({
     updateFilterToggle,
     applyFilters,
     filtersApplied,
+    selectedFlatRows,
     state: { pageIndex, pageSize, filterToggles },
   } = useListViewState({
     columns,
@@ -82,6 +104,8 @@ const ListView: FunctionComponent<Props> = ({
     fetchData,
     initialPageSize,
     initialSort,
+    bulkSelectMode: true,
+    bulkSelectColumnConfig
   });
   const filterableColumns = useMemo(() => columns.filter((c) => c.filterable), [columns]);
   const filterable = Boolean(columns.length);
@@ -108,6 +132,7 @@ const ListView: FunctionComponent<Props> = ({
               <Col md={2}>
                 <div className='filter-dropdown'>
                   <DropdownButton
+                    id="filter-picker"
                     bsSize='small'
                     bsStyle={'default'}
                     noCaret={true}
@@ -117,7 +142,6 @@ const ListView: FunctionComponent<Props> = ({
                         {'  '}{t('Filter List')}
                       </>
                     )}
-                    id={'filter-picker'}
                   >
                     {filterableColumns
                       .map(({ id, accessor, Header }) => ({
@@ -128,9 +152,8 @@ const ListView: FunctionComponent<Props> = ({
                         <MenuItem
                           key={ft.id}
                           eventKey={ft}
-                          onSelect={(fltr: FilterToggle) => {
-                            setFilterToggles([...filterToggles, fltr]);
-                          }
+                          onSelect={
+                            (fltr: FilterToggle) => setFilterToggles([...filterToggles, fltr])
                           }
                         >
                           {ft.Header}
@@ -172,11 +195,12 @@ const ListView: FunctionComponent<Props> = ({
                   <FormControl
                     type='text'
                     bsSize='small'
-                    value={ft.filterValue || ''}
-                    onChange={(e: React.KeyboardEvent<HTMLInputElement>) =>
-                      updateFilterToggle(i, {
-                        filterValue: e.currentTarget.value,
-                      })
+                    value={ft.value || ''}
+                    onChange={
+                      (e: React.KeyboardEvent<HTMLInputElement>) =>
+                        updateFilterToggle(i, {
+                          value: e.currentTarget.value,
+                        })
                     }
                   />
                 </Col>
@@ -226,28 +250,63 @@ const ListView: FunctionComponent<Props> = ({
         />
       </div>
       <div className='footer'>
-        <Pagination
-          prev={canPreviousPage}
-          first={pageIndex > 1}
-          next={canNextPage}
-          last={pageIndex < pageCount - 2}
-          items={pageCount}
-          activePage={pageIndex + 1}
-          ellipsis={true}
-          boundaryLinks={true}
-          maxButtons={5}
-          onSelect={(p: number) => gotoPage(p - 1)}
-        />
-        <span className='pull-right'>
-          {t('showing')}{' '}
-          <strong>
-            {pageSize * pageIndex + (rows.length && 1)}-
-            {pageSize * pageIndex + rows.length}
-          </strong>{' '}
-          {t('of')} <strong>{count}</strong>
-        </span>
-      </div>
-    </div >
+        <Row>
+          <Col md={2}>
+            <div className="form-actions-container">
+              <div className="btn-group">
+                <DropdownButton
+                  id="bulk-actions"
+                  bsSize='small'
+                  bsStyle="default"
+                  noCaret={true}
+                  title={(
+                    <>
+                      {t('Actions')} <span className="caret" />
+                    </>
+                  )}
+                >
+                  {bulkActions.map(action => (
+                    <MenuItem
+                      id={action.name}
+                      key={action.name}
+                      eventKey={selectedFlatRows}
+                      onSelect={
+                        (rows: typeof selectedFlatRows) => { action.onSelect(rows) }
+                      }
+                    >
+                      {action.name}
+                    </MenuItem>
+                  ))}
+                </DropdownButton>
+              </div>
+            </div>
+          </Col>
+          <Col md={8} className="text-center">
+            <Pagination
+              prev={canPreviousPage}
+              first={pageIndex > 1}
+              next={canNextPage}
+              last={pageIndex < pageCount - 2}
+              items={pageCount}
+              activePage={pageIndex + 1}
+              ellipsis={true}
+              boundaryLinks={true}
+              maxButtons={5}
+              onSelect={(p: number) => gotoPage(p - 1)}
+            />
+          </Col>
+          <Col md={2}>
+            <span className='pull-right'>
+              {t('showing')}{' '}
+              <strong>
+                {pageSize * pageIndex + (rows.length && 1)}-{pageSize * pageIndex + rows.length}
+              </strong>{' '}
+              {t('of')} <strong>{count}</strong>
+            </span>
+          </Col>
+        </Row>
+      </div >
+    </div>
   );
 };
 
