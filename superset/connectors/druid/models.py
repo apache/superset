@@ -45,7 +45,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import backref, relationship, RelationshipProperty, Session
+from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy_utils import EncryptedType
 
 from superset import conf, db, security_manager
@@ -222,7 +222,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         session = db.session
         ds_list = (
             session.query(DruidDatasource)
-            .filter(DruidDatasource.cluster_name == self.cluster_name)
+            .filter(DruidDatasource.cluster_id == self.id)
             .filter(DruidDatasource.datasource_name.in_(datasource_names))
         )
         ds_map = {ds.name: ds for ds in ds_list}
@@ -468,7 +468,7 @@ class DruidDatasource(Model, BaseDatasource):
     """ORM object referencing Druid datasources (tables)"""
 
     __tablename__ = "datasources"
-    __table_args__ = (UniqueConstraint("datasource_name", "cluster_name"),)
+    __table_args__ = (UniqueConstraint("datasource_name", "cluster_id"),)
 
     type = "druid"
     query_language = "json"
@@ -484,11 +484,9 @@ class DruidDatasource(Model, BaseDatasource):
     is_hidden = Column(Boolean, default=False)
     filter_select_enabled = Column(Boolean, default=True)  # override default
     fetch_values_from = Column(String(100))
-    cluster_name = Column(
-        String(250), ForeignKey("clusters.cluster_name"), nullable=False
-    )
+    cluster_id = Column(Integer, ForeignKey("clusters.id"), nullable=False)
     cluster = relationship(
-        "DruidCluster", backref="datasources", foreign_keys=[cluster_name]
+        "DruidCluster", backref="datasources", foreign_keys=[cluster_id]
     )
     owners = relationship(
         owner_class, secondary=druiddatasource_user, backref="druiddatasources"
@@ -499,7 +497,7 @@ class DruidDatasource(Model, BaseDatasource):
         "is_hidden",
         "description",
         "default_endpoint",
-        "cluster_name",
+        "cluster_id",
         "offset",
         "cache_timeout",
         "params",
@@ -511,7 +509,15 @@ class DruidDatasource(Model, BaseDatasource):
     export_children = ["columns", "metrics"]
 
     @property
-    def database(self) -> RelationshipProperty:
+    def cluster_name(self) -> str:
+        cluster = (
+            self.cluster
+            or db.session.query(DruidCluster).filter_by(id=self.cluster_id).one()
+        )
+        return cluster.cluster_name
+
+    @property
+    def database(self) -> DruidCluster:
         return self.cluster
 
     @property
@@ -608,17 +614,13 @@ class DruidDatasource(Model, BaseDatasource):
                 db.session.query(DruidDatasource)
                 .filter(
                     DruidDatasource.datasource_name == d.datasource_name,
-                    DruidCluster.cluster_name == d.cluster_name,
+                    DruidDatasource.cluster_id == d.cluster_id,
                 )
                 .first()
             )
 
         def lookup_cluster(d: DruidDatasource) -> Optional[DruidCluster]:
-            return (
-                db.session.query(DruidCluster)
-                .filter_by(cluster_name=d.cluster_name)
-                .one()
-            )
+            return db.session.query(DruidCluster).filter_by(id=d.cluster_id).first()
 
         return import_datasource.import_datasource(
             db.session, i_datasource, lookup_cluster, lookup_datasource, import_time
@@ -1615,12 +1617,7 @@ class DruidDatasource(Model, BaseDatasource):
     def query_datasources_by_name(
         cls, session: Session, database: Database, datasource_name: str, schema=None
     ) -> List["DruidDatasource"]:
-        return (
-            session.query(cls)
-            .filter_by(cluster_name=database.id)
-            .filter_by(datasource_name=datasource_name)
-            .all()
-        )
+        return []
 
     def external_metadata(self) -> List[Dict]:
         self.merge_flag = True
