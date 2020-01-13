@@ -363,7 +363,9 @@ function PivotTable(element, props) {
     applyColumnConfiguration();
     applyRowConfiguration();
   } else {
+    console.log('hello');
     applyRowConfiguration();
+    console.log('hello2');
     applyColumnConfiguration();
   }
 
