@@ -313,6 +313,7 @@ function PivotTable(element, props) {
     $(this)
       .find('td')
       .each(function(i) {
+        console.log(metricForCols);
         const metric = metricForCols[i];
         const format = columnFormats[metric] || numberFormat || '.3s';
         const tdText = $(this)[0].textContent;
