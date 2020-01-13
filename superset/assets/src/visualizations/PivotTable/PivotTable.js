@@ -74,9 +74,11 @@ function PivotTable(element, props) {
 
   if (Array.isArray(columns[0])) {
     metricForCols = columns.map(col =>
-      !combineMetric ? col[columns[0].length - 1] : col[0],
+      combineMetric ? col[columns[0].length - 1] : col[0],
     );
   }
+
+  console.log(metricForCols);
 
   const columnConfiguration = formData && formData.columnConfiguration;
   const rowConfiguration = formData && formData.rowConfiguration;
@@ -161,6 +163,7 @@ function PivotTable(element, props) {
   const getColumnConfigForOption = function(curColumn, configName) {
     let column = curColumn;
     let columnString = transformToString(column);
+    console.log(columnString);
     while (
       Array.isArray(column) &&
       column.length > 1 &&
@@ -175,7 +178,6 @@ function PivotTable(element, props) {
         ? {}
         : '';
     }
-    console.log(columnConfiguration);
     return columnConfiguration[columnString][configName];
   };
 
@@ -248,9 +250,6 @@ function PivotTable(element, props) {
   // apply color, font weight and format config to the cell
   const applyconfig = function(obj) {
     const config = obj.data('config') || {};
-    if (!isEqual(config, {})) {
-      console.log(config);
-    }
     const originalValue = obj.attr('initialValue');
     if (config.color && checkObjectOrStringHasLengthOrnot(config.color)) {
       obj.css('background', config.color.hex);
