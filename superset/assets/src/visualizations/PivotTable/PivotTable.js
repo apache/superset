@@ -23,6 +23,7 @@ import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import { formatNumber } from '@superset-ui/number-format';
+import { isEqual } from 'lodash';
 import fixTableHeight from '../../modules/utils';
 import './PivotTable.css';
 
@@ -204,6 +205,9 @@ function PivotTable(element, props) {
     columnConfig.columnBasementConfig = columnBasementConfig;
     columnConfig.columnColorConfig = columnColorConfig;
     columnConfig.columnFontConfig = columnFontConfig;
+    if (!isEqual(columnConfig, {})) {
+      console.log(columnConfig);
+    }
     return columnConfig;
   };
 
@@ -246,7 +250,9 @@ function PivotTable(element, props) {
   // apply color, font weight and format config to the cell
   const applyconfig = function(obj) {
     const config = obj.data('config') || {};
-    console.log(config);
+    if (!isEqual(config, {})) {
+      console.log(config);
+    }
     const originalValue = obj.attr('initialValue');
     if (config.color && checkObjectOrStringHasLengthOrnot(config.color)) {
       obj.css('background', config.color.hex);
@@ -268,7 +274,6 @@ function PivotTable(element, props) {
         obj.html(formatNumber(config.format)(originalValue));
       }
     }
-    console.log(obj);
   };
 
   // check if this row has row configuration or not
