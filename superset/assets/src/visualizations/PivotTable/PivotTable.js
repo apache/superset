@@ -76,7 +76,7 @@ function PivotTable(element, props) {
 
   if (Array.isArray(columns[0])) {
     metricForCols = columns.map(col =>
-      combineMetric ? col[columns[0].length - 1] : col[0],
+      !combineMetric ? col[columns[0].length - 1] : col[0],
     );
   }
 
