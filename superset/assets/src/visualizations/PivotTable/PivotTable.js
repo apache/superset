@@ -179,6 +179,7 @@ function PivotTable(element, props) {
 
   // get the column configuration object for the column
   const getColumnConfig = function(column) {
+    console.log(column);
     const columnBgColorConfig = getColumnConfigForOption(
       column,
       'bcColoringOption',
@@ -204,7 +205,6 @@ function PivotTable(element, props) {
     columnConfig.columnBasementConfig = columnBasementConfig;
     columnConfig.columnColorConfig = columnColorConfig;
     columnConfig.columnFontConfig = columnFontConfig;
-    console.log(columnConfig);
     return columnConfig;
   };
 
