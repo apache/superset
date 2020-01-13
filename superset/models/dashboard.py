@@ -180,10 +180,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return Markup(f'<a href="{self.url}">{title}</a>')
 
     @property
-    def dashboard_title_raw(self) -> str:
-        return self.dashboard_title
-
-    @property
     def changed_by_name(self):
         if not self.changed_by:
             return ""
