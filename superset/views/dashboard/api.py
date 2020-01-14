@@ -173,7 +173,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
     method_permission_name = {
         "get_list": "list",
         "get": "show",
-        "export": "list",
+        "export": "mulexport",
         "post": "add",
         "put": "edit",
         "delete": "delete",
@@ -404,7 +404,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         ids = [item.id for item in query.all()]
         if not ids:
             return self.response_404()
-        export = Dashboard.export_dashboards(kwargs["rison"])
+        export = Dashboard.export_dashboards(ids)
         resp = make_response(export, 200)
         resp.headers["Content-Disposition"] = generate_download_headers("json")[
             "Content-Disposition"

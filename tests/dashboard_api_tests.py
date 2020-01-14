@@ -24,6 +24,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from superset import db, security_manager
 from superset.models import core as models
 from superset.models.slice import Slice
+from superset.views.base import generate_download_headers
 
 from .base_tests import SupersetTestCase
 
@@ -434,7 +435,10 @@ class DashboardApiTests(SupersetTestCase):
 
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
-        rv.headers["Content-Disposition"] = 'attachment; filename="dashboards.json"'
+        self.assertEqual(
+            rv.headers["Content-Disposition"],
+            generate_download_headers("json")["Content-Disposition"],
+        )
 
     def test_export_not_found(self):
         """
