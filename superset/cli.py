@@ -19,7 +19,7 @@ import logging
 from datetime import datetime
 from subprocess import Popen
 from sys import stdout
-from typing import Union, Type
+from typing import Type, Union
 
 import click
 import yaml
@@ -494,6 +494,7 @@ def compute_thumbnails(
                 func = compute_func.delay
                 action = "Triggering"
             else:
+                func = compute_func
                 action = "Processing"
             msg = f'{action} {friendly_type} "{model}" ({i+1}/{count})'
             click.secho(msg, fg="green")

@@ -660,6 +660,16 @@ Thumbnails are store on cache, an example config could be:
 
 Using the above example cache keys for dashboards will be `superset_thumbnails_thumb__dashboard__{ID}`
 
+You can override the base URL for selenium using:
+
+.. code-block:: python
+
+    WEBDRIVER_BASEURL = "https://superset.company.com"
+
+
+Additional selenium web drive config can be set using `WEBDRIVER_CONFIGURATION`
+
+
 Deeper SQLAlchemy integration
 -----------------------------
 

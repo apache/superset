@@ -32,8 +32,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from werkzeug.http import parse_cookie
 
 if TYPE_CHECKING:
-    from flask_appbuilder.security.sqla.models import User
-    from flask_caching import Cache
+    from flask_appbuilder.security.sqla.models import (
+        User,
+    )  # pylint: disable=unused-import
+    from flask_caching import Cache  # pylint: disable=unused-import
 
 
 # Time in seconds, we will wait for the page to load and render
@@ -42,11 +44,11 @@ SELENIUM_RETRIES = 5
 SELENIUM_HEADSTART = 3
 
 
-def headless_url(path):
+def headless_url(path: str):
     return urllib.parse.urljoin(current_app.config.get("WEBDRIVER_BASEURL"), path)
 
 
-def get_url_path(view, **kwargs):
+def get_url_path(view: str, **kwargs):
     with current_app.test_request_context():
         return headless_url(url_for(view, **kwargs))
 
@@ -54,8 +56,8 @@ def get_url_path(view, **kwargs):
 class BaseScreenshot:
     thumbnail_type: Optional[str] = None
     element: Optional[str] = None
-    window_size = (800, 600)
-    thumb_size = (400, 300)
+    window_size: Tuple[int, int] = (800, 600)
+    thumb_size: Tuple[int, int] = (400, 300)
 
     def __init__(self, model_id: int):
         self.model_id: int = model_id
@@ -69,7 +71,7 @@ class BaseScreenshot:
     def url(self):
         raise NotImplementedError()
 
-    def fetch_screenshot(self, user, window_size: Tuple[int, int] = None):
+    def fetch_screenshot(self, user: "User", window_size: Tuple[int, int] = None):
         window_size = window_size or self.window_size
         self.screenshot = get_png_from_url(
             self.url, window_size, self.element, user=user
@@ -80,7 +82,7 @@ class BaseScreenshot:
         payload = self.get_thumb(*args, **kwargs)
         return BytesIO(payload)
 
-    def get_from_cache(self, cache: "Cache"):
+    def get_from_cache(self, cache: "Cache") -> Optional[BytesIO]:
         payload = cache.get(self.cache_key)
         if payload:
             return BytesIO(payload)
@@ -134,7 +136,6 @@ class BaseScreenshot:
         if payload and cache:
             logging.info(f"Caching thumbnail: {cache_key}")
             cache.set(cache_key, payload)
-        logging.error(type(payload))
         return payload
 
     def get_thumb(
@@ -183,10 +184,10 @@ class BaseScreenshot:
 
 
 class SliceScreenshot(BaseScreenshot):
-    thumbnail_type = "slice"
-    element = "chart-container"
-    window_size = (600, int(600 * 0.75))
-    thumb_size = (300, int(300 * 0.75))
+    thumbnail_type: Optional[str] = "slice"
+    element: Optional[str] = "chart-container"
+    window_size: Tuple[int, int] = (600, int(600 * 0.75))
+    thumb_size: Tuple[int, int] = (300, int(300 * 0.75))
 
     @property
     def url(self) -> str:
@@ -194,10 +195,10 @@ class SliceScreenshot(BaseScreenshot):
 
 
 class DashboardScreenshot(BaseScreenshot):
-    thumbnail_type = "dashboard"
-    element = "grid-container"
-    window_size = (1600, int(1600 * 0.75))
-    thumb_size = (400, int(400 * 0.75))
+    thumbnail_type: Optional[str] = "dashboard"
+    element: Optional[str] = "grid-container"
+    window_size: Tuple[int, int] = (1600, int(1600 * 0.75))
+    thumb_size: Tuple[int, int] = (400, int(400 * 0.75))
 
     @property
     def url(self) -> str:
