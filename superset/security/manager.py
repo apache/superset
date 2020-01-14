@@ -886,15 +886,17 @@ class SupersetSecurityManager(SecurityManager):
         :param table: The table to check against
         :returns: A list of filters strings.
         """
-        if (
-            hasattr(g, "user")
-        ):
+        if hasattr(g, "user"):
             from superset import db
-            result = db.session.execute("SELECT * FROM row_level_security_filters "
+
+            result = db.session.execute(
+                "SELECT * FROM row_level_security_filters "
                 "WHERE table_id = :table AND id IN "
                 "(SELECT id FROM rls_filter_roles WHERE role_id IN "
-                "(SELECT role_id FROM ab_user_role WHERE user_id = :user))", {'table': table.id, 'user': g.user.id})
-            return result;
+                "(SELECT role_id FROM ab_user_role WHERE user_id = :user))",
+                {"table": table.id, "user": g.user.id},
+            )
+            return result
         return []
 
     def get_rls_ids(self, table: "BaseDatasource") -> List[int]:
