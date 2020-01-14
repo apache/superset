@@ -226,7 +226,15 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
 
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.SqlaTable)
-    include_route_methods = {"add", "list", "delete"}
+    include_route_methods = {
+        "list",
+        "show",
+        "add",
+        "edit",
+        "delete",
+        "action_post",
+        "action",
+    }
 
     list_title = _("Tables")
     show_title = _("Show Table")

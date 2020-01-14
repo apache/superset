@@ -187,8 +187,15 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
 
 class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.DruidCluster)
-    include_route_methods = {"list", "add", "delete"}
-
+    include_route_methods = {
+        "list",
+        "show",
+        "add",
+        "edit",
+        "delete",
+        "action_post",
+        "action",
+    }
     list_title = _("Druid Clusters")
     show_title = _("Show Druid Cluster")
     add_title = _("Add Druid Cluster")
@@ -258,8 +265,15 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
 
 class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.DruidDatasource)
-    include_route_methods = {"list", "add", "delete"}
-
+    include_route_methods = {
+        "list",
+        "show",
+        "add",
+        "edit",
+        "delete",
+        "action_post",
+        "action",
+    }
     list_title = _("Druid Datasources")
     show_title = _("Show Druid Datasource")
     add_title = _("Add Druid Datasource")
