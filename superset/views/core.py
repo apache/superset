@@ -250,7 +250,15 @@ def _deserialize_results_payload(
 
 class AccessRequestsModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(DAR)
-    include_route_methods = {"add", "list", "delete"}
+    include_route_methods = {
+        "list",
+        "show",
+        "add",
+        "edit",
+        "delete",
+        "action_post",
+        "action",
+    }
     list_columns = [
         "username",
         "user_roles",
@@ -2817,7 +2825,15 @@ class Superset(BaseSupersetView):
 
 class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
-    include_route_methods = {"add", "list", "delete"}
+    include_route_methods = {
+        "list",
+        "show",
+        "add",
+        "edit",
+        "delete",
+        "action_post",
+        "action",
+    }
 
     list_title = _("CSS Templates")
     show_title = _("Show CSS Template")

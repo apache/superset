@@ -22,6 +22,7 @@ from typing import Any, Dict, Optional
 
 import simplejson as json
 import yaml
+
 from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
 from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
@@ -242,9 +243,6 @@ class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
 
 class SupersetModelView(ModelView):
     page_size = 100
-    # disable all endpoints by default, all "route_methods" have to be
-    # whitelisted at the class level
-    include_route_methods = set()
     list_widget = SupersetListWidget
 
 

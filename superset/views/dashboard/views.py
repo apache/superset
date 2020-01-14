@@ -45,7 +45,16 @@ class DashboardModelView(
 ):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(models.Dashboard)
-    include_route_methods = {"create", "read", "delete"}
+    include_route_methods = {
+        "list",
+        "show",
+        "add",
+        "edit",
+        "delete",
+        "action_post",
+        "download_dashboards",
+        "action",
+    }
 
     @has_access
     @expose("/list/")

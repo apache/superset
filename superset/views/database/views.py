@@ -49,7 +49,15 @@ class DatabaseView(
     DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Database)
-    include_route_methods = {"create", "read", "delete"}
+    include_route_methods = {
+        "list",
+        "show",
+        "add",
+        "edit",
+        "delete",
+        "action_post",
+        "action",
+    }
 
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"

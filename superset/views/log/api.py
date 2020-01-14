@@ -24,7 +24,6 @@ from . import LogMixin
 
 class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(models.Log)
-    include_route_methods = {"api_read"}
 
     class_permission_name = "LogModelView"
     resource_name = "log"
