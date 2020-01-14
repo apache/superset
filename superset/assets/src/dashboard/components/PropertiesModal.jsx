@@ -191,32 +191,41 @@ class PropertiesModal extends React.PureComponent {
                   bsSize="sm"
                   value={values.slug}
                   onChange={this.onChange}
-                  placeholder={t('A readable URL for your dashboard')}
                 />
+                <p className="help-block">
+                  {t('A readable URL for your dashboard')}
+                </p>
               </Col>
             </Row>
             <Row>
               <Col md={6}>
-                <h3>{t('Access')}</h3>
+                <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
                 <label className="control-label" htmlFor="owners">
                   {t('Owners')}
                 </label>
                 {userOptions && (
-                  <Select
-                    name="owners"
-                    multi
-                    isLoading={!userOptions}
-                    value={values.owners}
-                    options={userOptions || []}
-                    onChange={this.onOwnersChange}
-                    disabled={!isOwnersLoaded}
-                  />
+                  <>
+                    <Select
+                      name="owners"
+                      multi
+                      isLoading={!userOptions}
+                      value={values.owners}
+                      options={userOptions || []}
+                      onChange={this.onOwnersChange}
+                      disabled={!isOwnersLoaded}
+                    />
+                    <p className="help-block">
+                      {t(
+                        'Owners is a list of users who can alter the dashboard.',
+                      )}
+                    </p>
+                  </>
                 )}
               </Col>
             </Row>
             <Row>
               <Col md={12}>
-                <h3>
+                <h3 style={{ marginTop: '1em' }}>
                   <button
                     type="button"
                     className="text-button"
@@ -245,6 +254,11 @@ class PropertiesModal extends React.PureComponent {
                       value={values.json_metadata}
                       onChange={this.onChange}
                     />
+                    <p className="help-block">
+                      {t(
+                        'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
+                      )}
+                    </p>
                   </>
                 )}
               </Col>
