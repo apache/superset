@@ -46,6 +46,7 @@ class AnnotationModelView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Annotation)
+    include_route_methods = CRUD_ROUTE_METHODS
 
     list_title = _("List Annotation")
     show_title = _("Show Annotation")

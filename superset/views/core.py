@@ -2849,16 +2849,3 @@ def apply_http_headers(response: Response):
         if k not in response.headers:
             response.headers[k] = v
     return response
-
-
-@app.route('/<regex("panoramix\/.*"):url>')
-def panoramix(url):
-    return redirect(request.full_path.replace("panoramix", "superset"))
-
-
-@app.route('/<regex("caravel\/.*"):url>')
-def caravel(url):
-    return redirect(request.full_path.replace("caravel", "superset"))
-
-
-# ---------------------------------------------------------------------

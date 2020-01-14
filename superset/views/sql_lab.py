@@ -27,6 +27,7 @@ from flask_sqlalchemy import BaseQuery
 from superset import db, get_feature_flags, security_manager
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.utils import core as utils
+from superset.views.constants import API_READ_ROUTE_METHODS, CRUD_ROUTE_METHODS
 
 from .base import (
     BaseFilter,
@@ -75,6 +76,7 @@ class SavedQueryView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SavedQuery)
+    include_route_methods = CRUD_ROUTE_METHODS
 
     list_title = _("List Saved Query")
     show_title = _("Show Saved Query")
@@ -143,6 +145,7 @@ class SavedQueryView(
 
 
 class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
+    include_route_methods = {"api_read", "api_create", "api_update", "api_get"}
     list_columns = [
         "id",
         "label",
