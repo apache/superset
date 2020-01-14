@@ -62,7 +62,26 @@ describe('getFilterConfigsFromFormdata', () => {
       show_sqla_time_column: true,
     });
     expect(result.columns).toMatchObject({
-      state: 'CA',
+      state: ['CA'],
+    });
+  });
+
+  it('should read multi values from form_data', () => {
+    const result = getFilterConfigsFromFormdata({
+      ...testFormdata,
+      filter_configs: [
+        {
+          asc: true,
+          clearable: true,
+          column: 'state',
+          defaultValue: 'CA;NY',
+          key: 'fvwncPjUf',
+          multiple: true,
+        },
+      ],
+    });
+    expect(result.columns).toMatchObject({
+      state: ['CA', 'NY'],
     });
   });
 });
