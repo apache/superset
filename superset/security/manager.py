@@ -886,7 +886,7 @@ class SupersetSecurityManager(SecurityManager):
         :param table: The table to check against
         :returns: A list of filters strings.
         """
-        if hasattr(g, "user") and hasattr("id", g.user):
+        if hasattr(g, "user") and hasattr(g.user, "id"):
             from superset import db
 
             result = db.session.execute(
