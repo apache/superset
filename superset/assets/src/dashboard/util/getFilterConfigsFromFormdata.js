@@ -31,9 +31,15 @@ export default function getFilterConfigsFromFormdata(form_data = {}) {
   } = form_data;
   let configs = filter_configs.reduce(
     ({ columns, labels }, config) => {
+      let defaultValues = config.defaultValue;
+      // defaultValue could be ; separated values,
+      // could be null or ''
+      if (config.defaultValue) {
+        defaultValues = config.defaultValue.split(';');
+      }
       const updatedColumns = {
         ...columns,
-        [config.column]: config.vals || config.defaultValue,
+        [config.column]: config.vals || defaultValues,
       };
       const updatedLabels = {
         ...labels,
