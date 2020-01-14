@@ -27,7 +27,7 @@ import { FormGroup } from 'react-bootstrap';
 import VirtualizedSelect from 'react-virtualized-select';
 import { t } from '@superset-ui/translation';
 
-import { sqlWords } from '../../SqlLab/components/AceEditorWrapper';
+import sqlKeywords from '../../SqlLab/utils/sqlKeywords';
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import columnType from '../propTypes/columnType';
@@ -68,7 +68,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     };
 
     if (langTools) {
-      const words = sqlWords.concat(
+      const words = sqlKeywords.concat(
         this.props.options.map(option => {
           if (option.column_name) {
             return {

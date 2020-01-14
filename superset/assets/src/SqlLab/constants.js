@@ -58,3 +58,9 @@ export const LOCALSTORAGE_MAX_QUERY_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const LOCALSTORAGE_MAX_USAGE_KB = 5 * 1024; // 5M
 export const LOCALSTORAGE_WARNING_THRESHOLD = 0.9;
 export const LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS = 8000; // danger type toast duration
+
+// autocomplete score weights
+export const SQL_KEYWORD_AUTOCOMPLETE_SCORE = 100;
+export const SCHEMA_AUTOCOMPLETE_SCORE = 60;
+export const TABLE_AUTOCOMPLETE_SCORE = 55;
+export const COLUMN_AUTOCOMPLETE_SCORE = 50;
