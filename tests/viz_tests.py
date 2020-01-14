@@ -100,7 +100,7 @@ class BaseVizTestCase(SupersetTestCase):
         datasource.type = "table"
         datasource.query = Mock(return_value=results)
         mock_dttm_col = Mock()
-        datasource.get_col = Mock(return_value=mock_dttm_col)
+        datasource.get_column = Mock(return_value=mock_dttm_col)
 
         test_viz = viz.BaseViz(datasource, form_data)
         test_viz.df_metrics_to_num = Mock()
@@ -109,7 +109,7 @@ class BaseVizTestCase(SupersetTestCase):
         results.df = pd.DataFrame(data={DTTM_ALIAS: ["1960-01-01 05:00:00"]})
         datasource.offset = 0
         mock_dttm_col = Mock()
-        datasource.get_col = Mock(return_value=mock_dttm_col)
+        datasource.get_column = Mock(return_value=mock_dttm_col)
         mock_dttm_col.python_date_format = "epoch_ms"
         result = test_viz.get_df(query_obj)
         import logging

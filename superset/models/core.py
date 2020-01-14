@@ -361,7 +361,7 @@ class Database(
                 )
 
                 if mutator:
-                    df = mutator(df)
+                    mutator(df)
 
                 for k, v in df.dtypes.items():
                     if v.type == numpy.object_ and needs_conversion(df[k]):
@@ -383,7 +383,6 @@ class Database(
     def select_star(  # pylint: disable=too-many-arguments
         self,
         table_name: str,
-        sql: Optional[str] = None,
         schema: Optional[str] = None,
         limit: int = 100,
         show_cols: bool = False,
@@ -398,7 +397,6 @@ class Database(
         return self.db_engine_spec.select_star(
             self,
             table_name,
-            sql=sql,
             schema=schema,
             engine=eng,
             limit=limit,

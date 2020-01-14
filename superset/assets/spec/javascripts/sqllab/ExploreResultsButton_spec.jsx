@@ -55,13 +55,11 @@ describe('ExploreResultsButton', () => {
   const mockColumns = {
     ds: {
       is_date: true,
-      is_dim: false,
       name: 'ds',
       type: 'STRING',
     },
     gender: {
       is_date: false,
-      is_dim: true,
       name: 'gender',
       type: 'STRING',
     },

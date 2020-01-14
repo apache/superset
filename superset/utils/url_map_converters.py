@@ -14,22 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
+from werkzeug.routing import BaseConverter
 
-from superset.db_engine_specs.mysql import MySQLEngineSpec
-from superset.models.core import Database
-from tests.base_tests import SupersetTestCase
-
-from tests.test_app import app  # isort:skip
+from superset.models.tags import ObjectTypes
 
 
-class DbEngineSpecTestCase(SupersetTestCase):
-    def sql_limit_regex(
-        self, sql, expected_sql, engine_spec_class=MySQLEngineSpec, limit=1000
-    ):
-        main = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
-        limited = engine_spec_class.apply_limit_to_sql(sql, limit, main)
-        self.assertEqual(expected_sql, limited)
+class RegexConverter(BaseConverter):
+    def __init__(self, url_map, *items):
+        super(RegexConverter, self).__init__(url_map)
+        self.regex = items[0]
 
-    def get_dttm(self):
-        return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
+
+class ObjectTypeConverter(BaseConverter):
+    """Validate that object_type is indeed an object type."""
+
+    def to_python(self, value):
+        return ObjectTypes[value]
+
+    def to_url(self, value):
+        return value.name

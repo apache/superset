@@ -61,6 +61,7 @@ from superset import (
     event_logger,
     get_feature_flags,
     is_feature_enabled,
+    result_set,
     results_backend,
     results_backend_use_msgpack,
     security_manager,
@@ -105,9 +106,7 @@ from .base import (
     json_success,
     SupersetModelView,
 )
-from .dashboard import views as dash_views
 from .dashboard.filters import DashboardFilter
-from .database import views as in_views
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
@@ -227,10 +226,10 @@ def _deserialize_results_payload(
             ds_payload = msgpack.loads(payload, raw=False)
 
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
-            df = pa.deserialize(ds_payload["data"])
+            pa_table = pa.deserialize(ds_payload["data"])
 
-        # TODO: optimize this, perhaps via df.to_dict, then traversing
-        ds_payload["data"] = dataframe.SupersetDataFrame.format_data(df) or []
+        df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
+        ds_payload["data"] = dataframe.df_to_records(df) or []
 
         db_engine_spec = query.database.db_engine_spec
         all_columns, data, expanded_columns = db_engine_spec.expand_data(
@@ -259,36 +258,25 @@ class SliceFilter(BaseFilter):
         )
 
 
-if config["ENABLE_ACCESS_REQUEST"]:
-
-    class AccessRequestsModelView(SupersetModelView, DeleteMixin):
-        datamodel = SQLAInterface(DAR)
-        list_columns = [
-            "username",
-            "user_roles",
-            "datasource_link",
-            "roles_with_datasource",
-            "created_on",
-        ]
-        order_columns = ["created_on"]
-        base_order = ("changed_on", "desc")
-        label_columns = {
-            "username": _("User"),
-            "user_roles": _("User Roles"),
-            "database": _("Database URL"),
-            "datasource_link": _("Datasource"),
-            "roles_with_datasource": _("Roles to grant"),
-            "created_on": _("Created On"),
-        }
-
-    appbuilder.add_view(
-        AccessRequestsModelView,
-        "Access requests",
-        label=__("Access requests"),
-        category="Security",
-        category_label=__("Security"),
-        icon="fa-table",
-    )
+class AccessRequestsModelView(SupersetModelView, DeleteMixin):
+    datamodel = SQLAInterface(DAR)
+    list_columns = [
+        "username",
+        "user_roles",
+        "datasource_link",
+        "roles_with_datasource",
+        "created_on",
+    ]
+    order_columns = ["created_on"]
+    base_order = ("changed_on", "desc")
+    label_columns = {
+        "username": _("User"),
+        "user_roles": _("User Roles"),
+        "database": _("Database URL"),
+        "datasource_link": _("Datasource"),
+        "roles_with_datasource": _("Roles to grant"),
+        "created_on": _("Created On"),
+    }
 
 
 class SliceModelView(SupersetModelView, DeleteMixin):
@@ -383,16 +371,6 @@ class SliceModelView(SupersetModelView, DeleteMixin):
         )
 
 
-appbuilder.add_view(
-    SliceModelView,
-    "Charts",
-    label=__("Charts"),
-    icon="fa-bar-chart",
-    category="",
-    category_icon="",
-)
-
-
 class SliceAsync(SliceModelView):
     route_base = "/sliceasync"
     list_columns = [
@@ -406,9 +384,6 @@ class SliceAsync(SliceModelView):
         "changed_on_humanized",
     ]
     label_columns = {"icons": " ", "slice_link": _("Chart")}
-
-
-appbuilder.add_view_no_menu(SliceAsync)
 
 
 class SliceAddView(SliceModelView):
@@ -431,19 +406,6 @@ class SliceAddView(SliceModelView):
         "changed_on",
         "changed_on_humanized",
     ]
-
-
-appbuilder.add_view_no_menu(SliceAddView)
-
-
-appbuilder.add_view(
-    dash_views.DashboardModelView,
-    "Dashboards",
-    label=__("Dashboards"),
-    icon="fa-dashboard",
-    category="",
-    category_icon="",
-)
 
 
 @talisman(force_https=False)
@@ -494,9 +456,6 @@ class KV(BaseSupersetView):
         return Response(kv.value, status=200, content_type="text/plain")
 
 
-appbuilder.add_view_no_menu(KV)
-
-
 class R(BaseSupersetView):
 
     """used for short urls"""
@@ -530,9 +489,6 @@ class R(BaseSupersetView):
             ),
             mimetype="text/plain",
         )
-
-
-appbuilder.add_view_no_menu(R)
 
 
 class Superset(BaseSupersetView):
@@ -1901,8 +1857,10 @@ class Superset(BaseSupersetView):
     @expose("/dashboard/<dashboard_id>/published/", methods=("GET", "POST"))
     def publish(self, dashboard_id):
         """Gets and toggles published status on dashboards"""
+        logging.warning(
+            "This API endpoint is deprecated and will be removed in version 1.0.0"
+        )
         session = db.session()
-        Dashboard = Dashboard
         Role = ab_models.Role
         dash = (
             session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
@@ -1914,16 +1872,14 @@ class Superset(BaseSupersetView):
                 return json_success(json.dumps({"published": dash.published}))
             else:
                 return json_error_response(
-                    "ERROR: cannot find dashboard {0}".format(dashboard_id), status=404
+                    f"ERROR: cannot find dashboard {dashboard_id}", status=404
                 )
 
         else:
             edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
             if not edit_perm:
                 return json_error_response(
-                    'ERROR: "{0}" cannot alter dashboard "{1}"'.format(
-                        g.user.username, dash.dashboard_title
-                    ),
+                    f'ERROR: "{g.user.username}" cannot alter dashboard "{dash.dashboard_title}"',
                     status=403,
                 )
 
@@ -2997,9 +2953,6 @@ class Superset(BaseSupersetView):
             )
 
 
-appbuilder.add_view_no_menu(Superset)
-
-
 class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
 
@@ -3018,50 +2971,6 @@ class CssTemplateAsyncModelView(CssTemplateModelView):
     list_columns = ["template_name", "css"]
 
 
-appbuilder.add_view(
-    CssTemplateModelView,
-    "CSS Templates",
-    label=__("CSS Templates"),
-    icon="fa-css3",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="",
-)
-
-
-appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
-
-appbuilder.add_link(
-    "SQL Editor",
-    label=_("SQL Editor"),
-    href="/superset/sqllab",
-    category_icon="fa-flask",
-    icon="fa-flask",
-    category="SQL Lab",
-    category_label=__("SQL Lab"),
-)
-
-appbuilder.add_link(
-    "Query Search",
-    label=_("Query Search"),
-    href="/superset/sqllab#search",
-    icon="fa-search",
-    category_icon="fa-flask",
-    category="SQL Lab",
-    category_label=__("SQL Lab"),
-)
-
-appbuilder.add_link(
-    "Upload a CSV",
-    label=__("Upload a CSV"),
-    href="/csvtodatabaseview/form",
-    icon="fa-upload",
-    category="Sources",
-    category_label=__("Sources"),
-    category_icon="fa-wrench",
-)
-
-
 @app.after_request
 def apply_http_headers(response: Response):
     """Applies the configuration's http headers to all responses"""
@@ -3075,17 +2984,6 @@ def apply_http_headers(response: Response):
         if k not in response.headers:
             response.headers[k] = v
     return response
-
-
-# ---------------------------------------------------------------------
-# Redirecting URL from previous names
-class RegexConverter(BaseConverter):
-    def __init__(self, url_map, *items):
-        super(RegexConverter, self).__init__(url_map)
-        self.regex = items[0]
-
-
-app.url_map.converters["regex"] = RegexConverter
 
 
 @app.route('/<regex("panoramix\/.*"):url>')

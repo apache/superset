@@ -341,7 +341,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         with db.session.no_autoflush:
             query = db.session.query(models.DruidDatasource).filter(
                 models.DruidDatasource.datasource_name == datasource.datasource_name,
-                models.DruidDatasource.cluster_name == datasource.cluster.id,
+                models.DruidDatasource.cluster_id == datasource.cluster_id,
             )
             if db.session.query(query.exists()).scalar():
                 raise Exception(get_datasource_exist_error_msg(datasource.full_name))
@@ -406,54 +406,3 @@ class Druid(BaseSupersetView):
         datasources only and add them.
         """
         return self.refresh_datasources(refresh_all=False)
-
-
-if app.config["DRUID_IS_ACTIVE"]:
-
-    appbuilder.add_separator("Sources")
-
-    appbuilder.add_view(
-        DruidDatasourceModelView,
-        "Druid Datasources",
-        label=__("Druid Datasources"),
-        category="Sources",
-        category_label=__("Sources"),
-        icon="fa-cube",
-    )
-
-    appbuilder.add_view(
-        DruidClusterModelView,
-        name="Druid Clusters",
-        label=__("Druid Clusters"),
-        icon="fa-cubes",
-        category="Sources",
-        category_label=__("Sources"),
-        category_icon="fa-database",
-    )
-
-    appbuilder.add_view_no_menu(DruidMetricInlineView)
-
-    appbuilder.add_view_no_menu(DruidColumnInlineView)
-
-    appbuilder.add_view_no_menu(Druid)
-
-    appbuilder.add_link(
-        "Scan New Datasources",
-        label=__("Scan New Datasources"),
-        href="/druid/scan_new_datasources/",
-        category="Sources",
-        category_label=__("Sources"),
-        category_icon="fa-database",
-        icon="fa-refresh",
-    )
-    appbuilder.add_link(
-        "Refresh Druid Metadata",
-        label=__("Refresh Druid Metadata"),
-        href="/druid/refresh_datasources/",
-        category="Sources",
-        category_label=__("Sources"),
-        category_icon="fa-database",
-        icon="fa-cog",
-    )
-
-    appbuilder.add_separator("Sources")

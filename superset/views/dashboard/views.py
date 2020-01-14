@@ -24,7 +24,7 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
-from superset import appbuilder, db, event_logger
+from superset import db, event_logger
 from superset.utils import core as utils
 
 from ..base import (
@@ -44,8 +44,7 @@ class DashboardModelView(
     datamodel = SQLAInterface(models.Dashboard)
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
-    @staticmethod
-    def mulexport(items):
+    def mulexport(self, items):  # pylint: disable=no-self-use
         if not isinstance(items, list):
             items = [items]
         ids = "".join("&id={}".format(d.id) for d in items)
@@ -84,9 +83,6 @@ class DashboardModelView(
         check_ownership(item)
         self.pre_add(item)
 
-    def pre_delete(self, item):  # pylint: disable=no-self-use
-        check_ownership(item)
-
 
 class Dashboard(BaseSupersetView):
     """The base views for Superset!"""
@@ -101,9 +97,6 @@ class Dashboard(BaseSupersetView):
         db.session.add(new_dashboard)
         db.session.commit()
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
-
-
-appbuilder.add_view_no_menu(Dashboard)
 
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
@@ -126,9 +119,6 @@ class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-a
     }
 
 
-appbuilder.add_view_no_menu(DashboardModelViewAsync)
-
-
 class DashboardAddView(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardaddview"
     list_columns = [
@@ -142,6 +132,3 @@ class DashboardAddView(DashboardModelView):  # pylint: disable=too-many-ancestor
         "changed_by_name",
     ]
     show_columns = list(set(DashboardModelView.edit_columns + list_columns))
-
-
-appbuilder.add_view_no_menu(DashboardAddView)

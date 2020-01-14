@@ -131,9 +131,7 @@ class DruidTests(SupersetTestCase):
         )
         if cluster:
             for datasource in (
-                db.session.query(DruidDatasource)
-                .filter_by(cluster_name=cluster.cluster_name)
-                .all()
+                db.session.query(DruidDatasource).filter_by(cluster_id=cluster.id).all()
             ):
                 db.session.delete(datasource)
 
@@ -358,9 +356,7 @@ class DruidTests(SupersetTestCase):
         )
         if cluster:
             for datasource in (
-                db.session.query(DruidDatasource)
-                .filter_by(cluster_name=cluster.cluster_name)
-                .all()
+                db.session.query(DruidDatasource).filter_by(cluster_id=cluster.id).all()
             ):
                 db.session.delete(datasource)
 

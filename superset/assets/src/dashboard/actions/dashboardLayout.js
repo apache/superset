@@ -88,6 +88,16 @@ export function updateDashboardTitle(text) {
   };
 }
 
+export const DASHBOARD_TITLE_CHANGED = 'DASHBOARD_TITLE_CHANGED';
+
+// call this one when it's not an undo-able action
+export function dashboardTitleChanged(text) {
+  return {
+    type: DASHBOARD_TITLE_CHANGED,
+    text,
+  };
+}
+
 export const DELETE_COMPONENT = 'DELETE_COMPONENT';
 export const deleteComponent = setUnsavedChangesAfterAction((id, parentId) => ({
   type: DELETE_COMPONENT,

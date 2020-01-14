@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
 
 
-class ConnectorRegistry(object):
+class ConnectorRegistry:
     """ Central Registry for all available datasource engines"""
 
     sources: Dict[str, Type["BaseDatasource"]] = {}
@@ -43,11 +43,11 @@ class ConnectorRegistry(object):
     @classmethod
     def get_datasource(
         cls, datasource_type: str, datasource_id: int, session: Session
-    ) -> Optional["BaseDatasource"]:
+    ) -> "BaseDatasource":
         return (
             session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)
-            .first()
+            .one()
         )
 
     @classmethod

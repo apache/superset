@@ -18,10 +18,12 @@
 import json
 from typing import List
 
+import prison
 from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import db, security_manager
 from superset.models import core as models
+from superset.models.slice import Slice
 
 from .base_tests import SupersetTestCase
 
@@ -35,12 +37,14 @@ class DashboardApiTests(SupersetTestCase):
         dashboard_title: str,
         slug: str,
         owners: List[int],
+        slices: List[Slice] = None,
         position_json: str = "",
         css: str = "",
         json_metadata: str = "",
         published: bool = False,
     ) -> models.Dashboard:
         obj_owners = list()
+        slices = slices or []
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
             obj_owners.append(user)
@@ -51,6 +55,7 @@ class DashboardApiTests(SupersetTestCase):
             position_json=position_json,
             css=css,
             json_metadata=json_metadata,
+            slices=slices,
             published=published,
         )
         db.session.add(dashboard)
@@ -112,11 +117,16 @@ class DashboardApiTests(SupersetTestCase):
         user_alpha2 = self.create_user(
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
-        dashboard = self.insert_dashboard("title", "slug1", [user_alpha1.id])
+        existing_slice = (
+            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+        )
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [user_alpha1.id], slices=[existing_slice], published=True
+        )
         self.login(username="alpha2", password="password")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.delete(uri)
-        self.assertEqual(rv.status_code, 404)
+        self.assertEqual(rv.status_code, 403)
         db.session.delete(dashboard)
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
@@ -332,10 +342,7 @@ class DashboardApiTests(SupersetTestCase):
 
     def test_update_dashboard_not_owned(self):
         """
-            Dashboard API: Test update slug formatting
-        """
-        """
-            Dashboard API: Test delete try not owned
+            Dashboard API: Test update dashboard not owned
         """
         user_alpha1 = self.create_user(
             "alpha1", "password", "Alpha", email="alpha1@superset.org"
@@ -343,13 +350,76 @@ class DashboardApiTests(SupersetTestCase):
         user_alpha2 = self.create_user(
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
-        dashboard = self.insert_dashboard("title", "slug1", [user_alpha1.id])
+        existing_slice = (
+            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+        )
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [user_alpha1.id], slices=[existing_slice], published=True
+        )
         self.login(username="alpha2", password="password")
         dashboard_data = {"dashboard_title": "title1_changed", "slug": "slug1 changed"}
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.put(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 404)
+        self.assertEqual(rv.status_code, 403)
         db.session.delete(dashboard)
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
         db.session.commit()
+
+    def test_get_related_owners(self):
+        """
+            Dashboard API: Test dashboard get related owners
+        """
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/related/owners"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "count": 6,
+            "result": [
+                {"text": "admin user", "value": 1},
+                {"text": "alpha user", "value": 5},
+                {"text": "explore_beta  user", "value": 6},
+                {"text": "gamma user", "value": 2},
+                {"text": "gamma2 user", "value": 3},
+                {"text": "gamma_sqllab user", "value": 4},
+            ],
+        }
+        self.assertEqual(response["count"], expected_response["count"])
+        # This is needed to be implemented like this because ordering varies between
+        # postgres and mysql
+        for result in expected_response["result"]:
+            self.assertIn(result, response["result"])
+
+    def test_get_filter_related_owners(self):
+        """
+            Dashboard API: Test dashboard get filter related owners
+        """
+        self.login(username="admin")
+        argument = {"filter": "a"}
+        uri = "api/v1/dashboard/related/owners?{}={}".format(
+            "q", prison.dumps(argument)
+        )
+
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "count": 2,
+            "result": [
+                {"text": "admin user", "value": 1},
+                {"text": "alpha user", "value": 5},
+            ],
+        }
+        self.assertEqual(response, expected_response)
+
+    def test_get_related_fail(self):
+        """
+            Dashboard API: Test dashboard get related fail
+        """
+        self.login(username="admin")
+        uri = "api/v1/dashboard/related/owner"
+
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)

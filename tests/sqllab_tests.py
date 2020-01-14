@@ -23,9 +23,10 @@ import prison
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
-from superset.dataframe import SupersetDataFrame
+from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
+from superset.result_set import SupersetResultSet
 from superset.utils.core import datetime_to_epoch, get_example_database
 
 from .base_tests import SupersetTestCase
@@ -266,29 +267,29 @@ class SqlLabTests(SupersetTestCase):
             raise_on_error=True,
         )
 
-    def test_df_conversion_no_dict(self):
+    def test_ps_conversion_no_dict(self):
         cols = [["string_col", "string"], ["int_col", "int"], ["float_col", "float"]]
         data = [["a", 4, 4.0]]
-        cdf = SupersetDataFrame(data, cols, BaseEngineSpec)
+        results = SupersetResultSet(data, cols, BaseEngineSpec)
 
-        self.assertEqual(len(data), cdf.size)
-        self.assertEqual(len(cols), len(cdf.columns))
+        self.assertEqual(len(data), results.size)
+        self.assertEqual(len(cols), len(results.columns))
 
-    def test_df_conversion_tuple(self):
+    def test_pa_conversion_tuple(self):
         cols = ["string_col", "int_col", "list_col", "float_col"]
         data = [("Text", 111, [123], 1.0)]
-        cdf = SupersetDataFrame(data, cols, BaseEngineSpec)
+        results = SupersetResultSet(data, cols, BaseEngineSpec)
 
-        self.assertEqual(len(data), cdf.size)
-        self.assertEqual(len(cols), len(cdf.columns))
+        self.assertEqual(len(data), results.size)
+        self.assertEqual(len(cols), len(results.columns))
 
-    def test_df_conversion_dict(self):
+    def test_pa_conversion_dict(self):
         cols = ["string_col", "dict_col", "int_col"]
         data = [["a", {"c1": 1, "c2": 2, "c3": 3}, 4]]
-        cdf = SupersetDataFrame(data, cols, BaseEngineSpec)
+        results = SupersetResultSet(data, cols, BaseEngineSpec)
 
-        self.assertEqual(len(data), cdf.size)
-        self.assertEqual(len(cols), len(cdf.columns))
+        self.assertEqual(len(data), results.size)
+        self.assertEqual(len(cols), len(results.columns))
 
     def test_sqllab_viz(self):
         self.login("admin")
@@ -298,19 +299,8 @@ class SqlLabTests(SupersetTestCase):
             "datasourceName": f"test_viz_flow_table_{random()}",
             "schema": "superset",
             "columns": [
-                {
-                    "is_date": False,
-                    "type": "STRING",
-                    "name": f"viz_type_{random()}",
-                    "is_dim": True,
-                },
-                {
-                    "is_date": False,
-                    "type": "OBJECT",
-                    "name": f"ccount_{random()}",
-                    "is_dim": True,
-                    "agg": "sum",
-                },
+                {"is_date": False, "type": "STRING", "name": f"viz_type_{random()}"},
+                {"is_date": False, "type": "OBJECT", "name": f"ccount_{random()}"},
             ],
             "sql": """\
                 SELECT *
