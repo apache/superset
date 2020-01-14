@@ -221,8 +221,6 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     edit_form_extra_fields = add_form_extra_fields
 
 
-
-
 class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.RowLevelSecurityFilter)
 
