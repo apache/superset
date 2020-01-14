@@ -34,7 +34,7 @@ from flask_appbuilder.security.views import (
     UserModelView,
 )
 from flask_appbuilder.widgets import ListWidget
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.mapper import Mapper
 
@@ -888,15 +888,13 @@ class SupersetSecurityManager(SecurityManager):
         """
         if (
             hasattr(g, "user")
-            and hasattr(g.user, "roles")
-            and hasattr(table, "row_level_security")
         ):
-            roles = [role.id for role in g.user.roles]
-            return [
-                f
-                for f in table.row_level_security_filters
-                if any(r.id in roles for r in f.roles)
-            ]
+            from superset import db
+            result = db.session.execute("SELECT * FROM row_level_security_filters "
+                "WHERE table_id = :table AND id IN "
+                "(SELECT id FROM rls_filter_roles WHERE role_id IN "
+                "(SELECT role_id FROM ab_user_role WHERE user_id = :user))", {'table': table.id, 'user': g.user.id})
+            return result;
         return []
 
     def get_rls_ids(self, table: "BaseDatasource") -> List[int]:
