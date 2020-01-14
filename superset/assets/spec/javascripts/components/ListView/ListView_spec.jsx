@@ -46,6 +46,10 @@ describe('ListView', () => {
     pageSize: 1,
     fetchData: jest.fn(() => []),
     loading: false,
+    filterTypes: {
+      id: [],
+      name: [{ name: 'sw', label: 'Starts With' }],
+    },
   };
   const wrapper = mount(<ListView {...mockedProps} />);
 
