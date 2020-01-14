@@ -30,9 +30,8 @@
   }
 
   &-inverse {
-
     .badge {
-      background-color: #fff;
+      background-color: @lightest;
       color: @brand-primary;
     }
   }
@@ -68,8 +67,8 @@
 // Buttons ====================================================================
 
 .btn-default:hover {
-  color: #555;
-  background-color: #efefef;
+  color: @gray-dark;
+  background-color: @gray-bg;
 }
 
 .nav-tabs {
@@ -93,9 +92,9 @@
 }
 
 .caret:before {
-  font-family: "FontAwesome";
+  font-family: 'FontAwesome';
   font-size: @font-size-xs;
-  content: "\f078";
+  content: '\f078';
 }
 
 .caret:hover {
@@ -115,7 +114,7 @@ body {
 
 .text-success,
 .text-success:hover {
-  color: @brand-success;
+  color: @success;
 }
 
 .text-danger,
@@ -137,7 +136,6 @@ body {
 
 table,
 .table {
-
   .dropdown-menu a {
     text-decoration: none;
   }
@@ -146,10 +144,10 @@ table,
   .warning,
   .danger,
   .info {
-    color: #fff;
+    color: @lightest;
 
     a {
-      color: #fff;
+      color: @lightest;
     }
 
     .btn-default {
@@ -159,7 +157,6 @@ table,
 }
 
 // Forms ======================================================================
-
 
 .has-warning {
   .help-block,
@@ -230,14 +227,12 @@ table,
 // Navs =======================================================================
 
 .nav-pills {
-
   & > li > a {
     border-radius: 2px;
   }
 }
 
 .dropdown-menu {
-
   & > li > a:hover,
   & > li > a:focus {
     background-image: none;
@@ -291,7 +286,7 @@ label {
   .box-shadow(none);
   .progress-bar {
     font-size: @font-size-s;
-    line-height: 12px;
+    line-height: @line-height-tight;
     padding-top: 1px;
   }
 }
@@ -315,7 +310,12 @@ label {
       color: @text-color;
       padding-bottom: 5px;
       border-bottom: 1px solid @gray-light;
-      h1, h2, h3, h4, h5, h6 {
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
         margin: 10px 0 0 0;
         font-weight: @font-weight-bold;
       }
@@ -333,7 +333,12 @@ label {
       color: @text-color;
       padding-bottom: 5px;
       border-bottom: 1px solid @gray-light;
-      h1, h2, h3, h4, h5, h6 {
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
         margin: 10px 0 0 0;
         font-weight: @font-weight-bold;
       }
@@ -349,7 +354,6 @@ label {
 }
 
 a.list-group-item {
-
   &-success {
     &.active {
       background-color: @state-success-bg;
@@ -400,8 +404,10 @@ a.list-group-item {
   border-top: 3px solid transparent;
 }
 
-.nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {
-  background-color: #fff;
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:hover,
+.nav-tabs > li.active > a:focus {
+  background-color: @lightest;
   font-weight: @font-weight-bold;
   border-top: 3px solid @brand-primary;
 }
@@ -430,7 +436,7 @@ hr {
 
 // generate space-n classes for vertical spacing
 .space-loop(@counter) when (@counter > 0) {
-  .space-loop((@counter - 1));    // next iteration
+  .space-loop((@counter - 1)); // next iteration
   .space-@{counter} {
     margin-bottom: (10px * @counter); // code for each iteration
   }
@@ -440,4 +446,3 @@ hr {
 a {
   cursor: pointer;
 }
-

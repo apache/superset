@@ -76,6 +76,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
         onMouseOut={this.onMouseOut}
         onClick={this.onClick}
         onBlur={this.onBlur}
+        className="AdhocMetricEditPopoverTitle"
       >
         {this.state.isEditable ? (
           <FormControl
@@ -87,7 +88,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
             inputRef={this.refFunc}
           />
         ) : (
-          <span>
+          <span className="inline-editable">
             {adhocMetric.hasCustomLabel ? adhocMetric.label : 'My Metric'}
             &nbsp;
             <i
