@@ -27,6 +27,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 import superset.models.core as models
 from superset import db, event_logger
 from superset.utils import core as utils
+from superset.views.constants import API_READ_ROUTE_METHODS, CRUD_ROUTE_METHODS
 
 from ..base import (
     BaseSupersetView,
@@ -45,16 +46,7 @@ class DashboardModelView(
 ):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(models.Dashboard)
-    include_route_methods = {
-        "list",
-        "show",
-        "add",
-        "edit",
-        "delete",
-        "action_post",
-        "download_dashboards",
-        "action",
-    }
+    include_route_methods = CRUD_ROUTE_METHODS
 
     @has_access
     @expose("/list/")
@@ -129,7 +121,7 @@ class Dashboard(BaseSupersetView):
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
-    include_route_methods = {"api_read"}
+    include_route_methods = API_READ_ROUTE_METHODS
 
     list_columns = [
         "id",

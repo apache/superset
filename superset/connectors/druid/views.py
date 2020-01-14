@@ -41,13 +41,14 @@ from superset.views.base import (
     validate_json,
     YamlExportMixin,
 )
+from superset.views.constants import CRUD_ROUTE_METHODS, RELATED_VIEWS_ROUTE_METHODS
 
 from . import models
 
 
 class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidColumn)
-    include_route_methods = {"list"}
+    include_route_methods = RELATED_VIEWS_ROUTE_METHODS
 
     list_title = _("Columns")
     show_title = _("Show Druid Column")
@@ -134,7 +135,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
 
 class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidMetric)
-    include_route_methods = {"list"}
+    include_route_methods = RELATED_VIEWS_ROUTE_METHODS
 
     list_title = _("Metrics")
     show_title = _("Show Druid Metric")
@@ -187,15 +188,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
 
 class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.DruidCluster)
-    include_route_methods = {
-        "list",
-        "show",
-        "add",
-        "edit",
-        "delete",
-        "action_post",
-        "action",
-    }
+    include_route_methods = CRUD_ROUTE_METHODS
     list_title = _("Druid Clusters")
     show_title = _("Show Druid Cluster")
     add_title = _("Add Druid Cluster")
@@ -265,15 +258,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
 
 class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.DruidDatasource)
-    include_route_methods = {
-        "list",
-        "show",
-        "add",
-        "edit",
-        "delete",
-        "action_post",
-        "action",
-    }
+    include_route_methods = CRUD_ROUTE_METHODS
     list_title = _("Druid Datasources")
     show_title = _("Show Druid Datasource")
     add_title = _("Add Druid Datasource")

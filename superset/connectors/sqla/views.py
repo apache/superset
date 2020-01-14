@@ -40,6 +40,7 @@ from superset.views.base import (
     SupersetModelView,
     YamlExportMixin,
 )
+from superset.views.constants import CRUD_ROUTE_METHODS, RELATED_VIEWS_ROUTE_METHODS
 
 from . import models
 
@@ -49,7 +50,7 @@ logger = logging.getLogger(__name__)
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.TableColumn)
     # TODO TODO, review need for this on related_views
-    include_route_methods = {"list"}
+    include_route_methods = RELATED_VIEWS_ROUTE_METHODS
 
     list_title = _("Columns")
     show_title = _("Show Column")
@@ -166,7 +167,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
 
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.SqlMetric)
-    include_route_methods = {"list"}
+    include_route_methods = RELATED_VIEWS_ROUTE_METHODS
 
     list_title = _("Metrics")
     show_title = _("Show Metric")
@@ -226,15 +227,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
 
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.SqlaTable)
-    include_route_methods = {
-        "list",
-        "show",
-        "add",
-        "edit",
-        "delete",
-        "action_post",
-        "action",
-    }
+    include_route_methods = CRUD_ROUTE_METHODS
 
     list_title = _("Tables")
     show_title = _("Show Table")

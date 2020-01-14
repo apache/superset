@@ -29,6 +29,7 @@ from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
+from superset.views.constants import CRUD_ROUTE_METHODS
 
 from .forms import CsvToDatabaseForm
 from .mixins import DatabaseMixin
@@ -49,15 +50,7 @@ class DatabaseView(
     DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Database)
-    include_route_methods = {
-        "list",
-        "show",
-        "add",
-        "edit",
-        "delete",
-        "action_post",
-        "action",
-    }
+    include_route_methods = CRUD_ROUTE_METHODS
 
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"

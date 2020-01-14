@@ -37,6 +37,7 @@ from superset.models.schedules import (
 from superset.models.slice import Slice
 from superset.tasks.schedules import schedule_email_report
 from superset.utils.core import get_email_address_list, json_iso_dttm_ser
+from superset.views.constants import CRUD_ROUTE_METHODS
 from superset.views.core import json_success
 
 from .base import DeleteMixin, SupersetModelView
@@ -45,6 +46,7 @@ from .base import DeleteMixin, SupersetModelView
 class EmailScheduleView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
+    include_route_methods = CRUD_ROUTE_METHODS
     _extra_data = {"test_email": False, "test_email_recipients": None}
     schedule_type: Optional[Type] = None
     schedule_type_model: Optional[Type] = None

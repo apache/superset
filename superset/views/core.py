@@ -88,6 +88,7 @@ from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
 from superset.views.chart import views as chart_views
+from superset.views.constants import RouteMethod
 
 from .base import (
     api,
@@ -250,15 +251,7 @@ def _deserialize_results_payload(
 
 class AccessRequestsModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(DAR)
-    include_route_methods = {
-        "list",
-        "show",
-        "add",
-        "edit",
-        "delete",
-        "action_post",
-        "action",
-    }
+    include_route_methods = RouteMethod.CRUD_SET
     list_columns = [
         "username",
         "user_roles",
@@ -2825,15 +2818,7 @@ class Superset(BaseSupersetView):
 
 class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
-    include_route_methods = {
-        "list",
-        "show",
-        "add",
-        "edit",
-        "delete",
-        "action_post",
-        "action",
-    }
+    include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("CSS Templates")
     show_title = _("Show CSS Template")
@@ -2847,7 +2832,7 @@ class CssTemplateModelView(SupersetModelView, DeleteMixin):
 
 
 class CssTemplateAsyncModelView(CssTemplateModelView):
-    include_route_methods = {"api_read"}
+    include_route_methods = {RouteMethod.API_READ}
     list_columns = ["template_name", "css"]
 
 
