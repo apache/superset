@@ -1,0 +1,1937 @@
+{
+    "dashboards": [
+        {
+            "__Dashboard__": {
+                "css": "body {\r\n    overflow-x: hidden;    \r\n}\r\n\r\n.row {\r\n    margin-right: 0px;\r\n}\r\n\r\n.grid-container{\r\n    margin-top:0px !important;   \r\n}",
+                "dashboard_title": "demandai",
+                "description": null,
+                "json_metadata": "{\"filter_immune_slices\": [20, 21, 22, 23, 24, 25, 27, 28, 29, 30, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 44, 46, 48], \"timed_refresh_immune_slices\": [], \"filter_immune_slice_fields\": {}, \"expanded_slices\": {}, \"refresh_frequency\": 0, \"default_filters\": \"{\\\"34\\\": {\\\"type\\\": \\\"country\\\"}}\", \"label_colors\": {\"SUM(totalforecastsales\": \"#0D9DDB\"}, \"remote_id\": 2, \"import_time\": 1577340219}",
+                "position_json": "{\"CHART--o7TJkWYOKE\":{\"children\":[],\"id\":\"CHART--o7TJkWYOKE\",\"meta\":{\"chartId\":30,\"height\":19,\"sliceName\":\"Overstocked SKU Count\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-UvyMSQ02i-\",\"TAB-GRdaBlb6mE\",\"ROW-Nd5sygY9q\"],\"type\":\"CHART\"},\"CHART-0YCU7upQr6\":{\"children\":[],\"id\":\"CHART-0YCU7upQr6\",\"meta\":{\"chartId\":48,\"height\":67,\"sliceName\":\"Categories\",\"width\":6},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-l37LuBXeJ8\",\"TAB--9XlLiyWwQ\",\"ROW-w0CEQqOtG\"],\"type\":\"CHART\"},\"CHART-5ob2dRqlU9\":{\"children\":[],\"id\":\"CHART-5ob2dRqlU9\",\"meta\":{\"chartId\":34,\"height\":14,\"sliceName\":\"\",\"width\":4},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-l37LuBXeJ8\",\"TAB--9XlLiyWwQ\",\"ROW-MLhI9qe49\"],\"type\":\"CHART\"},\"CHART-6bxfRh_oyo\":{\"children\":[],\"id\":\"CHART-6bxfRh_oyo\",\"meta\":{\"chartId\":23,\"height\":19,\"sliceName\":\"High Demand SKU Count\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-mLjUGMs5aF\",\"TAB-ldKRhpW4Ud\",\"ROW-snKuUCMzd\"],\"type\":\"CHART\"},\"CHART-86-FMSs4Y6\":{\"children\":[],\"id\":\"CHART-86-FMSs4Y6\",\"meta\":{\"chartId\":44,\"height\":21,\"sliceName\":\"Capital At Risk\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-UvyMSQ02i-\",\"TAB-GRdaBlb6mE\",\"ROW-Nd5sygY9q\"],\"type\":\"CHART\"},\"CHART-I0fzNhzrFh\":{\"children\":[],\"id\":\"CHART-I0fzNhzrFh\",\"meta\":{\"chartId\":42,\"height\":24,\"sliceName\":\"Stock Value\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS--qzCHfUQ4G\",\"TAB-WQ_6lLd-tx\",\"ROW-WhcwyJGOBC\",\"COLUMN-6AoZuG5M13\"],\"type\":\"CHART\"},\"CHART-IjFQ1nJ-kn\":{\"children\":[],\"id\":\"CHART-IjFQ1nJ-kn\",\"meta\":{\"chartId\":40,\"height\":20,\"sliceName\":\"Sales Predicted - Next Week\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-MqX7q6Amlr\",\"TAB-6ZWu24G9_k\",\"ROW-NDKPnF4Au\"],\"type\":\"CHART\"},\"CHART-OYtWPaS78_\":{\"children\":[],\"id\":\"CHART-OYtWPaS78_\",\"meta\":{\"chartId\":24,\"height\":19,\"sliceName\":\"High Demand SKU Sales\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-mLjUGMs5aF\",\"TAB-ldKRhpW4Ud\",\"ROW-snKuUCMzd\"],\"type\":\"CHART\"},\"CHART-YlTcz_-YMI\":{\"children\":[],\"id\":\"CHART-YlTcz_-YMI\",\"meta\":{\"chartId\":20,\"height\":20,\"sliceName\":\"Sales - Last Week\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-MqX7q6Amlr\",\"TAB-6ZWu24G9_k\",\"ROW-NDKPnF4Au\"],\"type\":\"CHART\"},\"CHART-Z4rwUFqfSX\":{\"children\":[],\"id\":\"CHART-Z4rwUFqfSX\",\"meta\":{\"chartId\":32,\"height\":20,\"sliceName\":\"Sales Achieved - Current Week\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-MqX7q6Amlr\",\"TAB-6ZWu24G9_k\",\"ROW-NDKPnF4Au\"],\"type\":\"CHART\"},\"CHART-c1sL5RSAFL\":{\"children\":[],\"id\":\"CHART-c1sL5RSAFL\",\"meta\":{\"chartId\":35,\"height\":19,\"sliceName\":\"Sales At Risk\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-UvyMSQ02i-\",\"TAB-GRdaBlb6mE\",\"ROW-Nd5sygY9q\"],\"type\":\"CHART\"},\"CHART-dVXh3aqrP7\":{\"children\":[],\"id\":\"CHART-dVXh3aqrP7\",\"meta\":{\"chartId\":21,\"height\":20,\"sliceName\":\"Sales Prediction - Current Week\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-MqX7q6Amlr\",\"TAB-6ZWu24G9_k\",\"ROW-NDKPnF4Au\"],\"type\":\"CHART\"},\"CHART-gS2fWB2m448\":{\"children\":[],\"id\":\"CHART-gS2fWB2m448\",\"meta\":{\"chartId\":31,\"height\":45,\"sliceName\":\"Locations\",\"width\":12},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-l37LuBXeJ8\",\"TAB--9XlLiyWwQ\",\"ROW-JJW-NFxet\"],\"type\":\"CHART\"},\"CHART-gmj0eAthiW\":{\"children\":[],\"id\":\"CHART-gmj0eAthiW\",\"meta\":{\"chartId\":46,\"height\":67,\"sliceName\":\"Brands\",\"width\":6},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-l37LuBXeJ8\",\"TAB--9XlLiyWwQ\",\"ROW-w0CEQqOtG\"],\"type\":\"CHART\"},\"CHART-ocqjxQY5fH\":{\"children\":[],\"id\":\"CHART-ocqjxQY5fH\",\"meta\":{\"chartId\":33,\"height\":40,\"sliceName\":\"AI Predicted Segments\",\"width\":9},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS--qzCHfUQ4G\",\"TAB-WQ_6lLd-tx\",\"ROW-WhcwyJGOBC\"],\"type\":\"CHART\"},\"CHART-ok4GlXpLAq\":{\"children\":[],\"id\":\"CHART-ok4GlXpLAq\",\"meta\":{\"chartId\":26,\"height\":19,\"sliceName\":\"Low Demand SKU Count\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-mLjUGMs5aF\",\"TAB-ldKRhpW4Ud\",\"ROW-snKuUCMzd\"],\"type\":\"CHART\"},\"CHART-rVzqs5THuD\":{\"children\":[],\"id\":\"CHART-rVzqs5THuD\",\"meta\":{\"chartId\":28,\"height\":19,\"sliceName\":\"Understocked SKU Count\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-UvyMSQ02i-\",\"TAB-GRdaBlb6mE\",\"ROW-Nd5sygY9q\"],\"type\":\"CHART\"},\"CHART-up8vgEaoyr\":{\"children\":[],\"id\":\"CHART-up8vgEaoyr\",\"meta\":{\"chartId\":41,\"height\":23,\"sliceName\":\"Active SKU\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS--qzCHfUQ4G\",\"TAB-WQ_6lLd-tx\",\"ROW-WhcwyJGOBC\",\"COLUMN-6AoZuG5M13\"],\"type\":\"CHART\"},\"CHART-zjIwWr8uQk\":{\"children\":[],\"id\":\"CHART-zjIwWr8uQk\",\"meta\":{\"chartId\":22,\"height\":19,\"sliceName\":\"Low Demand SKU Sales\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-mLjUGMs5aF\",\"TAB-ldKRhpW4Ud\",\"ROW-snKuUCMzd\"],\"type\":\"CHART\"},\"COLUMN-6AoZuG5M13\":{\"children\":[\"CHART-up8vgEaoyr\",\"CHART-I0fzNhzrFh\"],\"id\":\"COLUMN-6AoZuG5M13\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\",\"width\":3},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS--qzCHfUQ4G\",\"TAB-WQ_6lLd-tx\",\"ROW-WhcwyJGOBC\"],\"type\":\"COLUMN\"},\"DASHBOARD_VERSION_KEY\":\"v2\",\"GRID_ID\":{\"children\":[\"TABS-MqX7q6Amlr\",\"TABS--qzCHfUQ4G\",\"TABS-UvyMSQ02i-\",\"TABS-mLjUGMs5aF\",\"TABS-l37LuBXeJ8\"],\"id\":\"GRID_ID\",\"parents\":[\"ROOT_ID\"],\"type\":\"GRID\"},\"HEADER_ID\":{\"id\":\"HEADER_ID\",\"meta\":{\"text\":\"demandai\"},\"type\":\"HEADER\"},\"ROOT_ID\":{\"children\":[\"GRID_ID\"],\"id\":\"ROOT_ID\",\"type\":\"ROOT\"},\"ROW-JJW-NFxet\":{\"children\":[\"CHART-gS2fWB2m448\"],\"id\":\"ROW-JJW-NFxet\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-l37LuBXeJ8\",\"TAB--9XlLiyWwQ\"],\"type\":\"ROW\"},\"ROW-MLhI9qe49\":{\"children\":[\"CHART-5ob2dRqlU9\"],\"id\":\"ROW-MLhI9qe49\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-l37LuBXeJ8\",\"TAB--9XlLiyWwQ\"],\"type\":\"ROW\"},\"ROW-NDKPnF4Au\":{\"children\":[\"CHART-YlTcz_-YMI\",\"CHART-dVXh3aqrP7\",\"CHART-Z4rwUFqfSX\",\"CHART-IjFQ1nJ-kn\"],\"id\":\"ROW-NDKPnF4Au\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-MqX7q6Amlr\",\"TAB-6ZWu24G9_k\"],\"type\":\"ROW\"},\"ROW-Nd5sygY9q\":{\"children\":[\"CHART--o7TJkWYOKE\",\"CHART-86-FMSs4Y6\",\"CHART-rVzqs5THuD\",\"CHART-c1sL5RSAFL\"],\"id\":\"ROW-Nd5sygY9q\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-UvyMSQ02i-\",\"TAB-GRdaBlb6mE\"],\"type\":\"ROW\"},\"ROW-WhcwyJGOBC\":{\"children\":[\"COLUMN-6AoZuG5M13\",\"CHART-ocqjxQY5fH\"],\"id\":\"ROW-WhcwyJGOBC\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS--qzCHfUQ4G\",\"TAB-WQ_6lLd-tx\"],\"type\":\"ROW\"},\"ROW-snKuUCMzd\":{\"children\":[\"CHART-6bxfRh_oyo\",\"CHART-OYtWPaS78_\",\"CHART-ok4GlXpLAq\",\"CHART-zjIwWr8uQk\"],\"id\":\"ROW-snKuUCMzd\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-mLjUGMs5aF\",\"TAB-ldKRhpW4Ud\"],\"type\":\"ROW\"},\"ROW-w0CEQqOtG\":{\"children\":[\"CHART-0YCU7upQr6\",\"CHART-gmj0eAthiW\"],\"id\":\"ROW-w0CEQqOtG\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-l37LuBXeJ8\",\"TAB--9XlLiyWwQ\"],\"type\":\"ROW\"},\"TAB--9XlLiyWwQ\":{\"children\":[\"ROW-w0CEQqOtG\",\"ROW-MLhI9qe49\",\"ROW-JJW-NFxet\"],\"id\":\"TAB--9XlLiyWwQ\",\"meta\":{\"text\":\"Top Trends\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-l37LuBXeJ8\"],\"type\":\"TAB\"},\"TAB-6ZWu24G9_k\":{\"children\":[\"ROW-NDKPnF4Au\"],\"id\":\"TAB-6ZWu24G9_k\",\"meta\":{\"text\":\"Business Highlights\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-MqX7q6Amlr\"],\"type\":\"TAB\"},\"TAB-GRdaBlb6mE\":{\"children\":[\"ROW-Nd5sygY9q\"],\"id\":\"TAB-GRdaBlb6mE\",\"meta\":{\"text\":\"Stock Prediction (Next Week)\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-UvyMSQ02i-\"],\"type\":\"TAB\"},\"TAB-WQ_6lLd-tx\":{\"children\":[\"ROW-WhcwyJGOBC\"],\"id\":\"TAB-WQ_6lLd-tx\",\"meta\":{\"text\":\"Product Classification\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS--qzCHfUQ4G\"],\"type\":\"TAB\"},\"TAB-ldKRhpW4Ud\":{\"children\":[\"ROW-snKuUCMzd\"],\"id\":\"TAB-ldKRhpW4Ud\",\"meta\":{\"text\":\"Predictive Demand Variation (Next Week)\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"TABS-mLjUGMs5aF\"],\"type\":\"TAB\"},\"TABS--qzCHfUQ4G\":{\"children\":[\"TAB-WQ_6lLd-tx\"],\"id\":\"TABS--qzCHfUQ4G\",\"meta\":{},\"parents\":[\"ROOT_ID\",\"GRID_ID\"],\"type\":\"TABS\"},\"TABS-MqX7q6Amlr\":{\"children\":[\"TAB-6ZWu24G9_k\"],\"id\":\"TABS-MqX7q6Amlr\",\"meta\":{},\"parents\":[\"ROOT_ID\",\"GRID_ID\"],\"type\":\"TABS\"},\"TABS-UvyMSQ02i-\":{\"children\":[\"TAB-GRdaBlb6mE\"],\"id\":\"TABS-UvyMSQ02i-\",\"meta\":{},\"parents\":[\"ROOT_ID\",\"GRID_ID\"],\"type\":\"TABS\"},\"TABS-l37LuBXeJ8\":{\"children\":[\"TAB--9XlLiyWwQ\"],\"id\":\"TABS-l37LuBXeJ8\",\"meta\":{},\"parents\":[\"ROOT_ID\",\"GRID_ID\"],\"type\":\"TABS\"},\"TABS-mLjUGMs5aF\":{\"children\":[\"TAB-ldKRhpW4Ud\"],\"id\":\"TABS-mLjUGMs5aF\",\"meta\":{},\"parents\":[\"ROOT_ID\",\"GRID_ID\"],\"type\":\"TABS\"}}",
+                "slices": [
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.High Demand SKU Count",
+                            "datasource_type": "table",
+                            "id": 23,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"24__table\", \"granularity_sqla\": null, \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"count\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 51, \"is_dttm\": false, \"python_date_format\": null, \"type\": \"INT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"SUM(count)\", \"optionName\": \"metric_mr3hr3zm8w_87niayenpk2\", \"sqlExpression\": null}, \"slice_id\": 108, \"subheader_font_size\": 0.3, \"time_grain_sqla\": \"P1D\", \"time_range\": \"100 years ago : \", \"viz_type\": \"big_number_total\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 23, \"datasource_name\": \"High Demand SKU Count\", \"schema\": \"demandai\", \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                            "slice_name": "High Demand SKU Count",
+                            "viz_type": "big_number_total"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.High Demand SKU Sales",
+                            "datasource_type": "table",
+                            "id": 24,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"25__table\", \"granularity_sqla\": null, \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"sum\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 52, \"is_dttm\": false, \"python_date_format\": null, \"type\": \"OBJECT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"SUM(sum)\", \"optionName\": \"metric_4g6qxn61x2_ml05wsz25lj\", \"sqlExpression\": null}, \"slice_id\": 109, \"subheader_font_size\": 0.3, \"time_grain_sqla\": \"P1D\", \"time_range\": \"100 years ago : \", \"viz_type\": \"big_number_total\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 24, \"datasource_name\": \"High Demand SKU Sales\", \"schema\": \"demandai\", \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                            "slice_name": "High Demand SKU Sales",
+                            "viz_type": "big_number_total"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Predictive Current Week Sales",
+                            "datasource_type": "table",
+                            "id": 21,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"22__table\", \"granularity_sqla\": null, \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"totalforecastamount\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 47, \"is_dttm\": false, \"optionName\": \"_col_totalforecastamount\", \"python_date_format\": null, \"type\": \"OBJECT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"SUM(totalforecastamount)\", \"optionName\": \"metric_bmgv5agbhyr_1z7xnd6kuy3\", \"sqlExpression\": null}, \"slice_id\": 21, \"subheader_font_size\": 0.3, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"viz_type\": \"big_number_total\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 21, \"datasource_name\": \"Predictive Current Week Sales\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Sales Prediction - Current Week",
+                            "viz_type": "big_number_total"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Low Demand SKU Saless",
+                            "datasource_type": "table",
+                            "id": 22,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"27__table\", \"granularity_sqla\": null, \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"sum\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 54, \"is_dttm\": false, \"optionName\": \"_col_sum\", \"python_date_format\": null, \"type\": \"OBJECT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"SUM(sum)\", \"optionName\": \"metric_kmu3qeugg7_8k4aycmfzx5\", \"sqlExpression\": null}, \"slice_id\": 107, \"subheader_font_size\": 0.3, \"time_grain_sqla\": \"P1D\", \"time_range\": \"100 years ago : \", \"viz_type\": \"big_number_total\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 22, \"datasource_name\": \"Low Demand SKU Saless\", \"schema\": \"demandai\", \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                            "slice_name": "Low Demand SKU Sales",
+                            "viz_type": "big_number_total"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Low Demand SKU Count",
+                            "datasource_type": "table",
+                            "id": 26,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"26__table\", \"granularity_sqla\": null, \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"count\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 53, \"is_dttm\": false, \"optionName\": \"_col_count\", \"python_date_format\": null, \"type\": \"INT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": false, \"hasCustomLabel\": false, \"label\": \"SUM(count)\", \"optionName\": \"metric_s5wkqg9fer_w73cd4fpmy\", \"sqlExpression\": null}, \"slice_id\": 111, \"subheader_font_size\": 0.3, \"time_grain_sqla\": \"P1D\", \"time_range\": \"100 years ago : \", \"viz_type\": \"big_number_total\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 26, \"datasource_name\": \"Low Demand SKU Count\", \"schema\": \"demandai\", \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                            "slice_name": "Low Demand SKU Count",
+                            "viz_type": "big_number_total"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Overstocked SKU Count",
+                            "datasource_type": "table",
+                            "id": 30,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"35__table\", \"granularity_sqla\": null, \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"overstocksku\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 68, \"is_dttm\": false, \"optionName\": \"_col_overstocksku\", \"python_date_format\": null, \"type\": \"INT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": false, \"hasCustomLabel\": false, \"label\": \"SUM(overstocksku)\", \"optionName\": \"metric_7ri4x0cvj1j_50ct0op5tzj\", \"sqlExpression\": null}, \"slice_id\": 30, \"subheader_font_size\": 0.3, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"viz_type\": \"big_number_total\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 30, \"datasource_name\": \"Overstocked SKU Count\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Overstocked SKU Count",
+                            "viz_type": "big_number_total"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Locations",
+                            "datasource_type": "table",
+                            "id": 31,
+                            "params": "{\"adhoc_filters\": [], \"column_collection\": [{\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"value\", \"d3format\": \"\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"ENzfWf03G\", \"label\": \"Sales - Last week\", \"showYAxis\": false, \"timeLag\": 3, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"value\", \"d3format\": \"\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"0LRvPyMhr\", \"label\": \"Sales Prediction - Current Week\", \"showYAxis\": false, \"timeLag\": 1, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"value\", \"d3format\": \"\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"g44OcxTMk\", \"label\": \"Sales Achieved - Current Week\", \"showYAxis\": false, \"timeLag\": 2, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"value\", \"d3format\": \"\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"iSj_m8ztp\", \"label\": \"Sales Prediction - Next Week\", \"showYAxis\": false, \"timeLag\": 0, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"perc_change\", \"d3format\": \".0%\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"qNRFfJI1L\", \"label\": \"WoW Growth\", \"showYAxis\": false, \"timeLag\": 1, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}], \"datasource\": \"28__table\", \"granularity_sqla\": \"weekstart\", \"groupby\": [\"location\"], \"limit\": 5, \"metrics\": [{\"aggregate\": null, \"column\": null, \"expressionType\": \"SQL\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"sum(coalesce)\", \"optionName\": \"metric_33e2xrlew31_fymmotgeckh\", \"sqlExpression\": \"sum(coalesce)\"}], \"slice_id\": 31, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"url\": \"\", \"url_params\": {}, \"viz_type\": \"time_table\", \"remote_id\": 31, \"datasource_name\": \"Locations\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Locations",
+                            "viz_type": "time_table"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Understocked SKU Count",
+                            "datasource_type": "table",
+                            "id": 28,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"20__table\", \"granularity_sqla\": null, \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"understocksku\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 70, \"is_dttm\": false, \"optionName\": \"_col_understocksku\", \"python_date_format\": null, \"type\": \"INT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": false, \"hasCustomLabel\": false, \"label\": \"SUM(understocksku)\", \"optionName\": \"metric_993t9f6h8vb_6kiqqqzfzui\", \"sqlExpression\": null}, \"slice_id\": 28, \"subheader_font_size\": 0.3, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"url_params\": {}, \"viz_type\": \"big_number_total\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 28, \"datasource_name\": \"Understocked SKU Count\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Understocked SKU Count",
+                            "viz_type": "big_number_total"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Current Week Sales Achieved",
+                            "datasource_type": "table",
+                            "id": 32,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"37__table\", \"granularity_sqla\": null, \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"currweeksales\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 48, \"is_dttm\": false, \"optionName\": \"_col_currweeksales\", \"python_date_format\": null, \"type\": \"OBJECT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"SUM(currweeksales)\", \"optionName\": \"metric_142x2qzzkwrb_i45vccw853h\", \"sqlExpression\": null}, \"slice_id\": 32, \"subheader_font_size\": 0.3, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"viz_type\": \"big_number_total\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 32, \"datasource_name\": \"Current Week Sales Achieved\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Sales Achieved - Current Week",
+                            "viz_type": "big_number_total"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.admin admin-Untitled Query-9_VPzZiD5",
+                            "datasource_type": "table",
+                            "id": 34,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"26__table\", \"date_filter\": false, \"filter_configs\": [{\"asc\": true, \"clearable\": false, \"column\": \"type\", \"defaultValue\": \"\", \"key\": \"_bgaIdhIm\", \"label\": \"Location Type\", \"multiple\": false}], \"granularity_sqla\": null, \"instant_filtering\": true, \"show_druid_time_granularity\": false, \"show_druid_time_origin\": false, \"show_sqla_time_column\": false, \"show_sqla_time_granularity\": false, \"slice_id\": 34, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"url_params\": {}, \"viz_type\": \"filter_box\", \"remote_id\": 34, \"datasource_name\": \"admin admin-Untitled Query-9_VPzZiD5\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "",
+                            "viz_type": "filter_box"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Last Week Sales",
+                            "datasource_type": "table",
+                            "id": 20,
+                            "params": "{\"adhoc_filters\": [], \"color_picker\": {\"a\": 1, \"b\": 229, \"g\": 95, \"r\": 38}, \"datasource\": \"25__table\", \"granularity_sqla\": \"weekstart\", \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"totalsalesamt\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 46, \"is_dttm\": false, \"optionName\": \"_col_totalsalesamt\", \"python_date_format\": null, \"type\": \"OBJECT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"SUM(totalsalesamt)\", \"optionName\": \"metric_hisoo7hq49p_tav4j8w71k\", \"sqlExpression\": null}, \"show_trend_line\": true, \"slice_id\": 20, \"start_y_axis_at_zero\": true, \"subheader_font_size\": 0.3, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"url_params\": {}, \"viz_type\": \"big_number\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 20, \"datasource_name\": \"Last Week Sales\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Sales - Last Week",
+                            "viz_type": "big_number"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.admin admin-Query demandai.Predictive Next Week Sales-cnXWMdYC8",
+                            "datasource_type": "table",
+                            "id": 40,
+                            "params": "{\"adhoc_filters\": [], \"color_picker\": {\"a\": 1, \"b\": 229, \"g\": 95, \"r\": 38}, \"compare_lag\": 1, \"compare_suffix\": \"WoW\", \"datasource\": \"41__table\", \"granularity_sqla\": \"weekend\", \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"totalforecastamount\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 105, \"is_dttm\": false, \"optionName\": \"_col_totalforecastamount\", \"python_date_format\": null, \"type\": \"OBJECT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"SUM(totalforecastamount)\", \"optionName\": \"metric_x3a6fucvyl_omka08dtdci\", \"sqlExpression\": null}, \"show_trend_line\": false, \"slice_id\": 40, \"start_y_axis_at_zero\": true, \"subheader_font_size\": 0.3, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"url_params\": {}, \"viz_type\": \"big_number\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 40, \"datasource_name\": \"admin admin-Query demandai.Predictive Next Week Sales-cnXWMdYC8\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Sales Predicted - Next Week",
+                            "viz_type": "big_number"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.AI Predicted Segments",
+                            "datasource_type": "table",
+                            "id": 33,
+                            "params": "{\"adhoc_filters\": [{\"clause\": \"WHERE\", \"comparator\": \"''\", \"expressionType\": \"SIMPLE\", \"filterOptionName\": \"filter_0qprihekxn3_px1hgo02ta\", \"fromFormData\": true, \"operator\": \"!=\", \"sqlExpression\": null, \"subject\": \"peak_category\"}], \"bar_stacked\": true, \"bottom_margin\": \"auto\", \"color_scheme\": \"d3Category20c\", \"columns\": [\"profile\"], \"contribution\": false, \"datasource\": \"23__table\", \"granularity_sqla\": null, \"groupby\": [\"peak_category\"], \"label_colors\": {\"SUM(totalforecastsales\": \"#0D9DDB\"}, \"metrics\": [{\"aggregate\": null, \"column\": null, \"expressionType\": \"SQL\", \"fromFormData\": true, \"hasCustomLabel\": true, \"label\": \"sku count\", \"optionName\": \"metric_jmqbtaru3vq_15znyitwozg\", \"sqlExpression\": \"SUM(totaluniqueskuid)\"}], \"order_bars\": false, \"reduce_x_ticks\": false, \"row_limit\": null, \"show_bar_value\": false, \"show_controls\": false, \"show_legend\": true, \"slice_id\": 33, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"url_params\": {}, \"viz_type\": \"dist_bar\", \"x_axis_label\": \"Predictive Segments\", \"x_ticks_layout\": \"staggered\", \"y_axis_format\": \"SMART_NUMBER\", \"y_axis_label\": \"\", \"remote_id\": 33, \"datasource_name\": \"AI Predicted Segments\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "AI Predicted Segments",
+                            "viz_type": "dist_bar"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Untitled Query 3-fLLzZj1gv",
+                            "datasource_type": "table",
+                            "id": 41,
+                            "params": "{\"adhoc_filters\": [], \"color_picker\": {\"a\": 1, \"b\": 219, \"g\": 157, \"r\": 13}, \"compare_lag\": 1, \"compare_suffix\": \"WoW\", \"datasource\": \"43__table\", \"granularity_sqla\": \"loaddate\", \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"total_sku\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 110, \"is_dttm\": false, \"optionName\": \"_col_total_sku\", \"python_date_format\": null, \"type\": \"INT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": false, \"hasCustomLabel\": false, \"label\": \"SUM(total_sku)\", \"optionName\": \"metric_4nvrf964v7u_wap4r9hrzl\", \"sqlExpression\": null}, \"show_trend_line\": true, \"slice_id\": 41, \"start_y_axis_at_zero\": true, \"subheader_font_size\": 0.3, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"url_params\": {}, \"viz_type\": \"big_number\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 41, \"datasource_name\": \"Untitled Query 3-fLLzZj1gv\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Active SKU",
+                            "viz_type": "big_number"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Query demandai.Stock Value-37L6qB-FL",
+                            "datasource_type": "table",
+                            "id": 42,
+                            "params": "{\"adhoc_filters\": [], \"color_picker\": {\"a\": 1, \"b\": 219, \"g\": 157, \"r\": 13}, \"compare_lag\": 1, \"compare_suffix\": \"WoW\", \"datasource\": \"44__table\", \"granularity_sqla\": \"loaddate\", \"header_font_size\": 0.4, \"metric\": {\"aggregate\": null, \"column\": null, \"expressionType\": \"SQL\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"SUM(sum)\", \"optionName\": \"metric_jnbewydydz_3vrvkw4as02\", \"sqlExpression\": \"SUM(sum)\"}, \"show_trend_line\": true, \"slice_id\": 42, \"start_y_axis_at_zero\": true, \"subheader_font_size\": 0.3, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"viz_type\": \"big_number\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 42, \"datasource_name\": \"Query demandai.Stock Value-37L6qB-FL\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Stock Value",
+                            "viz_type": "big_number"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.admin admin-Untitled Query 3-AzFuVUIUF",
+                            "datasource_type": "table",
+                            "id": 46,
+                            "params": "{\"adhoc_filters\": [], \"column_collection\": [{\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"\", \"d3format\": \"\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"p-HkHVAel\", \"label\": \"Sales - Last Week \", \"showYAxis\": false, \"timeLag\": 2, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"\", \"d3format\": \"\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"50HDwV1-r\", \"label\": \"Sales Prediction - Current Week\", \"showYAxis\": false, \"timeLag\": 1, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"\", \"d3format\": \"\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"oU-ED2xaw\", \"label\": \"Sales Prediction - Next Week\", \"showYAxis\": false, \"timeLag\": 0, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"perc_change\", \"d3format\": \".0%\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"O8U3cykBY\", \"label\": \"WoW Growth\", \"showYAxis\": false, \"timeLag\": 1, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"spark\", \"comparisonType\": \"\", \"d3format\": \"\", \"dateFormat\": \"%a %d-%b-%y\", \"height\": \"\", \"key\": \"rOQMZ2R9j\", \"label\": \"Trendline\", \"showYAxis\": false, \"timeLag\": \"\", \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}], \"datasource\": \"48__table\", \"granularity_sqla\": \"weekend\", \"groupby\": [\"brand\"], \"metrics\": [{\"aggregate\": null, \"column\": null, \"expressionType\": \"SQL\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"SUM(forecastsale)\", \"optionName\": \"metric_p6ti4tlcio_8yuamyt8yvc\", \"sqlExpression\": \"SUM(forecastsale)\"}], \"slice_id\": 46, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"url\": \"\", \"url_params\": {}, \"viz_type\": \"time_table\", \"remote_id\": 46, \"datasource_name\": \"admin admin-Untitled Query 3-AzFuVUIUF\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Brands",
+                            "viz_type": "time_table"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Untitled Query 3-nt_64lpCC",
+                            "datasource_type": "table",
+                            "id": 44,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"46__table\", \"granularity_sqla\": null, \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"capitalatrisk\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 116, \"is_dttm\": false, \"optionName\": \"_col_capitalatrisk\", \"python_date_format\": null, \"type\": \"OBJECT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": false, \"hasCustomLabel\": false, \"label\": \"SUM(capitalatrisk)\", \"optionName\": \"metric_7g06n51aecf_8mup1xenoll\", \"sqlExpression\": null}, \"slice_id\": 44, \"subheader_font_size\": 0.3, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"viz_type\": \"big_number_total\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 44, \"datasource_name\": \"Untitled Query 3-nt_64lpCC\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Capital At Risk",
+                            "viz_type": "big_number_total"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Sales At Risk",
+                            "datasource_type": "table",
+                            "id": 35,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"38__table\", \"granularity_sqla\": \"weekstart\", \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"salesatrisk\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 214, \"is_dttm\": false, \"optionName\": \"_col_salesatrisk\", \"python_date_format\": null, \"type\": \"OBJECT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"SUM(salesatrisk)\", \"optionName\": \"metric_7umj191i9b8_lsgjcc4tfs\", \"sqlExpression\": null}, \"slice_id\": 35, \"subheader_font_size\": 0.3, \"time_grain_sqla\": null, \"time_range\": \"No filter\", \"viz_type\": \"big_number_total\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 35, \"datasource_name\": \"Sales At Risk\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Sales At Risk",
+                            "viz_type": "big_number_total"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "demandai.Untitled Query 3-6t3N_yy3V",
+                            "datasource_type": "table",
+                            "id": 48,
+                            "params": "{\"adhoc_filters\": [], \"column_collection\": [{\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"value\", \"d3format\": \"\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"HZiUqshVj\", \"label\": \"Sales - Last Week\", \"showYAxis\": false, \"timeLag\": 2, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"value\", \"d3format\": \"\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"i0vlR6SyT\", \"label\": \"Sales Prediction - Current Week\", \"showYAxis\": false, \"timeLag\": 1, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"value\", \"d3format\": \"\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"UKM2oJH9F\", \"label\": \"Sales Prediction - Next Week\", \"showYAxis\": false, \"timeLag\": 0, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"time\", \"comparisonType\": \"perc_change\", \"d3format\": \".0%\", \"dateFormat\": \"\", \"height\": \"\", \"key\": \"MJe5aLOWL\", \"label\": \"WoW Growth\", \"showYAxis\": false, \"timeLag\": 1, \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}, {\"bounds\": [null, null], \"colType\": \"spark\", \"comparisonType\": \"\", \"d3format\": \"\", \"dateFormat\": \"%a %d-%b-%y\", \"height\": \"\", \"key\": \"y2nW8zVHi\", \"label\": \"Trendline\", \"showYAxis\": false, \"timeLag\": \"\", \"timeRatio\": \"\", \"tooltip\": \"\", \"width\": \"\", \"yAxisBounds\": [null, null]}], \"datasource\": \"52__table\", \"granularity_sqla\": \"weekend\", \"groupby\": [\"category\"], \"metrics\": [{\"aggregate\": null, \"column\": null, \"expressionType\": \"SQL\", \"fromFormData\": true, \"hasCustomLabel\": false, \"label\": \"SUM(forecastsale)\", \"optionName\": \"metric_qas6pknjt5q_0sdo0g56jq8c\", \"sqlExpression\": \"SUM(forecastsale)\"}], \"slice_id\": 48, \"time_grain_sqla\": null, \"time_range\": \"100 years ago : \", \"url\": \"\", \"url_params\": {}, \"viz_type\": \"time_table\", \"remote_id\": 48, \"datasource_name\": \"Untitled Query 3-6t3N_yy3V\", \"schema\": \"demandai\", \"database_name\": \"examples\"}",
+                            "slice_name": "Categories",
+                            "viz_type": "time_table"
+                        }
+                    }
+                ],
+                "slug": "pdv"
+            }
+        }
+    ],
+    "datasources": [
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-06T05:46:29"
+                            },
+                            "column_name": "loaddate",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-06T05:46:29"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 109,
+                            "is_active": true,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 43,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-06T05:46:29"
+                            },
+                            "column_name": "total_sku",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-06T05:46:29"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 110,
+                            "is_active": true,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 43,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-06T05:46:29"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-06T05:46:29"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 43,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 43,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 43, \"database_name\": \"examples\"}",
+                "schema": "demandai",
+                "sql": "with rollday as\n     (select distinct now()::Date - (7*(ceiling((now()::date - dd.date::date)::numeric / 7.00)))::integer + 6 as rollingweekend\n      from common.datedimension dd\n      where ceiling((now()::date - dd.date::date)::numeric / 7.00) between 1 and 5 ) select slm.loaddate,\n                                                                                            count(distinct skuid) total_sku\n   from demandai.sku_loc_metadata_historical slm\n   JOIN rollday dd ON slm.loaddate::date = dd.rollingweekend\n   where skustatus = true\n     and ispeakrowdelete is null\n   group by slm.loaddate",
+                "table_name": "Untitled Query 3-fLLzZj1gv",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "column_name": "count",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 93,
+                            "is_active": true,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 36,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 36,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 36,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 36, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "select count(distinct skuid) from demandai.mvw_demand_variation\n where \n percentavgchg >=10",
+                "table_name": "High Demand SKU Count",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-27T05:14:43"
+                            },
+                            "column_name": "weekstart",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 95,
+                            "is_active": null,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 38,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-27T05:14:43"
+                            },
+                            "column_name": "salesatrisk",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 96,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 38,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 38,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 38,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 38, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "select coalesce(sum((minstocklevel - currentstock)*lastknownrrp), 0) as salesatrisk\n   from demandai.mvw_weekly_demand_staticweek\n   where demanddate = now()::Date-1\n     and currentstock < minstocklevel",
+                "table_name": "Sales At Risk",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "column_name": "sum",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 60,
+                            "is_active": true,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 24,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 24,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 24,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 24, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "select coalesce(sum(forecastsalesamt),0) as sum from demandai.mvw_demand_variation\n where \n percentavgchg <= (-10)",
+                "table_name": "Low Demand SKU Saless",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-06T06:09:45"
+                            },
+                            "column_name": "loaddate",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-06T06:09:45"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 111,
+                            "is_active": true,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 44,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-06T06:09:45"
+                            },
+                            "column_name": "sum",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-06T06:09:45"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 112,
+                            "is_active": true,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 44,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-06T06:09:45"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-06T06:09:45"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 44,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 44,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 44, \"database_name\": \"examples\"}",
+                "schema": "demandai",
+                "sql": "with rollday as\n     (select distinct now()::Date - (7*(ceiling((now()::date - dd.date::date)::numeric / 7.00)))::integer + 6 as rollingweekend\n      from common.datedimension dd\n      where ceiling((now()::date - dd.date::date)::numeric / 7.00) between 1 and 5 ) select slm.loaddate,\n                                                                                            sum ((case\n                                                                                                      when sd.costofgoods is null then\n                                                                                                             (select costofgoods\n                                                                                                              from demandai.sku_loc_demand\n                                                                                                              where skuid = slm.skuid\n                                                                                                                and locationid = slm.locationid\n                                                                                                                and demanddate =\n                                                                                                                  (select max(demanddate)\n                                                                                                                   from demandai.sku_loc_demand\n                                                                                                                   where skuid = slm.skuid\n                                                                                                                     and locationid = slm.locationid\n                                                                                                                     and slm.loaddate > demanddate\n                                                                                                                     and ispeakrowdelete is null ) )\n                                                                                                      else costofgoods\n                                                                                                  end) * (case\n                                                                                                              when sd.currentstock is null then\n                                                                                                                     (select currentstock\n                                                                                                                      from demandai.sku_loc_demand\n                                                                                                                      where skuid = slm.skuid\n                                                                                                                        and locationid = slm.locationid\n                                                                                                                        and demanddate =\n                                                                                                                          (select max(demanddate)\n                                                                                                                           from demandai.sku_loc_demand\n                                                                                                                           where skuid = slm.skuid\n                                                                                                                             and locationid = slm.locationid\n                                                                                                                             and slm.loaddate > demanddate\n                                                                                                                             and ispeakrowdelete is null ) )\n                                                                                                              else currentstock\n                                                                                                          end))\n   from demandai.sku_loc_metadata_historical slm\n   left join demandai.sku_loc_demand sd on slm.skuid = sd.skuid\n   and slm.locationid = sd.locationid\n   and slm.loaddate = sd.demanddate\n   JOIN rollday dd ON slm.loaddate::date = dd.rollingweekend\n   where slm.skustatus = true\n     and slm.ispeakrowdelete is null\n     and sd.ispeakrowdelete is null\n   group by slm.loaddate",
+                "table_name": "Query demandai.Stock Value-37L6qB-FL",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "column_name": "currweeksales",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 94,
+                            "is_active": true,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 37,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 37,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 37,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 37, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "select coalesce(sum(demand * lastknownrrp),0) currweeksales\n from  demandai.mvw_weekly_demand_staticweek\n where \n staticweekno = 0",
+                "table_name": "Current Week Sales Achieved",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-06T08:32:00"
+                            },
+                            "column_name": "capitalatrisk",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-06T07:33:26"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 116,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 46,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-06T07:33:26"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-06T07:33:26"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 46,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 46,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 46, \"database_name\": \"examples\"}",
+                "schema": "demandai",
+                "sql": "select coalesce(sum((currentstock - maxstocklevel)*costofgoods), 0) as capitalatrisk\n   from demandai.mvw_weekly_demand_staticweek\n   where demanddate = now()::Date-1\n     and currentstock > maxstocklevel",
+                "table_name": "Untitled Query 3-nt_64lpCC",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-27T05:01:25"
+                            },
+                            "column_name": "staticweekno",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 61,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 25,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-27T05:01:25"
+                            },
+                            "column_name": "weekstart",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 62,
+                            "is_active": null,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 25,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-27T05:01:25"
+                            },
+                            "column_name": "weekend",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 63,
+                            "is_active": null,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 25,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-27T05:01:25"
+                            },
+                            "column_name": "totalsalesamt",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 64,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 25,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 25,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 25,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 25, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "select staticweekno,weekstart::date,weekend::date,sum(wg1.demand * wg1.lastknownrrp) totalsalesamt\r\nfrom \r\ndemandai.mvw_weekly_demand_staticweek wg1\r\nwhere \r\nstaticweekno between 1 and 4\r\ngroup by staticweekno,weekstart,weekend",
+                "table_name": "Last Week Sales",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-03T18:41:40"
+                            },
+                            "column_name": "understocksku",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 54,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 20,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 20,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 20,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 20, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "select count(distinct skuid) understocksku \nfrom demandai.mvw_weekly_demand_staticweek\nwhere\ndemanddate = now()::Date-1\nand currentstock < minstocklevel",
+                "table_name": "Understocked SKU Count",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-08T05:50:03"
+                            },
+                            "column_name": "category",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-08T04:00:20"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 135,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 52,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-08T05:50:03"
+                            },
+                            "column_name": "forecastsale",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-08T04:00:20"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 136,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 52,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-08T05:50:03"
+                            },
+                            "column_name": "weekend",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-08T04:00:20"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 137,
+                            "is_active": null,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 52,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-08T05:50:03"
+                            },
+                            "column_name": "staticweekno",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-08T04:00:20"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 138,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 52,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-08T04:00:20"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-08T04:00:20"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 52,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 52,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 52, \"database_name\": \"examples\"}",
+                "schema": "demandai",
+                "sql": "with \ndatestatcategory as (\nselect \ndistinct  \n(\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) as staticweekno  ,\ndd.weekstart,\nto_date(right(dd.weekrange,'10'),'dd-mm-yyyy') AS weekend,ct.category\nfrom \n common.datedimension dd , (select categorywise as category from demandai.mvw_lastweektop4category ) as ct\n where \n  (\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) between -5 and 2\n  and ct.category <> ''\n)\nselect dtc.category,coalesce(sum(peakforecast * lastknownrrp),0) forecastsale,dtc.weekstart as weekend,dtc.staticweekno\nfrom \ndatestatcategory dtc \nleft join demandai.mvw_sku_forecast_with_lastrrp_staticweek sf on dtc.staticweekno = sf.staticweekno and dtc.weekstart = sf.weekstart  and dtc.category = sf.category\nwhere \ndtc.category in (select categorywise from demandai.mvw_lastweektop4category  )\nand dtc.staticweekno between 0 and 1\ngroup by dtc.staticweekno,dtc.weekstart,dtc.category\nunion all\nselect \ndtc.category,coalesce(sum(demand * lastknownrrp),0) totalsales,dtc.weekstart,dtc.staticweekno\nFROM \ndatestatcategory dtc \nleft join \ndemandai.mvw_weekly_demand_staticweek sf on dtc.staticweekno = -(sf.staticweekno) and dtc.weekstart = sf.weekstart and dtc.category = sf.category\nwhere \n dtc.staticweekno between -4 and -1\nand dtc.category in (select categorywise from demandai.mvw_lastweektop4category)\ngroup by dtc.staticweekno,dtc.weekstart,dtc.category",
+                "table_name": "Untitled Query 3-6t3N_yy3V",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "column_name": "totalforecastamount",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 56,
+                            "is_active": true,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 22,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 22,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 22,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 22, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "select coalesce(sum(peakforecast*lastknownrrp),0) totalforecastamount\nfrom  demandai.mvw_sku_forecast_with_lastrrp_staticweek\n where \n staticweekno = 0",
+                "table_name": "Predictive Current Week Sales",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "column_name": "sum",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 89,
+                            "is_active": true,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 33,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 33,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 33,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 33, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "select coalesce(sum(forecastsalesamt),0) as sum from demandai.mvw_demand_variation\n where \n percentavgchg >=10",
+                "table_name": "High Demand SKU Sales",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-30T16:55:53"
+                            },
+                            "column_name": "type",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 65,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 26,
+                            "type": "STRING",
+                            "verbose_name": ""
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 26,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 26,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 26, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "SELECT * FROM (VALUES ('postcode'),('city'),('state'),('county'),('country')) AS t (type)",
+                "table_name": "admin admin-Untitled Query-9_VPzZiD5",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-03T18:25:19"
+                            },
+                            "column_name": "overstocksku",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 92,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 35,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:40"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 35,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 35,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 35, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "select count(distinct skuid) overstocksku \nfrom demandai.mvw_weekly_demand_staticweek\nwhere\ncurrentstock > maxstocklevel \nand demanddate = now()::Date-1",
+                "table_name": "Overstocked SKU Count",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-27T05:15:49"
+                            },
+                            "column_name": "staticweekno",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 71,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 28,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-27T05:15:49"
+                            },
+                            "column_name": "weekstart",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 72,
+                            "is_active": null,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 28,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-27T05:15:49"
+                            },
+                            "column_name": "location",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 73,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 28,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-27T05:15:49"
+                            },
+                            "column_name": "sum",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 74,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 28,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-27T05:15:49"
+                            },
+                            "column_name": "type",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 75,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 28,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": "Metric",
+                "filter_select_enabled": true,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 28,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 28,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 28, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "with postcode_sales as (\nselect staticweekno,weekstart::date,coalesce(sum(demand*lastknownrrp),0) totalsale,postcode\nfrom \ndemandai.mvw_locwise_demandsales\nwhere \nstaticweekno = 1\nand postcode <> ''\ngroup by staticweekno,weekstart,postcode\n)\n,\ntop5loc as (\nselect staticweekno,weekstart,postcode,totalsale,rno from \n(select staticweekno,weekstart,postcode,totalsale, rank() over( order by totalsale desc) rno\nfrom  postcode_sales) as top5\nwhere top5.rno <= 5\n),\ncity_sales as (\nselect staticweekno,weekstart,coalesce(sum(demand*lastknownrrp),0) totalsale,city\nfrom \ndemandai.mvw_locwise_demandsales\nwhere \nstaticweekno = 1\nand city <> ''\ngroup by staticweekno,weekstart,city\n)\n,\ntop5loc_city as (\nselect staticweekno,weekstart,city,totalsale,rno from \n(select staticweekno,weekstart,city,totalsale, rank() over( order by totalsale desc) rno\nfrom  city_sales) as top5\nwhere top5.rno <= 5\n)\n,\nstate_sales as (\nselect staticweekno,weekstart,coalesce(sum(demand*lastknownrrp),0) totalsale,state\nfrom \ndemandai.mvw_locwise_demandsales\nwhere \nstaticweekno = 1\nand state <> ''\ngroup by staticweekno,weekstart,state\n)\n,\ntop5loc_state as (\nselect staticweekno,weekstart,state,totalsale,rno from \n(select staticweekno,weekstart,state,totalsale, rank() over( order by totalsale desc) rno\nfrom  state_sales) as top5\nwhere top5.rno <= 5\n)\n,\ncounty_sales as (\nselect staticweekno,weekstart,coalesce(sum(demand*lastknownrrp),0) totalsale,county\nfrom \ndemandai.mvw_locwise_demandsales\nwhere \nstaticweekno = 1\nand county <> ''\ngroup by staticweekno,weekstart,county\n)\n,\ntop5loc_county as (\nselect staticweekno,weekstart,county,totalsale,rno from \n(select staticweekno,weekstart,county,totalsale, rank() over( order by totalsale desc) rno\nfrom  county_sales) as top5\nwhere top5.rno <= 5\n)\n,\ncountry_sales as (\nselect staticweekno,weekstart,coalesce(sum(demand*lastknownrrp),0) totalsale,country\nfrom \ndemandai.mvw_locwise_demandsales\nwhere \nstaticweekno = 1\nand country <> ''\ngroup by staticweekno,weekstart,country\n)\n,\ntop5loc_country as (\nselect staticweekno,weekstart,country,totalsale,rno from \n(select staticweekno,weekstart,country,totalsale, rank() over( order by totalsale desc) rno\nfrom  country_sales) as top5\nwhere top5.rno <= 5\n)\n,\ndatestatpostcode as (\nselect \ndistinct  \n(\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) as staticweekno  ,\ndd.weekstart,\nto_date(right(dd.weekrange,'10'),'dd-mm-yyyy') AS weekend,ct.postcode\nfrom \n common.datedimension dd , (select postcode from top5loc) as ct\n where \n  (\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) between -5 and 2\nand ct.postcode <> ''\n  )\n,\ndatestatcity as (\nselect \ndistinct  \n(\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) as staticweekno  ,\ndd.weekstart,\nto_date(right(dd.weekrange,'10'),'dd-mm-yyyy') AS weekend,ct.city\nfrom \n common.datedimension dd , (select city from top5loc_city) as ct\n where \n  (\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) between -5 and 2\nand ct.city <> ''\n  )\n,\ndatestatcounty as (\nselect \ndistinct  \n(\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) as staticweekno  ,\ndd.weekstart,\nto_date(right(dd.weekrange,'10'),'dd-mm-yyyy') AS weekend,ct.county\nfrom \n common.datedimension dd , (select county from top5loc_county) as ct\n where \n  (\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) between -5 and 2\nand ct.county <> ''\n  )\n,\ndatestatstate as (\nselect \ndistinct  \n(\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) as staticweekno  ,\ndd.weekstart,\nto_date(right(dd.weekrange,'10'),'dd-mm-yyyy') AS weekend,ct.state\nfrom \n common.datedimension dd , (select state from top5loc_state) as ct\n where \n  (\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) between -5 and 2\nand ct.state <> ''\n  )\n,\ndatestatcountry as (\nselect \ndistinct  \n(\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) as staticweekno  ,\ndd.weekstart,\nto_date(right(dd.weekrange,'10'),'dd-mm-yyyy') AS weekend,ct.country\nfrom \n common.datedimension dd , (select country from top5loc_country) as ct\n where \n  (\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) between -5 and 2\n  and ct.country <> ''\n  )\n,\nlocdata as (\nselect dtc.staticweekno,dtc.weekstart,dtc.postcode as location,coalesce(sum(demand*lastknownrrp),0)  ,'postcode' as type\nfrom\ndatestatpostcode dtc \nleft join demandai.mvw_locwise_demandsales cd  on dtc.staticweekno = -(cd.staticweekno) and dtc.weekstart = cd.weekstart and dtc.postcode = cd.postcode\nwhere \ndtc.postcode in (select postcode from top5loc)\nand dtc.staticweekno between -4 and 0\ngroup by dtc.staticweekno,dtc.weekstart,dtc.postcode\nunion all\nselect dtc.staticweekno,dtc.weekstart,dtc.city as location,coalesce(sum(demand*lastknownrrp),0) salesamt ,'city' as type\nfrom\ndatestatcity dtc \nleft join demandai.mvw_locwise_demandsales cd  on dtc.staticweekno = -(cd.staticweekno) and dtc.weekstart = cd.weekstart and dtc.city = cd.city\nwhere \ndtc.city in (select city from top5loc_city)\nand dtc.staticweekno between -4 and 0\ngroup by dtc.staticweekno,dtc.weekstart,dtc.city\nunion all\nselect dtc.staticweekno,dtc.weekstart,dtc.state as location,coalesce(sum(demand*lastknownrrp),0) salesamt ,'state' as type\nfrom\ndatestatstate dtc \nleft join demandai.mvw_locwise_demandsales cd  on dtc.staticweekno = -(cd.staticweekno) and dtc.weekstart = cd.weekstart and dtc.state = cd.state\nwhere \ndtc.state in (select state from top5loc_state)\nand dtc.staticweekno between -4 and 0\ngroup by dtc.staticweekno,dtc.weekstart,dtc.state\nunion all\nselect dtc.staticweekno,dtc.weekstart,dtc.county as location,coalesce(sum(demand*lastknownrrp),0) salesamt ,'county' as type\nfrom\ndatestatcounty dtc \nleft join demandai.mvw_locwise_demandsales cd  on dtc.staticweekno = -(cd.staticweekno) and dtc.weekstart = cd.weekstart  and dtc.county = cd.county\nwhere \ndtc.county in (select county from top5loc_county)\nand dtc.staticweekno between -4 and 0\ngroup by dtc.staticweekno,dtc.weekstart,dtc.county\nunion all\nselect dtc.staticweekno,dtc.weekstart,dtc.country as location,coalesce(sum(demand*lastknownrrp),0) salesamt ,'country' as type\nfrom\ndatestatcountry dtc \nleft join demandai.mvw_locwise_demandsales cd  on dtc.staticweekno = -(cd.staticweekno) and dtc.weekstart = cd.weekstart and dtc.country = cd.country\nwhere \ndtc.country in (select country from top5loc_country)\nand dtc.staticweekno between -4 and 0\ngroup by dtc.staticweekno,dtc.weekstart,dtc.country\nunion all\nselect dtc.staticweekno,dtc.weekend,dtc.postcode as location,coalesce(sum(peakforecast*lastknownrrp),0) totalsale,'postcode' as type\nfrom \ndatestatpostcode dtc \nleft join demandai.mvw_locwise_forecastsales cd  on dtc.staticweekno = cd.staticweekno and dtc.weekstart = cd.weekstart  and dtc.postcode = cd.postcode\nwhere \ndtc.postcode <> ''\nand dtc.postcode in (select postcode from top5loc)\nand dtc.staticweekno between 0 and 1\ngroup by dtc.staticweekno,dtc.weekend,dtc.postcode\nunion all\nselect dtc.staticweekno,dtc.weekend,dtc.city as location,coalesce(sum(peakforecast*lastknownrrp),0) totalsale,'city' as type\nfrom \ndatestatcity dtc \nleft join demandai.mvw_locwise_forecastsales cd  on dtc.staticweekno = cd.staticweekno and dtc.weekstart = cd.weekstart  and dtc.city = cd.city\nwhere \ndtc.city <> ''\nand dtc.city in (select city from top5loc_city)\nand dtc.staticweekno between 0 and 1\ngroup by dtc.staticweekno,dtc.weekend,dtc.city\nunion all\nselect dtc.staticweekno,dtc.weekend,dtc.state as location,coalesce(sum(peakforecast*lastknownrrp),0) totalsale,'state' as type\nfrom \ndatestatstate dtc \nleft join demandai.mvw_locwise_forecastsales cd  on dtc.staticweekno = cd.staticweekno and dtc.weekstart = cd.weekstart  and dtc.state = cd.state\nwhere \ndtc.state <> ''\nand dtc.state in (select state from top5loc_state)\nand dtc.staticweekno between 0 and 1\ngroup by dtc.staticweekno,dtc.weekend,dtc.state\nunion all\nselect dtc.staticweekno,dtc.weekend,dtc.county as location,coalesce(sum(peakforecast*lastknownrrp),0) totalsale,'county' as type\nfrom \ndatestatcounty dtc \nleft join demandai.mvw_locwise_forecastsales cd  on dtc.staticweekno = cd.staticweekno and dtc.weekstart = cd.weekstart  and dtc.county = cd.county\nwhere \ndtc.county <> ''\nand dtc.county in (select county from top5loc_county)\nand dtc.staticweekno between 0 and 1\ngroup by dtc.staticweekno,dtc.weekend,dtc.county\nunion all\nselect dtc.staticweekno,dtc.weekend,dtc.country as location,coalesce(sum(peakforecast*lastknownrrp),0) totalsale,'country' as type\nfrom \ndatestatcountry dtc \nleft join demandai.mvw_locwise_forecastsales cd  on dtc.staticweekno = cd.staticweekno and dtc.weekstart = cd.weekstart  and dtc.country = cd.country\nwhere \ndtc.country <> ''\nand dtc.country in (select country from top5loc_country)\nand dtc.staticweekno between 0 and 1\ngroup by dtc.staticweekno,dtc.weekend,dtc.country\n)\nselect * from locdata",
+                "table_name": "Locations",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "column_name": "count",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 55,
+                            "is_active": true,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 21,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 21,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 21,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 21, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "select count(distinct skuid) from demandai.mvw_demand_variation\n where \n percentavgchg <= (-10)",
+                "table_name": "Low Demand SKU Count",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-30T12:02:21"
+                            },
+                            "column_name": "profile",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 57,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 23,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-30T12:02:21"
+                            },
+                            "column_name": "peak_category",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 58,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 23,
+                            "type": "STRING",
+                            "verbose_name": "AI Category"
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-30T12:02:21"
+                            },
+                            "column_name": "totalforecastsales",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 59,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 23,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2019-12-26T06:03:39"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 23,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 23,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 23, \"database_name\": \"examples\", \"import_time\": 1577340219}",
+                "schema": "demandai",
+                "sql": "select 'Revenue Profile SKU Units' as profile,\n          peakcategory1 as peak_category,\n          coalesce(count(DISTINCT skuid), 0) totaluniqueskuid\n   from demandai.mvw_sku_forecast_with_lastrrp_staticweek\n   where staticweekno = 1\n   group by peakcategory1\n   union select 'Demand Profile SKU Units' as profile,\n                peakcategory2,\n                coalesce(count(DISTINCT skuid), 0) totaluniqueskuid\n   from demandai.mvw_sku_forecast_with_lastrrp_staticweek\n   where staticweekno = 1\n   group by peakcategory2\n   union select 'Demand Profile SKU Units' as profile,\n                peakcategory3,\n                coalesce(count(DISTINCT skuid), 0) totaluniqueskuid\n   from demandai.mvw_sku_forecast_with_lastrrp_staticweek\n   where staticweekno = 1\n   group by peakcategory3\n   union select 'Demand Profile SKU Units'  as profile,\n                peakcategory4,\n                coalesce(count(DISTINCT skuid), 0) totaluniqueskuid\n   from demandai.mvw_sku_forecast_with_lastrrp_staticweek\n   where staticweekno = 1\n   group by peakcategory4\n   union select 'Demand Profile SKU Units' as profile,\n                peakcategory5,\n                coalesce(count(DISTINCT skuid), 0) totaluniqueskuid\n   from demandai.mvw_sku_forecast_with_lastrrp_staticweek\n   where staticweekno = 1\n   group by peakcategory5",
+                "table_name": "AI Predicted Segments",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-08T06:15:31"
+                            },
+                            "column_name": "brand",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-08T03:31:43"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 119,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 48,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-08T06:15:31"
+                            },
+                            "column_name": "forecastsale",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-08T03:31:43"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 120,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 48,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-08T06:15:31"
+                            },
+                            "column_name": "weekend",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-08T03:31:43"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 121,
+                            "is_active": null,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 48,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-08T06:15:31"
+                            },
+                            "column_name": "staticweekno",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-08T03:31:43"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 122,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 48,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-08T03:31:43"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-08T03:31:43"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 48,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 48,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 48, \"database_name\": \"examples\"}",
+                "schema": "demandai",
+                "sql": "with \ndatestatbrand as (\nselect \ndistinct  \n(\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) as staticweekno  ,\ndd.weekstart,\nto_date(right(dd.weekrange,'10'),'dd-mm-yyyy') AS weekend,ct.brand \nfrom \n common.datedimension dd , (select brandwise as brand  from demandai.mvw_lastweektop4brand ) as ct\n where \n  (\"substring\"(dd.weekrange::text, 1, 4)::integer - (select \"substring\"(weekrange::text, 1, 4)::integer from common.datedimension where date = now()::Date)) between -5 and 2\n  and ct.brand <> ''\n)\nselect dtc.brand,coalesce(sum(peakforecast * lastknownrrp),0) forecastsale ,dtc.weekstart as weekend,dtc.staticweekno\nfrom \ndatestatbrand dtc \nleft join demandai.mvw_sku_forecast_with_lastrrp_staticweek sf on dtc.staticweekno = sf.staticweekno and dtc.weekstart = sf.weekstart  and dtc.brand = sf.brand\nwhere \ndtc.staticweekno between 0 and 1\nand dtc.brand in (select brandwise from demandai.mvw_lastweektop4brand  )\ngroup by dtc.staticweekno,dtc.weekstart,dtc.brand\nunion all\nselect dtc.brand as brandwise,coalesce(sum(demand*lastknownrrp),0) totalsales,dtc.weekstart,dtc.staticweekno\nFROM \ndatestatbrand dtc \nleft join \ndemandai.mvw_weekly_demand_staticweek sd  on dtc.staticweekno = -(sd.staticweekno) and dtc.weekstart = sd.weekstart and dtc.brand = sd.brand\nwhere \n dtc.staticweekno between -4 and -1\nand dtc.brand in (select brandwise from demandai.mvw_lastweektop4brand)\ngroup by dtc.brand,dtc.weekstart,dtc.staticweekno",
+                "table_name": "admin admin-Untitled Query 3-AzFuVUIUF",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-02T12:34:43"
+                            },
+                            "column_name": "weekend",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-02T12:34:43"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 104,
+                            "is_active": true,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 41,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-02T12:34:43"
+                            },
+                            "column_name": "totalforecastamount",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-02T12:34:43"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 105,
+                            "is_active": true,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 41,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-02T12:34:43"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-02T12:34:43"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 41,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 41,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 41, \"database_name\": \"examples\"}",
+                "schema": "demandai",
+                "sql": "select weekend::date,\n          coalesce(sum(peakforecast*lastknownrrp), 0) totalforecastamount\n   from demandai.mvw_sku_forecast_with_lastrrp_staticweek\n   where staticweekno in (0,\n                          1)\n   group by weekend\n   union select weekstart,\n                coalesce(sum(wg1.demand * wg1.lastknownrrp), 0) totalsalesamt\n   from demandai.mvw_weekly_demand_staticweek wg1\n   where staticweekno between 1 and 4\n   group by weekstart\n   order by 1",
+                "table_name": "admin admin-Query demandai.Predictive Next Week Sales-cnXWMdYC8",
+                "template_params": "{}"
+            }
+        }
+    ]
+}
