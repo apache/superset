@@ -1,0 +1,513 @@
+RELEASING/send_email.py
+ 82:0  error   The input method in Python 2 will read from standard input, evaluate and run the resulting string... r2c.bandit     B322 https://bandit.readthedocs.io/en/latest/blacklists/blacklist_calls.html#b322-input
+
+docs/conf.py
+ 29:1  error   'sys' imported but unused                                                                            r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'os' imported but unused                                                                             r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 31:1  error   'shlex' imported but unused                                                                          r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 69:1  error   "copyright" is a python builtin and is being shadowed, consider renaming the variable                r2c.flake8     A001 https://lintlyci.github.io/Flake8Rules/rules/A001.html
+
+superset/__init__.py
+ 21:1  error   'superset.app.create_app' imported but unused                                                        r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 22:1  error   'superset.connectors.connector_registry.ConnectorRegistry' imported but unused                       r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 23:1  error   'superset.extensions.appbuilder' imported but unused                                                 r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 23:1  error   'superset.extensions.db' imported but unused                                                         r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 23:1  error   'superset.extensions.event_logger' imported but unused                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 23:1  error   'superset.extensions.security_manager' imported but unused                                           r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 23:1  error   'superset.extensions.talisman' imported but unused                                                   r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 35:1  error   'superset.security.SupersetSecurityManager' imported but unused                                      r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 36:1  error   'superset.utils.log.DBEventLogger' imported but unused                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 36:1  error   'superset.utils.log.get_event_logger_from_cfg_value' imported but unused                             r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/cli.py
+436:0  error   subprocess call with shell=True identified, security issue.                                          r2c.bandit     B602 https://bandit.readthedocs.io/en/latest/plugins/b602_subprocess_popen_with_shell_equals_true.html
+
+superset/common/query_context.py
+186:0  warning Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible s... r2c.bandit     B301 https://bandit.readthedocs.io/en/latest/blacklists/blacklist_calls.html#b301-pickle
+
+superset/config.py
+113:39 error   invalid escape sequence '\e'                                                                         r2c.flake8     W605 https://lintlyci.github.io/Flake8Rules/rules/W605.html
+113:41 error   invalid escape sequence '\y'                                                                         r2c.flake8     W605 https://lintlyci.github.io/Flake8Rules/rules/W605.html
+113:43 error   invalid escape sequence '\y'                                                                         r2c.flake8     W605 https://lintlyci.github.io/Flake8Rules/rules/W605.html
+113:45 error   invalid escape sequence '\h'                                                                         r2c.flake8     W605 https://lintlyci.github.io/Flake8Rules/rules/W605.html
+752:9  error   'from superset_config import *' used; unable to detect undefined names                               r2c.flake8     F403 https://lintlyci.github.io/Flake8Rules/rules/F403.html
+752:9  error   'superset_config.*' imported but unused                                                              r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/connectors/base/models.py
+ 56:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+350:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+354:5  error   "type" is a python builtin, consider renaming the class attribute                                    r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+420:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/connectors/druid/__init__.py
+ 17:1  error   '.models' imported but unused                                                                        r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.views' imported but unused                                                                         r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/connectors/druid/models.py
+124:5  error   "type" is a python builtin, consider renaming the class attribute                                    r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+126:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+472:5  error   "type" is a python builtin, consider renaming the class attribute                                    r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+996:17 error   Loop control variable 'unused' not used within the loop body. If this is intended, start the name... r2c.flake8     B007 https://lintlyci.github.io/Flake8Rules/rules/B007.html
+1047:82 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+1142:9  error   "filter" is used as an argument and thus shadows a python builtin, consider renaming the argument    r2c.flake8     A002 https://lintlyci.github.io/Flake8Rules/rules/A002.html
+
+superset/connectors/sqla/__init__.py
+ 17:1  error   '.models' imported but unused                                                                        r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.views' imported but unused                                                                         r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/connectors/sqla/models.py
+344:5  error   "type" is a python builtin, consider renaming the class attribute                                    r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+666:9  error   "filter" is used as an argument and thus shadows a python builtin, consider renaming the argument    r2c.flake8     A002 https://lintlyci.github.io/Flake8Rules/rules/A002.html
+971:13 error   Loop control variable 'unused' not used within the loop body. If this is intended, start the name... r2c.flake8     B007 https://lintlyci.github.io/Flake8Rules/rules/B007.html
+
+superset/db_engine_specs/mysql.py
+ 95:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/examples/__init__.py
+ 17:1  error   '.bart_lines.load_bart_lines' imported but unused                                                    r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 18:1  error   '.birth_names.load_birth_names' imported but unused                                                  r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 19:1  error   '.country_map.load_country_map_data' imported but unused                                             r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 20:1  error   '.css_templates.load_css_templates' imported but unused                                              r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 21:1  error   '.deck.load_deck_dash' imported but unused                                                           r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 22:1  error   '.energy.load_energy' imported but unused                                                            r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 23:1  error   '.flights.load_flights' imported but unused                                                          r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 24:1  error   '.long_lat.load_long_lat_data' imported but unused                                                   r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 25:1  error   '.misc_dashboard.load_misc_dashboard' imported but unused                                            r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 26:1  error   '.multi_line.load_multi_line' imported but unused                                                    r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 27:1  error   '.multiformat_time_series.load_multiformat_time_series' imported but unused                          r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 28:1  error   '.paris.load_paris_iris_geojson' imported but unused                                                 r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 29:1  error   '.random_time_series.load_random_time_series_data' imported but unused                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   '.sf_population_polygons.load_sf_population_polygons' imported but unused                            r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 31:1  error   '.tabbed_dashboard.load_tabbed_dashboard' imported but unused                                        r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 32:1  error   '.unicode_test_data.load_unicode_test_data' imported but unused                                      r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 33:1  error   '.world_bank.load_world_bank_health_n_pop' imported but unused                                       r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/extensions.py
+101:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/migrations/versions/1226819ee0e3_fix_wrong_constraint_on_table_columns.py
+ 62:5  error   do not use bare 'except'                                                                             r2c.flake8     E722 https://pycodestyle.readthedocs.io/en/latest/intro.html#error-codes
+
+superset/migrations/versions/130915240929_is_sqllab_viz_flow.py
+ 41:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/1495eb914ad3_time_range.py
+ 44:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/18dc26817ad2_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/18e88e1cc004_making_audit_nullable.py
+ 99:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/migrations/versions/190188938582_adding_unique_constraint_on_dashboard_slices_tbl.py
+ 27:1  error   'sqlalchemy.Table' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 41:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/1a48a5411020_adding_slug_to_dash.py
+ 37:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+ 37:5  error   do not use bare 'except'                                                                             r2c.flake8     E722 https://pycodestyle.readthedocs.io/en/latest/intro.html#error-codes
+
+superset/migrations/versions/21e88bc06c02_annotation_migration.py
+ 42:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/258b5280a45e_form_strip_leading_and_trailing_whitespace.py
+ 37:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 40:5  error   "type" is a python builtin, consider renaming the class attribute                                    r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 45:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 50:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 62:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 71:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 83:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 94:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+124:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/27ae655e4247_make_creator_owners.py
+ 30:1  error   'flask_appbuilder.Model' imported but unused                                                         r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 45:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 69:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 77:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/33d996bcc382_update_slice_model.py
+ 42:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/3dda56f1c4c6_migrate_num_period_compare_and_period_.py
+ 48:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+102:9  error   Loop control variable 'period' not used within the loop body. If this is intended, start the name... r2c.flake8     B007 https://lintlyci.github.io/Flake8Rules/rules/B007.html
+
+superset/migrations/versions/4451805bbaa1_remove_double_percents.py
+ 44:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 53:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 60:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 91:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/migrations/versions/4500485bde7d_allow_run_sync_async.py
+ 42:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/migrations/versions/45e7da7cfeba_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/46ba6aaaac97_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/472d2f73dfd4_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/4ce8df208545_migrate_time_range_for_default_filters.py
+ 44:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 80:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/migrations/versions/5afa9079866a_serialize_schema_permissions_py.py
+ 43:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 54:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 63:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/5ccf602336a0_.py
+ 28:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 29:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/6414e83d82b7_.py
+ 28:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 29:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/67a6ac9b727b_update_spatial_params.py
+ 41:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/705732c70154_.py
+ 28:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 29:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/763d4b211ec9_fixing_audit_fk.py
+ 99:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+ 99:5  error   do not use bare 'except'                                                                             r2c.flake8     E722 https://pycodestyle.readthedocs.io/en/latest/intro.html#error-codes
+177:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+177:5  error   do not use bare 'except'                                                                             r2c.flake8     E722 https://pycodestyle.readthedocs.io/en/latest/intro.html#error-codes
+
+superset/migrations/versions/78ee127d0d1d_reconvert_legacy_filters_into_adhoc.py
+ 32:1  error   'uuid' imported but unused                                                                           r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 33:1  error   'collections.defaultdict' imported but unused                                                        r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 40:1  error   'superset.utils.core.split_adhoc_filters_into_base_filters' imported but unused                      r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 51:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/7f2635b51f5d_update_base_columns.py
+ 45:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/7fcdcde0761c_.py
+ 45:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 61:9  error   Loop control variable 'i' not used within the loop body. If this is intended, start the name with... r2c.flake8     B007 https://lintlyci.github.io/Flake8Rules/rules/B007.html
+
+superset/migrations/versions/80a67c5192fa_single_pie_chart_metric.py
+ 44:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 63:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+ 84:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/migrations/versions/80aa3f04bc82_add_parent_ids_in_dashboard_layout.py
+ 27:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 31:1  error   'sqlalchemy.orm.relationship' imported but unused                                                    r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 46:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/8b70aa3d0f87_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/979c03af3341_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/a99f2f7c195a_rewriting_url_from_shortner_with_new_.py
+ 59:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/ab8c66efdd01_resample.py
+ 44:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/afb7730f6a9c_remove_empty_filters.py
+ 43:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 67:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/migrations/versions/b4456560d4f3_change_table_unique_constraint.py
+ 38:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+ 46:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/migrations/versions/bddc498dd179_adhoc_filters.py
+ 31:1  error   'uuid' imported but unused                                                                           r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 32:1  error   'collections.defaultdict' imported but unused                                                        r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 50:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 63:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+ 83:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/migrations/versions/bebcf3fed1fe_convert_dashboard_v1_positions.py
+ 73:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 92:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+258:29 error   "id" is a python builtin and is being shadowed, consider renaming the variable                       r2c.flake8     A001 https://lintlyci.github.io/Flake8Rules/rules/A001.html
+609:13 error   "slice" is a python builtin and is being shadowed, consider renaming the variable                    r2c.flake8     A001 https://lintlyci.github.io/Flake8Rules/rules/A001.html
+
+superset/migrations/versions/bf706ae5eb46_cal_heatmap_metric_to_metrics.py
+ 43:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/c3a8f8611885_materializing_permission.py
+ 43:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/c5756bec8b47_time_grain_sqla.py
+ 43:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 58:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+ 76:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/migrations/versions/c617da68de7d_form_nullable.py
+ 40:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 43:5  error   "type" is a python builtin, consider renaming the class attribute                                    r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 48:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 53:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 65:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 74:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 86:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 97:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+127:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/c829ff0b37d0_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/c82ee8a39623_add_implicit_tags.py
+ 44:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 46:5  error   "type" is a python builtin, consider renaming the class attribute                                    r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 52:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 62:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/c9495751e314_.py
+ 28:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 29:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/ca69c70ec99b_tracking_url.py
+ 31:1  error   'sqlalchemy.dialects.mysql' imported but unused                                                      r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/d39b1e37131d_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/d6db5a5cdb5d_.py
+ 28:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 29:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/d8bc074f7aad_add_new_field_is_restricted_to_.py
+ 43:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 51:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/d94d33dbe938_form_strip.py
+ 40:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 43:5  error   "type" is a python builtin, consider renaming the class attribute                                    r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 48:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 53:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 65:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 74:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 86:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 97:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+127:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/db0c65b146bd_update_slice_model_json.py
+ 44:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/db4b49eb0782_add_tables_for_sql_lab_state.py
+ 31:1  error   'sqlalchemy.dialects.mysql' imported but unused                                                      r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/db527d8c4c78_add_db_verbose_name.py
+ 46:5  error   local variable 'e' is assigned to but never used                                                     r2c.flake8     F841 https://lintlyci.github.io/Flake8Rules/rules/F841.html
+
+superset/migrations/versions/e3970889f38e_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/e502db2af7be_add_template_params_to_tables.py
+ 41:9  error   undefined name 'logging'                                                                             r2c.flake8     F821 https://lintlyci.github.io/Flake8Rules/rules/F821.html
+
+superset/migrations/versions/e866bd2d4976_smaller_grid.py
+ 26:1  error   'flask_appbuilder.models.mixins.AuditMixin' imported but unused                                      r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 42:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/e9df189e5c7e_update_base_metrics.py
+ 45:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/ea033256294a_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/eca4694defa7_sqllab_setting_defaults.py
+ 42:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/f959a6652acd_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/fb13d49b72f9_better_filters.py
+ 43:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/migrations/versions/fbd55e0f83eb_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/migrations/versions/fc480c87706c_.py
+ 29:1  error   'sqlalchemy as sa' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 30:1  error   'alembic.op' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/models/__init__.py
+ 17:1  error   '.core' imported but unused                                                                          r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.schedules' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.sql_lab' imported but unused                                                                       r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.user_attributes' imported but unused                                                               r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/models/annotations.py
+ 31:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 44:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/models/core.py
+  0:1  error   The file is executable but no shebang is present.                                                    r2c.flake8     EXE002 https://lintlyci.github.io/Flake8Rules/rules/EXE002.html
+129:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+138:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+147:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+166:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+431:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+473:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+749:5  error   "type" is a python builtin, consider renaming the class attribute                                    r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+752:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+1278:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+1295:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+1306:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/models/helpers.py
+ 41:34 error   invalid escape sequence '\]'                                                                         r2c.flake8     W605 https://lintlyci.github.io/Flake8Rules/rules/W605.html
+111:84 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+
+superset/models/schedules.py
+ 34:5  error   "slice" is a python builtin, consider renaming the class attribute                                   r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 54:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 86:5  error   "slice" is a python builtin, consider renaming the class attribute                                   r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/models/sql_lab.py
+ 51:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+152:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+197:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+248:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/models/tags.py
+ 47:5  error   "type" is a python builtin, consider renaming the class attribute                                    r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 66:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 68:5  error   "type" is a python builtin, consider renaming the class attribute                                    r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+ 76:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/models/user_attributes.py
+ 37:5  error   "id" is a python builtin, consider renaming the class attribute                                      r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+
+superset/sql_validators/__init__.py
+ 20:1  error   '.base.SQLValidationAnnotation' imported but unused                                                  r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/stats_logger.py
+105:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/tasks/celery_app.py
+ 32:1  error   '.cache' imported but unused                                                                         r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 32:1  error   '.schedules' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/tasks/schedules.py
+193:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+197:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/translations/utils.py
+ 43:0  advice  Try, Except, Pass detected.                                                                          r2c.bandit     B110 https://bandit.readthedocs.io/en/latest/plugins/b110_try_except_pass.html
+
+superset/utils/cache.py
+ 18:1  error   'typing.Optional' imported but unused                                                                r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 20:1  error   'flask.Flask' imported but unused                                                                    r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 21:1  error   'flask_caching.Cache' imported but unused                                                            r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/utils/core.py
+ 42:1  error   'celery' imported but unused                                                                         r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 50:1  error   'flask.Flask' imported but unused                                                                    r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 53:1  error   'flask_caching.Cache' imported but unused                                                            r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+600:24 error   "type" is used as an argument and thus shadows a python builtin, consider renaming the argument      r2c.flake8     A002 https://lintlyci.github.io/Flake8Rules/rules/A002.html
+
+superset/utils/dict_import_export.py
+ 74:42 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+
+superset/views/__init__.py
+ 17:1  error   '.annotations' imported but unused                                                                   r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.api' imported but unused                                                                           r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.base' imported but unused                                                                          r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.core' imported but unused                                                                          r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.dashboard' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.datasource' imported but unused                                                                    r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.schedules' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.sql_lab' imported but unused                                                                       r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 17:1  error   '.tags' imported but unused                                                                          r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 28:1  error   '.log.api as log_api' imported but unused                                                            r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+ 28:1  error   '.log.views' imported but unused                                                                     r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/views/core.py
+  0:1  error   The file is executable but no shebang is present.                                                    r2c.flake8     EXE002 https://lintlyci.github.io/Flake8Rules/rules/EXE002.html
+ 22:1  error   'enum.Enum' imported but unused                                                                      r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+105:1  error   '.database.api as database_api' imported but unused                                                  r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+105:1  error   '.database.views as in_views' imported but unused                                                    r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+980:5  error   "slice" is a python builtin, consider renaming the class attribute                                   r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+1316:5  error   "filter" is a python builtin, consider renaming the class attribute                                  r2c.flake8     A003 https://lintlyci.github.io/Flake8Rules/rules/A003.html
+3268:31 error   invalid escape sequence '\/'                                                                         r2c.flake8     W605 https://lintlyci.github.io/Flake8Rules/rules/W605.html
+3273:29 error   invalid escape sequence '\/'                                                                         r2c.flake8     W605 https://lintlyci.github.io/Flake8Rules/rules/W605.html
+
+superset/views/datasource.py
+ 24:1  error   'sqlalchemy.exc.IntegrityError' imported but unused                                                  r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+superset/views/tags.py
+ 67:17 error   "id" is a python builtin and is being shadowed, consider renaming the variable                       r2c.flake8     A001 https://lintlyci.github.io/Flake8Rules/rules/A001.html
+
+superset/viz.py
+403:0  warning Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible s... r2c.bandit     B301 https://bandit.readthedocs.io/en/latest/blacklists/blacklist_calls.html#b301-pickle
+
+tests/celery_tests.py
+100:31 error   "id" is used as an argument and thus shadows a python builtin, consider renaming the argument        r2c.flake8     A002 https://lintlyci.github.io/Flake8Rules/rules/A002.html
+123:0  error   subprocess call with shell=True identified, security issue.                                          r2c.bandit     B602 https://bandit.readthedocs.io/en/latest/plugins/b602_subprocess_popen_with_shell_equals_true.html
+128:0  advice  subprocess call with shell=True seems safe, but may be changed in the future, consider rewriting ... r2c.bandit     B602 https://bandit.readthedocs.io/en/latest/plugins/b602_subprocess_popen_with_shell_equals_true.html
+132:0  advice  subprocess call with shell=True seems safe, but may be changed in the future, consider rewriting ... r2c.bandit     B602 https://bandit.readthedocs.io/en/latest/plugins/b602_subprocess_popen_with_shell_equals_true.html
+
+tests/dashboard_tests.py
+ 49:13 error   "id" is a python builtin and is being shadowed, consider renaming the variable                       r2c.flake8     A001 https://lintlyci.github.io/Flake8Rules/rules/A001.html
+397:9  error   "slice" is a python builtin and is being shadowed, consider renaming the variable                    r2c.flake8     A001 https://lintlyci.github.io/Flake8Rules/rules/A001.html
+
+tests/db_engine_specs/oracle_tests.py
+ 37:9  error   local variable 'dttm' is assigned to but never used                                                  r2c.flake8     F841 https://lintlyci.github.io/Flake8Rules/rules/F841.html
+
+tests/db_engine_specs/snowflake_tests.py
+ 17:1  error   'sqlalchemy.column' imported but unused                                                              r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html
+
+tests/dict_import_export_tests.py
+ 65:45 error   "id" is used as an argument and thus shadows a python builtin, consider renaming the argument        r2c.flake8     A002 https://lintlyci.github.io/Flake8Rules/rules/A002.html
+ 65:62 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+ 65:79 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+ 89:45 error   "id" is used as an argument and thus shadows a python builtin, consider renaming the argument        r2c.flake8     A002 https://lintlyci.github.io/Flake8Rules/rules/A002.html
+ 89:62 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+ 89:79 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+
+tests/import_export_tests.py
+ 70:9  error   "id" is used as an argument and thus shadows a python builtin, consider renaming the argument        r2c.flake8     A002 https://lintlyci.github.io/Flake8Rules/rules/A002.html
+ 98:39 error   "id" is used as an argument and thus shadows a python builtin, consider renaming the argument        r2c.flake8     A002 https://lintlyci.github.io/Flake8Rules/rules/A002.html
+ 98:50 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+109:45 error   "id" is used as an argument and thus shadows a python builtin, consider renaming the argument        r2c.flake8     A002 https://lintlyci.github.io/Flake8Rules/rules/A002.html
+109:62 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+109:79 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+120:45 error   "id" is used as an argument and thus shadows a python builtin, consider renaming the argument        r2c.flake8     A002 https://lintlyci.github.io/Flake8Rules/rules/A002.html
+120:62 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+120:79 error   Do not use mutable data structures for argument defaults.  They are created during function defin... r2c.flake8     B006 https://lintlyci.github.io/Flake8Rules/rules/B006.html
+
+tests/security_tests.py
+356:9  error   "slice" is a python builtin and is being shadowed, consider renaming the variable                    r2c.flake8     A001 https://lintlyci.github.io/Flake8Rules/rules/A001.html
+365:9  error   "slice" is a python builtin and is being shadowed, consider renaming the variable                    r2c.flake8     A001 https://lintlyci.github.io/Flake8Rules/rules/A001.html
+
+tests/superset_test_config.py
+ 19:1  error   'from superset.config import *' used; unable to detect undefined names                               r2c.flake8     F403 https://lintlyci.github.io/Flake8Rules/rules/F403.html
+ 22:42 error   'os' may be undefined, or defined from star imports: superset.config                                 r2c.flake8     F405 https://lintlyci.github.io/Flake8Rules/rules/F405.html
+ 22:55 error   'DATA_DIR' may be undefined, or defined from star imports: superset.config                           r2c.flake8     F405 https://lintlyci.github.io/Flake8Rules/rules/F405.html
+ 28:43 error   'os' may be undefined, or defined from star imports: superset.config                                 r2c.flake8     F405 https://lintlyci.github.io/Flake8Rules/rules/F405.html
+ 29:31 error   'os' may be undefined, or defined from star imports: superset.config                                 r2c.flake8     F405 https://lintlyci.github.io/Flake8Rules/rules/F405.html
+
+tests/utils_tests.py
+ 17:1  error   'unittest' imported but unused                                                                       r2c.flake8     F401 https://lintlyci.github.io/Flake8Rules/rules/F401.html

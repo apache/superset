@@ -70,6 +70,7 @@ from superset import (
 )
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource
+from superset.constants import API_READ_ROUTE_METHODS, CRUD_ROUTE_METHODS
 from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,

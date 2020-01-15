@@ -31,6 +31,7 @@ from wtforms.validators import Regexp
 
 from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
+from superset.constants import CRUD_ROUTE_METHODS, RELATED_VIEWS_ROUTE_METHODS
 from superset.utils import core as utils
 from superset.views.base import (
     DatasourceFilter,
@@ -40,7 +41,6 @@ from superset.views.base import (
     SupersetModelView,
     YamlExportMixin,
 )
-from superset.views.constants import CRUD_ROUTE_METHODS, RELATED_VIEWS_ROUTE_METHODS
 
 from . import models
 

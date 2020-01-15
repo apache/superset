@@ -27,6 +27,7 @@ from flask_babel import lazy_gettext as _
 from wtforms import BooleanField, StringField
 
 from superset import db, security_manager
+from superset.constants import CRUD_ROUTE_METHODS
 from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
@@ -37,7 +38,6 @@ from superset.models.schedules import (
 from superset.models.slice import Slice
 from superset.tasks.schedules import schedule_email_report
 from superset.utils.core import get_email_address_list, json_iso_dttm_ser
-from superset.views.constants import CRUD_ROUTE_METHODS
 from superset.views.core import json_success
 
 from .base import DeleteMixin, SupersetModelView

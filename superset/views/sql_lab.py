@@ -25,9 +25,9 @@ from flask_babel import lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
 
 from superset import db, get_feature_flags, security_manager
+from superset.constants import API_READ_ROUTE_METHODS, CRUD_ROUTE_METHODS
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.utils import core as utils
-from superset.views.constants import API_READ_ROUTE_METHODS, CRUD_ROUTE_METHODS
 
 from .base import (
     BaseFilter,
@@ -53,6 +53,7 @@ class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
 class QueryView(SupersetModelView):
     datamodel = SQLAInterface(Query)
+    include_route_methods = {"list"}
 
     list_title = _("List Query")
     show_title = _("Show Query")

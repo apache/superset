@@ -18,8 +18,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 from wtforms.validators import StopValidation
 
+from superset.constants import CRUD_ROUTE_METHODS
 from superset.models.annotations import Annotation, AnnotationLayer
-from superset.views.constants import CRUD_ROUTE_METHODS
 
 from .base import DeleteMixin, SupersetModelView
 

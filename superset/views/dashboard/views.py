@@ -26,8 +26,8 @@ from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
 from superset import db, event_logger
+from superset.constants import API_READ_ROUTE_METHODS, CRUD_ROUTE_METHODS
 from superset.utils import core as utils
-from superset.views.constants import API_READ_ROUTE_METHODS, CRUD_ROUTE_METHODS
 
 from ..base import (
     BaseSupersetView,
@@ -139,18 +139,3 @@ class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-a
         "creator": _("Creator"),
         "modified": _("Modified"),
     }
-
-
-class DashboardAddView(DashboardModelView):  # pylint: disable=too-many-ancestors
-    route_base = "/dashboardaddview"
-    list_columns = [
-        "id",
-        "dashboard_link",
-        "creator",
-        "modified",
-        "dashboard_title",
-        "changed_on",
-        "url",
-        "changed_by_name",
-    ]
-    show_columns = list(set(DashboardModelView.edit_columns + list_columns))

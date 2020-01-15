@@ -154,7 +154,6 @@ class SupersetAppInitializer:
         from superset.views.dashboard.views import (
             DashboardModelView,
             Dashboard,
-            DashboardAddView,
             DashboardModelViewAsync,
         )
         from superset.views.database.api import DatabaseRestApi
@@ -213,6 +212,16 @@ class SupersetAppInitializer:
             category_label=__("Sources"),
             category_icon="fa-database",
         )
+        appbuilder.add_link(
+            "Tables",
+            label=__("Tables"),
+            href="/tablemodelview/list/?_flt_1_is_sqllab_view=y",
+            icon="fa-table",
+            category="Sources",
+            category_label=__("Sources"),
+            category_icon="fa-table",
+        )
+        appbuilder.add_separator("Sources")
         appbuilder.add_view(
             SliceModelView,
             "Charts",
@@ -254,7 +263,6 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
         appbuilder.add_view_no_menu(CsvToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)
-        appbuilder.add_view_no_menu(DashboardAddView)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(KV)
@@ -275,12 +283,6 @@ class SupersetAppInitializer:
         # Add links
         #
         appbuilder.add_link(
-            __("Saved Queries"),
-            href="/sqllab/my_queries/",
-            icon="fa-save",
-            category="SQL Lab",
-        )
-        appbuilder.add_link(
             "Import Dashboards",
             label=__("Import Dashboards"),
             href="/superset/import_dashboards",
@@ -299,6 +301,12 @@ class SupersetAppInitializer:
             category_label=__("SQL Lab"),
         )
         appbuilder.add_link(
+            __("Saved Queries"),
+            href="/sqllab/my_queries/",
+            icon="fa-save",
+            category="SQL Lab",
+        )
+        appbuilder.add_link(
             "Query Search",
             label=_("Query Search"),
             href="/superset/sqllab#search",
@@ -315,15 +323,6 @@ class SupersetAppInitializer:
             category="Sources",
             category_label=__("Sources"),
             category_icon="fa-wrench",
-        )
-        appbuilder.add_link(
-            "Tables",
-            label=__("Tables"),
-            href="/tablemodelview/list/?_flt_1_is_sqllab_view=y",
-            icon="fa-table",
-            category="Sources",
-            category_label=__("Sources"),
-            category_icon="fa-table",
         )
 
         #

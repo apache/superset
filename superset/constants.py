@@ -19,3 +19,6 @@
 
 # string to use when None values *need* to be converted to/from strings
 NULL_STRING = "<NULL>"
+CRUD_ROUTE_METHODS = {"list", "add", "edit", "delete", "action_post"}
+RELATED_VIEWS_ROUTE_METHODS = {"list"}
+API_READ_ROUTE_METHODS = {"api_read"}

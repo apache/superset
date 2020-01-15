@@ -27,9 +27,9 @@ from wtforms.validators import ValidationError
 import superset.models.core as models
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
+from superset.constants import CRUD_ROUTE_METHODS
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
-from superset.views.constants import CRUD_ROUTE_METHODS
 
 from .forms import CsvToDatabaseForm
 from .mixins import DatabaseMixin

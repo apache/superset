@@ -30,6 +30,7 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from superset import app, appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.constants import CRUD_ROUTE_METHODS, RELATED_VIEWS_ROUTE_METHODS
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
@@ -41,7 +42,6 @@ from superset.views.base import (
     validate_json,
     YamlExportMixin,
 )
-from superset.views.constants import CRUD_ROUTE_METHODS, RELATED_VIEWS_ROUTE_METHODS
 
 from . import models
 

@@ -18,11 +18,10 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 import superset.models.core as models
 from superset.views.base import SupersetModelView
-from superset.views.constants import CRUD_ROUTE_METHODS
 
 from . import LogMixin
 
 
 class LogModelView(LogMixin, SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Log)
-    include_route_methods = CRUD_ROUTE_METHODS
+    include_route_methods = {"list"}
