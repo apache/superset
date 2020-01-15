@@ -276,7 +276,7 @@ class DashboardList extends React.PureComponent<Props, State> {
         <Modal show={this.state.showDeleteModal} onHide={this.toggleModal}>
           <Modal.Header closeButton={true} />
           <Modal.Body>
-            Are you sure you want to delete{' '}
+            {t('Are you sure you want to delete')}{' '}
             <b>{this.state.deleteCandidate.dashboard_title}</b>?
           </Modal.Body>
           <Modal.Footer>
