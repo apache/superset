@@ -24,6 +24,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from superset import db, security_manager
 from superset.models import core as models
 from superset.models.slice import Slice
+from superset.views.base import generate_download_headers
 
 from .base_tests import SupersetTestCase
 
@@ -423,3 +424,43 @@ class DashboardApiTests(SupersetTestCase):
 
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    def test_export(self):
+        """
+            Dashboard API: Test dashboard export
+        """
+        self.login(username="admin")
+        argument = [1, 2]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(
+            rv.headers["Content-Disposition"],
+            generate_download_headers("json")["Content-Disposition"],
+        )
+
+    def test_export_not_found(self):
+        """
+            Dashboard API: Test dashboard export not found
+        """
+        self.login(username="admin")
+        argument = [1000]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_export_not_allowed(self):
+        """
+            Dashboard API: Test dashboard export not not allowed
+        """
+        admin_id = self.get_user("admin").id
+        dashboard = self.insert_dashboard("title", "slug1", [admin_id], published=False)
+
+        self.login(username="gamma")
+        argument = [dashboard.id]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+        db.session.delete(dashboard)
+        db.session.commit()

@@ -17,8 +17,8 @@
 import json
 import re
 
-from flask import current_app, g, request
-from flask_appbuilder.api import expose, protect, safe
+from flask import current_app, g, make_response, request
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
@@ -31,6 +31,7 @@ from superset.views.base import (
     BaseSupersetModelRestApi,
     BaseSupersetSchema,
     check_ownership_and_item_exists,
+    generate_download_headers,
 )
 
 from .mixin import DashboardMixin
@@ -159,6 +160,9 @@ class DashboardPutSchema(BaseDashboardSchema):
         return self.instance
 
 
+get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
+
 class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
 
@@ -169,6 +173,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
     method_permission_name = {
         "get_list": "list",
         "get": "show",
+        "export": "mulexport",
         "post": "add",
         "put": "edit",
         "delete": "delete",
@@ -356,3 +361,52 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
             return self.response(200, message="OK")
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
+
+    @expose("/export/", methods=["GET"])
+    @protect()
+    @safe
+    @rison(get_export_ids_schema)
+    def export(self, **kwargs):
+        """Export dashboards
+        ---
+        get:
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: integer
+          responses:
+            200:
+              description: Dashboard export
+              content:
+                text/plain:
+                  schema:
+                    type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        query = self.datamodel.session.query(Dashboard).filter(
+            Dashboard.id.in_(kwargs["rison"])
+        )
+        query = self._base_filters.apply_all(query)
+        ids = [item.id for item in query.all()]
+        if not ids:
+            return self.response_404()
+        export = Dashboard.export_dashboards(ids)
+        resp = make_response(export, 200)
+        resp.headers["Content-Disposition"] = generate_download_headers("json")[
+            "Content-Disposition"
+        ]
+        return resp
