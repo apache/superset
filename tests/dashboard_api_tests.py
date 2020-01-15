@@ -83,6 +83,30 @@ class DashboardApiTests(SupersetTestCase):
         model = db.session.query(models.Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
 
+    def test_delete_multiple_dashboards(self):
+        """
+            Dashboard API: Test delete multiple
+        """
+        admin_id = self.get_user("admin").id
+        dashboard_count = 4
+        dashboard_ids = list()
+        for dashboard_name_index in range(dashboard_count):
+            dashboard_ids.append(
+                self.insert_dashboard(
+                    f"title{dashboard_name_index}",
+                    f"slug{dashboard_name_index}",
+                    [admin_id]
+                ).id
+            )
+        self.login(username="admin")
+        argument = dashboard_ids
+        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 200)
+        for dashboard_id in dashboard_ids:
+            model = db.session.query(models.Dashboard).get(dashboard_id)
+            self.assertEqual(model, None)
+
     def test_delete_not_found_dashboard(self):
         """
             Dashboard API: Test not found delete
@@ -90,6 +114,17 @@ class DashboardApiTests(SupersetTestCase):
         self.login(username="admin")
         dashboard_id = 1000
         uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_delete_multiple_dashboards_not_found(self):
+        """
+            Dashboard API: Test delete multiple not found
+        """
+        dashboard_ids = [1001, 1002]
+        self.login(username="admin")
+        argument = dashboard_ids
+        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -106,6 +141,31 @@ class DashboardApiTests(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(models.Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
+
+    def test_delete_multiple_dashboard_admin_not_owned(self):
+        """
+            Dashboard API: Test admin delete multiple not owned
+        """
+        gamma_id = self.get_user("gamma").id
+        dashboard_count = 4
+        dashboard_ids = list()
+        for dashboard_name_index in range(dashboard_count):
+            dashboard_ids.append(
+                self.insert_dashboard(
+                    f"title{dashboard_name_index}",
+                    f"slug{dashboard_name_index}",
+                    [gamma_id]
+                ).id
+            )
+
+        self.login(username="admin")
+        argument = dashboard_ids
+        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 200)
+        for dashboard_id in dashboard_ids:
+            model = db.session.query(models.Dashboard).get(dashboard_id)
+            self.assertEqual(model, None)
 
     def test_delete_dashboard_not_owned(self):
         """

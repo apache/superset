@@ -18,22 +18,25 @@ import json
 import re
 
 from flask import current_app, g, request
-from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.exceptions import SupersetException
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetModelRestApi,
     BaseSupersetSchema,
+    check_ownership,
     check_ownership_and_item_exists,
 )
 
 from .mixin import DashboardMixin
+
+get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 
 class DashboardJSONMetadataSchema(Schema):
@@ -172,6 +175,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         "post": "add",
         "put": "edit",
         "delete": "delete",
+        "multiple_delete": "delete",
         "info": "list",
         "related": "list",
     }
@@ -316,6 +320,64 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
             )
         except SQLAlchemyError as e:
             return self.response_422(message=str(e))
+
+    @expose("/", methods=["DELETE"])
+    @protect()
+    @safe
+    @rison(get_delete_ids_schema)
+    def multiple_delete(self, **kwargs):  # pylint: disable=arguments-differ
+        """Delete multiple Dashboards
+        ---
+        delete:
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: integer
+          responses:
+            200:
+              description: Dashboard multiple delete
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        query = self.datamodel.session.query(Dashboard).filter(
+            Dashboard.id.in_(kwargs["rison"])
+        )
+        items = self._base_filters.apply_all(query).all()
+        if not items:
+            self.response_404()
+        # Check ownership for each item and fail if a not owned dashboard is found
+        for item in items:
+            try:
+                check_ownership(item)
+            except SupersetSecurityException as e:
+                return self.response(403, message=str(e))
+        # All good, delete the dashboards
+        for item in items:
+            try:
+                self.datamodel.delete(item, raise_exception=True)
+            except SQLAlchemyError as e:
+                return self.response_422(message=str(e))
+        return self.response(200, message="OK")
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
