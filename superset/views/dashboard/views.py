@@ -46,6 +46,21 @@ class DashboardModelView(
     route_base = "/dashboard"
     datamodel = SQLAInterface(models.Dashboard)
 
+    @has_access
+    @expose("/list/")
+    def list(self):
+        payload = {
+            "user": bootstrap_user_data(g.user),
+            "common": common_bootstrap_payload(),
+        }
+        return self.render_template(
+            "superset/welcome.html",
+            entry="welcome",
+            bootstrap_data=json.dumps(
+                payload, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+        )
+
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
     def mulexport(self, items):  # pylint: disable=no-self-use
         if not isinstance(items, list):
@@ -100,21 +115,6 @@ class Dashboard(BaseSupersetView):
         db.session.add(new_dashboard)
         db.session.commit()
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
-
-    @has_access
-    @expose("/list/")
-    def list_all(self):
-        payload = {
-            "user": bootstrap_user_data(g.user),
-            "common": common_bootstrap_payload(),
-        }
-        return self.render_template(
-            "superset/welcome.html",
-            entry="welcome",
-            bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
-            ),
-        )
 
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
