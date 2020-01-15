@@ -402,7 +402,8 @@ Here's a list of some of the recommended packages.
 |                  | sqlalchemy-vertica-python``           |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Hana             | ``pip install hdbcli sqlalchemy-hana``|  ``hana://``                                    |
-|                  | or ``pip install superset[hana]``     |                                                 |
+|                  | or                                    |                                                 |
+|                  | ``pip install apache-superset[hana]`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
 
 
