@@ -32,6 +32,7 @@ from flask_appbuilder.security.views import (
     PermissionViewModelView,
     RoleModelView,
     UserModelView,
+    ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
 from sqlalchemy import or_
@@ -80,8 +81,9 @@ PermissionModelView.list_widget = SupersetSecurityListWidget
 # Limiting routes on FAB model views
 UserModelView.include_route_methods = CRUD_ROUTE_METHODS | {"userinfo"}
 RoleModelView.include_route_methods = CRUD_ROUTE_METHODS
-PermissionViewModelView.include_route_methods = CRUD_ROUTE_METHODS
-PermissionModelView.include_route_methods = CRUD_ROUTE_METHODS
+PermissionViewModelView.include_route_methods = {"list"}
+PermissionModelView.include_route_methods = {"list"}
+ViewMenuModelView.include_route_methods = {"list"}
 
 
 class SupersetSecurityManager(SecurityManager):
