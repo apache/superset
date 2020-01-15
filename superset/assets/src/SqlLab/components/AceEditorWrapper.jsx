@@ -24,31 +24,14 @@ import 'brace/theme/github';
 import 'brace/ext/language_tools';
 import ace from 'brace';
 import { areArraysShallowEqual } from '../../reduxUtils';
+import sqlKeywords from '../utils/sqlKeywords';
+import {
+  SCHEMA_AUTOCOMPLETE_SCORE,
+  TABLE_AUTOCOMPLETE_SCORE,
+  COLUMN_AUTOCOMPLETE_SCORE,
+} from '../constants';
 
 const langTools = ace.acequire('ace/ext/language_tools');
-
-const SQL_KEYWORD_AUTOCOMPLETE_SCORE = 100;
-const SCHEMA_AUTOCOMPLETE_SCORE = 60;
-const TABLE_AUTOCOMPLETE_SCORE = 55;
-const COLUMN_AUTOCOMPLETE_SCORE = 50;
-
-const keywords =
-  'SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|AND|OR|GROUP|BY|ORDER|LIMIT|OFFSET|HAVING|AS|CASE|' +
-  'WHEN|THEN|ELSE|END|TYPE|LEFT|RIGHT|JOIN|ON|OUTER|DESC|ASC|UNION|CREATE|TABLE|PRIMARY|KEY|IF|' +
-  'FOREIGN|NOT|REFERENCES|DEFAULT|NULL|INNER|CROSS|NATURAL|DATABASE|DROP|GRANT|SUM|MAX|MIN|COUNT|' +
-  'AVG|DISTINCT';
-
-const dataTypes =
-  'INT|NUMERIC|DECIMAL|DATE|VARCHAR|CHAR|BIGINT|FLOAT|DOUBLE|BIT|BINARY|TEXT|SET|TIMESTAMP|' +
-  'MONEY|REAL|NUMBER|INTEGER';
-
-const sqlKeywords = [].concat(keywords.split('|'), dataTypes.split('|'));
-export const sqlWords = sqlKeywords.map(s => ({
-  name: s,
-  value: s,
-  score: SQL_KEYWORD_AUTOCOMPLETE_SCORE,
-  meta: 'sql',
-}));
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -200,7 +183,7 @@ class AceEditorWrapper extends React.PureComponent {
     const words = schemaWords
       .concat(tableWords)
       .concat(columnWords)
-      .concat(sqlWords);
+      .concat(sqlKeywords);
 
     this.setState({ words }, () => {
       const completer = {
