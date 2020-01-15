@@ -93,7 +93,7 @@ def data_payload_response(payload_json, has_error=False):
 
 def generate_download_headers(extension, filename=None):
     filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
-    content_disp = "attachment; filename={}.{}".format(filename, extension)
+    content_disp = f"attachment; filename={filename}.{extension}"
     headers = {"Content-Disposition": content_disp}
     return headers
 
