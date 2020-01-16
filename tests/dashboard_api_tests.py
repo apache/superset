@@ -216,15 +216,36 @@ class DashboardApiTests(SupersetTestCase):
                     f"slug{dashboard_name_index}",
                     [user_alpha1.id],
                     slices=[existing_slice],
-                    published=True
+                    published=True,
                 )
             )
 
-        arguments = [dashboard.id for dashboard in dashboards]
+        owned_dashboard = self.insert_dashboard(
+            "title_owned",
+            "slug_owned",
+            [user_alpha2.id],
+            slices=[existing_slice],
+            published=True,
+        )
+
         self.login(username="alpha2", password="password")
+
+        arguments = [dashboard.id for dashboard in dashboards]
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": "No dashboards deleted", "count": 0}
+        self.assertEqual(response, expected_response)
+
+        arguments = [dashboard.id for dashboard in dashboards] + [owned_dashboard.id]
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": "Some dashboards deleted", "count": 1}
+        self.assertEqual(response, expected_response)
+
         for dashboard in dashboards:
             db.session.delete(dashboard)
         db.session.delete(user_alpha1)

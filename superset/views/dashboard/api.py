@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import re
 
 from flask import current_app, g, make_response, request
@@ -37,6 +38,7 @@ from superset.views.base import (
 
 from .mixin import DashboardMixin
 
+logger = logging.getLogger(__name__)
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 
@@ -352,6 +354,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
                       message:
                         type: string
                       count:
+                        description: Number of deleted dashboards
                         type: integer
             401:
               $ref: '#/components/responses/401'
@@ -371,16 +374,29 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         if not items:
             return self.response_404()
         delete_count = 0
+        status_code = 200
         for item in items:
             try:
                 check_ownership(item)
                 self.datamodel.delete(item, raise_exception=True)
                 delete_count += 1
             except SupersetSecurityException as e:
-                return self.response(403, message=str(e))
+                logger.warning(
+                    f"Dashboard {item} was not deleted, "
+                    f"because the user ({g.user}) does not own it"
+                )
+                status_code = 403
             except SQLAlchemyError as e:
                 return self.response_422(message=str(e))
-        return self.response(200, message="OK", count=delete_count)
+        if len(items) != delete_count and delete_count > 0:
+            return self.response(
+                status_code, message="Some dashboards deleted", count=delete_count
+            )
+        if delete_count == 0:
+            return self.response(
+                status_code, message="No dashboards deleted", count=delete_count
+            )
+        return self.response(status_code, message="OK", count=delete_count)
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
