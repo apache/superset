@@ -27,6 +27,7 @@ import ListView from 'src/components/ListView/ListView';
 import { FilterTypeMap } from 'src/components/ListView/types';
 import { FetchDataConfig } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 
 import './DashboardList.less';
 
@@ -40,8 +41,6 @@ interface State {
   dashboards: any[];
   dashboardCount: number;
   loading: boolean;
-  showDeleteModal: boolean;
-  deleteCandidate: any;
   filterTypes: FilterTypeMap;
   permissions: string[];
   labelColumns: { [key: string]: string };
@@ -63,12 +62,10 @@ class DashboardList extends React.PureComponent<Props, State> {
   public state: State = {
     dashboardCount: 0,
     dashboards: [],
-    deleteCandidate: {},
     filterTypes: {},
     labelColumns: {},
     loading: false,
     permissions: [],
-    showDeleteModal: false,
   };
 
   public columns: any = [];
@@ -129,36 +126,39 @@ class DashboardList extends React.PureComponent<Props, State> {
       },
       {
         Cell: ({ row: { state, original } }: any) => {
-          const handleDelete = () => this.handleDashboardDeleteConfirm(original);
           const handleEdit = () => this.handleDashboardEdit(original);
           if (!this.canEdit && !this.canDelete) {
             return null;
           }
 
           return (
-            <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
-              {this.canDelete && (
-                <span
-                  role='button'
-                  className='action-button'
-                  onClick={handleDelete}
-                >
-                  <i className='fa fa-trash' />
+            <ConfirmStatusChange title={t('Please Confirm')} description={`${t('Are you sure you want to delete')} ${original.dashboard_title}?`}>
+              {confirmDelete => (
+                <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
+                  {this.canDelete && (
+                    <span
+                      role='button'
+                      className='action-button'
+                      onClick={confirmDelete(() => this.handleDashboardDelete(original))}
+                    >
+                      <i className='fa fa-trash' />
+                    </span>
+                  )}
+                  {this.canEdit && (
+                    <span
+                      role='button'
+                      className='action-button'
+                      onClick={handleEdit}
+                    >
+                      <i className='fa fa-pencil' />
+                    </span>
+                  )}
                 </span>
               )}
-              {this.canEdit && (
-                <span
-                  role='button'
-                  className='action-button'
-                  onClick={handleEdit}
-                >
-                  <i className='fa fa-pencil' />
-                </span>
-              )}
-            </span>
+            </ConfirmStatusChange>
           );
         },
-        Header: 'Actions',
+        Header: t('Actions'),
         id: 'actions',
       },
     ];
@@ -176,29 +176,19 @@ class DashboardList extends React.PureComponent<Props, State> {
     window.location.assign(`/dashboard/edit/${id}`);
   }
 
-  public handleDashboardDeleteConfirm = (dashboard: any) => {
-    this.setState({
-      deleteCandidate: dashboard,
-      showDeleteModal: true,
-    });
-  }
-
-  public handleDashboardDelete = () => {
-    const { id, title } = this.state.deleteCandidate;
+  public handleDashboardDelete = ({ id, title }) => {
     SupersetClient.delete({
       endpoint: `/api/v1/dashboard/${id}`,
     }).then(
       () => {
         const dashboards = this.state.dashboards.filter((d) => d.id !== id);
         this.setState({
-          dashboards,
-          deleteCandidate: {},
-          showDeleteModal: false,
+          dashboards
         });
       },
       (err: any) => {
         this.props.addDangerToast(t('There was an issue deleting') + `${title}`);
-        this.setState({ showDeleteModal: false, deleteCandidate: {} });
+        // this.setState({ showDeleteModal: false, deleteCandidate: {} });
       },
     );
   }
@@ -263,41 +253,37 @@ class DashboardList extends React.PureComponent<Props, State> {
     return (
       <div className='container welcome'>
         <Panel>
-          <ListView
-            className='dashboard-list-view'
-            title={'Dashboards'}
-            columns={this.columns}
-            data={dashboards}
-            count={dashboardCount}
-            pageSize={PAGE_SIZE}
-            fetchData={this.fetchData}
-            loading={loading}
-            initialSort={this.initialSort}
-            filterTypes={filterTypes}
-            bulkActions={
-              [
-                {
-                  name: <><i className="fa fa-trash" /> Delete</>,
-                  onSelect: this.handleBulkDashboardDelete
+          <ConfirmStatusChange title={t('Please Confirm')} description={t('Are you sure you want to delete the selected dashboards?')}>
+            {confirmDelete => (
+              <ListView
+                className='dashboard-list-view'
+                title={'Dashboards'}
+                columns={this.columns}
+                data={dashboards}
+                count={dashboardCount}
+                pageSize={PAGE_SIZE}
+                fetchData={this.fetchData}
+                loading={loading}
+                initialSort={this.initialSort}
+                filterTypes={filterTypes}
+                bulkActions={
+                  [
+                    {
+                      key: 'delete',
+                      name: <><i className="fa fa-trash" /> Delete</>,
+                      onSelect: confirmDelete(this.handleBulkDashboardDelete)
+                    },
+                    {
+                      key: 'export',
+                      name: <><i className="fa fa-database" /> Export</>,
+                      onSelect: this.handleBulkDashboardDelete
+                    }
+                  ]
                 }
-              ]
-            }
-          />
+              />
+            )}
+          </ConfirmStatusChange>
         </Panel>
-
-        <Modal show={this.state.showDeleteModal} onHide={this.toggleModal}>
-          <Modal.Header closeButton={true} />
-          <Modal.Body>
-            {t('Are you sure you want to delete')}{' '}
-            <b>{this.state.deleteCandidate.dashboard_title}</b>?
-          </Modal.Body>
-          <Modal.Footer>
-            <Button onClick={this.toggleModal}>{t('Cancel')}</Button>
-            <Button bsStyle='danger' onClick={this.handleDashboardDelete}>
-              {t('OK')}
-            </Button>
-          </Modal.Footer>
-        </Modal>
       </div>
     );
   }

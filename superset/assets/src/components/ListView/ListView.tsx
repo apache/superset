@@ -46,7 +46,7 @@ interface Props {
   title?: string;
   initialSort?: SortColumn[];
   filterTypes?: FilterTypeMap;
-  bulkActions?: Array<{ name: any, onSelect: (rows: any[]) => any }>
+  bulkActions?: Array<{ key?: string, name: any, onSelect: (rows: any[]) => any }>
 }
 
 const bulkSelectColumnConfig = {
@@ -268,7 +268,7 @@ const ListView: FunctionComponent<Props> = ({
                   {bulkActions.map(action => (
                     <MenuItem
                       id={action.name}
-                      key={action.name}
+                      key={action.key || action.name}
                       eventKey={selectedFlatRows}
                       onSelect={
                         (rows: typeof selectedFlatRows) => { action.onSelect(rows) }
