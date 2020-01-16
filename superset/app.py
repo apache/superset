@@ -328,10 +328,7 @@ class SupersetAppInitializer:
         #
         # Conditionally setup log views
         #
-        if (
-            not self.config["FAB_ADD_SECURITY_VIEWS"] is False
-            or self.config["SUPERSET_LOG_VIEW"] is False
-        ):
+        if self.config["FAB_ADD_SECURITY_VIEWS"] and self.config["SUPERSET_LOG_VIEW"]:
             appbuilder.add_api(LogRestApi)
             appbuilder.add_view(
                 LogModelView,

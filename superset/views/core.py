@@ -272,6 +272,35 @@ class AccessRequestsModelView(SupersetModelView, DeleteMixin):
     }
 
 
+class SliceAsync(SliceModelView):
+    route_base = "/sliceasync"
+    include_route_methods = API_READ_ROUTE_METHODS
+
+    list_columns = [
+        "changed_on",
+        "changed_on_humanized",
+        "creator",
+        "datasource_id",
+        "datasource_link",
+        "datasource_name_text",
+        "datasource_type",
+        "description",
+        "description_markeddown",
+        "edit_url",
+        "icons",
+        "id",
+        "modified",
+        "owners",
+        "params",
+        "slice_link",
+        "slice_name",
+        "slice_url",
+        "viz_type",
+    ]
+    label_columns = {"icons": " ", "slice_link": _("Chart")}
+
+
+>>>>>>> fixing some tests
 @talisman(force_https=False)
 @app.route("/health")
 def health():

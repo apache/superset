@@ -87,6 +87,8 @@ ViewMenuModelView.include_route_methods = {"list"}
 
 
 class SupersetSecurityManager(SecurityManager):
+    # next line depends on https://github.com/dpgaspar/Flask-AppBuilder/pull/1239
+    # userstatschartview = None
     READ_ONLY_MODEL_VIEWS = {"DatabaseAsync", "DatabaseView", "DruidClusterModelView"}
 
     USER_MODEL_VIEWS = {

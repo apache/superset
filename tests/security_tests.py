@@ -501,7 +501,6 @@ class RolePermissionTests(SupersetTestCase):
         self.logout()
 
     def assert_can_read(self, view_menu, permissions_set):
-        self.assertIn(("can_show", view_menu), permissions_set)
         self.assertIn(("can_list", view_menu), permissions_set)
 
     def assert_can_write(self, view_menu, permissions_set):
@@ -522,7 +521,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_can_write(view_menu, permissions_set)
 
     def assert_can_gamma(self, perm_set):
-        self.assert_can_read("DatabaseAsync", perm_set)
         self.assert_can_read("TableModelView", perm_set)
 
         # make sure that user can create slices and dashboards
@@ -561,7 +559,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_cannot_write("UserDBModelView", perm_set)
 
     def assert_can_admin(self, perm_set):
-        self.assert_can_read("DatabaseAsync", perm_set)
         self.assert_can_all("DatabaseView", perm_set)
         self.assert_can_all("RoleModelView", perm_set)
         self.assert_can_all("UserDBModelView", perm_set)
@@ -575,7 +572,7 @@ class RolePermissionTests(SupersetTestCase):
     def test_is_admin_only(self):
         self.assertFalse(
             security_manager._is_admin_only(
-                security_manager.find_permission_view_menu("can_show", "TableModelView")
+                security_manager.find_permission_view_menu("can_list", "TableModelView")
             )
         )
         self.assertFalse(
@@ -595,7 +592,7 @@ class RolePermissionTests(SupersetTestCase):
             self.assertTrue(
                 security_manager._is_admin_only(
                     security_manager.find_permission_view_menu(
-                        "can_show", "AccessRequestsModelView"
+                        "can_list", "AccessRequestsModelView"
                     )
                 )
             )
@@ -618,7 +615,7 @@ class RolePermissionTests(SupersetTestCase):
     def test_is_alpha_only(self):
         self.assertFalse(
             security_manager._is_alpha_only(
-                security_manager.find_permission_view_menu("can_show", "TableModelView")
+                security_manager.find_permission_view_menu("can_list", "TableModelView")
             )
         )
 
@@ -654,7 +651,7 @@ class RolePermissionTests(SupersetTestCase):
     def test_is_gamma_pvm(self):
         self.assertTrue(
             security_manager._is_gamma_pvm(
-                security_manager.find_permission_view_menu("can_show", "TableModelView")
+                security_manager.find_permission_view_menu("can_list", "TableModelView")
             )
         )
 
@@ -695,7 +692,6 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_gamma_permissions(self):
         def assert_can_read(view_menu):
-            self.assertIn(("can_show", view_menu), gamma_perm_set)
             self.assertIn(("can_list", view_menu), gamma_perm_set)
 
         def assert_can_write(view_menu):

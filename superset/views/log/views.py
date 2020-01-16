@@ -24,4 +24,4 @@ from . import LogMixin
 
 class LogModelView(LogMixin, SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Log)
-    include_route_methods = {"list"}
+    include_route_methods = {"list", "show"}
