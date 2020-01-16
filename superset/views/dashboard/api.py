@@ -377,7 +377,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
                 self.datamodel.delete(item, raise_exception=True)
             except SQLAlchemyError as e:
                 return self.response_422(message=str(e))
-        return self.response(200, message="OK")
+        return self.response(200, message=f"Deleted {len(items)}")
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()

@@ -95,7 +95,7 @@ class DashboardApiTests(SupersetTestCase):
                 self.insert_dashboard(
                     f"title{dashboard_name_index}",
                     f"slug{dashboard_name_index}",
-                    [admin_id]
+                    [admin_id],
                 ).id
             )
         self.login(username="admin")
@@ -154,7 +154,7 @@ class DashboardApiTests(SupersetTestCase):
                 self.insert_dashboard(
                     f"title{dashboard_name_index}",
                     f"slug{dashboard_name_index}",
-                    [gamma_id]
+                    [gamma_id],
                 ).id
             )
 
@@ -188,6 +188,42 @@ class DashboardApiTests(SupersetTestCase):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
         db.session.delete(dashboard)
+        db.session.delete(user_alpha1)
+        db.session.delete(user_alpha2)
+        db.session.commit()
+
+    def test_delete_multiple_dashboard_not_owned(self):
+        """
+            Dashboard API: Test delete multiple try not owned
+        """
+        user_alpha1 = self.create_user(
+            "alpha1", "password", "Alpha", email="alpha1@superset.org"
+        )
+        user_alpha2 = self.create_user(
+            "alpha2", "password", "Alpha", email="alpha2@superset.org"
+        )
+        existing_slice = (
+            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+        )
+
+        dashboard_count = 4
+        dashboards = list()
+        for dashboard_name_index in range(dashboard_count):
+            dashboards.append(
+                self.insert_dashboard(
+                    f"title{dashboard_name_index}",
+                    f"slug{dashboard_name_index}",
+                    [user_alpha1.id],
+                )
+            )
+
+        arguments = [dashboard.id for dashboard in dashboards]
+        self.login(username="alpha2", password="password")
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
+        for dashboard in dashboards:
+            db.session.delete(dashboard)
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
         db.session.commit()
