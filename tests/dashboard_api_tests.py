@@ -104,6 +104,9 @@ class DashboardApiTests(SupersetTestCase):
         uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": "OK", "count": dashboard_count}
+        self.assertEqual(response, expected_response)
         for dashboard_id in dashboard_ids:
             model = db.session.query(models.Dashboard).get(dashboard_id)
             self.assertEqual(model, None)
@@ -164,6 +167,10 @@ class DashboardApiTests(SupersetTestCase):
         uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": "OK", "count": dashboard_count}
+        self.assertEqual(response, expected_response)
+
         for dashboard_id in dashboard_ids:
             model = db.session.query(models.Dashboard).get(dashboard_id)
             self.assertEqual(model, None)

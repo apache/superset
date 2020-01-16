@@ -359,7 +359,17 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
             401:
               $ref: '#/components/responses/401'
             403:
-              $ref: '#/components/responses/401'
+              description: Dashboard multiple delete
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      count:
+                        description: Number of deleted dashboards
+                        type: integer
             404:
               $ref: '#/components/responses/404'
             422:
