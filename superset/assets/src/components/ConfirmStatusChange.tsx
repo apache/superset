@@ -3,12 +3,12 @@ import * as React from "react"
 import { Modal, Button } from "react-bootstrap"
 import { t } from '@superset-ui/translation';
 
-type ShowCallback = (callback: (e: React.MouseEvent) => void) => (event: React.MouseEvent) => void
+type ShowCallback = (callback: (e: any) => any) => (event: any) => any
 
 interface Props {
   title: string | React.ReactNode,
   description: string | React.ReactNode,
-  children: (confirm: (callback: (e: React.MouseEvent) => void) => (event: React.ChangeEvent | any) => void) => React.ReactNode
+  children: (confirm: ShowCallback) => React.ReactNode
 }
 
 interface State {

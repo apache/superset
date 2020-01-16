@@ -45,6 +45,18 @@ interface State {
   permissions: string[];
   labelColumns: { [key: string]: string };
 }
+
+type Dashboard = {
+  id: number,
+  changed_by: string,
+  changed_by_name: string,
+  changed_by_url: string,
+  changed_on: string,
+  dashboard_title: string
+  published: boolean,
+  url: string,
+}
+
 class DashboardList extends React.PureComponent<Props, State> {
 
   get canEdit() {
@@ -53,6 +65,10 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   get canDelete() {
     return this.hasPerm('can_delete');
+  }
+
+  get canExport() {
+    return this.hasPerm('can_mulexport')
   }
 
   public static propTypes = {
@@ -127,7 +143,8 @@ class DashboardList extends React.PureComponent<Props, State> {
       {
         Cell: ({ row: { state, original } }: any) => {
           const handleEdit = () => this.handleDashboardEdit(original);
-          if (!this.canEdit && !this.canDelete) {
+          const handleExport = () => this.handleBulkDashboardExport([original])
+          if (!this.canEdit && !this.canDelete && !this.canExport) {
             return null;
           }
 
@@ -142,6 +159,15 @@ class DashboardList extends React.PureComponent<Props, State> {
                       onClick={confirmDelete(() => this.handleDashboardDelete(original))}
                     >
                       <i className='fa fa-trash' />
+                    </span>
+                  )}
+                  {this.canExport && (
+                    <span
+                      role='button'
+                      className='action-button'
+                      onClick={handleExport}
+                    >
+                      <i className='fa fa-database' />
                     </span>
                   )}
                   {this.canEdit && (
@@ -176,8 +202,8 @@ class DashboardList extends React.PureComponent<Props, State> {
     window.location.assign(`/dashboard/edit/${id}`);
   }
 
-  public handleDashboardDelete = ({ id, title }) => {
-    SupersetClient.delete({
+  public handleDashboardDelete = ({ id, dashboard_title }: Dashboard) => {
+    return SupersetClient.delete({
       endpoint: `/api/v1/dashboard/${id}`,
     }).then(
       () => {
@@ -187,18 +213,18 @@ class DashboardList extends React.PureComponent<Props, State> {
         });
       },
       (err: any) => {
-        this.props.addDangerToast(t('There was an issue deleting') + `${title}`);
-        // this.setState({ showDeleteModal: false, deleteCandidate: {} });
+        console.error(err);
+        this.props.addDangerToast(t('There was an issue deleting') + `${dashboard_title}`);
       },
     );
   }
 
-  public handleBulkDashboardDelete = (ids: number[]) => {
-    console.log('deteling', ids)
+  public handleBulkDashboardDelete = (dashboards: Dashboard[]) => {
+    Promise.all(dashboards.map(this.handleDashboardDelete))
   }
 
-  public toggleModal = () => {
-    this.setState({ showDeleteModal: !this.state.showDeleteModal });
+  public handleBulkDashboardExport = (dashboards: Dashboard[]) => {
+    return window.location.href = `/api/v1/dashboard/export/?q=!(${dashboards.map(({ id }) => id).join(',')})`
   }
 
   public fetchData = ({
@@ -254,34 +280,38 @@ class DashboardList extends React.PureComponent<Props, State> {
       <div className='container welcome'>
         <Panel>
           <ConfirmStatusChange title={t('Please Confirm')} description={t('Are you sure you want to delete the selected dashboards?')}>
-            {confirmDelete => (
-              <ListView
-                className='dashboard-list-view'
-                title={'Dashboards'}
-                columns={this.columns}
-                data={dashboards}
-                count={dashboardCount}
-                pageSize={PAGE_SIZE}
-                fetchData={this.fetchData}
-                loading={loading}
-                initialSort={this.initialSort}
-                filterTypes={filterTypes}
-                bulkActions={
-                  [
-                    {
-                      key: 'delete',
-                      name: <><i className="fa fa-trash" /> Delete</>,
-                      onSelect: confirmDelete(this.handleBulkDashboardDelete)
-                    },
-                    {
-                      key: 'export',
-                      name: <><i className="fa fa-database" /> Export</>,
-                      onSelect: this.handleBulkDashboardDelete
-                    }
-                  ]
-                }
-              />
-            )}
+            {confirmDelete => {
+              let bulkActions = [];
+              if (this.canDelete) {
+                bulkActions.push({
+                  key: 'delete',
+                  name: <><i className="fa fa-trash" /> Delete</>,
+                  onSelect: confirmDelete(this.handleBulkDashboardDelete)
+                })
+              }
+              if (this.canExport) {
+                bulkActions.push({
+                  key: 'export',
+                  name: <><i className="fa fa-database" /> Export</>,
+                  onSelect: this.handleBulkDashboardExport
+                })
+              }
+              return (
+                <ListView
+                  className='dashboard-list-view'
+                  title={'Dashboards'}
+                  columns={this.columns}
+                  data={dashboards}
+                  count={dashboardCount}
+                  pageSize={PAGE_SIZE}
+                  fetchData={this.fetchData}
+                  loading={loading}
+                  initialSort={this.initialSort}
+                  filterTypes={filterTypes}
+                  bulkActions={bulkActions}
+                />
+              )
+            }}
           </ConfirmStatusChange>
         </Panel>
       </div>

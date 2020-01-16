@@ -271,7 +271,7 @@ const ListView: FunctionComponent<Props> = ({
                       key={action.key || action.name}
                       eventKey={selectedFlatRows}
                       onSelect={
-                        (rows: typeof selectedFlatRows) => { action.onSelect(rows) }
+                        (rows: typeof selectedFlatRows) => { action.onSelect(rows.map((r: any) => r.original)) }
                       }
                     >
                       {action.name}
