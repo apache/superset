@@ -60,37 +60,39 @@ describe('ListView', () => {
   it('calls fetchData on mount', () => {
     expect(wrapper.find(ListView)).toHaveLength(1);
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "filters": Object {},
-          "pageIndex": 0,
-          "pageSize": 1,
-          "sortBy": Array [],
-        },
-      ]
-    `);
+            Array [
+              Object {
+                "filters": Array [],
+                "pageIndex": 0,
+                "pageSize": 1,
+                "sortBy": Array [],
+              },
+            ]
+        `);
   });
 
   it('calls fetchData on sort', () => {
     wrapper
       .find('[data-test="sort-header"]')
-      .first()
+      .at(0)
       .simulate('click');
+
+    expect(mockedProps.fetchData).toHaveBeenCalled();
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "filters": Object {},
-          "pageIndex": 0,
-          "pageSize": 1,
-          "sortBy": Array [
-            Object {
-              "desc": false,
-              "id": "id",
-            },
-          ],
-        },
-      ]
-    `);
+            Array [
+              Object {
+                "filters": Array [],
+                "pageIndex": 0,
+                "pageSize": 1,
+                "sortBy": Array [
+                  Object {
+                    "desc": false,
+                    "id": "id",
+                  },
+                ],
+              },
+            ]
+        `);
   });
 
   it('calls fetchData on filter', () => {
@@ -126,12 +128,14 @@ describe('ListView', () => {
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
       Array [
         Object {
-          "filters": Object {
-            "name": Object {
+          "filters": Array [
+            Object {
+              "Header": "name",
               "filterId": "sw",
-              "filterValue": "foo",
+              "id": "name",
+              "value": "foo",
             },
-          },
+          ],
           "pageIndex": 0,
           "pageSize": 1,
           "sortBy": Array [
@@ -154,12 +158,14 @@ describe('ListView', () => {
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
       Array [
         Object {
-          "filters": Object {
-            "name": Object {
+          "filters": Array [
+            Object {
+              "Header": "name",
               "filterId": "sw",
-              "filterValue": "foo",
+              "id": "name",
+              "value": "foo",
             },
-          },
+          ],
           "pageIndex": 1,
           "pageSize": 1,
           "sortBy": Array [

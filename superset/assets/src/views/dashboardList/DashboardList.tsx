@@ -23,11 +23,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 // @ts-ignore
 import { Button, Modal, Panel } from 'react-bootstrap';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView/ListView';
 import { FilterTypeMap } from 'src/components/ListView/types';
 import { FetchDataConfig } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 
 import './DashboardList.less';
 
@@ -46,15 +46,15 @@ interface State {
   labelColumns: { [key: string]: string };
 }
 
-type Dashboard = {
-  id: number,
-  changed_by: string,
-  changed_by_name: string,
-  changed_by_url: string,
-  changed_on: string,
-  dashboard_title: string
-  published: boolean,
-  url: string,
+interface Dashboard {
+  id: number;
+  changed_by: string;
+  changed_by_name: string;
+  changed_by_url: string;
+  changed_on: string;
+  dashboard_title: string;
+  published: boolean;
+  url: string;
 }
 
 class DashboardList extends React.PureComponent<Props, State> {
@@ -68,7 +68,7 @@ class DashboardList extends React.PureComponent<Props, State> {
   }
 
   get canExport() {
-    return this.hasPerm('can_mulexport')
+    return this.hasPerm('can_mulexport');
   }
 
   public static propTypes = {
@@ -143,14 +143,14 @@ class DashboardList extends React.PureComponent<Props, State> {
       {
         Cell: ({ row: { state, original } }: any) => {
           const handleEdit = () => this.handleDashboardEdit(original);
-          const handleExport = () => this.handleBulkDashboardExport([original])
+          const handleExport = () => this.handleBulkDashboardExport([original]);
           if (!this.canEdit && !this.canDelete && !this.canExport) {
             return null;
           }
 
           return (
             <ConfirmStatusChange title={t('Please Confirm')} description={`${t('Are you sure you want to delete')} ${original.dashboard_title}?`}>
-              {confirmDelete => (
+              {(confirmDelete) => (
                 <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
                   {this.canDelete && (
                     <span
@@ -209,7 +209,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       () => {
         const dashboards = this.state.dashboards.filter((d) => d.id !== id);
         this.setState({
-          dashboards
+          dashboards,
         });
       },
       (err: any) => {
@@ -220,11 +220,11 @@ class DashboardList extends React.PureComponent<Props, State> {
   }
 
   public handleBulkDashboardDelete = (dashboards: Dashboard[]) => {
-    Promise.all(dashboards.map(this.handleDashboardDelete))
+    Promise.all(dashboards.map(this.handleDashboardDelete));
   }
 
   public handleBulkDashboardExport = (dashboards: Dashboard[]) => {
-    return window.location.href = `/api/v1/dashboard/export/?q=!(${dashboards.map(({ id }) => id).join(',')})`
+    return window.location.href = `/api/v1/dashboard/export/?q=!(${dashboards.map(({ id }) => id).join(',')})`;
   }
 
   public fetchData = ({
@@ -280,21 +280,21 @@ class DashboardList extends React.PureComponent<Props, State> {
       <div className='container welcome'>
         <Panel>
           <ConfirmStatusChange title={t('Please Confirm')} description={t('Are you sure you want to delete the selected dashboards?')}>
-            {confirmDelete => {
-              let bulkActions = [];
+            {(confirmDelete) => {
+              const bulkActions = [];
               if (this.canDelete) {
                 bulkActions.push({
                   key: 'delete',
-                  name: <><i className="fa fa-trash" /> Delete</>,
-                  onSelect: confirmDelete(this.handleBulkDashboardDelete)
-                })
+                  name: <><i className='fa fa-trash' /> Delete</>,
+                  onSelect: confirmDelete(this.handleBulkDashboardDelete),
+                });
               }
               if (this.canExport) {
                 bulkActions.push({
                   key: 'export',
-                  name: <><i className="fa fa-database" /> Export</>,
-                  onSelect: this.handleBulkDashboardExport
-                })
+                  name: <><i className='fa fa-database' /> Export</>,
+                  onSelect: this.handleBulkDashboardExport,
+                });
               }
               return (
                 <ListView
@@ -310,7 +310,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                   filterTypes={filterTypes}
                   bulkActions={bulkActions}
                 />
-              )
+              );
             }}
           </ConfirmStatusChange>
         </Panel>

@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   useFilters,
   usePagination,
+  useRowSelect,
   useRowState,
   useSortBy,
   useTable,
-  useRowSelect,
 } from 'react-table';
 
 import {
@@ -55,7 +55,7 @@ function updateInList(list: any[], index: number, update: any): any[] {
 export function convertFilters(fts: FilterToggle[]) {
   return fts
     .filter((ft: FilterToggle) => ft.value)
-    .map(ft => ({ value: null, filterId: ft.filterId || 'sw', ...ft }));
+    .map((ft) => ({ value: null, filterId: ft.filterId || 'sw', ...ft }));
 }
 
 interface UseListViewConfig {
@@ -132,7 +132,7 @@ export function useListViewState({
       initialState,
       manualFilters: true,
       manualPagination: true,
-      manualSorting: true,
+      manualSortBy: true,
       pageCount: Math.ceil(count / initialPageSize),
     },
     useFilters,
@@ -166,6 +166,7 @@ export function useListViewState({
       filters[index] &&
       filters[index].id === id &&
       filters[index].value === value &&
+      // @ts-ignore
       filters[index].filterId === filterId,
   );
 
@@ -181,9 +182,9 @@ export function useListViewState({
     pageCount,
     prepareRow,
     rows,
+    selectedFlatRows,
     setAllFilters,
     setFilterToggles,
-    selectedFlatRows,
     state: { pageIndex, pageSize, sortBy, filters, filterToggles },
     updateFilterToggle: (index: number, update: object) =>
       setFilterToggles(updateInList(filterToggles, index, update)),

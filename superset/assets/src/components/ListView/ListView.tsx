@@ -28,8 +28,7 @@ import {
   Row,
   // @ts-ignore
 } from 'react-bootstrap';
-import Loading from '../Loading';
-import IndeterminateCheckbox from '../IndeterminateCheckbox'
+import IndeterminateCheckbox from '../IndeterminateCheckbox';
 import './ListViewStyles.less';
 import TableCollection from './TableCollection';
 import { FetchDataConfig, FilterToggle, FilterType, FilterTypeMap, SortColumn } from './types';
@@ -46,25 +45,21 @@ interface Props {
   title?: string;
   initialSort?: SortColumn[];
   filterTypes?: FilterTypeMap;
-  bulkActions?: Array<{ key?: string, name: any, onSelect: (rows: any[]) => any }>
+  bulkActions?: Array<{ key?: string, name: any, onSelect: (rows: any[]) => any }>;
 }
 
 const bulkSelectColumnConfig = {
-  id: 'selection',
-  // The header can use the table's getToggleAllRowsSelectedProps method
-  // to render a checkbox
-  Header: ({ getToggleAllRowsSelectedProps }: any) => (
-    <div>
-      <IndeterminateCheckbox {...getToggleAllRowsSelectedProps()} />
-    </div>
-  ),
-  // The cell can use the individual row's getToggleRowSelectedProps method
-  // to the render a checkbox
   Cell: ({ row }: any) => (
     <div>
       <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} />
     </div>
   ),
+  Header: ({ getToggleAllRowsSelectedProps }: any) => (
+    <div>
+      <IndeterminateCheckbox {...getToggleAllRowsSelectedProps()} />
+    </div>
+  ),
+  id: 'selection',
 };
 
 const ListView: FunctionComponent<Props> = ({
@@ -78,7 +73,7 @@ const ListView: FunctionComponent<Props> = ({
   className = '',
   title = '',
   filterTypes = {},
-  bulkActions = []
+  bulkActions = [],
 }) => {
   const {
     getTableProps,
@@ -98,14 +93,14 @@ const ListView: FunctionComponent<Props> = ({
     selectedFlatRows,
     state: { pageIndex, pageSize, filterToggles },
   } = useListViewState({
+    bulkSelectColumnConfig,
+    bulkSelectMode: Boolean(bulkActions.length),
     columns,
     count,
     data,
     fetchData,
     initialPageSize,
     initialSort,
-    bulkSelectMode: true,
-    bulkSelectColumnConfig
   });
   const filterableColumns = useMemo(() => columns.filter((c) => c.filterable), [columns]);
   const filterable = Boolean(columns.length);
@@ -128,7 +123,7 @@ const ListView: FunctionComponent<Props> = ({
               <Col md={2}>
                 <div className='filter-dropdown'>
                   <DropdownButton
-                    id="filter-picker"
+                    id='filter-picker'
                     bsSize='small'
                     bsStyle={'default'}
                     noCaret={true}
@@ -248,36 +243,40 @@ const ListView: FunctionComponent<Props> = ({
       <div className='footer'>
         <Row>
           <Col md={2}>
-            <div className="form-actions-container">
-              <div className="btn-group">
-                <DropdownButton
-                  id="bulk-actions"
-                  bsSize='small'
-                  bsStyle="default"
-                  noCaret={true}
-                  title={(
-                    <>
-                      {t('Actions')} <span className="caret" />
-                    </>
-                  )}
-                >
-                  {bulkActions.map(action => (
-                    <MenuItem
-                      id={action.name}
-                      key={action.key || action.name}
-                      eventKey={selectedFlatRows}
-                      onSelect={
-                        (rows: typeof selectedFlatRows) => { action.onSelect(rows.map((r: any) => r.original)) }
-                      }
-                    >
-                      {action.name}
-                    </MenuItem>
-                  ))}
-                </DropdownButton>
+            <div className='form-actions-container'>
+              <div className='btn-group'>
+                {bulkActions.length > 0 && (
+                  <DropdownButton
+                    id='bulk-actions'
+                    bsSize='small'
+                    bsStyle='default'
+                    noCaret={true}
+                    title={(
+                      <>
+                        {t('Actions')} <span className='caret' />
+                      </>
+                    )}
+                  >
+                    {bulkActions.map((action) => (
+                      <MenuItem
+                        id={action.name}
+                        key={action.key || action.name}
+                        eventKey={selectedFlatRows}
+                        onSelect={
+                          (selectedRows: typeof selectedFlatRows) => {
+                            action.onSelect(selectedRows.map((r: any) => r.original));
+                          }
+                        }
+                      >
+                        {action.name}
+                      </MenuItem>
+                    ))}
+                  </DropdownButton>
+                )}
               </div>
             </div>
           </Col>
-          <Col md={8} className="text-center">
+          <Col md={8} className='text-center'>
             <Pagination
               prev={canPreviousPage}
               first={pageIndex > 1}

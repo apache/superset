@@ -1,53 +1,70 @@
-import * as React from "react"
-// @ts-ignore
-import { Modal, Button } from "react-bootstrap"
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { t } from '@superset-ui/translation';
+import * as React from 'react';
+// @ts-ignore
+import { Button, Modal } from 'react-bootstrap';
 
-type ShowCallback = (callback: (e: any) => any) => (event: any) => any
+type ShowCallback = (callback: (e: any) => any) => (event: any) => any;
 
 interface Props {
-  title: string | React.ReactNode,
-  description: string | React.ReactNode,
-  children: (confirm: ShowCallback) => React.ReactNode
+  title: string | React.ReactNode;
+  description: string | React.ReactNode;
+  children: (confirm: ShowCallback) => React.ReactNode;
 }
 
 interface State {
-  open: boolean,
-  callback: (e: React.MouseEvent) => void
+  open: boolean;
+  callback: (e: React.MouseEvent) => void;
 }
-
+const defaultCallback = () => { console.error('ConfirmStatusChange invoked with the default callback, please provide a function to be called on confirm'); };
 export default class ConfirmStatusChange extends React.Component<Props, State> {
-  defaultCallback = () => { }
 
-  state = {
+  public state = {
+    callback: defaultCallback,
     open: false,
-    callback: this.defaultCallback
-  }
+  };
 
-  show: ShowCallback = callback => event => {
+  public show: ShowCallback = (callback) => (event) => {
     if (typeof event.preventDefault === 'function') {
       event.preventDefault();
 
       event = {
         ...event,
-        currentTarget: { ...event.currentTarget }
+        currentTarget: { ...event.currentTarget },
       };
     }
 
     this.setState({
+      callback: () => callback(event),
       open: true,
-      callback: () => callback(event)
-    })
+    });
   }
 
-  hide = () => this.setState({ open: false, callback: this.defaultCallback })
+  public hide = () => this.setState({ open: false, callback: defaultCallback });
 
-  confirm = () => {
-    this.state.callback()
-    this.hide()
+  public confirm = () => {
+    this.state.callback();
+    this.hide();
   }
 
-  render() {
+  public render() {
     return (
       <>
         {this.props.children && this.props.children(this.show)}
@@ -65,6 +82,6 @@ export default class ConfirmStatusChange extends React.Component<Props, State> {
           </Modal.Footer>
         </Modal>
       </>
-    )
+    );
   }
 }
