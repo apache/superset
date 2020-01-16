@@ -36,6 +36,8 @@ if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
 
 
 def bootstrap_user_data(user, include_perms=False):
+    if user.is_anonymous:
+        return {}
     payload = {
         "username": user.username,
         "firstName": user.first_name,
