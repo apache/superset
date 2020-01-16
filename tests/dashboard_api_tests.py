@@ -111,6 +111,17 @@ class DashboardApiTests(SupersetTestCase):
             model = db.session.query(models.Dashboard).get(dashboard_id)
             self.assertEqual(model, None)
 
+    def test_delete_multiple_dashboards_bad_request(self):
+        """
+            Dashboard API: Test delete multiple bad request
+        """
+        dashboard_ids = [1, "a"]
+        self.login(username="admin")
+        argument = dashboard_ids
+        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 400)
+
     def test_delete_not_found_dashboard(self):
         """
             Dashboard API: Test not found delete
