@@ -116,10 +116,6 @@ const ListView: FunctionComponent<Props> = ({
     setAllFilters(convertFilters(updated));
   };
 
-  if (loading) {
-    return <Loading />;
-  }
-
   return (
     <div className={`superset-list-view ${className}`}>
       {title && filterable && (
