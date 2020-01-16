@@ -23,11 +23,13 @@ import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 
+import Menu from 'src/components/Menu/Menu';
+import DashboardList from 'src/views/dashboardList/DashboardList';
+
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
 import Welcome from './Welcome';
-import Menu from '../components/Menu/Menu';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 
 setupApp();
@@ -50,11 +52,14 @@ const App = () => (
     <Router>
       <Menu data={menu} />
       <Switch>
-        <Route path="/superset/welcome">
+        <Route path="/superset/welcome/">
           <Welcome user={user} />
-          <ToastPresenter />
+        </Route>
+        <Route path="/dashboard/list/">
+          <DashboardList user={user} />
         </Route>
       </Switch>
+      <ToastPresenter />
     </Router>
   </Provider>
 );

@@ -18,34 +18,106 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Table, Tr, Td, unsafe } from 'reactable-arc';
-import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
+import moment from 'moment';
+import { debounce } from 'lodash';
+import ListView from 'src/components/ListView/ListView';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
 
-import withToasts from '../messageToasts/enhancers/withToasts';
-import Loading from '../components/Loading';
-import '../../stylesheets/reactable-pagination.less';
-
-const propTypes = {
-  search: PropTypes.string,
-  addDangerToast: PropTypes.func.isRequired,
-};
+const PAGE_SIZE = 25;
 
 class DashboardTable extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      dashboards: null,
-    };
+  static propTypes = {
+    addDangerToast: PropTypes.func.isRequired,
+    search: PropTypes.string,
+  };
+
+  state = {
+    dashboards: [],
+    dashboard_count: 0,
+    loading: false,
+  };
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.search !== this.props.search) {
+      this.fetchDataDebounced({
+        pageSize: PAGE_SIZE,
+        pageIndex: 0,
+        sortBy: this.initialSort,
+        filters: {},
+      });
+    }
   }
 
-  componentDidMount() {
-    SupersetClient.get({
-      endpoint:
-        '/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc',
+  columns = [
+    {
+      accessor: 'dashboard_title',
+      Header: 'Dashboard',
+      sortable: true,
+      Cell: ({
+        row: {
+          original: { url, dashboard_title: dashboardTitle },
+        },
+      }) => <a href={url}>{dashboardTitle}</a>,
+    },
+    {
+      accessor: 'changed_by_fk',
+      Header: 'Creator',
+      sortable: true,
+      Cell: ({
+        row: {
+          original: { changed_by_name: changedByName, changedByUrl },
+        },
+      }) => <a href={changedByUrl}>{changedByName}</a>,
+    },
+    {
+      accessor: 'changed_on',
+      Header: 'Modified',
+      sortable: true,
+      Cell: ({
+        row: {
+          original: { changed_on: changedOn },
+        },
+      }) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
+    },
+  ];
+
+  initialSort = [{ id: 'changed_on', desc: true }];
+
+  fetchData = ({ pageIndex, pageSize, sortBy, filters }) => {
+    this.setState({ loading: true });
+    const filterExps = Object.keys(filters)
+      .map(fk => ({
+        col: fk,
+        opr: filters[fk].filterId,
+        value: filters[fk].filterValue,
+      }))
+      .concat(
+        this.props.search
+          ? [
+              {
+                col: 'dashboard_title',
+                opr: 'ct',
+                value: this.props.search,
+              },
+            ]
+          : [],
+      );
+
+    const queryParams = JSON.stringify({
+      order_column: sortBy[0].id,
+      order_direction: sortBy[0].desc ? 'desc' : 'asc',
+      page: pageIndex,
+      page_size: pageSize,
+      ...(filterExps.length ? { filters: filterExps } : {}),
+    });
+
+    return SupersetClient.get({
+      endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
       .then(({ json }) => {
-        this.setState({ dashboards: json.result });
+        this.setState({ dashboards: json.result, dashboard_count: json.count });
       })
       .catch(response => {
         if (response.status === 401) {
@@ -59,47 +131,25 @@ class DashboardTable extends React.PureComponent {
             t('An error occurred while fetching Dashboards'),
           );
         }
-      });
-  }
+      })
+      .finally(() => this.setState({ loading: false }));
+  };
+
+  fetchDataDebounced = debounce(this.fetchData, 200);
 
   render() {
-    if (this.state.dashboards !== null) {
-      return (
-        <Table
-          className="table"
-          sortable={['dashboard', 'creator', 'modified']}
-          filterBy={this.props.search}
-          filterable={['dashboard', 'creator']}
-          itemsPerPage={50}
-          hideFilterInput
-          columns={[
-            { key: 'dashboard', label: 'Dashboard' },
-            { key: 'creator', label: 'Creator' },
-            { key: 'modified', label: 'Modified' },
-          ]}
-          defaultSort={{ column: 'modified', direction: 'desc' }}
-        >
-          {this.state.dashboards.map(o => (
-            <Tr key={o.id}>
-              <Td column="dashboard" value={o.dashboard_title}>
-                <a href={o.url}>{o.dashboard_title}</a>
-              </Td>
-              <Td column="creator" value={o.changed_by_name}>
-                {unsafe(o.creator)}
-              </Td>
-              <Td column="modified" value={o.changed_on} className="text-muted">
-                {unsafe(o.modified)}
-              </Td>
-            </Tr>
-          ))}
-        </Table>
-      );
-    }
-
-    return <Loading />;
+    return (
+      <ListView
+        columns={this.columns}
+        data={this.state.dashboards}
+        count={this.state.dashboard_count}
+        pageSize={PAGE_SIZE}
+        fetchData={this.fetchData}
+        loading={this.state.loading}
+        initialSort={this.initialSort}
+      />
+    );
   }
 }
-
-DashboardTable.propTypes = propTypes;
 
 export default withToasts(DashboardTable);

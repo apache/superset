@@ -68,7 +68,7 @@ describe('ExploreChartHeader', () => {
   it('should updateChartTitleOrSaveSlice for existed slice', () => {
     const newTitle = 'New Chart Title';
     wrapper.instance().updateChartTitleOrSaveSlice(newTitle);
-    expect(stub.call.length).toEqual(1);
+    expect(stub.call).toHaveLength(1);
     expect(stub).toHaveBeenCalledWith(mockProps.slice.form_data, {
       action: 'overwrite',
       slice_name: newTitle,
@@ -79,7 +79,7 @@ describe('ExploreChartHeader', () => {
     const newTitle = 'New Chart Title';
     wrapper.setProps({ slice: undefined });
     wrapper.instance().updateChartTitleOrSaveSlice(newTitle);
-    expect(stub.call.length).toEqual(1);
+    expect(stub.call).toHaveLength(1);
     expect(stub).toHaveBeenCalledWith(mockProps.form_data, {
       action: 'saveas',
       slice_name: newTitle,
