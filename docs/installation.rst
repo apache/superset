@@ -773,8 +773,9 @@ CORS
 
 The extra CORS Dependency must be installed:
 
-    superset[cors]
+.. code-block:: text
 
+    pip install apache-superset[cors]
 
 The following keys in `superset_config.py` can be specified to configure CORS:
 
