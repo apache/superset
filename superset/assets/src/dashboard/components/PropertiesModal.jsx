@@ -52,10 +52,10 @@ class PropertiesModal extends React.PureComponent {
     this.state = {
       errors: [],
       values: {
-        dashboard_title: this.props.dashboardTitle,
-        slug: this.props.dashboardInfo.slug,
-        owners: this.props.owners || [],
-        json_metadata: JSON.stringify(this.props.dashboardInfo.metadata),
+        dashboard_title: props.dashboardTitle,
+        slug: props.dashboardInfo.slug,
+        owners: props.owners || [],
+        json_metadata: JSON.stringify(props.dashboardInfo.metadata),
       },
       isOwnersLoaded: false,
       userOptions: null,
@@ -189,7 +189,7 @@ class PropertiesModal extends React.PureComponent {
                   name="slug"
                   type="text"
                   bsSize="sm"
-                  value={values.slug}
+                  value={values.slug || ''}
                   onChange={this.onChange}
                 />
                 <p className="help-block">
