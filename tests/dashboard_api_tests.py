@@ -215,6 +215,8 @@ class DashboardApiTests(SupersetTestCase):
                     f"title{dashboard_name_index}",
                     f"slug{dashboard_name_index}",
                     [user_alpha1.id],
+                    slices=[existing_slice],
+                    published=True
                 )
             )
 

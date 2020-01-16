@@ -351,6 +351,8 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
                     properties:
                       message:
                         type: string
+                      count:
+                        type: integer
             401:
               $ref: '#/components/responses/401'
             403:
@@ -367,20 +369,18 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         )
         items = self._base_filters.apply_all(query).all()
         if not items:
-            self.response_404()
-        # Check ownership for each item and fail if a not owned dashboard is found
+            return self.response_404()
+        delete_count = 0
         for item in items:
             try:
                 check_ownership(item)
+                self.datamodel.delete(item, raise_exception=True)
+                delete_count += 1
             except SupersetSecurityException as e:
                 return self.response(403, message=str(e))
-        # All good, delete the dashboards
-        for item in items:
-            try:
-                self.datamodel.delete(item, raise_exception=True)
             except SQLAlchemyError as e:
                 return self.response_422(message=str(e))
-        return self.response(200, message=f"Deleted {len(items)}")
+        return self.response(200, message="OK", count=delete_count)
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
