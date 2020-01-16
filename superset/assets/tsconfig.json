@@ -4,7 +4,7 @@
     "outDir": "./dist",
     "module": "commonjs",
     "target": "es5",
-    "lib": ["es6", "dom"],
+    "lib": ["es6", "dom", "es2018.promise"],
     "sourceMap": true,
     "allowJs": true,
     "jsx": "react",
@@ -17,7 +17,8 @@
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
     "noUnusedLocals": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "esModuleInterop": true
   },
   "include": ["./src/**/*", "./spec/**/*"]
 }
