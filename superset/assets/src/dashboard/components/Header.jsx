@@ -431,11 +431,13 @@ class Header extends React.PureComponent {
                   metadata: JSON.parse(updates.jsonMetadata),
                 });
                 this.props.dashboardTitleChanged(updates.title);
-                history.pushState(
-                  { event: 'dashboard_properties_changed' },
-                  '',
-                  `/superset/dashboard/${updates.slug}/`,
-                );
+                if (updates.slug) {
+                  history.pushState(
+                    { event: 'dashboard_properties_changed' },
+                    '',
+                    `/superset/dashboard/${updates.slug}/`,
+                  );
+                }
               }}
             />
           )}
