@@ -16,16 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- {
+{
   "sourceMaps": true,
   "retainLines": true,
-  "presets" : ["airbnb", "@babel/preset-react", "@babel/preset-env"],
-  "plugins": ["lodash", "@babel/plugin-syntax-dynamic-import", "react-hot-loader/babel"],
+  "presets": ["airbnb", "@babel/preset-react", "@babel/preset-env"],
+  "plugins": [
+    "lodash",
+    "@babel/plugin-syntax-dynamic-import",
+    "@babel/plugin-proposal-class-properties",
+    "react-hot-loader/babel"
+  ],
   "env": {
     "test": {
-      "plugins": [
-        "babel-plugin-dynamic-import-node"
-      ]
+      "plugins": ["babel-plugin-dynamic-import-node"]
     }
   }
 }

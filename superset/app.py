@@ -210,14 +210,6 @@ class SupersetAppInitializer:
             category_icon="",
         )
         appbuilder.add_view(
-            SliceModelView,
-            "Charts",
-            label=__("Charts"),
-            icon="fa-bar-chart",
-            category="",
-            category_icon="",
-        )
-        appbuilder.add_view(
             DatabaseView,
             "Databases",
             label=__("Databases"),
@@ -225,6 +217,14 @@ class SupersetAppInitializer:
             category="Sources",
             category_label=__("Sources"),
             category_icon="fa-database",
+        )
+        appbuilder.add_view(
+            SliceModelView,
+            "Charts",
+            label=__("Charts"),
+            icon="fa-bar-chart",
+            category="",
+            category_icon="",
         )
         appbuilder.add_view(
             DashboardModelView,

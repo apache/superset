@@ -63,6 +63,8 @@ describe('Header', () => {
     redoLength: 0,
     setMaxUndoHistoryExceeded: () => {},
     maxUndoHistoryToast: () => {},
+    dashboardInfoChanged: () => {},
+    dashboardTitleChanged: () => {},
   };
 
   function setup(overrideProps) {

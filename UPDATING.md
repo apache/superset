@@ -22,8 +22,12 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+* [8901](https://github.com/apache/incubator-superset/pull/8901): The datasource's update
+timestamp has been added to the query object's cache key to ensure updates to
+datasources are always reflected in associated query results. As a consequence all
+previously cached results will be invalidated when updating to the next version.
 
-* [8732](https://github.com/apache/incubator-superset/pull/8732): Swagger user interface is now enabled by default. 
+* [8732](https://github.com/apache/incubator-superset/pull/8732): Swagger user interface is now enabled by default.
 A new permission `show on SwaggerView` is created by `superset init` and given to the `Admin` Role. To disable the UI,
 set `FAB_API_SWAGGER_UI = False` on config.
 
@@ -90,9 +94,9 @@ which adds missing non-nullable fields to the `datasources` table. Depending on
 the integrity of the data, manual intervention may be required.
 
 * [5452](https://github.com/apache/incubator-superset/pull/5452): a change
-which adds missing non-nullable fields and uniqueness constraints (which may be 
-case insensitive depending on your database configuration) to the `columns`and 
-`table_columns` tables. Depending on the integrity of the data, manual 
+which adds missing non-nullable fields and uniqueness constraints (which may be
+case insensitive depending on your database configuration) to the `columns`and
+`table_columns` tables. Depending on the integrity of the data, manual
 intervention may be required.
 * `fabmanager` command line is deprecated since Flask-AppBuilder 2.0.0, use
 the new `flask fab <command>` integrated with *Flask cli*.
@@ -100,7 +104,7 @@ the new `flask fab <command>` integrated with *Flask cli*.
 `FAB_UPDATE_PERMS` config boolean key. To disable automatic
 creation of permissions set `FAB_UPDATE_PERMS = False` on config.
 * [5453](https://github.com/apache/incubator-superset/pull/5453): a change
-which adds missing non-nullable fields and uniqueness constraints (which may be 
+which adds missing non-nullable fields and uniqueness constraints (which may be
 case insensitive depending on your database configuration) to the metrics
 and sql_metrics tables. Depending on the integrity of the data, manual
 intervention may be required.

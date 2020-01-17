@@ -41,7 +41,7 @@ import AdhocMetricEditPopoverTitle from './AdhocMetricEditPopoverTitle';
 import columnType from '../propTypes/columnType';
 import AdhocMetric, { EXPRESSION_TYPES } from '../AdhocMetric';
 import ColumnOption from '../../components/ColumnOption';
-import { sqlWords } from '../../SqlLab/components/AceEditorWrapper';
+import sqlKeywords from '../../SqlLab/utils/sqlKeywords';
 
 const langTools = ace.acequire('ace/ext/language_tools');
 
@@ -88,7 +88,7 @@ export default class AdhocMetricEditPopover extends React.Component {
       selectWrap: VirtualizedSelect,
     };
     if (langTools) {
-      const words = sqlWords.concat(
+      const words = sqlKeywords.concat(
         this.props.columns.map(column => ({
           name: column.column_name,
           value: column.column_name,

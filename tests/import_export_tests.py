@@ -25,7 +25,12 @@ from sqlalchemy.orm.session import make_transient
 from tests.test_app import app
 from superset.utils.dashboard_import_export import decode_dashboards
 from superset import db, security_manager
-from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
+from superset.connectors.druid.models import (
+    DruidColumn,
+    DruidDatasource,
+    DruidMetric,
+    DruidCluster,
+)
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -119,11 +124,16 @@ class ImportExportTests(SupersetTestCase):
         return table
 
     def create_druid_datasource(self, name, id=0, cols_names=[], metric_names=[]):
-        params = {"remote_id": id, "database_name": "druid_test"}
+        cluster_name = "druid_test"
+        cluster = self.get_or_create(
+            DruidCluster, {"cluster_name": cluster_name}, db.session
+        )
+
+        params = {"remote_id": id, "database_name": cluster_name}
         datasource = DruidDatasource(
             id=id,
             datasource_name=name,
-            cluster_name="druid_test",
+            cluster_id=cluster.id,
             params=json.dumps(params),
         )
         for col_name in cols_names:
