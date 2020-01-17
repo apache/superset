@@ -21,6 +21,7 @@ import re
 from flask import current_app, g, make_response, request
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import lazy_gettext as _, ngettext
 from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
@@ -398,15 +399,19 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
                 status_code = 403
             except SQLAlchemyError as e:
                 return self.response_422(message=str(e))
-        if len(items) != delete_count and delete_count > 0:
-            return self.response(
-                status_code, message="Some dashboards deleted", count=delete_count
-            )
         if delete_count == 0:
             return self.response(
-                status_code, message="No dashboards deleted", count=delete_count
+                status_code, message=_("No dashboards deleted"), count=delete_count
             )
-        return self.response(status_code, message="OK", count=delete_count)
+        return self.response(
+            status_code,
+            message=ngettext(
+                f"Deleted %(num)d dashboard",
+                f"Deleted %(num)d dashboards",
+                num=delete_count,
+            ),
+            count=delete_count,
+        )
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()

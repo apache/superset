@@ -105,7 +105,10 @@ class DashboardApiTests(SupersetTestCase):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "OK", "count": dashboard_count}
+        expected_response = {
+            "message": f"Deleted {dashboard_count} dashboards",
+            "count": dashboard_count
+        }
         self.assertEqual(response, expected_response)
         for dashboard_id in dashboard_ids:
             model = db.session.query(models.Dashboard).get(dashboard_id)
@@ -179,7 +182,10 @@ class DashboardApiTests(SupersetTestCase):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "OK", "count": dashboard_count}
+        expected_response = {
+            "message": f"Deleted {dashboard_count} dashboards",
+            "count": dashboard_count
+        }
         self.assertEqual(response, expected_response)
 
         for dashboard_id in dashboard_ids:
@@ -261,7 +267,7 @@ class DashboardApiTests(SupersetTestCase):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "Some dashboards deleted", "count": 1}
+        expected_response = {"message": "Deleted 1 dashboard", "count": 1}
         self.assertEqual(response, expected_response)
 
         for dashboard in dashboards:
