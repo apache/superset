@@ -18,6 +18,8 @@
 import json
 from typing import List
 
+import prison
+
 from superset import db, security_manager
 from superset.models import core as models
 from superset.models.slice import Slice

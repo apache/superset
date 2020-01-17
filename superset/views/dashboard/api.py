@@ -27,9 +27,9 @@ from marshmallow.validate import Length
 from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
+from superset.views.base import generate_download_headers
 from superset.views.base_api import BaseOwnedModelRestApi
 from superset.views.base_schemas import BaseOwnedSchema, validate_owner
-from superset.views.base import generate_download_headers
 
 from .mixin import DashboardMixin
 
@@ -118,7 +118,9 @@ class DashboardPutSchema(BaseDashboardSchema):
             slc.owners = list(set(self.instance.owners) | set(slc.owners))
         return self.instance
 
+
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
 
 class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
     datamodel = SQLAInterface(Dashboard)
