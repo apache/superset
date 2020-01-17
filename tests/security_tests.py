@@ -636,13 +636,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assertTrue(
             security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu(
-                    "can_edit", "SqlMetricInlineView"
-                )
-            )
-        )
-        self.assertTrue(
-            security_manager._is_alpha_only(
-                security_manager.find_permission_view_menu(
                     "all_database_access", "all_database_access"
                 )
             )
