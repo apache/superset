@@ -107,7 +107,7 @@ class DashboardApiTests(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
             "message": f"Deleted {dashboard_count} dashboards",
-            "count": dashboard_count
+            "count": dashboard_count,
         }
         self.assertEqual(response, expected_response)
         for dashboard_id in dashboard_ids:
@@ -184,7 +184,7 @@ class DashboardApiTests(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
             "message": f"Deleted {dashboard_count} dashboards",
-            "count": dashboard_count
+            "count": dashboard_count,
         }
         self.assertEqual(response, expected_response)
 
