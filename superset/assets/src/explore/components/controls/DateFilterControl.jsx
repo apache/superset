@@ -576,11 +576,10 @@ export default class DateFilterControl extends React.Component {
     const endpoints = this.props.endpoints;
     value = value
       .split(SEPARATOR)
-      .map((v, idx) =>
-        moment(v).isValid()
-          ? v.replace('T00:00:00', '') +
-            (endpoints ? ` (${endpoints[idx]})` : '')
-          : v || (idx === 0 ? '-∞' : '∞'),
+      .map(
+        (v, idx, values) =>
+          (v.replace('T00:00:00', '') || (idx === 0 ? '-∞' : '∞')) +
+          (endpoints && values.length > 1 ? ` (${endpoints[idx]})` : ''),
       )
       .join(SEPARATOR);
     return (
