@@ -81,11 +81,12 @@
     }
   }
   .resizable-container {
-    &:hover, &.resizable-container--resizing:hover {
+    &:hover,
+    &.resizable-container--resizing:hover {
       & > .dashboard-component-chart-holder:after {
         border: 1px dashed @indicator-color;
       }
-    } 
+    }
   }
   .resizable-container .dashboard-component-chart-holder {
     .dashboard-chart {
