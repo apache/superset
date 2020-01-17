@@ -108,12 +108,15 @@
 /* Think of the site as "layers" rather than an arms race of numbers    */
 /* Try to keep these to a minimum                                       */
 /* Try to label semantic "layers" and add comments for usage notes      */
+/* Use double dash modifiers to step up/down from a base layer          */
+/* e.g. z-whatever--modifier                                            */
 /************************************************************************/
-@z-max: 3000; // used for toast messages
+@z-max: 3000; // toast messages, popovers
 @z-dropdown: 11;
-@z-above-dash-charts: 10;
+@z-above-dash-charts: 10; // filters, and various widgets dashboard editor
 @z-chart: 1;
-@z-chart--dragging: @z-chart + 1;
+  @z-chart--dragging: @z-chart + 1;
+
 
 /************************************************************************/
 /* TYPOGRAPHY                                                           */
