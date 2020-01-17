@@ -577,7 +577,7 @@ export default class DateFilterControl extends React.Component {
     value = value
       .split(SEPARATOR)
       .map(
-        (v, idx) =>
+        (v, idx, values) =>
           (v.replace('T00:00:00', '') || (idx === 0 ? '-∞' : '∞')) +
           (endpoints && value.includes(SEPARATOR)
             ? ` (${endpoints[idx]})`
