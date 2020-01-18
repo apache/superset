@@ -505,13 +505,11 @@ class RolePermissionTests(SupersetTestCase):
 
     def assert_can_write(self, view_menu, permissions_set):
         self.assertIn(("can_add", view_menu), permissions_set)
-        self.assertIn(("can_download", view_menu), permissions_set)
         self.assertIn(("can_delete", view_menu), permissions_set)
         self.assertIn(("can_edit", view_menu), permissions_set)
 
     def assert_cannot_write(self, view_menu, permissions_set):
         self.assertNotIn(("can_add", view_menu), permissions_set)
-        self.assertNotIn(("can_download", view_menu), permissions_set)
         self.assertNotIn(("can_delete", view_menu), permissions_set)
         self.assertNotIn(("can_edit", view_menu), permissions_set)
         self.assertNotIn(("can_save", view_menu), permissions_set)
@@ -544,8 +542,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
 
     def assert_can_alpha(self, perm_set):
-        self.assert_can_all("SqlMetricInlineView", perm_set)
-        self.assert_can_all("TableColumnInlineView", perm_set)
         self.assert_can_all("TableModelView", perm_set)
 
         self.assertIn(("all_datasource_access", "all_datasource_access"), perm_set)
@@ -656,9 +652,10 @@ class RolePermissionTests(SupersetTestCase):
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
     def test_alpha_permissions(self):
-        self.assert_can_gamma(get_perm_tuples("Alpha"))
-        self.assert_can_alpha(get_perm_tuples("Alpha"))
-        self.assert_cannot_alpha(get_perm_tuples("Alpha"))
+        alpha_perm_tuples = get_perm_tuples("Alpha")
+        self.assert_can_gamma(alpha_perm_tuples)
+        self.assert_can_alpha(alpha_perm_tuples)
+        self.assert_cannot_alpha(alpha_perm_tuples)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
@@ -689,13 +686,11 @@ class RolePermissionTests(SupersetTestCase):
 
         def assert_can_write(view_menu):
             self.assertIn(("can_add", view_menu), gamma_perm_set)
-            self.assertIn(("can_download", view_menu), gamma_perm_set)
             self.assertIn(("can_delete", view_menu), gamma_perm_set)
             self.assertIn(("can_edit", view_menu), gamma_perm_set)
 
         def assert_cannot_write(view_menu):
             self.assertNotIn(("can_add", view_menu), gamma_perm_set)
-            self.assertNotIn(("can_download", view_menu), gamma_perm_set)
             self.assertNotIn(("can_delete", view_menu), gamma_perm_set)
             self.assertNotIn(("can_edit", view_menu), gamma_perm_set)
             self.assertNotIn(("can_save", view_menu), gamma_perm_set)

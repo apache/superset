@@ -130,7 +130,15 @@ get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
     datamodel = SQLAInterface(Dashboard)
-    include_route_methods = {"get_list", "get", "post", "put", "delete", "related"}
+    include_route_methods = {
+        "get_list",
+        "get",
+        "post",
+        "put",
+        "delete",
+        "related",
+        "export",
+    }
     resource_name = "dashboard"
     allow_browser_login = True
 

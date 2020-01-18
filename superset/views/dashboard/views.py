@@ -46,7 +46,13 @@ class DashboardModelView(
 ):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(models.Dashboard)
-    include_route_methods = CRUD_ROUTE_METHODS
+    # TODO disable api_read and api_delete (used by cypress)
+    # once we move to ChartRestModelApi
+    include_route_methods = CRUD_ROUTE_METHODS | {
+        "download_dashboards",
+        "api_read",
+        "api_delete",
+    }
 
     @has_access
     @expose("/list/")
