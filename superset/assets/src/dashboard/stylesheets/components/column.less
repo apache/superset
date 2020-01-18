@@ -35,7 +35,7 @@
     height: 100%;
     top: 0;
     left: 0;
-    z-index: @z-chart;
+    z-index: @z-index-chart;
     pointer-events: none;
   }
   .grid-column:after {
@@ -44,7 +44,7 @@
   .resizable-container.resizable-container--resizing:hover > .grid-column:after,
   .hover-menu:hover + .grid-column:after {
     border: 1px dashed @indicator-color;
-    z-index: @z-chart--dragging;
+    z-index: @z-index-chart--dragging;
   }
 }
 

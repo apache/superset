@@ -71,13 +71,13 @@
       height: 100%;
       top: 0px;
       left: 0px;
-      z-index: @z-chart;
+      z-index: @z-index-chart;
       pointer-events: none;
       border: 1px solid transparent;
     }
     &:hover:after {
       border: 1px dashed @indicator-color;
-      z-index: @z-chart--dragging;
+      z-index: @z-index-chart--dragging;
     }
   }
   .resizable-container {
