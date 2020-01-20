@@ -22,6 +22,8 @@ import { connect } from 'react-redux';
 import DashboardHeader from '../components/Header';
 import isDashboardLoading from '../util/isDashboardLoading';
 
+import { dashboardInfoChanged } from '../actions/dashboardInfo';
+
 import {
   setEditMode,
   showBuilderPane,
@@ -42,6 +44,7 @@ import {
   undoLayoutAction,
   redoLayoutAction,
   updateDashboardTitle,
+  dashboardTitleChanged,
 } from '../actions/dashboardLayout';
 
 import {
@@ -107,6 +110,8 @@ function mapDispatchToProps(dispatch) {
       maxUndoHistoryToast,
       logEvent,
       setRefreshFrequency,
+      dashboardInfoChanged,
+      dashboardTitleChanged,
     },
     dispatch,
   );
