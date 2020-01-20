@@ -397,7 +397,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        sha = 1
+        print(sha)
         query = self.datamodel.session.query(Dashboard)
         dashboard = self._base_filters.apply_all(query).get(pk)
         if not dashboard:

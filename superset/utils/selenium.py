@@ -32,9 +32,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from werkzeug.http import parse_cookie
 
 if TYPE_CHECKING:
-    from flask_appbuilder.security.sqla.models import (
+    from flask_appbuilder.security.sqla.models import (  # pylint: disable=unused-import
         User,
-    )  # pylint: disable=unused-import
+    )
     from flask_caching import Cache  # pylint: disable=unused-import
 
 
@@ -90,7 +90,7 @@ class BaseScreenshot:
             return BytesIO(payload)
         return None
 
-    def compute_and_cache(
+    def compute_and_cache(  # pylint: disable=too-many-arguments
         self,
         user: "User" = None,
         cache: "Cache" = None,
@@ -121,14 +121,14 @@ class BaseScreenshot:
         # Assuming all sorts of things can go wrong with Selenium
         try:
             payload = self.fetch_screenshot(window_size=window_size, user=user)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             logging.error("Failed at generating thumbnail")
             logging.exception(e)
 
         if payload and window_size != thumb_size:
             try:
                 payload = self.resize_image(payload, size=thumb_size)
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
                 logging.error("Failed at resizing thumbnail")
                 logging.exception(e)
                 payload = None
@@ -211,11 +211,11 @@ def _destroy_webdriver(driver):
     # and catch-all exceptions
     try:
         retry_call(driver.close, tries=2)
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         pass
     try:
         driver.quit()
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         pass
 
 
@@ -281,7 +281,7 @@ def create_webdriver(
     return driver
 
 
-def get_png_from_url(
+def get_png_from_url(  # pylint: disable=too-many-arguments
     url: str,
     window: Tuple[int, int],
     element_name: Optional[str],
@@ -295,24 +295,29 @@ def get_png_from_url(
     img = None
     logging.debug(f"Sleeping for {SELENIUM_HEADSTART} seconds")
     time.sleep(SELENIUM_HEADSTART)
-    try:
-        logging.debug(f"Wait for the presence of {element_name}")
-        element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, element_name))
-        )
-        logging.debug(f"Wait for .loading to be done")
-        WebDriverWait(driver, 60).until_not(
-            EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
-        )
-        logging.info("Taking a PNG screenshot")
-        img = element.screenshot_as_png
-    except TimeoutException:
-        logging.error("Selenium timed out")
-    except WebDriverException as e:
-        logging.exception(e)
-        # Some webdrivers do not support screenshots for elements.
-        # In such cases, take a screenshot of the entire page.
-        img = driver.screenshot()  # pylint: disable=no-member
-    finally:
-        _destroy_webdriver(driver)
+    retry_count = 0
+    while retry_count <= retries:
+        try:
+            logging.debug(f"Wait for the presence of {element_name}")
+            element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, element_name))
+            )
+            logging.debug(f"Wait for .loading to be done")
+            WebDriverWait(driver, 60).until_not(
+                EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
+            )
+            logging.info("Taking a PNG screenshot")
+            img = element.screenshot_as_png
+            break
+        except TimeoutException:
+            logging.error("Selenium timed out")
+            retry_count += 1
+        except WebDriverException as e:
+            logging.exception(e)
+            # Some webdrivers do not support screenshots for elements.
+            # In such cases, take a screenshot of the entire page.
+            img = driver.screenshot()  # pylint: disable=no-member
+            break
+        finally:
+            _destroy_webdriver(driver)
     return img
