@@ -22,7 +22,6 @@ from typing import Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app, request, Response, session, url_for
 from flask_login import login_user
-from PIL import Image
 from retry.api import retry_call
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver import chrome, firefox
@@ -30,6 +29,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from werkzeug.http import parse_cookie
+from PIL import Image
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
