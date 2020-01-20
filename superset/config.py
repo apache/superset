@@ -130,7 +130,7 @@ SECRET_KEY = (
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
-SQLALCHEMY_DATABASE_URI = 'mysql://superset:mrcd@123@data-mysql.culfyfk0zivg.ap-south-1.rds.amazonaws.com:3306/superset_test'
+SQLALCHEMY_DATABASE_URI = 'mysql://superset:mrcd@123@data-mysql.culfyfk0zivg.ap-south-1.rds.amazonaws.com:3306/superset'
 
 # In order to hook up a custom password store for all SQLACHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
