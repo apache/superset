@@ -645,6 +645,10 @@ Thumbnails are store on cache, an example config could be:
 
 .. code-block:: python
 
+    from werkzeug.contrib.cache import RedisCache
+
+    ...
+
     class CeleryConfig(object):
         BROKER_URL = "redis://localhost:6379/0"
         CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")

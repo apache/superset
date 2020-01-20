@@ -16,7 +16,7 @@
 # under the License.
 import logging
 import time
-import urllib
+import urllib.parse
 from io import BytesIO
 from typing import Optional, Tuple, TYPE_CHECKING
 
@@ -45,7 +45,7 @@ SELENIUM_HEADSTART = 3
 
 
 def headless_url(path: str):
-    return urllib.parse.urljoin(current_app.config.get("WEBDRIVER_BASEURL"), path)
+    return urllib.parse.urljoin(current_app.config.get("WEBDRIVER_BASEURL", ""), path)
 
 
 def get_url_path(view: str, **kwargs):
@@ -78,14 +78,17 @@ class BaseScreenshot:
         )
         return self.screenshot
 
-    def get_thumb_as_bytes(self, *args, **kwargs):
+    def get_thumb_as_bytes(self, *args, **kwargs) -> Optional[BytesIO]:
         payload = self.get_thumb(*args, **kwargs)
-        return BytesIO(payload)
+        if payload:
+            return BytesIO(payload)
+        return None
 
     def get_from_cache(self, cache: "Cache") -> Optional[BytesIO]:
         payload = cache.get(self.cache_key)
         if payload:
             return BytesIO(payload)
+        return None
 
     def compute_and_cache(
         self,
@@ -106,10 +109,7 @@ class BaseScreenshot:
         :return: Image payload
         """
         cache_key = self.cache_key
-        if not cache:
-            logging.error("No cache set, refusing to compute")
-            return None
-        if not force and cache.get(cache_key):
+        if not force and cache and cache.get(cache_key):
             logging.info("Thumb already cached, skipping...")
             return None
         window_size = window_size or self.window_size

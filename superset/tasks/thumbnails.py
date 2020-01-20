@@ -26,8 +26,11 @@ from superset.utils.selenium import DashboardScreenshot, SliceScreenshot
 
 
 @celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
-def cache_chart_thumbnail(chart_id, force=False):
+def cache_chart_thumbnail(chart_id: int, force: bool = False):
     with app.app_context():
+        if not thumbnail_cache:
+            logging.warning("No cache set, refusing to compute")
+            return None
         logging.info(f"Caching chart {chart_id}")
         screenshot = SliceScreenshot(model_id=chart_id)
         user = security_manager.find_user("Admin")
@@ -35,8 +38,11 @@ def cache_chart_thumbnail(chart_id, force=False):
 
 
 @celery_app.task(name="cache_dashboard_thumbnail", soft_time_limit=300)
-def cache_dashboard_thumbnail(dashboard_id, force=False):
+def cache_dashboard_thumbnail(dashboard_id: int, force: bool = False):
     with app.app_context():
+        if not thumbnail_cache:
+            logging.warning("No cache set, refusing to compute")
+            return None
         logging.info(f"Caching dashboard {dashboard_id}")
         screenshot = DashboardScreenshot(model_id=dashboard_id)
         user = security_manager.find_user("Admin")
