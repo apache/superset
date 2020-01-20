@@ -84,9 +84,9 @@ class DashboardApiTests(SupersetTestCase):
         model = db.session.query(models.Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
 
-    def test_delete_multiple_dashboards(self):
+    def test_delete_bulk_dashboards(self):
         """
-            Dashboard API: Test delete multiple
+            Dashboard API: Test delete bulk
         """
         admin_id = self.get_user("admin").id
         dashboard_count = 4
@@ -105,18 +105,15 @@ class DashboardApiTests(SupersetTestCase):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {
-            "message": f"Deleted {dashboard_count} dashboards",
-            "count": dashboard_count,
-        }
+        expected_response = {"message": f"Deleted {dashboard_count} dashboards"}
         self.assertEqual(response, expected_response)
         for dashboard_id in dashboard_ids:
             model = db.session.query(models.Dashboard).get(dashboard_id)
             self.assertEqual(model, None)
 
-    def test_delete_multiple_dashboards_bad_request(self):
+    def test_delete_bulk_dashboards_bad_request(self):
         """
-            Dashboard API: Test delete multiple bad request
+            Dashboard API: Test delete bulk bad request
         """
         dashboard_ids = [1, "a"]
         self.login(username="admin")
@@ -135,9 +132,9 @@ class DashboardApiTests(SupersetTestCase):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 404)
 
-    def test_delete_multiple_dashboards_not_found(self):
+    def test_delete_bulk_dashboards_not_found(self):
         """
-            Dashboard API: Test delete multiple not found
+            Dashboard API: Test delete bulk not found
         """
         dashboard_ids = [1001, 1002]
         self.login(username="admin")
@@ -160,9 +157,9 @@ class DashboardApiTests(SupersetTestCase):
         model = db.session.query(models.Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
 
-    def test_delete_multiple_dashboard_admin_not_owned(self):
+    def test_delete_bulk_dashboard_admin_not_owned(self):
         """
-            Dashboard API: Test admin delete multiple not owned
+            Dashboard API: Test admin delete bulk not owned
         """
         gamma_id = self.get_user("gamma").id
         dashboard_count = 4
@@ -180,12 +177,9 @@ class DashboardApiTests(SupersetTestCase):
         argument = dashboard_ids
         uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
         rv = self.client.delete(uri)
-        self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {
-            "message": f"Deleted {dashboard_count} dashboards",
-            "count": dashboard_count,
-        }
+        self.assertEqual(rv.status_code, 200)
+        expected_response = {"message": f"Deleted {dashboard_count} dashboards"}
         self.assertEqual(response, expected_response)
 
         for dashboard_id in dashboard_ids:
@@ -217,9 +211,9 @@ class DashboardApiTests(SupersetTestCase):
         db.session.delete(user_alpha2)
         db.session.commit()
 
-    def test_delete_multiple_dashboard_not_owned(self):
+    def test_delete_bulk_dashboard_not_owned(self):
         """
-            Dashboard API: Test delete multiple try not owned
+            Dashboard API: Test delete bulk try not owned
         """
         user_alpha1 = self.create_user(
             "alpha1", "password", "Alpha", email="alpha1@superset.org"
@@ -254,24 +248,27 @@ class DashboardApiTests(SupersetTestCase):
 
         self.login(username="alpha2", password="password")
 
+        # verify we can't delete not owned dashboards
         arguments = [dashboard.id for dashboard in dashboards]
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "No dashboards deleted", "count": 0}
+        expected_response = {"message": "No dashboards deleted"}
         self.assertEqual(response, expected_response)
 
+        # nothing is delete in bulk with a list of owned and not owned dashboards
         arguments = [dashboard.id for dashboard in dashboards] + [owned_dashboard.id]
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "Deleted 1 dashboard", "count": 1}
+        expected_response = {"message": "No dashboards deleted"}
         self.assertEqual(response, expected_response)
 
         for dashboard in dashboards:
             db.session.delete(dashboard)
+        db.session.delete(owned_dashboard)
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
         db.session.commit()

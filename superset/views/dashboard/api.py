@@ -183,7 +183,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         "post": "add",
         "put": "edit",
         "delete": "delete",
-        "multiple_delete": "delete",
+        "bulk_delete": "delete",
         "info": "list",
         "related": "list",
     }
@@ -331,8 +331,8 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
     @protect()
     @safe
     @rison(get_delete_ids_schema)
-    def multiple_delete(self, **kwargs):  # pylint: disable=arguments-differ
-        """Delete multiple Dashboards
+    def bulk_delete(self, **kwargs):  # pylint: disable=arguments-differ
+        """Delete bulk Dashboards
         ---
         delete:
           parameters:
@@ -346,7 +346,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
                     type: integer
           responses:
             200:
-              description: Dashboard multiple delete
+              description: Dashboard bulk delete
               content:
                 application/json:
                   schema:
@@ -354,23 +354,10 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
                     properties:
                       message:
                         type: string
-                      count:
-                        description: Number of deleted dashboards
-                        type: integer
             401:
               $ref: '#/components/responses/401'
             403:
-              description: Dashboard multiple delete
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-                      count:
-                        description: Number of deleted dashboards
-                        type: integer
+              $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -378,39 +365,49 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        item_ids = kwargs["rison"]
         query = self.datamodel.session.query(Dashboard).filter(
-            Dashboard.id.in_(kwargs["rison"])
+            Dashboard.id.in_(item_ids)
         )
         items = self._base_filters.apply_all(query).all()
         if not items:
             return self.response_404()
-        delete_count = 0
-        status_code = 200
         for item in items:
             try:
                 check_ownership(item)
-                self.datamodel.delete(item, raise_exception=True)
-                delete_count += 1
             except SupersetSecurityException as e:
                 logger.warning(
                     f"Dashboard {item} was not deleted, "
                     f"because the user ({g.user}) does not own it"
                 )
-                status_code = 403
+                return self.response(403, message=_("No dashboards deleted"))
             except SQLAlchemyError as e:
                 return self.response_422(message=str(e))
-        if delete_count == 0:
-            return self.response(
-                status_code, message=_("No dashboards deleted"), count=delete_count
-            )
+        # bulk delete, first delete related data
+        for item in items:
+            try:
+                item.slices = []
+                item.owners = []
+                self.datamodel.session.merge(item)
+            except SQLAlchemyError as e:
+                self.datamodel.session.rollback()
+                return self.response_422(message=str(e))
+        # bulk delete itself
+        try:
+            self.datamodel.session.query(Dashboard).filter(
+                Dashboard.id.in_(item_ids)
+            ).delete(synchronize_session="fetch")
+        except SQLAlchemyError as e:
+            self.datamodel.session.rollback()
+            return self.response_422(message=str(e))
+        self.datamodel.session.commit()
         return self.response(
-            status_code,
+            200,
             message=ngettext(
                 f"Deleted %(num)d dashboard",
                 f"Deleted %(num)d dashboards",
-                num=delete_count,
+                num=len(items),
             ),
-            count=delete_count,
         )
 
     @expose("/<pk>", methods=["DELETE"])
