@@ -32,10 +32,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from werkzeug.http import parse_cookie
 
 if TYPE_CHECKING:
-    from flask_appbuilder.security.sqla.models import (  # pylint: disable=unused-import
-        User,
-    )
-    from flask_caching import Cache  # pylint: disable=unused-import
+    # pylint: disable=unused-import
+    from flask_appbuilder.security.sqla.models import User
+    from flask_caching import Cache
 
 
 # Time in seconds, we will wait for the page to load and render
