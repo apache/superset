@@ -45,7 +45,7 @@ interface Props {
   title?: string;
   initialSort?: SortColumn[];
   filterTypes?: FilterTypeMap;
-  bulkActions?: Array<{ key?: string, name: any, onSelect: (rows: any[]) => any }>;
+  bulkActions?: Array<{ key?: string, name: React.ReactNode, onSelect: (rows: any[]) => any }>;
 }
 
 const bulkSelectColumnConfig = {
