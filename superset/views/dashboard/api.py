@@ -392,6 +392,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
                 item.owners = []
                 self.datamodel.session.merge(item)
             except SQLAlchemyError as e:
+                logger.error(f"Error bulk deleting related data on dashboards {e}")
                 self.datamodel.session.rollback()
                 return self.response_422(message=str(e))
         # bulk delete itself
