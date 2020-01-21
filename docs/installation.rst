@@ -676,6 +676,20 @@ You can override the base URL for selenium using:
 
 Additional selenium web drive config can be set using `WEBDRIVER_CONFIGURATION`
 
+You can implement a custom function to authenticate selenium by default will use flask-login session cookie.
+Your custom function signature:
+
+.. code-block:: python
+
+    def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
+        pass
+
+
+Then on config:
+
+.. code-block:: python
+
+    WEBDRIVER_AUTH_FUNC = auth_driver
 
 Deeper SQLAlchemy integration
 -----------------------------

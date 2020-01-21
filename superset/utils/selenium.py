@@ -141,7 +141,7 @@ class AuthWebDriverProxy:
         except Exception:  # pylint: disable=broad-except
             pass
 
-    def get_png_from_url(
+    def get_screenshot(
         self, url: str, element_name: str, user: "User", retries: int = SELENIUM_RETRIES
     ) -> Optional[bytes]:
         driver = self.auth(user)
@@ -193,36 +193,38 @@ class BaseScreenshot:
     def url(self) -> str:
         raise NotImplementedError()
 
-    def fetch(self, user: "User") -> Optional[bytes]:
-        self.screenshot = self._driver.get_png_from_url(self.url, self.element, user)
+    def get_screenshot(self, user: "User") -> Optional[bytes]:
+        self.screenshot = self._driver.get_screenshot(self.url, self.element, user)
         return self.screenshot
 
     def get(
         self, user: "User" = None, cache: "Cache" = None, thumb_size: WindowSize = None
     ) -> Optional[BytesIO]:
-        payload = self._get_thumb_bytes(user=user, thumb_size=thumb_size, cache=cache)
+        """
+            Get thumbnail screenshot has BytesIO from cache or fetch
+
+        :param user: None to use current user or User Model to login and fetch
+        :param cache: The cache to use
+        :param thumb_size: Override thumbnail site
+        """
+        payload: Optional[bytes] = None
+        thumb_size = thumb_size or self.thumb_size
+        if cache:
+            payload = cache.get(self.cache_key)
+        if not payload:
+            payload = self.compute_and_cache(
+                user=user, thumb_size=thumb_size, cache=cache
+            )
+        else:
+            logging.info(f"Loaded thumbnail from cache: {self.cache_key}")
         if payload:
             return BytesIO(payload)
         return None
 
-    def _get_thumb_bytes(
-        self, user: "User" = None, cache: "Cache" = None, thumb_size: WindowSize = None
-    ) -> Optional[bytes]:
-        payload = None
-        cache_key = self.cache_key
-        thumb_size = thumb_size or self.thumb_size
-        if cache:
-            payload = cache.get(cache_key)
-        if not payload:
-            payload = self.compute_and_cache(user, cache, thumb_size)
-        else:
-            logging.info(f"Loaded thumbnail from cache: {cache_key}")
-        return payload
-
-    def get_from_cache(self, cache: "Cache") -> Optional[BytesIO]:
+    def get_from_cache(self, cache: "Cache") -> Optional[bytes]:
         payload = cache.get(self.cache_key)
         if payload:
-            return BytesIO(payload)
+            return payload
         return None
 
     def compute_and_cache(  # pylint: disable=too-many-arguments
@@ -253,7 +255,7 @@ class BaseScreenshot:
 
         # Assuming all sorts of things can go wrong with Selenium
         try:
-            payload = self.fetch(user=user)
+            payload = self.get_screenshot(user=user)
         except Exception as e:  # pylint: disable=broad-except
             logging.error("Failed at generating thumbnail")
             logging.exception(e)
@@ -267,7 +269,7 @@ class BaseScreenshot:
                 payload = None
 
         if payload and cache:
-            logging.info(f"Caching thumbnail: {cache_key}")
+            logging.info(f"Caching thumbnail: {cache_key} {cache}")
             cache.set(cache_key, payload)
         return payload
 
