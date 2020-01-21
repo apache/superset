@@ -27,7 +27,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.exceptions import SupersetSecurityException
 from superset.views.base import check_ownership
 
-
 get_related_schema = {
     "type": "object",
     "properties": {
