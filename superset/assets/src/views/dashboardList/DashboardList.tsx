@@ -25,8 +25,7 @@ import React from 'react';
 import { Button, Modal, Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView/ListView';
-import { FilterTypeMap } from 'src/components/ListView/types';
-import { FetchDataConfig } from 'src/components/ListView/types';
+import { FetchDataConfig, FilterTypeMap } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 import './DashboardList.less';
@@ -35,6 +34,7 @@ const PAGE_SIZE = 25;
 
 interface Props {
   addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
 }
 
 interface State {
@@ -44,6 +44,7 @@ interface State {
   filterTypes: FilterTypeMap;
   permissions: string[];
   labelColumns: { [key: string]: string };
+  lastFetchDataConfig: FetchDataConfig | null;
 }
 
 interface Dashboard {
@@ -80,115 +81,107 @@ class DashboardList extends React.PureComponent<Props, State> {
     dashboards: [],
     filterTypes: {},
     labelColumns: {},
+    lastFetchDataConfig: null,
     loading: false,
     permissions: [],
   };
 
-  public columns: any = [];
-
   public initialSort = [{ id: 'changed_on', desc: true }];
 
-  constructor(props: Props) {
-    super(props);
-    this.setColumns();
-  }
-
-  public setColumns = () => {
-    this.columns = [
-      {
-        Cell: ({
-          row: {
-            original: { url, dashboard_title },
-          },
-        }: any) => <a href={url}>{dashboard_title}</a>,
-        Header: this.state.labelColumns.dashboard_title || '',
-        accessor: 'dashboard_title',
-        filterable: true,
-        sortable: true,
-      },
-      {
-        Cell: ({
-          row: {
-            original: { changed_by_name, changed_by_url },
-          },
-        }: any) => <a href={changed_by_url}>{changed_by_name}</a>,
-        Header: this.state.labelColumns.changed_by_name || '',
-        accessor: 'changed_by_fk',
-        sortable: true,
-      },
-      {
-        Cell: ({
-          row: {
-            original: { published },
-          },
-        }: any) => (
-            <span className='no-wrap'>{published ? <i className='fa fa-check' /> : ''}</span>
-          ),
-        Header: this.state.labelColumns.published || '',
-        accessor: 'published',
-        sortable: true,
-      },
-      {
-        Cell: ({
-          row: {
-            original: { changed_on },
-          },
-        }: any) => (
-            <span className='no-wrap'>{moment(changed_on).fromNow()}</span>
-          ),
-        Header: this.state.labelColumns.changed_on || '',
-        accessor: 'changed_on',
-        sortable: true,
-      },
-      {
-        Cell: ({ row: { state, original } }: any) => {
-          const handleEdit = () => this.handleDashboardEdit(original);
-          const handleExport = () => this.handleBulkDashboardExport([original]);
-          if (!this.canEdit && !this.canDelete && !this.canExport) {
-            return null;
-          }
-
-          return (
-            <ConfirmStatusChange title={t('Please Confirm')} description={`${t('Are you sure you want to delete')} ${original.dashboard_title}?`}>
-              {(confirmDelete) => (
-                <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
-                  {this.canDelete && (
-                    <span
-                      role='button'
-                      className='action-button'
-                      onClick={confirmDelete(() => this.handleDashboardDelete(original))}
-                    >
-                      <i className='fa fa-trash' />
-                    </span>
-                  )}
-                  {this.canExport && (
-                    <span
-                      role='button'
-                      className='action-button'
-                      onClick={handleExport}
-                    >
-                      <i className='fa fa-database' />
-                    </span>
-                  )}
-                  {this.canEdit && (
-                    <span
-                      role='button'
-                      className='action-button'
-                      onClick={handleEdit}
-                    >
-                      <i className='fa fa-pencil' />
-                    </span>
-                  )}
-                </span>
-              )}
-            </ConfirmStatusChange>
-          );
+  public columns = [
+    {
+      Cell: ({
+        row: {
+          original: { url, dashboard_title },
         },
-        Header: t('Actions'),
-        id: 'actions',
+      }: any) => <a href={url}>{dashboard_title}</a>,
+      Header: t('Title'),
+      accessor: 'dashboard_title',
+      filterable: true,
+      sortable: true,
+    },
+    {
+      Cell: ({
+        row: {
+          original: { changed_by_name, changed_by_url },
+        },
+      }: any) => <a href={changed_by_url}>{changed_by_name}</a>,
+      Header: t('Changed By Name'),
+      accessor: 'changed_by_fk',
+      sortable: true,
+    },
+    {
+      Cell: ({
+        row: {
+          original: { published },
+        },
+      }: any) => (
+          <span className='no-wrap'>{published ? <i className='fa fa-check' /> : ''}</span>
+        ),
+      Header: t('Published'),
+      accessor: 'published',
+      sortable: true,
+    },
+    {
+      Cell: ({
+        row: {
+          original: { changed_on },
+        },
+      }: any) => (
+          <span className='no-wrap'>{moment(changed_on).fromNow()}</span>
+        ),
+      Header: t('Changed On'),
+      accessor: 'changed_on',
+      sortable: true,
+    },
+    {
+      Cell: ({ row: { state, original } }: any) => {
+        const handleEdit = () => this.handleDashboardEdit(original);
+        const handleExport = () => this.handleBulkDashboardExport([original]);
+        if (!this.canEdit && !this.canDelete && !this.canExport) {
+          return null;
+        }
+
+        return (
+          <ConfirmStatusChange title={t('Please Confirm')} description={`${t('Are you sure you want to delete')} ${original.dashboard_title}?`}>
+            {(confirmDelete) => (
+              <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
+                {this.canDelete && (
+                  <span
+                    role='button'
+                    className='action-button'
+                    onClick={confirmDelete(() => this.handleDashboardDelete(original))}
+                  >
+                    <i className='fa fa-trash' />
+                  </span>
+                )}
+                {this.canExport && (
+                  <span
+                    role='button'
+                    className='action-button'
+                    onClick={handleExport}
+                  >
+                    <i className='fa fa-database' />
+                  </span>
+                )}
+                {this.canEdit && (
+                  <span
+                    role='button'
+                    className='action-button'
+                    onClick={handleEdit}
+                  >
+                    <i className='fa fa-pencil' />
+                  </span>
+                )}
+              </span>
+            )}
+          </ConfirmStatusChange>
+        );
       },
-    ];
-  }
+      Header: t('Actions'),
+      id: 'actions',
+    },
+  ];
 
   public hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
@@ -207,10 +200,11 @@ class DashboardList extends React.PureComponent<Props, State> {
       endpoint: `/api/v1/dashboard/${id}`,
     }).then(
       () => {
-        const dashboards = this.state.dashboards.filter((d) => d.id !== id);
-        this.setState({
-          dashboards,
-        });
+        const { lastFetchDataConfig } = this.state;
+        if (lastFetchDataConfig) {
+          this.fetchData(lastFetchDataConfig);
+        }
+        this.props.addSuccessToast(t('Deleted') + ` ${dashboard_title}`);
       },
       (err: any) => {
         console.error(err);
@@ -220,11 +214,25 @@ class DashboardList extends React.PureComponent<Props, State> {
   }
 
   public handleBulkDashboardDelete = (dashboards: Dashboard[]) => {
-    Promise.all(dashboards.map(this.handleDashboardDelete));
+    SupersetClient.delete({
+      endpoint: `/api/v1/dashboard/?q=!(${dashboards.map(({ id }) => id).join(',')})`,
+    }).then(
+      ({ json = {} }) => {
+        const { lastFetchDataConfig } = this.state;
+        if (lastFetchDataConfig) {
+          this.fetchData(lastFetchDataConfig);
+        }
+        this.props.addSuccessToast(json.message);
+      },
+      (err: any) => {
+        console.error(err);
+        this.props.addDangerToast(t('There was an issue deleting the selected dashboards'));
+      },
+    );
   }
 
   public handleBulkDashboardExport = (dashboards: Dashboard[]) => {
-    return window.location.href = `/api/v1/dashboard/export/?q=!(${dashboards.map(({ id }) => id).join(',')})`;
+    return window.location.href = `/ api / v1 / dashboard /export/?q=!(${dashboards.map(({ id }) => id).join(',')})`;
   }
 
   public fetchData = ({
@@ -233,7 +241,16 @@ class DashboardList extends React.PureComponent<Props, State> {
     sortBy,
     filters,
   }: FetchDataConfig) => {
-    this.setState({ loading: true });
+    // set loading state, cache the last config for fetching data in this component.
+    this.setState({
+      lastFetchDataConfig: {
+        filters,
+        pageIndex,
+        pageSize,
+        sortBy,
+      },
+      loading: true,
+    });
     const filterExps = filters.map(({ id, filterId, value }) => ({
       col: id,
       opr: filterId,
@@ -260,7 +277,6 @@ class DashboardList extends React.PureComponent<Props, State> {
         );
       })
       .finally(() => {
-        this.setColumns();
         this.setState({ loading: false });
       });
   }
@@ -277,7 +293,7 @@ class DashboardList extends React.PureComponent<Props, State> {
   public render() {
     const { dashboards, dashboardCount, loading, filterTypes } = this.state;
     return (
-      <div className='container welcome'>
+      <div className='container welcome' >
         <Panel>
           <ConfirmStatusChange title={t('Please Confirm')} description={t('Are you sure you want to delete the selected dashboards?')}>
             {(confirmDelete) => {
