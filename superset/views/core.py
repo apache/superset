@@ -19,7 +19,6 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import Any, cast, Dict, List, Optional, Union
 from urllib import parse
 
@@ -88,6 +87,7 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
+from superset.views.chart import views as chart_views
 
 from .base import (
     api,
@@ -106,7 +106,8 @@ from .base import (
     json_success,
     SupersetModelView,
 )
-from .dashboard.filters import DashboardFilter
+from .dashboard import views as dash_views
+from .database import views as in_views
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
@@ -247,17 +248,6 @@ def _deserialize_results_payload(
             return json.loads(payload)  # type: ignore
 
 
-class SliceFilter(BaseFilter):
-    def apply(self, query, func):  # noqa
-        if security_manager.all_datasource_access():
-            return query
-        perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        return query.filter(
-            or_(self.model.perm.in_(perms), self.model.schema_perm.in_(schema_perms))
-        )
-
-
 class AccessRequestsModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(DAR)
     list_columns = [
@@ -277,135 +267,6 @@ class AccessRequestsModelView(SupersetModelView, DeleteMixin):
         "roles_with_datasource": _("Roles to grant"),
         "created_on": _("Created On"),
     }
-
-
-class SliceModelView(SupersetModelView, DeleteMixin):
-    route_base = "/chart"
-    datamodel = SQLAInterface(Slice)
-
-    list_title = _("Charts")
-    show_title = _("Show Chart")
-    add_title = _("Add Chart")
-    edit_title = _("Edit Chart")
-
-    can_add = False
-    search_columns = (
-        "slice_name",
-        "description",
-        "viz_type",
-        "datasource_name",
-        "owners",
-    )
-    list_columns = ["slice_link", "viz_type", "datasource_link", "creator", "modified"]
-    order_columns = ["viz_type", "datasource_link", "modified"]
-    edit_columns = [
-        "slice_name",
-        "description",
-        "viz_type",
-        "owners",
-        "dashboards",
-        "params",
-        "cache_timeout",
-    ]
-    base_order = ("changed_on", "desc")
-    description_columns = {
-        "description": Markup(
-            "The content here can be displayed as widget headers in the "
-            "dashboard view. Supports "
-            '<a href="https://daringfireball.net/projects/markdown/"">'
-            "markdown</a>"
-        ),
-        "params": _(
-            "These parameters are generated dynamically when clicking "
-            "the save or overwrite button in the explore view. This JSON "
-            "object is exposed here for reference and for power users who may "
-            "want to alter specific parameters."
-        ),
-        "cache_timeout": _(
-            "Duration (in seconds) of the caching timeout for this chart. "
-            "Note this defaults to the datasource/table timeout if undefined."
-        ),
-    }
-    base_filters = [["id", SliceFilter, lambda: []]]
-    label_columns = {
-        "cache_timeout": _("Cache Timeout"),
-        "creator": _("Creator"),
-        "dashboards": _("Dashboards"),
-        "datasource_link": _("Datasource"),
-        "description": _("Description"),
-        "modified": _("Last Modified"),
-        "owners": _("Owners"),
-        "params": _("Parameters"),
-        "slice_link": _("Chart"),
-        "slice_name": _("Name"),
-        "table": _("Table"),
-        "viz_type": _("Visualization Type"),
-    }
-
-    add_form_query_rel_fields = {"dashboards": [["name", DashboardFilter, None]]}
-
-    edit_form_query_rel_fields = add_form_query_rel_fields
-
-    def pre_add(self, obj):
-        utils.validate_json(obj.params)
-
-    def pre_update(self, obj):
-        utils.validate_json(obj.params)
-        check_ownership(obj)
-
-    def pre_delete(self, obj):
-        check_ownership(obj)
-
-    @expose("/add", methods=["GET", "POST"])
-    @has_access
-    def add(self):
-        datasources = ConnectorRegistry.get_all_datasources(db.session)
-        datasources = [
-            {"value": str(d.id) + "__" + d.type, "label": repr(d)} for d in datasources
-        ]
-        return self.render_template(
-            "superset/add_slice.html",
-            bootstrap_data=json.dumps(
-                {"datasources": sorted(datasources, key=lambda d: d["label"])}
-            ),
-        )
-
-
-class SliceAsync(SliceModelView):
-    route_base = "/sliceasync"
-    list_columns = [
-        "id",
-        "slice_link",
-        "viz_type",
-        "slice_name",
-        "creator",
-        "modified",
-        "icons",
-        "changed_on_humanized",
-    ]
-    label_columns = {"icons": " ", "slice_link": _("Chart")}
-
-
-class SliceAddView(SliceModelView):
-    route_base = "/sliceaddview"
-    list_columns = [
-        "id",
-        "slice_name",
-        "slice_url",
-        "edit_url",
-        "viz_type",
-        "params",
-        "description",
-        "description_markeddown",
-        "datasource_id",
-        "datasource_type",
-        "datasource_name_text",
-        "datasource_link",
-        "owners",
-        "modified",
-        "changed_on",
-        "changed_on_humanized",
-    ]
 
 
 @talisman(force_https=False)
