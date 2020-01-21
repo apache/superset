@@ -22,7 +22,7 @@ import { Modal, Button } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 
 describe('ConfirmStatusChange', () => {
-  let action = jest.fn();
+  const action = jest.fn();
   const mockedProps = {
     title: 'please confirm',
     description: 'are you sure?',
