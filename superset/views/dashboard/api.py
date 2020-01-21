@@ -402,7 +402,8 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         dashboard = self._base_filters.apply_all(query).get(pk)
         if not dashboard:
             return self.response_404()
-        screenshot = DashboardScreenshot(pk).get_thumb_as_bytes(cache=thumbnail_cache)
+        # fetch the dashboard screenshot using the current user and cache if set
+        screenshot = DashboardScreenshot(pk).get(cache=thumbnail_cache)
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )

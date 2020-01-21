@@ -18,11 +18,10 @@ import logging
 import time
 import urllib.parse
 from io import BytesIO
-from typing import Any, Callable, Dict, Optional, Tuple, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app, request, Response, session, url_for
 from flask_login import login_user
-from PIL import Image
 from retry.api import retry_call
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver import chrome, firefox
@@ -31,6 +30,8 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from werkzeug.http import parse_cookie
+
+from PIL import Image
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
@@ -45,53 +46,23 @@ SELENIUM_HEADSTART = 3
 WindowSize = Tuple[int, int]
 
 
-def headless_url(path: str):
-    return urllib.parse.urljoin(current_app.config.get("WEBDRIVER_BASEURL", ""), path)
-
-
-def get_url_path(view: str, **kwargs):
+def get_auth_cookies(user: "User") -> List[Dict]:
+    # Login with the user specified to get the reports
     with current_app.test_request_context():
-        return headless_url(url_for(view, **kwargs))
+        login_user(user)
 
+        # A mock response object to get the cookie information from
+        response = Response()
+        current_app.session_interface.save_session(current_app, session, response)
 
-def get_png_from_url(  # pylint: disable=too-many-arguments
-    url: str,
-    window: WindowSize,
-    element_name: str,
-    user: "User",
-    auth_driver_func: Callable,
-    webdriver_name: str = "chrome",
-    retries: int = SELENIUM_RETRIES,
-) -> Optional[bytes]:
-    driver = create_webdriver(
-        user, webdriver_name, window, auth_driver_func=auth_driver_func
-    )
-    driver.set_window_size(*window)
-    driver.get(url)
-    img: Optional[bytes] = None
-    logging.debug(f"Sleeping for {SELENIUM_HEADSTART} seconds")
-    time.sleep(SELENIUM_HEADSTART)
-    try:
-        logging.debug(f"Wait for the presence of {element_name}")
-        element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, element_name))
-        )
-        logging.debug(f"Wait for .loading to be done")
-        WebDriverWait(driver, 60).until_not(
-            EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
-        )
-        logging.info("Taking a PNG screenshot")
-        img = element.screenshot_as_png
-    except TimeoutException:
-        logging.error("Selenium timed out")
-    except WebDriverException as e:
-        logging.exception(e)
-        # Some webdrivers do not support screenshots for elements.
-        # In such cases, take a screenshot of the entire page.
-        img = driver.screenshot()  # pylint: disable=no-member
-    finally:
-        _destroy_webdriver(driver, retries)
-    return img
+    cookies = []
+
+    # Set the cookies in the driver
+    for name, value in response.headers:
+        if name.lower() == "set-cookie":
+            cookie = parse_cookie(value)
+            cookies.append(cookie["session"])
+    return cookies
 
 
 def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
@@ -112,63 +83,138 @@ def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
     return driver
 
 
+def headless_url(path: str) -> str:
+    return urllib.parse.urljoin(current_app.config.get("WEBDRIVER_BASEURL", ""), path)
+
+
+def get_url_path(view: str, **kwargs) -> str:
+    with current_app.test_request_context():
+        return headless_url(url_for(view, **kwargs))
+
+
+class AuthWebDriverProxy:
+    def __init__(
+        self, driver_type: str, window: WindowSize = None, auth_func: Callable = None
+    ):
+        self._driver_type = driver_type
+        self._window: WindowSize = window or (800, 600)
+        config_auth_func: Callable = current_app.config.get(
+            "WEBDRIVER_AUTH_FUNC", auth_driver
+        )
+        self._auth_func: Callable = auth_func or config_auth_func
+
+    def create(self) -> WebDriver:
+        if self._driver_type == "firefox":
+            driver_class = firefox.webdriver.WebDriver
+            options = firefox.options.Options()
+        elif self._driver_type == "chrome":
+            driver_class = chrome.webdriver.WebDriver
+            options = chrome.options.Options()
+            arg: str = f"--window-size={self._window[0]},{self._window[1]}"
+            options.add_argument(arg)
+        else:
+            raise Exception(f"Webdriver name ({self._driver_type}) not supported")
+        # Prepare args for the webdriver init
+        options.add_argument("--headless")
+        kwargs: Dict = dict(options=options)
+        kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
+        logging.info("Init selenium driver")
+        return driver_class(**kwargs)
+
+    def auth(self, user: "User") -> WebDriver:
+        # Setting cookies requires doing a request first
+        driver = self.create()
+        driver.get(headless_url("/login/"))
+        return self._auth_func(driver, user)
+
+    @staticmethod
+    def destroy(driver: WebDriver, tries=2):
+        """Destroy a driver"""
+        # This is some very flaky code in selenium. Hence the retries
+        # and catch-all exceptions
+        try:
+            retry_call(driver.close, tries=tries)
+        except Exception:  # pylint: disable=broad-except
+            pass
+        try:
+            driver.quit()
+        except Exception:  # pylint: disable=broad-except
+            pass
+
+    def get_png_from_url(
+        self, url: str, element_name: str, user: "User", retries: int = SELENIUM_RETRIES
+    ) -> Optional[bytes]:
+        driver = self.auth(user)
+        driver.set_window_size(*self._window)
+        driver.get(url)
+        img: Optional[bytes] = None
+        logging.debug(f"Sleeping for {SELENIUM_HEADSTART} seconds")
+        time.sleep(SELENIUM_HEADSTART)
+        try:
+            logging.debug(f"Wait for the presence of {element_name}")
+            element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, element_name))
+            )
+            logging.debug(f"Wait for .loading to be done")
+            WebDriverWait(driver, 60).until_not(
+                EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
+            )
+            logging.info("Taking a PNG screenshot")
+            img = element.screenshot_as_png
+        except TimeoutException:
+            logging.error("Selenium timed out")
+        except WebDriverException as e:
+            logging.exception(e)
+            # Some webdrivers do not support screenshots for elements.
+            # In such cases, take a screenshot of the entire page.
+            img = driver.screenshot()  # pylint: disable=no-member
+        finally:
+            self.destroy(driver, retries)
+        return img
+
+
 class BaseScreenshot:
+    driver_type = "chrome"
     thumbnail_type: str = ""
     element: str = ""
     window_size: WindowSize = (800, 600)
     thumb_size: WindowSize = (400, 300)
 
-    def __init__(
-        self,
-        model_id: int,
-        fetch_png_from_url_func: Callable = get_png_from_url,
-        auth_driver_func: Callable = auth_driver,
-    ):
+    def __init__(self, model_id: int):
         self.model_id: int = model_id
-        self._fetch_png_from_url_func = fetch_png_from_url_func
-        self._auth_driver_func = auth_driver_func
         self.screenshot: Optional[bytes] = None
+        self._driver = AuthWebDriverProxy(self.driver_type, self.window_size)
 
     @property
-    def cache_key(self):
+    def cache_key(self) -> str:
         return f"thumb__{self.thumbnail_type}__{self.model_id}"
 
     @property
-    def url(self):
+    def url(self) -> str:
         raise NotImplementedError()
 
-    def fetch(self, user: "User", window_size: WindowSize = None):
-        window_size = window_size or self.window_size
-        self.screenshot = self._fetch_png_from_url_func(
-            self.url,
-            window_size,
-            self.element,
-            user=user,
-            auth_driver_func=self._auth_driver_func,
-        )
+    def fetch(self, user: "User") -> Optional[bytes]:
+        self.screenshot = self._driver.get_png_from_url(self.url, self.element, user)
         return self.screenshot
 
-    def get_thumb_as_bytes(self, *args, **kwargs) -> Optional[BytesIO]:
-        payload = self.get_thumb(*args, **kwargs)
+    def get(
+        self, user: "User" = None, cache: "Cache" = None, thumb_size: WindowSize = None
+    ) -> Optional[BytesIO]:
+        payload = self._get_thumb_bytes(user=user, thumb_size=thumb_size, cache=cache)
         if payload:
             return BytesIO(payload)
         return None
 
-    def get_thumb(
-        self,
-        user: "User" = None,
-        window_size: WindowSize = None,
-        thumb_size: WindowSize = None,
-        cache: "Cache" = None,
+    def _get_thumb_bytes(
+        self, user: "User" = None, cache: "Cache" = None, thumb_size: WindowSize = None
     ) -> Optional[bytes]:
         payload = None
         cache_key = self.cache_key
-        window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
         if cache:
             payload = cache.get(cache_key)
         if not payload:
-            payload = self.compute_and_cache(user, cache, window_size, thumb_size)
+            payload = self.compute_and_cache(user, cache, thumb_size)
         else:
             logging.info(f"Loaded thumbnail from cache: {cache_key}")
         return payload
@@ -182,9 +228,8 @@ class BaseScreenshot:
     def compute_and_cache(  # pylint: disable=too-many-arguments
         self,
         user: "User" = None,
-        cache: "Cache" = None,
-        window_size: WindowSize = None,
         thumb_size: WindowSize = None,
+        cache: "Cache" = None,
         force: bool = True,
     ) -> Optional[bytes]:
         """
@@ -201,7 +246,6 @@ class BaseScreenshot:
         if not force and cache and cache.get(cache_key):
             logging.info("Thumb already cached, skipping...")
             return None
-        window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
         logging.info(f"Processing url for thumbnail: {cache_key}")
 
@@ -209,12 +253,12 @@ class BaseScreenshot:
 
         # Assuming all sorts of things can go wrong with Selenium
         try:
-            payload = self.fetch(window_size=window_size, user=user)
+            payload = self.fetch(user=user)
         except Exception as e:  # pylint: disable=broad-except
             logging.error("Failed at generating thumbnail")
             logging.exception(e)
 
-        if payload and window_size != thumb_size:
+        if payload and self.window_size != thumb_size:
             try:
                 payload = self.resize_image(payload, size=thumb_size)
             except Exception as e:  # pylint: disable=broad-except
@@ -232,7 +276,7 @@ class BaseScreenshot:
         cls,
         img_bytes: bytes,
         output: str = "png",
-        size: Tuple[int, int] = None,
+        size: WindowSize = None,
         crop: bool = True,
     ) -> bytes:
         size = size or cls.thumb_size
@@ -256,8 +300,8 @@ class BaseScreenshot:
 class SliceScreenshot(BaseScreenshot):
     thumbnail_type: str = "slice"
     element: str = "chart-container"
-    window_size: Tuple[int, int] = (600, int(600 * 0.75))
-    thumb_size: Tuple[int, int] = (300, int(300 * 0.75))
+    window_size: WindowSize = (600, int(600 * 0.75))
+    thumb_size: WindowSize = (300, int(300 * 0.75))
 
     @property
     def url(self) -> str:
@@ -267,77 +311,9 @@ class SliceScreenshot(BaseScreenshot):
 class DashboardScreenshot(BaseScreenshot):
     thumbnail_type: str = "dashboard"
     element: str = "grid-container"
-    window_size: Tuple[int, int] = (1600, int(1600 * 0.75))
-    thumb_size: Tuple[int, int] = (400, int(400 * 0.75))
+    window_size: WindowSize = (1600, int(1600 * 0.75))
+    thumb_size: WindowSize = (400, int(400 * 0.75))
 
     @property
     def url(self) -> str:
         return get_url_path("Superset.dashboard", dashboard_id=self.model_id)
-
-
-def _destroy_webdriver(driver, tries=2):
-    """Destroy a driver"""
-    # This is some very flaky code in selenium. Hence the retries
-    # and catch-all exceptions
-    try:
-        retry_call(driver.close, tries=tries)
-    except Exception:  # pylint: disable=broad-except
-        pass
-    try:
-        driver.quit()
-    except Exception:  # pylint: disable=broad-except
-        pass
-
-
-def get_auth_cookies(user: "User"):
-    # Login with the user specified to get the reports
-    with current_app.test_request_context():
-        login_user(user)
-
-        # A mock response object to get the cookie information from
-        response = Response()
-        current_app.session_interface.save_session(current_app, session, response)
-
-    cookies = []
-
-    # Set the cookies in the driver
-    for name, value in response.headers:
-        if name.lower() == "set-cookie":
-            cookie = parse_cookie(value)
-            cookies.append(cookie["session"])
-    return cookies
-
-
-def create_webdriver(
-    user: "User" = None,
-    webdriver: str = "chrome",
-    window: WindowSize = None,
-    auth_driver_func: Callable = auth_driver,
-) -> Any:
-    """Creates a selenium webdriver
-
-    If no user is specified, we use the current request's context"""
-    # Create a webdriver for use in fetching reports
-    window = window or (800, 600)
-    if webdriver == "firefox":
-        driver_class: WebDriver = firefox.webdriver.WebDriver
-        options = firefox.options.Options()
-    else:
-        # webdriver == 'chrome':
-        driver_class = chrome.webdriver.WebDriver
-        options = chrome.options.Options()
-        arg: str = f"--window-size={window[0]},{window[1]}"
-        options.add_argument(arg)
-
-    options.add_argument("--headless")
-
-    # Prepare args for the webdriver init
-    kwargs: Dict = dict(options=options)
-    kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
-
-    logging.info("Init selenium driver")
-    driver = driver_class(**kwargs)
-
-    # Setting cookies requires doing a request first
-    driver.get(headless_url("/login/"))
-    return auth_driver_func(driver, user)
