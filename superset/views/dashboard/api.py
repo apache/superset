@@ -15,23 +15,29 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import re
 from typing import Dict, List
 
-from flask import current_app, make_response
+from flask import current_app, g, make_response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import lazy_gettext as _, ngettext
 from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
+from sqlalchemy.exc import SQLAlchemyError
 
-from superset.exceptions import SupersetException
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
-from superset.views.base import generate_download_headers
+from superset.views.base import check_ownership, generate_download_headers
 from superset.views.base_api import BaseOwnedModelRestApi
 from superset.views.base_schemas import BaseOwnedSchema, validate_owner
 
 from .mixin import DashboardMixin
+
+logger = logging.getLogger(__name__)
+get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 
 class DashboardJSONMetadataSchema(Schema):
@@ -136,6 +142,7 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
         "post": "add",
         "put": "edit",
         "delete": "delete",
+        "bulk_delete": "delete",
         "info": "list",
         "related": "list",
     }
@@ -171,6 +178,93 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
         "owners": ("first_name", "asc"),
     }
     filter_rel_fields_field = {"owners": "first_name", "slices": "slice_name"}
+
+    @expose("/", methods=["DELETE"])
+    @protect()
+    @safe
+    @rison(get_delete_ids_schema)
+    def bulk_delete(self, **kwargs):  # pylint: disable=arguments-differ
+        """Delete bulk Dashboards
+        ---
+        delete:
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: integer
+          responses:
+            200:
+              description: Dashboard bulk delete
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item_ids = kwargs["rison"]
+        query = self.datamodel.session.query(Dashboard).filter(
+            Dashboard.id.in_(item_ids)
+        )
+        items = self._base_filters.apply_all(query).all()
+        if not items:
+            return self.response_404()
+        # Check user ownership over the items
+        for item in items:
+            try:
+                check_ownership(item)
+            except SupersetSecurityException as e:
+                logger.warning(
+                    f"Dashboard {item} was not deleted, "
+                    f"because the user ({g.user}) does not own it"
+                )
+                return self.response(403, message=_("No dashboards deleted"))
+            except SQLAlchemyError as e:
+                logger.error(f"Error checking dashboard ownership {e}")
+                return self.response_422(message=str(e))
+        # bulk delete, first delete related data
+        for item in items:
+            try:
+                item.slices = []
+                item.owners = []
+                self.datamodel.session.merge(item)
+            except SQLAlchemyError as e:
+                logger.error(f"Error bulk deleting related data on dashboards {e}")
+                self.datamodel.session.rollback()
+                return self.response_422(message=str(e))
+        # bulk delete itself
+        try:
+            self.datamodel.session.query(Dashboard).filter(
+                Dashboard.id.in_(item_ids)
+            ).delete(synchronize_session="fetch")
+        except SQLAlchemyError as e:
+            logger.error(f"Error bulk deleting dashboards {e}")
+            self.datamodel.session.rollback()
+            return self.response_422(message=str(e))
+        self.datamodel.session.commit()
+        return self.response(
+            200,
+            message=ngettext(
+                f"Deleted %(num)d dashboard",
+                f"Deleted %(num)d dashboards",
+                num=len(items),
+            ),
+        )
 
     @expose("/export/", methods=["GET"])
     @protect()
