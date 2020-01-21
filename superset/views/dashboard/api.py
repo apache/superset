@@ -372,6 +372,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
         items = self._base_filters.apply_all(query).all()
         if not items:
             return self.response_404()
+        # Check user ownership over the items
         for item in items:
             try:
                 check_ownership(item)
@@ -382,6 +383,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
                 )
                 return self.response(403, message=_("No dashboards deleted"))
             except SQLAlchemyError as e:
+                logger.error(f"Error checking dashboard ownership {e}")
                 return self.response_422(message=str(e))
         # bulk delete, first delete related data
         for item in items:
@@ -398,6 +400,7 @@ class DashboardRestApi(DashboardMixin, BaseSupersetModelRestApi):
                 Dashboard.id.in_(item_ids)
             ).delete(synchronize_session="fetch")
         except SQLAlchemyError as e:
+            logger.error(f"Error bulk deleting dashboards {e}")
             self.datamodel.session.rollback()
             return self.response_422(message=str(e))
         self.datamodel.session.commit()
