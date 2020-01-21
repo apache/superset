@@ -56,6 +56,9 @@ describe('ListView', () => {
 
   afterEach(() => {
     mockedProps.fetchData.mockClear();
+    mockedProps.bulkActions.forEach(ba => {
+      ba.onSelect.mockClear();
+    });
   });
 
   it('calls fetchData on mount', () => {
