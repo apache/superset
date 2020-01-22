@@ -41,7 +41,7 @@ from sqlalchemy.orm.mapper import Mapper
 
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.constants import CRUD_ROUTE_METHODS
+from superset.constants import RouteMethods
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName
 
@@ -79,11 +79,11 @@ PermissionViewModelView.list_widget = SupersetSecurityListWidget
 PermissionModelView.list_widget = SupersetSecurityListWidget
 
 # Limiting routes on FAB model views
-UserModelView.include_route_methods = CRUD_ROUTE_METHODS | {"userinfo"}
-RoleModelView.include_route_methods = CRUD_ROUTE_METHODS
-PermissionViewModelView.include_route_methods = {"list"}
-PermissionModelView.include_route_methods = {"list"}
-ViewMenuModelView.include_route_methods = {"list"}
+UserModelView.include_route_methods = RouteMethod.CRUD_SET | {"userinfo"}
+RoleModelView.include_route_methods = RouteMethod.CRUD_SET
+PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
+PermissionModelView.include_route_methods = {RouteMethod.LIST}
+ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
 
 
 class SupersetSecurityManager(SecurityManager):

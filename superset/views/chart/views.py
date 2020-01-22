@@ -33,7 +33,11 @@ class SliceModelView(
 ):  # pylint: disable=too-many-ancestors
     route_base = "/chart"
     datamodel = SQLAInterface(Slice)
-    include_route_methods = RouteMethod.CRUD_SET | {RouteMethod.DOWNLOAD}
+    include_route_methods = RouteMethod.CRUD_SET | {
+        RouteMethod.DOWNLOAD,
+        RouteMethod.API_READ,
+        RouteMethod.API_DELETE,
+    }
 
     def pre_add(self, item):
         utils.validate_json(item.params)

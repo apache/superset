@@ -19,6 +19,33 @@
 
 # string to use when None values *need* to be converted to/from strings
 NULL_STRING = "<NULL>"
-CRUD_ROUTE_METHODS = {"list", "add", "edit", "delete", "action_post"}
-RELATED_VIEWS_ROUTE_METHODS = {"list"}
-API_READ_ROUTE_METHODS = {"api_read"}
+
+
+class RouteMethod:
+    """
+    Route methods are a FAB concept around ModelView and RestModelView
+    classes in FAB. Derivatives can define `include_route_method` and
+    `exclude_route_methods` class attribute as a set of methods that
+    will or won't get exposed.
+
+    This class is a collection of static constants to reference common
+    route methods, namely the ones defined in the base classes in FAB
+    """
+
+    ACTION = "action"
+    ACTION_POST = "action_post"
+    ADD = "add"
+    API_CREATE = "API_CREATE"
+    API_DELETE = "api_delete"
+    API_GET = "API_GET"
+    API_READ = "api_read"
+    API_UPDATE = "api_update"
+    DELETE = "delete"
+    DOWNLOAD = "download"
+    EDIT = "edit"
+    LIST = "list"
+    SHOW = "show"
+
+    # Common sets
+    CRUD_SET = frozenset((ADD, LIST, EDIT, DELETE, ACTION_POST))
+    RELATED_VIEW_SET = frozenset((ADD, LIST, EDIT, DELETE))

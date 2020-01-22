@@ -31,7 +31,7 @@ from wtforms.validators import Regexp
 
 from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
-from superset.constants import CRUD_ROUTE_METHODS, RELATED_VIEWS_ROUTE_METHODS
+from superset.constants import RouteMethod
 from superset.utils import core as utils
 from superset.views.base import (
     DatasourceFilter,
@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.TableColumn)
     # TODO TODO, review need for this on related_views
-    include_route_methods = RELATED_VIEWS_ROUTE_METHODS
+    include_route_methods = RouteMethod.RELATED_VIEW_SET
 
     list_title = _("Columns")
     show_title = _("Show Column")
@@ -167,7 +167,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
 
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.SqlMetric)
-    include_route_methods = RELATED_VIEWS_ROUTE_METHODS
+    include_route_methods = RouteMethod.RELATED_VIEW_SET
 
     list_title = _("Metrics")
     show_title = _("Show Metric")
@@ -227,7 +227,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
 
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.SqlaTable)
-    include_route_methods = CRUD_ROUTE_METHODS
+    include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("Tables")
     show_title = _("Show Table")

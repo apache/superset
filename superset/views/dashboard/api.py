@@ -142,7 +142,6 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
     resource_name = "dashboard"
     allow_browser_login = True
 
-    exclude_route_methods = ("info",)
     class_permission_name = "DashboardModelView"
     method_permission_name = {
         "get_list": "list",

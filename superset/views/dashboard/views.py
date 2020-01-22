@@ -26,7 +26,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
 from superset import db, event_logger
-from superset.constants import API_READ_ROUTE_METHODS, CRUD_ROUTE_METHODS
+from superset.constants import RouteMethod
 from superset.utils import core as utils
 
 from ..base import (
@@ -48,10 +48,10 @@ class DashboardModelView(
     datamodel = SQLAInterface(models.Dashboard)
     # TODO disable api_read and api_delete (used by cypress)
     # once we move to ChartRestModelApi
-    include_route_methods = CRUD_ROUTE_METHODS | {
+    include_route_methods = RouteMethod.CRUD_SET | {
+        RouteMethod.API_READ,
+        RouteMethod.API_DELETE,
         "download_dashboards",
-        "api_read",
-        "api_delete",
     }
 
     @has_access
@@ -127,7 +127,7 @@ class Dashboard(BaseSupersetView):
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
-    include_route_methods = API_READ_ROUTE_METHODS
+    include_route_methods = {RouteMethod.API_READ}
 
     list_columns = [
         "id",

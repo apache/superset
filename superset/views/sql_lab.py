@@ -25,7 +25,7 @@ from flask_babel import lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
 
 from superset import db, get_feature_flags, security_manager
-from superset.constants import CRUD_ROUTE_METHODS
+from superset.constants import RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.utils import core as utils
 
@@ -53,7 +53,7 @@ class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
 class QueryView(SupersetModelView):
     datamodel = SQLAInterface(Query)
-    include_route_methods = {"show", "list", "api_read"}
+    include_route_methods = {RouteMethod.SHOW, RouteMethod.LIST, RouteMethod.API_READ}
 
     list_title = _("List Query")
     show_title = _("Show Query")
@@ -77,7 +77,7 @@ class SavedQueryView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SavedQuery)
-    include_route_methods = CRUD_ROUTE_METHODS
+    include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("List Saved Query")
     show_title = _("Show Saved Query")
@@ -146,7 +146,12 @@ class SavedQueryView(
 
 
 class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
-    include_route_methods = {"api_read", "api_create", "api_update", "api_get"}
+    include_route_methods = {
+        RouteMethod.API_READ,
+        RouteMethod.API_CREATE,
+        RouteMethod.API_UPDATE,
+        RouteMethod.API_GET,
+    }
     list_columns = [
         "id",
         "label",
