@@ -51,11 +51,6 @@ class BaseModelRestApiTests(SupersetTestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def find_fab_view_by_name(self, name: str) -> object:
-        for base_view in appbuilder.baseviews:
-            if base_view.__class__.__name__ == name:
-                return base_view
-
     def test_default_missing_declaration_get(self):
         """
             API: Test default missing declaration on get
