@@ -282,7 +282,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "published": True,
         }
         self.login(username="admin")
-        uri = f"api/v1/dashboard/"
+        uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
@@ -296,7 +296,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         dashboard_data = {"dashboard_title": "title1"}
         self.login(username="admin")
-        uri = f"api/v1/dashboard/"
+        uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
@@ -310,7 +310,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         dashboard_data = {}
         self.login(username="admin")
-        uri = f"api/v1/dashboard/"
+        uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
@@ -320,7 +320,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         dashboard_data = {"dashboard_title": ""}
         self.login(username="admin")
-        uri = f"api/v1/dashboard/"
+        uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
@@ -334,7 +334,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         dashboard_data = {"dashboard_title": "a" * 600}
         self.login(username="admin")
-        uri = f"api/v1/dashboard/"
+        uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
@@ -353,7 +353,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         # Check for slug uniqueness
         dashboard_data = {"dashboard_title": "title2", "slug": "slug1"}
-        uri = f"api/v1/dashboard/"
+        uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
@@ -362,7 +362,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         # Check for slug max size
         dashboard_data = {"dashboard_title": "title2", "slug": "a" * 256}
-        uri = f"api/v1/dashboard/"
+        uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
@@ -378,7 +378,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         dashboard_data = {"dashboard_title": "title1", "owners": [1000]}
         self.login(username="admin")
-        uri = f"api/v1/dashboard/"
+        uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
@@ -391,13 +391,13 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         dashboard_data = {"dashboard_title": "title1", "position_json": '{"A:"a"}'}
         self.login(username="admin")
-        uri = f"api/v1/dashboard/"
+        uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
 
         dashboard_data = {"dashboard_title": "title1", "json_metadata": '{"A:"a"}'}
         self.login(username="admin")
-        uri = f"api/v1/dashboard/"
+        uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
 
@@ -406,7 +406,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "json_metadata": '{"refresh_frequency": "A"}',
         }
         self.login(username="admin")
-        uri = f"api/v1/dashboard/"
+        uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
 
