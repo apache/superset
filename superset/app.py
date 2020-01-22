@@ -411,24 +411,26 @@ class SupersetAppInitializer:
             appbuilder.add_view_no_menu(DruidMetricInlineView)
             appbuilder.add_view_no_menu(DruidColumnInlineView)
             appbuilder.add_view_no_menu(Druid)
-            appbuilder.add_link(
-                "Scan New Datasources",
-                label=__("Scan New Datasources"),
-                href="/druid/scan_new_datasources/",
-                category="Sources",
-                category_label=__("Sources"),
-                category_icon="fa-database",
-                icon="fa-refresh",
-            )
-            appbuilder.add_link(
-                "Refresh Druid Metadata",
-                label=__("Refresh Druid Metadata"),
-                href="/druid/refresh_datasources/",
-                category="Sources",
-                category_label=__("Sources"),
-                category_icon="fa-database",
-                icon="fa-cog",
-            )
+
+            if self.config["DRUID_METADATA_LINKS_ENABLED"]:
+                appbuilder.add_link(
+                    "Scan New Datasources",
+                    label=__("Scan New Datasources"),
+                    href="/druid/scan_new_datasources/",
+                    category="Sources",
+                    category_label=__("Sources"),
+                    category_icon="fa-database",
+                    icon="fa-refresh",
+                )
+                appbuilder.add_link(
+                    "Refresh Druid Metadata",
+                    label=__("Refresh Druid Metadata"),
+                    href="/druid/refresh_datasources/",
+                    category="Sources",
+                    category_label=__("Sources"),
+                    category_icon="fa-database",
+                    icon="fa-cog",
+                )
             appbuilder.add_separator("Sources")
 
     def init_app_in_ctx(self) -> None:
