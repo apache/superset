@@ -142,15 +142,14 @@ class SupersetAppInitializer:
         from superset.views.api import Api
         from superset.views.core import (
             AccessRequestsModelView,
-            SliceModelView,
-            SliceAsync,
-            SliceAddView,
             KV,
             R,
             Superset,
             CssTemplateModelView,
             CssTemplateAsyncModelView,
         )
+        from superset.views.chart.api import ChartRestApi
+        from superset.views.chart.views import SliceModelView, SliceAsync, SliceAddView
         from superset.views.dashboard.api import DashboardRestApi
         from superset.views.dashboard.views import (
             DashboardModelView,
@@ -185,6 +184,7 @@ class SupersetAppInitializer:
         #
         # Setup API views
         #
+        appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
 

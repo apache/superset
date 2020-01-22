@@ -52,7 +52,7 @@ marshmallow-sqlalchemy==0.17.0  # via flask-appbuilder
 marshmallow==2.19.5       # via flask-appbuilder, marshmallow-enum, marshmallow-sqlalchemy
 msgpack==0.6.1
 numpy==1.17.0             # via pandas, pyarrow
-pandas==0.24.2
+pandas==0.25.3
 parsedatetime==2.4
 pathlib2==2.3.4
 polyline==1.4.0

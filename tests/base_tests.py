@@ -61,6 +61,15 @@ class SupersetTestCase(TestCase):
             username, first_name, last_name, email, role_admin, password
         )
 
+    @staticmethod
+    def get_user(username: str) -> ab_models.User:
+        user = (
+            db.session.query(security_manager.user_model)
+            .filter_by(username=username)
+            .one_or_none()
+        )
+        return user
+
     @classmethod
     def create_druid_test_objects(cls):
         # create druid cluster and druid datasources
