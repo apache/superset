@@ -205,7 +205,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
     list_columns = ["cluster_name", "metadata_last_refreshed"]
     search_columns = ("cluster_name",)
     label_columns = {
-        "cluster_name": _("Cluster"),
+        "cluster_name": _("Cluster Name"),
         "broker_host": _("Broker Host"),
         "broker_port": _("Broker Port"),
         "broker_user": _("Broker Username"),
@@ -234,14 +234,6 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
     }
 
     yaml_dict_key = "databases"
-
-    edit_form_extra_fields = {
-        "cluster_name": QuerySelectField(
-            "Cluster",
-            query_factory=lambda: db.session().query(models.DruidCluster),
-            widget=Select2Widget(extra_classes="readonly"),
-        )
-    }
 
     def pre_add(self, cluster):
         security_manager.add_permission_view_menu("database_access", cluster.perm)
