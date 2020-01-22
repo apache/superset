@@ -87,8 +87,7 @@ ViewMenuModelView.include_route_methods = {"list"}
 
 
 class SupersetSecurityManager(SecurityManager):
-    # TODO uncomment next line on next FAB upgrade
-    # userstatschartview = None
+    userstatschartview = None
     READ_ONLY_MODEL_VIEWS = {"DatabaseAsync", "DatabaseView", "DruidClusterModelView"}
 
     USER_MODEL_VIEWS = {
