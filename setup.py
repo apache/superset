@@ -90,7 +90,7 @@ setup(
         "isodate",
         "markdown>=3.0",
         "msgpack>=0.6.1, <0.7.0",
-        "pandas>=0.24.2, <0.25.0",
+        "pandas>=0.25.3, <1.0",
         "parsedatetime",
         "pathlib2",
         "polyline",
