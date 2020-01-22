@@ -89,7 +89,6 @@ from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
 from superset.views.chart import views as chart_views
-from superset.views.constants import RouteMethod
 
 from .base import (
     api,

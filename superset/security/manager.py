@@ -41,7 +41,7 @@ from sqlalchemy.orm.mapper import Mapper
 
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.constants import RouteMethods
+from superset.constants import RouteMethod
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName
 

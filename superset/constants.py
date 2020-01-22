@@ -21,7 +21,7 @@
 NULL_STRING = "<NULL>"
 
 
-class RouteMethod:
+class RouteMethod:  # pylint: disable=too-few-public-methods
     """
     Route methods are a FAB concept around ModelView and RestModelView
     classes in FAB. Derivatives can define `include_route_method` and
@@ -32,12 +32,13 @@ class RouteMethod:
     route methods, namely the ones defined in the base classes in FAB
     """
 
+    # ModelView specific
     ACTION = "action"
     ACTION_POST = "action_post"
     ADD = "add"
-    API_CREATE = "API_CREATE"
+    API_CREATE = "api_create"
     API_DELETE = "api_delete"
-    API_GET = "API_GET"
+    API_GET = "api_get"
     API_READ = "api_read"
     API_UPDATE = "api_update"
     DELETE = "delete"
@@ -46,6 +47,15 @@ class RouteMethod:
     LIST = "list"
     SHOW = "show"
 
-    # Common sets
-    CRUD_SET = frozenset((ADD, LIST, EDIT, DELETE, ACTION_POST))
-    RELATED_VIEW_SET = frozenset((ADD, LIST, EDIT, DELETE))
+    # RestModelView specific
+    EXPORT = "export"
+    GET = "get"
+    GET_LIST = "get_list"
+    POST = "post"
+    PUT = "put"
+    RELATED = "related"
+
+    # Commonly used sets
+    CRUD_SET = {ADD, LIST, EDIT, DELETE, ACTION_POST}
+    RELATED_VIEW_SET = {ADD, LIST, EDIT, DELETE}
+    REST_MODEL_VIEW_CRUD_SET = {DELETE, GET, GET_LIST, POST, PUT}

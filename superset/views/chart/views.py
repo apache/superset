@@ -22,6 +22,7 @@ from flask_babel import lazy_gettext as _
 
 from superset import db
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.constants import RouteMethod
 from superset.models.slice import Slice
 from superset.utils import core as utils
 from superset.views.base import check_ownership, DeleteMixin, SupersetModelView
@@ -69,35 +70,24 @@ class SliceAsync(SliceModelView):  # pylint: disable=too-many-ancestors
     include_route_methods = {RouteMethod.API_READ}
 
     list_columns = [
-        "id",
-        "slice_link",
-        "viz_type",
-        "slice_name",
-        "creator",
-        "modified",
-        "icons",
-        "changed_on_humanized",
-    ]
-    label_columns = {"icons": " ", "slice_link": _("Chart")}
-
-
-class SliceAddView(SliceModelView):  # pylint: disable=too-many-ancestors
-    route_base = "/sliceaddview"
-    list_columns = [
-        "id",
-        "slice_name",
-        "slice_url",
-        "edit_url",
-        "viz_type",
-        "params",
-        "description",
-        "description_markeddown",
-        "datasource_id",
-        "datasource_type",
-        "datasource_name_text",
-        "datasource_link",
-        "owners",
-        "modified",
         "changed_on",
         "changed_on_humanized",
+        "creator",
+        "datasource_id",
+        "datasource_link",
+        "datasource_name_text",
+        "datasource_type",
+        "description",
+        "description_markeddown",
+        "edit_url",
+        "icons",
+        "id",
+        "modified",
+        "owners",
+        "params",
+        "slice_link",
+        "slice_name",
+        "slice_url",
+        "viz_type",
     ]
+    label_columns = {"icons": " ", "slice_link": _("Chart")}
