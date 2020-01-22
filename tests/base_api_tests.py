@@ -48,9 +48,6 @@ appbuilder.add_api(Model1Api)
 
 
 class BaseModelRestApiTests(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def test_default_missing_declaration_get(self):
         """
             API: Test default missing declaration on get
