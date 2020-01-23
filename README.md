@@ -36,8 +36,6 @@ Superset
 **Apache Superset** (incubating) is a modern, enterprise-ready
 business intelligence web application
 
-[this project used to be named **Caravel**, and **Panoramix** in the past]
-
 
 Screenshots & Gifs
 ------------------
