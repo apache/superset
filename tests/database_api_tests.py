@@ -30,25 +30,14 @@ class DatabaseApiTests(SupersetTestCase):
         """
             Database API: Test get table schema info
         """
-        database = db.session.query(Database).first()
-        schema = database.get_all_schema_names()[0]
-        table = database.get_all_table_names_in_schema(schema)[0].table
+        example_db = get_example_database()
         self.login(username="admin")
-        uri = f"api/v1/database/{database.id}/table/{table}/{schema}/"
+        uri = f"api/v1/database/{example_db.id}/table/birth_names/null/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = get_table_schema_info(database, table, schema)
+        expected_response = get_table_schema_info(example_db, "birth_names", None)
         self.assertEqual(response, expected_response)
-
-        # adapted from old API test
-        example_db = get_example_database()
-        data = self.get_json_resp(
-            f"api/v1/database/{example_db.id}/table/birth_names/null/"
-        )
-        self.assertEqual(data["name"], "birth_names")
-        self.assertTrue(len(data["columns"]) > 5)
-        self.assertTrue(data.get("selectStar").startswith("SELECT"))
 
     def test_get_invalid_database_table_metadata(self):
         """
