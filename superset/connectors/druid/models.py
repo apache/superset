@@ -1264,6 +1264,8 @@ class DruidDatasource(Model, BaseDatasource):
                 return query_str
             query_str += "// Phase 2 (built based on phase one's results)\n"
             df = client.export_pandas()
+            if df is None:
+                df = pd.DataFrame()
             qry["filter"] = self._add_filter_from_pre_query_data(
                 df, [pre_qry["dimension"]], filters
             )
@@ -1332,6 +1334,8 @@ class DruidDatasource(Model, BaseDatasource):
                     return query_str
                 query_str += "// Phase 2 (built based on phase one's results)\n"
                 df = client.export_pandas()
+                if df is None:
+                    df = pd.DataFrame()
                 qry["filter"] = self._add_filter_from_pre_query_data(
                     df, pre_qry["dimensions"], filters
                 )
@@ -1376,6 +1380,8 @@ class DruidDatasource(Model, BaseDatasource):
         client = self.cluster.get_pydruid_client()
         query_str = self.get_query_str(client=client, query_obj=query_obj, phase=2)
         df = client.export_pandas()
+        if df is None:
+            df = pd.DataFrame()
 
         if df.empty:
             return QueryResult(
