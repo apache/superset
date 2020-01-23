@@ -42,7 +42,7 @@ export default class ConfirmStatusChange extends React.Component<Props, State> {
 
   public showConfirm = (...callbackArgs: any[]) => {
     // check if any args are DOM events, if so, call persist
-    callbackArgs.forEach(arg => arg && typeof arg.persist === 'function' && arg.persist())
+    callbackArgs.forEach((arg) => arg && typeof arg.persist === 'function' && arg.persist());
 
     this.setState({
       callbackArgs,
