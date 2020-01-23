@@ -147,9 +147,11 @@ div.Workspace {
   overflow: auto;
 }
 .circle {
-  border-radius: 50%;
-  width: 10px;
-  height: 10px;
+  @circle-diameter: 10px;
+  border-radius: (@circle-diameter / 2);
+  width: @circle-diameter;
+  height: @circle-diameter;
+
   display: inline-block;
   background-color: @gray-light;
   line-height: 8px; // set specifically for closing 'x'
@@ -255,7 +257,7 @@ div.Workspace {
   .schemaPane {
     flex: 0 0 300px;
     max-width: 300px;
-    transition: transform 0.3s ease-in-out;
+    transition: transform @timing-normal ease-in-out;
   }
 
   .queryPane {
