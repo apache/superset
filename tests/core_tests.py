@@ -345,7 +345,7 @@ class CoreTests(SupersetTestCase):
     def test_get_user_slices(self):
         self.login(username="admin")
         userid = security_manager.find_user("admin").id
-        url = "/sliceaddview/api/read?_flt_0_created_by={}".format(userid)
+        url = f"/sliceasync/api/read?_flt_0_created_by={userid}"
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 

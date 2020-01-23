@@ -70,6 +70,7 @@ from superset import (
 )
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource
+from superset.constants import RouteMethod
 from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,
@@ -250,6 +251,7 @@ def _deserialize_results_payload(
 
 class AccessRequestsModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(DAR)
+    include_route_methods = RouteMethod.CRUD_SET
     list_columns = [
         "username",
         "user_roles",
@@ -2816,6 +2818,7 @@ class Superset(BaseSupersetView):
 
 class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
+    include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("CSS Templates")
     show_title = _("Show CSS Template")
@@ -2829,6 +2832,7 @@ class CssTemplateModelView(SupersetModelView, DeleteMixin):
 
 
 class CssTemplateAsyncModelView(CssTemplateModelView):
+    include_route_methods = {RouteMethod.API_READ}
     list_columns = ["template_name", "css"]
 
 
@@ -2845,16 +2849,3 @@ def apply_http_headers(response: Response):
         if k not in response.headers:
             response.headers[k] = v
     return response
-
-
-@app.route('/<regex("panoramix\/.*"):url>')
-def panoramix(url):
-    return redirect(request.full_path.replace("panoramix", "superset"))
-
-
-@app.route('/<regex("caravel\/.*"):url>')
-def caravel(url):
-    return redirect(request.full_path.replace("caravel", "superset"))
-
-
-# ---------------------------------------------------------------------

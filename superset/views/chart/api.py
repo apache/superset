@@ -134,15 +134,6 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
     allow_browser_login = True
 
     class_permission_name = "SliceModelView"
-    method_permission_name = {
-        "get_list": "list",
-        "get": "show",
-        "post": "add",
-        "put": "edit",
-        "delete": "delete",
-        "info": "list",
-        "related": "list",
-    }
     show_columns = [
         "slice_name",
         "description",

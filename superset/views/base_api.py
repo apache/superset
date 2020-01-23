@@ -63,6 +63,17 @@ class BaseSupersetModelRestApi(ModelRestApi):
     """
 
     logger = logging.getLogger(__name__)
+    method_permission_name = {
+        "get_list": "list",
+        "get": "show",
+        "export": "mulexport",
+        "post": "add",
+        "put": "edit",
+        "delete": "delete",
+        "bulk_delete": "delete",
+        "info": "list",
+        "related": "list",
+    }
 
     order_rel_fields: Dict[str, Tuple[str, str]] = {}
     """
