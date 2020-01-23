@@ -113,11 +113,11 @@ body {
     flex-direction: row;
     flex-wrap: nowrap;
     & > :nth-child(3) {
-      border-radius: 2px 0px 0px 2px;
+      border-radius: @border-radius-normal 0px 0px @border-radius-normal;
       border-right: none;
     }
     & > :nth-child(4) {
-      border-radius: 0px 2px 2px 0px;
+      border-radius: 0px @border-radius-normal @border-radius-normal 0px;
     }
     & > :not(:nth-child(3)):not(:last-child) {
       margin-right: 8px;
