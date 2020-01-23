@@ -30,6 +30,7 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from superset import app, appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.constants import RouteMethod
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
@@ -47,6 +48,7 @@ from . import models
 
 class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidColumn)
+    include_route_methods = RouteMethod.RELATED_VIEW_SET
 
     list_title = _("Columns")
     show_title = _("Show Druid Column")
@@ -133,6 +135,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
 
 class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidMetric)
+    include_route_methods = RouteMethod.RELATED_VIEW_SET
 
     list_title = _("Metrics")
     show_title = _("Show Druid Metric")
@@ -185,7 +188,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
 
 class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.DruidCluster)
-
+    include_route_methods = RouteMethod.CRUD_SET
     list_title = _("Druid Clusters")
     show_title = _("Show Druid Cluster")
     add_title = _("Add Druid Cluster")
@@ -247,7 +250,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
 
 class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.DruidDatasource)
-
+    include_route_methods = RouteMethod.CRUD_SET
     list_title = _("Druid Datasources")
     show_title = _("Show Druid Datasource")
     add_title = _("Add Druid Datasource")

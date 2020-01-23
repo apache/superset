@@ -16,7 +16,6 @@
 # under the License.
 from typing import Dict, List, Optional
 
-from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
@@ -25,6 +24,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset import event_logger
 from superset.models.core import Database
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.views.base_api import BaseSupersetModelRestApi
 from superset.views.database.filters import DatabaseFilter
 from superset.views.database.mixins import DatabaseMixin
 from superset.views.database.validators import sqlalchemy_uri_validator
@@ -90,19 +90,12 @@ def get_table_schema_info(
     }
 
 
-class DatabaseRestApi(DatabaseMixin, ModelRestApi):
+class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
-    class_permission_name = "DatabaseAsync"
-    method_permission_name = {
-        "get_list": "list",
-        "get": "show",
-        "post": "add",
-        "put": "edit",
-        "delete": "delete",
-        "info": "list",
-        "table_metadata": "list",
-    }
+    include_route_methods = {"get_list", "table_metadata"}
+    class_permission_name = "DatabaseView"
+    method_permission_name = {"get_list": "list", "table_metadata": "list"}
     resource_name = "database"
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]

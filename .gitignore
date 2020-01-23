@@ -20,6 +20,7 @@
 *.pyc
 *.sqllite
 *.swp
+.bento*
 .cache-loader
 .coverage
 .DS_Store

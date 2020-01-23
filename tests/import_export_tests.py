@@ -235,9 +235,8 @@ class ImportExportTests(SupersetTestCase):
     def test_export_1_dashboard(self):
         self.login("admin")
         birth_dash = self.get_dash_by_slug("births")
-        export_dash_url = "/dashboard/export_dashboards_form?id={}&action=go".format(
-            birth_dash.id
-        )
+        id_ = birth_dash.id
+        export_dash_url = f"/dashboard/export_dashboards_form?id={id_}&action=go"
         resp = self.client.get(export_dash_url)
         exported_dashboards = json.loads(
             resp.data.decode("utf-8"), object_hook=decode_dashboards
@@ -247,7 +246,7 @@ class ImportExportTests(SupersetTestCase):
         self.assert_only_exported_slc_fields(birth_dash, exported_dashboards[0])
         self.assert_dash_equals(birth_dash, exported_dashboards[0])
         self.assertEqual(
-            birth_dash.id,
+            id_,
             json.loads(
                 exported_dashboards[0].json_metadata, object_hook=decode_dashboards
             )["remote_id"],
