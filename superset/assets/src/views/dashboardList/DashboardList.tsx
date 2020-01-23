@@ -136,7 +136,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     },
     {
       Cell: ({ row: { state, original } }: any) => {
-        const handleDelete = () => this.handleDashboardDelete(original)
+        const handleDelete = () => this.handleDashboardDelete(original);
         const handleEdit = () => this.handleDashboardEdit(original);
         const handleExport = () => this.handleBulkDashboardExport([original]);
         if (!this.canEdit && !this.canDelete && !this.canExport) {
@@ -186,14 +186,6 @@ class DashboardList extends React.PureComponent<Props, State> {
       id: 'actions',
     },
   ];
-
-  private hasPerm = (perm: string) => {
-    if (!this.state.permissions.length) {
-      return false;
-    }
-
-    return Boolean(this.state.permissions.find((p) => p === perm));
-  }
 
   public handleDashboardEdit = ({ id }: { id: number }) => {
     window.location.assign(`/dashboard/edit/${id}`);
@@ -340,6 +332,14 @@ class DashboardList extends React.PureComponent<Props, State> {
         </Panel>
       </div>
     );
+  }
+
+  private hasPerm = (perm: string) => {
+    if (!this.state.permissions.length) {
+      return false;
+    }
+
+    return Boolean(this.state.permissions.find((p) => p === perm));
   }
 }
 
