@@ -19,7 +19,16 @@
 import enum
 
 from flask_appbuilder import Model
-from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 
@@ -53,6 +62,7 @@ class EmailSchedule:
     id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(50))
+    last_run = Column(DateTime, nullable=True)
 
     @declared_attr
     def user_id(self):

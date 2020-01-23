@@ -36,7 +36,6 @@ from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
 from werkzeug.http import parse_cookie
 
-# Superset framework imports
 from superset import app, db, security_manager
 from superset.extensions import celery_app
 from superset.models.schedules import (
@@ -46,6 +45,9 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
 )
 from superset.utils.core import get_email_address_list, send_email_smtp
+
+# Superset framework imports
+
 
 # Globals
 config = app.config
@@ -355,7 +357,8 @@ def schedule_email_report(
     task, report_type, schedule_id, recipients=None
 ):  # pylint: disable=unused-argument
     model_cls = get_scheduler_model(report_type)
-    schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
+    session = db.create_scoped_session()
+    schedule = session.query(model_cls).get(schedule_id)
 
     # The user may have disabled the schedule. If so, ignore this
     if not schedule or not schedule.active:
@@ -373,6 +376,9 @@ def schedule_email_report(
         deliver_slice(schedule)
     else:
         raise RuntimeError("Unknown report type")
+
+    schedule.last_run = datetime.now(tzlocal())
+    session.commit()
 
 
 def next_schedules(crontab, start_at, stop_at, resolution=0):
