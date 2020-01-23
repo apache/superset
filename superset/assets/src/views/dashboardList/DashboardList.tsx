@@ -147,7 +147,7 @@ class DashboardList extends React.PureComponent<Props, State> {
             {this.canDelete && (
               <ConfirmStatusChange
                 title={t('Please Confirm')}
-                description={`${t('Are you sure you want to delete')} ${original.dashboard_title}?`}
+                description={<>{t('Are you sure you want to delete')} <b>{original.dashboard_title}</b>?</>}
                 onConfirm={handleDelete}
               >
                 {(confirmDelete) => (
