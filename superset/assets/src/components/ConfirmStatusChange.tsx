@@ -21,54 +21,43 @@ import * as React from 'react';
 // @ts-ignore
 import { Button, Modal } from 'react-bootstrap';
 
-type ShowCallback = (callback: (e: any) => any) => (event: any) => any;
-
+type Callback = (...args: any[]) => void;
 interface Props {
   title: string | React.ReactNode;
   description: string | React.ReactNode;
-  children: (confirm: ShowCallback) => React.ReactNode;
+  onConfirm: Callback;
+  children: (showConfirm: Callback) => React.ReactNode;
 }
 
 interface State {
+  callbackArgs: any[];
   open: boolean;
-  callback: (e: React.MouseEvent) => void;
 }
-const defaultCallback = () => { console.error('ConfirmStatusChange invoked with the default callback, please provide a function to be called on confirm'); };
 export default class ConfirmStatusChange extends React.Component<Props, State> {
 
   public state = {
-    callback: defaultCallback,
+    callbackArgs: [],
     open: false,
   };
 
-  public show: ShowCallback = (callback) => (event) => {
-    if (typeof event.preventDefault === 'function') {
-      event.preventDefault();
-
-      event = {
-        ...event,
-        currentTarget: { ...event.currentTarget },
-      };
-    }
-
+  public showConfirm = (...callbackArgs: any[]) => {
     this.setState({
-      callback: () => callback(event),
+      callbackArgs,
       open: true,
     });
   }
 
-  public hide = () => this.setState({ open: false, callback: defaultCallback });
+  public hide = () => this.setState({ open: false, callbackArgs: [] });
 
   public confirm = () => {
-    this.state.callback();
+    this.props.onConfirm(...this.state.callbackArgs);
     this.hide();
   }
 
   public render() {
     return (
       <>
-        {this.props.children && this.props.children(this.show)}
-
+        {this.props.children && this.props.children(this.showConfirm)}
         <Modal show={this.state.open} onHide={this.hide}>
           <Modal.Header closeButton={true} >{this.props.title}</Modal.Header>
           <Modal.Body>

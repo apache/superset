@@ -136,46 +136,50 @@ class DashboardList extends React.PureComponent<Props, State> {
     },
     {
       Cell: ({ row: { state, original } }: any) => {
+        const handleDelete = () => this.handleDashboardDelete(original)
         const handleEdit = () => this.handleDashboardEdit(original);
         const handleExport = () => this.handleBulkDashboardExport([original]);
         if (!this.canEdit && !this.canDelete && !this.canExport) {
           return null;
         }
-
         return (
-          <ConfirmStatusChange title={t('Please Confirm')} description={`${t('Are you sure you want to delete')} ${original.dashboard_title}?`}>
-            {(confirmDelete) => (
-              <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
-                {this.canDelete && (
+          <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
+            {this.canDelete && (
+              <ConfirmStatusChange
+                title={t('Please Confirm')}
+                description={`${t('Are you sure you want to delete')} ${original.dashboard_title}?`}
+                onConfirm={handleDelete}
+              >
+                {(confirmDelete) => (
                   <span
                     role='button'
                     className='action-button'
-                    onClick={confirmDelete(() => this.handleDashboardDelete(original))}
+                    onClick={confirmDelete}
                   >
                     <i className='fa fa-trash' />
                   </span>
                 )}
-                {this.canExport && (
-                  <span
-                    role='button'
-                    className='action-button'
-                    onClick={handleExport}
-                  >
-                    <i className='fa fa-database' />
-                  </span>
-                )}
-                {this.canEdit && (
-                  <span
-                    role='button'
-                    className='action-button'
-                    onClick={handleEdit}
-                  >
-                    <i className='fa fa-pencil' />
-                  </span>
-                )}
+              </ConfirmStatusChange>
+            )}
+            {this.canExport && (
+              <span
+                role='button'
+                className='action-button'
+                onClick={handleExport}
+              >
+                <i className='fa fa-database' />
               </span>
             )}
-          </ConfirmStatusChange>
+            {this.canEdit && (
+              <span
+                role='button'
+                className='action-button'
+                onClick={handleEdit}
+              >
+                <i className='fa fa-pencil' />
+              </span>
+            )}
+          </span>
         );
       },
       Header: t('Actions'),
@@ -183,7 +187,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     },
   ];
 
-  public hasPerm = (perm: string) => {
+  private hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
       return false;
     }
@@ -295,14 +299,18 @@ class DashboardList extends React.PureComponent<Props, State> {
     return (
       <div className='container welcome' >
         <Panel>
-          <ConfirmStatusChange title={t('Please Confirm')} description={t('Are you sure you want to delete the selected dashboards?')}>
+          <ConfirmStatusChange
+            title={t('Please confirm')}
+            description={t('Are you sure you want to delete the selected dashboards?')}
+            onConfirm={this.handleBulkDashboardDelete}
+          >
             {(confirmDelete) => {
               const bulkActions = [];
               if (this.canDelete) {
                 bulkActions.push({
                   key: 'delete',
                   name: <><i className='fa fa-trash' /> Delete</>,
-                  onSelect: confirmDelete(this.handleBulkDashboardDelete),
+                  onSelect: confirmDelete,
                 });
               }
               if (this.canExport) {

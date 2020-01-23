@@ -22,20 +22,24 @@ import { Modal, Button } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 
 describe('ConfirmStatusChange', () => {
-  const action = jest.fn();
   const mockedProps = {
     title: 'please confirm',
     description: 'are you sure?',
+    onConfirm: jest.fn(),
   };
   const wrapper = mount(
     <ConfirmStatusChange {...mockedProps}>
-      {confirm => <button onClick={confirm(action)} />}
+      {confirm => (
+        <>
+          <button id="btn1" onClick={confirm} />
+        </>
+      )}
     </ConfirmStatusChange>,
   );
 
   it('opens a confirm modal', () => {
     wrapper
-      .find('button')
+      .find('#btn1')
       .props()
       .onClick('foo');
 
@@ -51,6 +55,6 @@ describe('ConfirmStatusChange', () => {
       .props()
       .onClick();
 
-    expect(action).toHaveBeenCalled();
+    expect(mockedProps.onConfirm).toHaveBeenCalledWith('foo');
   });
 });
