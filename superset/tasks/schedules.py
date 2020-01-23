@@ -355,7 +355,8 @@ def schedule_email_report(
     task, report_type, schedule_id, recipients=None
 ):  # pylint: disable=unused-argument
     model_cls = get_scheduler_model(report_type)
-    schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
+    session = db.create_scoped_session()
+    schedule = session.query(model_cls).get(schedule_id)
 
     # The user may have disabled the schedule. If so, ignore this
     if not schedule or not schedule.active:
@@ -373,6 +374,9 @@ def schedule_email_report(
         deliver_slice(schedule)
     else:
         raise RuntimeError("Unknown report type")
+
+    schedule.last_run = datetime.now(tzlocal())
+    session.commit()
 
 
 def next_schedules(crontab, start_at, stop_at, resolution=0):

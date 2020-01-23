@@ -171,6 +171,7 @@ class DashboardEmailScheduleView(
         "user",
         "deliver_as_group",
         "delivery_type",
+        "last_run"
     ]
 
     add_columns = [
@@ -204,6 +205,7 @@ class DashboardEmailScheduleView(
         "recipients": _("Recipients"),
         "deliver_as_group": _("Deliver As Group"),
         "delivery_type": _("Delivery Type"),
+        "last_run": _("Last Run")
     }
 
     def pre_add(self, item):
@@ -229,6 +231,7 @@ class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-anc
         "deliver_as_group",
         "delivery_type",
         "email_format",
+        "last_run"
     ]
 
     add_columns = [
@@ -265,6 +268,7 @@ class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-anc
         "deliver_as_group": _("Deliver As Group"),
         "delivery_type": _("Delivery Type"),
         "email_format": _("Email Format"),
+        "last_run": _("Last Run")
     }
 
     def pre_add(self, item):
