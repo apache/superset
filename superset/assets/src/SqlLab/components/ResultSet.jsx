@@ -202,7 +202,12 @@ export default class ResultSet extends React.PureComponent {
       return (
         <Alert bsStyle="danger">
           {query.errorMessage}
-          {query.link && <a href={query.link}> {t('(Request Access)')} </a>}
+          {query.link && (
+            <a href={query.link} target="_blank" rel="noopener noreferrer">
+              {' '}
+              {t('(Request Access)')}{' '}
+            </a>
+          )}
         </Alert>
       );
     } else if (query.state === 'success' && query.ctas) {

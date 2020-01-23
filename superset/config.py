@@ -191,11 +191,16 @@ FAB_API_SWAGGER_UI = True
 DRUID_TZ = tz.tzutc()
 DRUID_ANALYSIS_TYPES = ["cardinality"]
 
-# Legacy Druid connector
+# Legacy Druid NoSQL (native) connector
 # Druid supports a SQL interface in its newer versions.
 # Setting this flag to True enables the deprecated, API-based Druid
 # connector. This feature may be removed at a future date.
 DRUID_IS_ACTIVE = False
+
+# If Druid is active whether to include the links to scan/refresh Druid datasources.
+# This should be disabled if you are trying to wean yourself off of the Druid NoSQL
+# connector.
+DRUID_METADATA_LINKS_ENABLED = True
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG

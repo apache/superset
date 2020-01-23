@@ -32,6 +32,7 @@ from flask_appbuilder.security.views import (
     PermissionViewModelView,
     RoleModelView,
     UserModelView,
+    ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
 from sqlalchemy import or_
@@ -40,6 +41,7 @@ from sqlalchemy.orm.mapper import Mapper
 
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.constants import RouteMethod
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName
 
@@ -76,8 +78,16 @@ RoleModelView.list_widget = SupersetRoleListWidget
 PermissionViewModelView.list_widget = SupersetSecurityListWidget
 PermissionModelView.list_widget = SupersetSecurityListWidget
 
+# Limiting routes on FAB model views
+UserModelView.include_route_methods = RouteMethod.CRUD_SET | {"userinfo"}
+RoleModelView.include_route_methods = RouteMethod.CRUD_SET
+PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
+PermissionModelView.include_route_methods = {RouteMethod.LIST}
+ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
+
 
 class SupersetSecurityManager(SecurityManager):
+    userstatschartview = None
     READ_ONLY_MODEL_VIEWS = {"DatabaseAsync", "DatabaseView", "DruidClusterModelView"}
 
     USER_MODEL_VIEWS = {
