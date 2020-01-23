@@ -19,3 +19,43 @@
 
 # string to use when None values *need* to be converted to/from strings
 NULL_STRING = "<NULL>"
+
+
+class RouteMethod:  # pylint: disable=too-few-public-methods
+    """
+    Route methods are a FAB concept around ModelView and RestModelView
+    classes in FAB. Derivatives can define `include_route_method` and
+    `exclude_route_methods` class attribute as a set of methods that
+    will or won't get exposed.
+
+    This class is a collection of static constants to reference common
+    route methods, namely the ones defined in the base classes in FAB
+    """
+
+    # ModelView specific
+    ACTION = "action"
+    ACTION_POST = "action_post"
+    ADD = "add"
+    API_CREATE = "api_create"
+    API_DELETE = "api_delete"
+    API_GET = "api_get"
+    API_READ = "api_read"
+    API_UPDATE = "api_update"
+    DELETE = "delete"
+    DOWNLOAD = "download"
+    EDIT = "edit"
+    LIST = "list"
+    SHOW = "show"
+
+    # RestModelView specific
+    EXPORT = "export"
+    GET = "get"
+    GET_LIST = "get_list"
+    POST = "post"
+    PUT = "put"
+    RELATED = "related"
+
+    # Commonly used sets
+    CRUD_SET = {ADD, LIST, EDIT, DELETE, ACTION_POST}
+    RELATED_VIEW_SET = {ADD, LIST, EDIT, DELETE}
+    REST_MODEL_VIEW_CRUD_SET = {DELETE, GET, GET_LIST, POST, PUT}

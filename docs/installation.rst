@@ -402,7 +402,8 @@ Here's a list of some of the recommended packages.
 |                  | sqlalchemy-vertica-python``           |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Hana             | ``pip install hdbcli sqlalchemy-hana``|  ``hana://``                                    |
-|                  | or ``pip install superset[hana]``     |                                                 |
+|                  | or                                    |                                                 |
+|                  | ``pip install apache-superset[hana]`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
 
 
@@ -772,8 +773,9 @@ CORS
 
 The extra CORS Dependency must be installed:
 
-    superset[cors]
+.. code-block:: text
 
+    pip install apache-superset[cors]
 
 The following keys in `superset_config.py` can be specified to configure CORS:
 
