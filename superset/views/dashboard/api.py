@@ -27,6 +27,7 @@ from marshmallow import fields, post_load, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.constants import RouteMethod
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
@@ -130,22 +131,15 @@ get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
     datamodel = SQLAInterface(Dashboard)
-
+    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+        RouteMethod.EXPORT,
+        RouteMethod.RELATED,
+        "bulk_delete",  # not using RouteMethod since locally defined
+    }
     resource_name = "dashboard"
     allow_browser_login = True
 
     class_permission_name = "DashboardModelView"
-    method_permission_name = {
-        "get_list": "list",
-        "get": "show",
-        "export": "mulexport",
-        "post": "add",
-        "put": "edit",
-        "delete": "delete",
-        "bulk_delete": "delete",
-        "info": "list",
-        "related": "list",
-    }
     show_columns = [
         "dashboard_title",
         "slug",

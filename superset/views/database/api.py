@@ -14,27 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder import ModelRestApi
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 import superset.models.core as models
+from superset.views.base_api import BaseSupersetModelRestApi
 
 from .mixins import DatabaseFilter, DatabaseMixin
 from .validators import sqlalchemy_uri_validator
 
 
-class DatabaseRestApi(DatabaseMixin, ModelRestApi):
+class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(models.Database)
+    include_route_methods = {"get_list"}
 
-    class_permission_name = "DatabaseAsync"
-    method_permission_name = {
-        "get_list": "list",
-        "get": "show",
-        "post": "add",
-        "put": "edit",
-        "delete": "delete",
-        "info": "list",
-    }
+    class_permission_name = "DatabaseView"
     resource_name = "database"
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]
