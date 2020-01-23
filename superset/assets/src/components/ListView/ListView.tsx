@@ -167,7 +167,7 @@ const ListView: FunctionComponent<Props> = ({
                     componentClass='select'
                     bsSize='small'
                     value={ft.filterId}
-                    placeholder={filterTypes[ft.id][0].name}
+                    placeholder={filterTypes[ft.id] ? filterTypes[ft.id][0].name : ''}
                     onChange={(e: React.MouseEvent<HTMLInputElement>) =>
                       updateFilterToggle(i, { filterId: e.currentTarget.value })
                     }
