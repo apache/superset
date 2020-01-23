@@ -331,7 +331,7 @@ describe('async actions', () => {
     fetchMock.delete(updateTableSchemaEndpoint, {});
     fetchMock.post(updateTableSchemaEndpoint, JSON.stringify({ id: 1 }));
 
-    const getTableMetadataEndpoint = 'glob:*/superset/table/*';
+    const getTableMetadataEndpoint = 'glob:*/api/v1/database/*';
     fetchMock.get(getTableMetadataEndpoint, {});
     const getExtraTableMetadataEndpoint =
       'glob:*/superset/extra_table_metadata/*';
