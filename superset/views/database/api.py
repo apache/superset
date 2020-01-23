@@ -30,7 +30,9 @@ from superset.views.database.mixins import DatabaseMixin
 from superset.views.database.validators import sqlalchemy_uri_validator
 
 
-def get_table_schema_info(database: Database, table_name: str, schema: str) -> Dict:
+def get_table_schema_info(
+    database: Database, table_name: str, schema: Optional[str]
+) -> Dict:
     """
         Get table schema information, including type, pk, fks.
         This function raises SQLAlchemyError when a schema is not found
@@ -99,6 +101,7 @@ class DatabaseRestApi(DatabaseMixin, ModelRestApi):
         "put": "edit",
         "delete": "delete",
         "info": "list",
+        "table_metadata": "list",
     }
     resource_name = "database"
     allow_browser_login = True
@@ -123,11 +126,11 @@ class DatabaseRestApi(DatabaseMixin, ModelRestApi):
     max_page_size = -1
     validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
 
-    @expose("/<int:pk>/table/<string:table_name>/<string:schema>", methods=["GET"])
+    @expose("/<int:pk>/table/<string:table_name>/<string:schema>/", methods=["GET"])
     @protect()
     @safe
     @event_logger.log_this
-    def table_schema(
+    def table_metadata(
         self, pk: int, table_name: str, schema: str
     ):  # pylint: disable=invalid-name
         """ Table schema info
@@ -247,8 +250,9 @@ class DatabaseRestApi(DatabaseMixin, ModelRestApi):
             schema, eval_undefined=True
         )
         table_name_parsed: Optional[str] = parse_js_uri_path_item(table_name)
-        if not (schema_parsed and table_name_parsed):
-            return self.response_422(message=_("Could not parse table name or schema"))
+        # schemas can be None but not tables
+        if not table_name_parsed:
+            return self.response_422(message=_(f"Could not parse table name or schema"))
         database: Database = self.datamodel.get(pk, self._base_filters)
         if not database:
             return self.response_404()
