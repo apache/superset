@@ -16,17 +16,21 @@
 # under the License.
 import json
 
+from flask import g
 from flask_appbuilder import expose, has_access
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
-from superset import db
+from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.models.slice import Slice
 from superset.utils import core as utils
 from superset.views.base import check_ownership, DeleteMixin, SupersetModelView
 from superset.views.chart.mixin import SliceMixin
+
+from ..base import common_bootstrap_payload
+from ..utils import bootstrap_user_data
 
 
 class SliceModelView(
@@ -61,6 +65,24 @@ class SliceModelView(
             "superset/add_slice.html",
             bootstrap_data=json.dumps(
                 {"datasources": sorted(datasources, key=lambda d: d["label"])}
+            ),
+        )
+
+    @expose("/list/")
+    @has_access
+    def list(self):
+        if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
+            return super().list()
+        payload = {
+            "user": bootstrap_user_data(g.user),
+            "common": common_bootstrap_payload(),
+        }
+
+        return self.render_template(
+            "superset/welcome.html",
+            entry="welcome",
+            bootstrap_data=json.dumps(
+                payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
         )
 
