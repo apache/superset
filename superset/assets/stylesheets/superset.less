@@ -63,7 +63,7 @@ input.form-control {
   margin: 5px 0;
   border: 1px solid @gray-light;
   background-color: @gray-bg;
-  border-radius: 5px;
+  border-radius: @border-radius-large;
   font-size: @font-size-s;
 }
 
@@ -116,7 +116,7 @@ hr {
 
 span.title-block {
   background-color: @gray-bg;
-  border-radius: 4px;
+  border-radius: @border-radius-large;
   padding: 6px 12px;
   margin: 0px 10px;
   font-size: @font-size-xl;
@@ -124,12 +124,6 @@ span.title-block {
 
 .nvtooltip {
   z-index: 888;
-  transition: opacity 0ms linear;
-  -moz-transition: opacity 0ms linear;
-  -webkit-transition: opacity 0ms linear;
-  transition-delay: 0ms;
-  -moz-transition-delay: 0ms;
-  -webkit-transition-delay: 0ms;
 }
 .nvtooltip table td {
   font-size: @font-size-s !important;
@@ -165,7 +159,7 @@ img.viz-thumb-option {
   width: 100px;
   border: 1px solid @gray;
   margin-right: 5px;
-  border-radius: 5px;
+  border-radius: @border-radius-large;
 }
 .select2-drop.bigdrop .select2-results {
   max-height: 700px;
@@ -226,12 +220,12 @@ table.table-no-hover tr:hover {
   box-shadow: none;
   cursor: initial;
   border: 1px solid @gray;
-  border-radius: 2px;
+  border-radius: @border-radius-normal;
 }
 
 .editable-title input[type='text'] {
   border: 1px solid @gray;
-  border-radius: 2px;
+  border-radius: @border-radius-normal;
   padding: 2px;
 }
 
@@ -439,13 +433,6 @@ table.table-no-hover tr:hover {
   padding-bottom: 15px;
 }
 
-// .list-container .filters-container table tr:first-child td {
-//     border-top: none;
-// }
-// .list-container .filters-container table tr:last-child td {
-//     border-bottom: 1px solid @gray-light;
-// }
-
 .list-add-action .btn.btn-sm {
   padding: 5px 6px;
   font-size: @font-size-xs;
@@ -550,7 +537,7 @@ tr.reactable-column-header th.reactable-header-sortable {
 }
 
 .metric-edit-popover-label-input {
-  border-radius: 4px;
+  border-radius: @border-radius-large;
   height: 30px;
   padding-left: 10px;
 }

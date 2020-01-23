@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import '../../../stylesheets/less/variables.less';
+
 .dashboard-builder-sidepane {
   flex: 0 0 @builder-pane-width;
   z-index: 10;
@@ -59,7 +61,7 @@
     width: @builder-pane-width * 2;
     height: 100vh;
     display: flex;
-    transition: all 0.5s ease;
+    transition: all @timing-normal ease;
 
     &.slide-in {
       left: -@builder-pane-width;
