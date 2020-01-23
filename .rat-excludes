@@ -29,7 +29,9 @@ apache_superset.egg-info
 .*json
 .*csv
 # Generated doc files
+env/*
 docs/_build/*
+docs/_modules/*
 _build/*
 _static/*
 .buildinfo
