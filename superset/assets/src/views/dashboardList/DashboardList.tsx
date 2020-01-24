@@ -28,8 +28,6 @@ import { FilterTypeMap } from 'src/components/ListView/types';
 import { FetchDataConfig } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
-import './DashboardList.less';
-
 const PAGE_SIZE = 25;
 
 interface Props {
@@ -260,7 +258,6 @@ class DashboardList extends React.PureComponent<Props, State> {
       <div className='container welcome'>
         <Panel>
           <ListView
-            className='dashboard-list-view'
             title={'Dashboards'}
             columns={this.columns}
             data={dashboards}

@@ -17,6 +17,20 @@
  * under the License.
  */
 .superset-list-view {
+  .actions {
+    font-size: @font-size-l;
+    white-space: nowrap;
+  }
+
+  .action-button {
+    margin: 0 8px;
+    opacity: @opacity-medium-light;
+    transition: opacity .3s; // replace with timing var when that's merged in.
+    &:hover {
+      opacity: 1;
+    }
+  }
+  
   .filter-dropdown {
     margin-top: 20px;
   }
