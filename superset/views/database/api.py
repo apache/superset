@@ -55,7 +55,6 @@ def get_col_type(col):
     except Exception:  # pylint: disable=broad-except
         # sqla.types.JSON __str__ has a bug, so using __class__.
         dtype = col["type"].__class__.__name__
-    print(f"{dtype} {type(dtype)}")
     return dtype
 
 
