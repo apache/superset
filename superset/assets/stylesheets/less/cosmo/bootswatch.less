@@ -20,6 +20,8 @@
 // Bootswatch
 // -----------------------------------------------------
 
+@import '../../../stylesheets/less/variables.less';
+
 // Navbar =====================================================================
 
 .navbar {
@@ -233,6 +235,11 @@ table,
 }
 
 .dropdown-menu {
+
+  border: none;
+  border-radius: 3px; // revamp with variable
+  box-shadow: 0 2px 4px fade(@darkest, @opacity-medium);
+
   & > li > a:hover,
   & > li > a:focus {
     background-image: none;
