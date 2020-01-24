@@ -259,11 +259,12 @@ export function exploreJSON(
         return dispatch(chartUpdateSucceeded(json, key));
       })
       .catch(response => {
-        const appendErrorLog = errorDetails => {
+        const appendErrorLog = (errorDetails, isCached) => {
           dispatch(
             logEvent(LOG_ACTIONS_LOAD_CHART, {
               slice_id: key,
               has_err: true,
+              is_cached: isCached,
               error_details: errorDetails,
               datasource: formData.datasource,
               start_offset: logStart,
@@ -283,7 +284,8 @@ export function exploreJSON(
           return dispatch(chartUpdateStopped(key));
         }
         return getClientErrorObject(response).then(parsedResponse => {
-          appendErrorLog(parsedResponse.error);
+          // query is processed, but error out.
+          appendErrorLog(parsedResponse.error, parsedResponse.is_cached);
           return dispatch(chartUpdateFailed(parsedResponse, key));
         });
       });
