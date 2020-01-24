@@ -35,7 +35,7 @@ from flask_appbuilder.security.views import (
     ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
-from sqlalchemy import or_, text
+from sqlalchemy import or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.mapper import Mapper
 
