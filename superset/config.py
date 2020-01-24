@@ -250,6 +250,7 @@ BABEL_DEFAULT_FOLDER = "superset/translations"
 # The allowed translation for you app
 LANGUAGES = {
     "en": {"flag": "us", "name": "English"},
+    "es": {"flag": "es", "name": "Spanish"},
     "it": {"flag": "it", "name": "Italian"},
     "fr": {"flag": "fr", "name": "French"},
     "zh": {"flag": "cn", "name": "Chinese"},
