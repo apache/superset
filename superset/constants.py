@@ -59,4 +59,4 @@ class RouteMethod:  # pylint: disable=too-few-public-methods
     # Commonly used sets
     CRUD_SET = {ADD, LIST, EDIT, DELETE, ACTION_POST}
     RELATED_VIEW_SET = {ADD, LIST, EDIT, DELETE}
-    REST_MODEL_VIEW_CRUD_SET = {DELETE, GET, GET_LIST, POST, PUT}
+    REST_MODEL_VIEW_CRUD_SET = {DELETE, GET, GET_LIST, POST, PUT, INFO}
