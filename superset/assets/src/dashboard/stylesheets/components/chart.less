@@ -62,53 +62,47 @@
   overflow: visible;
 }
 
-.dashboard--editing .dashboard-component-chart-holder:after {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0px;
-  left: 0px;
-  z-index: 1;
-  pointer-events: none;
-  border: 1px solid transparent;
-}
-
-.dashboard--editing
-  .resizable-container:hover
-  > .dashboard-component-chart-holder:after,
-.dashboard--editing .dashboard-component-chart-holder:hover:after {
-  border: 1px dashed @indicator-color;
-  z-index: 2;
-}
-
-.dashboard--editing
-  .resizable-container.resizable-container--resizing:hover
-  > .dashboard-component-chart-holder:after {
-  border: 1px dashed @indicator-color;
-}
-
-.dashboard--editing
-  .dashboard-component-chart-holder
-  .dashboard-chart
-  .chart-container {
-  cursor: move;
-  opacity: 0.2;
-}
-
-.dashboard--editing
-  .dashboard-component-chart-holder:hover
-  .dashboard-chart
-  .chart-container {
-  opacity: 0.7;
-}
-
-.dashboard--editing
-  .dashboard-component-chart-holder
-  .dashboard-chart
-  .slice_container {
-  /* disable chart interactions in edit mode */
-  pointer-events: none;
+.dashboard--editing {
+  .dashboard-component-chart-holder {
+    &:after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0px;
+      left: 0px;
+      z-index: @z-index-chart;
+      pointer-events: none;
+      border: 1px solid transparent;
+    }
+    &:hover:after {
+      border: 1px dashed @indicator-color;
+      z-index: @z-index-chart--dragging;
+    }
+  }
+  .resizable-container {
+    &:hover,
+    &.resizable-container--resizing:hover {
+      & > .dashboard-component-chart-holder:after {
+        border: 1px dashed @indicator-color;
+      }
+    }
+  }
+  .resizable-container .dashboard-component-chart-holder {
+    .dashboard-chart {
+      .chart-container {
+        cursor: move;
+        opacity: 0.2;
+      }
+      .slice_container {
+        /* disable chart interactions in edit mode */
+        pointer-events: none;
+      }
+    }
+    &:hover .dashboard-chart .chart-container {
+      opacity: 0.7;
+    }
+  }
 }
 
 .slice-header-controls-trigger {
