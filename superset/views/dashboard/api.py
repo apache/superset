@@ -134,6 +134,7 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.RELATED,
+        RouteMethod.INFO,
         "bulk_delete",  # not using RouteMethod since locally defined
     }
     resource_name = "dashboard"

@@ -46,6 +46,7 @@ class RouteMethod:  # pylint: disable=too-few-public-methods
     EDIT = "edit"
     LIST = "list"
     SHOW = "show"
+    INFO = "info"
 
     # RestModelView specific
     EXPORT = "export"
