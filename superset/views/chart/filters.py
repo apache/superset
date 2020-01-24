@@ -14,15 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder.models.sqla.interface import SQLAInterface
+from sqlalchemy import or_
 
-import superset.models.core as models
-from superset.constants import RouteMethod
-from superset.views.base import SupersetModelView
-
-from . import LogMixin
+from superset import security_manager
+from superset.views.base import BaseFilter
 
 
-class LogModelView(LogMixin, SupersetModelView):  # pylint: disable=too-many-ancestors
-    datamodel = SQLAInterface(models.Log)
-    include_route_methods = {RouteMethod.LIST, RouteMethod.SHOW}
+class SliceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    def apply(self, query, value):
+        if security_manager.all_datasource_access():
+            return query
+        perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
+        return query.filter(
+            or_(self.model.perm.in_(perms), self.model.schema_perm.in_(schema_perms))
+        )
