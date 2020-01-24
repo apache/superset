@@ -36,8 +36,6 @@ Superset
 **Apache Superset** (incubating) is a modern, enterprise-ready
 business intelligence web application
 
-[this project used to be named **Caravel**, and **Panoramix** in the past]
-
 
 Screenshots & Gifs
 ------------------
@@ -193,7 +191,7 @@ the world know they are using Superset. Join our growing community!
  1. [Pronto Tools](http://www.prontotools.io)
  1. [QPID Health](http://www.qpidhealth.com/)
  1. [Qunar](https://www.qunar.com/)
- 1. [Reward Gateway](https://rewardgateway.com)
+ 1. [Reward Gateway](https://www.rewardgateway.com)
  1. [Safaricom](https://www.safaricom.co.ke/)
  1. [Scoot](https://scoot.co/)
  1. [ScopeAI](https://www.getscopeai.com)

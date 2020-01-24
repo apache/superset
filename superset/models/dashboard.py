@@ -192,13 +192,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return f"/superset/profile/{self.changed_by.username}"
 
     @property
-    def owners_json(self) -> List[Dict[str, Any]]:
-        owners = []
-        for owner in self.owners:
-            owners.append({"name": owner.name})
-        return owners
-
-    @property
     def data(self) -> Dict[str, Any]:
         positions = self.position_json
         if positions:

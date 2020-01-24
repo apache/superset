@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import re
 
 from flask import g, redirect, request, Response
@@ -25,15 +26,18 @@ from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
 from superset import db, event_logger
+from superset.constants import RouteMethod
 from superset.utils import core as utils
 
 from ..base import (
     BaseSupersetView,
     check_ownership,
+    common_bootstrap_payload,
     DeleteMixin,
     generate_download_headers,
     SupersetModelView,
 )
+from ..utils import bootstrap_user_data
 from .mixin import DashboardMixin
 
 
@@ -42,6 +46,28 @@ class DashboardModelView(
 ):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(models.Dashboard)
+    # TODO disable api_read and api_delete (used by cypress)
+    # once we move to ChartRestModelApi
+    include_route_methods = RouteMethod.CRUD_SET | {
+        RouteMethod.API_READ,
+        RouteMethod.API_DELETE,
+        "download_dashboards",
+    }
+
+    @has_access
+    @expose("/list/")
+    def list(self):
+        payload = {
+            "user": bootstrap_user_data(g.user),
+            "common": common_bootstrap_payload(),
+        }
+        return self.render_template(
+            "superset/welcome.html",
+            entry="welcome",
+            bootstrap_data=json.dumps(
+                payload, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+        )
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
     def mulexport(self, items):  # pylint: disable=no-self-use
@@ -101,6 +127,8 @@ class Dashboard(BaseSupersetView):
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
+    include_route_methods = {RouteMethod.API_READ}
+
     list_columns = [
         "id",
         "dashboard_link",
@@ -117,18 +145,3 @@ class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-a
         "creator": _("Creator"),
         "modified": _("Modified"),
     }
-
-
-class DashboardAddView(DashboardModelView):  # pylint: disable=too-many-ancestors
-    route_base = "/dashboardaddview"
-    list_columns = [
-        "id",
-        "dashboard_link",
-        "creator",
-        "modified",
-        "dashboard_title",
-        "changed_on",
-        "url",
-        "changed_by_name",
-    ]
-    show_columns = list(set(DashboardModelView.edit_columns + list_columns))

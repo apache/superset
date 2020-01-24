@@ -19,16 +19,19 @@ import json
 from typing import List
 
 import prison
-from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import db, security_manager
 from superset.models import core as models
 from superset.models.slice import Slice
+from superset.views.base import generate_download_headers
 
+from .base_api_tests import ApiOwnersTestCaseMixin
 from .base_tests import SupersetTestCase
 
 
-class DashboardApiTests(SupersetTestCase):
+class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
+    resource_name = "dashboard"
+
     def __init__(self, *args, **kwargs):
         super(DashboardApiTests, self).__init__(*args, **kwargs)
 
@@ -62,14 +65,6 @@ class DashboardApiTests(SupersetTestCase):
         db.session.commit()
         return dashboard
 
-    def get_user(self, username: str) -> ab_models.User:
-        user = (
-            db.session.query(security_manager.user_model)
-            .filter_by(username=username)
-            .one_or_none()
-        )
-        return user
-
     def test_delete_dashboard(self):
         """
             Dashboard API: Test delete
@@ -83,6 +78,44 @@ class DashboardApiTests(SupersetTestCase):
         model = db.session.query(models.Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
 
+    def test_delete_bulk_dashboards(self):
+        """
+            Dashboard API: Test delete bulk
+        """
+        admin_id = self.get_user("admin").id
+        dashboard_count = 4
+        dashboard_ids = list()
+        for dashboard_name_index in range(dashboard_count):
+            dashboard_ids.append(
+                self.insert_dashboard(
+                    f"title{dashboard_name_index}",
+                    f"slug{dashboard_name_index}",
+                    [admin_id],
+                ).id
+            )
+        self.login(username="admin")
+        argument = dashboard_ids
+        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": f"Deleted {dashboard_count} dashboards"}
+        self.assertEqual(response, expected_response)
+        for dashboard_id in dashboard_ids:
+            model = db.session.query(models.Dashboard).get(dashboard_id)
+            self.assertEqual(model, None)
+
+    def test_delete_bulk_dashboards_bad_request(self):
+        """
+            Dashboard API: Test delete bulk bad request
+        """
+        dashboard_ids = [1, "a"]
+        self.login(username="admin")
+        argument = dashboard_ids
+        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 400)
+
     def test_delete_not_found_dashboard(self):
         """
             Dashboard API: Test not found delete
@@ -90,6 +123,17 @@ class DashboardApiTests(SupersetTestCase):
         self.login(username="admin")
         dashboard_id = 1000
         uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_delete_bulk_dashboards_not_found(self):
+        """
+            Dashboard API: Test delete bulk not found
+        """
+        dashboard_ids = [1001, 1002]
+        self.login(username="admin")
+        argument = dashboard_ids
+        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -106,6 +150,35 @@ class DashboardApiTests(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(models.Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
+
+    def test_delete_bulk_dashboard_admin_not_owned(self):
+        """
+            Dashboard API: Test admin delete bulk not owned
+        """
+        gamma_id = self.get_user("gamma").id
+        dashboard_count = 4
+        dashboard_ids = list()
+        for dashboard_name_index in range(dashboard_count):
+            dashboard_ids.append(
+                self.insert_dashboard(
+                    f"title{dashboard_name_index}",
+                    f"slug{dashboard_name_index}",
+                    [gamma_id],
+                ).id
+            )
+
+        self.login(username="admin")
+        argument = dashboard_ids
+        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        expected_response = {"message": f"Deleted {dashboard_count} dashboards"}
+        self.assertEqual(response, expected_response)
+
+        for dashboard_id in dashboard_ids:
+            model = db.session.query(models.Dashboard).get(dashboard_id)
+            self.assertEqual(model, None)
 
     def test_delete_dashboard_not_owned(self):
         """
@@ -128,6 +201,68 @@ class DashboardApiTests(SupersetTestCase):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
         db.session.delete(dashboard)
+        db.session.delete(user_alpha1)
+        db.session.delete(user_alpha2)
+        db.session.commit()
+
+    def test_delete_bulk_dashboard_not_owned(self):
+        """
+            Dashboard API: Test delete bulk try not owned
+        """
+        user_alpha1 = self.create_user(
+            "alpha1", "password", "Alpha", email="alpha1@superset.org"
+        )
+        user_alpha2 = self.create_user(
+            "alpha2", "password", "Alpha", email="alpha2@superset.org"
+        )
+        existing_slice = (
+            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+        )
+
+        dashboard_count = 4
+        dashboards = list()
+        for dashboard_name_index in range(dashboard_count):
+            dashboards.append(
+                self.insert_dashboard(
+                    f"title{dashboard_name_index}",
+                    f"slug{dashboard_name_index}",
+                    [user_alpha1.id],
+                    slices=[existing_slice],
+                    published=True,
+                )
+            )
+
+        owned_dashboard = self.insert_dashboard(
+            "title_owned",
+            "slug_owned",
+            [user_alpha2.id],
+            slices=[existing_slice],
+            published=True,
+        )
+
+        self.login(username="alpha2", password="password")
+
+        # verify we can't delete not owned dashboards
+        arguments = [dashboard.id for dashboard in dashboards]
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": "No dashboards deleted"}
+        self.assertEqual(response, expected_response)
+
+        # nothing is delete in bulk with a list of owned and not owned dashboards
+        arguments = [dashboard.id for dashboard in dashboards] + [owned_dashboard.id]
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": "No dashboards deleted"}
+        self.assertEqual(response, expected_response)
+
+        for dashboard in dashboards:
+            db.session.delete(dashboard)
+        db.session.delete(owned_dashboard)
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
         db.session.commit()
@@ -366,60 +501,42 @@ class DashboardApiTests(SupersetTestCase):
         db.session.delete(user_alpha2)
         db.session.commit()
 
-    def test_get_related_owners(self):
+    def test_export(self):
         """
-            Dashboard API: Test dashboard get related owners
+            Dashboard API: Test dashboard export
         """
         self.login(username="admin")
-        uri = f"api/v1/dashboard/related/owners"
+        argument = [1, 2]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
-        response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {
-            "count": 6,
-            "result": [
-                {"text": "admin user", "value": 1},
-                {"text": "alpha user", "value": 5},
-                {"text": "explore_beta  user", "value": 6},
-                {"text": "gamma user", "value": 2},
-                {"text": "gamma2 user", "value": 3},
-                {"text": "gamma_sqllab user", "value": 4},
-            ],
-        }
-        self.assertEqual(response["count"], expected_response["count"])
-        # This is needed to be implemented like this because ordering varies between
-        # postgres and mysql
-        for result in expected_response["result"]:
-            self.assertIn(result, response["result"])
-
-    def test_get_filter_related_owners(self):
-        """
-            Dashboard API: Test dashboard get filter related owners
-        """
-        self.login(username="admin")
-        argument = {"filter": "a"}
-        uri = "api/v1/dashboard/related/owners?{}={}".format(
-            "q", prison.dumps(argument)
+        self.assertEqual(
+            rv.headers["Content-Disposition"],
+            generate_download_headers("json")["Content-Disposition"],
         )
 
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-        response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {
-            "count": 2,
-            "result": [
-                {"text": "admin user", "value": 1},
-                {"text": "alpha user", "value": 5},
-            ],
-        }
-        self.assertEqual(response, expected_response)
-
-    def test_get_related_fail(self):
+    def test_export_not_found(self):
         """
-            Dashboard API: Test dashboard get related fail
+            Dashboard API: Test dashboard export not found
         """
         self.login(username="admin")
-        uri = "api/v1/dashboard/related/owner"
-
+        argument = [1000]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    def test_export_not_allowed(self):
+        """
+            Dashboard API: Test dashboard export not not allowed
+        """
+        admin_id = self.get_user("admin").id
+        dashboard = self.insert_dashboard("title", "slug1", [admin_id], published=False)
+
+        self.login(username="gamma")
+        argument = [dashboard.id]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+        db.session.delete(dashboard)
+        db.session.commit()

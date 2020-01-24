@@ -25,10 +25,12 @@ from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
 from superset.utils import core as utils
-
-from .base import api, BaseSupersetView, handle_api_exception
-from .dashboard import api as dashboard_api  # pylint: disable=unused-import
-from .database import api as database_api  # pylint: disable=unused-import
+from superset.views.base import api, BaseSupersetView, handle_api_exception
+from superset.views.chart import api as chart_api  # pylint: disable=unused-import
+from superset.views.dashboard import (  # pylint: disable=unused-import
+    api as dashboard_api,
+)
+from superset.views.database import api as database_api  # pylint: disable=unused-import
 
 
 class Api(BaseSupersetView):

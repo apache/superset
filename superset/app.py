@@ -142,29 +142,22 @@ class SupersetAppInitializer:
         from superset.views.api import Api
         from superset.views.core import (
             AccessRequestsModelView,
-            SliceModelView,
-            SliceAsync,
-            SliceAddView,
             KV,
             R,
             Superset,
             CssTemplateModelView,
             CssTemplateAsyncModelView,
         )
+        from superset.views.chart.api import ChartRestApi
+        from superset.views.chart.views import SliceModelView, SliceAsync
         from superset.views.dashboard.api import DashboardRestApi
         from superset.views.dashboard.views import (
             DashboardModelView,
             Dashboard,
-            DashboardAddView,
             DashboardModelViewAsync,
         )
         from superset.views.database.api import DatabaseRestApi
-        from superset.views.database.views import (
-            DatabaseView,
-            DatabaseTablesAsync,
-            CsvToDatabaseView,
-            DatabaseAsync,
-        )
+        from superset.views.database.views import DatabaseView, CsvToDatabaseView
         from superset.views.datasource import Datasource
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
@@ -185,6 +178,7 @@ class SupersetAppInitializer:
         #
         # Setup API views
         #
+        appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
 
@@ -218,6 +212,16 @@ class SupersetAppInitializer:
             category_label=__("Sources"),
             category_icon="fa-database",
         )
+        appbuilder.add_link(
+            "Tables",
+            label=__("Tables"),
+            href="/tablemodelview/list/?_flt_1_is_sqllab_view=y",
+            icon="fa-table",
+            category="Sources",
+            category_label=__("Sources"),
+            category_icon="fa-table",
+        )
+        appbuilder.add_separator("Sources")
         appbuilder.add_view(
             SliceModelView,
             "Charts",
@@ -259,16 +263,12 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
         appbuilder.add_view_no_menu(CsvToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)
-        appbuilder.add_view_no_menu(DashboardAddView)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
-        appbuilder.add_view_no_menu(DatabaseAsync)
-        appbuilder.add_view_no_menu(DatabaseTablesAsync)
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(KV)
         appbuilder.add_view_no_menu(R)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SavedQueryViewApi)
-        appbuilder.add_view_no_menu(SliceAddView)
         appbuilder.add_view_no_menu(SliceAsync)
         appbuilder.add_view_no_menu(SqlLab)
         appbuilder.add_view_no_menu(SqlMetricInlineView)
@@ -282,12 +282,6 @@ class SupersetAppInitializer:
         #
         # Add links
         #
-        appbuilder.add_link(
-            __("Saved Queries"),
-            href="/sqllab/my_queries/",
-            icon="fa-save",
-            category="SQL Lab",
-        )
         appbuilder.add_link(
             "Import Dashboards",
             label=__("Import Dashboards"),
@@ -307,6 +301,12 @@ class SupersetAppInitializer:
             category_label=__("SQL Lab"),
         )
         appbuilder.add_link(
+            __("Saved Queries"),
+            href="/sqllab/my_queries/",
+            icon="fa-save",
+            category="SQL Lab",
+        )
+        appbuilder.add_link(
             "Query Search",
             label=_("Query Search"),
             href="/superset/sqllab#search",
@@ -324,23 +324,11 @@ class SupersetAppInitializer:
             category_label=__("Sources"),
             category_icon="fa-wrench",
         )
-        appbuilder.add_link(
-            "Tables",
-            label=__("Tables"),
-            href="/tablemodelview/list/?_flt_1_is_sqllab_view=y",
-            icon="fa-table",
-            category="Sources",
-            category_label=__("Sources"),
-            category_icon="fa-table",
-        )
 
         #
         # Conditionally setup log views
         #
-        if (
-            not self.config["FAB_ADD_SECURITY_VIEWS"] is False
-            or self.config["SUPERSET_LOG_VIEW"] is False
-        ):
+        if self.config["FAB_ADD_SECURITY_VIEWS"] and self.config["SUPERSET_LOG_VIEW"]:
             appbuilder.add_api(LogRestApi)
             appbuilder.add_view(
                 LogModelView,
@@ -411,24 +399,26 @@ class SupersetAppInitializer:
             appbuilder.add_view_no_menu(DruidMetricInlineView)
             appbuilder.add_view_no_menu(DruidColumnInlineView)
             appbuilder.add_view_no_menu(Druid)
-            appbuilder.add_link(
-                "Scan New Datasources",
-                label=__("Scan New Datasources"),
-                href="/druid/scan_new_datasources/",
-                category="Sources",
-                category_label=__("Sources"),
-                category_icon="fa-database",
-                icon="fa-refresh",
-            )
-            appbuilder.add_link(
-                "Refresh Druid Metadata",
-                label=__("Refresh Druid Metadata"),
-                href="/druid/refresh_datasources/",
-                category="Sources",
-                category_label=__("Sources"),
-                category_icon="fa-database",
-                icon="fa-cog",
-            )
+
+            if self.config["DRUID_METADATA_LINKS_ENABLED"]:
+                appbuilder.add_link(
+                    "Scan New Datasources",
+                    label=__("Scan New Datasources"),
+                    href="/druid/scan_new_datasources/",
+                    category="Sources",
+                    category_label=__("Sources"),
+                    category_icon="fa-database",
+                    icon="fa-refresh",
+                )
+                appbuilder.add_link(
+                    "Refresh Druid Metadata",
+                    label=__("Refresh Druid Metadata"),
+                    href="/druid/refresh_datasources/",
+                    category="Sources",
+                    category_label=__("Sources"),
+                    category_icon="fa-database",
+                    icon="fa-cog",
+                )
             appbuilder.add_separator("Sources")
 
     def init_app_in_ctx(self) -> None:
