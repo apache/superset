@@ -463,8 +463,15 @@ iframe {
 }
 
 .dimmed {
-  opacity: 0.5;
+  opacity: @opacity-medium;
+  &--light {
+    opacity: @opacity-light;
+  }
+  &--medium-light {
+    opacity: @opacity-medium-light;
+  }
 }
+
 .pointer {
   cursor: pointer;
 }
