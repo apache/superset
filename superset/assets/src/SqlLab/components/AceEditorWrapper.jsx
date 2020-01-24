@@ -131,6 +131,11 @@ class AceEditorWrapper extends React.PureComponent {
     this.props.onChange(text);
   }
   getCompletions(aceEditor, session, pos, prefix, callback) {
+    // If the prefix starts with a number, don't try to autocomplete with a
+    // table name or schema or anything else
+    if (!isNaN(parseInt(prefix, 10))) {
+      return;
+    }
     const completer = {
       insertMatch: (editor, data) => {
         if (data.meta === 'table') {

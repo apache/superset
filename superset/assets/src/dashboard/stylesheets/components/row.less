@@ -32,47 +32,44 @@
 }
 
 /* hover indicator */
-.dashboard--editing .grid-row:after,
-.dashboard--editing .dashboard-component-tabs > .hover-menu:hover + div:after {
-  border: 1px dashed transparent;
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.dashboard--editing
-  .resizable-container.resizable-container--resizing:hover
-  > .grid-row:after,
-.dashboard--editing .hover-menu:hover + .grid-row:after,
-.dashboard--editing .dashboard-component-tabs > .hover-menu:hover + div:after {
-  border: 1px dashed @indicator-color;
-  z-index: 2;
-}
-
-.dashboard--editing .grid-row:after,
-.dashboard--editing .dashboard-component-tabs > .hover-menu + div:after {
-  border: 1px dashed @gray-light;
+.dashboard--editing {
+  .grid-row:after,
+  .dashboard-component-tabs > .hover-menu:hover + div:after {
+    border: 1px dashed transparent;
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: @z-index-chart;
+    pointer-events: none;
+  }
+  .resizable-container.resizable-container--resizing:hover > .grid-row:after,
+  .hover-menu:hover + .grid-row:after,
+  .dashboard-component-tabs > .hover-menu:hover + div:after {
+    border: 1px dashed @indicator-color;
+    z-index: @z-index-chart--dragging;
+  }
+  .grid-row:after,
+  .dashboard-component-tabs > .hover-menu + div:after {
+    border: 1px dashed @gray-light;
+  }
 }
 
 .grid-row.grid-row--empty {
   align-items: center; /* this centers the empty note content */
   height: 100px;
-}
-
-.grid-row--empty:before {
-  position: absolute;
-  top: 0;
-  left: 0;
-  content: 'Empty row';
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: @gray;
+  &:before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    content: 'Empty row';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: @gray;
+  }
 }

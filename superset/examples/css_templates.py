@@ -29,17 +29,6 @@ def load_css_templates():
         obj = CssTemplate(template_name="Flat")
     css = textwrap.dedent(
         """\
-    .gridster div.widget {
-        transition: background-color 0.5s ease;
-        background-color: #FAFAFA;
-        border: 1px solid #CCC;
-        box-shadow: none;
-        border-radius: 0px;
-    }
-    .gridster div.widget:hover {
-        border: 1px solid #000;
-        background-color: #EAEAEA;
-    }
     .navbar {
         transition: opacity 0.5s ease;
         opacity: 0.05;
@@ -70,23 +59,12 @@ def load_css_templates():
         obj = CssTemplate(template_name="Courier Black")
     css = textwrap.dedent(
         """\
-    .gridster div.widget {
-        transition: background-color 0.5s ease;
-        background-color: #EEE;
-        border: 2px solid #444;
-        border-radius: 15px;
-        box-shadow: none;
-    }
     h2 {
         color: white;
         font-size: 52px;
     }
     .navbar {
         box-shadow: none;
-    }
-    .gridster div.widget:hover {
-        border: 2px solid #000;
-        background-color: #EAEAEA;
     }
     .navbar {
         transition: opacity 0.5s ease;
