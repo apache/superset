@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+ @import '../../../stylesheets/less/variables.less';
+
 .superset-list-view {
   .actions {
     font-size: @font-size-l;
@@ -46,7 +49,7 @@
     padding: 5px;
 
     i {
-      font-size: 20px;
+      font-size: @font-size-l;
     }
   }
 
@@ -59,11 +62,22 @@
       #f6f7f8 40%,
       #f6f7f8 100%
     );
+    // ^^^^^ replace with color vars
     background-size: 1000px 100%;
 
     span {
       visibility: hidden;
     }
+  }
+
+  th .fa-stack {
+    font-size: @font-size-l;
+    line-height: @line-height-tight;
+    // line-height: @font-size-l;
+    // height: @font-size-l;
+    height: auto;
+    width: auto;
+    vertical-align: text-top;
   }
 }
 

@@ -45,16 +45,22 @@ export default function TableCollection({
               <th {...column.getHeaderProps(column.getSortByToggleProps())} data-test='sort-header'>
                 {column.render('Header')}
                 {'  '}
-                {column.sortable && (
+                {column.sortable && !column.isSorted && (
                   <i
-                    className={`text-primary fa fa-${
-                      column.isSorted
-                        ? column.isSortedDesc
-                          ? 'sort-down'
-                          : 'sort-up'
-                        : 'sort'
-                      }`}
+                    className={`fa fa-sort dimmed--light`}
                   />
+                )}
+                {column.sortable && column.isSorted && (
+                  <span className='fa fa-stack'>
+                    <i className='fa fa-sort fa-stack-1x dimmed--light'/>
+                    <i
+                      className={`text-primary fa-stack-1x fa fa-${
+                      column.isSortedDesc
+                        ? 'sort-down'
+                        : 'sort-up'
+                      }`}
+                    />
+                  </span>
                 )}
               </th>
             ))}
