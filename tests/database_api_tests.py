@@ -102,61 +102,9 @@ class DatabaseApiTests(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {
-            "columns": [
-                {
-                    "keys": [],
-                    "longType": "TIMESTAMP WITHOUT TIME ZONE",
-                    "name": "ds",
-                    "type": "TIMESTAMP WITHOUT TIME ZONE",
-                },
-                {
-                    "keys": [],
-                    "longType": "VARCHAR(16)",
-                    "name": "gender",
-                    "type": "VARCHAR",
-                },
-                {
-                    "keys": [],
-                    "longType": "VARCHAR(255)",
-                    "name": "name",
-                    "type": "VARCHAR",
-                },
-                {"keys": [], "longType": "BIGINT", "name": "num", "type": "BIGINT"},
-                {
-                    "keys": [],
-                    "longType": "VARCHAR(10)",
-                    "name": "state",
-                    "type": "VARCHAR",
-                },
-                {
-                    "keys": [],
-                    "longType": "BIGINT",
-                    "name": "sum_boys",
-                    "type": "BIGINT",
-                },
-                {
-                    "keys": [],
-                    "longType": "BIGINT",
-                    "name": "sum_girls",
-                    "type": "BIGINT",
-                },
-            ],
-            "foreignKeys": [],
-            "indexes": [],
-            "name": "birth_names",
-            "primaryKey": {"constrained_columns": [], "name": None},
-            "selectStar": "SELECT ds,\n"
-            "       gender,\n"
-            "       name,\n"
-            "       num,\n"
-            "       state,\n"
-            "       sum_boys,\n"
-            "       sum_girls\n"
-            "FROM birth_names\n"
-            "LIMIT 100",
-        }
-        self.assertEqual(response, expected_response)
+        self.assertEqual(response["name"], "birth_names")
+        self.assertTrue(len(response["columns"]) > 5)
+        self.assertTrue(response.get("selectStar").startswith("SELECT"))
 
     def test_get_invalid_database_table_metadata(self):
         """
