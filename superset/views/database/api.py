@@ -44,6 +44,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         "allows_subquery",
         "allows_cost_estimate",
         "backend",
+        "function_names",
     ]
     show_columns = list_columns
 

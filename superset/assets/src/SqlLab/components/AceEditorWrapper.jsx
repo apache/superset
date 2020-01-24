@@ -29,6 +29,7 @@ import {
   SCHEMA_AUTOCOMPLETE_SCORE,
   TABLE_AUTOCOMPLETE_SCORE,
   COLUMN_AUTOCOMPLETE_SCORE,
+  SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
 } from '../constants';
 
 const langTools = ace.acequire('ace/ext/language_tools');
@@ -39,6 +40,7 @@ const propTypes = {
   sql: PropTypes.string.isRequired,
   schemas: PropTypes.array,
   tables: PropTypes.array,
+  functionNames: PropTypes.array,
   extendedTables: PropTypes.array,
   queryEditor: PropTypes.object.isRequired,
   height: PropTypes.string,
@@ -57,6 +59,7 @@ const defaultProps = {
   onChange: () => {},
   schemas: [],
   tables: [],
+  functionNames: [],
   extendedTables: [],
 };
 
@@ -145,7 +148,9 @@ class AceEditorWrapper extends React.PureComponent {
             this.props.queryEditor.schema,
           );
         }
-        editor.completer.insertMatch({ value: data.caption + ' ' });
+        editor.completer.insertMatch({
+          value: `${data.caption}${data.meta === 'function' ? '' : ' '}`,
+        });
       },
     };
     const words = this.state.words.map(word => ({ ...word, completer }));
@@ -185,9 +190,17 @@ class AceEditorWrapper extends React.PureComponent {
       meta: 'column',
     }));
 
+    const functionWords = props.functionNames.map(func => ({
+      name: func,
+      value: func,
+      score: SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
+      meta: 'function',
+    }));
+
     const words = schemaWords
       .concat(tableWords)
       .concat(columnWords)
+      .concat(functionWords)
       .concat(sqlKeywords);
 
     this.setState({ words }, () => {

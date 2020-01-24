@@ -61,6 +61,7 @@ export const LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS = 8000; // danger type toa
 
 // autocomplete score weights
 export const SQL_KEYWORD_AUTOCOMPLETE_SCORE = 100;
+export const SQL_FUNCTIONS_AUTOCOMPLETE_SCORE = 90;
 export const SCHEMA_AUTOCOMPLETE_SCORE = 60;
 export const TABLE_AUTOCOMPLETE_SCORE = 55;
 export const COLUMN_AUTOCOMPLETE_SCORE = 50;
