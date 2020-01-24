@@ -257,16 +257,6 @@ class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
     }
 
 
-appbuilder.add_view(
-    RowLevelSecurityFiltersModelView,
-    "Row Level Security Filters",
-    label=__("Row level security filters"),
-    category="Security",
-    category_label=__("Security"),
-    icon="fa-lock",
-)
-
-
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.SqlaTable)
     include_route_methods = RouteMethod.CRUD_SET

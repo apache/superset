@@ -894,19 +894,33 @@ class SupersetSecurityManager(SecurityManager):
         Retrieves the appropriate row level security filters for the current user and the passed table.
 
         :param table: The table to check against
-        :returns: A list of filters strings.
+        :returns: A list of filters.
         """
         if hasattr(g, "user") and hasattr(g.user, "id"):
             from superset import db
-
-            result = db.session.execute(
-                "SELECT * FROM row_level_security_filters "
-                "WHERE table_id = :table AND id IN "
-                "(SELECT id FROM rls_filter_roles WHERE role_id IN "
-                "(SELECT role_id FROM ab_user_role WHERE user_id = :user))",
-                {"table": table.id, "user": g.user.id},
+            from superset.connectors.sqla.models import (
+                RLSFilterRoles,
+                RowLevelSecurityFilter,
             )
-            return result
+
+            user_roles = (
+                db.session.query(assoc_user_role.c.role_id)
+                .filter(assoc_user_role.c.user_id == g.user.id)
+                .subquery()
+            )
+            filter_roles = (
+                db.session.query(RLSFilterRoles.c.id)
+                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+                .subquery()
+            )
+            query = (
+                db.session.query(
+                    RowLevelSecurityFilter.id, RowLevelSecurityFilter.clause
+                )
+                .filter(RowLevelSecurityFilter.table_id == table.id)
+                .filter(RowLevelSecurityFilter.id.in_(filter_roles))
+            )
+            return query.all()
         return []
 
     def get_rls_ids(self, table: "BaseDatasource") -> List[int]:

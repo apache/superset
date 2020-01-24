@@ -134,6 +134,7 @@ class SupersetAppInitializer:
             TableColumnInlineView,
             SqlMetricInlineView,
             TableModelView,
+            RowLevelSecurityFiltersModelView,
         )
         from superset.views.annotations import (
             AnnotationLayerModelView,
@@ -254,6 +255,14 @@ class SupersetAppInitializer:
             category="Manage",
             category_label=__("Manage"),
             icon="fa-search",
+        )
+        appbuilder.add_view(
+            RowLevelSecurityFiltersModelView,
+            "Row Level Security Filters",
+            label=__("Row level security filters"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-lock",
         )
 
         #
