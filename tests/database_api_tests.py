@@ -17,18 +17,84 @@
 """Unit tests for Superset"""
 import json
 
+import prison
+
 from superset import db
 from superset.models.core import Database
 from superset.utils.core import get_example_database
-from superset.views.database.api import get_table_schema_info
 
 from .base_tests import SupersetTestCase
 
 
 class DatabaseApiTests(SupersetTestCase):
+    def test_get_items(self):
+        """
+            Database API: Test get items
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_columns = [
+            "allow_csv_upload",
+            "allow_ctas",
+            "allow_dml",
+            "allow_multi_schema_metadata_fetch",
+            "allow_run_async",
+            "allows_cost_estimate",
+            "allows_subquery",
+            "backend",
+            "database_name",
+            "expose_in_sqllab",
+            "force_ctas_schema",
+            "id",
+        ]
+        self.assertEqual(response["count"], 2)
+        self.assertEqual(list(response["result"][0].keys()), expected_columns)
+
+    def test_get_items_filter(self):
+        fake_db = (
+            db.session.query(Database).filter_by(database_name="fake_db_100").one()
+        )
+        old_expose_in_sqllab = fake_db.expose_in_sqllab
+        fake_db.expose_in_sqllab = False
+        db.session.commit()
+        self.login(username="admin")
+        arguments = {
+            "keys": ["none"],
+            "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
+            "order_columns": "database_name",
+            "order_direction": "asc",
+            "page": 0,
+            "page_size": -1,
+        }
+        uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(response["count"], 1)
+
+        fake_db = (
+            db.session.query(Database).filter_by(database_name="fake_db_100").one()
+        )
+        fake_db.expose_in_sqllab = old_expose_in_sqllab
+        db.session.commit()
+
+    def test_get_items_not_allowed(self):
+        """
+            Database API: Test get items not allowed
+        """
+        self.login(username="gamma")
+        uri = f"api/v1/database/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response["count"], 0)
+
     def test_get_table_metadata(self):
         """
-            Database API: Test get table schema info
+            Database API: Test get table metadata info
         """
         example_db = get_example_database()
         self.login(username="admin")
@@ -36,7 +102,60 @@ class DatabaseApiTests(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = get_table_schema_info(example_db, "birth_names", None)
+        expected_response = {
+            "columns": [
+                {
+                    "keys": [],
+                    "longType": "TIMESTAMP WITHOUT TIME ZONE",
+                    "name": "ds",
+                    "type": "TIMESTAMP WITHOUT TIME ZONE",
+                },
+                {
+                    "keys": [],
+                    "longType": "VARCHAR(16)",
+                    "name": "gender",
+                    "type": "VARCHAR",
+                },
+                {
+                    "keys": [],
+                    "longType": "VARCHAR(255)",
+                    "name": "name",
+                    "type": "VARCHAR",
+                },
+                {"keys": [], "longType": "BIGINT", "name": "num", "type": "BIGINT"},
+                {
+                    "keys": [],
+                    "longType": "VARCHAR(10)",
+                    "name": "state",
+                    "type": "VARCHAR",
+                },
+                {
+                    "keys": [],
+                    "longType": "BIGINT",
+                    "name": "sum_boys",
+                    "type": "BIGINT",
+                },
+                {
+                    "keys": [],
+                    "longType": "BIGINT",
+                    "name": "sum_girls",
+                    "type": "BIGINT",
+                },
+            ],
+            "foreignKeys": [],
+            "indexes": [],
+            "name": "birth_names",
+            "primaryKey": {"constrained_columns": [], "name": None},
+            "selectStar": "SELECT ds,\n"
+            "       gender,\n"
+            "       name,\n"
+            "       num,\n"
+            "       state,\n"
+            "       sum_boys,\n"
+            "       sum_girls\n"
+            "FROM birth_names\n"
+            "LIMIT 100",
+        }
         self.assertEqual(response, expected_response)
 
     def test_get_invalid_database_table_metadata(self):

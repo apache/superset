@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -30,41 +30,61 @@ from superset.views.database.mixins import DatabaseMixin
 from superset.views.database.validators import sqlalchemy_uri_validator
 
 
-def get_table_schema_info(
-    database: Database, table_name: str, schema: Optional[str]
+def get_foreign_keys_metadata(
+    database: Database, table_name: str, schema_name: Optional[str]
+) -> List[Dict[str, Any]]:
+    foreign_keys = database.get_foreign_keys(table_name, schema_name)
+    for fk in foreign_keys:
+        fk["column_names"] = fk.pop("constrained_columns")
+        fk["type"] = "fk"
+    return foreign_keys
+
+
+def get_indexes_metadata(
+    database: Database, table_name: str, schema_name: Optional[str]
+) -> List[Dict[str, Any]]:
+    indexes = database.get_indexes(table_name, schema_name)
+    for idx in indexes:
+        idx["type"] = "index"
+    return indexes
+
+
+def get_col_type(col):
+    try:
+        dtype = f"{col['type']}"
+    except Exception:  # pylint: disable=broad-except
+        # sqla.types.JSON __str__ has a bug, so using __class__.
+        dtype = col["type"].__class__.__name__
+    print(f"{dtype} {type(dtype)}")
+    return dtype
+
+
+def get_table_metadata(
+    database: Database, table_name: str, schema_name: Optional[str]
 ) -> Dict:
     """
-        Get table schema information, including type, pk, fks.
-        This function raises SQLAlchemyError when a schema is not found
+        Get table metadata information, including type, pk, fks.
+        This function raises SQLAlchemyError when a schema is not found.
+
 
     :param database: The database model
     :param table_name: Table name
-    :param schema: schema name
-    :return: Dict with all the table information
+    :param schema_name: schema name
+    :return: Dict table metadata ready for API response
     """
-    columns = database.get_columns(table_name, schema)
-    indexes = database.get_indexes(table_name, schema)
-    primary_key = database.get_pk_constraint(table_name, schema)
-    foreign_keys = database.get_foreign_keys(table_name, schema)
     keys: List = []
+    columns = database.get_columns(table_name, schema_name)
+    primary_key = database.get_pk_constraint(table_name, schema_name)
     if primary_key and primary_key.get("constrained_columns"):
         primary_key["column_names"] = primary_key.pop("constrained_columns")
         primary_key["type"] = "pk"
         keys += [primary_key]
-    for fk in foreign_keys:
-        fk["column_names"] = fk.pop("constrained_columns")
-        fk["type"] = "fk"
-    keys += foreign_keys
-    for idx in indexes:
-        idx["type"] = "index"
-    keys += indexes
+    foreign_keys = get_foreign_keys_metadata(database, table_name, schema_name)
+    indexes = get_indexes_metadata(database, table_name, schema_name)
+    keys += foreign_keys + indexes
     payload_columns: List[Dict] = []
     for col in columns:
-        try:
-            dtype = f"{col['type']}"
-        except Exception:  # pylint: disable=broad-except
-            # sqla.types.JSON __str__ has a bug, so using __class__.
-            dtype = col["type"].__class__.__name__
+        dtype = get_col_type(col)
         payload_columns.append(
             {
                 "name": col["name"],
@@ -78,7 +98,7 @@ def get_table_schema_info(
         "columns": payload_columns,
         "selectStar": database.select_star(
             table_name,
-            schema=schema,
+            schema=schema_name,
             show_cols=True,
             indent=True,
             cols=columns,
@@ -119,12 +139,14 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     max_page_size = -1
     validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
 
-    @expose("/<int:pk>/table/<string:table_name>/<string:schema>/", methods=["GET"])
+    @expose(
+        "/<int:pk>/table/<string:table_name>/<string:schema_name>/", methods=["GET"]
+    )
     @protect()
     @safe
     @event_logger.log_this
     def table_metadata(
-        self, pk: int, table_name: str, schema: str
+        self, pk: int, table_name: str, schema_name: str
     ):  # pylint: disable=invalid-name
         """ Table schema info
         ---
@@ -239,10 +261,10 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        schema_parsed: Optional[str] = parse_js_uri_path_item(
-            schema, eval_undefined=True
-        )
         table_name_parsed: Optional[str] = parse_js_uri_path_item(table_name)
+        schema_parsed: Optional[str] = parse_js_uri_path_item(
+            schema_name, eval_undefined=True
+        )
         # schemas can be None but not tables
         if not table_name_parsed:
             return self.response_422(message=_(f"Could not parse table name or schema"))
@@ -251,7 +273,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             return self.response_404()
 
         try:
-            table_info: Dict = get_table_schema_info(
+            table_info: Dict = get_table_metadata(
                 database, table_name_parsed, schema_parsed
             )
         except SQLAlchemyError as e:
