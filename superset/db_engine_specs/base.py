@@ -846,6 +846,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return sqla_column_type.compile(dialect=dialect).upper()
 
+    @classmethod
+    def get_function_names(cls, database: "Database") -> List[str]:
+        """
+        Get a list of function names that are able to be called on the database.
+        Used for SQL Lab autocomplete.
+
+        :param database: The database to get functions for
+        :return: A list of function names useable in the database
+        """
+        return []
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: List[Any]) -> List[Tuple]:
         """
