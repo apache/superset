@@ -311,7 +311,7 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # IMG_SIZE = (300, 200, True)
 
 CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24
-CACHE_CONFIG: Dict[str, Any] = {"CACHE_TYPE": "null"}
+CACHE_CONFIG: Dict[str, Any] = {"CACHE_TYPE": "simple"}
 TABLE_NAMES_CACHE_CONFIG = {"CACHE_TYPE": "null"}
 
 # CORS Options
