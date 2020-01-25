@@ -151,6 +151,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         """ Table schema info
         ---
         get:
+          description: Get database table metadata
           parameters:
           - in: path
             schema:
