@@ -89,16 +89,16 @@
 .caret {
   border: none;
   color: @gray;
-}
 
-.caret:before {
-  font-family: 'FontAwesome';
-  font-size: @font-size-xs;
-  content: '\f078';
-}
+  &:hover {
+    color: @gray-darker;
+  }
 
-.caret:hover {
-  color: @gray-darker;
+  &:before {
+    font-family: 'FontAwesome';
+    font-size: @font-size-xs;
+    content: '\f078';
+  }
 }
 
 // Typography =================================================================

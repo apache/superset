@@ -28,7 +28,6 @@
 
 .dashboard--editing {
   .grid-column:after {
-    border: 1px solid transparent;
     content: '';
     position: absolute;
     width: 100%;
@@ -37,8 +36,6 @@
     left: 0;
     z-index: @z-index-chart;
     pointer-events: none;
-  }
-  .grid-column:after {
     border: 1px dashed @gray-light;
   }
   .resizable-container.resizable-container--resizing:hover > .grid-column:after,

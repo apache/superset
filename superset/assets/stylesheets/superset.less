@@ -475,12 +475,13 @@ g.annotation-container {
 .reactable-header-sortable {
   position: relative;
   padding-right: 40px;
-}
-.reactable-header-sortable::after {
-  font: normal normal normal 14px/1 FontAwesome;
-  content: '\f0dc';
-  margin-left: 10px;
-  color: @brand-primary;
+  
+  &::after {
+    font: normal normal normal 14px/1 FontAwesome;
+    content: '\f0dc';
+    margin-left: 10px;
+    color: @brand-primary;
+  }
 }
 .reactable-header-sort-asc::after {
   content: '\f0de';
