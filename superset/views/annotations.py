@@ -18,6 +18,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 from wtforms.validators import StopValidation
 
+from superset.constants import RouteMethod
 from superset.models.annotations import Annotation, AnnotationLayer
 
 from .base import DeleteMixin, SupersetModelView
@@ -45,6 +46,7 @@ class AnnotationModelView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Annotation)
+    include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("List Annotation")
     show_title = _("Show Annotation")
@@ -93,6 +95,7 @@ class AnnotationLayerModelView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AnnotationLayer)
+    include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("List Annotation Layer")
     show_title = _("Show Annotation Layer")

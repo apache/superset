@@ -26,6 +26,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
 from superset import db, event_logger
+from superset.constants import RouteMethod
 from superset.utils import core as utils
 
 from ..base import (
@@ -45,6 +46,13 @@ class DashboardModelView(
 ):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(models.Dashboard)
+    # TODO disable api_read and api_delete (used by cypress)
+    # once we move to ChartRestModelApi
+    include_route_methods = RouteMethod.CRUD_SET | {
+        RouteMethod.API_READ,
+        RouteMethod.API_DELETE,
+        "download_dashboards",
+    }
 
     @has_access
     @expose("/list/")
@@ -119,6 +127,8 @@ class Dashboard(BaseSupersetView):
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
+    include_route_methods = {RouteMethod.API_READ}
+
     list_columns = [
         "id",
         "dashboard_link",
@@ -135,18 +145,3 @@ class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-a
         "creator": _("Creator"),
         "modified": _("Modified"),
     }
-
-
-class DashboardAddView(DashboardModelView):  # pylint: disable=too-many-ancestors
-    route_base = "/dashboardaddview"
-    list_columns = [
-        "id",
-        "dashboard_link",
-        "creator",
-        "modified",
-        "dashboard_title",
-        "changed_on",
-        "url",
-        "changed_by_name",
-    ]
-    show_columns = list(set(DashboardModelView.edit_columns + list_columns))
