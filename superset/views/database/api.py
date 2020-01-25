@@ -261,8 +261,8 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        table_name_parsed: Optional[str] = parse_js_uri_path_item(table_name)
-        schema_parsed: Optional[str] = parse_js_uri_path_item(
+        table_name_parsed = parse_js_uri_path_item(table_name)
+        schema_parsed = parse_js_uri_path_item(
             schema_name, eval_undefined=True
         )
         # schemas can be None but not tables
