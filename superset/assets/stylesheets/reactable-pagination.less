@@ -41,6 +41,13 @@
   text-decoration: none;
   vertical-align: middle;
   white-space: nowrap;
+
+  &:hover {
+    background-color: @gray-bg;
+    border-color: @gray;
+    color: @gray-dark;
+    text-decoration: none;
+  }
 }
 .reactable-current-page {
   border: 1px solid @gray-light;
@@ -48,12 +55,4 @@
   font-weight: @font-weight-bold;
   pointer-events: none;
   opacity: 0.65;
-}
-.reactable-page-button:hover,
-.reactable-next-page:hover,
-.reactable-previous-page:hover {
-  background-color: @gray-bg;
-  border-color: @gray;
-  color: @gray-dark;
-  text-decoration: none;
 }
