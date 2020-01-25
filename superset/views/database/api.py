@@ -49,7 +49,7 @@ def get_indexes_metadata(
     return indexes
 
 
-def get_col_type(col):
+def get_col_type(col: Dict) -> str:
     try:
         dtype = f"{col['type']}"
     except Exception:  # pylint: disable=broad-except
