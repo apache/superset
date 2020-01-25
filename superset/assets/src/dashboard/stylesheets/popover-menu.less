@@ -90,14 +90,18 @@
   left: -7px;
 }
 
-.popover-menu .popover-dropdown.btn, .hover-dropdown .btn {
-  &:hover, &:active, &:focus {
+.popover-menu .popover-dropdown.btn,
+.hover-dropdown .btn {
+  &:hover,
+  &:active,
+  &:focus {
     background: initial;
     box-shadow: none;
   }
 }
 
-.hover-dropdown, .popover-menu {
+.hover-dropdown,
+.popover-menu {
   li.dropdown-item {
     &:hover a {
       background: @menu-hover;
@@ -132,7 +136,7 @@
   &.background--white {
     padding-left: 0;
     background: transparent;
-    
+
     &:before {
       background: @lightest;
       border: 1px solid @gray-light;
