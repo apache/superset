@@ -29,7 +29,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql.expression import ColumnClause, Select
 from werkzeug.utils import secure_filename
 
-from superset import app, conf
+from superset import app, cache, conf
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.utils import core as utils
@@ -428,6 +428,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         cursor.execute(query, **kwargs)
 
     @classmethod
+    @cache.memoize()
     def get_function_names(cls, database: "Database") -> List[str]:
         """
         Get a list of function names that are able to be called on the database.

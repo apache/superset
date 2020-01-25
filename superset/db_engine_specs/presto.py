@@ -32,7 +32,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import app, is_feature_enabled, security_manager
+from superset import app, cache, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
@@ -947,6 +947,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return df.to_dict()[field_to_return][0]
 
     @classmethod
+    @cache.memoize()
     def get_function_names(cls, database: "Database") -> List[str]:
         """
         Get a list of function names that are able to be called on the database.
