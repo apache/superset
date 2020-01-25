@@ -72,17 +72,12 @@
 }
 
 .nav-tabs {
-  .dropdown-toggle.btn,
-  .dropdown-toggle.btn:hover,
-  .dropdown-toggle.btn:active,
-  .dropdown-toggle.btn:focus,
-  .btn-group.open .dropdown-toggle.btn,
-  .btn-group.open .dropdown-toggle.btn:hover,
-  .btn-group.open .dropdown-toggle.btn:active,
-  .btn-group.open .dropdown-toggle.btn:focus {
-    border-color: transparent;
-    background-color: transparent;
-    box-shadow: none;
+  .dropdown-toggle.btn, .btn-group.open .dropdown-toggle.btn {
+    &, &:hover, &:active, &:focus {
+      border-color: transparent;
+      background-color: transparent;
+      box-shadow: none;
+    }
   }
 }
 
