@@ -263,9 +263,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         table_name_parsed = parse_js_uri_path_item(table_name)
-        schema_parsed = parse_js_uri_path_item(
-            schema_name, eval_undefined=True
-        )
+        schema_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
         # schemas can be None but not tables
         if not table_name_parsed:
             return self.response_422(message=_(f"Could not parse table name or schema"))

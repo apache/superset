@@ -48,6 +48,7 @@ class DatabaseApiTests(SupersetTestCase):
             "database_name",
             "expose_in_sqllab",
             "force_ctas_schema",
+            "function_names",
             "id",
         ]
         self.assertEqual(response["count"], 2)
