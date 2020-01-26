@@ -32,7 +32,7 @@ from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 from functools import reduce
 from itertools import product
-from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
 import geohash
 import numpy as np
@@ -50,6 +50,7 @@ from superset import app, cache, get_css_manifest_files
 from superset.constants import NULL_STRING
 from superset.exceptions import NullValueException, SpatialException
 from superset.models.helpers import QueryResult
+from superset.typing import VizData
 from superset.utils import core as utils
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -76,8 +77,6 @@ METRIC_KEYS = [
     "y",
     "size",
 ]
-
-VizData = Optional[Union[List[Any], Dict[Any, Any]]]
 
 
 class BaseViz:

@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from flask import Flask
 from flask_caching import Cache
 
 CacheConfig = Union[Callable[[Flask], Cache], Dict[str, Any]]
+VizData = Optional[Union[List[Any], Dict[Any, Any]]]
