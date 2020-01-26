@@ -25,7 +25,7 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
-from superset import db, event_logger
+from superset import app, db, event_logger
 from superset.constants import RouteMethod
 from superset.utils import core as utils
 
@@ -39,6 +39,8 @@ from ..base import (
 )
 from ..utils import bootstrap_user_data
 from .mixin import DashboardMixin
+
+config = app.config
 
 
 class DashboardModelView(
@@ -57,6 +59,8 @@ class DashboardModelView(
     @has_access
     @expose("/list/")
     def list(self):
+        if not config["ENABLE_REACT_CRUD_VIEWS"]:
+            return super().list()
         payload = {
             "user": bootstrap_user_data(g.user),
             "common": common_bootstrap_payload(),

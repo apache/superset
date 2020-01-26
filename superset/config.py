@@ -699,6 +699,10 @@ DOCUMENTATION_URL = None
 DOCUMENTATION_TEXT = "Documentation"
 DOCUMENTATION_ICON = None  # Recommended size: 16x16
 
+# Enables the replacement react views for all the FAB views: list, edit, show.
+# This is a work in progress so not all features available in FAB have been implemented
+ENABLE_REACT_CRUD_VIEWS = False
+
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
 # 'now' means it is relative to the query issue time
