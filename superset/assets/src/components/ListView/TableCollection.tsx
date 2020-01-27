@@ -19,7 +19,7 @@
 import React from 'react';
 import { Cell, HeaderGroup, Row } from 'react-table';
 
-interface Props<D> {
+interface Props<D extends object = {}> {
   getTableProps: (userProps?: any) => any;
   getTableBodyProps: (userProps?: any) => any;
   prepareRow: (row: Row<D>) => any;
