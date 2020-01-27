@@ -17,7 +17,7 @@
 from typing import Dict, List
 
 from flask import current_app, Response
-from flask_appbuilder.api import expose, safe, protect
+from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length
@@ -25,13 +25,14 @@ from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.wsgi import FileWrapper
 
 from superset import appbuilder, is_feature_enabled, thumbnail_cache
-from superset.utils.selenium import ChartScreenshot
-from superset.constants import RouteMethod
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.constants import RouteMethod
 from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
+from superset.utils.selenium import ChartScreenshot
 from superset.views.base_api import BaseOwnedModelRestApi
 from superset.views.base_schemas import BaseOwnedSchema, validate_owner
 from superset.views.chart.mixin import SliceMixin
@@ -216,11 +217,14 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         """
         print(sha)
         query = self.datamodel.session.query(Slice)
-        slice = self._base_filters.apply_all(query).get(pk)
-        if not slice:
+        chart = self._base_filters.apply_all(query).get(pk)
+        if not chart:
             return self.response_404()
         # fetch the chart screenshot using the current user and cache if set
-        screenshot = ChartScreenshot(pk).get(cache=thumbnail_cache)
+        screenshot = ChartScreenshot(pk).get_from_cache(cache=thumbnail_cache)
+        if not screenshot:
+            cache_chart_thumbnail.delay(chart.id, force=True)
+            return self.response(202, message="OK Async")
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )

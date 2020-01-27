@@ -29,11 +29,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
-from superset.utils.selenium import DashboardScreenshot
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.dashboard import Dashboard
+from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
+from superset.utils.selenium import DashboardScreenshot
 from superset.views.base import check_ownership, generate_download_headers
 from superset.views.base_api import BaseOwnedModelRestApi
 from superset.views.base_schemas import BaseOwnedSchema, validate_owner
@@ -275,7 +276,8 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
         """Get Dashboard thumbnail
         ---
         get:
-          description: Compute or get already computed dashboard thumbnail from cache
+          description: >-
+            Compute async or get already computed dashboard thumbnail from cache
           parameters:
           - in: path
             schema:
@@ -293,6 +295,15 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
                  schema:
                    type: string
                    format: binary
+            202:
+              description: Thumbnail does not exist on cache, fired async to compute
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             401:
               $ref: '#/components/responses/401'
             404:
@@ -308,7 +319,10 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
         if not dashboard:
             return self.response_404()
         # fetch the dashboard screenshot using the current user and cache if set
-        screenshot = DashboardScreenshot(pk).get(cache=thumbnail_cache)
+        screenshot = DashboardScreenshot(pk).get_from_cache(cache=thumbnail_cache)
+        if not screenshot:
+            cache_dashboard_thumbnail.delay(dashboard.id, force=True)
+            return self.response(202, message="OK Async")
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )

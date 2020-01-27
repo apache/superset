@@ -221,10 +221,10 @@ class BaseScreenshot:
             return BytesIO(payload)
         return None
 
-    def get_from_cache(self, cache: "Cache") -> Optional[bytes]:
+    def get_from_cache(self, cache: "Cache") -> Optional[BytesIO]:
         payload = cache.get(self.cache_key)
         if payload:
-            return payload
+            return BytesIO(payload)
         return None
 
     def compute_and_cache(  # pylint: disable=too-many-arguments

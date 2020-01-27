@@ -22,7 +22,7 @@ import logging
 
 from flask import current_app
 from superset import app, security_manager, thumbnail_cache
-from superset.tasks.celery_app import app as celery_app
+from superset.extensions import celery_app
 from superset.utils.selenium import DashboardScreenshot, ChartScreenshot
 
 

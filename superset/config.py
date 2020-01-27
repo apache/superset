@@ -299,9 +299,10 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 GET_FEATURE_FLAGS_FUNC = None
 
 # ---------------------------------------------------
-# Thumbnail config
+# Thumbnail config (behind feature flag)
 # ---------------------------------------------------
 THUMBNAIL_SELENIUM_USER = "Admin"
+THUMBNAIL_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # ---------------------------------------------------
 # Image and file configuration

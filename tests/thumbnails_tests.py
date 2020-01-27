@@ -14,18 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset import db
-from superset.models.dashboard import Dashboard
+# from superset import db
+# from superset.models.dashboard import Dashboard
+from unittest.mock import patch
 
+from superset import app, is_feature_enabled
 from .base_tests import SupersetTestCase
 
 
 class ThumbnailsTests(SupersetTestCase):
+
+    def setUp(self) -> None:
+        app.config["THUMBNAILS"] = True
+        super().__init__()
+
+    @patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"THUMBNAILS": True},
+        clear=True,
+    )
     def test_simple_get_screenshot(self):
         """
             Thumbnails: Simple get screen shot
         """
-        self.login(username="admin")
-        uri = "api/v1/dashboard/1/thumbnail/sha/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        self.assertTrue(is_feature_enabled("THUMBNAILS"))
