@@ -40,8 +40,6 @@ from ..base import (
 from ..utils import bootstrap_user_data
 from .mixin import DashboardMixin
 
-config = app.config
-
 
 class DashboardModelView(
     DashboardMixin, SupersetModelView, DeleteMixin
@@ -59,7 +57,7 @@ class DashboardModelView(
     @has_access
     @expose("/list/")
     def list(self):
-        if not config["ENABLE_REACT_CRUD_VIEWS"]:
+        if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
             return super().list()
         payload = {
             "user": bootstrap_user_data(g.user),
