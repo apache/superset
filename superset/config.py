@@ -276,6 +276,8 @@ DEFAULT_FEATURE_FLAGS = {
     "CLIENT_CACHE": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "PRESTO_EXPAND_DATA": False,
+    # Exposes API endpoint to compute thumbnails
+    "THUMBNAILS": False,
 }
 
 # This is merely a default.
@@ -296,6 +298,10 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC = None
 
+# ---------------------------------------------------
+# Thumbnail config
+# ---------------------------------------------------
+THUMBNAIL_SELENIUM_USER = "Admin"
 
 # ---------------------------------------------------
 # Image and file configuration

@@ -34,7 +34,7 @@ class CacheManager:
             app, app.config["TABLE_NAMES_CACHE_CONFIG"]
         )
         self._thumbnail_cache = self._setup_cache(
-            app, app.config.get("THUMBNAIL_CACHE_CONFIG")
+            app, app.config["THUMBNAIL_CACHE_CONFIG"]
         )
 
     @staticmethod
@@ -56,5 +56,5 @@ class CacheManager:
         return self._cache
 
     @property
-    def thumbnail_cache(self):
+    def thumbnail_cache(self) -> Cache:
         return self._thumbnail_cache

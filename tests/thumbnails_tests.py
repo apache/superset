@@ -26,6 +26,6 @@ class ThumbnailsTests(SupersetTestCase):
             Thumbnails: Simple get screen shot
         """
         self.login(username="admin")
-        uri = f"api/v1/dashboard/1/thumbnail/sha/"
+        uri = "api/v1/dashboard/1/thumbnail/sha/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)

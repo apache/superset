@@ -16,13 +16,17 @@
 # under the License.
 from typing import Dict, List
 
-from flask import current_app
+from flask import current_app, Response
+from flask_appbuilder.api import expose, safe, protect
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.orm.exc import NoResultFound
+from werkzeug.wsgi import FileWrapper
 
-from superset import appbuilder
+from superset import appbuilder, is_feature_enabled, thumbnail_cache
+from superset.utils.selenium import ChartScreenshot
+from superset.constants import RouteMethod
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
@@ -130,6 +134,7 @@ class ChartPutSchema(BaseOwnedSchema):
 class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
     datamodel = SQLAInterface(Slice)
 
+    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {RouteMethod.RELATED}
     resource_name = "chart"
     allow_browser_login = True
 
@@ -169,6 +174,56 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "owners": ("first_name", "asc"),
     }
     filter_rel_fields_field = {"owners": "first_name", "dashboards": "dashboard_title"}
+
+    def __init__(self, *args, **kwargs):
+        if is_feature_enabled("THUMBNAILS"):
+            self.include_route_methods = self.include_route_methods | {"thumbnail"}
+        super().__init__(*args, **kwargs)
+
+    @expose("/<pk>/thumbnail/<sha>/", methods=["GET"])
+    @protect()
+    @safe
+    def thumbnail(self, pk, sha):  # pylint: disable=invalid-name
+        """Get Chart thumbnail
+        ---
+        get:
+          description: Compute or get already computed chart thumbnail from cache
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: path
+            schema:
+              type: string
+            name: sha
+          responses:
+            200:
+              description: Chart thumbnail image
+              content:
+               image/*:
+                 schema:
+                   type: string
+                   format: binary
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        print(sha)
+        query = self.datamodel.session.query(Slice)
+        slice = self._base_filters.apply_all(query).get(pk)
+        if not slice:
+            return self.response_404()
+        # fetch the chart screenshot using the current user and cache if set
+        screenshot = ChartScreenshot(pk).get(cache=thumbnail_cache)
+        return Response(
+            FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
+        )
 
 
 appbuilder.add_api(ChartRestApi)

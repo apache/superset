@@ -299,8 +299,8 @@ class BaseScreenshot:
         return new_img.read()
 
 
-class SliceScreenshot(BaseScreenshot):
-    thumbnail_type: str = "slice"
+class ChartScreenshot(BaseScreenshot):
+    thumbnail_type: str = "chart"
     element: str = "chart-container"
     window_size: WindowSize = (600, int(600 * 0.75))
     thumb_size: WindowSize = (300, int(300 * 0.75))

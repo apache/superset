@@ -28,7 +28,7 @@ from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.wsgi import FileWrapper
 
-from superset import thumbnail_cache
+from superset import is_feature_enabled, thumbnail_cache
 from superset.utils.selenium import DashboardScreenshot
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -176,6 +176,11 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
     }
     filter_rel_fields_field = {"owners": "first_name", "slices": "slice_name"}
 
+    def __init__(self, *args, **kwargs):
+        if is_feature_enabled("THUMBNAILS"):
+            self.include_route_methods = self.include_route_methods | {"thumbnail"}
+        super().__init__(*args, **kwargs)
+
     @expose("/", methods=["DELETE"])
     @protect()
     @safe
@@ -270,6 +275,7 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
         """Get Dashboard thumbnail
         ---
         get:
+          description: Compute or get already computed dashboard thumbnail from cache
           parameters:
           - in: path
             schema:
