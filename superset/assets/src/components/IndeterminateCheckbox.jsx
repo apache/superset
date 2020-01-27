@@ -16,38 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export interface SortColumn {
-  id: string;
-  desc?: boolean;
-}
+import React from 'react';
 
-export type SortColumns = SortColumn[];
+const IndeterminateCheckbox = React.forwardRef(
+  ({ indeterminate, ...rest }, ref) => {
+    const defaultRef = React.useRef();
+    const resolvedRef = ref || defaultRef;
 
-export interface Filter {
-  id: string;
-  filterId?: string;
-  value: string;
-}
+    React.useEffect(() => {
+      resolvedRef.current.indeterminate = indeterminate;
+    }, [resolvedRef, indeterminate]);
 
-export interface FilterType {
-  name: string;
-  operator: any;
-}
+    return (
+      <>
+        <input type="checkbox" ref={resolvedRef} {...rest} />
+      </>
+    );
+  },
+);
 
-export interface FilterTypeMap {
-  [columnId: string]: FilterType[];
-}
-
-export interface FetchDataConfig {
-  pageIndex: number;
-  pageSize: number;
-  sortBy: SortColumns;
-  filters: Filter[];
-}
-
-export interface FilterToggle {
-  id: string;
-  Header: string;
-  filterId?: number;
-  value?: string;
-}
+export default IndeterminateCheckbox;

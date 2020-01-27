@@ -23,8 +23,7 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 
 import ListView from 'src/components/ListView/ListView';
-import DashboardTable from '../../../src/welcome/DashboardTable';
-import Loading from '../../../src/components/Loading';
+import DashboardTable from 'src/welcome/DashboardTable';
 
 // store needed for withToasts(DashboardTable)
 const mockStore = configureStore([thunk]);
@@ -42,11 +41,6 @@ function setup() {
 
 describe('DashboardTable', () => {
   beforeEach(fetchMock.resetHistory);
-
-  it('renders a Loading initially', () => {
-    const wrapper = setup();
-    expect(wrapper.find(Loading)).toHaveLength(1);
-  });
 
   it('fetches dashboards and renders a ListView', done => {
     const wrapper = setup();
