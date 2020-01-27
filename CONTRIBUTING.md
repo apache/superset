@@ -232,10 +232,10 @@ If an issue/PR has been inactive for >=30 days, it will be closed. If it does no
 Reverting changes that are causing issues in the master branch is a normal and expected part of the development process. In an open source community, the ramifications of a change cannot always be fully understood. With that in mind, here are some considerations to keep in mind when considering a revert:
 
 - **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable timeframe, this would counter-indicate reverting.
-- **Severity of the Issue:** How severe is the problem on master? Is it keeping the project from moving forward? Is there user impact? What percentage of users will experience a problem?
+- **Severity of the issue:** How severe is the problem on master? Is it keeping the project from moving forward? Is there user impact? What percentage of users will experience a problem?
 - **Size of the change being reverted:** Reverting a single small PR is a much lower-risk proposition than reverting a massive, multi-PR change.
 - **Age of the change being reverted:** Reverting a recently-merged PR will be more acceptable than reverting an older PR. A bug discovered in an older PR is unlikely to be causing widespread serious issues.
-- **Risk inherent in Reverting:** Will the reversion break critical functionality? Is the medicine more dangerous than the disease?
+- **Risk inherent in reverting:** Will the reversion break critical functionality? Is the medicine more dangerous than the disease?
 - **Difficulty of crafting a fix:** In the case of issues with a clear solution, it may be preferable to implement and merge a fix rather than a revert.
 
 Should you decide that reverting is desirable, it is the responsibility of the Contributor performing the revert to:
