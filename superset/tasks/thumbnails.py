@@ -21,9 +21,10 @@
 import logging
 
 from flask import current_app
+
 from superset import app, security_manager, thumbnail_cache
 from superset.extensions import celery_app
-from superset.utils.selenium import DashboardScreenshot, ChartScreenshot
+from superset.utils.selenium import ChartScreenshot, DashboardScreenshot
 
 
 @celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)

@@ -23,7 +23,6 @@ from .base_tests import SupersetTestCase
 
 
 class ThumbnailsTests(SupersetTestCase):
-
     def setUp(self) -> None:
         app.config["THUMBNAILS"] = True
         super().__init__()
