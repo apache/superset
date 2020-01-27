@@ -1,11 +1,14 @@
 {
   "extends": ["tslint:recommended", "tslint-react"],
-  "jsRules": {},
+  "jsRules": {
+    "no-console": false
+  },
   "rules": {
     "interface-name": [true, "never-prefix"],
     "quotemark": [true, "single"],
     "jsx-no-multiline-js": false,
-    "jsx-no-lambda": false
+    "jsx-no-lambda": false,
+    "no-console": false
   },
   "rulesDirectory": []
 }
