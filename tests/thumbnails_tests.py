@@ -18,15 +18,12 @@
 # from superset.models.dashboard import Dashboard
 from unittest.mock import patch
 
-from superset import app, is_feature_enabled
+from superset import is_feature_enabled
+
 from .base_tests import SupersetTestCase
 
 
 class ThumbnailsTests(SupersetTestCase):
-    def setUp(self) -> None:
-        app.config["THUMBNAILS"] = True
-        super().__init__()
-
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         {"THUMBNAILS": True},

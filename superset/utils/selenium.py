@@ -48,9 +48,8 @@ WindowSize = Tuple[int, int]
 
 def get_auth_cookies(user: "User") -> List[Dict]:
     # Login with the user specified to get the reports
-    with current_app.test_request_context():
+    with current_app.test_request_context("/login"):
         login_user(user)
-
         # A mock response object to get the cookie information from
         response = Response()
         current_app.session_interface.save_session(current_app, session, response)
