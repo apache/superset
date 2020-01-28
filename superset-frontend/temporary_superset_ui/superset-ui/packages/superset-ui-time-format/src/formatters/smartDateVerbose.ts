@@ -1,5 +1,3 @@
-/* eslint-disable sort-keys */
-
 import createMultiFormatter from '../factories/createMultiFormatter';
 
 const smartDateFormatter = createMultiFormatter({

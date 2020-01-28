@@ -9,12 +9,13 @@ describe('rejectAfterTimeout()', () => {
 
     rejectAfterTimeout(10)
       .then(throwIfCalled)
-      .catch(() => {
-        expect(setTimeout).toHaveBeenCalledTimes(1);
+      .catch(error => {
+        expect(error).toBeDefined();
 
         return done();
       });
 
-    jest.runOnlyPendingTimers();
+    jest.advanceTimersByTime(11);
+    jest.useRealTimers();
   });
 });

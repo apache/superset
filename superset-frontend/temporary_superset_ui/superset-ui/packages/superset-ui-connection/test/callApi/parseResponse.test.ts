@@ -63,7 +63,7 @@ describe('parseResponse()', () => {
       .catch(error => {
         expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
         expect(error.stack).toBeDefined();
-        expect(error.message.includes('Unexpected token')).toBe(true);
+        expect(error.message).toContain('Unexpected token');
 
         return true;
       });
@@ -118,10 +118,10 @@ describe('parseResponse()', () => {
 
     return parseResponse(apiPromise)
       .then(throwIfCalled)
-      .catch(response => {
+      .catch(error => {
         expect(fetchMock.calls(mockNotOkayUrl)).toHaveLength(1);
-        expect(response.ok).toBe(false);
-        expect(response.status).toBe(404);
+        expect(error.ok).toBe(false);
+        expect(error.status).toBe(404);
       });
   });
 });

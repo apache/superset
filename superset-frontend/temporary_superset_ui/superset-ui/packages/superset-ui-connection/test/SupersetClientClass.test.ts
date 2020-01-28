@@ -10,7 +10,7 @@ describe('SupersetClientClass', () => {
 
   afterAll(fetchMock.restore);
 
-  describe('new SupersetClientClass()', () => {
+  it('new SupersetClientClass()', () => {
     const client = new SupersetClientClass();
     expect(client).toBeInstanceOf(SupersetClientClass);
   });

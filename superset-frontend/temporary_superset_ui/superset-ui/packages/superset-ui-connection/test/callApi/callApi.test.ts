@@ -351,6 +351,7 @@ describe('callApi()', () => {
     });
 
     it('works when the Cache API is disabled', async () => {
+      // eslint-disable-next-line no-import-assign
       Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: false });
 
       const firstResponse = await callApi({ url: mockCacheUrl, method: 'GET' });
@@ -367,6 +368,7 @@ describe('callApi()', () => {
       const secondBody = await secondResponse.text();
       expect(secondBody).toEqual('BODY');
 
+      // eslint-disable-next-line no-import-assign
       Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: true });
     });
 

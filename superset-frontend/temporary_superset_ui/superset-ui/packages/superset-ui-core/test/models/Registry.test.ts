@@ -2,6 +2,8 @@
 import mockConsole from 'jest-mock-console';
 import { Registry, OverwritePolicy } from '../../src';
 
+const loader = () => 'testValue';
+
 describe('Registry', () => {
   it('exists', () => {
     expect(Registry !== undefined).toBe(true);
@@ -88,7 +90,6 @@ describe('Registry', () => {
     });
     it('does not overwrite if loader is exactly the same', () => {
       const registry = new Registry();
-      const loader = () => 'testValue';
       registry.registerLoader('a', loader);
       const promise1 = registry.getAsPromise('a');
       registry.registerLoader('a', loader);
@@ -142,7 +143,7 @@ describe('Registry', () => {
 
       return registry.getAsPromise('a').then(value => expect(value).toBe('testValue'));
     });
-    it('given the key, returns a promise of result of the loader function if the item is a loader ', () => {
+    it('given the key, returns a promise of result of the loader function if the item is a loader', () => {
       const registry = new Registry();
       registry.registerLoader('a', () => 'testValue');
 
@@ -271,7 +272,7 @@ describe('Registry', () => {
     });
     it('does not throw error if the key does not exist', () => {
       const registry = new Registry();
-      expect(() => registry.remove('a')).not.toThrowError();
+      expect(() => registry.remove('a')).not.toThrow();
     });
     it('returns itself', () => {
       const registry = new Registry();

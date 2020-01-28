@@ -14,7 +14,7 @@ export default function createDurationFormatter(
   return new NumberFormatter({
     description,
     formatFunc: value => prettyMsFormatter(value * multiplier, prettyMsOptions),
-    id: id || 'duration_format',
-    label: label || `Duration formatter`,
+    id: id ?? 'duration_format',
+    label: label ?? `Duration formatter`,
   });
 }

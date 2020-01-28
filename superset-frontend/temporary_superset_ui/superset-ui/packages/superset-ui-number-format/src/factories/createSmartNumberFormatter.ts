@@ -1,5 +1,3 @@
-/* eslint-disable no-magic-numbers */
-
 import { format as d3Format } from 'd3-format';
 import NumberFormatter from '../NumberFormatter';
 import NumberFormats from '../NumberFormats';
@@ -28,11 +26,14 @@ export default function createSmartNumberFormatter(
       // Normal human being are more familiar
       // with billion (B) that giga (G)
       return siFormatter(value).replace('G', 'B');
-    } else if (absoluteValue >= 1) {
+    }
+    if (absoluteValue >= 1) {
       return float2PointFormatter(value);
-    } else if (absoluteValue >= 0.001) {
+    }
+    if (absoluteValue >= 0.001) {
       return float4PointFormatter(value);
-    } else if (absoluteValue > 0.000001) {
+    }
+    if (absoluteValue > 0.000001) {
       return `${siFormatter(value * 1000000)}µ`;
     }
 
@@ -43,6 +44,6 @@ export default function createSmartNumberFormatter(
     description,
     formatFunc: value => `${getSign(value)}${formatValue(value)}`,
     id: id || signed ? NumberFormats.SMART_NUMBER_SIGNED : NumberFormats.SMART_NUMBER,
-    label: label || 'Adaptive formatter',
+    label: label ?? 'Adaptive formatter',
   });
 }

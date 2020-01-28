@@ -1,5 +1,8 @@
 import React from 'react';
 import { mount, shallow } from 'enzyme';
+import { promiseTimeout } from '@superset-ui/core';
+import mockConsole, { RestoreConsole } from 'jest-mock-console';
+
 import { ChartProps } from '../../src';
 import {
   ChartKeys,
@@ -8,7 +11,6 @@ import {
   SlowChartPlugin,
 } from './MockChartPlugins';
 import SuperChartCore from '../../src/components/SuperChartCore';
-import promiseTimeout from './promiseTimeout';
 
 describe('SuperChartCore', () => {
   const chartProps = new ChartProps();
@@ -18,6 +20,8 @@ describe('SuperChartCore', () => {
     new LazyChartPlugin().configure({ key: ChartKeys.LAZY }),
     new SlowChartPlugin().configure({ key: ChartKeys.SLOW }),
   ];
+
+  let restoreConsole: RestoreConsole;
 
   beforeAll(() => {
     plugins.forEach(p => {
@@ -29,6 +33,14 @@ describe('SuperChartCore', () => {
     plugins.forEach(p => {
       p.unregister();
     });
+  });
+
+  beforeEach(() => {
+    restoreConsole = mockConsole();
+  });
+
+  afterEach(() => {
+    restoreConsole();
   });
 
   describe('registered charts', () => {
@@ -49,6 +61,7 @@ describe('SuperChartCore', () => {
       });
     });
     it('does not render if chartType is not set', () => {
+      // Suppress warning
       // @ts-ignore chartType is required
       const wrapper = shallow(<SuperChartCore />);
 
@@ -142,7 +155,8 @@ describe('SuperChartCore', () => {
       });
     });
     it('eventually renders after Chart is loaded', () => {
-      const wrapper = shallow(<SuperChartCore chartType={ChartKeys.SLOW} />);
+      // Suppress warning
+      const wrapper = mount(<SuperChartCore chartType={ChartKeys.SLOW} />);
 
       return promiseTimeout(() => {
         expect(wrapper.render().find('div.test-component')).toHaveLength(1);

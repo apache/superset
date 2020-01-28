@@ -35,8 +35,8 @@ export default class ChartFrame extends PureComponent<Props, {}> {
           }}
         >
           {renderContent({
-            height: Math.max(contentHeight || 0, height),
-            width: Math.max(contentWidth || 0, width),
+            height: Math.max(contentHeight ?? 0, height),
+            width: Math.max(contentWidth ?? 0, width),
           })}
         </div>
       );

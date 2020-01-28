@@ -8,7 +8,7 @@ import {
   isDefined,
   isRequired,
   makeSingleton,
-} from '../src/index';
+} from '../src';
 
 describe('index', () => {
   it('exports modules', () => {

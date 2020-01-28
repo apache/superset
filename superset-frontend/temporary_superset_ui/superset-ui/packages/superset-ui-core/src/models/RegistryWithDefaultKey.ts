@@ -10,7 +10,9 @@ export default class RegistryWithDefaultKey<
   W extends V | Promise<V> = V | Promise<V>
 > extends Registry<V, W> {
   initialDefaultKey?: string;
+
   defaultKey?: string;
+
   setFirstItemAsDefault: boolean;
 
   constructor(config: RegistryWithDefaultKeyConfig = {}) {
@@ -29,7 +31,7 @@ export default class RegistryWithDefaultKey<
   }
 
   get(key?: string) {
-    const targetKey = key || this.defaultKey;
+    const targetKey = key ?? this.defaultKey;
 
     return targetKey ? super.get(targetKey) : undefined;
   }

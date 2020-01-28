@@ -57,9 +57,13 @@ function sanitizeLoader<T>(
 
 export default class ChartPlugin<T extends QueryFormData = QueryFormData> extends Plugin {
   controlPanel: ChartControlPanel;
+
   metadata: ChartMetadata;
+
   loadBuildQuery?: PromiseOrValueLoader<BuildQueryFunction<T>>;
+
   loadTransformProps: PromiseOrValueLoader<TransformProps>;
+
   loadChart: PromiseOrValueLoader<ChartType>;
 
   constructor(config: ChartPluginConfig<T>) {
@@ -80,7 +84,7 @@ export default class ChartPlugin<T extends QueryFormData = QueryFormData> extend
       (loadBuildQuery && sanitizeLoader(loadBuildQuery)) ||
       (buildQuery && sanitizeLoader(() => buildQuery)) ||
       undefined;
-    this.loadTransformProps = sanitizeLoader(loadTransformProps || (() => transformProps));
+    this.loadTransformProps = sanitizeLoader(loadTransformProps ?? (() => transformProps));
 
     if (loadChart) {
       this.loadChart = sanitizeLoader<ChartType>(loadChart);

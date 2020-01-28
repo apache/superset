@@ -25,9 +25,6 @@
     "url": "https://github.com/apache-superset/superset-ui/issues"
   },
   "homepage": "https://github.com/apache-superset/superset-ui#readme",
-  "devDependencies": {
-    "jest-mock-console": "^1.0.0"
-  },
   "dependencies": {
     "jed": "^1.1.1"
   },

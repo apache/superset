@@ -10,7 +10,7 @@ import {
   smartDateVerboseFormatter,
   TimeFormats,
   TimeFormatter,
-} from '../src/index';
+} from '../src';
 
 describe('index', () => {
   it('exports modules', () => {

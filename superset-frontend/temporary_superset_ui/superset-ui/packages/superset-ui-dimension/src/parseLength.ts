@@ -5,8 +5,9 @@ export default function parseLength(
 ): { isDynamic: true; multiplier: number } | { isDynamic: false; value: number } {
   if (input === 'auto' || input === '100%') {
     return HUNDRED_PERCENT;
-  } else if (typeof input === 'string' && input.length > 0 && input[input.length - 1] === '%') {
-    // eslint-disable-next-line no-magic-numbers
+  }
+
+  if (typeof input === 'string' && input.length > 0 && input[input.length - 1] === '%') {
     return { isDynamic: true, multiplier: parseFloat(input) / 100 };
   }
   const value = typeof input === 'number' ? input : parseFloat(input);

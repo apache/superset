@@ -46,6 +46,7 @@ type State = {
 
 class ChartDataProvider extends React.PureComponent<Props, State> {
   readonly chartClient: ChartClient;
+
   state: State = { status: 'uninitialized' };
 
   constructor(props: Props) {
@@ -90,6 +91,7 @@ class ChartDataProvider extends React.PureComponent<Props, State> {
               this.chartClient.loadQueryData(formData, queryRequestOptions),
             ]).then(
               ([datasource, queryData]) =>
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                 ({
                   datasource,
                   formData,

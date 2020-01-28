@@ -24,9 +24,9 @@ describe('createSmartNumberFormatter(options)', () => {
       });
       it('formats number that are >= 1 & < 1,000 as integer or float with at most 2 decimal points', () => {
         expect(formatter(1)).toBe('1');
-        expect(formatter(1.0)).toBe('1');
+        expect(formatter(1)).toBe('1');
         expect(formatter(10)).toBe('10');
-        expect(formatter(10.0)).toBe('10');
+        expect(formatter(10)).toBe('10');
         expect(formatter(10.23432)).toBe('10.23');
         expect(formatter(274.2856)).toBe('274.29');
         expect(formatter(999)).toBe('999');
@@ -60,9 +60,9 @@ describe('createSmartNumberFormatter(options)', () => {
       });
       it('formats number that are >= 1 & < 1,000 as integer or float with at most 2 decimal points', () => {
         expect(formatter(-1)).toBe('-1');
-        expect(formatter(-1.0)).toBe('-1');
+        expect(formatter(-1)).toBe('-1');
         expect(formatter(-10)).toBe('-10');
-        expect(formatter(-10.0)).toBe('-10');
+        expect(formatter(-10)).toBe('-10');
         expect(formatter(-10.23432)).toBe('-10.23');
         expect(formatter(-274.2856)).toBe('-274.29');
         expect(formatter(-999)).toBe('-999');
@@ -103,9 +103,9 @@ describe('createSmartNumberFormatter(options)', () => {
       });
       it('formats number that are >= 1 & < 1,000 as integer or float with at most 2 decimal points', () => {
         expect(formatter(1)).toBe('+1');
-        expect(formatter(1.0)).toBe('+1');
+        expect(formatter(1)).toBe('+1');
         expect(formatter(10)).toBe('+10');
-        expect(formatter(10.0)).toBe('+10');
+        expect(formatter(10)).toBe('+10');
         expect(formatter(10.23432)).toBe('+10.23');
         expect(formatter(274.2856)).toBe('+274.29');
         expect(formatter(999)).toBe('+999');

@@ -94,15 +94,15 @@ export default class SupersetClientClass {
     return this.ensureAuth().then(() =>
       callApi({
         body,
-        credentials: credentials || this.credentials,
+        credentials: credentials ?? this.credentials,
         headers: { ...this.headers, ...headers },
         method,
-        mode: mode || this.mode,
+        mode: mode ?? this.mode,
         parseMethod,
         postPayload,
         signal,
         stringify,
-        timeout: timeout || this.timeout,
+        timeout: timeout ?? this.timeout,
         url: this.getUrl({ endpoint, host, url }),
       }),
     );
@@ -110,7 +110,7 @@ export default class SupersetClientClass {
 
   ensureAuth(): CsrfPromise {
     return (
-      this.csrfPromise ||
+      this.csrfPromise ??
       Promise.reject({
         error: `SupersetClient has no CSRF token, ensure it is initialized or
         try logging into the Superset instance at ${this.getUrl({
@@ -163,7 +163,7 @@ export default class SupersetClientClass {
   } = {}) {
     if (typeof url === 'string') return url;
 
-    const host = inputHost || this.host;
+    const host = inputHost ?? this.host;
     const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
 
     return `${this.protocol}//${cleanHost}/${endpoint[0] === '/' ? endpoint.slice(1) : endpoint}`;

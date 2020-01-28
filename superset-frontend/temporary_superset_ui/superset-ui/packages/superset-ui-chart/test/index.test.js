@@ -10,7 +10,7 @@ import {
   getChartMetadataRegistry,
   getChartTransformPropsRegistry,
   reactify,
-} from '../src/index';
+} from '../src';
 
 describe('index', () => {
   it('exports modules', () => {
