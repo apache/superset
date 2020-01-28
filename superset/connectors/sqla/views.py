@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.TableColumn)
     # TODO TODO, review need for this on related_views
-    include_route_methods = RouteMethod.RELATED_VIEW_SET
+    include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
 
     list_title = _("Columns")
     show_title = _("Show Column")
@@ -227,7 +227,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
 
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.SqlaTable)
-    include_route_methods = RouteMethod.CRUD_SET | RouteMethod.API_SET
+    include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("Tables")
     show_title = _("Show Table")
