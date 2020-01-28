@@ -24,7 +24,6 @@ from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.models.core import Database
