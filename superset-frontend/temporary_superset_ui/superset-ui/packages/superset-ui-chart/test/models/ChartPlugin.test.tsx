@@ -61,10 +61,9 @@ describe('ChartPlugin', () => {
           Chart: FakeChart,
           loadBuildQuery: () => buildQuery,
         });
-        if (typeof plugin.loadBuildQuery === 'function') {
-          const fn = plugin.loadBuildQuery() as BuildQueryFunction<QueryFormData>;
-          expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
-        }
+
+        const fn = plugin.loadBuildQuery!() as BuildQueryFunction<QueryFormData>;
+        expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
       });
       it('uses buildQuery field if specified', () => {
         expect.assertions(1);
@@ -73,10 +72,9 @@ describe('ChartPlugin', () => {
           Chart: FakeChart,
           buildQuery,
         });
-        if (typeof plugin.loadBuildQuery === 'function') {
-          const fn = plugin.loadBuildQuery() as BuildQueryFunction<QueryFormData>;
-          expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
-        }
+
+        const fn = plugin.loadBuildQuery!() as BuildQueryFunction<QueryFormData>;
+        expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
       });
     });
     describe('Chart', () => {
@@ -97,7 +95,7 @@ describe('ChartPlugin', () => {
         expect(plugin.loadChart()).toEqual(FakeChart);
       });
       it('throws an error if none of Chart or loadChart is specified', () => {
-        expect(() => new ChartPlugin({ metadata })).toThrowError(Error);
+        expect(() => new ChartPlugin({ metadata })).toThrow(Error);
       });
     });
     describe('transformProps', () => {
@@ -105,7 +103,7 @@ describe('ChartPlugin', () => {
         formData: FORM_DATA,
         width: 400,
         height: 400,
-        payload: {},
+        queryData: {},
       });
       it('defaults to identity function', () => {
         const plugin = new ChartPlugin({
@@ -166,8 +164,8 @@ describe('ChartPlugin', () => {
     });
 
     it('throws an error if key is not provided', () => {
-      expect(() => plugin.register()).toThrowError(Error);
-      expect(() => plugin.configure({ key: 'ab' }).register()).not.toThrowError(Error);
+      expect(() => plugin.register()).toThrow(Error);
+      expect(() => plugin.configure({ key: 'ab' }).register()).not.toThrow(Error);
     });
     it('add the plugin to the registries', () => {
       plugin.configure({ key: 'cd' }).register();
@@ -204,8 +202,8 @@ describe('ChartPlugin', () => {
     });
 
     it('throws an error if key is not provided', () => {
-      expect(() => plugin.unregister()).toThrowError(Error);
-      expect(() => plugin.configure({ key: 'abc' }).unregister()).not.toThrowError(Error);
+      expect(() => plugin.unregister()).toThrow(Error);
+      expect(() => plugin.configure({ key: 'abc' }).unregister()).not.toThrow(Error);
     });
     it('removes the chart from the registries', () => {
       plugin.configure({ key: 'def' }).register();

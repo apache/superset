@@ -1,4 +1,4 @@
-import { configure, t, tn } from '../src/index';
+import { configure, t, tn } from '../src';
 
 describe('index', () => {
   it('exports configure()', () => {

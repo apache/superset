@@ -13,9 +13,13 @@ export interface NumberFormatterConfig {
 
 export default class NumberFormatter extends ExtensibleFunction {
   id: string;
+
   label: string;
+
   description: string;
+
   formatFunc: NumberFormatFunction;
+
   isInvalid: boolean;
 
   constructor(config: NumberFormatterConfig) {
@@ -29,7 +33,7 @@ export default class NumberFormatter extends ExtensibleFunction {
       isInvalid = false,
     } = config;
     this.id = id;
-    this.label = label || id;
+    this.label = label ?? id;
     this.description = description;
     this.formatFunc = formatFunc;
     this.isInvalid = isInvalid;
@@ -38,9 +42,11 @@ export default class NumberFormatter extends ExtensibleFunction {
   format(value: number | null | undefined) {
     if (value === null || value === undefined || Number.isNaN(value)) {
       return `${value}`;
-    } else if (value === Number.POSITIVE_INFINITY) {
+    }
+    if (value === Number.POSITIVE_INFINITY) {
       return '∞';
-    } else if (value === Number.NEGATIVE_INFINITY) {
+    }
+    if (value === Number.NEGATIVE_INFINITY) {
       return '-∞';
     }
 

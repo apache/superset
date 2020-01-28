@@ -1,6 +1,6 @@
-import { getTextDimension } from '../src/index';
+import { promiseTimeout } from '@superset-ui/core';
+import { getTextDimension } from '../src';
 import { addDummyFill, removeDummyFill, SAMPLE_TEXT } from './getBBoxDummyFill';
-import promiseTimeout from '../../superset-ui-chart/test/components/promiseTimeout';
 
 describe('getTextDimension(input)', () => {
   describe('returns default dimension if getBBox() is not available', () => {
@@ -145,15 +145,13 @@ describe('getTextDimension(input)', () => {
       });
     });
   });
-  it('cleans up DOM', () => {
+  it('cleans up DOM', async () => {
     getTextDimension({
       text: SAMPLE_TEXT[0],
     });
 
     expect(document.querySelectorAll('svg')).toHaveLength(1);
-
-    return promiseTimeout(() => {
-      expect(document.querySelector('svg')).toBeNull();
-    }, 600);
+    await promiseTimeout(() => {}, 501);
+    expect(document.querySelector('svg')).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { shallow } from 'enzyme';
+import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import createLoadableRenderer, {
   LoadableRenderer as LoadableRendererType,
 } from '../../src/components/createLoadableRenderer';
@@ -12,8 +13,10 @@ describe('createLoadableRenderer', () => {
   let render: (loaded: { [key: string]: any }) => JSX.Element;
   let loading: () => JSX.Element;
   let LoadableRenderer: LoadableRendererType<{}, {}>;
+  let restoreConsole: RestoreConsole;
 
   beforeEach(() => {
+    restoreConsole = mockConsole();
     loadChartSuccess = jest.fn(() => Promise.resolve(TestComponent));
     render = jest.fn(loaded => {
       const { Chart } = loaded;
@@ -31,6 +34,10 @@ describe('createLoadableRenderer', () => {
     });
   });
 
+  afterEach(() => {
+    restoreConsole();
+  });
+
   describe('returns a LoadableRenderer class', () => {
     it('LoadableRenderer.preload() preloads the lazy-load components', () => {
       expect(LoadableRenderer.preload).toBeInstanceOf(Function);
@@ -38,19 +45,18 @@ describe('createLoadableRenderer', () => {
       expect(loadChartSuccess).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onRenderSuccess when succeeds', done => {
+    it('calls onRenderSuccess when succeeds', async () => {
       const onRenderSuccess = jest.fn();
       const onRenderFailure = jest.fn();
       shallow(
         <LoadableRenderer onRenderSuccess={onRenderSuccess} onRenderFailure={onRenderFailure} />,
       );
       expect(loadChartSuccess).toHaveBeenCalled();
-      setTimeout(() => {
-        expect(render).toHaveBeenCalledTimes(1);
-        expect(onRenderSuccess).toHaveBeenCalledTimes(1);
-        expect(onRenderFailure).not.toHaveBeenCalled();
-        done();
-      }, 10);
+      jest.useRealTimers();
+      await new Promise(resolve => setTimeout(resolve, 10));
+      expect(render).toHaveBeenCalledTimes(1);
+      expect(onRenderSuccess).toHaveBeenCalledTimes(1);
+      expect(onRenderFailure).not.toHaveBeenCalled();
     });
 
     it('calls onRenderFailure when fails', done => {
@@ -108,7 +114,7 @@ describe('createLoadableRenderer', () => {
       const NeverLoadingRenderer = createLoadableRenderer({
         loader: {},
         loading,
-        render,
+        render: () => <div />,
       });
 
       expect(() => shallow(<NeverLoadingRenderer />)).not.toThrow();

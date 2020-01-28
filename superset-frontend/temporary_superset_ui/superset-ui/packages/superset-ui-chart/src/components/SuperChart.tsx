@@ -9,7 +9,6 @@ import ChartProps, { ChartPropsConfig } from '../models/ChartProps';
 
 const defaultProps = {
   FallbackComponent: DefaultFallbackComponent,
-  // eslint-disable-next-line no-magic-numbers
   height: 400 as string | number,
   width: '100%' as string | number,
 };
@@ -68,14 +67,8 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       const widthInfo = parseLength(width);
       const heightInfo = parseLength(height);
 
-      const boxHeight = heightInfo.isDynamic
-        ? // eslint-disable-next-line no-magic-numbers
-          `${heightInfo.multiplier * 100}%`
-        : heightInfo.value;
-      const boxWidth = widthInfo.isDynamic
-        ? // eslint-disable-next-line no-magic-numbers
-          `${widthInfo.multiplier * 100}%`
-        : widthInfo.value;
+      const boxHeight = heightInfo.isDynamic ? `${heightInfo.multiplier * 100}%` : heightInfo.value;
+      const boxWidth = widthInfo.isDynamic ? `${widthInfo.multiplier * 100}%` : widthInfo.value;
       const style = {
         height: boxHeight,
         width: boxWidth,

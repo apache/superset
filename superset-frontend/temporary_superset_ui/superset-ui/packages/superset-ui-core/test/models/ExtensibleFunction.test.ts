@@ -14,6 +14,7 @@ describe('ExtensibleFunction', () => {
       this.x = x;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     hi() {
       return 'hi';
     }

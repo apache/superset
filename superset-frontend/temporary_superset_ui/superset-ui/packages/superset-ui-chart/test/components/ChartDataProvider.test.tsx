@@ -192,13 +192,13 @@ describe('ChartDataProvider', () => {
     it('calls children({ error }) upon request error', done => {
       expect.assertions(2);
       const children = jest.fn();
-      mockLoadFormData = jest.fn(() => Promise.reject(Error('error')));
+      mockLoadFormData = jest.fn(() => Promise.reject(new Error('error')));
 
       setup({ children });
 
       setTimeout(() => {
         expect(children.mock.calls).toHaveLength(2); // loading + error
-        expect(children.mock.calls[1][0]).toEqual({ error: Error('error') });
+        expect(children.mock.calls[1][0]).toEqual({ error: new Error('error') });
         done();
       }, 0);
     });
@@ -215,7 +215,7 @@ describe('ChartDataProvider', () => {
 
       setTimeout(() => {
         expect(children.mock.calls).toHaveLength(2); // loading + error
-        expect(children.mock.calls[1][0]).toEqual({ error: Error('non-async error') });
+        expect(children.mock.calls[1][0]).toEqual({ error: new Error('non-async error') });
         done();
       }, 0);
     });
@@ -241,12 +241,12 @@ describe('ChartDataProvider', () => {
     it('calls onError(error) upon request error', done => {
       expect.assertions(2);
       const onError = jest.fn();
-      mockLoadFormData = jest.fn(() => Promise.reject(Error('error')));
+      mockLoadFormData = jest.fn(() => Promise.reject(new Error('error')));
 
       setup({ onError });
       setTimeout(() => {
         expect(onError.mock.calls).toHaveLength(1);
-        expect(onError.mock.calls[0][0]).toEqual(Error('error'));
+        expect(onError.mock.calls[0][0]).toEqual(new Error('error'));
         done();
       }, 0);
     });
@@ -262,7 +262,7 @@ describe('ChartDataProvider', () => {
       setup({ onError });
       setTimeout(() => {
         expect(onError.mock.calls).toHaveLength(1);
-        expect(onError.mock.calls[0][0]).toEqual(Error('non-async error'));
+        expect(onError.mock.calls[0][0]).toEqual(new Error('non-async error'));
         done();
       }, 0);
     });

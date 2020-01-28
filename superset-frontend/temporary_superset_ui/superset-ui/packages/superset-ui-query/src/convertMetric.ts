@@ -14,7 +14,7 @@ function getDefaultLabel(metric: AdhocMetric) {
 
   return label.length <= LABEL_MAX_LENGTH
     ? label
-    : `${label.substring(0, LABEL_MAX_LENGTH - 3)}...`;
+    : `${label.slice(0, Math.max(0, LABEL_MAX_LENGTH - 3))}...`;
 }
 
 export default function convertMetric(metric: QueryFormDataMetric): QueryObjectMetric {
@@ -27,7 +27,7 @@ export default function convertMetric(metric: QueryFormDataMetric): QueryObjectM
     // Note we further sanitize the metric label for BigQuery datasources
     // TODO: move this logic to the client once client has more info on the
     // the datasource
-    const label = metric.label || getDefaultLabel(metric);
+    const label = metric.label ?? getDefaultLabel(metric);
     formattedMetric = {
       ...metric,
       label,

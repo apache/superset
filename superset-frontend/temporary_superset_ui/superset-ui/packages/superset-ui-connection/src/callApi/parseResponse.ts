@@ -14,9 +14,11 @@ export default function parseResponse(
 
   if (parseMethod === null) {
     return apiPromise.then(rejectIfNotOkay);
-  } else if (parseMethod === 'text') {
+  }
+  if (parseMethod === 'text') {
     return checkedPromise.then(response => response.text().then(text => ({ response, text })));
-  } else if (parseMethod === 'json') {
+  }
+  if (parseMethod === 'json') {
     return checkedPromise.then(response => response.json().then(json => ({ json, response })));
   }
 

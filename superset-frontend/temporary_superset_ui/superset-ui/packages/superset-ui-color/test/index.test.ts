@@ -6,7 +6,7 @@ import {
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   SequentialScheme,
-} from '../src/index';
+} from '../src';
 
 describe('index', () => {
   it('exports modules', () => {
