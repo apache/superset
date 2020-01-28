@@ -786,7 +786,12 @@ export function queryEditorSetSchemaOptions(queryEditor, options) {
 }
 
 export function queryEditorSetTableOptions(queryEditor, options, functions) {
-  return { type: QUERY_EDITOR_SET_TABLE_OPTIONS, queryEditor, options, functions };
+  return {
+    type: QUERY_EDITOR_SET_TABLE_OPTIONS,
+    queryEditor,
+    options,
+    functions,
+  };
 }
 
 export function queryEditorSetAutorun(queryEditor, autorun) {
