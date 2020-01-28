@@ -109,7 +109,7 @@ class CoreTests(SupersetTestCase):
                 {
                     "granularity": "ds",
                     "groupby": ["name"],
-                    "metrics": ["sum__num"],
+                    "metrics": [{"label": "sum__num"}],
                     "filters": [],
                     "row_limit": 100,
                 }
