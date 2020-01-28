@@ -38,6 +38,13 @@ describe('ListView', () => {
         filterable: true,
       },
     ],
+    filters: [
+      {
+        Header: 'Name',
+        id: 'name',
+        operators: [{ label: 'Starts With', value: 'sw' }],
+      },
+    ],
     data: [
       { id: 1, name: 'data 1' },
       { id: 2, name: 'data 2' },
@@ -64,15 +71,15 @@ describe('ListView', () => {
   it('calls fetchData on mount', () => {
     expect(wrapper.find(ListView)).toHaveLength(1);
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-                                    Array [
-                                      Object {
-                                        "filters": Array [],
-                                        "pageIndex": 0,
-                                        "pageSize": 1,
-                                        "sortBy": Array [],
-                                      },
-                                    ]
-                        `);
+                                          Array [
+                                            Object {
+                                              "filters": Array [],
+                                              "pageIndex": 0,
+                                              "pageSize": 1,
+                                              "sortBy": Array [],
+                                            },
+                                          ]
+                            `);
   });
 
   it('calls fetchData on sort', () => {
@@ -83,20 +90,20 @@ describe('ListView', () => {
 
     expect(mockedProps.fetchData).toHaveBeenCalled();
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-                                    Array [
-                                      Object {
-                                        "filters": Array [],
-                                        "pageIndex": 0,
-                                        "pageSize": 1,
-                                        "sortBy": Array [
-                                          Object {
-                                            "desc": false,
-                                            "id": "id",
-                                          },
-                                        ],
-                                      },
-                                    ]
-                        `);
+                                          Array [
+                                            Object {
+                                              "filters": Array [],
+                                              "pageIndex": 0,
+                                              "pageSize": 1,
+                                              "sortBy": Array [
+                                                Object {
+                                                  "desc": false,
+                                                  "id": "id",
+                                                },
+                                              ],
+                                            },
+                                          ]
+                            `);
   });
 
   it('calls fetchData on filter', () => {
@@ -118,6 +125,7 @@ describe('ListView', () => {
 
     act(() => {
       wrapper.find('.filter-inputs input[type="text"]').prop('onChange')({
+        persist() {},
         currentTarget: { value: 'foo' },
       });
     });
@@ -132,27 +140,27 @@ describe('ListView', () => {
     wrapper.update();
 
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-                              Array [
-                                Object {
-                                  "filters": Array [
-                                    Object {
-                                      "Header": "name",
-                                      "filterId": "sw",
-                                      "id": "name",
-                                      "value": "foo",
-                                    },
-                                  ],
-                                  "pageIndex": 0,
-                                  "pageSize": 1,
-                                  "sortBy": Array [
-                                    Object {
-                                      "desc": false,
-                                      "id": "id",
-                                    },
-                                  ],
-                                },
-                              ]
-                    `);
+      Array [
+        Object {
+          "filters": Array [
+            Object {
+              "Header": "name",
+              "id": "name",
+              "operator": "sw",
+              "value": "foo",
+            },
+          ],
+          "pageIndex": 0,
+          "pageSize": 1,
+          "sortBy": Array [
+            Object {
+              "desc": false,
+              "id": "id",
+            },
+          ],
+        },
+      ]
+    `);
   });
 
   it('calls fetchData on page change', () => {
@@ -162,27 +170,27 @@ describe('ListView', () => {
     wrapper.update();
 
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-                              Array [
-                                Object {
-                                  "filters": Array [
-                                    Object {
-                                      "Header": "name",
-                                      "filterId": "sw",
-                                      "id": "name",
-                                      "value": "foo",
-                                    },
-                                  ],
-                                  "pageIndex": 1,
-                                  "pageSize": 1,
-                                  "sortBy": Array [
-                                    Object {
-                                      "desc": false,
-                                      "id": "id",
-                                    },
-                                  ],
-                                },
-                              ]
-                    `);
+      Array [
+        Object {
+          "filters": Array [
+            Object {
+              "Header": "name",
+              "id": "name",
+              "operator": "sw",
+              "value": "foo",
+            },
+          ],
+          "pageIndex": 1,
+          "pageSize": 1,
+          "sortBy": Array [
+            Object {
+              "desc": false,
+              "id": "id",
+            },
+          ],
+        },
+      ]
+    `);
   });
   it('handles bulk actions on 1 row', () => {
     act(() => {
@@ -207,15 +215,15 @@ describe('ListView', () => {
     bulkActionsProps.onSelect(bulkActionsProps.eventKey);
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
-                  Array [
-                    Array [
-                      Object {
-                        "id": 1,
-                        "name": "data 1",
-                      },
-                    ],
-                  ]
-            `);
+                        Array [
+                          Array [
+                            Object {
+                              "id": 1,
+                              "name": "data 1",
+                            },
+                          ],
+                        ]
+                `);
   });
   it('handles bulk actions on all rows', () => {
     act(() => {
@@ -240,18 +248,18 @@ describe('ListView', () => {
     bulkActionsProps.onSelect(bulkActionsProps.eventKey);
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Object {
-            "id": 1,
-            "name": "data 1",
-          },
-          Object {
-            "id": 2,
-            "name": "data 2",
-          },
-        ],
-      ]
-    `);
+            Array [
+              Array [
+                Object {
+                  "id": 1,
+                  "name": "data 1",
+                },
+                Object {
+                  "id": 2,
+                  "name": "data 2",
+                },
+              ],
+            ]
+        `);
   });
 });
