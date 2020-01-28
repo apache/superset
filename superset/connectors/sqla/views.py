@@ -167,7 +167,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
 
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.SqlMetric)
-    include_route_methods = RouteMethod.RELATED_VIEW_SET
+    include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
 
     list_title = _("Metrics")
     show_title = _("Show Metric")
@@ -227,7 +227,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
 
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.SqlaTable)
-    include_route_methods = RouteMethod.CRUD_SET
+    include_route_methods = RouteMethod.CRUD_SET | RouteMethod.API_SET
 
     list_title = _("Tables")
     show_title = _("Show Table")
