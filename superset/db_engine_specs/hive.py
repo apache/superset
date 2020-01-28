@@ -429,12 +429,15 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     @cache.memoize()
-    def get_function_names(cls, database: "Database") -> List[str]:
+    def get_function_names(
+        cls, database: "Database", schema: Optional[str]
+    ) -> List[str]:
         """
         Get a list of function names that are able to be called on the database.
         Used for SQL Lab autocomplete.
 
         :param database: The database to get functions for
+        :param schema: The schema to get functions for (N/A for Hive)
         :return: A list of function names useable in the database
         """
         return database.get_df("SHOW FUNCTIONS")["tab_name"].tolist()

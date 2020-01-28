@@ -162,9 +162,8 @@ class Database(
     def allows_subquery(self) -> bool:
         return self.db_engine_spec.allows_subqueries
 
-    @property
-    def function_names(self) -> List[str]:
-        return self.db_engine_spec.get_function_names(self)
+    def get_function_names(self, schema: Optional[str]) -> List[str]:
+        return self.db_engine_spec.get_function_names(self, schema)
 
     @property
     def allows_cost_estimate(self) -> bool:

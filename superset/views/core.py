@@ -1104,6 +1104,8 @@ class Superset(BaseSupersetView):
             views = database.get_all_view_names_in_database(
                 cache=True, force=False, cache_timeout=24 * 60 * 60
             )
+
+        functions = database.get_function_names(schema)
         tables = security_manager.get_datasources_accessible_by_user(
             database, tables, schema
         )
@@ -1156,7 +1158,11 @@ class Superset(BaseSupersetView):
             ]
         )
         table_options.sort(key=lambda value: value["label"])
-        payload = {"tableLength": len(tables) + len(views), "options": table_options}
+        payload = {
+            "tableLength": len(tables) + len(views),
+            "options": table_options,
+            "functions": functions,
+        }
         return json_success(json.dumps(payload))
 
     @api

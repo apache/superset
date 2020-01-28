@@ -14,11 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional, TYPE_CHECKING
 from urllib import parse
 
+import pandas as pd
+
+from superset import cache
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+
+if TYPE_CHECKING:
+    # prevent circular imports
+    from superset.models.core import Database  # pylint: disable=unused-import
+
+func_regex = re.compile(r"^((?<!SYSTEM$)(\w))+$")
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
@@ -74,3 +84,32 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         if tt == "TIMESTAMP":
             return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}')"""
         return None
+
+    @classmethod
+    @cache.memoize()
+    def get_function_names(
+        cls, database: "Database", schema: Optional[str]
+    ) -> List[str]:
+        """
+        Get a list of function names that are able to be called on the database.
+        Used for SQL Lab autocomplete. Returns global functions, excluding system
+        functions (starting with "SYSTEM$") and UDFs that are available in the chosen
+        schema.
+
+        :param database: The database to get functions for
+        :param schema: The schema to get functions for
+        :return: A list of function names useable in the database
+        """
+
+        def is_valid_function(func_row: pd.Series) -> bool:
+            func_schema, func_name = func_row["schema_name"], func_row["name"]
+            if func_regex.match(func_name) and (
+                func_schema in (None, "")
+                or schema is None
+                or schema.lower() == func_schema.lower()
+            ):
+                return True
+            return False
+
+        func_df = database.get_df("SHOW FUNCTIONS")
+        return [row["name"] for _, row in func_df.iterrows() if is_valid_function(row)]

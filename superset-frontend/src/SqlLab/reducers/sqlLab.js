@@ -450,6 +450,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_TABLE_OPTIONS]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, {
         tableOptions: action.options,
+        functionOptions: action.functions,
       });
     },
     [actions.QUERY_EDITOR_SET_TITLE]() {

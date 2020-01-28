@@ -66,6 +66,7 @@ export default class TableSelector extends React.PureComponent {
       schemaOptions: [],
       tableLoading: false,
       tableOptions: [],
+      functionOptions: [],
       dbId: props.dbId,
       schema: props.schema,
       tableName: props.tableName,
@@ -87,7 +88,12 @@ export default class TableSelector extends React.PureComponent {
     this.props.onSchemaChange(null);
     this.props.onDbChange(db);
     this.fetchSchemas(dbId, force);
-    this.setState({ dbId, schema: null, tableOptions: [] }, this.onChange);
+    this.setState({
+      dbId,
+      schema: null,
+      tableOptions: [],
+      functionOptions: [],
+    }, this.onChange);
   }
   onChange() {
     this.props.onChange({
@@ -136,7 +142,11 @@ export default class TableSelector extends React.PureComponent {
     const forceRefresh = force || false;
     const { dbId, schema } = this.state;
     if (dbId && schema) {
-      this.setState(() => ({ tableLoading: true, tableOptions: [] }));
+      this.setState(() => ({
+        tableLoading: true,
+        tableOptions: [],
+        functionOptions: [],
+      }));
       const endpoint = encodeURI(
         `/superset/tables/${dbId}/` +
           `${encodeURIComponent(schema)}/${encodeURIComponent(
@@ -155,11 +165,16 @@ export default class TableSelector extends React.PureComponent {
           this.setState(() => ({
             tableLoading: false,
             tableOptions: options,
+            functionOptions: json.functions,
           }));
-          this.props.onTablesLoad(json.options);
+          this.props.onTablesLoad(json.options, json.functions);
         })
         .catch(() => {
-          this.setState(() => ({ tableLoading: false, tableOptions: [] }));
+          this.setState(() => ({
+            tableLoading: false,
+            tableOptions: [],
+            functionOptions: [],
+          }));
           this.props.handleError(t('Error while fetching table list'));
         });
     }
