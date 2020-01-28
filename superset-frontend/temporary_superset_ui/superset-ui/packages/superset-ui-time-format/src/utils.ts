@@ -1,5 +1,3 @@
-/* eslint-disable sort-keys */
-
 import {
   timeSecond,
   timeMinute,

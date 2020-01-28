@@ -1,5 +1,3 @@
-/* eslint-disable sort-keys */
-
 import SequentialScheme from '../../SequentialScheme';
 
 const schemes = [

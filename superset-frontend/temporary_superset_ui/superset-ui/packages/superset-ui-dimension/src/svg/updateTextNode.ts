@@ -27,7 +27,7 @@ export default function updateTextNode(
     textNode.textContent = typeof text === 'undefined' ? null : text;
   }
   if (textNode.getAttribute('class') !== className) {
-    textNode.setAttribute('class', className || '');
+    textNode.setAttribute('class', className ?? '');
   }
 
   // Clear style

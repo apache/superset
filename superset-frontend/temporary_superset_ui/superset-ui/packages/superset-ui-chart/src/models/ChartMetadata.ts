@@ -15,13 +15,21 @@ export interface ChartMetadataConfig {
 
 export default class ChartMetadata {
   name: string;
+
   canBeAnnotationTypes?: string[];
+
   canBeAnnotationTypesLookup: LookupTable;
+
   credits: string[];
+
   description: string;
+
   show: boolean;
+
   supportedAnnotationTypes: string[];
+
   thumbnail: string;
+
   useLegacyApi: boolean;
 
   constructor(config: ChartMetadataConfig) {

@@ -1,4 +1,4 @@
-import { LanguagePack } from '../../src/index';
+import { LanguagePack } from '../../src';
 
 const languagePack: LanguagePack = {
   domain: 'superset',

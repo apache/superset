@@ -1,15 +1,17 @@
+/* eslint-disable import/imports-first */
 /* eslint-disable import/first */
 import React from 'react';
 import { mount } from 'enzyme';
+import mockConsole, { RestoreConsole } from 'jest-mock-console';
 
 jest.mock('resize-observer-polyfill');
 // @ts-ignore
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import ErrorBoundary from 'react-error-boundary';
+import { promiseTimeout } from '@superset-ui/core';
 import { SuperChart } from '../../src';
 import RealSuperChart, { WrapperProps } from '../../src/components/SuperChart';
 import { ChartKeys, DiligentChartPlugin, BuggyChartPlugin } from './MockChartPlugins';
-import promiseTimeout from './promiseTimeout';
 
 function expectDimension(renderedWrapper: Cheerio, width: number, height: number) {
   expect(renderedWrapper.find('.dimension').text()).toEqual([width, height].join('x'));
@@ -20,6 +22,8 @@ describe('SuperChart', () => {
     new DiligentChartPlugin().configure({ key: ChartKeys.DILIGENT }),
     new BuggyChartPlugin().configure({ key: ChartKeys.BUGGY }),
   ];
+
+  let restoreConsole: RestoreConsole;
 
   beforeAll(() => {
     plugins.forEach(p => {
@@ -33,10 +37,18 @@ describe('SuperChart', () => {
     });
   });
 
+  beforeEach(() => {
+    restoreConsole = mockConsole();
+  });
+
+  afterEach(() => {
+    restoreConsole();
+  });
+
   describe('includes ErrorBoundary', () => {
     let expectedErrors = 0;
     let actualErrors = 0;
-    function onError(e) {
+    function onError(e: Event) {
       e.preventDefault();
       actualErrors += 1;
     }
@@ -49,6 +61,7 @@ describe('SuperChart', () => {
 
     afterEach(() => {
       window.removeEventListener('error', onError);
+      // eslint-disable-next-line jest/no-standalone-expect
       expect(actualErrors).toBe(expectedErrors);
       expectedErrors = 0;
     });
@@ -78,7 +91,7 @@ describe('SuperChart', () => {
 
       return promiseTimeout(() => {
         expect(wrapper.render().find('div.test-component')).toHaveLength(0);
-        expect(CustomFallbackComponent).toBeCalledTimes(1);
+        expect(CustomFallbackComponent).toHaveBeenCalledTimes(1);
       });
     });
     it('call onErrorBoundary', () => {
@@ -104,10 +117,10 @@ describe('SuperChart', () => {
       mount(
         <ErrorBoundary onError={activeErrorHandler}>
           <SuperChart
+            disableErrorBoundary
             chartType={ChartKeys.BUGGY}
             width="200"
             height="200"
-            disableErrorBoundary
             onErrorBoundary={inactiveErrorHandler}
           />
         </ErrorBoundary>,

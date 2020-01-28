@@ -22,7 +22,10 @@ describe('callApiAndParseWithTimeout()', () => {
   const mockGetPayload = { get: 'payload' };
   fetchMock.get(mockGetUrl, mockGetPayload);
 
-  afterEach(fetchMock.reset);
+  afterEach(() => {
+    fetchMock.reset();
+    jest.useRealTimers();
+  });
 
   describe('callApi', () => {
     it('calls callApi()', () => {
@@ -63,7 +66,7 @@ describe('callApiAndParseWithTimeout()', () => {
     });
 
     it('rejects if the request exceeds the timeout', done => {
-      expect.assertions(4);
+      expect.assertions(3);
       jest.useFakeTimers();
 
       const mockTimeoutUrl = '/mock/timeout/url';
@@ -72,23 +75,19 @@ describe('callApiAndParseWithTimeout()', () => {
 
       callApiAndParseWithTimeout({ url: mockTimeoutUrl, method: 'GET', timeout: 1 })
         .then(throwIfCalled)
-        .catch(timeoutError => {
-          expect(setTimeout).toHaveBeenCalledTimes(1);
+        .catch(error => {
           expect(fetchMock.calls(mockTimeoutUrl)).toHaveLength(1);
-          expect(Object.keys(timeoutError)).toEqual(
-            expect.arrayContaining(['error', 'statusText']),
-          );
-          expect(timeoutError.statusText).toBe('timeout');
+          expect(Object.keys(error)).toEqual(expect.arrayContaining(['error', 'statusText']));
+          expect(error.statusText).toBe('timeout');
 
           return done(); // eslint-disable-line promise/no-callback-in-promise
         });
 
-      jest.runOnlyPendingTimers();
+      jest.advanceTimersByTime(2);
     });
 
     it('resolves if the request does not exceed the timeout', () => {
       expect.assertions(1);
-      jest.useFakeTimers();
 
       return callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET', timeout: 100 }).then(
         (response: Json) => {

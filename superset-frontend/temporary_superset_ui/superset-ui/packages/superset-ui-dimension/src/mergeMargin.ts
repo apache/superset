@@ -1,8 +1,8 @@
 import { Margin } from './types';
 
-function mergeOneSide(a: number = 0, b: number = 0, operation: (a: number, b: number) => number) {
+function mergeOneSide(operation: (a: number, b: number) => number, a: number = 0, b: number = 0) {
   if (Number.isNaN(a) || a === null) return b;
-  else if (Number.isNaN(b) || b === null) return a;
+  if (Number.isNaN(b) || b === null) return a;
 
   return operation(a, b);
 }
@@ -16,9 +16,9 @@ export default function mergeMargin(
   const operation = mode === 'expand' ? Math.max : Math.min;
 
   return {
-    bottom: mergeOneSide(bottom, margin2.bottom, operation),
-    left: mergeOneSide(left, margin2.left, operation),
-    right: mergeOneSide(right, margin2.right, operation),
-    top: mergeOneSide(top, margin2.top, operation),
+    bottom: mergeOneSide(operation, bottom, margin2.bottom),
+    left: mergeOneSide(operation, left, margin2.left),
+    right: mergeOneSide(operation, right, margin2.right),
+    top: mergeOneSide(operation, top, margin2.top),
   };
 }

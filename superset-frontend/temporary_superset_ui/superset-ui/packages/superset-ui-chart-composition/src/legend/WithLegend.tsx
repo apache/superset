@@ -1,4 +1,3 @@
-/* eslint-disable sort-keys */
 import React, { CSSProperties, ReactNode, PureComponent } from 'react';
 import { ParentSize } from '@vx/responsive';
 // eslint-disable-next-line import/no-unresolved
@@ -7,8 +6,8 @@ import { FlexDirectionProperty } from 'csstype';
 const defaultProps = {
   className: '',
   height: 'auto' as number | string,
-  width: 'auto' as number | string,
   position: 'top',
+  width: 'auto' as number | string,
 };
 
 type Props = {
@@ -44,9 +43,11 @@ class WithLegend extends PureComponent<Props, {}> {
 
     if (position === 'left') {
       return 'row';
-    } else if (position === 'right') {
+    }
+    if (position === 'right') {
       return 'row-reverse';
-    } else if (position === 'bottom') {
+    }
+    if (position === 'bottom') {
       return 'column-reverse';
     }
 

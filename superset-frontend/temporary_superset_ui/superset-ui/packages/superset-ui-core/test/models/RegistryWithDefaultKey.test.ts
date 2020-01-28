@@ -2,14 +2,14 @@ import RegistryWithDefaultKey from '../../src/models/RegistryWithDefaultKey';
 import Registry from '../../src/models/Registry';
 
 describe('RegistryWithDefaultKey', () => {
-  it('exists', () => {
-    expect(RegistryWithDefaultKey).toBeDefined();
-  });
-
   let registry: RegistryWithDefaultKey<number>;
 
   beforeEach(() => {
     registry = new RegistryWithDefaultKey();
+  });
+
+  it('exists', () => {
+    expect(RegistryWithDefaultKey).toBeDefined();
   });
 
   describe('new RegistryWithDefaultKey(config)', () => {

@@ -36,7 +36,6 @@ export default function getTextDimension(
   setTimeout(() => {
     textFactory.removeFromContainer(svgNode);
     hiddenSvgFactory.removeFromContainer(container);
-    // eslint-disable-next-line no-magic-numbers
   }, 500);
 
   return dimension;

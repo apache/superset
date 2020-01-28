@@ -1,5 +1,4 @@
 /* eslint camelcase: 0 */
-/* eslint-disable import/prefer-default-export */
 // FormData uses snake_cased keys.
 import { MetricKey, AdhocMetric } from './Metric';
 import { TimeRange } from './Time';

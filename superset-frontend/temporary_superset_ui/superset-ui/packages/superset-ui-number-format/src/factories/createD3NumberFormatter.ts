@@ -19,7 +19,7 @@ export default function createD3NumberFormatter(config: {
       typeof locale === 'undefined'
         ? d3Format(formatString)
         : formatLocale(locale).format(formatString);
-  } catch (e) {
+  } catch (error) {
     formatFunc = value => `${value} (Invalid format: ${formatString})`;
     isInvalid = true;
   }

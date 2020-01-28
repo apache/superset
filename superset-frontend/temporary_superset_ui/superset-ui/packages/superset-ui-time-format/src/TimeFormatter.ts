@@ -1,5 +1,3 @@
-/* eslint-disable no-magic-numbers */
-
 import { ExtensibleFunction, isRequired } from '@superset-ui/core';
 import { TimeFormatFunction } from './types';
 
@@ -7,9 +5,13 @@ export const PREVIEW_TIME = new Date(Date.UTC(2017, 1, 14, 11, 22, 33));
 
 export default class TimeFormatter extends ExtensibleFunction {
   id: string;
+
   label: string;
+
   description: string;
+
   formatFunc: TimeFormatFunction;
+
   useLocalTime: boolean;
 
   constructor(config: {
@@ -30,7 +32,7 @@ export default class TimeFormatter extends ExtensibleFunction {
     } = config;
 
     this.id = id;
-    this.label = label || id;
+    this.label = label ?? id;
     this.description = description;
     this.formatFunc = formatFunc;
     this.useLocalTime = useLocalTime;

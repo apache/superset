@@ -37,7 +37,7 @@ export default function computeMaxFontSize(
   function computeDimension(fontSize: number) {
     return getTextDimension({
       ...rest,
-      style: { ...style, fontSize },
+      style: { ...style, fontSize: `${fontSize}px` },
     });
   }
 

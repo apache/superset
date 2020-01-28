@@ -10,7 +10,8 @@ export default function convertFilter(filter: SimpleAdhocFilter): QueryObjectFil
       col: subject,
       op: operator,
     };
-  } else if (isBinaryAdhocFilter(filter)) {
+  }
+  if (isBinaryAdhocFilter(filter)) {
     const { operator } = filter;
 
     return {

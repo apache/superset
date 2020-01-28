@@ -31,7 +31,7 @@ export default class TooltipTable extends PureComponent<Props, {}> {
         <tbody>
           {data.map(({ key, keyColumn, keyStyle, valueColumn, valueStyle }) => (
             <tr key={key}>
-              <td style={keyStyle}>{keyColumn || key}</td>
+              <td style={keyStyle}>{keyColumn ?? key}</td>
               <td style={valueStyle ? { ...VALUE_CELL_STYLE, ...valueStyle } : VALUE_CELL_STYLE}>
                 {valueColumn}
               </td>

@@ -1,5 +1,7 @@
+/* eslint-disable max-classes-per-file */
 import React from 'react';
-import { ChartMetadata, ChartPlugin, QueryFormData } from '../../src';
+import { QueryFormData } from '@superset-ui/query/src';
+import { ChartMetadata, ChartPlugin } from '../../src';
 
 const DIMENSION_STYLE = {
   fontSize: 36,
@@ -34,7 +36,7 @@ export const TestComponent = ({
     }}
   >
     <div className="message" style={{ padding: 10 }}>
-      {message || 'custom component'}
+      {message ?? 'custom component'}
     </div>
     <div className="dimension" style={DIMENSION_STYLE}>
       {[width, height].join('x')}

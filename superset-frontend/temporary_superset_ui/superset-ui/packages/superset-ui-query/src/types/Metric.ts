@@ -1,6 +1,3 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable import/prefer-default-export */
-
 import { Column } from './Column';
 
 // Note that the values of MetricKeys are lower_snake_case because they're

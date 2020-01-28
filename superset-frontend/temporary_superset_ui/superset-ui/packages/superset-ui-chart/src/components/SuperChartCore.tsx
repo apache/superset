@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-sort-default-props */
 import * as React from 'react';
 import { createSelector } from 'reselect';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
@@ -12,7 +13,6 @@ const IDENTITY = (x: any) => x;
 
 const EMPTY = () => null;
 
-/* eslint-disable sort-keys */
 const defaultProps = {
   id: '',
   className: '',
@@ -22,7 +22,6 @@ const defaultProps = {
   onRenderSuccess() {},
   onRenderFailure() {},
 };
-/* eslint-enable sort-keys */
 
 interface LoadingProps {
   error: any;
@@ -75,11 +74,11 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
       preTransformProps?: PreTransformProps;
       transformProps?: TransformProps;
       postTransformProps?: PostTransformProps;
-    }) => input.preTransformProps,
+    }) => input.chartProps,
+    input => input.preTransformProps,
     input => input.transformProps,
     input => input.postTransformProps,
-    input => input.chartProps,
-    (pre = IDENTITY, transform = IDENTITY, post = IDENTITY, chartProps) =>
+    (chartProps, pre = IDENTITY, transform = IDENTITY, post = IDENTITY) =>
       post(transform(pre(chartProps))),
   );
 
@@ -126,12 +125,10 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
     return (
       <Chart
         {...this.processChartProps({
-          /* eslint-disable sort-keys */
           chartProps,
           preTransformProps,
           transformProps,
           postTransformProps,
-          /* eslint-enable sort-keys */
         })}
       />
     );

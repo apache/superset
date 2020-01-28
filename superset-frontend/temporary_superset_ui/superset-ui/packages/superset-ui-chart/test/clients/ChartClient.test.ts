@@ -8,7 +8,7 @@ import {
   ChartMetadata,
 } from '../../src';
 import { SliceIdAndOrFormData } from '../../src/clients/ChartClient';
-import { LOGIN_GLOB } from '../../../superset-ui-connection/test/fixtures/constants';
+import { LOGIN_GLOB } from '../fixtures/constants';
 
 describe('ChartClient', () => {
   let chartClient: ChartClient;
@@ -140,7 +140,7 @@ describe('ChartClient', () => {
       );
 
       fetchMock.post('glob:*/api/v1/query/', () =>
-        Promise.reject(Error('Unexpected all to v1 API')),
+        Promise.reject(new Error('Unexpected all to v1 API')),
       );
 
       fetchMock.post('glob:*/superset/explore_json/', {
