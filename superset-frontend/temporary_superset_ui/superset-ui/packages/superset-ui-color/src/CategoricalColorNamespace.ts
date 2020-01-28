@@ -5,7 +5,9 @@ import stringifyAndTrim from './stringifyAndTrim';
 
 export default class CategoricalColorNamespace {
   name: string;
+
   forcedItems: ColorsLookup;
+
   scales: {
     [key: string]: CategoricalColorScale;
   };
@@ -17,14 +19,14 @@ export default class CategoricalColorNamespace {
   }
 
   getScale(schemeId?: string) {
-    const id = schemeId || getCategoricalSchemeRegistry().getDefaultKey() || '';
+    const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
     const scale = this.scales[id];
     if (scale) {
       return scale;
     }
     const scheme = getCategoricalSchemeRegistry().get(id);
 
-    const newScale = new CategoricalColorScale((scheme && scheme.colors) || [], this.forcedItems);
+    const newScale = new CategoricalColorScale(scheme?.colors ?? [], this.forcedItems);
     this.scales[id] = newScale;
 
     return newScale;

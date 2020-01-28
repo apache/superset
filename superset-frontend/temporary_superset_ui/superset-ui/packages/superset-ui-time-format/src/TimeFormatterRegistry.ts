@@ -16,7 +16,7 @@ export default class TimeFormatterRegistry extends RegistryWithDefaultKey<
   }
 
   get(format?: string) {
-    const targetFormat = `${format || this.defaultKey}`.trim();
+    const targetFormat = `${format ?? this.defaultKey}`.trim();
 
     if (this.has(targetFormat)) {
       return super.get(targetFormat) as TimeFormatter;

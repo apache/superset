@@ -17,7 +17,6 @@ export interface LoadableRenderer<Props, Exports>
 export default function createLoadableRenderer<Props, Exports>(
   options: Loadable.OptionsWithMap<Props, Exports>,
 ): LoadableRenderer<Props, Exports> {
-  // eslint-disable-next-line babel/new-cap
   const LoadableRenderer = Loadable.Map(options) as LoadableRenderer<Props, Exports>;
 
   // Extends the behavior of LoadableComponent to provide post-render listeners

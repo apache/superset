@@ -1,5 +1,3 @@
-/* eslint-disable import/prefer-default-export */
-
 import { Column } from './Column';
 import { QueryObjectMetric } from './Query';
 

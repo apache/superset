@@ -34,7 +34,6 @@ export default function reactify<Props extends object>(
   callbacks?: LifeCycleCallbacks,
 ): React.ComponentClass<Props & ReactifyProps> {
   class ReactifiedComponent extends React.Component<Props & ReactifyProps> {
-    // eslint-disable-next-line react/sort-comp
     container?: HTMLDivElement;
 
     constructor(props: Props & ReactifyProps) {
@@ -52,7 +51,7 @@ export default function reactify<Props extends object>(
 
     componentWillUnmount() {
       this.container = undefined;
-      if (callbacks && callbacks.componentWillUnmount) {
+      if (callbacks?.componentWillUnmount) {
         callbacks.componentWillUnmount.bind(this)();
       }
     }
@@ -70,7 +69,7 @@ export default function reactify<Props extends object>(
     render() {
       const { id, className } = this.props;
 
-      return <div id={id} className={className} ref={this.setContainerRef} />;
+      return <div ref={this.setContainerRef} id={id} className={className} />;
     }
   }
 

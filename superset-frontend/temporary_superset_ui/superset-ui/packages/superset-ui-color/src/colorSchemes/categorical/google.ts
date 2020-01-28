@@ -1,5 +1,3 @@
-/* eslint-disable sort-keys */
-
 import CategoricalScheme from '../../CategoricalScheme';
 
 const schemes = [

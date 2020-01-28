@@ -20,7 +20,7 @@ export default function createSiAtMostNDigitFormatter(
       /* Removing trailing `.00` if any */
       return si.slice(-1) < 'A' ? parseFloat(si).toString() : si;
     },
-    id: id || `si_at_most_${n}_digit`,
-    label: label || `SI with at most ${n} significant digits`,
+    id: id ?? `si_at_most_${n}_digit`,
+    label: label ?? `SI with at most ${n} significant digits`,
   });
 }

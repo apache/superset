@@ -14,10 +14,6 @@ describe('generator-superset:legacy-plugin-chart-demo', () => {
       .withOptions({ skipInstall: true });
   });
 
-  it('creates files', () => {
-    assert.file(['index.js', 'Stories.jsx']);
-  });
-
   /*
    * Change working directory back to original working directory
    * after the test has completed.
@@ -31,5 +27,9 @@ describe('generator-superset:legacy-plugin-chart-demo', () => {
    */
   afterAll(() => {
     process.chdir(dir);
+  });
+
+  it('creates files', () => {
+    assert.file(['index.js', 'Stories.jsx']);
   });
 });

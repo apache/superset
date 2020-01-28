@@ -61,15 +61,20 @@ export default function createMultiFormatter({
   function multiFormatFunc(date: Date) {
     if (hasMillisecond(date)) {
       return formatMillisecond;
-    } else if (hasSecond(date)) {
+    }
+    if (hasSecond(date)) {
       return formatSecond;
-    } else if (hasMinute(date)) {
+    }
+    if (hasMinute(date)) {
       return formatMinute;
-    } else if (hasHour(date)) {
+    }
+    if (hasHour(date)) {
       return formatHour;
-    } else if (isNotFirstDayOfMonth(date)) {
+    }
+    if (isNotFirstDayOfMonth(date)) {
       return isNotFirstDayOfWeek(date) ? formatDay : formatFirstDayOfWeek;
-    } else if (isNotFirstMonth(date)) {
+    }
+    if (isNotFirstMonth(date)) {
       return formatMonth;
     }
 

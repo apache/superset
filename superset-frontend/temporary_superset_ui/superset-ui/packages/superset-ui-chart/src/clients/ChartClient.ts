@@ -84,7 +84,7 @@ export default class ChartClient {
 
     if (metaDataRegistry.has(visType)) {
       const { useLegacyApi } = metaDataRegistry.get(visType)!;
-      const buildQuery = (await buildQueryRegistry.get(visType)) || (() => formData);
+      const buildQuery = (await buildQueryRegistry.get(visType)) ?? (() => formData);
 
       return this.client
         .post({
@@ -109,6 +109,7 @@ export default class ChartClient {
       .then(response => response.json as Datasource);
   }
 
+  // eslint-disable-next-line class-methods-use-this
   loadAnnotation(annotationLayer: AnnotationLayerMetadata): Promise<AnnotationData> {
     /* When annotation does not require query */
     if (!isDefined(annotationLayer.sourceType)) {

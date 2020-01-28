@@ -1,4 +1,3 @@
-/* eslint compat/compat: 'off' */
 import 'whatwg-fetch';
 import { CallApi } from '../types';
 import { CACHE_AVAILABLE, CACHE_KEY, HTTP_STATUS_NOT_MODIFIED, HTTP_STATUS_OK } from '../constants';
@@ -54,7 +53,8 @@ export default function callApi({
               }
               throw new Error('Received 304 but no content is cached!');
             });
-          } else if (response.status === HTTP_STATUS_OK && response.headers.get('Etag')) {
+          }
+          if (response.status === HTTP_STATUS_OK && response.headers.get('Etag')) {
             supersetCache.delete(url);
             supersetCache.put(url, response.clone());
           }

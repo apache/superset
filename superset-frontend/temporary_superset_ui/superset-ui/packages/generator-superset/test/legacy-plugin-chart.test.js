@@ -14,10 +14,6 @@ describe('generator-superset:legacy-plugin-chart', () => {
       .withOptions({ skipInstall: true });
   });
 
-  it('creates files', () => {
-    assert.file(['package.json']);
-  });
-
   /*
    * Change working directory back to original working directory
    * after the test has completed.
@@ -31,5 +27,9 @@ describe('generator-superset:legacy-plugin-chart', () => {
    */
   afterAll(() => {
     process.chdir(dir);
+  });
+
+  it('creates files', () => {
+    assert.file(['package.json']);
   });
 });

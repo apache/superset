@@ -12,9 +12,6 @@ import {
 } from '../src';
 
 describe('@superset-ui/superset-ui', () => {
-  it('it should export @superset-ui/core', () => {
-    expect(Registry).toBeDefined();
-  });
   it('should export @superset-ui/chart', () => {
     expect(SuperChart).toBeDefined();
   });

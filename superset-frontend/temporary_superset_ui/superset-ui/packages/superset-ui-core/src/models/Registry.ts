@@ -27,7 +27,9 @@ export interface RegistryConfig {
  */
 export default class Registry<V, W extends V | Promise<V> = V | Promise<V>> {
   name: string;
+
   overwritePolicy: OverwritePolicy;
+
   items: {
     [key: string]: ItemWithValue<V> | ItemWithLoader<W>;
   };
@@ -110,7 +112,8 @@ export default class Registry<V, W extends V | Promise<V> = V | Promise<V>> {
 
   getAsPromise(key: string): Promise<V> {
     const promise = this.promises[key];
-    if (promise) {
+
+    if (typeof promise !== 'undefined') {
       return promise;
     }
     const item = this.get(key);

@@ -1,8 +1,8 @@
-import { getMultipleTextDimensions } from '../src/index';
+import { promiseTimeout } from '@superset-ui/core';
+import { getMultipleTextDimensions } from '../src';
 import { addDummyFill, removeDummyFill, SAMPLE_TEXT } from './getBBoxDummyFill';
-import promiseTimeout from '../../superset-ui-chart/test/components/promiseTimeout';
 
-describe('getTextDimension(input)', () => {
+describe('getMultipleTextDimension(input)', () => {
   describe('returns dimension of the given text', () => {
     beforeEach(addDummyFill);
     afterEach(removeDummyFill);
@@ -191,15 +191,13 @@ describe('getTextDimension(input)', () => {
       ]);
     });
   });
-  it('cleans up DOM', () => {
+  it('cleans up DOM', async () => {
     getMultipleTextDimensions({
       texts: [SAMPLE_TEXT[0], SAMPLE_TEXT[1]],
     });
 
     expect(document.querySelectorAll('svg')).toHaveLength(1);
-
-    return promiseTimeout(() => {
-      expect(document.querySelector('svg')).toBeNull();
-    }, 600);
+    await promiseTimeout(() => {}, 501);
+    expect(document.querySelector('svg')).toBeNull();
   });
 });

@@ -2,6 +2,7 @@
 import mockConsole from 'jest-mock-console';
 import Translator from '../src/Translator';
 import { configure, t, tn } from '../src/TranslatorSingleton';
+import languagePackEn from './languagePacks/en';
 import languagePackZh from './languagePacks/zh';
 
 describe('TranslatorSingleton', () => {
@@ -40,7 +41,7 @@ describe('TranslatorSingleton', () => {
     describe('tn()', () => {
       it('after configure() returns translated text with singular/plural', () => {
         configure({
-          languagePack: languagePackZh,
+          languagePack: languagePackEn,
         });
         expect(tn('ox', 'oxen', 2)).toEqual('oxen');
       });

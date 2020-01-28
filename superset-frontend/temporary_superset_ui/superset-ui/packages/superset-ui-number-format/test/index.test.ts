@@ -8,7 +8,7 @@ import {
   NumberFormats,
   NumberFormatter,
   PREVIEW_VALUE,
-} from '../src/index';
+} from '../src';
 
 describe('index', () => {
   it('exports modules', () => {

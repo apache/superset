@@ -4,8 +4,11 @@ import stringifyAndTrim from './stringifyAndTrim';
 
 export default class CategoricalColorScale extends ExtensibleFunction {
   colors: string[];
+
   parentForcedColors?: ColorsLookup;
+
   forcedColors: ColorsLookup;
+
   seen: { [key: string]: number };
 
   /**

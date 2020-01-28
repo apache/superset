@@ -22,7 +22,7 @@ export default class LazyFactory<T extends HTMLElement | SVGElement> {
     }
 
     const node = this.factoryFn();
-    container.appendChild(node);
+    container.append(node);
     this.activeNodes.set(container, { counter: 1, node });
 
     return node;

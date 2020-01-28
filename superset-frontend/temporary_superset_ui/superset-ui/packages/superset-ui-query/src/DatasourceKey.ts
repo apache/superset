@@ -2,6 +2,7 @@ import { DatasourceType } from './types/Datasource';
 
 export default class DatasourceKey {
   readonly id: number;
+
   readonly type: DatasourceType;
 
   constructor(key: string) {
