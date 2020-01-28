@@ -579,11 +579,16 @@ class RolePermissionTests(SupersetTestCase):
             )
         )
 
-        self.assertTrue(
-            security_manager._is_admin_only(
-                security_manager.find_permission_view_menu("can_delete", "DatabaseView")
+        log_permissions = ["can_list", "can_show"]
+        for log_permission in log_permissions:
+            self.assertTrue(
+                security_manager._is_admin_only(
+                    security_manager.find_permission_view_menu(
+                        log_permission, "LogModelView"
+                    )
+                )
             )
-        )
+
         if app.config["ENABLE_ACCESS_REQUEST"]:
             self.assertTrue(
                 security_manager._is_admin_only(

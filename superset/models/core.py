@@ -162,6 +162,10 @@ class Database(
         return self.db_engine_spec.allows_subqueries
 
     @property
+    def function_names(self) -> List[str]:
+        return self.db_engine_spec.get_function_names(self)
+
+    @property
     def allows_cost_estimate(self) -> bool:
         extra = self.get_extra()
 
@@ -320,7 +324,7 @@ class Database(
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(  # pylint: disable=too-many-locals
-        self, sql: str, schema: str, mutator: Optional[Callable] = None
+        self, sql: str, schema: Optional[str] = None, mutator: Optional[Callable] = None
     ) -> pd.DataFrame:
         sqls = [str(s).strip(" ;") for s in sqlparse.parse(sql)]
         source_key = None
