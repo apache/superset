@@ -934,7 +934,7 @@ export function mergeTable(table, query) {
 function getTableMetadata(table, query, dispatch) {
   return SupersetClient.get({
     endpoint: encodeURI(
-      `/superset/table/${query.dbId}/` +
+      `/api/v1/database/${query.dbId}/table/` +
         `${encodeURIComponent(table.name)}/${encodeURIComponent(
           table.schema,
         )}/`,
