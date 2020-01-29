@@ -949,6 +949,17 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     @cache.memoize()
+    def _get_function_names(cls, database: "Database") -> List[str]:
+        """
+        Get a list of function names that are able to be called on the database.
+        Execution in separate function without schema to avoid caching per schema.
+
+        :param database: The database to get functions for
+        :return: A list of function names useable in the database
+        """
+        return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
+
+    @classmethod
     def get_function_names(
         cls, database: "Database", schema: Optional[str]
     ) -> List[str]:
@@ -960,4 +971,4 @@ class PrestoEngineSpec(BaseEngineSpec):
         :param schema: The schema to get functions for (N/A for Presto)
         :return: A list of function names useable in the database
         """
-        return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
+        return cls._get_function_names(database)
