@@ -759,20 +759,6 @@ class Superset(BaseSupersetView):
 
     @event_logger.log_this
     @has_access
-    @expose("/explorev2/<datasource_type>/<datasource_id>/")
-    def explorev2(self, datasource_type, datasource_id):
-        """Deprecated endpoint, here for backward compatibility of urls"""
-        return redirect(
-            url_for(
-                "Superset.explore",
-                datasource_type=datasource_type,
-                datasource_id=datasource_id,
-                **request.args,
-            )
-        )
-
-    @event_logger.log_this
-    @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
     def explore(self, datasource_type=None, datasource_id=None):
