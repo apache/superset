@@ -38,6 +38,7 @@
     pointer-events: none;
     border: 1px dashed @gray-light;
   }
+
   .resizable-container.resizable-container--resizing:hover > .grid-column:after,
   .hover-menu:hover + .grid-column:after {
     border: 1px dashed @indicator-color;
@@ -47,6 +48,7 @@
 
 .grid-column--empty {
   min-height: 100px;
+  
   &:before {
     content: 'Empty column';
     position: absolute;

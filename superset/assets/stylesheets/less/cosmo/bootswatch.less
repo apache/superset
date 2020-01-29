@@ -254,6 +254,7 @@ table,
 .alert {
   border: none;
 }
+
 .alert-link {
   text-decoration: underline;
 }
@@ -261,12 +262,15 @@ table,
 .alert-info .alert-link {
   color: @alert-info-text;
 }
+
 .alert-danger .alert-link {
   color: @alert-danger-text;
 }
+
 .alert-warning .alert-link {
   color: @alert-warning-text;
 }
+
 .alert-success .alert-link {
   color: @alert-success-text;
 }
@@ -274,6 +278,7 @@ table,
 .label {
   border-radius: @border-radius-normal;
 }
+
 label {
   font-weight: @font-weight-normal;
 }
@@ -283,6 +288,7 @@ label {
 .progress {
   height: 14px;
   .box-shadow(none);
+
   .progress-bar {
     font-size: @font-size-s;
     line-height: @line-height-tight;
@@ -294,6 +300,7 @@ label {
 
 .panel {
   border: none;
+
   &-heading,
   &-footer {
     border-top-right-radius: 0;
@@ -305,10 +312,12 @@ label {
       padding: 15px 15px 0 15px;
       background-color: transparent;
     }
+
     .panel-title {
       color: @text-color;
       padding-bottom: 5px;
       border-bottom: 1px solid @gray-light;
+
       h1,
       h2,
       h3,
@@ -319,19 +328,23 @@ label {
         font-weight: @font-weight-bold;
       }
     }
+
     .close {
       color: @text-color;
     }
   }
+
   &-primary {
     .panel-heading {
       padding: 15px 15px 0 15px;
       background-color: transparent;
     }
+
     .panel-title {
       color: @text-color;
       padding-bottom: 5px;
       border-bottom: 1px solid @gray-light;
+      
       h1,
       h2,
       h3,
@@ -342,6 +355,7 @@ label {
         font-weight: @font-weight-bold;
       }
     }
+
     .close {
       color: @text-color;
     }
@@ -417,12 +431,15 @@ a.list-group-item {
   .info {
     color: @state-info-text;
   }
+
   .danger {
     color: @state-danger-text;
   }
+
   .warning {
     color: @state-warning-text;
   }
+
   .success {
     color: @state-success-text;
   }
