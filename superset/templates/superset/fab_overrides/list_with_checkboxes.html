@@ -82,7 +82,7 @@
                           {{'checked' if item[value] }}
                           name="{{ '{}__{}'.format(pk, value) }}"
                           id="{{ '{}__{}'.format(pk, value) }}"
-                          data-checkbox-api-prefix="/superset/checkbox/{{ modelview_name }}/{{ pk }}/{{ value }}/">
+                          disabled readonly/>
                     {% else %}
                       {{ item[value] }}
                     {% endif %}
