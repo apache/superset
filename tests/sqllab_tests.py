@@ -238,42 +238,6 @@ class SqlLabTests(SupersetTestCase):
         user_ids = {k["userId"] for k in data}
         self.assertEqual(set([user_id]), user_ids)
 
-    # def test_search_query_with_owner_only_perms(self) -> None:
-    #     """
-    #     Test a search query with can_only_access_owned_queries perm added to
-    #     Admin and make sure only Admin queries show up.
-    #     """
-    #     session = db.session
-    #
-    #     # Add can_only_access_owned_queries perm to Admin user
-    #     owned_queries_view = security_manager.find_permission_view_menu(
-    #         "can_only_access_owned_queries", "can_only_access_owned_queries"
-    #     )
-    #     security_manager.add_permission_role(
-    #         security_manager.find_role("Admin"), owned_queries_view
-    #     )
-    #     session.commit()
-    #
-    #     # Test search_queries for Admin user
-    #     self.run_some_queries()
-    #     self.login("admin")
-    #
-    #     user_id = security_manager.find_user("admin").id
-    #     data = self.get_json_resp("/superset/search_queries")
-    #     self.assertEqual(2, len(data))
-    #     user_ids = {k["userId"] for k in data}
-    #     self.assertEqual(set([user_id]), user_ids)
-    #
-    #     # Remove can_only_access_owned_queries from Admin
-    #     owned_queries_view = security_manager.find_permission_view_menu(
-    #         "can_only_access_owned_queries", "can_only_access_owned_queries"
-    #     )
-    #     security_manager.del_permission_role(
-    #         security_manager.find_role("Admin"), owned_queries_view
-    #     )
-    #
-    #     session.commit()
-
     def test_alias_duplicate(self):
         self.run_sql(
             "SELECT name as col, gender as col FROM birth_names LIMIT 10",
