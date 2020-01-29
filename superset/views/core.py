@@ -2007,25 +2007,6 @@ class Superset(BaseSupersetView):
         return self.render_template("superset/theme.html")
 
     @has_access_api
-    @expose("/cached_key/<key>/")
-    @event_logger.log_this
-    def cached_key(self, key):
-        """Returns a key from the cache"""
-        resp = cache.get(key)
-        if resp:
-            return resp
-        return "nope"
-
-    @has_access_api
-    @expose("/cache_key_exist/<key>/")
-    @event_logger.log_this
-    def cache_key_exist(self, key):
-        """Returns if a key from cache exist"""
-        key_exist = True if cache.get(key) else False
-        status = 200 if key_exist else 404
-        return json_success(json.dumps({"key_exist": key_exist}), status=status)
-
-    @has_access_api
     @expose("/results/<key>/")
     @event_logger.log_this
     def results(self, key):
