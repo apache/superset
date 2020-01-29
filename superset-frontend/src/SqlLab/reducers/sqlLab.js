@@ -447,7 +447,7 @@ export default function sqlLabReducer(state = {}, action) {
         schemaOptions: action.options,
       });
     },
-    [actions.QUERY_EDITOR_SET_TABLE_OPTIONS]() {
+    [actions.QUERY_EDITOR_SET_SCHEMA_OBJECT_OPTIONS]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, {
         tableOptions: action.options,
         functionOptions: action.functions,

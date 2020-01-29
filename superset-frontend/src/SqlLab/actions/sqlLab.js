@@ -50,7 +50,8 @@ export const QUERY_EDITOR_SETDB = 'QUERY_EDITOR_SETDB';
 export const QUERY_EDITOR_SET_SCHEMA = 'QUERY_EDITOR_SET_SCHEMA';
 export const QUERY_EDITOR_SET_SCHEMA_OPTIONS =
   'QUERY_EDITOR_SET_SCHEMA_OPTIONS';
-export const QUERY_EDITOR_SET_TABLE_OPTIONS = 'QUERY_EDITOR_SET_TABLE_OPTIONS';
+export const QUERY_EDITOR_SET_SCHEMA_OBJECT_OPTIONS =
+  'QUERY_EDITOR_SET_SCHEMA_OBJECT_OPTIONS';
 export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
@@ -785,12 +786,16 @@ export function queryEditorSetSchemaOptions(queryEditor, options) {
   return { type: QUERY_EDITOR_SET_SCHEMA_OPTIONS, queryEditor, options };
 }
 
-export function queryEditorSetTableOptions(queryEditor, options, functions) {
+export function queryEditorSetTableOptions(
+  queryEditor,
+  tableOptions,
+  functionOptions,
+) {
   return {
-    type: QUERY_EDITOR_SET_TABLE_OPTIONS,
+    type: QUERY_EDITOR_SET_SCHEMA_OBJECT_OPTIONS,
     queryEditor,
-    options,
-    functions,
+    tableOptions,
+    functionOptions,
   };
 }
 
