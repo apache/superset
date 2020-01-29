@@ -15,12 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import os
+import tempfile
 
 from flask import flash, g, redirect
 from flask_appbuilder import SimpleFormView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
-from werkzeug.utils import secure_filename
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
@@ -91,11 +91,14 @@ class CsvToDatabaseView(SimpleFormView):
             return redirect("/csvtodatabaseview/form")
 
         csv_file = form.csv_file.data
-        form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
+
         csv_filename = form.csv_file.data.filename
-        path = os.path.join(config["UPLOAD_FOLDER"], csv_filename)
+        extension = os.path.splitext(csv_filename)[1].lower()
+        path = tempfile.NamedTemporaryFile(
+            dir=app.config["UPLOAD_FOLDER"], suffix=extension
+        ).name
+        form.csv_file.data.filename = path
         try:
-            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             csv_file.save(path)
             table_name = form.name.data
 
@@ -104,7 +107,6 @@ class CsvToDatabaseView(SimpleFormView):
                 db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
             )
             database.db_engine_spec.create_table_from_csv(form, database)
-
             table = (
                 db.session.query(SqlaTable)
                 .filter_by(

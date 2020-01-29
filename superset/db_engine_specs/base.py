@@ -357,9 +357,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param kwargs: params to be passed to DataFrame.read_csv
         :return: Pandas DataFrame containing data from csv
         """
-        kwargs["filepath_or_buffer"] = (
-            config["UPLOAD_FOLDER"] + kwargs["filepath_or_buffer"]
-        )
         kwargs["encoding"] = "utf-8"
         kwargs["iterator"] = True
         chunks = pd.read_csv(**kwargs)
@@ -394,7 +391,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
             )
 
-        filename = secure_filename(form.csv_file.data.filename)
+        filename = form.csv_file.data.filename
+
         if not _allowed_file(filename):
             raise Exception("Invalid file type selected")
         csv_to_df_kwargs = {
