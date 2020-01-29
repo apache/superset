@@ -117,6 +117,7 @@ class SupersetSecurityManager(SecurityManager):
         "can_override_role_permissions",
         "can_approve",
         "can_update_role",
+        "can_access_all_queries",
     }
 
     READ_ONLY_PERMISSION = {"can_show", "can_list"}
@@ -132,7 +133,6 @@ class SupersetSecurityManager(SecurityManager):
         "schema_access",
         "datasource_access",
         "metric_access",
-        "can_only_access_owned_queries",
     }
 
     ACCESSIBLE_PERMS = {"can_userinfo"}
@@ -177,15 +177,13 @@ class SupersetSecurityManager(SecurityManager):
             return self.is_item_public(permission_name, view_name)
         return self._has_view_access(user, permission_name, view_name)
 
-    def can_only_access_owned_queries(self) -> bool:
+    def can_access_all_queries(self) -> bool:
         """
-        Return True if the user can only access owned queries, False otherwise.
+        Return True if the user can access all queries, False otherwise.
 
-        :returns: Whether the use can only access owned queries
+        :returns: Whether the use can access all queries
         """
-        return self.can_access(
-            "can_only_access_owned_queries", "can_only_access_owned_queries"
-        )
+        return self.can_access("can_access_all_queries", "can_access_all_queries")
 
     def all_datasource_access(self) -> bool:
         """
@@ -538,11 +536,10 @@ class SupersetSecurityManager(SecurityManager):
         """
         Create custom FAB permissions.
         """
-
         self.add_permission_view_menu("all_datasource_access", "all_datasource_access")
         self.add_permission_view_menu("all_database_access", "all_database_access")
         self.add_permission_view_menu(
-            "can_only_access_owned_queries", "can_only_access_owned_queries"
+            "can_access_all_queries", "can_access_all_queries"
         )
 
     def create_missing_perms(self) -> None:
