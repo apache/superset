@@ -112,9 +112,13 @@ def get_table_metadata(
 class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
-    include_route_methods = {"get_list", "table_metadata"}
+    include_route_methods = {"get_list", "table_metadata", "select_star"}
     class_permission_name = "DatabaseView"
-    method_permission_name = {"get_list": "list", "table_metadata": "list"}
+    method_permission_name = {
+        "get_list": "list",
+        "table_metadata": "list",
+        "select_star": "list",
+    }
     resource_name = "database"
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]
@@ -278,3 +282,69 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         except SQLAlchemyError as e:
             return self.response_422(error_msg_from_exception(e))
         return self.response(200, **table_info)
+
+    @expose("/<int:pk>/select_star/<string:table_name>/", methods=["GET"])
+    @expose(
+        "/<int:pk>/select_star/<string:table_name>/<string:schema_name>/",
+        methods=["GET"],
+    )
+    @protect()
+    @safe
+    @event_logger.log_this
+    def select_star(
+        self, pk: int, table_name: str, schema_name: str = None
+    ):  # pylint: disable=invalid-name
+        """ Table schema info
+        ---
+        get:
+          description: Get database select star for table
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: path
+            schema:
+              type: string
+            name: table_name
+            description: Table name
+          - in: path
+            schema:
+              type: string
+            name: schema_name
+            description: Table schema
+          responses:
+            200:
+              description: Table schema info
+              content:
+                text/plain:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: string
+                        description: SQL select star
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        database: Database = self.datamodel.get(pk, self._base_filters)
+        if not database:
+            return self.response_404()
+
+        schema = parse_js_uri_path_item(schema_name, eval_undefined=True)
+        table_name = parse_js_uri_path_item(table_name)
+        return self.response(
+            200,
+            result=database.select_star(
+                table_name, schema, latest_partition=True, show_cols=True
+            ),
+        )

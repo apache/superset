@@ -1953,18 +1953,6 @@ class Superset(BaseSupersetView):
         payload = mydb.db_engine_spec.extra_table_metadata(mydb, table_name, schema)
         return json_success(json.dumps(payload))
 
-    @has_access
-    @expose("/select_star/<database_id>/<table_name>")
-    @expose("/select_star/<database_id>/<table_name>/<schema>")
-    @event_logger.log_this
-    def select_star(self, database_id, table_name, schema=None):
-        mydb = db.session.query(models.Database).get(database_id)
-        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
-        table_name = utils.parse_js_uri_path_item(table_name)
-        return json_success(
-            mydb.select_star(table_name, schema, latest_partition=True, show_cols=True)
-        )
-
     @has_access_api
     @expose("/estimate_query_cost/<database_id>/", methods=["POST"])
     @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])

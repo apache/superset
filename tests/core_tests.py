@@ -830,12 +830,6 @@ class CoreTests(SupersetTestCase):
         assert data == ["this_schema_is_allowed_too"]
         self.delete_fake_db()
 
-    def test_select_star(self):
-        self.login(username="admin")
-        examples_db = utils.get_example_database()
-        resp = self.get_resp(f"/superset/select_star/{examples_db.id}/birth_names")
-        self.assertIn("gender", resp)
-
     @mock.patch("superset.views.core.results_backend_use_msgpack", False)
     @mock.patch("superset.views.core.results_backend")
     @mock.patch("superset.views.core.db")

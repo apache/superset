@@ -140,3 +140,34 @@ class DatabaseApiTests(SupersetTestCase):
         uri = f"api/v1/database/{example_db.id}/birth_names/null/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    def test_get_select_star(self):
+        """
+            Database API: Test get select star
+        """
+        self.login(username="admin")
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertIn("gender", response["result"])
+
+    def test_get_select_star_not_allowed(self):
+        """
+            Database API: Test get select star not allowed
+        """
+        self.login(username="gamma")
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_select_star_not_found(self):
+        """
+            Database API: Test get select star not found
+        """
+        self.login(username="admin")
+        uri = f"api/v1/database/1000/select_star/birth_names/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
