@@ -32,12 +32,13 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import app, cache, is_feature_enabled, security_manager
+from superset import app, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
+from superset.utils.cache import function_cache_key, memoized_func
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -948,18 +949,6 @@ class PrestoEngineSpec(BaseEngineSpec):
         return df.to_dict()[field_to_return][0]
 
     @classmethod
-    @cache.memoize()
-    def _get_function_names(cls, database: "Database") -> List[str]:
-        """
-        Get a list of function names that are able to be called on the database.
-        Execution in separate function without schema to avoid caching per schema.
-
-        :param database: The database to get functions for
-        :return: A list of function names useable in the database
-        """
-        return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
-
-    @classmethod
     def get_function_names(
         cls, database: "Database", schema: Optional[str]
     ) -> List[str]:
@@ -971,4 +960,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         :param schema: The schema to get functions for (N/A for Presto)
         :return: A list of function names useable in the database
         """
-        return cls._get_function_names(database)
+
+        @memoized_func(key=function_cache_key)
+        def _get_function_names(_) -> List[str]:
+            return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
+
+        return _get_function_names(database)

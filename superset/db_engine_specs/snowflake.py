@@ -21,14 +21,15 @@ from urllib import parse
 
 import pandas as pd
 
-from superset import cache
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from superset.utils.cache import function_cache_key, memoized_func
 
 if TYPE_CHECKING:
-    # prevent circular imports
     from superset.models.core import Database  # pylint: disable=unused-import
 
-func_regex = re.compile(r"^((?<!SYSTEM$)(\w))+$")
+# "SHOW FUNCTIONS" returns many operators and internal functions that are not
+# relevant for Sql Lab. This regex is used to remove those in `get_function_names`.
+FUNC_REGEX = re.compile(r"^((?<!SYSTEM$)(\w))+$")
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
@@ -86,7 +87,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return None
 
     @classmethod
-    @cache.memoize()
+    @memoized_func(key=function_cache_key)
     def get_function_names(
         cls, database: "Database", schema: Optional[str]
     ) -> List[str]:
@@ -101,15 +102,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         :return: A list of function names useable in the database
         """
 
-        def is_valid_function(func_row: pd.Series) -> bool:
+        def _is_valid_function(func_row: pd.Series) -> bool:
             func_schema, func_name = func_row["schema_name"], func_row["name"]
-            if func_regex.match(func_name) and (
-                func_schema in (None, "")
-                or schema is None
-                or schema.lower() == func_schema.lower()
+            if FUNC_REGEX.match(func_name) and (
+                not func_schema or not schema or schema.lower() == func_schema.lower()
             ):
                 return True
             return False
 
         func_df = database.get_df("SHOW FUNCTIONS")
-        return [row["name"] for _, row in func_df.iterrows() if is_valid_function(row)]
+        return [row["name"] for _, row in func_df.iterrows() if _is_valid_function(row)]

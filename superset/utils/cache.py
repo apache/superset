@@ -24,6 +24,15 @@ def view_cache_key(*_, **__) -> str:
     return "view/{}/{}".format(request.path, args_hash)
 
 
+def function_cache_key(*args) -> str:
+    """Function that returns a cache key for the `get_function_names` method in
+    db_engine_specs. Assumes that the first argument is a database instance and
+    the second optional argument is the schema name.
+    """
+    schema = args[1] if len(args) == 2 else None
+    return f"db:{args[0].id}:schema:{schema}:functions"
+
+
 def memoized_func(key=view_cache_key, attribute_in_key=None):
     """Use this decorator to cache functions that have predefined first arg.
 
