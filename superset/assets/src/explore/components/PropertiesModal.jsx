@@ -33,7 +33,6 @@ import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
 import { sliceUpdated } from '../actions/exploreActions';
-// import { addDangerToast } from '../../messageToasts/actions';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 
 function PropertiesModalWrapper({ show, onHide, animation, slice, onSave }) {
@@ -134,7 +133,6 @@ function PropertiesModal({ slice, onHide, onSave }) {
         <Modal.Title>Edit Chart Properties</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {/* TODO make it look gud */}
         <Row>
           <Col md={6}>
             <h3>{t('Basic Information')}</h3>
