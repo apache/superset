@@ -36,6 +36,7 @@ little bit helps, and credit will always be given.
 - [Pull Request Guidelines](#pull-request-guidelines)
   - [Protocol](#protocol)
 - [Managing Issues and PRs](#managing-issues-and-prs)
+- [Revert Guidelines](#revert-guidelines)
 - [Setup Local Environment for Development](#setup-local-environment-for-development)
   - [Documentation](#documentation)
   - [Flask server](#flask-server)
@@ -225,6 +226,22 @@ Committers may also update title to reflect the issue/PR content if the author-p
 If the PR passes CI tests and does not have any `need:` labels, it is ready for review, add label `review` and/or `design-review`.
 
 If an issue/PR has been inactive for >=30 days, it will be closed. If it does not have any status label, add `inactive`.
+
+## Revert Guidelines
+
+Reverting changes that are causing issues in the master branch is a normal and expected part of the development process. In an open source community, the ramifications of a change cannot always be fully understood. With that in mind, here are some considerations to keep in mind when considering a revert:
+
+- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable timeframe, this would counter-indicate reverting.
+- **Severity of the issue:** How severe is the problem on master? Is it keeping the project from moving forward? Is there user impact? What percentage of users will experience a problem?
+- **Size of the change being reverted:** Reverting a single small PR is a much lower-risk proposition than reverting a massive, multi-PR change.
+- **Age of the change being reverted:** Reverting a recently-merged PR will be more acceptable than reverting an older PR. A bug discovered in an older PR is unlikely to be causing widespread serious issues.
+- **Risk inherent in reverting:** Will the reversion break critical functionality? Is the medicine more dangerous than the disease?
+- **Difficulty of crafting a fix:** In the case of issues with a clear solution, it may be preferable to implement and merge a fix rather than a revert.
+
+Should you decide that reverting is desirable, it is the responsibility of the Contributor performing the revert to:
+- **Contact the interested parties:** The PR's author and the engineer who merged the work should both be contacted and informed of the revert.
+- **Provide concise reproduction steps:** Ensure that the issue can be clearly understood and duplicated by the original author of the PR.
+- **Put the revert through code review:** The revert must be approved by another committer.
 
 ## Setup Local Environment for Development
 

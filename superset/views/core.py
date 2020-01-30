@@ -70,6 +70,7 @@ from superset import (
 )
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource
+from superset.constants import RouteMethod
 from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,
@@ -250,6 +251,7 @@ def _deserialize_results_payload(
 
 class AccessRequestsModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(DAR)
+    include_route_methods = RouteMethod.CRUD_SET
     list_columns = [
         "username",
         "user_roles",
@@ -754,20 +756,6 @@ class Superset(BaseSupersetView):
                 )
             return redirect("/dashboard/list/")
         return self.render_template("superset/import_dashboards.html")
-
-    @event_logger.log_this
-    @has_access
-    @expose("/explorev2/<datasource_type>/<datasource_id>/")
-    def explorev2(self, datasource_type, datasource_id):
-        """Deprecated endpoint, here for backward compatibility of urls"""
-        return redirect(
-            url_for(
-                "Superset.explore",
-                datasource_type=datasource_type,
-                datasource_id=datasource_id,
-                **request.args,
-            )
-        )
 
     @event_logger.log_this
     @has_access
@@ -1956,70 +1944,6 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps({"table_id": table.id}))
 
     @has_access
-    @expose("/table/<database_id>/<table_name>/<schema>/")
-    @event_logger.log_this
-    def table(self, database_id, table_name, schema):
-        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
-        table_name = utils.parse_js_uri_path_item(table_name)
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
-        payload_columns = []
-        indexes = []
-        primary_key = []
-        foreign_keys = []
-        try:
-            columns = mydb.get_columns(table_name, schema)
-            indexes = mydb.get_indexes(table_name, schema)
-            primary_key = mydb.get_pk_constraint(table_name, schema)
-            foreign_keys = mydb.get_foreign_keys(table_name, schema)
-        except Exception as e:
-            return json_error_response(utils.error_msg_from_exception(e))
-        keys = []
-        if primary_key and primary_key.get("constrained_columns"):
-            primary_key["column_names"] = primary_key.pop("constrained_columns")
-            primary_key["type"] = "pk"
-            keys += [primary_key]
-        for fk in foreign_keys:
-            fk["column_names"] = fk.pop("constrained_columns")
-            fk["type"] = "fk"
-        keys += foreign_keys
-        for idx in indexes:
-            idx["type"] = "index"
-        keys += indexes
-
-        for col in columns:
-            dtype = ""
-            try:
-                dtype = "{}".format(col["type"])
-            except Exception:
-                # sqla.types.JSON __str__ has a bug, so using __class__.
-                dtype = col["type"].__class__.__name__
-                pass
-            payload_columns.append(
-                {
-                    "name": col["name"],
-                    "type": dtype.split("(")[0] if "(" in dtype else dtype,
-                    "longType": dtype,
-                    "keys": [k for k in keys if col["name"] in k.get("column_names")],
-                }
-            )
-        tbl = {
-            "name": table_name,
-            "columns": payload_columns,
-            "selectStar": mydb.select_star(
-                table_name,
-                schema=schema,
-                show_cols=True,
-                indent=True,
-                cols=columns,
-                latest_partition=True,
-            ),
-            "primaryKey": primary_key,
-            "foreignKeys": foreign_keys,
-            "indexes": keys,
-        }
-        return json_success(json.dumps(tbl))
-
-    @has_access
     @expose("/extra_table_metadata/<database_id>/<table_name>/<schema>/")
     @event_logger.log_this
     def extra_table_metadata(self, database_id, table_name, schema):
@@ -2081,25 +2005,6 @@ class Superset(BaseSupersetView):
     @expose("/theme/")
     def theme(self):
         return self.render_template("superset/theme.html")
-
-    @has_access_api
-    @expose("/cached_key/<key>/")
-    @event_logger.log_this
-    def cached_key(self, key):
-        """Returns a key from the cache"""
-        resp = cache.get(key)
-        if resp:
-            return resp
-        return "nope"
-
-    @has_access_api
-    @expose("/cache_key_exist/<key>/")
-    @event_logger.log_this
-    def cache_key_exist(self, key):
-        """Returns if a key from cache exist"""
-        key_exist = True if cache.get(key) else False
-        status = 200 if key_exist else 404
-        return json_success(json.dumps({"key_exist": key_exist}), status=status)
 
     @has_access_api
     @expose("/results/<key>/")
@@ -2816,6 +2721,7 @@ class Superset(BaseSupersetView):
 
 class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
+    include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("CSS Templates")
     show_title = _("Show CSS Template")
@@ -2829,6 +2735,7 @@ class CssTemplateModelView(SupersetModelView, DeleteMixin):
 
 
 class CssTemplateAsyncModelView(CssTemplateModelView):
+    include_route_methods = {RouteMethod.API_READ}
     list_columns = ["template_name", "css"]
 
 
@@ -2845,16 +2752,3 @@ def apply_http_headers(response: Response):
         if k not in response.headers:
             response.headers[k] = v
     return response
-
-
-@app.route('/<regex("panoramix\/.*"):url>')
-def panoramix(url):
-    return redirect(request.full_path.replace("panoramix", "superset"))
-
-
-@app.route('/<regex("caravel\/.*"):url>')
-def caravel(url):
-    return redirect(request.full_path.replace("caravel", "superset"))
-
-
-# ---------------------------------------------------------------------

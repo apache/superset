@@ -26,9 +26,6 @@
   color: @danger;
 }
 
-.modal-dialog {
-  z-index: 1100;
-}
 .label {
   font-size: 100%;
 }
@@ -123,13 +120,12 @@ span.title-block {
 }
 
 .nvtooltip {
-  z-index: 888;
+  table td {
+    font-size: @font-size-s !important;
+  }
 }
-.nvtooltip table td {
-  font-size: @font-size-s !important;
-}
+
 div.navbar {
-  z-index: 999;
   .dropdown-menu .fineprint {
     line-height: 1.5rem;
     padding: 10px 20px 5px 20px;
@@ -152,7 +148,6 @@ div.navbar {
 img.loading {
   width: 40px;
   position: relative;
-  z-index: 1;
   margin: 10px;
 }
 img.viz-thumb-option {
@@ -163,10 +158,6 @@ img.viz-thumb-option {
 }
 .select2-drop.bigdrop .select2-results {
   max-height: 700px;
-}
-
-li.widget:hover {
-  z-index: 1000;
 }
 
 .chart-header .header-text {
@@ -263,7 +254,6 @@ table.table-no-hover tr:hover {
 
 .anchor-link-container {
   position: absolute;
-  z-index: 5;
 
   .btn.btn-sm,
   .btn.btn-sm:active {
@@ -506,7 +496,7 @@ tr.reactable-column-header th.reactable-header-sortable {
 
 .explore-chart-overlay {
   position: absolute;
-  z-index: 100;
+  z-index: @z-index-above-dashboard-charts;
   display: flex;
   align-items: center;
   justify-content: center;

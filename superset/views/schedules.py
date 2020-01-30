@@ -27,6 +27,7 @@ from flask_babel import lazy_gettext as _
 from wtforms import BooleanField, StringField
 
 from superset import db, security_manager
+from superset.constants import RouteMethod
 from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
@@ -45,6 +46,7 @@ from .base import DeleteMixin, SupersetModelView
 class EmailScheduleView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
+    include_route_methods = RouteMethod.CRUD_SET
     _extra_data = {"test_email": False, "test_email_recipients": None}
     schedule_type: Optional[Type] = None
     schedule_type_model: Optional[Type] = None

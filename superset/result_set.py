@@ -18,6 +18,7 @@
 """ Superset wrapper around pyarrow.Table.
 """
 import datetime
+import json
 import logging
 import re
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type
@@ -27,6 +28,7 @@ import pandas as pd
 import pyarrow as pa
 
 from superset import db_engine_specs
+from superset.utils import core as utils
 
 
 def dedup(l: List[str], suffix: str = "__", case_sensitive: bool = True) -> List[str]:
@@ -86,7 +88,18 @@ class SupersetResultSet:
         # related: https://issues.apache.org/jira/browse/ARROW-5248
         if pa_data:
             for i, column in enumerate(column_names):
-                if pa.types.is_temporal(pa_data[i].type):
+                # TODO: revisit nested column serialization once Arrow 1.0 is released with:
+                # https://github.com/apache/arrow/pull/6199
+                # Related issue: #8978
+                if pa.types.is_nested(pa_data[i].type):
+                    stringify_func = lambda item: json.dumps(
+                        item, default=utils.json_iso_dttm_ser
+                    )
+                    vfunc = np.vectorize(stringify_func)
+                    strigified_arr = vfunc(array[:, i])
+                    pa_data[i] = pa.array(strigified_arr)
+
+                elif pa.types.is_temporal(pa_data[i].type):
                     sample = self.first_nonempty(array[:, i])
                     if sample and isinstance(sample, datetime.datetime):
                         try:

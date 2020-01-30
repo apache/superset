@@ -27,6 +27,7 @@ from wtforms.validators import ValidationError
 import superset.models.core as models
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
+from superset.constants import RouteMethod
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
 from .forms import CsvToDatabaseForm
@@ -58,6 +59,7 @@ class DatabaseView(
     DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Database)
+    include_route_methods = RouteMethod.CRUD_SET
 
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"
@@ -166,23 +168,3 @@ class CsvToDatabaseView(SimpleFormView):
         flash(message, "info")
         stats_logger.incr("successful_csv_upload")
         return redirect("/tablemodelview/list/")
-
-
-class DatabaseTablesAsync(DatabaseView):  # pylint: disable=too-many-ancestors
-    list_columns = ["id", "all_table_names_in_database", "all_schema_names"]
-
-
-class DatabaseAsync(DatabaseView):  # pylint: disable=too-many-ancestors
-    list_columns = [
-        "id",
-        "database_name",
-        "expose_in_sqllab",
-        "allow_ctas",
-        "force_ctas_schema",
-        "allow_run_async",
-        "allow_dml",
-        "allow_multi_schema_metadata_fetch",
-        "allow_csv_upload",
-        "allows_subquery",
-        "backend",
-    ]

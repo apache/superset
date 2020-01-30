@@ -153,6 +153,8 @@ the deploy finishes).
 * India was removed from the "Country Map" visualization as the geojson
   file included in the package was very large
 
+* [5933](https://github.com/apache/incubator-superset/pull/5933)/[6078](https://github.com/apache/incubator-superset/pull/6078): changes which add schema and table metadata cache timeout logic at the database level. If left undefined caching of metadata is disabled.
+
 ## Superset 0.28.0
 * Support for Python 2 is deprecated, we only support >=3.6 from
   `0.28.0` onwards

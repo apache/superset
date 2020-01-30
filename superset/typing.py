@@ -14,15 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder.models.sqla.interface import SQLAInterface
+from typing import Any, Callable, Dict, List, Optional, Union
 
-import superset.models.core as models
-from superset.constants import RouteMethod
-from superset.views.base import SupersetModelView
+from flask import Flask
+from flask_caching import Cache
 
-from . import LogMixin
-
-
-class LogModelView(LogMixin, SupersetModelView):  # pylint: disable=too-many-ancestors
-    datamodel = SQLAInterface(models.Log)
-    include_route_methods = {RouteMethod.LIST, RouteMethod.SHOW}
+CacheConfig = Union[Callable[[Flask], Cache], Dict[str, Any]]
+VizData = Optional[Union[List[Any], Dict[Any, Any]]]

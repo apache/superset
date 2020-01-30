@@ -106,10 +106,22 @@
 /************************************************************************/
 /* Z-INDEX                                                              */
 /* Think of the site as "layers" rather than an arms race of numbers    */
-/* Try to keep these to a minimum                                       */
+/* Keep these to a minimum                                              */
+/* Label semantic "layers" and add comments for usage notes             */
+/* Use double dash modifiers to step up/down from a base layer          */
+/* e.g. z-whatever--modifier                                            */
 /************************************************************************/
-@z-index-max: 1000;
-@z-index-dropdown: 11;
+
+/************************ toast messages, popovers **********************/
+@z-index-max: 3000;
+
+/***** filters, dashboard editor widgets, Explore reloading overlay *****/
+@z-index-dropdown: @z-index-above-dashboard-charts + 1;
+@z-index-above-dashboard-charts: 10;
+
+/******************************** charts ********************************/
+@z-index-chart--dragging: @z-index-chart + 1;
+@z-index-chart: 1;
 
 /************************************************************************/
 /* TYPOGRAPHY                                                           */

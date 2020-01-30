@@ -35,6 +35,7 @@ from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
 from superset.stats_logger import DummyStatsLogger
+from superset.typing import CacheConfig
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
@@ -250,6 +251,7 @@ BABEL_DEFAULT_FOLDER = "superset/translations"
 # The allowed translation for you app
 LANGUAGES = {
     "en": {"flag": "us", "name": "English"},
+    "es": {"flag": "es", "name": "Spanish"},
     "it": {"flag": "it", "name": "Italian"},
     "fr": {"flag": "fr", "name": "French"},
     "zh": {"flag": "cn", "name": "Chinese"},
@@ -311,8 +313,8 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # IMG_SIZE = (300, 200, True)
 
 CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24
-CACHE_CONFIG: Dict[str, Any] = {"CACHE_TYPE": "null"}
-TABLE_NAMES_CACHE_CONFIG = {"CACHE_TYPE": "null"}
+CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+TABLE_NAMES_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # CORS Options
 ENABLE_CORS = False
@@ -571,10 +573,6 @@ SMTP_PORT = 25
 SMTP_PASSWORD = "superset"
 SMTP_MAIL_FROM = "superset@superset.com"
 
-if not CACHE_DEFAULT_TIMEOUT:
-    CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG["CACHE_DEFAULT_TIMEOUT"]
-
-
 ENABLE_CHUNK_ENCODING = False
 
 # Whether to bump the logging level to ERROR on the flask_appbuilder package
@@ -701,6 +699,10 @@ BUG_REPORT_URL = None
 DOCUMENTATION_URL = None
 DOCUMENTATION_TEXT = "Documentation"
 DOCUMENTATION_ICON = None  # Recommended size: 16x16
+
+# Enables the replacement react views for all the FAB views: list, edit, show.
+# This is a work in progress so not all features available in FAB have been implemented
+ENABLE_REACT_CRUD_VIEWS = False
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
