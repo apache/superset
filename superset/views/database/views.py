@@ -28,6 +28,7 @@ import superset.models.core as models
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
+from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
 from .forms import CsvToDatabaseForm
@@ -107,7 +108,9 @@ class CsvToDatabaseView(SimpleFormView):
             dir=app.config["UPLOAD_FOLDER"], suffix=extension
         ).name
         form.csv_file.data.filename = path
+
         try:
+            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             upload_stream_write(form.csv_file.data, path)
             table_name = form.name.data
 
