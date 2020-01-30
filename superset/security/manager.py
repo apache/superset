@@ -117,7 +117,7 @@ class SupersetSecurityManager(SecurityManager):
         "can_override_role_permissions",
         "can_approve",
         "can_update_role",
-        "can_access_all_queries",
+        "all_query_access",
     }
 
     READ_ONLY_PERMISSION = {"can_show", "can_list"}
@@ -181,9 +181,9 @@ class SupersetSecurityManager(SecurityManager):
         """
         Return True if the user can access all queries, False otherwise.
 
-        :returns: Whether the use can access all queries
+        :returns: Whether the user can access all queries
         """
-        return self.can_access("can_access_all_queries", "can_access_all_queries")
+        return self.can_access("all_query_access", "all_query_access")
 
     def all_datasource_access(self) -> bool:
         """
@@ -538,9 +538,7 @@ class SupersetSecurityManager(SecurityManager):
         """
         self.add_permission_view_menu("all_datasource_access", "all_datasource_access")
         self.add_permission_view_menu("all_database_access", "all_database_access")
-        self.add_permission_view_menu(
-            "can_access_all_queries", "can_access_all_queries"
-        )
+        self.add_permission_view_menu("all_query_access", "all_query_access")
 
     def create_missing_perms(self) -> None:
         """

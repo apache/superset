@@ -342,9 +342,9 @@ class SqlLabTests(SupersetTestCase):
         """
         session = db.session
 
-        # Add can_access_all_queries perm to Gamma user
+        # Add all_query_access perm to Gamma user
         all_queries_view = security_manager.find_permission_view_menu(
-            "can_access_all_queries", "can_access_all_queries"
+            "all_query_access", "all_query_access"
         )
 
         security_manager.add_permission_role(
@@ -359,9 +359,9 @@ class SqlLabTests(SupersetTestCase):
         data = self.get_json_resp(url)
         self.assertEqual(3, len(data["result"]))
 
-        # Remove can_access_all_queries from gamma sqllab
+        # Remove all_query_access from gamma sqllab
         all_queries_view = security_manager.find_permission_view_menu(
-            "can_access_all_queries", "can_access_all_queries"
+            "all_query_access", "all_query_access"
         )
         security_manager.del_permission_role(
             security_manager.find_role("gamma_sqllab"), all_queries_view
@@ -371,7 +371,7 @@ class SqlLabTests(SupersetTestCase):
 
     def test_queryview_admin_can_access_all_queries(self) -> None:
         """
-        Test queryview api with can_access_all_queries perm added to
+        Test queryview api with all_query_access perm added to
         Admin and make sure only Admin queries show up. This is the default
         """
         # Test search_queries for Admin user
