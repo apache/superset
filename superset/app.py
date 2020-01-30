@@ -174,6 +174,7 @@ class SupersetAppInitializer:
             SqlLab,
         )
         from superset.views.tags import TagView
+        from superset.connectors.sqla.api import TableRestApi
 
         #
         # Setup API views
@@ -181,7 +182,8 @@ class SupersetAppInitializer:
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
-
+        appbuilder.add_api(TableRestApi)
+        
         #
         # Setup regular views
         #
