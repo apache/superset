@@ -186,6 +186,7 @@ the world know they are using Superset. Join our growing community!
  1. [Myra Labs](http://www.myralabs.com/)
  1. [Now](https://www.now.vn/)
  1. [Ona](https://ona.io)
+ 1. [Peak AI](https://www.peak.ai/)
  1. [PeopleDoc](https://www.people-doc.com)
  1. [Popoko VM Games Studio](https://popoko.live)
  1. [Pronto Tools](http://www.prontotools.io)

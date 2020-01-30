@@ -109,7 +109,7 @@ class CoreTests(SupersetTestCase):
                 {
                     "granularity": "ds",
                     "groupby": ["name"],
-                    "metrics": ["sum__num"],
+                    "metrics": [{"label": "sum__num"}],
                     "filters": [],
                     "row_limit": 100,
                 }
@@ -553,13 +553,6 @@ class CoreTests(SupersetTestCase):
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}' as test"
         data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data["data"][0]["test"], "2017-01-01T00:00:00")
-
-    def test_table_metadata(self):
-        maindb = utils.get_example_database()
-        data = self.get_json_resp(f"/superset/table/{maindb.id}/birth_names/null/")
-        self.assertEqual(data["name"], "birth_names")
-        assert len(data["columns"]) > 5
-        assert data.get("selectStar").startswith("SELECT")
 
     def test_fetch_datasource_metadata(self):
         self.login(username="admin")

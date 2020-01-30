@@ -93,6 +93,18 @@ class BaseSupersetModelRestApi(ModelRestApi):
         }
     """  # pylint: disable=pointless-string-statement
 
+    def _init_properties(self):
+        model_id = self.datamodel.get_pk_name()
+        if self.list_columns is None and not self.list_model_schema:
+            self.list_columns = [model_id]
+        if self.show_columns is None and not self.show_model_schema:
+            self.show_columns = [model_id]
+        if self.edit_columns is None and not self.edit_model_schema:
+            self.edit_columns = [model_id]
+        if self.add_columns is None and not self.add_model_schema:
+            self.add_columns = [model_id]
+        super()._init_properties()
+
     def _get_related_filter(self, datamodel, column_name: str, value: str) -> Filters:
         filter_field = self.filter_rel_fields_field.get(column_name)
         filters = datamodel.get_filters([filter_field])

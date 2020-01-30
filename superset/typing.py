@@ -14,19 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder.models.sqla.interface import SQLAInterface
+from typing import Any, Callable, Dict, List, Optional, Union
 
-import superset.models.core as models
-from superset.views.base_api import BaseSupersetModelRestApi
+from flask import Flask
+from flask_caching import Cache
 
-from . import LogMixin
-
-
-class LogRestApi(LogMixin, BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(models.Log)
-    include_route_methods = {"get_list", "get", "post"}
-    class_permission_name = "LogModelView"
-    resource_name = "log"
-    allow_browser_login = True
-    list_columns = ("user.username", "action", "dttm")
-    show_columns = list_columns
+CacheConfig = Union[Callable[[Flask], Cache], Dict[str, Any]]
+VizData = Optional[Union[List[Any], Dict[Any, Any]]]

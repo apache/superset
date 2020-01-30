@@ -115,6 +115,7 @@ class SupersetSecurityManager(SecurityManager):
         "Refresh Druid Metadata",
         "ResetPasswordView",
         "RoleModelView",
+        "LogModelView",
         "Security",
     } | USER_MODEL_VIEWS
 

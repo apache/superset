@@ -370,10 +370,11 @@ export default class TableSelector extends React.PureComponent {
       <div className="section">
         <ControlLabel>
           {t('See table schema')}{' '}
-          <small>
-            ({this.state.tableOptions.length} {t('in')}{' '}
-            <i>{this.props.schema}</i>)
-          </small>
+          {this.props.schema && (
+            <small>
+              ({this.state.tableOptions.length} in <i>{this.props.schema}</i>)
+            </small>
+          )}
         </ControlLabel>
       </div>
     );
