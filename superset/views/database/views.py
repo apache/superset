@@ -27,7 +27,6 @@ from wtforms.validators import ValidationError
 import superset.models.core as models
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
-from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
 from .forms import CsvToDatabaseForm
@@ -43,6 +42,16 @@ def sqlalchemy_uri_form_validator(_, field: StringField) -> None:
         Check if user has submitted a valid SQLAlchemy URI
     """
     sqlalchemy_uri_validator(field.data, exception=ValidationError)
+
+
+def upload_stream_write(form_file_field: "FileStorage", path: str):
+    chunk_size = app.config["UPLOAD_CHUNK_SIZE"]
+    with open(path, "bw") as file_description:
+        while True:
+            chunk = form_file_field.stream.read(chunk_size)
+            if not chunk:
+                break
+            file_description.write(chunk)
 
 
 class DatabaseView(
@@ -90,8 +99,6 @@ class CsvToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
 
-        csv_file = form.csv_file.data
-
         csv_filename = form.csv_file.data.filename
         extension = os.path.splitext(csv_filename)[1].lower()
         path = tempfile.NamedTemporaryFile(
@@ -99,7 +106,7 @@ class CsvToDatabaseView(SimpleFormView):
         ).name
         form.csv_file.data.filename = path
         try:
-            csv_file.save(path)
+            upload_stream_write(form.csv_file.data, path)
             table_name = form.name.data
 
             con = form.data.get("con")

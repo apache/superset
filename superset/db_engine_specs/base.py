@@ -34,7 +34,6 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
 from sqlalchemy.types import TypeEngine
-from werkzeug.utils import secure_filename
 
 from superset import app, sql_parse
 from superset.utils import core as utils
