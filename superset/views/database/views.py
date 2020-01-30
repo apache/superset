@@ -16,6 +16,7 @@
 # under the License.
 import os
 import tempfile
+from typing import TYPE_CHECKING
 
 from flask import flash, g, redirect
 from flask_appbuilder import SimpleFormView
@@ -34,6 +35,9 @@ from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 from .forms import CsvToDatabaseForm
 from .mixins import DatabaseMixin
 from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
+
+if TYPE_CHECKING:
+    from werkzeug.datastructures import FileStorage  # pylint: disable=unused-import
 
 config = app.config
 stats_logger = config["STATS_LOGGER"]
