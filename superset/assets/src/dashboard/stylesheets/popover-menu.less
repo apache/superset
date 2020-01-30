@@ -40,9 +40,6 @@
 
 .popover-menu {
   position: absolute;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   flex-wrap: nowrap;
   left: 1px;
   top: -42px;
@@ -54,7 +51,7 @@
   cursor: default;
   z-index: @z-index-max;
 
-  .menu-item {
+  &, .menu-item {
     display: flex;
     flex-direction: row;
     align-items: center;
