@@ -316,7 +316,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             description: Table schema
           responses:
             200:
-              description: Table schema info
+              description: select star for table
               content:
                 text/plain:
                   schema:
