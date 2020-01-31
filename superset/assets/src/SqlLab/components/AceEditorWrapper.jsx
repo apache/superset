@@ -149,7 +149,9 @@ class AceEditorWrapper extends React.PureComponent {
           );
         }
         editor.completer.insertMatch({
-          value: `${data.caption}${data.meta === 'function' ? '' : ' '}`,
+          value: `${data.caption}${
+            ['function', 'schema'].includes(data.meta) ? '' : ' '
+          }`,
         });
       },
     };
