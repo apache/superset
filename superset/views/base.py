@@ -63,12 +63,9 @@ def get_error_msg():
     return error_msg
 
 
-def json_error_response(msg=None, status=500, stacktrace=None, payload=None, link=None):
+def json_error_response(msg=None, status=500, payload=None, link=None):
     if not payload:
         payload = {"error": "{}".format(msg)}
-    if not stacktrace:
-        stacktrace = utils.get_stacktrace()
-    payload["stacktrace"] = stacktrace
     if link:
         payload["link"] = link
 
@@ -124,30 +121,19 @@ def handle_api_exception(f):
         except SupersetSecurityException as e:
             logging.exception(e)
             return json_error_response(
-                utils.error_msg_from_exception(e),
-                status=e.status,
-                stacktrace=utils.get_stacktrace(),
-                link=e.link,
+                utils.error_msg_from_exception(e), status=e.status, link=e.link
             )
         except SupersetException as e:
             logging.exception(e)
             return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=utils.get_stacktrace(),
-                status=e.status,
+                utils.error_msg_from_exception(e), status=e.status
             )
         except HTTPException as e:
             logging.exception(e)
-            return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=traceback.format_exc(),
-                status=e.code,
-            )
+            return json_error_response(utils.error_msg_from_exception(e), status=e.code)
         except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
-            return json_error_response(
-                utils.error_msg_from_exception(e), stacktrace=utils.get_stacktrace()
-            )
+            return json_error_response(utils.error_msg_from_exception(e))
 
     return functools.update_wrapper(wraps, f)
 
