@@ -187,13 +187,14 @@ class QueryContext:
         if cache_key and cache and not self.force:
             cache_value = cache.get(cache_key)
             if cache_value:
-                stats_logger.incr("loaded_from_cache")
+                stats_logger.incr("loading_from_cache")
                 try:
                     cache_value = pkl.loads(cache_value)
                     df = cache_value["df"]
                     query = cache_value["query"]
                     status = utils.QueryStatus.SUCCESS
                     is_loaded = True
+                    stats_logger.incr("loaded_from_cache")
                 except Exception as e:  # pylint: disable=broad-except
                     logging.exception(e)
                     logging.error(
