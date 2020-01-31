@@ -26,10 +26,10 @@
   padding: 16px;
   background: @lightest;
   cursor: move;
-}
 
-.new-component:not(.static):hover {
-  background: @gray-bg;
+  &:not(.static):hover {
+    background: @gray-bg;
+  }
 }
 
 .new-component-placeholder {
@@ -44,9 +44,11 @@
   justify-content: center;
   color: @gray;
   font-size: @font-size-xxl;
+
   &.fa-window-restore {
     font-size: @font-size-l;
   }
+
   &.fa-area-chart {
     font-size: @font-size-xl;
   }

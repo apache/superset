@@ -30,6 +30,7 @@ body {
     margin-top: 12px;
     margin-bottom: 12px;
   }
+
   h2 {
     font-weight: @font-weight-bold;
     line-height: @line-height-base;
@@ -37,6 +38,7 @@ body {
     margin-top: 12px;
     margin-bottom: 8px;
   }
+
   h3,
   h4,
   h5,
@@ -48,6 +50,7 @@ body {
     margin-top: 8px;
     margin-bottom: 4px;
   }
+
   p {
     margin: 0 0 8px 0;
   }
@@ -111,13 +114,16 @@ body {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
+
     & > :nth-child(3) {
       border-radius: @border-radius-normal 0px 0px @border-radius-normal;
       border-right: none;
     }
+
     & > :nth-child(4) {
       border-radius: 0px @border-radius-normal @border-radius-normal 0px;
     }
+
     & > :not(:nth-child(3)):not(:last-child) {
       margin-right: 8px;
     }
@@ -164,6 +170,7 @@ body {
 
     .btn {
       margin-right: 16px;
+
       &:last-child {
         margin-right: 0;
       }

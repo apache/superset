@@ -33,17 +33,17 @@
         padding: 12px 0 14px 0;
         font-size: @font-size-m;
         margin-right: 0;
-      }
 
-      & > a:hover {
-        border: none;
-        background: inherit;
-        color: @almost-black;
-      }
+        &:hover {
+          border: none;
+          background: inherit;
+          color: @almost-black;
+        }
 
-      & > a:focus {
-        outline: none;
-        background: @lightest;
+        &:focus {
+          outline: none;
+          background: @lightest;
+        }
       }
 
       & .dragdroppable-tab {
@@ -82,19 +82,19 @@
 
     & li.active > a {
       border: none;
-    }
 
-    & li.active > a:after {
-      content: '';
-      position: absolute;
-      height: 3px;
-      width: 100%;
-      bottom: 0;
-      background: linear-gradient(
-        to right,
-        @indicator-color,
-        shade(@indicator-color, @colorstop-two)
-      );
+      &:after {
+        content: '';
+        position: absolute;
+        height: 3px;
+        width: 100%;
+        bottom: 0;
+        background: linear-gradient(
+          to right,
+          @indicator-color,
+          shade(@indicator-color, @colorstop-two)
+        );
+      }
     }
   }
 
