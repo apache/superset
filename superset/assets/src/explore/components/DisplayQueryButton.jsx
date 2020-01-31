@@ -242,7 +242,6 @@ export default class DisplayQueryButton extends React.PureComponent {
               slice={this.props.slice}
               show={this.state.propertiesModalOpen}
               onHide={this.closePropertiesModal}
-              onSave={this.onSliceSave}
               animation={this.props.animation}
             />
           </>
