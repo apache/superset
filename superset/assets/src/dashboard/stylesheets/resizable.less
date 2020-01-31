@@ -19,50 +19,75 @@
 .resizable-container {
   background-color: transparent;
   position: relative;
+
+  /* re-resizable sets an empty div to 100% width and height, which doesn't
+  play well with many 100% height containers we need
+ */
+  & ~ div {
+    width: auto !important;
+    height: auto !important;
+  }
 }
 
-/* after ensures border visibility on top of any children */
-.resizable-container--resizing:after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  box-shadow: inset 0 0 0 2px @indicator-color;
+.resizable-container--resizing {
+  /* after ensures border visibility on top of any children */
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset 0 0 0 2px @indicator-color;
+  }
+
+  & > span .resize-handle {
+    border-color: @indicator-color;
+  }
 }
 
 .resize-handle {
   opacity: 0;
   z-index: @z-index-above-dashboard-charts;
+
+  &--bottom-right {
+    position: absolute;
+    border: solid;
+    border-width: 0 1.5px 1.5px 0;
+    border-right-color: @gray;
+    border-bottom-color: @gray;
+    right: 16px;
+    bottom: 16px;
+    width: 8px;
+    height: 8px;
+  }
+
+  &--right {
+    width: 2px;
+    height: 20px;
+    right: 4px;
+    top: 50%;
+    transform: translate(0, -50%);
+    position: absolute;
+    border-left: 1px solid @gray;
+    border-right: 1px solid @gray;
+  }
+
+  &--bottom {
+    height: 2px;
+    width: 20px;
+    bottom: 4px;
+    left: 50%;
+    transform: translate(-50%);
+    position: absolute;
+    border-top: 1px solid @gray;
+    border-bottom: 1px solid @gray;
+  }
 }
 
 .resizable-container:hover .resize-handle,
 .resizable-container--resizing .resize-handle {
   opacity: 1;
-}
-
-.resize-handle--bottom-right {
-  position: absolute;
-  border: solid;
-  border-width: 0 1.5px 1.5px 0;
-  border-right-color: @gray;
-  border-bottom-color: @gray;
-  right: 16px;
-  bottom: 16px;
-  width: 8px;
-  height: 8px;
-}
-
-.resize-handle--right {
-  width: 2px;
-  height: 20px;
-  right: 4px;
-  top: 50%;
-  transform: translate(0, -50%);
-  position: absolute;
-  border-left: 1px solid @gray;
-  border-right: 1px solid @gray;
 }
 
 .dragdroppable-column .resizable-container-handle--right {
@@ -75,29 +100,6 @@
   right: 0px !important;
 }
 
-.resize-handle--bottom {
-  height: 2px;
-  width: 20px;
-  bottom: 4px;
-  left: 50%;
-  transform: translate(-50%);
-  position: absolute;
-  border-top: 1px solid @gray;
-  border-bottom: 1px solid @gray;
-}
-
 .resizable-container-handle--bottom {
   bottom: 0 !important;
-}
-
-.resizable-container--resizing > span .resize-handle {
-  border-color: @indicator-color;
-}
-
-/* re-resizable sets an empty div to 100% width and height, which doesn't
-  play well with many 100% height containers we need
- */
-.resizable-container ~ div {
-  width: auto !important;
-  height: auto !important;
 }

@@ -73,32 +73,31 @@
 
 .nav-tabs {
   .dropdown-toggle.btn,
-  .dropdown-toggle.btn:hover,
-  .dropdown-toggle.btn:active,
-  .dropdown-toggle.btn:focus,
-  .btn-group.open .dropdown-toggle.btn,
-  .btn-group.open .dropdown-toggle.btn:hover,
-  .btn-group.open .dropdown-toggle.btn:active,
-  .btn-group.open .dropdown-toggle.btn:focus {
-    border-color: transparent;
-    background-color: transparent;
-    box-shadow: none;
+  .btn-group.open .dropdown-toggle.btn {
+    &,
+    &:hover,
+    &:active,
+    &:focus {
+      border-color: transparent;
+      background-color: transparent;
+      box-shadow: none;
+    }
   }
 }
 
 .caret {
   border: none;
   color: @gray;
-}
 
-.caret:before {
-  font-family: 'FontAwesome';
-  font-size: @font-size-xs;
-  content: '\f078';
-}
+  &:hover {
+    color: @gray-darker;
+  }
 
-.caret:hover {
-  color: @gray-darker;
+  &:before {
+    font-family: 'FontAwesome';
+    font-size: @font-size-xs;
+    content: '\f078';
+  }
 }
 
 // Typography =================================================================
@@ -255,6 +254,7 @@ table,
 .alert {
   border: none;
 }
+
 .alert-link {
   text-decoration: underline;
 }
@@ -262,12 +262,15 @@ table,
 .alert-info .alert-link {
   color: @alert-info-text;
 }
+
 .alert-danger .alert-link {
   color: @alert-danger-text;
 }
+
 .alert-warning .alert-link {
   color: @alert-warning-text;
 }
+
 .alert-success .alert-link {
   color: @alert-success-text;
 }
@@ -275,6 +278,7 @@ table,
 .label {
   border-radius: @border-radius-normal;
 }
+
 label {
   font-weight: @font-weight-normal;
 }
@@ -284,6 +288,7 @@ label {
 .progress {
   height: 14px;
   .box-shadow(none);
+
   .progress-bar {
     font-size: @font-size-s;
     line-height: @line-height-tight;
@@ -295,6 +300,7 @@ label {
 
 .panel {
   border: none;
+
   &-heading,
   &-footer {
     border-top-right-radius: 0;
@@ -306,10 +312,12 @@ label {
       padding: 15px 15px 0 15px;
       background-color: transparent;
     }
+
     .panel-title {
       color: @text-color;
       padding-bottom: 5px;
       border-bottom: 1px solid @gray-light;
+
       h1,
       h2,
       h3,
@@ -320,19 +328,23 @@ label {
         font-weight: @font-weight-bold;
       }
     }
+
     .close {
       color: @text-color;
     }
   }
+
   &-primary {
     .panel-heading {
       padding: 15px 15px 0 15px;
       background-color: transparent;
     }
+
     .panel-title {
       color: @text-color;
       padding-bottom: 5px;
       border-bottom: 1px solid @gray-light;
+
       h1,
       h2,
       h3,
@@ -343,6 +355,7 @@ label {
         font-weight: @font-weight-bold;
       }
     }
+
     .close {
       color: @text-color;
     }
@@ -418,12 +431,15 @@ a.list-group-item {
   .info {
     color: @state-info-text;
   }
+
   .danger {
     color: @state-danger-text;
   }
+
   .warning {
     color: @state-warning-text;
   }
+
   .success {
     color: @state-success-text;
   }

@@ -37,15 +37,18 @@
         z-index: @z-index-chart;
         pointer-events: none;
       }
+
       &:hover:after {
         border: 1px dashed @indicator-color;
         z-index: @z-index-chart--dragging;
       }
     }
   }
+
   .dragdroppable-row .dashboard-component-header {
     cursor: move;
   }
+
   .header-style-option {
     font-weight: @font-weight-bold;
     color: @almost-black;
@@ -57,7 +60,7 @@
   width: auto;
 }
 
-.dashboard--editing 
+.dashboard--editing
 
 /* note: sizes should be a multiple of the 8px grid unit so that rows in the grid align */
 .header-small {

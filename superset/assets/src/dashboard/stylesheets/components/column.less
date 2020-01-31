@@ -28,7 +28,6 @@
 
 .dashboard--editing {
   .grid-column:after {
-    border: 1px solid transparent;
     content: '';
     position: absolute;
     width: 100%;
@@ -37,10 +36,9 @@
     left: 0;
     z-index: @z-index-chart;
     pointer-events: none;
-  }
-  .grid-column:after {
     border: 1px dashed @gray-light;
   }
+
   .resizable-container.resizable-container--resizing:hover > .grid-column:after,
   .hover-menu:hover + .grid-column:after {
     border: 1px dashed @indicator-color;
@@ -50,6 +48,7 @@
 
 .grid-column--empty {
   min-height: 100px;
+
   &:before {
     content: 'Empty column';
     position: absolute;

@@ -26,19 +26,24 @@ body {
 .inlineBlock {
   display: inline-block;
 }
+
 .valignTop {
   vertical-align: top;
 }
+
 .inline {
   display: inline;
 }
+
 .nopadding {
   padding: 0px;
 }
+
 .loading {
   width: 50px;
   margin-top: 15px;
 }
+
 .pane-cell {
   padding: 10px;
   overflow: auto;
@@ -65,14 +70,17 @@ body {
   margin-top: 2px;
   padding: 4px;
 }
+
 .Workspace hr {
   margin-top: 10px;
   margin-bottom: 10px;
 }
+
 div.Workspace {
   height: 100%;
   margin: 0px;
 }
+
 .padded {
   padding: 10px;
 }
@@ -80,42 +88,55 @@ div.Workspace {
 .p-t-10 {
   padding-top: 10px;
 }
+
 .p-t-5 {
   padding-top: 5px;
 }
+
 .m-r-5 {
   margin-right: 5px;
 }
+
 .m-r-3 {
   margin-right: 3px;
 }
+
 .m-l-1 {
   margin-left: 1px;
 }
+
 .m-l-2 {
   margin-left: 2px;
 }
+
 .m-r-10 {
   margin-right: 10px;
 }
+
 .m-l-10 {
   margin-left: 10px;
 }
+
 .m-l-5 {
   margin-left: 5px;
 }
+
 .m-b-10 {
   margin-bottom: 10px;
 }
+
 .m-t-5 {
   margin-top: 5px;
 }
+
 .m-t-10 {
   margin-top: 10px;
 }
+
 .p-t-10 {
   padding-top: 10px;
 }
+
 .sql-toolbar {
   padding: 10px 10px 5px 10px;
   background-color: @gray-bg;
@@ -123,29 +144,35 @@ div.Workspace {
   justify-content: space-between;
   border: 1px solid @gray-light;
   border-top: 0;
+
   form {
     margin-block-end: 0;
   }
+
   .leftItems form,
   .rightItems {
     & > span {
       margin-right: 5px;
       margin-bottom: 5px;
       display: inline-block;
+
       &:last-child {
         margin-right: 0;
       }
     }
   }
 }
+
 .no-shadow {
   box-shadow: none;
   background-color: transparent;
 }
+
 .pane-west {
   height: 100%;
   overflow: auto;
 }
+
 .circle {
   @circle-diameter: 10px;
   border-radius: (@circle-diameter / 2);
@@ -161,26 +188,22 @@ div.Workspace {
   margin-top: -3px;
   font-weight: @font-weight-bold;
 }
+
 .running {
   background-color: fade(@success, @opacity-heavy);
   color: @darkest;
 }
+
 .success {
   background-color: @success;
 }
+
 .failed {
   background-color: @danger;
 }
 
 .handle {
   cursor: move;
-}
-.SqlLab pre {
-  padding: 0px !important;
-  margin: 0px;
-  border: none;
-  font-size: @font-size-s;
-  background-color: transparent !important;
 }
 
 #a11y-query-editor-tabs {
@@ -196,6 +219,14 @@ div.Workspace {
   bottom: 0px;
   left: 0px;
   padding: 0 10px;
+
+  pre {
+    padding: 0px !important;
+    margin: 0px;
+    border: none;
+    font-size: @font-size-s;
+    background-color: transparent !important;
+  }
 
   .north-pane {
     display: flex;
@@ -321,10 +352,10 @@ div.Workspace {
 
 div.tablePopover {
   opacity: 0.7 !important;
-}
 
-div.tablePopover:hover {
-  opacity: 1 !important;
+  &:hover {
+    opacity: 1 !important;
+  }
 }
 
 .ResultSetControls {
@@ -355,16 +386,16 @@ div.tablePopover:hover {
 
 .TableElement {
   margin-right: 10px;
-}
 
-.TableElement .well {
-  margin-top: 5px;
-  margin-bottom: 5px;
-  padding: 5px 10px;
-}
+  .well {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding: 5px 10px;
+  }
 
-.TableElement .ws-el-controls {
-  margin-right: -0.3em;
+  .ws-el-controls {
+    margin-right: -0.3em;
+  }
 }
 
 .QueryTable .label {
@@ -382,10 +413,12 @@ div.tablePopover:hover {
 a.Link {
   cursor: pointer;
 }
+
 .QueryTable .well {
   padding: 3px 5px;
   margin: 3px 5px;
 }
+
 .tooltip pre {
   background: transparent;
   border: none;
@@ -393,10 +426,12 @@ a.Link {
   color: @lightest;
   font-size: @font-size-xs;
 }
+
 .tooltip-inner {
   max-width: 500px;
   word-wrap: break-word;
 }
+
 .SouthPane {
   width: 100%;
 
@@ -405,6 +440,7 @@ a.Link {
     display: flex;
     flex-direction: column;
   }
+
   .tab-pane {
     overflow-y: auto; // scroll the query history pane
   }
@@ -418,15 +454,18 @@ a.Link {
   &:focus {
     outline: 0;
   }
+
   &:active {
     box-shadow: none;
   }
 }
+
 .icon-container {
   display: inline-block;
   width: 30px;
   text-align: center;
 }
+
 .search-date-filter-container {
   display: flex;
 

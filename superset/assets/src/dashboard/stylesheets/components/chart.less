@@ -75,11 +75,13 @@
       pointer-events: none;
       border: 1px solid transparent;
     }
+
     &:hover:after {
       border: 1px dashed @indicator-color;
       z-index: @z-index-chart--dragging;
     }
   }
+
   .resizable-container {
     &:hover,
     &.resizable-container--resizing:hover {
@@ -88,17 +90,20 @@
       }
     }
   }
+
   .resizable-container .dashboard-component-chart-holder {
     .dashboard-chart {
       .chart-container {
         cursor: move;
         opacity: 0.2;
       }
+
       .slice_container {
         /* disable chart interactions in edit mode */
         pointer-events: none;
       }
     }
+
     &:hover .dashboard-chart .chart-container {
       opacity: 0.7;
     }
