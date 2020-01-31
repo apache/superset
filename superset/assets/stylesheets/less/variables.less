@@ -17,12 +17,12 @@
  * under the License.
  */
 
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 /* COLORS                                                               */
 /* Please attempt to use and standardize on these colors,               */
 /* rather than including specific color values in                       */
 /* component styles. This will allow us to more easily adjust theming   */
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 
 @primary-color: #00a699;
 @indicator-color: #44c0ff;
@@ -75,67 +75,66 @@
 }
 .badge-loop(@iterations);
 
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 /* OPACITIES                                                            */
 /* Used in LESS filters, e.g. fade(@someColorVar, @someOpacityBelow)    */
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 @opacity-light: 10%;
 @opacity-medium-light: 35%;
 @opacity-medium: 50%;
 @opacity-medium-heavy: 60%;
 @opacity-heavy: 80%;
 
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 /* SHADES & TINTS                                                       */
 /* Used in LESS filters for shadint/tinting,                            */
 /* e.g. shade(@someColorVar, @colorstop-one) to darken                  */
 /* or tint(@someColorVar, @colorstop-one) to lighten                    */
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 @colorstop-one: 20%;
 @colorstop-two: 40%;
 @colorstop-three: 60%;
 @colorstop-four: 80%;
 
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 /* LAYOUT                                                               */
 /* Widths and heights of things, that might be referred to often        */
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 
-/* builder component pane */
-@builder-pane-width: 374px;
+@builder-pane-width: 374px; // builder component pane
 
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 /* Z-INDEX                                                              */
 /* Think of the site as "layers" rather than an arms race of numbers    */
 /* Keep these to a minimum                                              */
 /* Label semantic "layers" and add comments for usage notes             */
 /* Use double dash modifiers to step up/down from a base layer          */
 /* e.g. z-whatever--modifier                                            */
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 
-/************************ toast messages, popovers **********************/
+/*---------------------- toast messages, popovers ----------------------*/
 @z-index-max: 3000;
 
-/***** filters, dashboard editor widgets, Explore reloading overlay *****/
+/*---- filters, dashboard editor widgets, Explore reloading overlay ----*/
 @z-index-dropdown: @z-index-above-dashboard-charts + 1;
 @z-index-above-dashboard-charts: 10;
 
-/******************************** charts ********************************/
+/*------------------------------- charts -------------------------------*/
 @z-index-chart--dragging: @z-index-chart + 1;
 @z-index-chart: 1;
 
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 /* TYPOGRAPHY                                                           */
 /* Commonly used font weights, line heights, etc. These should be the   */
 /* core values used to build more complex styles for headers, etc.      */
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 
-// *************************** Weights **********************************
+/*------------------------------- Weights ------------------------------*/
 @font-weight-light: 200;
 @font-weight-normal: 400;
 @font-weight-bold: 700;
 
-// ***************************** Font Sizes *****************************
+/*------------------------------ Font Sizes ----------------------------*/
 @font-size-base: 14px; // Base `rem` units on this, as needed.
 
 @font-size-xxs: 9px;
@@ -146,37 +145,37 @@
 @font-size-xl: 21px;
 @font-size-xxl: 28px;
 
-// **************************** Line Heights ****************************
+/*---------------------------- Line Heights ----------------------------*/
 @line-height-base: 1.4;
 // Ranged Sizes
 @line-height-tight: 1;
 @line-height-normal: @line-height-base;
 @line-height-loose: 2;
 
-// ****************************** Families ******************************
+/*------------------------------ Families ------------------------------*/
 @font-family-sans-serif: Helvetica, Arial;
 @font-family-serif: Georgia, 'Times New Roman', Times, serif;
 @font-family-monospace: Menlo, Monaco, Consolas, 'Courier New', monospace;
 @font-family-base: @font-family-sans-serif;
 
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 /* TRANSITIONS                                                          */
 /* Timing and easings presets used in CSS transitions                   */
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 @timing-normal: 0.3s;
 
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 /* BORDER RADII                                                         */
 /* Standard border-radius settings                                      */
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 @border-radius-normal: 2px;
 @border-radius-large: (@border-radius-normal * 2);
 
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 /* BOOTSTRAP/BOOTSWATCH/COSMO                                           */
 /* These are the legacy Cosmo theme overrides to Bootswatch's           */
 /* overrides to Bootstrap. We should consolidate/deprecate these        */
 /* in favor of custom/reusable CSS wherever possible                    */
-/************************************************************************/
+/* <<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>> */
 
 @import '../less/cosmo/variables.less';
