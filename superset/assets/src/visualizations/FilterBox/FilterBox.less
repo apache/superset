@@ -50,10 +50,10 @@ ul.select2-results div.filter_box {
 .filter_box {
   padding: 10px 0;
   overflow: visible !important;
-}
 
-.filter_box:hover {
-  z-index: @z-index-max;
+  &:hover {
+    z-index: @z-index-max;
+  }
 }
 
 .m-b-5 {
@@ -62,19 +62,19 @@ ul.select2-results div.filter_box {
 
 .filter-container {
   display: flex;
-}
 
-.filter-container label {
-  display: flex;
-  font-weight: @font-weight-bold;
-  margin: 0 0 8px 8px;
-}
+  label {
+    display: flex;
+    font-weight: @font-weight-bold;
+    margin: 0 0 8px 8px;
+  }
 
-.filter-container .filter-badge-container {
-  width: 30px;
-  padding-right: 10px;
-}
+  .filter-badge-container {
+    width: 30px;
+    padding-right: 10px;
+  }
 
-.filter-container .filter-badge-container + div {
-  width: 100%;
+  .filter-badge-container + div {
+    width: 100%;
+  }
 }

@@ -51,21 +51,18 @@
 .control-panel-section {
   margin-bottom: 0;
   box-shadow: none;
-}
-.control-panel-section:last-child {
-  padding-bottom: 40px;
-}
 
-.control-panel-section .Select-multi-value-wrapper .Select-input > input {
-  width: 100px;
-}
+  &:last-child {
+    padding-bottom: 40px;
+  }
 
-.control-panel-section
-  .metrics-select
-  .Select-multi-value-wrapper
-  .Select-input
-  > input {
-  width: 300px;
+  .Select-multi-value-wrapper .Select-input > input {
+    width: 100px;
+  }
+
+  .metrics-select .Select-multi-value-wrapper .Select-input > input {
+    width: 300px;
+  }
 }
 
 .background-transparent {
@@ -78,48 +75,62 @@
   padding: 0;
   display: flex;
   align-items: center;
+
+  li {
+    flex-basis: 9px;
+    height: 10px;
+    margin: 9px 1px;
+  }
 }
-.color-scheme-container li {
-  flex-basis: 9px;
-  height: 10px;
-  margin: 9px 1px;
+
+.control-panel-section {
+  .panel-body {
+    margin-left: 15px;
+    padding-bottom: 0px;
+  }
+
+  .control-label {
+    margin-bottom: 0px;
+  }
+
+  span.label {
+    display: inline-block;
+  }
 }
-.control-panel-section .panel-body {
-  margin-left: 15px;
-  padding-bottom: 0px;
-}
-.control-panel-section .control-label {
-  margin-bottom: 0px;
-}
+
 .fa.expander {
   width: 15px;
 }
-.control-panel-section span.label {
-  display: inline-block;
-}
+
 .input-inline {
   float: left;
   padding-right: 3px;
+
+  .Select-control {
+    display: flex;
+
+    .Select-arrow-zone {
+      width: auto;
+      position: absolute;
+      right: 0;
+      top: 12px;
+    }
+  }
 }
-.input-inline .Select-control {
-  display: flex;
-}
-.input-inline .Select-control .Select-arrow-zone {
-  width: auto;
-  position: absolute;
-  right: 0;
-  top: 12px;
-}
+
 .save-modal-selector {
   margin: 10px 0;
 }
+
 .list-group {
   margin-bottom: 10px;
 }
+
 .color-popover.popover {
   border: none;
   background-color: transparent;
 }
+
 .color-popover .popover-content {
   padding: 0;
   background-color: transparent;
@@ -139,18 +150,18 @@
 
 .adhoc-metric-edit-tabs > .nav-tabs {
   margin-bottom: 6px;
-}
 
-.adhoc-metric-edit-tabs > .nav-tabs > li > a {
-  padding: 4px 4px 4px 4px;
+  & > li > a {
+    padding: 4px 4px 4px 4px;
+  }
 }
 
 .adhoc-filter-edit-tabs > .nav-tabs {
   margin-bottom: 8px;
-}
 
-.adhoc-filter-edit-tabs > .nav-tabs > li > a {
-  padding: 4px;
+  & > li > a {
+    padding: 4px;
+  }
 }
 
 .edit-popover-resize {
@@ -166,6 +177,7 @@
 
 #metrics-edit-popover {
   max-width: none;
+
   .inline-editable {
     line-height: 30px; // hand-tweaked to match the height of the input
   }
@@ -239,10 +251,10 @@
 
 .time-filter-tabs > .nav-tabs {
   margin-bottom: 8px;
-}
 
-.time-filter-tabs > .nav-tabs > li > a {
-  padding: 4px;
+  & > li > a {
+    padding: 4px;
+  }
 }
 
 .custom-sql-disabled-message {

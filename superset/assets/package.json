@@ -231,7 +231,11 @@
   "stylelint": {
     "rules": {
       "block-opening-brace-space-before": "always",
-      "no-missing-end-of-source-newline": "never"
+      "no-missing-end-of-source-newline": "never",
+      "rule-empty-line-before": ["always", {
+          "except": ["first-nested"],
+          "ignore": ["after-comment"]
+        }]
     }
   }
 }
