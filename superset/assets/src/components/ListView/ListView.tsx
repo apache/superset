@@ -24,11 +24,11 @@ import {
   DropdownButton,
   FormControl,
   MenuItem,
-  Pagination,
   Row,
   // @ts-ignore
 } from 'react-bootstrap';
 import IndeterminateCheckbox from '../IndeterminateCheckbox';
+import Pagination from '../Pagination';
 import './ListViewStyles.less';
 import TableCollection from './TableCollection';
 import { FetchDataConfig, FilterToggle, FilterType, FilterTypeMap, SortColumn } from './types';

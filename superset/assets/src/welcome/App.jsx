@@ -30,7 +30,10 @@ import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
 import Welcome from './Welcome';
+import {ThemeProvider} from 'styled-components';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
+import {supersetTheme} from '../../stylesheets/styled-components/superset-theme';
+
 
 setupApp();
 
@@ -48,20 +51,22 @@ const store = createStore(
 );
 
 const App = () => (
-  <Provider store={store}>
-    <Router>
-      <Menu data={menu} />
-      <Switch>
-        <Route path="/superset/welcome/">
-          <Welcome user={user} />
-        </Route>
-        <Route path="/dashboard/list/">
-          <DashboardList user={user} />
-        </Route>
-      </Switch>
-      <ToastPresenter />
-    </Router>
-  </Provider>
+  <ThemeProvider theme={supersetTheme}>
+    <Provider store={store}>
+      <Router>
+        <Menu data={menu} />
+        <Switch>
+          <Route path="/superset/welcome/">
+            <Welcome user={user} />
+          </Route>
+          <Route path="/dashboard/list/">
+            <DashboardList user={user} />
+          </Route>
+        </Switch>
+        <ToastPresenter />
+      </Router>
+    </Provider>
+  </ThemeProvider>
 );
 
 export default hot(module)(App);
