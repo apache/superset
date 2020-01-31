@@ -77,7 +77,7 @@ export default class DisplayQueryButton extends React.PureComponent {
       error: null,
       filterText: '',
       sqlSupported: datasource && datasource.split('__')[1] === 'table',
-      propertiesModalOpen: false,
+      isPropertiesModalOpen: false,
     };
     this.beforeOpen = this.beforeOpen.bind(this);
     this.changeFilterText = this.changeFilterText.bind(this);
@@ -119,10 +119,10 @@ export default class DisplayQueryButton extends React.PureComponent {
     this.props.onOpenInEditor(this.props.latestQueryFormData);
   }
   openPropertiesModal() {
-    this.setState({ propertiesModalOpen: true });
+    this.setState({ isPropertiesModalOpen: true });
   }
   closePropertiesModal() {
-    this.setState({ propertiesModalOpen: false });
+    this.setState({ isPropertiesModalOpen: false });
   }
   renderQueryModalBody() {
     if (this.state.isLoading) {
@@ -240,7 +240,7 @@ export default class DisplayQueryButton extends React.PureComponent {
             </MenuItem>
             <PropertiesModal
               slice={this.props.slice}
-              show={this.state.propertiesModalOpen}
+              show={this.state.isPropertiesModalOpen}
               onHide={this.closePropertiesModal}
               animation={this.props.animation}
             />

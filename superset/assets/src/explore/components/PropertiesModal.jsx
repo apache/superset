@@ -48,6 +48,14 @@ function PropertiesModal({ slice, onHide, onSave }) {
   const [submitting, setSubmitting] = useState(false);
   const errorDialog = useRef();
 
+  // values of form inputs
+  const [name, setName] = useState(slice.slice_name || '');
+  const [description, setDescription] = useState(slice.description || '');
+  const [cacheTimeout, setCacheTimeout] = useState(
+    slice.cache_timeout != null ? slice.cache_timeout : '',
+  );
+  const [owners, setOwners] = useState(null);
+
   function showError({ error, statusText }) {
     errorDialog.current.show({
       title: 'Error',
@@ -58,26 +66,20 @@ function PropertiesModal({ slice, onHide, onSave }) {
     });
   }
 
-  // values of form inputs
-  const [name, setName] = useState(slice.slice_name || '');
-  const [description, setDescription] = useState(slice.description || '');
-  const [cacheTimeout, setCacheTimeout] = useState(slice.cache_timeout || '');
-  const [owners, setOwners] = useState(null);
-
   async function fetchOwners() {
     try {
-      const res = await SupersetClient.get({
+      const response = await SupersetClient.get({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
       });
       setOwners(
-        res.json.result.owners.map(owner => ({
+        response.json.result.owners.map(owner => ({
           value: owner.id,
           label: owner.username,
         })),
       );
-    } catch (res) {
-      const errObj = await getClientErrorObject(res);
-      showError(errObj);
+    } catch (response) {
+      const clientError = await getClientErrorObject(response);
+      showError(clientError);
     }
   }
 
@@ -121,8 +123,8 @@ function PropertiesModal({ slice, onHide, onSave }) {
       onSave(res.json.result);
       onHide();
     } catch (res) {
-      const errObj = await getClientErrorObject(res);
-      showError(errObj);
+      const clientError = await getClientErrorObject(res);
+      showError(clientError);
     }
     setSubmitting(false);
   };
@@ -194,22 +196,18 @@ function PropertiesModal({ slice, onHide, onSave }) {
               <label className="control-label" htmlFor="owners">
                 {t('Owners')}
               </label>
-              {ownerOptions && (
-                <>
-                  <Select
-                    name="owners"
-                    multi
-                    isLoading={!ownerOptions}
-                    value={owners}
-                    options={ownerOptions || []}
-                    onChange={setOwners}
-                    disabled={!owners || !ownerOptions}
-                  />
-                  <p className="help-block">
-                    {t('A list of users who can alter the chart')}
-                  </p>
-                </>
-              )}
+              <Select
+                name="owners"
+                multi
+                isLoading={!ownerOptions}
+                value={owners}
+                options={ownerOptions || []}
+                onChange={setOwners}
+                disabled={!owners || !ownerOptions}
+              />
+              <p className="help-block">
+                {t('A list of users who can alter the chart')}
+              </p>
             </FormGroup>
           </Col>
         </Row>
