@@ -47,6 +47,7 @@ function PropertiesModalWrapper({ show, onHide, animation, slice, onSave }) {
 function PropertiesModal({ slice, onHide, onSave }) {
   const [submitting, setSubmitting] = useState(false);
   const errorDialog = useRef();
+  const [ownerOptions, setOwnerOptions] = useState(null);
 
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
@@ -89,12 +90,11 @@ function PropertiesModal({ slice, onHide, onSave }) {
   }, []);
 
   // get the list of users who can own a chart
-  const [ownerOptions, setUserOptions] = useState(null);
   useEffect(() => {
     SupersetClient.get({
       endpoint: `/api/v1/chart/related/owners`,
     }).then(res => {
-      setUserOptions(
+      setOwnerOptions(
         res.json.result.map(item => ({
           value: item.value,
           label: item.text,
